@@ -384,9 +384,7 @@ class MasSettings extends LitElement {
             return this.formValueType === 'boolean' ? 'boolean' : 'text';
         }
         if (this.settingDefinition?.editor) return this.settingDefinition.editor;
-        if (!this.isCreateMode && this.formValueType) {
-            return this.formValueType === 'boolean' ? 'boolean' : 'text';
-        }
+        if (this.formValueType) return this.formValueType === 'boolean' ? 'boolean' : 'text';
         return '';
     }
 
@@ -571,6 +569,20 @@ class MasSettings extends LitElement {
         }
 
         if (action === 'publish') {
+            if (overrideId) {
+                const override = row.overrides.find((item) => item.id === overrideId);
+                const localeLabel = override?.locales?.length ? ` (${override.locales.join(', ')})` : '';
+                return {
+                    title: 'Publish this override?',
+                    body: [
+                        `Are you sure you want to publish '${settingLabel}${localeLabel}'?`,
+                        'Once published, these changes will be applied to the selected cards. Please note that it may take up to 15 minutes for the updates to appear.',
+                    ],
+                    confirmLabel: 'Publish',
+                    showIcon: true,
+                    variant: 'primary',
+                };
+            }
             return {
                 title: 'Publish this setting?',
                 body: [
@@ -587,8 +599,7 @@ class MasSettings extends LitElement {
             return {
                 title: 'Unpublish this setting?',
                 body: [
-                    `Are you sure you want to unpublish '${settingLabel}'?`,
-                    'This will remove the setting from all associated cards. It may take up to 15 minutes for the changes to take effect.',
+                    `This will remove '${settingLabel}' from all associated cards. It may take up to 15 minutes for the changes to take effect.`,
                 ],
                 confirmLabel: 'Unpublish',
                 showIcon: true,
@@ -608,12 +619,13 @@ class MasSettings extends LitElement {
         };
     }
 
-    #openConfirmDialog(action, rowId, overrideId = null) {
+    #openConfirmDialog(action, rowId, overrideId = null, resetOnCancel = false) {
         this.dialog = {
             type: 'confirm',
             action,
             rowId,
             overrideId,
+            resetOnCancel,
             config: this.#buildConfirmDialogConfig(action, rowId, overrideId),
         };
     }
@@ -652,7 +664,7 @@ class MasSettings extends LitElement {
     };
 
     #handleDialogCancel = () => {
-        const resetForm = this.dialog?.type === 'override';
+        const resetForm = this.dialog?.type === 'override' || Boolean(this.dialog?.resetOnCancel);
         this.dialog = null;
         if (!resetForm) return;
         Store.settings.fragmentId.set(null);
@@ -709,8 +721,8 @@ class MasSettings extends LitElement {
         if (!saved) return;
 
         if (publish) {
-            const published = await Store.settings.publishOverride(overrideId);
-            if (!published) return;
+            this.#openConfirmDialog('publish', this.dialog.rowId, overrideId, true);
+            return;
         }
 
         this.#handleDialogCancel();
@@ -881,7 +893,11 @@ class MasSettings extends LitElement {
                 duplicatedId = await Store.settings.duplicateSetting(this.dialog.rowId);
                 success = Boolean(duplicatedId);
             }
-            if (action === 'publish') success = await Store.settings.publishSetting(this.dialog.rowId);
+            if (action === 'publish') {
+                success = this.dialog.overrideId
+                    ? await Store.settings.publishOverride(this.dialog.overrideId)
+                    : await Store.settings.publishSetting(this.dialog.rowId);
+            }
             if (action === 'unpublish') success = await Store.settings.unpublishSetting(this.dialog.rowId);
             if (action === 'delete') success = await Store.settings.removeSetting(this.dialog.rowId);
             if (action === 'duplicate-override') {
@@ -1274,7 +1290,7 @@ class MasSettings extends LitElement {
         }
 
         if (row.status === 'PUBLISHED') disabled.add(QUICK_ACTION.PUBLISH);
-        if (row.status !== 'PUBLISHED') disabled.add(QUICK_ACTION.UNPUBLISH);
+        if (row.status !== 'PUBLISHED' && row.status !== 'MODIFIED') disabled.add(QUICK_ACTION.UNPUBLISH);
         if (DELETE_BLOCKED_STATUSES.includes(row.status)) disabled.add(QUICK_ACTION.DELETE);
         return disabled;
     }

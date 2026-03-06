@@ -1,10 +1,10 @@
 import { LitElement, html, nothing } from 'lit';
-import Store from '../store.js';
+import { lastNestedRowIcon, nestedRowIcon, overrideNestedRowIcon, settingsEmptyStateIcon } from '../icons.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { settingsEmptyStateIcon } from '../icons.js';
+import Store from '../store.js';
+import { toPascalCase } from '../utils.js';
 import { tableStyles } from './mas-settings-table.css.js';
 import { DELETE_BLOCKED_STATUSES } from './settings-store.js';
-import './mas-setting-item.js';
 
 /**
  * Settings table component for expanded fragment settings view.
@@ -46,11 +46,11 @@ export class MasSettingsTable extends LitElement {
     }
 
     #handleToggleExpand = (event) => {
-        this.settings.toggleExpanded(event.detail.id);
+        this.settings.toggleExpanded(event.currentTarget.dataset.rowId);
     };
 
     #handleToggleValue = (event) => {
-        this.settings.toggleSetting(event.detail.id, event.detail.checked);
+        this.settings.toggleSetting(event.currentTarget.dataset.rowId, event.currentTarget.checked);
     };
 
     #handleSort = ({ detail: { sortKey, sortDirection } }) => {
@@ -60,6 +60,11 @@ export class MasSettingsTable extends LitElement {
 
     #handleAddOverride = (event) => {
         this.#dispatchEvent('setting-add-override', { id: event.currentTarget.dataset.rowId });
+    };
+
+    #handleAction = (event) => {
+        const { action, rowId } = event.currentTarget.dataset;
+        this.#dispatchEvent(action, { id: rowId });
     };
 
     #handleOverrideAction = (event) => {
@@ -76,9 +81,14 @@ export class MasSettingsTable extends LitElement {
         this.settings.toggleOverride(rowId, overrideId, event.currentTarget.checked);
     };
 
-    #formatOverrideLocales(locales = []) {
-        if (!locales.length) return '-';
-        return locales.join(', ');
+    #formatDateParts(dateString = '') {
+        if (!dateString) return { date: '-', time: '' };
+        const parsedDate = new Date(dateString);
+        if (Number.isNaN(parsedDate.getTime())) return { date: dateString, time: '' };
+        return {
+            date: parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            time: parsedDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        };
     }
 
     #normalizeDisplayValue(value) {
@@ -91,6 +101,257 @@ export class MasSettingsTable extends LitElement {
     #normalizeTags(tags = []) {
         if (!tags.length) return [];
         return tags.map((tag) => tag?.title || tag?.id || `${tag}`);
+    }
+
+    #formatStatus(status = '') {
+        if (!status) return '-';
+        return status
+            .toLowerCase()
+            .split('_')
+            .map((segment) => toPascalCase(segment))
+            .join(' ');
+    }
+
+    #statusVariant(status = '') {
+        switch (status) {
+            case 'PUBLISHED':
+                return 'positive';
+            case 'DRAFT':
+                return 'info';
+            case 'MODIFIED':
+                return 'yellow';
+            case 'UNPUBLISHED':
+                return 'neutral';
+            default:
+                return 'neutral';
+        }
+    }
+
+    #localeSummary(locales = []) {
+        if (!locales.length) return { primary: 'All', extraCount: 0 };
+        const [primary, ...rest] = locales;
+        return {
+            primary,
+            extraCount: rest.length,
+        };
+    }
+
+    #templateSummary(templateIds = [], templateSummary = '') {
+        const summary = templateSummary || this.settings.formatTemplateSummary(templateIds);
+        return summary === 'All templates selected' ? 'All' : summary || 'All';
+    }
+
+    #valueText(record) {
+        if (record.valueType === 'text' || record.valueType === 'richText') {
+            return this.#normalizeDisplayValue(record.value);
+        }
+        return record.label || this.#normalizeDisplayValue(record.value);
+    }
+
+    #countTagTemplate(count) {
+        if (!count) return nothing;
+        return html`<sp-tag size="s" class="summary-count-tag">${`+${count}`}</sp-tag>`;
+    }
+
+    #labelInfoTemplate(description = '') {
+        if (!description) return nothing;
+
+        return html`
+            <overlay-trigger placement="top">
+                <sp-icon-info class="label-info-icon"></sp-icon-info>
+                <sp-tooltip slot="hover-content" placement="top">${description}</sp-tooltip>
+            </overlay-trigger>
+        `;
+    }
+
+    #localeCellTemplate(locales = []) {
+        const { primary, extraCount } = this.#localeSummary(locales);
+
+        return html`
+            <div class="summary-content">
+                <span class="summary-text">${primary}</span>
+                ${this.#countTagTemplate(extraCount)}
+            </div>
+        `;
+    }
+
+    #templateCellTemplate(record) {
+        return html`<span class="cell-text" title=${this.#templateSummary(record.templateIds, record.templateSummary)}
+            >${this.#templateSummary(record.templateIds, record.templateSummary)}</span
+        >`;
+    }
+
+    #tagsCellTemplate(tags = []) {
+        const normalizedTags = this.#normalizeTags(tags);
+
+        if (!normalizedTags.length) return html`<span class="summary-text">All</span>`;
+
+        const [firstTag, ...rest] = normalizedTags;
+        return html`
+            <div class="summary-content">
+                <sp-tag size="s">${firstTag}</sp-tag>
+                ${this.#countTagTemplate(rest.length)}
+            </div>
+        `;
+    }
+
+    #labelCellTemplate(record, { nested = false } = {}) {
+        return html`
+            <div class="label-content ${nested ? 'is-nested' : ''}">
+                <div class="label-copy">
+                    <span class="setting-label-text" title=${record.label || '-'}>${record.label || '-'}</span>
+                </div>
+                ${nested ? nothing : this.#labelInfoTemplate(record.description || '')}
+            </div>
+        `;
+    }
+
+    #valueCellTemplate(record, { rowId, overrideId = '' } = {}) {
+        const showToggle = record.valueType !== 'text' && record.valueType !== 'richText';
+        const checked = Boolean(record.booleanValue);
+
+        return html`
+            <div class="value-content">
+                ${showToggle
+                    ? html`
+                          <sp-switch
+                              size="m"
+                              data-row-id=${rowId}
+                              data-override-id=${overrideId}
+                              .checked=${checked}
+                              @change=${overrideId ? this.#handleToggleOverrideValue : this.#handleToggleValue}
+                          ></sp-switch>
+                      `
+                    : nothing}
+                <span class="value-text" title=${this.#valueText(record)}>${this.#valueText(record)}</span>
+            </div>
+        `;
+    }
+
+    #dateCellTemplate(dateString = '') {
+        const { date, time } = this.#formatDateParts(dateString);
+
+        return html`
+            <div class="date-content">
+                <span>${time ? `${date},` : date}</span>
+                ${time ? html`<span>${time}</span>` : nothing}
+            </div>
+        `;
+    }
+
+    #statusCellTemplate(status = '') {
+        return html`
+            <div class="status-content">
+                <sp-status-light size="s" variant=${this.#statusVariant(status)}></sp-status-light>
+                <span>${this.#formatStatus(status)}</span>
+            </div>
+        `;
+    }
+
+    #actionsCellTemplate({ rowId, overrideId = '', status }) {
+        const canDelete = !DELETE_BLOCKED_STATUSES.includes(status);
+
+        return html`
+            <sp-action-menu class="row-actions-menu" quiet size="m" placement="bottom-end">
+                <sp-icon-more slot="icon"></sp-icon-more>
+                <sp-menu-item
+                    data-action="setting-edit"
+                    data-row-id=${rowId}
+                    data-override-id=${overrideId}
+                    @click=${overrideId ? this.#handleOverrideAction : this.#handleAction}
+                >
+                    <sp-icon-edit slot="icon"></sp-icon-edit>
+                    Edit setting
+                </sp-menu-item>
+                ${canDelete
+                    ? html`
+                          <sp-menu-item
+                              data-action="setting-delete"
+                              data-row-id=${rowId}
+                              data-override-id=${overrideId}
+                              @click=${overrideId ? this.#handleOverrideAction : this.#handleAction}
+                          >
+                              <sp-icon-delete slot="icon"></sp-icon-delete>
+                              Delete
+                          </sp-menu-item>
+                      `
+                    : nothing}
+            </sp-action-menu>
+        `;
+    }
+
+    #topLevelRowTemplate(renderedRow) {
+        const { row, expanded } = renderedRow;
+
+        return html`
+            <sp-table-row value=${row.id} class="mas-setting-row ${expanded ? 'is-expanded' : ''}">
+                <sp-table-cell class="expand-column">
+                    <sp-action-button
+                        quiet
+                        class="expand-button"
+                        data-row-id=${row.id}
+                        aria-label=${expanded ? 'Collapse row' : 'Expand row'}
+                        @click=${this.#handleToggleExpand}
+                    >
+                        ${expanded
+                            ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
+                            : html`<sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>`}
+                    </sp-action-button>
+                </sp-table-cell>
+                <sp-table-cell class="label-column">${this.#labelCellTemplate(row)}</sp-table-cell>
+                <sp-table-cell class="locale-column">${this.#localeCellTemplate(row.locales)}</sp-table-cell>
+                <sp-table-cell class="template-column">${this.#templateCellTemplate(row)}</sp-table-cell>
+                <sp-table-cell class="value-column">${this.#valueCellTemplate(row, { rowId: row.id })}</sp-table-cell>
+                <sp-table-cell class="tags-column">${this.#tagsCellTemplate(row.tags)}</sp-table-cell>
+                <sp-table-cell class="editor-column"><span class="cell-text">${row.modifiedBy || '-'}</span></sp-table-cell>
+                <sp-table-cell class="datetime-column">${this.#dateCellTemplate(row.modifiedAt)}</sp-table-cell>
+                <sp-table-cell class="status-column">${this.#statusCellTemplate(row.status)}</sp-table-cell>
+                <sp-table-cell class="actions-column actions-cell">
+                    ${this.#actionsCellTemplate({ rowId: row.id, status: row.status })}
+                </sp-table-cell>
+            </sp-table-row>
+        `;
+    }
+
+    #overrideRowTemplate(renderedRow, override, index) {
+        const isLast = index === renderedRow.overrides.length - 1;
+        const connectorIcon = isLast ? lastNestedRowIcon : nestedRowIcon;
+
+        return html`
+            <div class="override-row">
+                <div class="override-connector-cell">
+                    <span class="override-connector-icon ${isLast ? 'is-last' : ''}">${connectorIcon}</span>
+                </div>
+                <div class="override-content-row ${isLast ? 'is-last' : ''} ${index === 0 ? 'is-first' : ''}">
+                    <div class="override-cell label-column override-label-column">
+                        ${this.#labelCellTemplate(override, { nested: true })}
+                    </div>
+                    <div class="override-cell locale-column">${this.#localeCellTemplate(override.locales)}</div>
+                    <div class="override-cell template-column">
+                        <span class="cell-text" title=${this.#templateSummary(override.templateIds, override.template)}
+                            >${this.#templateSummary(override.templateIds, override.template)}</span
+                        >
+                    </div>
+                    <div class="override-cell value-column">
+                        ${this.#valueCellTemplate(override, {
+                            rowId: renderedRow.row.id,
+                            overrideId: override.id,
+                        })}
+                    </div>
+                    <div class="override-cell tags-column">${this.#tagsCellTemplate(override.tags)}</div>
+                    <div class="override-cell editor-column"><span class="cell-text">${override.modifiedBy || '-'}</span></div>
+                    <div class="override-cell datetime-column">${this.#dateCellTemplate(override.modifiedAt)}</div>
+                    <div class="override-cell status-column">${this.#statusCellTemplate(override.status)}</div>
+                    <div class="override-cell actions-column actions-cell">
+                        ${this.#actionsCellTemplate({
+                            rowId: renderedRow.row.id,
+                            overrideId: override.id,
+                            status: override.status,
+                        })}
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     get sortedRows() {
@@ -126,7 +387,7 @@ export class MasSettingsTable extends LitElement {
 
         return html`
             <sp-table-row class="override-panel-row" value=${`${renderedRow.row.id}:overrides`}>
-                <sp-table-cell class="expand-column"></sp-table-cell>
+                <sp-table-cell class="expand-column override-panel-hidden"></sp-table-cell>
                 <sp-table-cell class="override-panel-content">
                     <div class="override-panel-toolbar">
                         <sp-action-button size="m" data-row-id=${renderedRow.row.id} @click=${this.#handleAddOverride}>
@@ -136,74 +397,12 @@ export class MasSettingsTable extends LitElement {
                     </div>
                     ${hasOverrides
                         ? html`
-                              <sp-table class="override-table" size="m">
-                                  <sp-table-head>
-                                      <sp-table-head-cell class="override-locale-column">Locale</sp-table-head-cell>
-                                      <sp-table-head-cell class="override-template-column">Template</sp-table-head-cell>
-                                      <sp-table-head-cell>Local value</sp-table-head-cell>
-                                      <sp-table-head-cell class="override-tags-column">Tag</sp-table-head-cell>
-                                      <sp-table-head-cell class="override-actions-column">Actions</sp-table-head-cell>
-                                  </sp-table-head>
-                                  <sp-table-body>
-                                      ${renderedRow.overrides.map((override) => {
-                                          const tags = this.#normalizeTags(override.tags || []);
-                                          return html`
-                                              <sp-table-row class="override-table-row" value=${override.id}>
-                                                  <sp-table-cell class="override-locale-column">
-                                                      ${this.#formatOverrideLocales(override.locales)}
-                                                  </sp-table-cell>
-                                                  <sp-table-cell class="override-template-column">
-                                                      ${this.settings.formatTemplateSummary(override.templateIds)}
-                                                  </sp-table-cell>
-                                                  <sp-table-cell class="override-value-cell">
-                                                      ${renderedRow.row.valueType !== 'text'
-                                                          ? html`<sp-switch
-                                                                size="m"
-                                                                data-row-id=${renderedRow.row.id}
-                                                                data-override-id=${override.id}
-                                                                .checked=${Boolean(override.booleanValue)}
-                                                                @change=${this.#handleToggleOverrideValue}
-                                                            ></sp-switch>`
-                                                          : nothing}
-                                                      <span>${this.#normalizeDisplayValue(override.value)}</span>
-                                                  </sp-table-cell>
-                                                  <sp-table-cell class="override-tags-cell override-tags-column">
-                                                      ${tags.length
-                                                          ? tags.map((tag) => html`<sp-tag size="s">${tag}</sp-tag>`)
-                                                          : '-'}
-                                                  </sp-table-cell>
-                                                  <sp-table-cell class="override-actions-cell override-actions-column">
-                                                      <sp-action-menu quiet size="m" placement="bottom-end">
-                                                          <sp-icon-more slot="icon"></sp-icon-more>
-                                                          <sp-menu-item
-                                                              data-action="setting-edit"
-                                                              data-row-id=${renderedRow.row.id}
-                                                              data-override-id=${override.id}
-                                                              @click=${this.#handleOverrideAction}
-                                                          >
-                                                              <sp-icon-edit slot="icon"></sp-icon-edit>
-                                                              Edit setting
-                                                          </sp-menu-item>
-                                                          ${!DELETE_BLOCKED_STATUSES.includes(override.status)
-                                                              ? html`
-                                                                    <sp-menu-item
-                                                                        data-action="setting-delete"
-                                                                        data-row-id=${renderedRow.row.id}
-                                                                        data-override-id=${override.id}
-                                                                        @click=${this.#handleOverrideAction}
-                                                                    >
-                                                                        <sp-icon-delete slot="icon"></sp-icon-delete>
-                                                                        Delete
-                                                                    </sp-menu-item>
-                                                                `
-                                                              : nothing}
-                                                      </sp-action-menu>
-                                                  </sp-table-cell>
-                                              </sp-table-row>
-                                          `;
-                                      })}
-                                  </sp-table-body>
-                              </sp-table>
+                              <span class="override-trunk-icon">${overrideNestedRowIcon}</span>
+                              <div class="override-rows">
+                                  ${renderedRow.overrides.map((override, index) =>
+                                      this.#overrideRowTemplate(renderedRow, override, index),
+                                  )}
+                              </div>
                           `
                         : nothing}
                 </sp-table-cell>
@@ -212,7 +411,7 @@ export class MasSettingsTable extends LitElement {
     }
 
     get loadingTemplate() {
-        if (!this.loading && !this.settings.loading.get()) return nothing;
+        if (!this.settings.loading.get()) return nothing;
         return html`
             <div id="loading-state">
                 <sp-progress-circle indeterminate size="l"></sp-progress-circle>
@@ -251,6 +450,7 @@ export class MasSettingsTable extends LitElement {
                 <sp-table-head>
                     <sp-table-head-cell class="expand-column"></sp-table-head-cell>
                     <sp-table-head-cell
+                        class="label-column"
                         id="label-header-cell"
                         sortable
                         sort-key="label"
@@ -259,27 +459,20 @@ export class MasSettingsTable extends LitElement {
                     >
                         Label
                     </sp-table-head-cell>
-                    <sp-table-head-cell>Locale</sp-table-head-cell>
-                    <sp-table-head-cell>Template</sp-table-head-cell>
-                    <sp-table-head-cell>Value</sp-table-head-cell>
-                    <sp-table-head-cell>Tags</sp-table-head-cell>
-                    <sp-table-head-cell>Last edited by</sp-table-head-cell>
-                    <sp-table-head-cell>Date and time</sp-table-head-cell>
-                    <sp-table-head-cell>Status</sp-table-head-cell>
-                    <sp-table-head-cell>Actions</sp-table-head-cell>
+                    <sp-table-head-cell class="locale-column">Locale</sp-table-head-cell>
+                    <sp-table-head-cell class="template-column">Template</sp-table-head-cell>
+                    <sp-table-head-cell class="value-column">Value</sp-table-head-cell>
+                    <sp-table-head-cell class="tags-column">Tags</sp-table-head-cell>
+                    <sp-table-head-cell class="editor-column">Last edited by</sp-table-head-cell>
+                    <sp-table-head-cell class="datetime-column">Date and time</sp-table-head-cell>
+                    <sp-table-head-cell class="status-column">Status</sp-table-head-cell>
+                    <sp-table-head-cell class="actions-column">Actions</sp-table-head-cell>
                 </sp-table-head>
-                <sp-table-body
-                    @setting-toggle-expand=${this.#handleToggleExpand}
-                    @setting-toggle-value=${this.#handleToggleValue}
-                >
+                <sp-table-body>
                     ${rows.length
                         ? rows.map(
                               (renderedRow) => html`
-                                  <mas-setting-item
-                                      .store=${renderedRow.store}
-                                      .expanded=${renderedRow.expanded}
-                                  ></mas-setting-item>
-                                  ${this.overridePanelTemplate(renderedRow)}
+                                  ${this.#topLevelRowTemplate(renderedRow)} ${this.overridePanelTemplate(renderedRow)}
                               `,
                           )
                         : nothing}

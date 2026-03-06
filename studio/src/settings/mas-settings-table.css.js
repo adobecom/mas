@@ -4,6 +4,10 @@ import { css } from 'lit';
  * Table-level styles for settings layout, header, rows, empty state and loading state.
  */
 export const tableStyles = css`
+    :host {
+        display: block;
+    }
+
     #settings-content {
         position: relative;
         min-height: 220px;
@@ -20,30 +24,89 @@ export const tableStyles = css`
         border: 1px solid var(--spectrum-gray-300);
         border-radius: 12px;
         overflow: hidden;
+        background-color: var(--spectrum-white);
     }
 
     #settings-table sp-table-head {
-        background-color: var(--spectrum-gray-50);
-        height: 60px;
+        background-color: var(--spectrum-gray-75);
+        height: 44px;
     }
 
     #settings-table sp-table-head-cell {
         display: flex;
         align-items: center;
         font-weight: 700;
+        height: 44px;
         min-height: 44px;
+        padding: 0 20px;
+        color: var(--spectrum-gray-900);
+    }
+
+    #settings-table sp-table-head-cell.expand-column {
+        padding: 0;
+        justify-content: center;
     }
 
     #settings-table .expand-column {
-        width: 56px;
-        min-width: 56px;
-        max-width: 56px;
+        width: 60px;
+        min-width: 60px;
+        max-width: 60px;
         justify-content: center;
         position: relative;
     }
 
-    mas-setting-item {
-        display: contents;
+    #settings-table sp-table-head-cell.label-column,
+    #settings-table .mas-setting-row > .label-column {
+        width: 11.67%;
+        min-width: 0;
+    }
+
+    #settings-table sp-table-head-cell.locale-column,
+    #settings-table .mas-setting-row > .locale-column {
+        width: 9.41%;
+        min-width: 0;
+    }
+
+    #settings-table sp-table-head-cell.template-column,
+    #settings-table .mas-setting-row > .template-column {
+        width: 8.71%;
+        min-width: 0;
+    }
+
+    #settings-table sp-table-head-cell.value-column,
+    #settings-table .mas-setting-row > .value-column {
+        width: 12.28%;
+        min-width: 0;
+    }
+
+    #settings-table sp-table-head-cell.tags-column,
+    #settings-table .mas-setting-row > .tags-column {
+        width: 11.41%;
+        min-width: 0;
+    }
+
+    #settings-table sp-table-head-cell.editor-column,
+    #settings-table .mas-setting-row > .editor-column {
+        width: 11.85%;
+        min-width: 0;
+    }
+
+    #settings-table sp-table-head-cell.datetime-column,
+    #settings-table .mas-setting-row > .datetime-column {
+        width: 10.71%;
+        min-width: 0;
+    }
+
+    #settings-table sp-table-head-cell.status-column,
+    #settings-table .mas-setting-row > .status-column {
+        width: 9.67%;
+        min-width: 0;
+    }
+
+    #settings-table sp-table-head-cell.actions-column,
+    #settings-table .mas-setting-row > .actions-column {
+        width: 9.06%;
+        min-width: 0;
     }
 
     .mas-setting-row {
@@ -58,14 +121,12 @@ export const tableStyles = css`
         align-items: center;
         padding: 16px 20px;
         justify-content: flex-start;
+        overflow: hidden;
+        background-color: var(--spectrum-white);
     }
 
-    #settings-table sp-table-body > mas-setting-item:has(~ mas-setting-item) .mas-setting-row > sp-table-cell {
+    .mas-setting-row.is-expanded > sp-table-cell {
         border-bottom: 1px solid var(--spectrum-gray-300);
-    }
-
-    #settings-table sp-table-body > mas-setting-item:has(+ .override-panel-row) .mas-setting-row > sp-table-cell {
-        border-bottom: 0;
     }
 
     .mas-setting-row > .expand-column {
@@ -74,6 +135,8 @@ export const tableStyles = css`
     }
 
     .mas-setting-row .expand-button {
+        width: 32px;
+        height: 32px;
         padding: 0;
         display: inline-flex;
         align-items: center;
@@ -81,58 +144,126 @@ export const tableStyles = css`
         cursor: pointer;
     }
 
-    .mas-setting-row .name-cell {
-        min-width: 180px;
-    }
-
-    .mas-setting-row .setting-label {
-        font-weight: 700;
-    }
-
-    .mas-setting-row .value-cell {
-        white-space: nowrap;
+    .label-content {
         display: flex;
         align-items: center;
+        gap: 4px;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .label-content.is-nested {
+        gap: 4px;
+    }
+
+    .label-copy {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .setting-label-text {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        font-weight: 700;
+        line-height: 18px;
+        color: var(--spectrum-gray-900);
+    }
+
+    .label-info-icon {
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        color: var(--spectrum-gray-700);
+    }
+
+    .summary-content,
+    .value-content,
+    .status-content {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .summary-content {
+        gap: 6px;
+    }
+
+    .value-content {
         gap: 10px;
+    }
+
+    .value-content sp-switch {
+        flex-shrink: 0;
+    }
+
+    .summary-text,
+    .cell-text,
+    .value-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--spectrum-gray-800);
+        font-size: 14px;
+        line-height: 18px;
+    }
+
+    .summary-text,
+    .cell-text {
+        white-space: nowrap;
+    }
+
+    .value-text {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
         overflow: hidden;
     }
 
-    .mas-setting-row .status-cell {
-        white-space: nowrap;
+    .date-content {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        gap: 2px;
+        color: var(--spectrum-gray-800);
+        font-size: 14px;
+        line-height: 18px;
     }
 
-    .mas-setting-row .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-right: 6px;
+    .status-content {
+        gap: 6px;
+        white-space: nowrap;
+        color: var(--spectrum-gray-800);
+        font-size: 14px;
+        line-height: 18px;
     }
 
-    .mas-setting-row .actions-cell {
+    .status-content sp-status-light {
+        min-block-size: auto;
+        padding: 0;
+        --spectrum-statuslight-spacing-top-to-dot: 0;
+        --spectrum-statuslight-spacing-top-to-label: 0;
+        --spectrum-statuslight-spacing-dot-to-label: 0;
+    }
+
+    .actions-cell {
         justify-content: center;
     }
 
-    .mas-setting-row .actions-cell .row-actions-menu {
+    .actions-cell .row-actions-menu {
         width: 32px;
         height: 32px;
     }
 
-    .mas-setting-row .actions-cell .row-actions-menu [slot='icon'] {
+    .actions-cell .row-actions-menu [slot='icon'] {
         width: 20px;
         height: 20px;
     }
 
     #settings-table .override-panel-row > sp-table-cell {
         border: 0;
-        border-bottom: 1px solid var(--spectrum-gray-300);
         padding: 0;
         background-color: var(--spectrum-gray-50);
-    }
-
-    #settings-table sp-table-body > .override-panel-row:not(:first-child) > sp-table-cell {
-        border-top: 1px solid var(--spectrum-gray-300);
     }
 
     #settings-table .override-panel-row > .override-panel-hidden {
@@ -140,103 +271,117 @@ export const tableStyles = css`
     }
 
     #settings-table .override-panel-row > .override-panel-content {
-        padding: 16px 20px;
+        position: relative;
+        padding: 16px 20px 12px 30px;
+    }
+
+    .override-trunk-icon {
+        position: absolute;
+        left: 30px;
+        top: 0;
+        height: 64px;
+        width: 1px;
+        display: block;
+        overflow: visible;
     }
 
     .override-panel-toolbar {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
 
-    .override-table {
+    .override-rows {
         width: 100%;
-        border: 1px solid var(--spectrum-gray-300);
-        border-radius: 12px;
-        overflow: hidden;
-        background-color: var(--spectrum-white);
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        --override-gutter-width: 12px;
     }
 
-    .override-table sp-table-head {
-        background-color: var(--spectrum-gray-75);
+    .override-row {
+        display: grid;
+        grid-template-columns: var(--override-gutter-width) minmax(0, 1fr);
+        column-gap: 8px;
+        height: 68px;
+        min-height: 68px;
+        position: relative;
     }
 
-    .override-table sp-table-head-cell {
-        min-height: 44px;
-        height: 44px;
+    .override-connector-cell {
+        position: relative;
         display: flex;
         align-items: center;
-        padding: 8px 20px;
-        font-weight: 700;
+        justify-content: flex-start;
+        width: var(--override-gutter-width);
+        min-width: var(--override-gutter-width);
+        overflow: visible;
     }
 
-    .override-table .override-table-row {
-        min-height: 68px;
-        height: 68px;
-        max-height: 68px;
+    .override-trunk-icon svg {
+        width: 1px;
+        height: 100%;
     }
 
-    .override-table .override-table-row > sp-table-cell {
-        min-height: 68px;
+    .override-connector-icon {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: flex;
+        width: var(--override-gutter-width);
         height: 68px;
+        overflow: visible;
+    }
+
+    .override-connector-icon.is-last {
+        height: 37px;
+    }
+
+    .override-connector-icon svg {
+        width: 16px;
+        height: 100%;
+        overflow: visible;
+    }
+
+    .override-content-row {
+        display: grid;
+        grid-template-columns: 1.232fr 0.993fr 0.919fr 1.296fr 1.204fr 1.25fr 1.131fr 1.02fr 0.956fr;
+        height: 68px;
+        min-height: 68px;
+        background-color: var(--spectrum-white);
+        border-left: 1px solid var(--spectrum-gray-300);
+        border-right: 1px solid var(--spectrum-gray-300);
+    }
+
+    .override-content-row.is-first {
+        border-top: 1px solid var(--spectrum-gray-300);
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        overflow: hidden;
+    }
+
+    .override-content-row.is-last {
+        border-bottom: 1px solid var(--spectrum-gray-300);
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        overflow: hidden;
+    }
+
+    .override-content-row:not(.is-last) {
+        border-bottom: 1px solid var(--spectrum-gray-300);
+    }
+
+    .override-cell {
+        min-height: 68px;
         display: flex;
         align-items: center;
         padding: 16px 20px;
         background-color: var(--spectrum-white);
         overflow: hidden;
-        text-overflow: ellipsis;
     }
 
-    .override-table .override-locale-column {
-        width: 195px;
-        min-width: 195px;
-        max-width: 195px;
-    }
-
-    .override-table .override-template-column {
-        width: 195px;
-        min-width: 195px;
-        max-width: 195px;
-    }
-
-    .override-table .override-tags-column {
-        width: 233px;
-        min-width: 233px;
-        max-width: 233px;
-    }
-
-    .override-table .override-actions-column {
-        width: 103px;
-        min-width: 103px;
-        max-width: 103px;
-    }
-
-    .override-value-cell {
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        overflow: hidden;
-    }
-
-    .override-tags-cell {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .override-actions-cell {
-        justify-content: center;
-    }
-
-    .override-actions-cell sp-action-menu {
-        width: 32px;
-        height: 32px;
-    }
-
-    .override-actions-cell sp-action-menu [slot='icon'] {
-        width: 20px;
-        height: 20px;
+    .override-label-column {
+        padding-left: 24px;
     }
 
     #empty-state {
@@ -288,13 +433,14 @@ export const tableStyles = css`
     }
 
     #loading-state {
-        position: fixed;
+        position: absolute;
         inset: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         gap: 16px;
+        background: rgba(255, 255, 255, 0.72);
         z-index: 1000;
         pointer-events: none;
     }

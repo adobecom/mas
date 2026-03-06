@@ -1,5 +1,8 @@
 import { html } from 'lit';
 
+/**
+ * Branch icon used in tree-like list affordances.
+ */
 export const branch2Icon = html` <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 36 36"
@@ -15,39 +18,59 @@ export const branch2Icon = html` <svg
     ></path>
 </svg>`;
 
+/**
+ * Figma connector trunk used for expanded settings override groups.
+ */
 export const overrideNestedRowIcon = html`<svg
+    preserveAspectRatio="none"
+    width="100%"
+    height="100%"
+    overflow="visible"
+    style="display: block;"
     xmlns="http://www.w3.org/2000/svg"
-    width="1"
-    height="102"
     viewBox="0 0 1 102"
     fill="none"
 >
-    <path d="M0.5 0V51V102" stroke="#C6C6C6" />
+    <path id="Vector 1" d="M0.5 0V51V102" stroke="var(--stroke-0, #C6C6C6)" />
 </svg>`;
 
+/**
+ * Figma connector branch used for middle override rows.
+ */
 export const nestedRowIcon = html` <svg
+    preserveAspectRatio="none"
+    width="100%"
+    height="100%"
+    overflow="visible"
+    style="display: block;"
     xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="68"
-    viewBox="0 0 16 68"
+    viewBox="0 0 15.1667 68"
     fill="none"
 >
     <path
+        id="Vector 1"
         d="M9.83333 34C9.83333 35.4728 11.0272 36.6667 12.5 36.6667C13.9728 36.6667 15.1667 35.4728 15.1667 34C15.1667 32.5272 13.9728 31.3333 12.5 31.3333C11.0272 31.3333 9.83333 32.5272 9.83333 34ZM0.5 0H0V34H0.5H1V0H0.5ZM0.5 34V34.5H12.5V34V33.5H0.5V34ZM0.5 34H0V68H0.5H1V34H0.5Z"
-        fill="#C6C6C6"
+        fill="var(--stroke-0, #C6C6C6)"
     />
 </svg>`;
 
+/**
+ * Figma connector branch used for the last override row.
+ */
 export const lastNestedRowIcon = html`<svg
+    preserveAspectRatio="none"
+    width="100%"
+    height="100%"
+    overflow="visible"
+    style="display: block;"
     xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="37"
-    viewBox="0 0 16 37"
+    viewBox="0 0 15.1667 36.6667"
     fill="none"
 >
     <path
+        id="Vector 2"
         d="M9.83333 34C9.83333 35.4728 11.0272 36.6667 12.5 36.6667C13.9728 36.6667 15.1667 35.4728 15.1667 34C15.1667 32.5272 13.9728 31.3333 12.5 31.3333C11.0272 31.3333 9.83333 32.5272 9.83333 34ZM0.5 0H0V32H0.5H1V0H0.5ZM2.5 34V34.5H12.5V34V33.5H2.5V34ZM0.5 32H0C0 33.3807 1.11929 34.5 2.5 34.5V34V33.5C1.67157 33.5 1 32.8284 1 32H0.5Z"
-        fill="#C6C6C6"
+        fill="var(--stroke-0, #C6C6C6)"
     />
 </svg>`;
 

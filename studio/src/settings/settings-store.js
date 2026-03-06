@@ -994,7 +994,7 @@ export class SettingsStore {
         return {
             id: record.id,
             path: record.fragment.path,
-            label: record.label || fallbackLabel,
+            label: fallbackLabel,
             locales: record.locales,
             locale: record.locales.join(', '),
             templateIds: record.templateIds,

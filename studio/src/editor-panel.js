@@ -7,6 +7,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    COMPARE_CHART_MODEL_PATH,
     EVENT_KEYDOWN,
     EVENT_OST_OFFER_SELECT,
     OPERATIONS,
@@ -23,6 +24,7 @@ import router from './router.js';
 export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
+    [COMPARE_CHART_MODEL_PATH]: 'compare-chart',
 };
 
 export function getFragmentPartsToUse(store, fragment) {
@@ -1024,6 +1026,13 @@ export default class EditorPanel extends LitElement {
                         .updateFragment=${this.updateFragment}
                         .localeDefaultFragment=${this.localeDefaultFragment}
                     ></merch-card-collection-editor>`;
+                    break;
+                case COMPARE_CHART_MODEL_PATH:
+                    editor = html` <compare-chart-editor
+                        .fragmentStore=${this.fragmentStore}
+                        .updateFragment=${this.updateFragment}
+                        .localeDefaultFragment=${this.localeDefaultFragment}
+                    ></compare-chart-editor>`;
                     break;
             }
         }

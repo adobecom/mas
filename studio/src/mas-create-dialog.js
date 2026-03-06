@@ -210,10 +210,7 @@ export class MasCreateDialog extends LitElement {
 
         this.loading = true;
 
-        const modelId =
-            this.type === 'merch-card'
-                ? TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card']
-                : TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
+        const modelId = TAG_MODEL_ID_MAPPING[`mas:studio/content-type/${this.type}`];
 
         const fragmentData = {
             modelId,
@@ -244,8 +241,12 @@ export class MasCreateDialog extends LitElement {
     }
 
     get dialogTitle() {
-        const typeLabel = this.type === 'merch-card' ? 'Merch Card' : 'Merch Card Collection';
-        return `Create New ${typeLabel}`;
+        const typeLabels = {
+            'merch-card': 'Merch Card',
+            'merch-card-collection': 'Merch Card Collection',
+            'compare-chart': 'Compare Chart',
+        };
+        return `Create New ${typeLabels[this.type] || this.type}`;
     }
 
     render() {

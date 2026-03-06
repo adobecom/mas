@@ -33,6 +33,7 @@ aio config ls --json | jq -r '.project.workspace.details.credentials[] | select(
 # set the returned string from above as current IMS context
 aio context -s <string_from_above_command>
 ```
+
 ask colleague for values and add these env vars in .env file:
 ODIN_CDN_ENDPOINT=
 ODIN_ORIGIN_ENDPOINT=
@@ -56,7 +57,7 @@ Using Github workflows, the CI/CD of I/O studio has been automated. The workflow
 
 ## CI/CD Prerequisites
 
-In order for the auto-deployment to work, a number of Github action secrets are required. In addition, every developer who wants to get his/her PR changes deployed to their personal I/O studio workspace, needs his/her own set of github secrets. 
+In order for the auto-deployment to work, a number of Github action secrets are required. In addition, every developer who wants to get his/her PR changes deployed to their personal I/O studio workspace, needs his/her own set of github secrets.
 
 ## Set GH action secrets
 
@@ -73,7 +74,6 @@ The following secrets need to be added per workspace:
 | `AIO_STUDIO_NS_<gh_user_id>`  | `<namespace>` | see `AIO_runtime_namespace` value in `.env` file |
 
 With these secrets in place, any github user's I/O studio workspace that has the above set of secrets created will be used when raising a PR against `io/studio`.
-
 
 ## Local Dev
 

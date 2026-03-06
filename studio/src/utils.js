@@ -1,4 +1,4 @@
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, COMPARE_CHART_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
@@ -178,6 +178,7 @@ export function getService() {
 export const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
+    [COMPARE_CHART_MODEL_PATH]: 'compare-chart',
 };
 
 export function getFragmentPartsToUse(fragment, path) {
@@ -209,6 +210,10 @@ export function getFragmentPartsToUse(fragment, path) {
             title = props.cardTitle;
             break;
         case COLLECTION_MODEL_PATH:
+            title = fragment?.title;
+            fragmentParts = `${surface} / ${title}`;
+            break;
+        case COMPARE_CHART_MODEL_PATH:
             title = fragment?.title;
             fragmentParts = `${surface} / ${title}`;
             break;

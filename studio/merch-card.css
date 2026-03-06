@@ -21,12 +21,14 @@ merch-card:hover:not(.selected) sp-icon-add {
     display: block;
 }
 
-.mas-fragment merch-card[variant^='plans'][size='wide'] {
+.mas-fragment merch-card[variant^='plans'][size='wide'],
+.mas-fragment merch-card[variant^='catalog'][size='wide'] {
     width: 575px;
     min-width: 575px;
 }
 
-.mas-fragment merch-card[variant^='plans'][size='super-wide'] {
+.mas-fragment merch-card[variant^='plans'][size='super-wide'],
+.mas-fragment merch-card[variant^='catalog'][size='super-wide'] {
     width: 874px;
     min-width: 874px;
 }
@@ -37,7 +39,8 @@ merch-card:hover:not(.selected) sp-icon-add {
 }
 
 @media (min-width: 926px) and (max-width: 1235px) {
-    .mas-fragment merch-card[variant^='plans'][size='super-wide'] {
+    .mas-fragment merch-card[variant^='plans'][size='super-wide'],
+    .mas-fragment merch-card[variant^='catalog'][size='super-wide'] {
         width: 575px;
         min-width: 575px;
     }
@@ -45,7 +48,9 @@ merch-card:hover:not(.selected) sp-icon-add {
 
 @media (max-width: 925px) {
     .mas-fragment merch-card[variant^='plans'][size='wide'],
-    .mas-fragment merch-card[variant^='plans'][size='super-wide'] {
+    .mas-fragment merch-card[variant^='plans'][size='super-wide'],
+    .mas-fragment merch-card[variant^='catalog'][size='wide'],
+    .mas-fragment merch-card[variant^='catalog'][size='super-wide'] {
         width: 276px;
         min-width: 276px;
     }

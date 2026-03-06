@@ -98,7 +98,7 @@ const runOnFilledState = async (fetchStub, entry, headers) => {
     setupFragmentMocks(fetchStub, {
         id: 'some-en-us-fragment',
         path: 'someFragment',
-        fields: {
+        fields: {   
             description: 'corps',
             cta: '{{buy-now}}',
         },

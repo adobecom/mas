@@ -4950,9 +4950,8 @@ merch-card[variant="full-pricing-express"] [slot="price"] .price-strikethrough .
 merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-symbol,
 merch-card[variant="full-pricing-express"] [slot="price"] .price-integer,
 merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals-delimiter,
-merch-card[variant="full-pricing-express"] [slot="price"] price-currency-space,
-merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals,
-merch-card[variant="full-pricing-express"] [slot="price"] .price-price-decimals {
+merch-card[variant="full-pricing-express"] [slot="price"] .price-currency-space,
+merch-card[variant="full-pricing-express"] [slot="price"] .price-decimals {
     font-size: var(--merch-card-full-pricing-express-price-font-size);
     font-weight: var(--merch-card-full-pricing-express-price-font-weight);
     line-height: var(--merch-card-full-pricing-express-price-line-height);

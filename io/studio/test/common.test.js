@@ -70,6 +70,7 @@ describe('common.js - fetchOdin', () => {
                 sinon.match({
                     headers: {
                         Authorization: 'Bearer test-auth-token',
+                        'User-Agent': 'mas-translation-project',
                     },
                     method: 'GET',
                     body: null,

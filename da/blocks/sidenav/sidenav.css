@@ -1,8 +1,8 @@
-.sitenav {
+.sidenav {
     display: none;
 }
 
-.sitenav .sitenav-title {
+.sidenav .sidenav-title {
     display: block;
     margin: 0 0 20px;
     font-family: var(--heading-font-family);
@@ -11,17 +11,17 @@
     color: var(--text-color);
 }
 
-.sitenav ul {
+.sidenav ul {
     margin: 0;
     padding: 0 0 0 12px;
     list-style: none;
 }
 
-.sitenav > ul {
+.sidenav > ul {
     padding-left: 0;
 }
 
-.sitenav li {
+.sidenav li {
     margin-top: 10px;
     display: flex;
     flex-wrap: wrap;
@@ -29,19 +29,19 @@
     gap: 8px;
 }
 
-.sitenav li > a {
+.sidenav li > a {
     flex: 1 1 0;
     color: var(--text-color);
     text-decoration: none;
     line-height: 1.4;
 }
 
-.sitenav li > a[aria-current='page'] {
+.sidenav li > a[aria-current='page'] {
     color: var(--link-color);
     font-weight: 700;
 }
 
-.sitenav .sitenav-toggle {
+.sidenav .sidenav-toggle {
     padding: 0;
     margin: 0;
     border: 0;
@@ -54,26 +54,26 @@
     transition: transform 0.15s ease-in-out;
 }
 
-.sitenav .sitenav-branch {
+.sidenav .sidenav-branch {
     display: none;
     flex: 1 0 100%;
 }
 
-.sitenav li.is-open > .sitenav-toggle {
+.sidenav li.is-open > .sidenav-toggle {
     transform: rotate(90deg);
 }
 
-.sitenav li.is-open > .sitenav-branch {
+.sidenav li.is-open > .sidenav-branch {
     display: block;
 }
 
-.sitenav .sitenav-error {
+.sidenav .sidenav-error {
     margin: 0;
     color: var(--dark-color);
     font-size: var(--body-font-size-xs);
 }
 
-.sitenav .sitenav-studio-button {
+.sidenav .sidenav-studio-button {
     display: inline-block;
     margin-top: 20px;
     padding: 8px 14px;
@@ -85,14 +85,14 @@
     line-height: 1.2;
 }
 
-.sitenav .sitenav-studio-button:hover,
-.sitenav .sitenav-studio-button:focus {
+.sidenav .sidenav-studio-button:hover,
+.sidenav .sidenav-studio-button:focus {
     background-color: var(--link-hover-color);
     text-decoration: none;
 }
 
 @media (width >= 900px) {
-    .sitenav {
+    .sidenav {
         display: block;
         padding: 28px 24px 32px;
         font-size: var(--body-font-size-xs);

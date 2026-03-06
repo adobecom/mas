@@ -23,17 +23,17 @@ function isDocsPage(pathname = window.location.pathname) {
     return pathname === '/docs' || pathname.startsWith('/docs/');
 }
 
-async function loadSiteNav(doc) {
-    if (doc.querySelector('.docs-sitenav-shell')) return;
+async function loadSideNav(doc) {
+    if (doc.querySelector('.docs-sidenav-shell')) return;
 
     const main = doc.querySelector('main');
     if (!main) return;
 
     const shell = document.createElement('aside');
-    shell.className = 'docs-sitenav-shell';
+    shell.className = 'docs-sidenav-shell';
 
     const nav = document.createElement('nav');
-    nav.className = 'sitenav';
+    nav.className = 'sidenav';
     shell.append(nav);
     main.insertAdjacentElement('beforebegin', shell);
 
@@ -41,10 +41,10 @@ async function loadSiteNav(doc) {
 
     try {
         await loadBlock(nav);
-        doc.body.classList.add('has-docs-sitenav');
+        doc.body.classList.add('has-docs-sidenav');
     } catch (error) {
         shell.remove();
-        console.error('Failed to load sitenav block', error);
+        console.error('Failed to load sidenav block', error);
     }
 }
 
@@ -175,7 +175,7 @@ async function loadEager(doc) {
         doc.body.dataset.breadcrumbs = true;
     }
     if (isDocsPage()) {
-        await loadSiteNav(doc);
+        await loadSideNav(doc);
     }
     const main = doc.querySelector('main');
     if (main) {

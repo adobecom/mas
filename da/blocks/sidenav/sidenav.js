@@ -92,14 +92,14 @@ function renderBranch(node, currentPath) {
 
         if (hasChildren) {
             const button = document.createElement('button');
-            button.className = 'sitenav-toggle';
+            button.className = 'sidenav-toggle';
             button.type = 'button';
             button.setAttribute('aria-label', `Expand ${child.title}`);
             button.setAttribute('aria-expanded', inPath ? 'true' : 'false');
             button.textContent = '▸';
 
             const branch = renderBranch(child, currentPath);
-            branch.classList.add('sitenav-branch');
+            branch.classList.add('sidenav-branch');
             if (inPath) {
                 li.classList.add('is-open');
             }
@@ -130,10 +130,10 @@ export default async function decorate(block) {
     const currentPath = normalizePath(window.location.pathname);
     const title = document.createElement('a');
     const studioButton = document.createElement('a');
-    title.className = 'sitenav-title';
+    title.className = 'sidenav-title';
     title.href = '/docs/';
     title.textContent = 'Docs';
-    studioButton.className = 'sitenav-studio-button';
+    studioButton.className = 'sidenav-studio-button';
     studioButton.href = '/studio.html';
     studioButton.textContent = 'To studio';
     block.append(title);
@@ -147,7 +147,7 @@ export default async function decorate(block) {
         block.append(renderBranch(tree, currentPath));
     } catch (e) {
         const message = document.createElement('p');
-        message.className = 'sitenav-error';
+        message.className = 'sidenav-error';
         message.textContent = 'Navigation is unavailable.';
         block.append(message);
     }

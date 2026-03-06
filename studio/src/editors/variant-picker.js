@@ -8,6 +8,7 @@ export const VARIANT_NAMES = {
     PLANS_V2: 'plans-v2',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
+    PRODUCT: 'product',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -19,6 +20,7 @@ export const VARIANT_NAMES = {
     IMAGE: 'image',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
     FULL_PRICING_EXPRESS: 'full-pricing-express',
+    HEADLESS: 'headless',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -39,6 +41,11 @@ export const VARIANTS = [
     {
         label: 'Plans Education',
         value: VARIANT_NAMES.PLANS_EDUCATION,
+        surface: SURFACES.ACOM.name,
+    },
+    {
+        label: 'Product',
+        value: VARIANT_NAMES.PRODUCT,
         surface: SURFACES.ACOM.name,
     },
     { label: 'Segment', value: VARIANT_NAMES.SEGMENT, surface: SURFACES.ACOM.name },
@@ -84,6 +91,11 @@ export const VARIANTS = [
         value: 'full-pricing-express',
         surface: SURFACES.EXPRESS.name,
     },
+    {
+        label: 'Headless',
+        value: VARIANT_NAMES.HEADLESS,
+        surface: SURFACES.SANDBOX.name,
+    },
 ];
 
 class VariantPicker extends LitElement {
@@ -126,7 +138,7 @@ class VariantPicker extends LitElement {
 
     render() {
         return html`<sp-picker
-            label="Card Variant"
+            label="Card Template"
             size="m"
             value=${this.value ?? this.defaultValue}
             .value=${this.value ?? this.defaultValue}

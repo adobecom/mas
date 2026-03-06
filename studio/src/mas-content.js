@@ -10,7 +10,7 @@ import { CARD_MODEL_PATH } from './constants.js';
 const variantValues = VARIANTS.map((v) => v.value);
 
 export const cardSkeleton = () =>
-    html`<div class="render-fragment-placeholder">
+    html`<div class="render-fragment-placeholder" aria-busy="true">
         <div class="skeleton-element skeleton-title"></div>
         <div class="skeleton-element skeleton-body"></div>
         <div class="skeleton-element skeleton-footer"></div>

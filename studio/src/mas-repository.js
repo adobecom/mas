@@ -416,6 +416,8 @@ export class MasRepository extends LitElement {
             }
         } catch (error) {
             this.processError(error, 'Could not load next page.');
+            this.#searchCursor = null;
+            Store.fragments.list.hasMore.set(false);
         }
         Store.fragments.list.loading.set(false);
     }

@@ -421,7 +421,8 @@ mas-content {
     overflow: hidden;
 }
 
-#content #render {
+#content #render,
+.next-page-skeletons {
     width: 100%;
     display: flex;
     flex-wrap: wrap;
@@ -892,13 +893,6 @@ sp-progress-circle.preview {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1000;
-}
-
-.next-page-skeletons {
-    width: 100%;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
 }
 
 .clone-dialog sp-progress-circle {

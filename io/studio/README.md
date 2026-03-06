@@ -102,7 +102,7 @@ If you need to force re-deploy:
 
 ### `.env`
 
-You can generate this file using the command `aio app use`.
+You can generate this file using the command `aio app use`. Be aware that it would remove all custom env vars, you will need to re-add them.
 
 ```bash
 # This file must **not** be committed to source control

@@ -75,10 +75,24 @@
                 }
             };
 
+            const getDialogActionButton = (dialog, label) =>
+                [...dialog.querySelectorAll('sp-button[slot="button"]')].find((button) => button.textContent.includes(label));
+
+            const openOverrideDialog = async (settingsPage, table, rowId = 'setting-show-addon') => {
+                table.dispatchEvent(
+                    new CustomEvent('setting-add-override', {
+                        detail: { id: rowId },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+                await waitForUpdates(settingsPage, 2);
+                return settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
+            };
+
             const clickEditorAction = (settingsPage, title) => {
                 const actionEventMap = {
                     Save: 'save',
-                    Duplicate: 'duplicate',
                     Publish: 'publish',
                     Unpublish: 'unpublish',
                     Cancel: 'cancel',
@@ -159,7 +173,7 @@
                             expect(settingsPage.shadowRoot.querySelector('#title').textContent.trim()).to.equal('Settings');
                             expect(calls.getByPath[0].path).to.equal('/content/dam/mas/acom/settings/index');
                             expect(calls.getByPath[0].options).to.deep.equal({ references: 'direct-hydrated' });
-                            expect(table.shadowRoot.querySelectorAll('mas-setting-item').length).to.equal(3);
+                            expect(table.shadowRoot.querySelectorAll('.mas-setting-row').length).to.equal(3);
                         });
 
                         it('opens create and edit dialogs from route state', async () => {
@@ -170,17 +184,13 @@
                             const createEditor = settingsPage.shadowRoot.querySelector('#settings-editor-page');
                             expect(createEditor).to.exist;
                             expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS_EDITOR);
-                            const createActionBar = settingsPage.shadowRoot.querySelector('#settings-editor-action-bar');
-                            expect(createActionBar).to.exist;
-                            expect(createActionBar.actions).to.not.include('duplicate');
+                            expect(settingsPage.shadowRoot.querySelector('#settings-editor-action-bar')).to.exist;
 
                             Store.settings.creating.set(false);
                             Store.settings.fragmentId.set('setting-display-plan-type');
                             await waitForUpdates(settingsPage, 2);
                             const editEditor = settingsPage.shadowRoot.querySelector('#settings-editor-page');
                             expect(editEditor).to.exist;
-                            const editActionBar = settingsPage.shadowRoot.querySelector('#settings-editor-action-bar');
-                            expect(editActionBar.actions).to.not.include('duplicate');
                             expect(settingsPage.shadowRoot.querySelector('[name="setting-name-page"]').value).to.equal(
                                 'displayPlanType',
                             );
@@ -393,82 +403,63 @@
                     });
 
                     describe('override flow', () => {
-                        it('opens override dialog and submits override payload', async () => {
+                        it('submits addon overrides with and without locale selection', async () => {
                             const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
-                            const capturedCalls = [];
                             const originalAddOverride = Store.settings.addOverride;
-                            Store.settings.addOverride = async (rowId, payload) => {
-                                capturedCalls.push({ rowId, payload });
-                                return true;
-                            };
-
-                            table.dispatchEvent(
-                                new CustomEvent('setting-add-override', {
-                                    detail: { id: 'setting-show-addon' },
-                                    bubbles: true,
-                                    composed: true,
-                                }),
-                            );
-                            await waitForUpdates(settingsPage, 2);
-
-                            settingsPage.form = {
-                                ...settingsPage.form,
-                                locales: ['de_DE'],
-                                templateIds: ['plans'],
-                                tags: ['mas:keyword/design'],
-                                addonEnabled: true,
-                                value: '{{test-value}}',
-                            };
-                            await waitForUpdates(settingsPage, 1);
-
-                            const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
-                            expect(overrideDialog).to.exist;
-                            expect(overrideDialog.querySelector('#addon-enabled-switch')).to.exist;
-                            expect(overrideDialog.querySelector('sp-combobox')).to.exist;
-                            const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
-                                (button) => button.textContent.includes('Save as draft'),
-                            );
-                            saveDraftButton.click();
-                            await waitForUpdates(settingsPage, 2);
-
-                            expect(capturedCalls.length).to.equal(1);
-                            expect(capturedCalls[0].rowId).to.equal('setting-show-addon');
-                            expect(capturedCalls[0].payload.locales).to.deep.equal(['de_DE']);
-                            expect(capturedCalls[0].payload.templateIds).to.deep.equal(['plans']);
-                            expect(capturedCalls[0].payload.tags).to.deep.equal(['mas:keyword/design']);
-                            expect(capturedCalls[0].payload.valueType).to.equal('optional-text');
-                            expect(capturedCalls[0].payload.value).to.equal('{{test-value}}');
-                            Store.settings.addOverride = originalAddOverride;
-                        });
-
-                        it('allows creating overrides without selecting locales', async () => {
-                            const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
                             const capturedCalls = [];
-                            const originalAddOverride = Store.settings.addOverride;
                             Store.settings.addOverride = async (rowId, payload) => {
                                 capturedCalls.push({ rowId, payload });
                                 return 'new-override-id';
                             };
 
-                            table.dispatchEvent(
-                                new CustomEvent('setting-add-override', {
-                                    detail: { id: 'setting-show-addon' },
-                                    bubbles: true,
-                                    composed: true,
-                                }),
-                            );
-                            await waitForUpdates(settingsPage, 2);
+                            const cases = [
+                                {
+                                    formPatch: {
+                                        locales: ['de_DE'],
+                                        templateIds: ['plans'],
+                                        tags: ['mas:keyword/design'],
+                                        addonEnabled: true,
+                                        value: '{{test-value}}',
+                                    },
+                                    expectedPayload: {
+                                        locales: ['de_DE'],
+                                        templateIds: ['plans'],
+                                        tags: ['mas:keyword/design'],
+                                        valueType: 'optional-text',
+                                        value: '{{test-value}}',
+                                    },
+                                },
+                                {
+                                    formPatch: {},
+                                    expectedPayload: {
+                                        locales: [],
+                                    },
+                                },
+                            ];
 
-                            const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
-                            const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
-                                (button) => button.textContent.includes('Save as draft'),
-                            );
-                            saveDraftButton.click();
-                            await waitForUpdates(settingsPage, 2);
+                            for (const { formPatch, expectedPayload } of cases) {
+                                const overrideDialog = await openOverrideDialog(settingsPage, table);
+                                expect(overrideDialog).to.exist;
+                                expect(overrideDialog.querySelector('#addon-enabled-switch')).to.exist;
+                                expect(overrideDialog.querySelector('sp-combobox')).to.exist;
 
-                            expect(capturedCalls.length).to.equal(1);
-                            expect(capturedCalls[0].rowId).to.equal('setting-show-addon');
-                            expect(capturedCalls[0].payload.locales).to.deep.equal([]);
+                                settingsPage.form = {
+                                    ...settingsPage.form,
+                                    ...formPatch,
+                                };
+                                await waitForUpdates(settingsPage, 1);
+
+                                getDialogActionButton(overrideDialog, 'Save as draft').click();
+                                await waitForUpdates(settingsPage, 2);
+                            }
+
+                            expect(capturedCalls.length).to.equal(2);
+                            expect(capturedCalls.map((call) => call.rowId)).to.deep.equal([
+                                'setting-show-addon',
+                                'setting-show-addon',
+                            ]);
+                            expect(capturedCalls[0].payload).to.deep.include(cases[0].expectedPayload);
+                            expect(capturedCalls[1].payload).to.deep.include(cases[1].expectedPayload);
                             Store.settings.addOverride = originalAddOverride;
                         });
 
@@ -486,15 +477,7 @@
                                 return true;
                             };
 
-                            table.dispatchEvent(
-                                new CustomEvent('setting-add-override', {
-                                    detail: { id: 'setting-show-addon' },
-                                    bubbles: true,
-                                    composed: true,
-                                }),
-                            );
-                            await waitForUpdates(settingsPage, 2);
-
+                            const overrideDialog = await openOverrideDialog(settingsPage, table);
                             settingsPage.form = {
                                 ...settingsPage.form,
                                 locales: ['de_DE'],
@@ -505,11 +488,7 @@
                             };
                             await waitForUpdates(settingsPage, 1);
 
-                            const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
-                            const publishButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
-                                (button) => button.textContent.includes('Publish'),
-                            );
-                            publishButton.click();
+                            getDialogActionButton(overrideDialog, 'Publish').click();
                             await waitForUpdates(settingsPage, 2);
 
                             expect(calls.length).to.equal(1);
@@ -802,7 +781,7 @@
                     });
 
                     describe('override conflict and confirm actions', () => {
-                        it('shows conflict state for duplicate override locale and template', async () => {
+                        it('shows conflict state for matching override locale when creating broad or identical template scopes', async () => {
                             const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
                             const originalAddOverride = Store.settings.addOverride;
                             let addOverrideCalls = 0;
@@ -811,45 +790,97 @@
                                 return true;
                             };
 
-                            table.dispatchEvent(
-                                new CustomEvent('setting-add-override', {
-                                    detail: { id: 'setting-show-addon' },
-                                    bubbles: true,
-                                    composed: true,
-                                }),
-                            );
-                            await waitForUpdates(settingsPage, 2);
+                            const overrideDialog = await openOverrideDialog(settingsPage, table);
+                            const cases = [['plans'], []];
 
-                            settingsPage.form = {
-                                ...settingsPage.form,
-                                locales: ['fr_FR'],
-                                templateIds: ['plans'],
-                            };
-                            await waitForUpdates(settingsPage, 1);
-                            const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
-                            const saveDraftButton = [...overrideDialog.querySelectorAll('sp-button[slot="button"]')].find(
-                                (button) => button.textContent.includes('Save as draft'),
-                            );
-                            expect(saveDraftButton.hasAttribute('disabled')).to.equal(true);
-                            saveDraftButton.click();
-                            await waitForUpdates(settingsPage, 2);
+                            for (const templateIds of cases) {
+                                settingsPage.form = {
+                                    ...settingsPage.form,
+                                    locales: ['fr_FR'],
+                                    templateIds,
+                                };
+                                await waitForUpdates(settingsPage, 1);
 
-                            expect(settingsPage.shadowRoot.querySelector('.override-conflict')).to.exist;
+                                const saveDraftButton = getDialogActionButton(overrideDialog, 'Save as draft');
+                                expect(saveDraftButton.hasAttribute('disabled')).to.equal(true);
+                                saveDraftButton.click();
+                                await waitForUpdates(settingsPage, 2);
+
+                                expect(settingsPage.shadowRoot.querySelector('.override-conflict')).to.exist;
+                            }
+
                             expect(addOverrideCalls).to.equal(0);
                             Store.settings.addOverride = originalAddOverride;
                         });
 
-                        it('opens duplicate, publish, unpublish, and delete override confirm dialogs', async () => {
+                        it('allows a specific-template override when the existing locale override applies to all templates', async () => {
+                            const references = [
+                                createSettingReference({
+                                    id: 'setting-show-addon',
+                                    title: 'Show Addon',
+                                    name: 'addon',
+                                    label: 'Show Addon',
+                                    status: 'PUBLISHED',
+                                    templates: ['catalog'],
+                                    locales: [],
+                                    value: '{{test-value}}',
+                                }),
+                                createSettingReference({
+                                    id: 'setting-show-addon-tr',
+                                    title: 'Show Addon TR',
+                                    name: 'addon',
+                                    label: 'Show Addon',
+                                    fieldName: 'entries',
+                                    status: 'PUBLISHED',
+                                    templates: [],
+                                    locales: ['tr_TR'],
+                                    value: '{{test-value}}',
+                                    path: '/content/dam/mas/acom/settings/setting-show-addon-tr',
+                                }),
+                            ];
+                            const { settingsPage, table } = await setupPage({ references, expectedRows: 1 });
+                            const originalAddOverride = Store.settings.addOverride;
+                            const capturedCalls = [];
+                            Store.settings.addOverride = async (rowId, payload) => {
+                                capturedCalls.push({ rowId, payload });
+                                return 'new-override-id';
+                            };
+
+                            const overrideDialog = await openOverrideDialog(settingsPage, table);
+                            settingsPage.form = {
+                                ...settingsPage.form,
+                                locales: ['tr_TR'],
+                                templateIds: ['plans'],
+                            };
+                            await waitForUpdates(settingsPage, 1);
+
+                            const saveDraftButton = getDialogActionButton(overrideDialog, 'Save as draft');
+                            expect(saveDraftButton.hasAttribute('disabled')).to.equal(false);
+                            saveDraftButton.click();
+                            await waitForUpdates(settingsPage, 2);
+
+                            expect(settingsPage.shadowRoot.querySelector('.override-conflict')).to.equal(null);
+                            expect(capturedCalls.length).to.equal(1);
+                            expect(capturedCalls[0].rowId).to.equal('setting-show-addon');
+                            expect(capturedCalls[0].payload).to.deep.include({
+                                locales: ['tr_TR'],
+                                templateIds: ['plans'],
+                                tags: [],
+                                valueType: 'optional-text',
+                                value: '{{test-value}}',
+                                booleanValue: true,
+                                status: 'DRAFT',
+                                modifiedBy: 'Current user',
+                            });
+                            Store.settings.addOverride = originalAddOverride;
+                        });
+
+                        it('opens publish, unpublish, and delete override confirm dialogs', async () => {
                             const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
-                            const originalDuplicateOverride = Store.settings.duplicateOverride;
                             const originalPublish = Store.settings.publishSetting;
                             const originalUnpublish = Store.settings.unpublishSetting;
                             const originalRemoveOverride = Store.settings.removeOverride;
                             const capturedCalls = [];
-                            Store.settings.duplicateOverride = async (rowId, overrideId) => {
-                                capturedCalls.push(['duplicate-override', rowId, overrideId]);
-                                return true;
-                            };
                             Store.settings.publishSetting = async (rowId) => {
                                 capturedCalls.push(['publish', rowId]);
                                 return true;
@@ -862,24 +893,6 @@
                                 capturedCalls.push(['delete-override', rowId, overrideId]);
                                 return true;
                             };
-
-                            table.dispatchEvent(
-                                new CustomEvent('setting-duplicate', {
-                                    detail: {
-                                        id: 'setting-show-addon-fr',
-                                        parentId: 'setting-show-addon',
-                                        isOverride: true,
-                                    },
-                                    bubbles: true,
-                                    composed: true,
-                                }),
-                            );
-                            await waitForUpdates(settingsPage, 2);
-                            expect(settingsPage.shadowRoot.querySelector('.confirm-title').textContent.trim()).to.equal(
-                                'Duplicate this setting?',
-                            );
-                            settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
-                            await waitForUpdates(settingsPage, 2);
 
                             table.dispatchEvent(
                                 new CustomEvent('setting-publish', {
@@ -937,12 +950,10 @@
                             await waitForUpdates(settingsPage, 2);
 
                             expect(capturedCalls).to.deep.equal([
-                                ['duplicate-override', 'setting-show-addon', 'setting-show-addon-fr'],
                                 ['publish', 'setting-show-addon'],
                                 ['unpublish', 'setting-show-addon'],
                                 ['delete-override', 'setting-show-addon', 'setting-show-addon-fr'],
                             ]);
-                            Store.settings.duplicateOverride = originalDuplicateOverride;
                             Store.settings.publishSetting = originalPublish;
                             Store.settings.unpublishSetting = originalUnpublish;
                             Store.settings.removeOverride = originalRemoveOverride;
@@ -1493,14 +1504,14 @@
                         await waitForUpdates(settingsPage, 2);
                         await waitForSettingRows(table, 2);
 
-                        const rows = [...table.shadowRoot.querySelectorAll('mas-setting-item')];
+                        const rows = [...table.shadowRoot.querySelectorAll('.mas-setting-row')];
                         expect(rows.length).to.equal(2);
-                        expect(rows[0].querySelector('.setting-label').textContent.trim()).to.equal('Display Plan type');
-                        expect(rows[1].querySelector('.setting-label').textContent.trim()).to.equal('Show Addon');
+                        expect(rows[0].querySelector('.setting-label-text').textContent.trim()).to.equal('Display Plan type');
+                        expect(rows[1].querySelector('.setting-label-text').textContent.trim()).to.equal('Show Addon');
 
-                        const overrideTable = table.shadowRoot.querySelector('.override-table');
+                        const overrideTable = table.shadowRoot.querySelector('.override-rows');
                         expect(overrideTable).to.exist;
-                        const overrideRows = [...overrideTable.querySelectorAll('.override-table-row')];
+                        const overrideRows = [...overrideTable.querySelectorAll('.override-row')];
                         expect(overrideRows.length).to.equal(2);
                         expect(overrideRows[0].textContent).to.include('fr_FR');
                         expect(overrideRows[1].textContent).to.include('de_DE');

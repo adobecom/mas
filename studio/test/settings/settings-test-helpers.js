@@ -125,7 +125,7 @@ export const waitForSettingRows = async (table, expectedCount) => {
     let attempts = 0;
     while (attempts < 20) {
         await table.updateComplete;
-        const count = table.shadowRoot.querySelectorAll('mas-setting-item').length;
+        const count = table.shadowRoot.querySelectorAll('.mas-setting-row').length;
         if (count === expectedCount) return;
         attempts++;
         await new Promise((resolve) => setTimeout(resolve, 0));

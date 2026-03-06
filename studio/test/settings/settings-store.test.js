@@ -179,51 +179,26 @@ describe('Settings Store Namespace', () => {
         expect(store.getRowStore('showPlanType')).to.equal(null);
     });
 
-    it('shows "All templates selected" when nothing is selected', () => {
+    it('formats template summaries across empty, invalid, branch, and cross-branch selections', () => {
         const store = new SettingsStore();
-        expect(store.formatTemplateSummary([])).to.equal('All templates selected');
-    });
+        const cases = [
+            { selectedTemplateIds: [], expected: 'All templates selected' },
+            { selectedTemplateIds: allTemplateIds, expected: 'All templates selected' },
+            { selectedTemplateIds: ['missing-template-id'], expected: 'All templates selected' },
+            { selectedTemplateIds: ['', null, undefined], expected: 'All templates selected' },
+            { selectedTemplateIds: ['catalog'], expected: 'Catalog (1 selected)' },
+            { selectedTemplateIds: ['catalog', 'plans'], expected: '2 templates selected' },
+            { selectedTemplateIds: crossBranchTemplateIds.slice(0, 5), expected: '5 templates selected' },
+            { selectedTemplateIds: ['catalog', 'missing-template-id', '', null], expected: 'Catalog (1 selected)' },
+            {
+                selectedTemplateIds: [...allTemplateIds, 'missing-template-id', allTemplateIds[0]],
+                expected: 'All templates selected',
+            },
+        ];
 
-    it('shows "All templates selected" when all templates are selected', () => {
-        const store = new SettingsStore();
-        expect(store.formatTemplateSummary(allTemplateIds)).to.equal('All templates selected');
-    });
-
-    it('shows "All templates selected" when selected ids are invalid', () => {
-        const store = new SettingsStore();
-        expect(store.formatTemplateSummary(['missing-template-id'])).to.equal('All templates selected');
-    });
-
-    it('shows "All templates selected" when selected ids are empty values', () => {
-        const store = new SettingsStore();
-        expect(store.formatTemplateSummary(['', null, undefined])).to.equal('All templates selected');
-    });
-
-    it('shows label summary for a single selected template', () => {
-        const store = new SettingsStore();
-        expect(store.formatTemplateSummary(['catalog'])).to.equal('Catalog (1 selected)');
-    });
-
-    it('shows count summary when multiple templates are selected', () => {
-        const store = new SettingsStore();
-        expect(store.formatTemplateSummary(['catalog', 'plans'])).to.equal('2 templates selected');
-    });
-
-    it('shows "5 templates selected" when five templates are selected across branches', () => {
-        const store = new SettingsStore();
-        expect(store.formatTemplateSummary(crossBranchTemplateIds.slice(0, 5))).to.equal('5 templates selected');
-    });
-
-    it('ignores invalid values and still shows label for a single valid template', () => {
-        const store = new SettingsStore();
-        expect(store.formatTemplateSummary(['catalog', 'missing-template-id', '', null])).to.equal('Catalog (1 selected)');
-    });
-
-    it('ignores invalid values and duplicates when all templates are effectively selected', () => {
-        const store = new SettingsStore();
-        expect(store.formatTemplateSummary([...allTemplateIds, 'missing-template-id', allTemplateIds[0]])).to.equal(
-            'All templates selected',
-        );
+        for (const { selectedTemplateIds, expected } of cases) {
+            expect(store.formatTemplateSummary(selectedTemplateIds)).to.equal(expected);
+        }
     });
 
     it('toggles a setting and updates toast state', async () => {
@@ -714,74 +689,6 @@ describe('Settings Store Namespace', () => {
 
         expect(removed).to.equal(true);
         expect(deletedIds).to.deep.equal([nested.id]);
-    });
-
-    it('duplicates override as a localized override', async () => {
-        const topLevel = createSettingReference({
-            id: 'setting-show-plan-type',
-            name: 'showPlanType',
-            label: 'Show plan type',
-            locales: [],
-            templates: ['catalog'],
-            path: '/content/dam/mas/sandbox/settings/setting-show-plan-type',
-        });
-        const nested = createSettingReference({
-            id: 'setting-show-plan-type-fr',
-            name: 'showPlanType',
-            label: 'Show plan type',
-            fieldName: 'entries',
-            locales: ['fr_FR'],
-            templates: ['plans'],
-            value: false,
-            path: '/content/dam/mas/sandbox/settings/setting-show-plan-type-fr',
-        });
-
-        let indexEntries = [topLevel.path, nested.path];
-        const createPayloads = [];
-        const indexPath = '/content/dam/mas/sandbox/settings/index';
-
-        const store = new SettingsStore();
-        store.setAem({
-            sites: {
-                cf: {
-                    fragments: {
-                        getByPath: async (path) => {
-                            if (path !== indexPath) throw new Error('404');
-                            return {
-                                id: 'settings-index',
-                                path,
-                                fields: [{ name: 'entries', values: [...indexEntries] }],
-                                references: [topLevel, nested].filter((reference) => indexEntries.includes(reference.path)),
-                            };
-                        },
-                        create: async (payload) => {
-                            createPayloads.push(payload);
-                            return { path: '/content/dam/mas/sandbox/settings/duplicated-override' };
-                        },
-                        save: async (fragment) => {
-                            indexEntries = fragment.fields.find((field) => field.name === 'entries').values;
-                            return fragment;
-                        },
-                    },
-                },
-            },
-        });
-
-        await store.loadSurface('sandbox');
-        const rowId = store.rows.get()[0].value.id;
-        const overrideId = store.rows.get()[0].value.overrides[0].id;
-        const duplicated = await store.duplicateOverride(rowId, overrideId);
-
-        expect(duplicated).to.equal(true);
-        expect(createPayloads.length).to.equal(1);
-
-        const createdFields = createPayloads[0].fields;
-        const localesField = createdFields.find((field) => field.name === 'locales');
-        const nameField = createdFields.find((field) => field.name === 'name');
-
-        expect(localesField.values).to.deep.equal(['fr_FR']);
-        expect(nameField.values).to.deep.equal(['showPlanType']);
-        expect(createPayloads[0].name).to.equal('showplantype-frfr-plans');
     });
 
     it('toggles override value and updates the override fragment', async () => {
@@ -1350,45 +1257,7 @@ describe('Settings Store Namespace', () => {
         expect(harness.getIndexEntries()).to.deep.equal([topLevel.path]);
     });
 
-    it('duplicates override with multiple locales', async () => {
-        const topLevel = createSettingReference({
-            id: 'setting-display-plan-type',
-            name: 'displayPlanType',
-            label: 'Display plan type',
-            locales: [],
-            valueType: 'text',
-            value: 'default',
-            path: '/content/dam/mas/sandbox/settings/setting-display-plan-type',
-        });
-        const override = createSettingReference({
-            id: 'setting-display-plan-type-multi',
-            name: 'displayPlanType',
-            label: 'Display plan type',
-            locales: ['de_DE', 'fr_FR'],
-            fieldName: 'entries',
-            valueType: 'text',
-            value: 'regional',
-            path: '/content/dam/mas/sandbox/settings/setting-display-plan-type-multi',
-        });
-
-        const harness = createMutationHarness({ topLevel, overrides: [override] });
-        const store = new SettingsStore();
-        store.setAem(harness.aem);
-        await store.loadSurface('sandbox');
-
-        const duplicatedSettingId = await store.duplicateSetting(topLevel.id);
-        expect(duplicatedSettingId).to.equal(null);
-        expect(harness.calls.create).to.deep.equal([]);
-
-        const row = store.rows.get()[0].value;
-        const duplicatedOverride = await store.duplicateOverride(row.id, row.overrides[0].id);
-        expect(duplicatedOverride).to.equal(true);
-        const lastCreatePayload = harness.calls.create[0];
-        expect(lastCreatePayload.fields.find((field) => field.name === 'locales').values).to.deep.equal(['de_DE', 'fr_FR']);
-        expect(lastCreatePayload.name).to.equal('displayplantype-dede-frfr-all');
-    });
-
-    it('handles duplicate setting block, markPublished and edit action', async () => {
+    it('marks published state and supports edit action', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
             name: 'addon',
@@ -1401,10 +1270,6 @@ describe('Settings Store Namespace', () => {
         const store = new SettingsStore();
         store.setAem(harness.aem);
         await store.loadSurface('sandbox');
-
-        const duplicated = await store.duplicateSetting(topLevel.id);
-        expect(duplicated).to.equal(null);
-        expect(store.error.get()).to.equal(null);
 
         store.markPublished(topLevel.id);
         expect(store.getRowStore(topLevel.id).value.data.published).to.equal(true);

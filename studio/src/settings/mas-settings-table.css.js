@@ -6,6 +6,16 @@ import { css } from 'lit';
 export const tableStyles = css`
     :host {
         display: block;
+        --cell-expand-width: 60px;
+        --cell-label-width: 11.67%;
+        --cell-locale-width: 9.41%;
+        --cell-template-width: 8.71%;
+        --cell-value-width: 12.28%;
+        --cell-tags-width: 11.41%;
+        --cell-editor-width: 11.85%;
+        --cell-datetime-width: 10.71%;
+        --cell-status-width: 9.67%;
+        --cell-actions-width: 9.06%;
     }
 
     #settings-content {
@@ -48,64 +58,64 @@ export const tableStyles = css`
     }
 
     #settings-table .expand-column {
-        width: 60px;
-        min-width: 60px;
-        max-width: 60px;
+        width: var(--cell-expand-width);
+        min-width: var(--cell-expand-width);
+        max-width: var(--cell-expand-width);
         justify-content: center;
         position: relative;
     }
 
     #settings-table sp-table-head-cell.label-column,
     #settings-table .mas-setting-row > .label-column {
-        width: 11.67%;
+        width: var(--cell-label-width);
         min-width: 0;
     }
 
     #settings-table sp-table-head-cell.locale-column,
     #settings-table .mas-setting-row > .locale-column {
-        width: 9.41%;
+        width: var(--cell-locale-width);
         min-width: 0;
     }
 
     #settings-table sp-table-head-cell.template-column,
     #settings-table .mas-setting-row > .template-column {
-        width: 8.71%;
+        width: var(--cell-template-width);
         min-width: 0;
     }
 
     #settings-table sp-table-head-cell.value-column,
     #settings-table .mas-setting-row > .value-column {
-        width: 12.28%;
+        width: var(--cell-value-width);
         min-width: 0;
     }
 
     #settings-table sp-table-head-cell.tags-column,
     #settings-table .mas-setting-row > .tags-column {
-        width: 11.41%;
+        width: var(--cell-tags-width);
         min-width: 0;
     }
 
     #settings-table sp-table-head-cell.editor-column,
     #settings-table .mas-setting-row > .editor-column {
-        width: 11.85%;
+        width: var(--cell-editor-width);
         min-width: 0;
     }
 
     #settings-table sp-table-head-cell.datetime-column,
     #settings-table .mas-setting-row > .datetime-column {
-        width: 10.71%;
+        width: var(--cell-datetime-width);
         min-width: 0;
     }
 
     #settings-table sp-table-head-cell.status-column,
     #settings-table .mas-setting-row > .status-column {
-        width: 9.67%;
+        width: var(--cell-status-width);
         min-width: 0;
     }
 
     #settings-table sp-table-head-cell.actions-column,
     #settings-table .mas-setting-row > .actions-column {
-        width: 9.06%;
+        width: var(--cell-actions-width);
         min-width: 0;
     }
 
@@ -247,7 +257,7 @@ export const tableStyles = css`
     }
 
     .actions-cell {
-        justify-content: center;
+        justify-content: flex-start;
     }
 
     .actions-cell .row-actions-menu {
@@ -345,7 +355,19 @@ export const tableStyles = css`
 
     .override-content-row {
         display: grid;
-        grid-template-columns: 1.232fr 0.993fr 0.919fr 1.296fr 1.204fr 1.25fr 1.131fr 1.02fr 0.956fr;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        grid-template-columns:
+            minmax(0, var(--cell-label-width))
+            minmax(0, var(--cell-locale-width))
+            minmax(0, var(--cell-template-width))
+            minmax(0, var(--cell-value-width))
+            minmax(0, var(--cell-tags-width))
+            minmax(0, var(--cell-editor-width))
+            minmax(0, var(--cell-datetime-width))
+            minmax(0, var(--cell-status-width))
+            minmax(0, var(--cell-actions-width));
         height: 68px;
         min-height: 68px;
         background-color: var(--spectrum-white);
@@ -440,7 +462,6 @@ export const tableStyles = css`
         align-items: center;
         justify-content: center;
         gap: 16px;
-        background: rgba(255, 255, 255, 0.72);
         z-index: 1000;
         pointer-events: none;
     }

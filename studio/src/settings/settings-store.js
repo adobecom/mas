@@ -14,7 +14,6 @@ const SETTINGS_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3N
 const FRAGMENT_SUFFIX_LENGTH = 4;
 const FRAGMENT_NAME_COLLISION_LIMIT = 20;
 const TOP_LEVEL_CONFLICT_MESSAGE = 'A top-level setting already exists for this setting name.';
-const TOP_LEVEL_DUPLICATE_BLOCKED_MESSAGE = 'Top-level setting duplication is not allowed.';
 export const DELETE_BLOCKED_STATUSES = ['PUBLISHED', 'MODIFIED'];
 
 const trueValues = new Set(['true', '1', 'yes', 'on']);
@@ -625,53 +624,6 @@ export class SettingsStore {
         );
     }
 
-    async duplicateSetting(rowId) {
-        showToast(TOP_LEVEL_DUPLICATE_BLOCKED_MESSAGE, 'negative');
-        return null;
-    }
-
-    async duplicateOverride(rowId, overrideId) {
-        const rowStore = this.getRowStore(rowId);
-        if (!rowStore) return false;
-        const row = rowStore.value;
-        const override = row.overrides.find((item) => item.id === overrideId);
-        if (!override) return false;
-
-        const locales = override.locales?.length ? override.locales : [];
-        const valueType = resolveValueType(row.name, override.valueType, row.valueType);
-        const booleanValue = resolveBooleanValue(valueType, override.value, override.booleanValue);
-        const fragmentName = await this.#resolveUniqueFragmentName({
-            settingName: row.name,
-            locales,
-            templateIds: override.templateIds || [],
-        });
-
-        return this.#runMutation(
-            async () => {
-                const created = await this.aem.sites.cf.fragments.create({
-                    name: fragmentName,
-                    title: `${override.label || row.label} ${override.locales?.join(', ') || ''} copy`.trim(),
-                    description: row.description || '',
-                    parentPath: this.#settingsPath,
-                    modelId: row.fragment?.model?.id || this.#entryModelId,
-                    fields: this.#buildEntryFields({
-                        name: row.name,
-                        templateIds: override.templateIds || [],
-                        locales,
-                        tags: override.tags || [],
-                        valueType,
-                        value: override.value,
-                        booleanValue,
-                    }),
-                });
-
-                await this.#addPathsToIndex([created.path]);
-            },
-            'Override duplicated as draft.',
-            'Failed to duplicate override.',
-        );
-    }
-
     markPublished(rowId) {
         const rowStore = this.getRowStore(rowId);
         rowStore.set({ ...rowStore.value, data: { ...rowStore.value.data, published: true } });
@@ -989,12 +941,12 @@ export class SettingsStore {
         });
     }
 
-    #createOverride(fragment, fallbackLabel) {
+    #createOverride(fragment, parentLabel) {
         const record = normalizeSettingFragment(fragment);
         return {
             id: record.id,
             path: record.fragment.path,
-            label: fallbackLabel,
+            label: parentLabel,
             locales: record.locales,
             locale: record.locales.join(', '),
             templateIds: record.templateIds,

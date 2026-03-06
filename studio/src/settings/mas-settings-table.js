@@ -17,6 +17,16 @@ export class MasSettingsTable extends LitElement {
         sortDirection: { type: String, attribute: false },
     };
 
+    #columnNames = ['expand', 'label', 'locale', 'template', 'value', 'tags', 'editor', 'datetime', 'status', 'actions'];
+
+    #columnSyncFrame = 0;
+
+    #observedTable = null;
+
+    #resizeObserver = new ResizeObserver(() => {
+        this.#scheduleColumnWidthSync();
+    });
+
     #renderedRows = [];
 
     constructor() {
@@ -35,6 +45,22 @@ export class MasSettingsTable extends LitElement {
 
     reactiveController;
 
+    firstUpdated() {
+        this.#observeTable();
+        this.#scheduleColumnWidthSync();
+    }
+
+    updated() {
+        this.#observeTable();
+        this.#scheduleColumnWidthSync();
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        cancelAnimationFrame(this.#columnSyncFrame);
+        this.#resizeObserver.disconnect();
+    }
+
     #dispatchEvent(type, detail) {
         this.dispatchEvent(
             new CustomEvent(type, {
@@ -43,6 +69,35 @@ export class MasSettingsTable extends LitElement {
                 composed: true,
             }),
         );
+    }
+
+    #observeTable() {
+        const table = this.renderRoot.querySelector('#settings-table');
+        if (table === this.#observedTable) return;
+        if (this.#observedTable) this.#resizeObserver.unobserve(this.#observedTable);
+        this.#observedTable = table;
+        if (table) this.#resizeObserver.observe(table);
+    }
+
+    #scheduleColumnWidthSync() {
+        cancelAnimationFrame(this.#columnSyncFrame);
+        this.#columnSyncFrame = requestAnimationFrame(() => {
+            this.#columnSyncFrame = 0;
+            this.#syncColumnWidths();
+        });
+    }
+
+    #syncColumnWidths() {
+        for (const columnName of this.#columnNames) {
+            const cells = this.renderRoot.querySelectorAll(`[data-column="${columnName}"]`);
+            const width = Math.max(...[...cells].map((cell) => Math.ceil(cell.getBoundingClientRect().width)), 0);
+            if (!width) continue;
+
+            const propertyName = `--cell-${columnName}-width`;
+            const nextValue = `${width}px`;
+            if (this.style.getPropertyValue(propertyName).trim() === nextValue) continue;
+            this.style.setProperty(propertyName, nextValue);
+        }
     }
 
     #handleToggleExpand = (event) => {
@@ -285,7 +340,7 @@ export class MasSettingsTable extends LitElement {
 
         return html`
             <sp-table-row value=${row.id} class="mas-setting-row ${expanded ? 'is-expanded' : ''}">
-                <sp-table-cell class="expand-column">
+                <sp-table-cell class="expand-column" data-column="expand">
                     <sp-action-button
                         quiet
                         class="expand-button"
@@ -298,15 +353,25 @@ export class MasSettingsTable extends LitElement {
                             : html`<sp-icon-chevron-right slot="icon"></sp-icon-chevron-right>`}
                     </sp-action-button>
                 </sp-table-cell>
-                <sp-table-cell class="label-column">${this.#labelCellTemplate(row)}</sp-table-cell>
-                <sp-table-cell class="locale-column">${this.#localeCellTemplate(row.locales)}</sp-table-cell>
-                <sp-table-cell class="template-column">${this.#templateCellTemplate(row)}</sp-table-cell>
-                <sp-table-cell class="value-column">${this.#valueCellTemplate(row, { rowId: row.id })}</sp-table-cell>
-                <sp-table-cell class="tags-column">${this.#tagsCellTemplate(row.tags)}</sp-table-cell>
-                <sp-table-cell class="editor-column"><span class="cell-text">${row.modifiedBy || '-'}</span></sp-table-cell>
-                <sp-table-cell class="datetime-column">${this.#dateCellTemplate(row.modifiedAt)}</sp-table-cell>
-                <sp-table-cell class="status-column">${this.#statusCellTemplate(row.status)}</sp-table-cell>
-                <sp-table-cell class="actions-column actions-cell">
+                <sp-table-cell class="label-column" data-column="label">${this.#labelCellTemplate(row)}</sp-table-cell>
+                <sp-table-cell class="locale-column" data-column="locale"
+                    >${this.#localeCellTemplate(row.locales)}</sp-table-cell
+                >
+                <sp-table-cell class="template-column" data-column="template">${this.#templateCellTemplate(row)}</sp-table-cell>
+                <sp-table-cell class="value-column" data-column="value"
+                    >${this.#valueCellTemplate(row, { rowId: row.id })}</sp-table-cell
+                >
+                <sp-table-cell class="tags-column" data-column="tags">${this.#tagsCellTemplate(row.tags)}</sp-table-cell>
+                <sp-table-cell class="editor-column" data-column="editor"
+                    ><span class="cell-text">${row.modifiedBy || '-'}</span></sp-table-cell
+                >
+                <sp-table-cell class="datetime-column" data-column="datetime"
+                    >${this.#dateCellTemplate(row.modifiedAt)}</sp-table-cell
+                >
+                <sp-table-cell class="status-column" data-column="status"
+                    >${this.#statusCellTemplate(row.status)}</sp-table-cell
+                >
+                <sp-table-cell class="actions-column actions-cell" data-column="actions">
                     ${this.#actionsCellTemplate({ rowId: row.id, status: row.status })}
                 </sp-table-cell>
             </sp-table-row>
@@ -415,7 +480,6 @@ export class MasSettingsTable extends LitElement {
         return html`
             <div id="loading-state">
                 <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-                <p>Loading settings...</p>
             </div>
         `;
     }
@@ -448,9 +512,10 @@ export class MasSettingsTable extends LitElement {
         return html`
             <sp-table id="settings-table" size="m">
                 <sp-table-head>
-                    <sp-table-head-cell class="expand-column"></sp-table-head-cell>
+                    <sp-table-head-cell class="expand-column" data-column="expand"></sp-table-head-cell>
                     <sp-table-head-cell
                         class="label-column"
+                        data-column="label"
                         id="label-header-cell"
                         sortable
                         sort-key="label"
@@ -459,14 +524,14 @@ export class MasSettingsTable extends LitElement {
                     >
                         Label
                     </sp-table-head-cell>
-                    <sp-table-head-cell class="locale-column">Locale</sp-table-head-cell>
-                    <sp-table-head-cell class="template-column">Template</sp-table-head-cell>
-                    <sp-table-head-cell class="value-column">Value</sp-table-head-cell>
-                    <sp-table-head-cell class="tags-column">Tags</sp-table-head-cell>
-                    <sp-table-head-cell class="editor-column">Last edited by</sp-table-head-cell>
-                    <sp-table-head-cell class="datetime-column">Date and time</sp-table-head-cell>
-                    <sp-table-head-cell class="status-column">Status</sp-table-head-cell>
-                    <sp-table-head-cell class="actions-column">Actions</sp-table-head-cell>
+                    <sp-table-head-cell class="locale-column" data-column="locale">Locale</sp-table-head-cell>
+                    <sp-table-head-cell class="template-column" data-column="template">Template</sp-table-head-cell>
+                    <sp-table-head-cell class="value-column" data-column="value">Value</sp-table-head-cell>
+                    <sp-table-head-cell class="tags-column" data-column="tags">Tags</sp-table-head-cell>
+                    <sp-table-head-cell class="editor-column" data-column="editor">Last edited by</sp-table-head-cell>
+                    <sp-table-head-cell class="datetime-column" data-column="datetime">Date and time</sp-table-head-cell>
+                    <sp-table-head-cell class="status-column" data-column="status">Status</sp-table-head-cell>
+                    <sp-table-head-cell class="actions-column" data-column="actions">Actions</sp-table-head-cell>
                 </sp-table-head>
                 <sp-table-body>
                     ${rows.length

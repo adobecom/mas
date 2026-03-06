@@ -35,6 +35,12 @@
             } from './settings-test-helpers.js';
             const theme = document.querySelector('sp-theme');
             const fixtureInTheme = (template) => fixture(template, { parentNode: theme });
+            const getTopLevelRows = (el) => [...el.shadowRoot.querySelectorAll('.mas-setting-row')];
+            const getTopLevelLabels = (el) =>
+                getTopLevelRows(el).map((row) => row.querySelector('.setting-label-text')?.textContent.trim());
+            const getRowByLabel = (el, label) =>
+                getTopLevelRows(el).find((row) => row.querySelector('.setting-label-text')?.textContent.trim() === label);
+            const getOverrideRows = (el) => [...el.shadowRoot.querySelectorAll('.override-row')];
 
             runTests(async () => {
                 describe('MasSettingsTable', () => {
@@ -57,11 +63,9 @@
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
 
-                        const rows = el.shadowRoot.querySelectorAll('mas-setting-item');
+                        const rows = getTopLevelRows(el);
                         expect(rows.length).to.equal(3);
-                        const templateCells = [...el.shadowRoot.querySelectorAll('mas-setting-item .template-cell')].map(
-                            (cell) => cell.textContent.trim(),
-                        );
+                        const templateCells = rows.map((row) => row.querySelector('.template-column').textContent.trim());
                         expect(templateCells.length).to.equal(3);
                         expect(templateCells.every((summary) => summary.length > 0)).to.equal(true);
                     });
@@ -93,33 +97,27 @@
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
 
-                        const beforeExpand = el.shadowRoot.querySelectorAll('mas-setting-item');
+                        const beforeExpand = getTopLevelRows(el);
                         expect(beforeExpand.length).to.equal(1);
 
-                        const expandButton = el.shadowRoot.querySelector('mas-setting-item .expand-button');
+                        const expandButton = el.shadowRoot.querySelector('.mas-setting-row .expand-button');
                         expandButton.click();
                         await el.updateComplete;
 
-                        const afterExpand = [...el.shadowRoot.querySelectorAll('mas-setting-item')];
+                        const afterExpand = getTopLevelRows(el);
                         expect(afterExpand.length).to.equal(1);
-                        expect(el.shadowRoot.querySelector('.override-table')).to.exist;
-                        expect(el.shadowRoot.querySelectorAll('.override-table-row').length).to.equal(1);
-                        const overrideLocaleCell = el.shadowRoot.querySelector('.override-table-row .override-locale-column');
+                        expect(el.shadowRoot.querySelector('.override-rows')).to.exist;
+                        expect(getOverrideRows(el).length).to.equal(1);
+                        const overrideLocaleCell = el.shadowRoot.querySelector('.override-row .locale-column');
                         expect(overrideLocaleCell.textContent.trim()).to.equal('fr_FR');
-                        const rowStore = Store.settings.getRowStore('setting-show-addon');
-                        const expectedTemplateSummary = Store.settings.formatTemplateSummary(
-                            rowStore.value.overrides[0].templateIds,
-                        );
-                        const overrideTemplateCell = el.shadowRoot.querySelector(
-                            '.override-table-row .override-template-column',
-                        );
-                        expect(overrideTemplateCell.textContent.trim()).to.equal(expectedTemplateSummary);
+                        const overrideTemplateCell = el.shadowRoot.querySelector('.override-row .template-column');
+                        expect(overrideTemplateCell.textContent.trim()).to.equal('All');
 
                         expandButton.click();
                         await el.updateComplete;
-                        const afterCollapse = el.shadowRoot.querySelectorAll('mas-setting-item');
+                        const afterCollapse = getTopLevelRows(el);
                         expect(afterCollapse.length).to.equal(1);
-                        expect(el.shadowRoot.querySelector('.override-table')).to.equal(null);
+                        expect(el.shadowRoot.querySelector('.override-rows')).to.equal(null);
                     });
 
                     it('dispatches setting-edit for override rows with override and parent ids', async () => {
@@ -149,7 +147,7 @@
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
 
-                        const expandButton = el.shadowRoot.querySelector('mas-setting-item .expand-button');
+                        const expandButton = el.shadowRoot.querySelector('.mas-setting-row .expand-button');
                         expandButton.click();
                         await el.updateComplete;
 
@@ -157,7 +155,9 @@
                             el.addEventListener('setting-edit', resolve, { once: true });
                         });
 
-                        const overrideEditAction = el.shadowRoot.querySelector('.override-table-row sp-menu-item');
+                        const overrideEditAction = el.shadowRoot.querySelector(
+                            '.override-row .actions-cell sp-menu-item[data-action="setting-edit"]',
+                        );
                         overrideEditAction.click();
                         const event = await eventPromise;
 
@@ -172,12 +172,7 @@
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
 
-                        const getLabels = () =>
-                            [...el.shadowRoot.querySelectorAll('mas-setting-item .setting-label')].map((element) =>
-                                element.textContent.trim(),
-                            );
-
-                        expect(getLabels()).to.deep.equal(['Display Plan type', 'Show Addon', 'Show secure label']);
+                        expect(getTopLevelLabels(el)).to.deep.equal(['Display Plan type', 'Show Addon', 'Show secure label']);
 
                         const labelHeader = el.shadowRoot.querySelector('#label-header-cell');
                         labelHeader.dispatchEvent(
@@ -187,7 +182,7 @@
                         );
                         await el.updateComplete;
 
-                        expect(getLabels()).to.deep.equal(['Show secure label', 'Show Addon', 'Display Plan type']);
+                        expect(getTopLevelLabels(el)).to.deep.equal(['Show secure label', 'Show Addon', 'Display Plan type']);
                     });
 
                     it('uses id as tie-breaker when labels are identical', async () => {
@@ -214,11 +209,11 @@
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
 
-                        const rowIds = [...el.shadowRoot.querySelectorAll('mas-setting-item')].map((row) => row.store.value.id);
+                        const rowIds = getTopLevelRows(el).map((row) => row.getAttribute('value'));
                         expect(rowIds).to.deep.equal(['setting-alpha', 'setting-zeta']);
                     });
 
-                    it('calls toggleSetting when setting-toggle-value is emitted', async () => {
+                    it('calls toggleSetting when a top-level switch changes', async () => {
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
                         const originalToggleSetting = Store.settings.toggleSetting;
@@ -228,14 +223,10 @@
                             return true;
                         };
 
-                        const body = el.shadowRoot.querySelector('sp-table-body');
-                        body.dispatchEvent(
-                            new CustomEvent('setting-toggle-value', {
-                                detail: { id: 'setting-show-addon', checked: false },
-                                bubbles: true,
-                                composed: true,
-                            }),
-                        );
+                        const row = getRowByLabel(el, 'Show Addon');
+                        const topLevelSwitch = row.querySelector('sp-switch');
+                        topLevelSwitch.checked = false;
+                        topLevelSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await el.updateComplete;
 
                         expect(calls).to.deep.equal([['setting-show-addon', false]]);
@@ -270,7 +261,7 @@
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
 
-                        const expandButton = el.shadowRoot.querySelector('mas-setting-item .expand-button');
+                        const expandButton = el.shadowRoot.querySelector('.mas-setting-row .expand-button');
                         expandButton.click();
                         await el.updateComplete;
 
@@ -288,13 +279,13 @@
                             return true;
                         };
 
-                        const overrideSwitch = el.shadowRoot.querySelector('.override-table-row sp-switch');
+                        const overrideSwitch = el.shadowRoot.querySelector('.override-row sp-switch');
                         overrideSwitch.checked = false;
                         overrideSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                         await el.updateComplete;
 
                         expect(calls).to.deep.equal([['setting-show-addon', 'setting-show-addon-fr', false]]);
-                        expect(el.shadowRoot.querySelector('.override-tags-cell sp-tag').textContent.trim()).to.equal(
+                        expect(el.shadowRoot.querySelector('.override-row .tags-column sp-tag').textContent.trim()).to.equal(
                             'mas:keyword/legal',
                         );
                         Store.settings.toggleOverride = originalToggleOverride;
@@ -314,32 +305,21 @@
                         await el.updateComplete;
                     });
 
-                    it('does not render delete action for top-level settings rows', async () => {
+                    it('renders top-level row actions by status', async () => {
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;
 
-                        const publishedRow = [...el.shadowRoot.querySelectorAll('mas-setting-item')].find(
-                            (row) => row.querySelector('.setting-label')?.textContent?.trim() === 'Show Addon',
+                        const publishedRow = getRowByLabel(el, 'Show Addon');
+                        const publishedActions = [...publishedRow.querySelectorAll('.actions-cell sp-menu-item')].map((item) =>
+                            item.textContent.trim(),
                         );
-                        const rowActions = [...publishedRow.querySelectorAll('.actions-cell sp-menu-item')].map((item) =>
+                        const draftRow = getRowByLabel(el, 'Display Plan type');
+                        const draftActions = [...draftRow.querySelectorAll('.actions-cell sp-menu-item')].map((item) =>
                             item.textContent.trim(),
                         );
 
-                        expect(rowActions.some((action) => action.includes('Delete'))).to.equal(false);
-                    });
-
-                    it('renders only edit and delete actions for top-level draft settings rows', async () => {
-                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
-                        await el.updateComplete;
-
-                        const draftRow = [...el.shadowRoot.querySelectorAll('mas-setting-item')].find(
-                            (row) => row.querySelector('.setting-label')?.textContent?.trim() === 'Display Plan type',
-                        );
-                        const rowActions = [...draftRow.querySelectorAll('.actions-cell sp-menu-item')].map((item) =>
-                            item.textContent.trim(),
-                        );
-
-                        expect(rowActions).to.deep.equal(['Edit setting', 'Delete']);
+                        expect(publishedActions).to.deep.equal(['Edit setting']);
+                        expect(draftActions).to.deep.equal(['Edit setting', 'Delete']);
                     });
 
                     it('renders illustrated empty state when there are no settings', async () => {
@@ -357,7 +337,7 @@
                         expect(emptyState.textContent).to.include('Click the button above to begin creating a setting list.');
                         expect(el.shadowRoot.querySelector('#settings-table')).to.exist;
                         expect(el.shadowRoot.querySelector('.empty-state-row')).to.exist;
-                        expect(el.shadowRoot.querySelector('mas-setting-item')).to.not.exist;
+                        expect(el.shadowRoot.querySelector('.mas-setting-row')).to.not.exist;
                     });
                 });
             });

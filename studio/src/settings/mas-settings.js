@@ -525,34 +525,6 @@ class MasSettings extends LitElement {
         const row = Store.settings.getRowStore(rowId).value;
         const settingLabel = row.label;
 
-        if (action === 'duplicate') {
-            return {
-                title: 'Duplicate this setting?',
-                body: [
-                    `Are you sure you want to duplicate '${settingLabel}'?`,
-                    'A new draft setting will be created with the same configuration.',
-                ],
-                confirmLabel: 'Duplicate',
-                showIcon: true,
-                variant: 'primary',
-            };
-        }
-
-        if (action === 'duplicate-override') {
-            const override = row.overrides.find((item) => item.id === overrideId);
-            const localeLabel = override.locales?.length ? ` (${override.locales.join(', ')})` : '';
-            return {
-                title: 'Duplicate this setting?',
-                body: [
-                    `Are you sure you want to duplicate '${settingLabel}${localeLabel}'?`,
-                    'A new draft setting will be created with the same configuration.',
-                ],
-                confirmLabel: 'Duplicate',
-                showIcon: true,
-                variant: 'primary',
-            };
-        }
-
         if (action === 'delete-override') {
             const override = row.overrides.find((item) => item.id === overrideId);
             const localeLabel = override.locales?.join(', ');
@@ -658,11 +630,6 @@ class MasSettings extends LitElement {
         this.#openConfirmDialog('delete', id);
     };
 
-    #handleDuplicateDialog = ({ detail: { id, parentId, isOverride } }) => {
-        if (!isOverride) return;
-        this.#openConfirmDialog('duplicate-override', parentId, id);
-    };
-
     #handleDialogCancel = () => {
         const resetForm = this.dialog?.type === 'override' || Boolean(this.dialog?.resetOnCancel);
         this.dialog = null;
@@ -755,7 +722,8 @@ class MasSettings extends LitElement {
                 if (!localesOverlap) return false;
                 const formTemplates = this.form.templateIds;
                 const overrideTemplates = override.templateIds || [];
-                if (formTemplates.length === 0 || overrideTemplates.length === 0) return false;
+                if (formTemplates.length === 0) return true;
+                if (overrideTemplates.length === 0) return false;
                 return formTemplates.some((t) => overrideTemplates.includes(t));
             }) || null
         );
@@ -888,11 +856,6 @@ class MasSettings extends LitElement {
         if (this.dialog.type === 'confirm') {
             const action = this.dialog.action;
             let success = false;
-            let duplicatedId = null;
-            if (action === 'duplicate') {
-                duplicatedId = await Store.settings.duplicateSetting(this.dialog.rowId);
-                success = Boolean(duplicatedId);
-            }
             if (action === 'publish') {
                 success = this.dialog.overrideId
                     ? await Store.settings.publishOverride(this.dialog.overrideId)
@@ -900,17 +863,11 @@ class MasSettings extends LitElement {
             }
             if (action === 'unpublish') success = await Store.settings.unpublishSetting(this.dialog.rowId);
             if (action === 'delete') success = await Store.settings.removeSetting(this.dialog.rowId);
-            if (action === 'duplicate-override') {
-                success = await Store.settings.duplicateOverride(this.dialog.rowId, this.dialog.overrideId);
-            }
             if (action === 'delete-override') {
                 success = await Store.settings.removeOverride(this.dialog.rowId, this.dialog.overrideId);
             }
             if (success) {
                 this.#handleDialogCancel();
-                if (action === 'duplicate' && duplicatedId) {
-                    this.#openEditorForSetting(duplicatedId);
-                }
                 if (action === 'delete' && this.isSettingsEditorPage) {
                     this.#closeSettingsFormPage();
                 }
@@ -1339,7 +1296,6 @@ class MasSettings extends LitElement {
                 @setting-publish=${this.#handlePublishDialog}
                 @setting-unpublish=${this.#handleUnpublishDialog}
                 @setting-delete=${this.#handleDeleteDialog}
-                @setting-duplicate=${this.#handleDuplicateDialog}
             ></mas-settings-table>
         `;
     }

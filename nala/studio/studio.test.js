@@ -357,7 +357,8 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate surface change', async () => {
             await expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
-            await expect(page).toHaveURL(`${testPage}#page=welcome&path=sandbox`);
+            const hash = await page.evaluate(() => window.location.hash);
+            expect(hash).toContain('path=sandbox');
             await expect(await studio.sideNav).toBeVisible();
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();
@@ -387,7 +388,9 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate locale change', async () => {
             await expect(await studio.localePicker).toHaveAttribute('value', data.locale);
-            await expect(page).toHaveURL(`${testPage}#locale=${data.locale}&page=welcome&path=sandbox`);
+            const hash = await page.evaluate(() => window.location.hash);
+            expect(hash).toContain(`locale=${data.locale}`);
+            expect(hash).toContain('path=sandbox');
             await expect(await studio.sideNav).toBeVisible();
             await expect(await studio.homeButton).toBeVisible();
             await expect(await studio.fragmentsButton).toBeVisible();

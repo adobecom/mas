@@ -1,6 +1,6 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
-import { logDebug } from '../utils/log.js';
+import { log, logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
@@ -156,7 +156,7 @@ function resolveSettingEntry(fragment, locale, setting) {
     return { ...defaultEntry, ...bestMatch };
 }
 
-function applySettings(fragment, locale, settings) {
+function applySettings(context, fragment, locale, settings) {
     for (const key of Object.keys(settings)) {
         const entry = resolveSettingEntry(fragment, locale, settings[key]);
         if (!entry) continue;
@@ -165,13 +165,14 @@ function applySettings(fragment, locale, settings) {
             [entry.name]: extractValue(entry),
         };
     }
+    logDebug(() => `Applying settings for fragment ${fragment.id}: ${JSON.stringify(fragment.settings)}`, context);
 }
 
 function applyCollectionSettings(context, locale, settings) {
     if (context.body?.references) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
             if (ref && ref.type === 'content-fragment') {
-                applySettings(ref.value, locale, settings);
+                applySettings(context, ref.value, locale, settings);
             }
         });
     }
@@ -242,7 +243,7 @@ async function settings(context) {
         if (body?.model?.id === COLLECTION_MODEL_ID) {
             applyCollectionSettings(context, locale, settings);
         } else {
-            applySettings(body, locale, settings);
+            applySettings(context, body, locale, settings);
         }
     }
 

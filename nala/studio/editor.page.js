@@ -10,7 +10,7 @@ export default class EditorPage {
         this.localeVariationHeader = page.locator('.locale-variation-header');
         this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
         this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
-        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
+        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Template"]');
         this.style = this.panel.locator('#card-style');
         this.size = this.panel.locator('#card-size');
         this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');

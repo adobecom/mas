@@ -1496,7 +1496,7 @@ export default class MasFragmentEditor extends LitElement {
                             : this.displayRegionalVarationInfo('preview-header')
                         : nothing}
                     <div class="preview-content columns mas-fragment">
-                        <sp-theme color="light" scale="medium" system="${getSpectrumVersion(this.fragment?.variant)}">
+                        <sp-theme color="light" scale="medium" system="${getSpectrumVersion(attrs.variant)}">
                             <merch-card
                                 variant=${attrs.variant || nothing}
                                 size=${attrs.size || nothing}

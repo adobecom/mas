@@ -291,6 +291,55 @@
                         Store.settings.toggleOverride = originalToggleOverride;
                     });
 
+                    it('renders override row actions by status and dispatches unpublish', async () => {
+                        Store.settings.destroy();
+                        state.references = [
+                            createSettingReference({
+                                id: 'setting-show-addon',
+                                title: 'Show Addon',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: [],
+                                fieldName: 'entries',
+                            }),
+                            createSettingReference({
+                                id: 'setting-show-addon-fr',
+                                title: 'Show Addon FR',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: ['fr_FR'],
+                                fieldName: 'entries',
+                                status: 'PUBLISHED',
+                                path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
+                            }),
+                        ];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        el.shadowRoot.querySelector('.mas-setting-row .expand-button').click();
+                        await el.updateComplete;
+
+                        const overrideActions = [...el.shadowRoot.querySelectorAll('.override-row .actions-cell sp-menu-item')].map(
+                            (item) => item.textContent.trim(),
+                        );
+                        expect(overrideActions).to.deep.equal(['Edit setting', 'Unpublish']);
+
+                        const eventPromise = new Promise((resolve) => {
+                            el.addEventListener('setting-unpublish', resolve, { once: true });
+                        });
+                        el.shadowRoot.querySelector('.override-row .actions-cell sp-menu-item[data-action="setting-unpublish"]').click();
+                        const event = await eventPromise;
+
+                        expect(event.detail).to.deep.equal({
+                            id: 'setting-show-addon-fr',
+                            parentId: 'setting-show-addon',
+                            isOverride: true,
+                        });
+                    });
+
                     it('keeps table visible and shows spinner while loading updates', async () => {
                         const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
                         await el.updateComplete;

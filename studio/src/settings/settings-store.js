@@ -624,6 +624,17 @@ export class SettingsStore {
         );
     }
 
+    async unpublishOverride(overrideId) {
+        return this.#runMutation(
+            async () => {
+                const fragment = await this.aem.sites.cf.fragments.getWithEtag(overrideId);
+                await this.aem.sites.cf.fragments.unpublish(fragment);
+            },
+            'Override has been successfully unpublished.',
+            'Failed to unpublish override.',
+        );
+    }
+
     markPublished(rowId) {
         const rowStore = this.getRowStore(rowId);
         rowStore.set({ ...rowStore.value, data: { ...rowStore.value.data, published: true } });

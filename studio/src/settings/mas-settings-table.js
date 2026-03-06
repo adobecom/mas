@@ -305,6 +305,7 @@ export class MasSettingsTable extends LitElement {
 
     #actionsCellTemplate({ rowId, overrideId = '', status }) {
         const canDelete = !DELETE_BLOCKED_STATUSES.includes(status);
+        const canUnpublishOverride = Boolean(overrideId) && ['PUBLISHED', 'MODIFIED'].includes(status);
 
         return html`
             <sp-action-menu class="row-actions-menu" quiet size="m" placement="bottom-end">
@@ -318,6 +319,19 @@ export class MasSettingsTable extends LitElement {
                     <sp-icon-edit slot="icon"></sp-icon-edit>
                     Edit setting
                 </sp-menu-item>
+                ${canUnpublishOverride
+                    ? html`
+                          <sp-menu-item
+                              data-action="setting-unpublish"
+                              data-row-id=${rowId}
+                              data-override-id=${overrideId}
+                              @click=${this.#handleOverrideAction}
+                          >
+                              <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
+                              Unpublish
+                          </sp-menu-item>
+                      `
+                    : nothing}
                 ${canDelete
                     ? html`
                           <sp-menu-item

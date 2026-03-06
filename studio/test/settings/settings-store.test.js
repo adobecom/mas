@@ -1169,11 +1169,13 @@ describe('Settings Store Namespace', () => {
         const publishSettingResult = await store.publishSetting('setting-show-addon');
         const publishOverrideResult = await store.publishOverride('setting-show-addon-fr');
         const unpublishResult = await store.unpublishSetting('setting-show-addon');
+        const unpublishOverrideResult = await store.unpublishOverride('setting-show-addon-fr');
         expect(publishSettingResult).to.equal(true);
         expect(publishOverrideResult).to.equal(true);
         expect(unpublishResult).to.equal(true);
+        expect(unpublishOverrideResult).to.equal(true);
         expect(harness.calls.publish).to.deep.equal(['setting-show-addon', 'setting-show-addon-fr']);
-        expect(harness.calls.unpublish).to.deep.equal(['setting-show-addon']);
+        expect(harness.calls.unpublish).to.deep.equal(['setting-show-addon', 'setting-show-addon-fr']);
     });
 
     it('removes settings index entries before deleting draft top-level settings', async () => {

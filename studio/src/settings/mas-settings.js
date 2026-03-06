@@ -568,6 +568,19 @@ class MasSettings extends LitElement {
         }
 
         if (action === 'unpublish') {
+            if (overrideId) {
+                const override = row.overrides.find((item) => item.id === overrideId);
+                const localeLabel = override?.locales?.length ? ` (${override.locales.join(', ')})` : '';
+                return {
+                    title: 'Unpublish this override?',
+                    body: [
+                        `This will remove '${settingLabel}${localeLabel}' from the selected cards. It may take up to 15 minutes for the changes to take effect.`,
+                    ],
+                    confirmLabel: 'Unpublish',
+                    showIcon: true,
+                    variant: 'primary',
+                };
+            }
             return {
                 title: 'Unpublish this setting?',
                 body: [
@@ -602,12 +615,12 @@ class MasSettings extends LitElement {
         };
     }
 
-    #handlePublishDialog = ({ detail: { id } }) => {
-        this.#openConfirmDialog('publish', id);
+    #handlePublishDialog = ({ detail: { id, parentId, isOverride } }) => {
+        this.#openConfirmDialog('publish', isOverride ? parentId : id, isOverride ? id : null);
     };
 
-    #handleUnpublishDialog = ({ detail: { id } }) => {
-        this.#openConfirmDialog('unpublish', id);
+    #handleUnpublishDialog = ({ detail: { id, parentId, isOverride } }) => {
+        this.#openConfirmDialog('unpublish', isOverride ? parentId : id, isOverride ? id : null);
     };
 
     #handleDeleteDialog = ({ detail: { id, parentId, isOverride } }) => {
@@ -861,7 +874,11 @@ class MasSettings extends LitElement {
                     ? await Store.settings.publishOverride(this.dialog.overrideId)
                     : await Store.settings.publishSetting(this.dialog.rowId);
             }
-            if (action === 'unpublish') success = await Store.settings.unpublishSetting(this.dialog.rowId);
+            if (action === 'unpublish') {
+                success = this.dialog.overrideId
+                    ? await Store.settings.unpublishOverride(this.dialog.overrideId)
+                    : await Store.settings.unpublishSetting(this.dialog.rowId);
+            }
             if (action === 'delete') success = await Store.settings.removeSetting(this.dialog.rowId);
             if (action === 'delete-override') {
                 success = await Store.settings.removeOverride(this.dialog.rowId, this.dialog.overrideId);

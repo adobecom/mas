@@ -879,6 +879,7 @@
                             const { settingsPage, table } = await setupPage({ references: referencesWithOverride });
                             const originalPublish = Store.settings.publishSetting;
                             const originalUnpublish = Store.settings.unpublishSetting;
+                            const originalUnpublishOverride = Store.settings.unpublishOverride;
                             const originalRemoveOverride = Store.settings.removeOverride;
                             const capturedCalls = [];
                             Store.settings.publishSetting = async (rowId) => {
@@ -887,6 +888,10 @@
                             };
                             Store.settings.unpublishSetting = async (rowId) => {
                                 capturedCalls.push(['unpublish', rowId]);
+                                return true;
+                            };
+                            Store.settings.unpublishOverride = async (overrideId) => {
+                                capturedCalls.push(['unpublish-override', overrideId]);
                                 return true;
                             };
                             Store.settings.removeOverride = async (rowId, overrideId) => {
@@ -928,6 +933,30 @@
                             settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
                             await waitForUpdates(settingsPage, 2);
 
+                            table.dispatchEvent(
+                                new CustomEvent('setting-unpublish', {
+                                    detail: {
+                                        id: 'setting-show-addon-fr',
+                                        parentId: 'setting-show-addon',
+                                        isOverride: true,
+                                    },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+                            expect(settingsPage.shadowRoot.querySelector('.confirm-title').textContent.trim()).to.equal(
+                                'Unpublish this override?',
+                            );
+                            const overrideUnpublishBody = [...settingsPage.shadowRoot.querySelectorAll('.confirm-body')].map(
+                                (el) => el.textContent.trim(),
+                            );
+                            expect(overrideUnpublishBody).to.deep.equal([
+                                "This will remove 'Show Addon (fr_FR)' from the selected cards. It may take up to 15 minutes for the changes to take effect.",
+                            ]);
+                            settingsPage.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+                            await waitForUpdates(settingsPage, 2);
+
                             const rowStore = Store.settings.getRowStore('setting-show-addon');
                             rowStore.value.overrides[0].status = 'DRAFT';
 
@@ -952,10 +981,12 @@
                             expect(capturedCalls).to.deep.equal([
                                 ['publish', 'setting-show-addon'],
                                 ['unpublish', 'setting-show-addon'],
+                                ['unpublish-override', 'setting-show-addon-fr'],
                                 ['delete-override', 'setting-show-addon', 'setting-show-addon-fr'],
                             ]);
                             Store.settings.publishSetting = originalPublish;
                             Store.settings.unpublishSetting = originalUnpublish;
+                            Store.settings.unpublishOverride = originalUnpublishOverride;
                             Store.settings.removeOverride = originalRemoveOverride;
                         });
                     });

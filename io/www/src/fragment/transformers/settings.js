@@ -237,6 +237,8 @@ async function settings(context) {
 
     const settings = await context.promises?.settings;
 
+    logDebug(() => `Settings transformer: fetched settings ${JSON.stringify(settings)}`, context);
+
     const { body, locale } = context;
 
     if (settings) {

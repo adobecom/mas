@@ -1,6 +1,7 @@
 import { html, LitElement, nothing } from 'lit';
 import '../fields/multifield.js';
 import '../fields/included-field.js';
+import '../fields/icon-picker-field.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
@@ -43,8 +44,9 @@ class MerchCardEditor extends LitElement {
 
     static SECTION_FIELDS = {
         Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color'],
-        "What's included": ['whatsIncluded', 'quantitySelect'],
+        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'quantitySelect'],
         'Product details': ['description', 'shortDescription', 'callout'],
+        'Footer rows': ['footerRows'],
         Footer: ['ctas'],
         'Options and settings': ['secureLabel', 'planType', 'addon'],
     };
@@ -309,12 +311,24 @@ class MerchCardEditor extends LitElement {
     }
 
     getWhatsIncludedProps(el) {
+        const desc = el.querySelector('[slot="description"]');
+        const description = desc?.textContent?.trim() || '';
         const iconEl = el.querySelector('merch-icon');
-        const icon = iconEl?.getAttribute('src') || '';
-        const alt = iconEl?.getAttribute('alt') || '';
-        const linkEl = el.querySelector('[slot="icon"] a');
-        const link = linkEl?.getAttribute('href') || '';
-        return { icon, alt, link };
+        if (iconEl) {
+            const icon = iconEl.getAttribute('src') || '';
+            const alt = iconEl.getAttribute('alt') || '';
+            const linkEl = el.querySelector('[slot="icon"] a');
+            const link = linkEl?.getAttribute('href') || '';
+            return { icon, description, alt, link };
+        }
+        // Fallback for spectrum icons (sp-icon-* elements)
+        const spIcon = el.querySelector('.sp-icon');
+        if (spIcon) {
+            const icon = spIcon.tagName.toLowerCase();
+            const alt = '';
+            return { icon, description, alt, link: '' };
+        }
+        return { icon: '', description: '', alt: '', link: '' };
     }
 
     get whatsIncluded() {
@@ -333,13 +347,13 @@ class MerchCardEditor extends LitElement {
                 const icon = listEl.querySelector('.sp-icon')?.tagName.toLowerCase() || '';
                 const desc = listEl.querySelector('[slot="description"] > span');
                 const text = listEl.querySelector('[slot="description"]')?.textContent || '';
-                let alt;
+                let description;
                 if (desc?.innerHTML == text) {
-                    alt = text;
+                    description = text;
                 } else {
-                    alt = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
+                    description = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
                 }
-                bullets.push({ icon, alt, link: '' });
+                bullets.push({ icon, description, alt: '', link: '' });
             }
         });
 
@@ -471,6 +485,22 @@ class MerchCardEditor extends LitElement {
                 const field = this.querySelector(`sp-field-group#${attributeId}`);
                 if (field) field.style.display = 'none';
             });
+        }
+
+        // Mini-compare-chart uses icon picker field for whatsIncluded
+        if (variantValue === VARIANT_NAMES.MINI_COMPARE_CHART) {
+            const shared = this.querySelector('sp-field-group.toggle#whatsIncluded');
+            const iconPicker = this.querySelector('sp-field-group.toggle#whatsIncludedIconPicker');
+            if (shared) shared.style.display = 'none';
+            if (iconPicker) iconPicker.style.display = 'block';
+        }
+
+        // Mini-compare-chart-mweb: hide footer rows and quantity selection (Milo-managed)
+        if (variantValue === VARIANT_NAMES.MINI_COMPARE_CHART_MWEB) {
+            const footerRows = this.querySelector('sp-field-group.toggle#footerRows');
+            const quantitySelect = this.querySelector('sp-field-group.toggle#quantitySelect');
+            if (footerRows) footerRows.style.display = 'none';
+            if (quantitySelect) quantitySelect.style.display = 'none';
         }
 
         this.toggleSectionHeadings();
@@ -884,6 +914,36 @@ class MerchCardEditor extends LitElement {
                     </mas-multifield>
                     ${this.renderFieldStatusIndicator('whatsIncluded')}
                 </sp-field-group>
+                <sp-field-group class="toggle" id="whatsIncludedIconPicker">
+                    <div class="section-title">What's included</div>
+                    <mas-multifield
+                        button-label="Add application"
+                        data-field-state="${this.getFieldState('whatsIncluded')}"
+                        .value="${this.whatsIncluded.values}"
+                        @change="${(e) => this.#updateWhatsIncluded(e, false)}"
+                        @input="${(e) => this.#updateWhatsIncluded(e, false)}"
+                    >
+                        <template>
+                            <mas-icon-picker-field></mas-icon-picker-field>
+                        </template>
+                    </mas-multifield>
+                    ${this.renderFieldStatusIndicator('whatsIncluded')}
+                </sp-field-group>
+                <sp-field-group class="toggle" id="footerRows">
+                    <div class="section-title">Footer rows</div>
+                    <mas-multifield
+                        button-label="Add application"
+                        data-field-state="${this.getFieldState('footerRows')}"
+                        .value="${this.footerRows}"
+                        @change="${this.#updateFooterRows}"
+                        @input="${this.#updateFooterRows}"
+                    >
+                        <template>
+                            <mas-included-field></mas-included-field>
+                        </template>
+                    </mas-multifield>
+                    ${this.renderFieldStatusIndicator('footerRows')}
+                </sp-field-group>
                 <sp-field-group class="toggle" id="quantitySelect">
                     <div class="section-title">Quantity selection</div>
                     <sp-checkbox
@@ -987,10 +1047,13 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="promo-text"
                         link
+                        upt-link
+                        multiline
                         data-field="promoText"
                         data-field-state="${this.getFieldState('promoText')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.promoText?.values[0] || ''}
+                        default-link-style="secondary-link"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('promoText')}
@@ -1193,25 +1256,26 @@ class MerchCardEditor extends LitElement {
                 iconSlot.append(merchIcon);
             }
         }
-        const description = document.createElement('p');
-        description.setAttribute('slot', 'description');
+        const descriptionEl = document.createElement('p');
+        descriptionEl.setAttribute('slot', 'description');
+        const text = value.description || value.alt || '';
         if (isBullet) {
             const span = document.createElement('span');
-            if (value.alt?.startsWith('<p>')) {
+            if (text.startsWith('<p>')) {
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(value.alt, 'text/html');
+                const doc = parser.parseFromString(text, 'text/html');
                 span.innerHTML = doc.querySelector('p').innerHTML;
             } else {
-                span.textContent = value.alt || '';
+                span.textContent = text;
             }
-            description.append(span);
+            descriptionEl.append(span);
         } else {
-            const strong = document.createElement('strong');
-            strong.textContent = value.alt || '';
-            description.append(strong);
+            const span = document.createElement('span');
+            span.textContent = text;
+            descriptionEl.append(span);
         }
         list.append(iconSlot);
-        list.append(description);
+        list.append(descriptionEl);
         return list;
     }
 
@@ -1245,11 +1309,11 @@ class MerchCardEditor extends LitElement {
         let values = [];
         let bullets = [];
         if (Array.isArray(event.target.value)) {
-            event.target.value.forEach(({ icon, alt, link }) => {
+            event.target.value.forEach(({ icon, description, alt, link }) => {
                 if (isBullet) {
-                    bullets.push({ icon, alt, link });
+                    bullets.push({ icon, description, alt, link });
                 } else {
-                    values.push({ icon, alt, link });
+                    values.push({ icon, description, alt, link });
                 }
             });
             label = this.whatsIncluded.label;
@@ -1265,6 +1329,54 @@ class MerchCardEditor extends LitElement {
         }
         const element = this.createIncludedElement(label, values, bullets);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
+    }
+
+    get footerRows() {
+        const html = this.getEffectiveFieldValue('footerRows', 0) || '';
+        if (!html) return [];
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const rows = [];
+        doc.querySelectorAll('.footer-row-cell').forEach((cell) => {
+            rows.push({
+                icon: cell.querySelector('.footer-row-icon img')?.getAttribute('src') || '',
+                alt: cell.querySelector('.footer-row-cell-description p')?.textContent || '',
+                link: '',
+            });
+        });
+        return rows;
+    }
+
+    createFooterRowsElement(values) {
+        if (!values?.length) return undefined;
+        const ul = document.createElement('ul');
+        values.forEach(({ icon, alt }) => {
+            const li = document.createElement('li');
+            li.className = 'footer-row-cell';
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'footer-row-icon';
+            if (icon) {
+                const img = document.createElement('img');
+                img.setAttribute('src', icon);
+                img.setAttribute('alt', alt || '');
+                iconDiv.append(img);
+            }
+            const descDiv = document.createElement('div');
+            descDiv.className = 'footer-row-cell-description';
+            const p = document.createElement('p');
+            p.textContent = alt || '';
+            descDiv.append(p);
+            li.append(iconDiv, descDiv);
+            ul.append(li);
+        });
+        return ul;
+    }
+
+    #updateFooterRows(event) {
+        const items = event?.target?.value;
+        if (!Array.isArray(items)) return;
+        const values = items.map(({ icon, alt, link }) => ({ icon, alt, link }));
+        const element = this.createFooterRowsElement(values);
+        this.fragmentStore.updateField('footerRows', [element?.outerHTML || '']);
     }
 
     #updateMnemonics(event) {

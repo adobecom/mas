@@ -583,6 +583,135 @@
                         expect(relatedVariations).to.not.exist;
                     });
 
+                    describe('getWhatsIncludedProps', () => {
+                        it('extracts icon, alt, and description from a merch-icon element', async () => {
+                            await setupTestEnvironment({}, 'gwip-merch-icon');
+
+                            const el = document.createElement('div');
+                            const iconEl = document.createElement('merch-icon');
+                            iconEl.setAttribute('src', 'https://example.com/icon.svg');
+                            iconEl.setAttribute('alt', 'Test alt');
+                            const descEl = document.createElement('span');
+                            descEl.setAttribute('slot', 'description');
+                            descEl.textContent = 'Test description';
+                            el.append(iconEl, descEl);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.icon).to.equal('https://example.com/icon.svg');
+                            expect(result.alt).to.equal('Test alt');
+                            expect(result.description).to.equal('Test description');
+                            expect(result.link).to.equal('');
+                        });
+
+                        it('extracts href from [slot="icon"] a when merch-icon is present', async () => {
+                            await setupTestEnvironment({}, 'gwip-merch-icon-link');
+
+                            const el = document.createElement('div');
+                            const iconEl = document.createElement('merch-icon');
+                            iconEl.setAttribute('src', 'https://example.com/icon.svg');
+                            iconEl.setAttribute('alt', '');
+                            const iconSlot = document.createElement('span');
+                            iconSlot.setAttribute('slot', 'icon');
+                            const linkEl = document.createElement('a');
+                            linkEl.setAttribute('href', 'https://example.com/link');
+                            iconSlot.append(linkEl);
+                            el.append(iconEl, iconSlot);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.link).to.equal('https://example.com/link');
+                        });
+
+                        it('falls back to sp-icon tagName when no merch-icon is present', async () => {
+                            await setupTestEnvironment({}, 'gwip-sp-icon');
+
+                            const el = document.createElement('div');
+                            const spIcon = document.createElement('span');
+                            spIcon.className = 'sp-icon';
+                            spIcon.id = 'sp-icon-star';
+                            el.append(spIcon);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.icon).to.equal('span');
+                            expect(result.alt).to.equal('');
+                            expect(result.link).to.equal('');
+                        });
+
+                        it('returns empty values when no icon elements are found', async () => {
+                            await setupTestEnvironment({}, 'gwip-no-icon');
+
+                            const el = document.createElement('div');
+                            const descEl = document.createElement('span');
+                            descEl.setAttribute('slot', 'description');
+                            descEl.textContent = 'No icon here';
+                            el.append(descEl);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            // The no-icon fallback returns empty strings for all fields
+                            expect(result.icon).to.equal('');
+                            expect(result.description).to.equal('');
+                            expect(result.alt).to.equal('');
+                            expect(result.link).to.equal('');
+                        });
+                    });
+
+                    describe('whatsIncluded getter contentBullets', () => {
+                        it('parses contentBullets with merch-icon and includes bullets with icon', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-icon');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <merch-icon src="https://example.com/icon.svg" alt="Icon alt"></merch-icon>
+                                        <span slot="description">Bullet with icon</span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].icon).to.equal('https://example.com/icon.svg');
+                            expect(result.bullets[0].alt).to.equal('Icon alt');
+                        });
+
+                        it('parses contentBullets with no merch-icon, desc innerHTML equals text', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-desc-text');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <span slot="description"><span>Plain text bullet</span></span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].description).to.be.a('string');
+                        });
+
+                        it('parses contentBullets with no merch-icon, desc innerHTML differs from text', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-desc-html');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <span slot="description"><span><b>Bold</b> text</span></span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].description).to.include('<p>');
+                        });
+                    });
+
                     describe('description field inheritance logic', () => {
                         it('correctly handles inheritance and overrides for RTE fields', async () => {
                             const parent = new Fragment(structuredClone(parentWithAllFields));

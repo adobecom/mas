@@ -322,15 +322,17 @@
                         el.shadowRoot.querySelector('.mas-setting-row .expand-button').click();
                         await el.updateComplete;
 
-                        const overrideActions = [...el.shadowRoot.querySelectorAll('.override-row .actions-cell sp-menu-item')].map(
-                            (item) => item.textContent.trim(),
-                        );
+                        const overrideActions = [
+                            ...el.shadowRoot.querySelectorAll('.override-row .actions-cell sp-menu-item'),
+                        ].map((item) => item.textContent.trim());
                         expect(overrideActions).to.deep.equal(['Edit setting', 'Unpublish']);
 
                         const eventPromise = new Promise((resolve) => {
                             el.addEventListener('setting-unpublish', resolve, { once: true });
                         });
-                        el.shadowRoot.querySelector('.override-row .actions-cell sp-menu-item[data-action="setting-unpublish"]').click();
+                        el.shadowRoot
+                            .querySelector('.override-row .actions-cell sp-menu-item[data-action="setting-unpublish"]')
+                            .click();
                         const event = await eventPromise;
 
                         expect(event.detail).to.deep.equal({

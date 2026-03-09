@@ -81,7 +81,7 @@ export const CSS = `
             width: 320px;
         }
 
-        div.dialog-modal merch-card[variant='media'] div[slot='bg-image'] {
+        merch-card[variant='media'] div[slot='bg-image'] {
             display: flex;
             align-items: center;
             height: 100%;

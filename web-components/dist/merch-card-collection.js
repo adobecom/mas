@@ -3268,7 +3268,7 @@ merch-card-collection.segment merch-card {
             width: 320px;
         }
 
-        div.dialog-modal merch-card[variant='media'] div[slot='bg-image'] {
+        merch-card[variant='media'] div[slot='bg-image'] {
             display: flex;
             align-items: center;
             height: 100%;
@@ -3343,7 +3343,7 @@ merch-card-collection.segment merch-card {
 
             :host([variant='media']) .text {
                 flex: 0 1 auto;
-            }                
+            }
         }
     `);import{html as ei,css as Es}from"./lit-all.min.js";var Ta=`
 :root {

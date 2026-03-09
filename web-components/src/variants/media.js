@@ -1,0 +1,59 @@
+import { html, css } from 'lit';
+import { VariantLayout } from './variant-layout.js';
+import { CSS } from './media.css.js';
+
+export const MEDIA_AEM_FRAGMENT_MAPPING = {
+    cardName: { attribute: 'name' },
+    title: { tag: 'h3', slot: 'heading-xs' },
+    subtitle: { tag: 'p', slot: 'body-xxs' },
+    description: { tag: 'div', slot: 'body-xs' },
+    ctas: { slot: 'footer', size: 'm' },
+    backgroundImage: { tag: 'div', slot: 'bg-image' },
+    style: 'consonant',
+};
+
+export class Media extends VariantLayout {
+    constructor(card) {
+        super(card);
+    }
+
+    getGlobalCSS() {
+        return CSS;
+    }
+
+    renderLayout() {
+        return html`
+            <div class="media-row">
+                <div class="text">
+                    <slot name="body-xxs"></slot>
+                    <slot name="heading-xs"></slot>
+                    <slot name="body-xs"></slot>
+                    <slot name="footer"></slot>
+                </div>
+                <div class="image">
+                    <slot name="bg-image"></slot>
+                </div>
+            </div>
+        `;
+    }
+
+    static variantStyle = css`
+        :host([variant='media']) .media-row {
+            display: flex;
+            gap: 40px;
+        }
+
+        :host([variant='media']) .text {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            flex-grow: 1;
+            flex-basis: 0;
+        }
+
+        :host([variant='media']) .image {
+            flex-grow: 1;
+            flex-basis: 0;
+        }
+    `;
+}

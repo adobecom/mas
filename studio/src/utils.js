@@ -44,6 +44,13 @@ export function extractValue(fn) {
     };
 }
 
+export function extractTitleText(htmlOrText, fallback = 'Untitled') {
+    if (!htmlOrText) return fallback;
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlOrText;
+    return tempDiv.textContent || fallback;
+}
+
 /**
  * @param {string} param
  * @returns {string | null}

@@ -125,9 +125,7 @@ const isDev = typeof window !== 'undefined' && window.location.hostname === 'loc
 const IO_NAMESPACE = isDev ? '14257-merchatscale-axel' : '14257-masstudio';
 
 export const AI_CHAT_BASE_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
-export const MCP_SERVER_URL = isDev
-    ? 'http://localhost:3001'
-    : `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+export const MCP_SERVER_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
 export const KNOWLEDGE_SERVICE_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleKnowledge`;
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -247,3 +245,18 @@ export const TABLE_TYPE = {
 };
 
 export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];
+
+export const IMS_ORG_ID = '9E1005A551ED61CA0A490D45';
+export const AEM_AUTHOR_URL = 'https://author-p22655-e59433.adobeaemcloud.com';
+
+export const SURFACE_MAP = {
+    acom: 'acom',
+    'adobe-home': 'adobe-home',
+    ahome: 'adobe-home',
+    ccd: 'ccd',
+    commerce: 'commerce',
+    docs: 'docs',
+    express: 'express',
+    nala: 'nala',
+    sandbox: 'sandbox',
+};

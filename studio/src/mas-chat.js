@@ -1,4 +1,5 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import StoreController from './reactivity/store-controller.js';
 import './mas-chat-message.js';
 import './mas-chat-input.js';
@@ -8,11 +9,14 @@ import './mas-operation-result.js';
 import './mas-chat-session-selector.js';
 import Store from './store.js';
 import router from './router.js';
-import { createFragmentFromAIConfig, createFragmentDataForAEM } from './utils/ai-card-mapper.js';
+import { createFragmentFromAIConfig } from './utils/ai-card-mapper.js';
 import { executeOperationWithFeedback } from './utils/ai-operations-executor.js';
+import { executeStudioOperation, executeStudioOperationWithProgress } from './services/mcp-client.js';
+import { callAIChatAction } from './services/ai-client.js';
+import { saveDraftToAEM, saveToAEM, publishDraft, deleteDraft, saveCollectionToAEM } from './services/aem-operations.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { showToast, getHashParam } from './utils.js';
-import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
+import { showToast, getHashParam, extractTitleText } from './utils.js';
+import { TAG_MODEL_ID_MAPPING, SURFACE_MAP, PAGE_NAMES, SURFACES } from './constants.js';
 import { getDamPath } from './mas-repository.js';
 import sessionManager from './services/chat-session-manager.js';
 
@@ -31,6 +35,8 @@ export class MasChat extends LitElement {
         userName: { type: String },
     };
 
+    activeOperations = new Set();
+
     constructor() {
         super();
         this.messages = [];
@@ -41,6 +47,16 @@ export class MasChat extends LitElement {
         this.currentSessionId = null;
         this.showWelcomeScreen = true;
         this.userName = null;
+    }
+
+    startOperation(key) {
+        this.activeOperations.add(key);
+        this.isLoading = true;
+    }
+
+    endOperation(key) {
+        this.activeOperations.delete(key);
+        this.isLoading = this.activeOperations.size > 0;
     }
 
     async fetchUserName() {
@@ -66,17 +82,7 @@ export class MasChat extends LitElement {
     getCurrentSurface() {
         const path = Store.search?.value?.path || getHashParam('path');
         if (!path) return null;
-        const surfaceMap = {
-            acom: 'acom',
-            ccd: 'ccd',
-            commerce: 'commerce',
-            ahome: 'adobe-home',
-            express: 'express',
-            sandbox: 'sandbox',
-            docs: 'docs',
-            nala: 'nala',
-        };
-        return surfaceMap[path] || null;
+        return SURFACE_MAP[path] || null;
     }
 
     createRenderRoot() {
@@ -96,6 +102,8 @@ export class MasChat extends LitElement {
         this.addEventListener('session-cleared', this.handleSessionCleared);
         this.addEventListener('approve-preview', this.handleApprovePreview);
         this.addEventListener('cancel-preview', this.handleCancelPreview);
+        this.handleKeyboardShortcut = this.handleKeyboardShortcut.bind(this);
+        document.addEventListener('keydown', this.handleKeyboardShortcut);
     }
 
     disconnectedCallback() {
@@ -110,6 +118,22 @@ export class MasChat extends LitElement {
         this.removeEventListener('session-cleared', this.handleSessionCleared);
         this.removeEventListener('approve-preview', this.handleApprovePreview);
         this.removeEventListener('cancel-preview', this.handleCancelPreview);
+        document.removeEventListener('keydown', this.handleKeyboardShortcut);
+    }
+
+    handleKeyboardShortcut(event) {
+        if (router.path !== PAGE_NAMES.AI_ASSISTANT) return;
+        const mod = event.metaKey || event.ctrlKey;
+        if (mod && event.key === 'k') {
+            event.preventDefault();
+            const rteField = this.querySelector('mas-chat-input rte-field');
+            if (rteField) rteField.focus();
+        }
+        if (mod && event.shiftKey && event.key === 'N') {
+            event.preventDefault();
+            const selector = this.querySelector('mas-chat-session-selector');
+            if (selector) selector.handleNewSession?.();
+        }
     }
 
     loadActiveSession() {
@@ -122,7 +146,7 @@ export class MasChat extends LitElement {
             session.messages.some((m) => m.role === 'user' || (m.role === 'assistant' && !m.showSuggestions));
 
         if (hasRealMessages) {
-            this.messages = session.messages;
+            this.messages = session.messages.map((m) => ({ ...m, fromHistory: true }));
             this.conversationHistory = session.conversationHistory || [];
             this.showPromptSuggestions = false;
             this.showWelcomeScreen = false;
@@ -163,7 +187,7 @@ export class MasChat extends LitElement {
         }
 
         this.currentSessionId = sessionId;
-        this.messages = session.messages || [];
+        this.messages = (session.messages || []).map((m) => ({ ...m, fromHistory: true }));
         this.conversationHistory = session.conversationHistory || [];
 
         const hasRealMessages =
@@ -232,7 +256,7 @@ export class MasChat extends LitElement {
 
         this.messages = [...this.messages, userMessage];
 
-        this.isLoading = true;
+        this.startOperation('sendMessage');
         this.error = null;
 
         try {
@@ -245,16 +269,6 @@ export class MasChat extends LitElement {
                 workingSet: this.getRecentFragments(),
             };
 
-            console.log('[AI Chat] Sending enriched context to backend:', {
-                hasLastOperation: !!enrichedContext.lastOperation,
-                lastOperationType: enrichedContext.lastOperation?.type,
-                fragmentCount: enrichedContext.lastOperation?.fragmentIds?.length || 0,
-                workingSetSize: enrichedContext.workingSet?.length || 0,
-                surface: enrichedContext.surface,
-                locale: enrichedContext.currentLocale,
-                path: enrichedContext.currentPath,
-            });
-
             const response = await this.callAIChatAction({
                 message,
                 conversationHistory: this.conversationHistory,
@@ -264,60 +278,27 @@ export class MasChat extends LitElement {
             if (response.type === 'operation' || response.type === 'mcp_operation') {
                 if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
                     let surface = null;
-                    let detectionMethod = null;
-
-                    console.log('[AI Chat] Surface Detection Debug:');
-                    console.log('  Store.search.value.path:', Store.search?.value?.path);
-                    console.log('  URL hash param (path):', getHashParam('path'));
-                    console.log('  Store.folders.data:', Store.folders?.data?.value);
 
                     if (Store.search?.value?.path) {
                         surface = this.extractSurfaceFromPath(Store.search.value.path);
-                        detectionMethod = 'Store.search.value.path';
-                        console.log(`  ✓ Method 1 (Store.search.value.path): ${surface}`);
                     }
 
                     if (!surface) {
                         const hashPath = getHashParam('path');
-                        const surfaceMap = {
-                            acom: 'acom',
-                            ccd: 'ccd',
-                            commerce: 'commerce',
-                            ahome: 'adobe-home',
-                            express: 'express',
-                            sandbox: 'sandbox',
-                            docs: 'docs',
-                            nala: 'nala',
-                        };
-                        surface = surfaceMap[hashPath] || null;
-                        if (surface) {
-                            detectionMethod = 'URL hash parameter';
-                            console.log(`  ✓ Method 2 (URL hash): ${surface}`);
-                        } else {
-                            console.log(`  ✗ Method 2 (URL hash): Failed (hashPath: ${hashPath})`);
-                        }
+                        surface = SURFACE_MAP[hashPath] || null;
                     }
 
                     if (!surface && Store.folders?.data?.value?.length > 0) {
                         const firstFolder = Store.folders.data.value[0];
                         surface = this.extractSurfaceFromPath(firstFolder);
-                        if (surface) {
-                            detectionMethod = 'First folder from Store.folders.data';
-                            console.log(`  ✓ Method 3 (First folder): ${surface} (from ${firstFolder})`);
-                        }
                     }
 
                     if (!surface) {
                         surface = 'acom';
-                        detectionMethod = 'Default fallback';
-                        console.log(`  ✓ Method 4 (Default): ${surface}`);
                     }
-
-                    console.log(`[AI Chat] Final surface: ${surface} (via ${detectionMethod})`);
 
                     response.mcpParams.surface = surface;
                     const storeLocale = Store.filters?.value?.locale;
-                    console.log('[AI Chat] Store.filters.value.locale:', storeLocale);
                     response.mcpParams.locale = storeLocale || 'en_US';
 
                     if (response.mcpParams.query) {
@@ -330,16 +311,8 @@ export class MasChat extends LitElement {
                         const isImageQuery = imagePatterns.some((pattern) => pattern.test(query));
                         if (isImageQuery && !query.includes('backgroundimage:')) {
                             response.mcpParams.query = 'backgroundImage:*';
-                            console.log('[AI Chat] Converted image query to field search: backgroundImage:*');
                         }
                     }
-
-                    console.log('[AI Chat] MCP Params:', {
-                        surface: response.mcpParams.surface,
-                        locale: response.mcpParams.locale,
-                        query: response.mcpParams.query,
-                        limit: response.mcpParams.limit,
-                    });
                 }
 
                 const messageData = {
@@ -388,7 +361,7 @@ export class MasChat extends LitElement {
                 ];
 
                 try {
-                    const draftFragment = await this.saveDraftToAEM(response.cardConfig);
+                    const draftFragment = await saveDraftToAEM(response.cardConfig);
 
                     this.messages = [
                         ...this.messages.slice(0, messageIndex),
@@ -459,39 +432,12 @@ export class MasChat extends LitElement {
                 },
             ];
         } finally {
-            this.isLoading = false;
+            this.endOperation('sendMessage');
         }
     }
 
     async callAIChatAction(params) {
-        if (!window.adobeIMS) {
-            throw new Error('Adobe IMS not loaded');
-        }
-
-        const accessTokenObj = window.adobeIMS.getAccessToken();
-        if (!accessTokenObj || !accessTokenObj.token) {
-            throw new Error('Not authenticated. Please log in first.');
-        }
-
-        const aioBaseURL = AI_CHAT_BASE_URL;
-        const actionUrl = `${aioBaseURL}/ai-chat`;
-
-        const response = await fetch(actionUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${accessTokenObj.token}`,
-                'x-api-key': window.adobeIMS?.adobeIdData?.client_id || '',
-            },
-            body: JSON.stringify(params),
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to communicate with AI service');
-        }
-
-        return response.json();
+        return callAIChatAction(params);
     }
 
     async handleCardAction(event) {
@@ -523,7 +469,7 @@ export class MasChat extends LitElement {
     async openInEditor(cardConfig) {
         try {
             const fragment = createFragmentFromAIConfig(cardConfig, cardConfig.variant, {
-                title: this.extractTitle(cardConfig),
+                title: extractTitleText(cardConfig.title, 'AI Generated Card'),
             });
 
             const fragmentStore = new FragmentStore(fragment);
@@ -542,20 +488,10 @@ export class MasChat extends LitElement {
 
     async saveToAEM(cardConfig) {
         try {
-            this.isLoading = true;
+            this.startOperation('saveToAEM');
 
-            const repository = document.querySelector('mas-repository');
-            if (!repository) {
-                throw new Error('Repository not found');
-            }
-
-            const title = this.extractTitle(cardConfig);
-            const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
-                title,
-                parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
-            });
-
-            const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
+            const title = extractTitleText(cardConfig.title, 'AI Generated Card');
+            const newFragment = await saveToAEM(cardConfig);
 
             showToast(`Card "${title}" saved successfully!`, 'positive');
 
@@ -579,41 +515,8 @@ export class MasChat extends LitElement {
                 },
             ];
         } finally {
-            this.isLoading = false;
+            this.endOperation('saveToAEM');
         }
-    }
-
-    generateUniqueFragmentName(title) {
-        const baseName = title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
-        const timestamp = Date.now();
-        return `${baseName}-${timestamp}`;
-    }
-
-    async saveDraftToAEM(cardConfig) {
-        const repository = document.querySelector('mas-repository');
-        if (!repository) {
-            throw new Error('Repository not found');
-        }
-
-        const title = this.extractTitle(cardConfig);
-        const uniqueName = this.generateUniqueFragmentName(title);
-        const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
-            title,
-            name: uniqueName,
-            parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
-        });
-
-        const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
-
-        const AemFragmentElement = customElements.get('aem-fragment');
-        if (AemFragmentElement && newFragment) {
-            AemFragmentElement.cache.add(newFragment);
-        }
-
-        return newFragment;
     }
 
     async openDraftInEditor(fragmentId) {
@@ -628,14 +531,8 @@ export class MasChat extends LitElement {
 
     async publishDraft(fragmentId) {
         try {
-            this.isLoading = true;
-            const repository = document.querySelector('mas-repository');
-            if (!repository) {
-                throw new Error('Repository not found');
-            }
-
-            const fragment = await repository.aem.sites.cf.fragments.getById(fragmentId);
-            await repository.aem.sites.cf.fragments.publishFragment(fragment);
+            this.startOperation('publish');
+            const fragment = await publishDraft(fragmentId);
 
             showToast(`Card "${fragment.title}" published successfully!`, 'positive');
 
@@ -651,20 +548,14 @@ export class MasChat extends LitElement {
             console.error('Failed to publish draft:', error);
             showToast(`Failed to publish: ${error.message}`, 'negative');
         } finally {
-            this.isLoading = false;
+            this.endOperation('publish');
         }
     }
 
     async deleteDraft(fragmentId, fragmentTitle) {
         try {
-            this.isLoading = true;
-            const repository = document.querySelector('mas-repository');
-            if (!repository) {
-                throw new Error('Repository not found');
-            }
-
-            const fragment = await repository.aem.sites.cf.fragments.getById(fragmentId);
-            await repository.aem.sites.cf.fragments.delete(fragment);
+            this.startOperation('delete');
+            await deleteDraft(fragmentId);
 
             showToast(`Draft "${fragmentTitle}" deleted successfully!`, 'positive');
 
@@ -680,7 +571,7 @@ export class MasChat extends LitElement {
             console.error('Failed to delete draft:', error);
             showToast(`Failed to delete: ${error.message}`, 'negative');
         } finally {
-            this.isLoading = false;
+            this.endOperation('delete');
         }
     }
 
@@ -694,29 +585,13 @@ export class MasChat extends LitElement {
 
     async saveCollectionToAEM(collectionConfig) {
         try {
-            this.isLoading = true;
-
-            const repository = document.querySelector('mas-repository');
-            if (!repository) {
-                throw new Error('Repository not found');
-            }
-
-            const parentPath = `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
-            const collectionTitle = collectionConfig.title || 'AI Generated Collection';
+            this.startOperation('saveCollection');
 
             showToast(`Saving ${collectionConfig.cards.length} cards...`, 'info');
 
-            const savedCards = [];
-            for (const [index, cardConfig] of collectionConfig.cards.entries()) {
-                const cardTitle = `${collectionTitle} - Card ${index + 1}`;
-                const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
-                    title: cardTitle,
-                    parentPath,
-                });
-
-                const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
-                savedCards.push(newFragment);
-            }
+            const savedCards = await saveCollectionToAEM(collectionConfig);
+            const surface = Store.search.value.path;
+            const locale = Store.filters.value.locale || 'en_US';
 
             showToast(`Collection saved successfully! ${savedCards.length} cards created.`, 'positive');
 
@@ -724,7 +599,7 @@ export class MasChat extends LitElement {
                 ...this.messages,
                 {
                     role: 'assistant',
-                    content: `Collection saved with ${savedCards.length} cards in ${this.capitalize(Store.search.value.path)} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
+                    content: `Collection saved with ${savedCards.length} cards in ${surface.charAt(0).toUpperCase() + surface.slice(1)} folder, ${locale} locale.`,
                     timestamp: Date.now(),
                 },
             ];
@@ -740,20 +615,8 @@ export class MasChat extends LitElement {
                 },
             ];
         } finally {
-            this.isLoading = false;
+            this.endOperation('saveCollection');
         }
-    }
-
-    extractTitle(cardConfig) {
-        if (!cardConfig.title) return 'AI Generated Card';
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = cardConfig.title;
-        return tempDiv.textContent || 'AI Generated Card';
-    }
-
-    capitalize(str) {
-        if (!str) return '';
-        return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
     async handleCardsSelected(event) {
@@ -767,7 +630,7 @@ export class MasChat extends LitElement {
     }
 
     async createCollection(cardIds, title) {
-        this.isLoading = true;
+        this.startOperation('createCollection');
 
         try {
             const repository = document.querySelector('mas-repository');
@@ -789,7 +652,7 @@ export class MasChat extends LitElement {
                 ...this.messages,
                 {
                     role: 'assistant',
-                    content: `Collection "${title}" created with ${cardIds.length} cards in ${this.capitalize(Store.search.value.path)} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
+                    content: `Collection "${title}" created with ${cardIds.length} cards in ${Store.search.value.path} folder, ${Store.filters.value.locale || 'en_US'} locale.`,
                     timestamp: Date.now(),
                 },
             ];
@@ -807,7 +670,7 @@ export class MasChat extends LitElement {
             ];
             showToast(`Failed to create collection: ${error.message}`, 'negative');
         } finally {
-            this.isLoading = false;
+            this.endOperation('createCollection');
         }
     }
 
@@ -829,12 +692,12 @@ export class MasChat extends LitElement {
     }
 
     async executeOperation(operation) {
-        this.isLoading = true;
+        this.startOperation('executeOp');
 
         const repository = document.querySelector('mas-repository');
         if (!repository) {
             showToast('Repository not found', 'negative');
-            this.isLoading = false;
+            this.endOperation('executeOp');
             return;
         }
 
@@ -852,12 +715,10 @@ export class MasChat extends LitElement {
             await this.executeRegularOperation(operation, repository, operationType);
         }
 
-        this.isLoading = false;
+        this.endOperation('executeOp');
     }
 
     async executePreviewOperation(operation, operationType) {
-        const { executeStudioOperation } = await import('./services/mcp-client.js');
-
         try {
             const previewData = await executeStudioOperation(operation.mcpTool, operation.mcpParams);
 
@@ -941,8 +802,6 @@ export class MasChat extends LitElement {
     }
 
     async executeBulkOperationWithProgress(operation, operationType) {
-        const { executeStudioOperationWithProgress } = await import('./services/mcp-client.js');
-
         const loadingMessage = this.getOperationLoadingMessage(operationType);
         const messageId = Date.now();
         const loadingMessageObj = {
@@ -1088,45 +947,19 @@ export class MasChat extends LitElement {
         if (surfaceIndex === 0 || surfaceIndex >= pathParts.length) return null;
 
         const pathSegment = pathParts[surfaceIndex];
-
-        const surfaceMap = {
-            acom: 'acom',
-            ccd: 'ccd',
-            commerce: 'commerce',
-            ahome: 'adobe-home',
-            express: 'express',
-            sandbox: 'sandbox',
-            docs: 'docs',
-            nala: 'nala',
-        };
-
-        return surfaceMap[pathSegment] || null;
+        return SURFACE_MAP[pathSegment] || null;
     }
 
     scrollToBottom(smooth = false) {
         const messagesContainer = this.querySelector('.chat-messages');
-        if (messagesContainer) {
-            const scrollOptions = smooth ? { behavior: 'smooth' } : {};
-
+        if (!messagesContainer) return;
+        const scrollOptions = smooth ? { behavior: 'smooth' } : {};
+        requestAnimationFrame(() => {
             messagesContainer.scrollTo({
                 top: messagesContainer.scrollHeight,
                 ...scrollOptions,
             });
-
-            requestAnimationFrame(() => {
-                messagesContainer.scrollTo({
-                    top: messagesContainer.scrollHeight,
-                    ...scrollOptions,
-                });
-            });
-
-            setTimeout(() => {
-                messagesContainer.scrollTo({
-                    top: messagesContainer.scrollHeight,
-                    ...scrollOptions,
-                });
-            }, 300);
-        }
+        });
     }
 
     updated(changedProperties) {
@@ -1148,10 +981,6 @@ export class MasChat extends LitElement {
         if (!lastOp) return null;
 
         const fragmentIds = lastOp.operationResult.results?.map((f) => f.id) || [];
-        console.log('[Frontend] ===== EXTRACTED FRAGMENT IDS FROM LAST OPERATION =====');
-        console.log('[Frontend] Operation type:', lastOp.operationResult.operation);
-        console.log('[Frontend] Total fragment IDs:', fragmentIds.length);
-        console.log('[Frontend] Fragment IDs:', fragmentIds);
 
         return {
             type: lastOp.operationResult.operation,
@@ -1212,8 +1041,12 @@ export class MasChat extends LitElement {
                 </div>
 
                 <div class="welcome-content">
+                    <div class="welcome-icon-wrapper">
+                        <sp-icon-magic-wand></sp-icon-magic-wand>
+                    </div>
                     <div class="welcome-greeting">
                         <h1>${greeting}${name ? `, ${name}` : ''}</h1>
+                        <p class="welcome-subtitle">Your AI assistant for Merch at Scale</p>
                     </div>
 
                     <div class="welcome-input-wrapper">
@@ -1234,6 +1067,29 @@ export class MasChat extends LitElement {
                           </div>
                       `
                     : ''}
+            </div>
+        `;
+    }
+
+    getSurfaceLabel(surfaceKey) {
+        const entry = Object.values(SURFACES).find((s) => s.name === surfaceKey);
+        return entry?.label || surfaceKey;
+    }
+
+    renderContextBar() {
+        const surface = this.getCurrentSurface();
+        const locale = Store.filters?.value?.locale;
+        const workingSet = this.getRecentFragments();
+        const lastOp = this.getLastOperationResult();
+
+        if (!surface && !locale && !workingSet.length && !lastOp) return '';
+
+        return html`
+            <div class="context-bar">
+                ${surface ? html`<sp-tag size="s">${this.getSurfaceLabel(surface)}</sp-tag>` : ''}
+                ${locale ? html`<sp-tag size="s">${locale}</sp-tag>` : ''}
+                ${workingSet.length > 0 ? html`<sp-tag size="s">${workingSet.length} cards in context</sp-tag>` : ''}
+                ${lastOp ? html`<sp-tag size="s">Last: ${lastOp.type}</sp-tag>` : ''}
             </div>
         `;
     }
@@ -1263,7 +1119,9 @@ export class MasChat extends LitElement {
 
                 <div class="chat-container">
                     <div class="chat-messages">
-                        ${this.messages.map(
+                        ${repeat(
+                            this.messages,
+                            (message) => message.timestamp,
                             (message) => html`
                                 <mas-chat-message
                                     .message=${message}
@@ -1287,6 +1145,7 @@ export class MasChat extends LitElement {
                     </div>
                 </div>
 
+                ${this.renderContextBar()}
                 <div class="chat-input">
                     <mas-chat-input @send-message=${this.handleSendMessage} .disabled=${this.isLoading}></mas-chat-input>
                 </div>

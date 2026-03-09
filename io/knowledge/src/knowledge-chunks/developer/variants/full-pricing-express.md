@@ -23,6 +23,7 @@ The Full Pricing Express variant is used for Full Express pricing cards with com
 <slot name="short-description"></slot>
 <slot name="trial-badge"></slot>
 <slot name="price"></slot>
+<slot name="callout-content"></slot>
 <slot name="cta"></slot>
 <slot name="body-s"></slot>
 ```

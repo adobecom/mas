@@ -1,6 +1,8 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { openPreview, closePreview } from './mas-card-preview.js';
+import { PATH_TOKENS } from './constants.js';
+import { showToast } from './utils.js';
 
 /**
  * Operation Result Display Component
@@ -223,21 +225,182 @@ export class MasOperationResult extends LitElement {
             return html`<p>No fragment data available.</p>`;
         }
 
+        const pathMatch = fragment.path?.match(PATH_TOKENS);
+        const surface = pathMatch?.groups?.surface;
+        const locale = pathMatch?.groups?.parsedLocale;
+        const fields = this.getFieldValues(fragment);
+        const truncatedPath = this.truncatePath(fragment.path);
+
         return html`
             <div class="operation-result get-result">
                 <div class="fragment-preview">
                     <h4>${fragment.title}</h4>
-                    <p class="fragment-path">${fragment.path}</p>
                     <div class="fragment-meta">
                         <sp-badge>${this.extractVariant(fragment)}</sp-badge>
                         <span class="fragment-status">${fragment.status}</span>
+                        ${surface ? html`<sp-badge size="s" variant="informative">${surface}</sp-badge>` : nothing}
+                        ${locale ? html`<sp-badge size="s" variant="informative">${locale}</sp-badge>` : nothing}
                     </div>
-                    <sp-button size="s" variant="secondary" @click=${() => this.handleOpenCard(fragment)}>
-                        Open in Editor
-                    </sp-button>
+
+                    <div class="card-detail-grid">
+                        <div class="offer-field">
+                            <span class="field-label">Path</span>
+                            <span class="field-value" title="${fragment.path}">${truncatedPath}</span>
+                        </div>
+                        <div class="offer-field">
+                            <span class="field-label">Fragment ID</span>
+                            <code
+                                class="field-value copyable"
+                                tabindex="0"
+                                role="button"
+                                @click=${() => this.copyToClipboard(fragment.id)}
+                                @keydown=${(e) => this.handleCopyKeydown(e, fragment.id)}
+                                >${fragment.id}</code
+                            >
+                        </div>
+                        ${fields.osi
+                            ? html`<div class="offer-field">
+                                  <span class="field-label">OSI</span>
+                                  <code class="field-value">${fields.osi}</code>
+                              </div>`
+                            : nothing}
+                        <div class="offer-field">
+                            <span class="field-label">Modified</span>
+                            <span class="field-value">${this.formatRelativeTime(fragment.modified)}</span>
+                        </div>
+                        <div class="offer-field">
+                            <span class="field-label">Published</span>
+                            <span class="field-value"
+                                >${fragment.published ? this.formatRelativeTime(fragment.published) : 'Never'}</span
+                            >
+                        </div>
+                        ${fields.size && fields.size !== 'wide'
+                            ? html`<div class="offer-field">
+                                  <span class="field-label">Size</span>
+                                  <span class="field-value">${fields.size}</span>
+                              </div>`
+                            : nothing}
+                    </div>
+
+                    ${this.renderCardFields(fields)}
+
+                    <div class="card-detail-actions">
+                        <sp-button size="s" variant="secondary" @click=${() => this.handleOpenCard(fragment)}>
+                            Open in Editor
+                        </sp-button>
+                        <sp-button size="s" variant="secondary" @click=${() => this.copyToClipboard(fragment.id)}>
+                            <sp-icon-copy slot="icon"></sp-icon-copy>
+                            Copy ID
+                        </sp-button>
+                    </div>
                 </div>
             </div>
         `;
+    }
+
+    getFieldValues(fragment) {
+        const fields = fragment.fields;
+        if (!fields) return {};
+        if (Array.isArray(fields)) {
+            const result = {};
+            fields.forEach((f) => {
+                result[f.name] = f.multiple ? f.values : f.values?.[0];
+            });
+            return result;
+        }
+        return fields;
+    }
+
+    renderCardFields(fields) {
+        const displayFields = [];
+        const fieldConfig = [
+            { key: 'cardTitle', label: 'Card Title' },
+            { key: 'title', label: 'Title' },
+            { key: 'badge', label: 'Badge' },
+            { key: 'mnemonicIcon', label: 'Mnemonics' },
+            { key: 'description', label: 'Description', strip: true },
+            { key: 'prices', label: 'Prices', strip: true },
+            { key: 'ctas', label: 'CTAs', strip: true },
+        ];
+
+        for (const { key, label, strip } of fieldConfig) {
+            const val = fields[key];
+            if (!val || (typeof val === 'string' && !val.trim())) continue;
+            if (key === 'title' && fields.cardTitle) continue;
+            if (key === 'mnemonicIcon' && Array.isArray(val)) {
+                const icons = val.filter(Boolean);
+                if (icons.length > 0) {
+                    displayFields.push({ label, value: `${icons.length} icon${icons.length !== 1 ? 's' : ''}` });
+                }
+                continue;
+            }
+            let display = typeof val === 'string' ? val : String(val);
+            if (strip) display = display.replace(/<[^>]*>/g, '');
+            if (display.length > 80) display = `${display.slice(0, 80)}…`;
+            displayFields.push({ label, value: display });
+        }
+
+        if (displayFields.length === 0) return nothing;
+
+        return html`
+            <details class="card-fields-section">
+                <summary>Card Fields</summary>
+                <div class="card-fields-list">
+                    ${displayFields.map(
+                        ({ label, value }) => html`
+                            <div class="offer-field">
+                                <span class="field-label">${label}</span>
+                                <span class="field-value">${value}</span>
+                            </div>
+                        `,
+                    )}
+                </div>
+                ${fields.backgroundImage
+                    ? html`<div class="field-thumbnail">
+                          <span class="field-label">Background</span>
+                          <img src="${fields.backgroundImage}" alt="Background" loading="lazy" />
+                      </div>`
+                    : nothing}
+            </details>
+        `;
+    }
+
+    truncatePath(path) {
+        if (!path) return '';
+        const segments = path.split('/');
+        if (segments.length <= 4) return path;
+        return `…/${segments.slice(-3).join('/')}`;
+    }
+
+    formatRelativeTime(dateString) {
+        if (!dateString) return 'Unknown';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHr = Math.floor(diffMin / 60);
+        const diffDays = Math.floor(diffHr / 24);
+
+        if (diffSec < 60) return 'just now';
+        if (diffMin < 60) return `${diffMin} min ago`;
+        if (diffHr < 24) return `${diffHr} hour${diffHr !== 1 ? 's' : ''} ago`;
+        if (diffDays < 30) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+        return date.toLocaleDateString();
+    }
+
+    copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(
+            () => showToast('Copied to clipboard', 'positive'),
+            () => showToast('Failed to copy', 'negative'),
+        );
+    }
+
+    handleCopyKeydown(e, text) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.copyToClipboard(text);
+        }
     }
 
     extractVariant(fragment) {
@@ -576,16 +739,22 @@ export class MasOperationResult extends LitElement {
 
         const primaryOffer = offers[0];
         const { offerId, productArrangementCode, commitment, term, planType, priceDetails = {} } = primaryOffer;
+        const customerSegment = primaryOffer.customer_segment || primaryOffer.customerSegment;
+        const marketSegment = primaryOffer.market_segment || primaryOffer.marketSegment;
 
         const price = priceDetails.price;
         const annualizedPrice = priceDetails.annualized?.annualizedPrice;
         const currency = priceDetails.currency || 'USD';
+        const hasMultipleOffers = offers.length > 1;
 
         return html`
             <div class="operation-result offer-selector-result">
                 <div class="result-header">
                     <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
                     <span>Offer Details</span>
+                    ${hasMultipleOffers
+                        ? html`<sp-badge size="s" variant="informative">1 of ${offers.length} offers</sp-badge>`
+                        : nothing}
                 </div>
 
                 <div class="offer-details">
@@ -605,7 +774,7 @@ export class MasOperationResult extends LitElement {
                                       >
                                   </div>
                               `
-                            : ''}
+                            : nothing}
                         ${annualizedPrice !== undefined
                             ? html`
                                   <div class="offer-field">
@@ -617,7 +786,7 @@ export class MasOperationResult extends LitElement {
                                       >
                                   </div>
                               `
-                            : ''}
+                            : nothing}
                         <div class="offer-field">
                             <span class="field-label">Commitment</span>
                             <span class="field-value">${commitment || 'N/A'}</span>
@@ -630,32 +799,109 @@ export class MasOperationResult extends LitElement {
                             <span class="field-label">Plan Type</span>
                             <sp-badge size="s">${planType || 'N/A'}</sp-badge>
                         </div>
+                        ${customerSegment
+                            ? html`<div class="offer-field">
+                                  <span class="field-label">Customer</span>
+                                  <sp-badge size="s" variant="informative">${customerSegment}</sp-badge>
+                              </div>`
+                            : nothing}
+                        ${marketSegment
+                            ? html`<div class="offer-field">
+                                  <span class="field-label">Market</span>
+                                  <sp-badge size="s" variant="informative">${marketSegment}</sp-badge>
+                              </div>`
+                            : nothing}
                     </div>
 
                     <details class="offer-ids">
                         <summary>Technical Details</summary>
                         <div class="offer-field">
                             <span class="field-label">Offer Selector ID</span>
-                            <code class="field-value">${offerSelectorId}</code>
+                            <code
+                                class="field-value copyable"
+                                tabindex="0"
+                                role="button"
+                                @click=${() => this.copyToClipboard(offerSelectorId)}
+                                @keydown=${(e) => this.handleCopyKeydown(e, offerSelectorId)}
+                                >${offerSelectorId}</code
+                            >
                         </div>
                         <div class="offer-field">
                             <span class="field-label">Offer ID</span>
-                            <code class="field-value">${offerId}</code>
+                            <code
+                                class="field-value copyable"
+                                tabindex="0"
+                                role="button"
+                                @click=${() => this.copyToClipboard(offerId)}
+                                @keydown=${(e) => this.handleCopyKeydown(e, offerId)}
+                                >${offerId}</code
+                            >
                         </div>
                     </details>
 
-                    ${checkoutUrl
-                        ? html`
-                              <div class="offer-actions">
+                    ${hasMultipleOffers ? this.renderAdditionalOffers(offers, currency) : nothing}
+
+                    <div class="offer-actions">
+                        ${checkoutUrl
+                            ? html`
                                   <sp-button size="s" variant="secondary" @click=${() => window.open(checkoutUrl, '_blank')}>
                                       <sp-icon-link-out slot="icon"></sp-icon-link-out>
                                       Open Checkout
                                   </sp-button>
-                              </div>
-                          `
-                        : ''}
+                              `
+                            : nothing}
+                        <sp-button size="s" variant="secondary" @click=${() => this.copyToClipboard(offerSelectorId)}>
+                            <sp-icon-copy slot="icon"></sp-icon-copy>
+                            Copy OSI
+                        </sp-button>
+                    </div>
                 </div>
             </div>
+        `;
+    }
+
+    renderAdditionalOffers(offers, currency) {
+        const additional = offers.slice(1);
+        return html`
+            <details class="additional-offers">
+                <summary>${additional.length} Additional Offer${additional.length !== 1 ? 's' : ''}</summary>
+                <sp-table size="s" class="chat-search-table">
+                    <sp-table-head>
+                        <sp-table-head-cell>Offer ID</sp-table-head-cell>
+                        <sp-table-head-cell>Price</sp-table-head-cell>
+                        <sp-table-head-cell>Commitment</sp-table-head-cell>
+                    </sp-table-head>
+                    <sp-table-body>
+                        ${additional.map((offer) => {
+                            const offerPrice = offer.priceDetails?.price;
+                            const offerCurrency = offer.priceDetails?.currency || currency;
+                            return html`
+                                <sp-table-row>
+                                    <sp-table-cell>
+                                        <code
+                                            class="copyable"
+                                            tabindex="0"
+                                            role="button"
+                                            @click=${() => this.copyToClipboard(offer.offerId)}
+                                            @keydown=${(e) => this.handleCopyKeydown(e, offer.offerId)}
+                                            >${offer.offerId?.slice(0, 12)}…</code
+                                        >
+                                    </sp-table-cell>
+                                    <sp-table-cell>
+                                        ${offerPrice !== undefined
+                                            ? new Intl.NumberFormat('en-US', {
+                                                  style: 'currency',
+                                                  currency: offerCurrency,
+                                              }).format(offerPrice)
+                                            : 'N/A'}
+                                    </sp-table-cell>
+                                    <sp-table-cell>${offer.commitment || 'N/A'}</sp-table-cell>
+                                </sp-table-row>
+                            `;
+                        })}
+                    </sp-table-body>
+                </sp-table>
+            </details>
         `;
     }
 

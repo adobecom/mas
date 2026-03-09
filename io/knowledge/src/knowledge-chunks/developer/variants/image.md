@@ -1,8 +1,8 @@
-# Special Offers Variant
+# Image Variant
 
 ## Overview
 
-The Special Offers variant is used for promotional special offer cards with callouts.
+The Image variant is used for displaying merch card content.
 
 ## Field Mappings
 
@@ -13,10 +13,12 @@ The Special Offers variant is used for promotional special offer cards with call
 ## Slot Structure
 
 ```html
-<slot name="detail-m"></slot>
-<slot name="heading-xs"></slot>
-<slot name="heading-xs-price"></slot>
-<slot name="body-xs"></slot>
+<slot name="bg-image"></slot>
 <slot name="badge"></slot>
+<slot name="icons"></slot>
+<slot name="heading-xs"></slot>
+<slot name="body-xxs"></slot>
+<slot name="body-xs"></slot>
+<slot name="promo-text"></slot>
 <slot name="detail-bg"></slot>
 ```

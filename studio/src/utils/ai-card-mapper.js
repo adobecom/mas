@@ -7,7 +7,7 @@
 
 import { Fragment } from '../aem/fragment.js';
 import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../constants.js';
-import { getFragmentMapping } from '../utils.js';
+import { getFragmentMapping, extractTitleText } from '../utils.js';
 
 /**
  * Maps variant field names to AEM field names
@@ -129,7 +129,7 @@ export function createFragmentFromAIConfig(aiConfig, variant, options = {}) {
             id: TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'],
             path: CARD_MODEL_PATH,
         },
-        title: options.title || extractTitleFromConfig(aiConfig),
+        title: options.title || extractCardTitle(aiConfig),
         name: options.name,
         fields,
         status: options.status || 'DRAFT',
@@ -153,26 +153,9 @@ export function createFragmentFromAIConfig(aiConfig, variant, options = {}) {
     return fragment;
 }
 
-/**
- * Extracts a title from AI config
- */
-function extractTitleFromConfig(config) {
-    // Try to extract plain text from title HTML
-    if (config.title) {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = config.title;
-        return tempDiv.textContent || config.title;
-    }
-
-    if (config.cardTitle) {
-        return config.cardTitle;
-    }
-
-    if (config.name) {
-        return config.name;
-    }
-
-    return 'AI Generated Card';
+function extractCardTitle(config) {
+    if (config.title) return extractTitleText(config.title, 'AI Generated Card');
+    return config.cardTitle || config.name || 'AI Generated Card';
 }
 
 /**
@@ -246,7 +229,7 @@ export function createFragmentDataForAEM(aiConfig, variant, options = {}) {
 
     return {
         modelId: TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'],
-        title: options.title || extractTitleFromConfig(aiConfig),
+        title: options.title || extractCardTitle(aiConfig),
         name: options.name,
         parentPath: options.parentPath,
         fields,

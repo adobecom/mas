@@ -6,6 +6,8 @@ import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
 import './mas-bulk-preview.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
+import { extractTitleText } from './utils.js';
+import { revealText } from './utils/text-reveal.js';
 
 /**
  * Chat Message Component
@@ -16,11 +18,23 @@ export class MasChatMessage extends LitElement {
         message: { type: Object },
         showSuggestions: { type: Boolean },
         sourcesExpanded: { type: Boolean },
+        revealed: { type: Boolean },
     };
+
+    static FOLLOW_UP_MAP = {
+        search_cards: ['Bulk update these', 'Create collection', 'Refine search'],
+        publish_card: ['Publish another', 'View on site'],
+        delete_card: ['Search for more', 'Create new card'],
+        bulk_update_cards: ['Publish updated cards', 'Search for more'],
+        get_card: ['Update this card', 'Copy card', 'Publish'],
+    };
+
+    static DEFAULT_FOLLOW_UPS = ['Create a card', 'Search cards'];
 
     constructor() {
         super();
         this.sourcesExpanded = false;
+        this.revealed = false;
     }
 
     createRenderRoot() {
@@ -163,7 +177,7 @@ export class MasChatMessage extends LitElement {
                         (card, index) => html`
                             <div class="collection-card-item">
                                 <sp-badge size="s">${card.variant}</sp-badge>
-                                <span>${this.extractTitle(card)}</span>
+                                <span>${extractTitleText(card.title)}</span>
                             </div>
                         `,
                     )}
@@ -258,13 +272,6 @@ export class MasChatMessage extends LitElement {
                 </div>
             </div>
         `;
-    }
-
-    extractTitle(cardConfig) {
-        if (!cardConfig.title) return 'Untitled';
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = cardConfig.title;
-        return tempDiv.textContent || 'Untitled';
     }
 
     renderCollectionSelection() {
@@ -428,6 +435,49 @@ export class MasChatMessage extends LitElement {
         `;
     }
 
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        if (!this.revealed && !this.message?.isLoading && !this.message?.fromHistory) {
+            const { role, content, operationResult, cardConfig, collectionConfig } = this.message || {};
+            if (role === 'assistant' && content && !operationResult && !cardConfig && !collectionConfig) {
+                const textEl = this.querySelector('.message-text');
+                if (textEl) {
+                    this.revealed = true;
+                    revealText(textEl);
+                }
+            }
+        }
+    }
+
+    renderFollowUpSuggestions() {
+        const { operationResult, operationType, operationLoading } = this.message;
+        if (!operationResult || operationLoading) return '';
+
+        const suggestions = MasChatMessage.FOLLOW_UP_MAP[operationType] || MasChatMessage.DEFAULT_FOLLOW_UPS;
+
+        return html`
+            <div class="follow-up-suggestions">
+                ${suggestions.map(
+                    (text) => html`
+                        <button
+                            class="welcome-chip"
+                            @click=${() =>
+                                this.dispatchEvent(
+                                    new CustomEvent('prompt-selected', {
+                                        detail: { prompt: text },
+                                        bubbles: true,
+                                        composed: true,
+                                    }),
+                                )}
+                        >
+                            <span>${text}</span>
+                        </button>
+                    `,
+                )}
+            </div>
+        `;
+    }
+
     render() {
         if (!this.message) return html``;
 
@@ -473,9 +523,11 @@ export class MasChatMessage extends LitElement {
             `;
         }
 
+        const avatarClass = `message-avatar message-avatar-${role}${isLoading ? ' pulse' : ''}`;
+
         return html`
             <div class=${messageClass}>
-                <div class="message-avatar message-avatar-${role}">
+                <div class=${avatarClass}>
                     ${isUser ? html`<sp-icon-user></sp-icon-user>` : html`<sp-icon-magic-wand></sp-icon-magic-wand>`}
                 </div>
 
@@ -531,9 +583,10 @@ export class MasChatMessage extends LitElement {
                     <div class="message-content">
                         ${isLoading
                             ? html`
-                                  <div class="message-loading">
-                                      <sp-progress-circle indeterminate size="s"></sp-progress-circle>
-                                      <span>Thinking...</span>
+                                  <div class="typing-indicator">
+                                      <span></span>
+                                      <span></span>
+                                      <span></span>
                                   </div>
                               `
                             : html` <div class="message-text">${unsafeHTML(isUser ? content : parseMarkdown(content))}</div> `}
@@ -559,6 +612,7 @@ export class MasChatMessage extends LitElement {
                               .operationType=${operationType}
                           ></mas-operation-result>`
                         : ''}
+                    ${operationResult ? this.renderFollowUpSuggestions() : ''}
                 </div>
             </div>
         `;

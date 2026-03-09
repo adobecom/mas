@@ -22,6 +22,22 @@ import { getVariantConfig, VARIANT_METADATA } from './variant-configs.js';
 import { getVariantsForSurface, buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
 
+const MAX_HISTORY_PAIRS = 10;
+
+/**
+ * Build conversation history for response, truncated to recent exchanges.
+ * @param {Array} history - Previous conversation history
+ * @param {string} userMessage - Current user message
+ * @param {string} assistantMessage - AI response message
+ * @returns {Array} - Truncated conversation history
+ */
+function buildResponseHistory(history, userMessage, assistantMessage) {
+    const updated = [...history, { role: 'user', content: userMessage }, { role: 'assistant', content: assistantMessage }];
+    const maxMessages = MAX_HISTORY_PAIRS * 2;
+    if (updated.length <= maxMessages) return updated;
+    return updated.slice(-maxMessages);
+}
+
 /**
  * All known variant names for detection
  */
@@ -205,7 +221,6 @@ async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = 
             });
 
             if (context) {
-                console.log('[RAG] Retrieved documentation knowledge, sources:', sources.length);
                 enhancedPrompt = `${enhancedPrompt}\n\n${context}`;
                 allSources.push(...sources);
             }
@@ -217,7 +232,6 @@ async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = 
     if (ragVariantDetails && detectedVariant) {
         try {
             const variantQuery = buildVariantRAGQuery(detectedVariant);
-            console.log('[RAG] Querying for variant field details:', variantQuery);
 
             const { context, sources } = await knowledgeClient.queryWithSources(variantQuery, {
                 topK: 2,
@@ -225,7 +239,6 @@ async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = 
             });
 
             if (context) {
-                console.log('[RAG] Retrieved variant field details, sources:', sources.length);
                 enhancedPrompt = `${enhancedPrompt}\n\n=== VARIANT FIELD DETAILS FOR ${detectedVariant.toUpperCase()} ===\n${context}`;
                 allSources.push(...sources);
             }
@@ -243,10 +256,7 @@ async function enhanceWithRAG(systemPrompt, message, knowledgeClient, options = 
  * @returns {Promise<Object>} - Action response
  */
 async function main(params) {
-    console.log('AI Chat Action called with method:', params.__ow_method);
-
     if (params.__ow_method?.toLowerCase() === 'options') {
-        console.log('Handling OPTIONS preflight request');
         return {
             statusCode: 200,
             headers: {
@@ -303,27 +313,11 @@ async function main(params) {
         const detectedVariant = isCardCreation ? detectVariantFromMessage(message, enrichedContext) : null;
         const ragVariantDetails = params.RAG_VARIANT_DETAILS === 'true';
 
-        if (detectedVariant) {
-            console.log('[RAG] Detected variant from message:', detectedVariant);
-        }
-
         const { prompt: systemPrompt, sources: ragSources } = await enhanceWithRAG(basePrompt, message, knowledgeClient, {
             isDocumentation,
             ragVariantDetails,
             detectedVariant,
         });
-
-        console.log('[Backend] ===== ENRICHED CONTEXT SENT TO AI =====');
-        console.log('[Backend] Has lastOperation:', !!enrichedContext?.lastOperation);
-        if (enrichedContext?.lastOperation) {
-            console.log('[Backend] Last operation type:', enrichedContext.lastOperation.type);
-            console.log('[Backend] Fragment IDs count:', enrichedContext.lastOperation.fragmentIds?.length || 0);
-            console.log('[Backend] Fragment IDs:', enrichedContext.lastOperation.fragmentIds);
-        }
-        console.log('[Backend] Surface:', enrichedContext?.surface);
-        console.log('[Backend] Locale:', enrichedContext?.locale);
-        console.log('[Backend] Current path:', enrichedContext?.currentPath);
-        console.log('[Backend] Working set size:', enrichedContext?.workingSet?.length || 0);
 
         const response = await bedrockClient.sendWithContext(conversationHistory, message, systemPrompt, enrichedContext);
 
@@ -366,11 +360,7 @@ async function main(params) {
                         message: operationResult.message,
                         confirmationRequired: operationResult.confirmationRequired,
                         usage: response.usage,
-                        conversationHistory: [
-                            ...conversationHistory,
-                            { role: 'user', content: message },
-                            { role: 'assistant', content: response.message },
-                        ],
+                        conversationHistory: buildResponseHistory(conversationHistory, message, response.message),
                     },
                 };
             }
@@ -383,11 +373,7 @@ async function main(params) {
                 body: {
                     ...operationResult,
                     usage: response.usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: response.message },
-                    ],
+                    conversationHistory: buildResponseHistory(conversationHistory, message, response.message),
                 },
             };
         }
@@ -414,11 +400,7 @@ async function main(params) {
                         warnings: validation.warnings,
                     },
                     usage: response.usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: response.message },
-                    ],
+                    conversationHistory: buildResponseHistory(conversationHistory, message, response.message),
                 },
             };
         }
@@ -459,11 +441,7 @@ async function main(params) {
                         cardValidations,
                     },
                     usage: response.usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: response.message },
-                    ],
+                    conversationHistory: buildResponseHistory(conversationHistory, message, response.message),
                 },
             };
         }
@@ -478,11 +456,7 @@ async function main(params) {
                     type: 'collection-selection',
                     message: parsedResponse.message,
                     usage: response.usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: response.message },
-                    ],
+                    conversationHistory: buildResponseHistory(conversationHistory, message, response.message),
                 },
             };
         }
@@ -499,11 +473,7 @@ async function main(params) {
                     fragmentIds: parsedResponse.fragmentIds,
                     suggestedTitle: parsedResponse.suggestedTitle,
                     usage: response.usage,
-                    conversationHistory: [
-                        ...conversationHistory,
-                        { role: 'user', content: message },
-                        { role: 'assistant', content: response.message },
-                    ],
+                    conversationHistory: buildResponseHistory(conversationHistory, message, response.message),
                 },
             };
         }
@@ -518,11 +488,7 @@ async function main(params) {
                 message: parsedResponse.message,
                 sources: ragSources,
                 usage: response.usage,
-                conversationHistory: [
-                    ...conversationHistory,
-                    { role: 'user', content: message },
-                    { role: 'assistant', content: response.message },
-                ],
+                conversationHistory: buildResponseHistory(conversationHistory, message, response.message),
             },
         };
     } catch (error) {

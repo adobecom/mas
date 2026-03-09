@@ -21,9 +21,19 @@ export class MasPromptSuggestions extends LitElement {
 
     get baseSuggestions() {
         return [
-            { text: 'Create Card', icon: 'AddCircle', prompt: 'Create a new merch card' },
-            { text: 'Search', icon: 'Search', prompt: 'Search for cards' },
-            { text: 'Help', icon: 'Help', prompt: 'Get help with M@S Studio' },
+            {
+                text: 'Create Card',
+                description: 'Generate a new merch card with AI',
+                icon: 'AddCircle',
+                prompt: 'Create a new merch card',
+            },
+            {
+                text: 'Search',
+                description: 'Find cards by variant, status, or content',
+                icon: 'Search',
+                prompt: 'Search for cards',
+            },
+            { text: 'Help', description: 'Learn about M@S Studio features', icon: 'Help', prompt: 'Get help with M@S Studio' },
         ];
     }
 
@@ -80,10 +90,19 @@ export class MasPromptSuggestions extends LitElement {
         return html`
             <div class="welcome-chips">
                 ${this.contextAwareSuggestions.map(
-                    (suggestion) => html`
-                        <button class="welcome-chip" @click=${() => this.handleSuggestionClick(suggestion)}>
+                    (suggestion, index) => html`
+                        <button
+                            class="welcome-chip"
+                            style="animation-delay: ${index * 0.1}s"
+                            @click=${() => this.handleSuggestionClick(suggestion)}
+                        >
                             ${this.renderIcon(suggestion.icon)}
-                            <span>${suggestion.text}</span>
+                            <div class="chip-content">
+                                <span class="chip-title">${suggestion.text}</span>
+                                ${suggestion.description
+                                    ? html`<span class="chip-description">${suggestion.description}</span>`
+                                    : ''}
+                            </div>
                         </button>
                     `,
                 )}

@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html } from 'lit';
 
 class MasCollectionPreview extends LitElement {
     static properties = {
@@ -9,56 +9,6 @@ class MasCollectionPreview extends LitElement {
         error: { type: String, state: true },
         collectionTitle: { type: String, state: true },
     };
-
-    static styles = css`
-        .preview-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--spectrum-global-dimension-size-200);
-            padding: var(--spectrum-global-dimension-size-400);
-        }
-
-        .collection-preview-container {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spectrum-global-dimension-size-300);
-        }
-
-        .preview-header h4 {
-            margin: 0;
-            font-size: var(--spectrum-global-dimension-size-200);
-            font-weight: 600;
-        }
-
-        .preview-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: var(--spectrum-global-dimension-size-300);
-            max-height: 500px;
-            overflow-y: auto;
-            padding: var(--spectrum-global-dimension-size-200);
-            border: 1px solid var(--spectrum-global-color-gray-300);
-            border-radius: 4px;
-        }
-
-        .preview-card-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spectrum-global-dimension-size-100);
-        }
-
-        .card-info {
-            display: flex;
-            justify-content: center;
-        }
-
-        .preview-actions {
-            display: flex;
-            justify-content: center;
-            padding-top: var(--spectrum-global-dimension-size-200);
-        }
-    `;
 
     constructor() {
         super();

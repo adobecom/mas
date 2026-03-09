@@ -1,4 +1,5 @@
 import Store from './store.js';
+import { IMS_ORG_ID } from './constants.js';
 
 export async function loadUsers() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -14,7 +15,7 @@ export async function loadUsers() {
             headers: {
                 Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
                 accept: 'application/json',
-                'x-gw-ims-org-id': '9E1005A551ED61CA0A490D45',
+                'x-gw-ims-org-id': IMS_ORG_ID,
             },
         });
         if (!response.ok) {

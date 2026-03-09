@@ -1523,6 +1523,78 @@
     font-style: italic;
 }
 
+/* Card Detail View */
+.card-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--spectrum-global-dimension-size-150);
+    margin-top: var(--spectrum-global-dimension-size-200);
+}
+
+.card-detail-actions {
+    display: flex;
+    gap: var(--spectrum-global-dimension-size-100);
+    margin-top: var(--spectrum-global-dimension-size-200);
+}
+
+.card-fields-section {
+    margin-top: var(--spectrum-global-dimension-size-200);
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    border-radius: var(--spectrum-global-dimension-size-50);
+}
+
+.card-fields-section summary {
+    padding: var(--spectrum-global-dimension-size-100) var(--spectrum-global-dimension-size-150);
+    font-weight: 600;
+    font-size: var(--spectrum-global-dimension-size-150);
+    cursor: pointer;
+    color: var(--spectrum-global-color-gray-800);
+}
+
+.card-fields-list {
+    padding: 0 var(--spectrum-global-dimension-size-150) var(--spectrum-global-dimension-size-150);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spectrum-global-dimension-size-100);
+}
+
+.field-thumbnail {
+    padding: var(--spectrum-global-dimension-size-100) var(--spectrum-global-dimension-size-150)
+        var(--spectrum-global-dimension-size-150);
+}
+
+.field-thumbnail img {
+    max-width: 120px;
+    max-height: 80px;
+    border-radius: var(--spectrum-global-dimension-size-50);
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    object-fit: cover;
+}
+
+.copyable {
+    cursor: pointer;
+}
+
+.copyable:hover {
+    color: var(--spectrum-global-color-blue-600);
+    text-decoration: underline;
+}
+
+/* Additional Offers */
+.additional-offers {
+    margin-top: var(--spectrum-global-dimension-size-150);
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    border-radius: var(--spectrum-global-dimension-size-50);
+}
+
+.additional-offers summary {
+    padding: var(--spectrum-global-dimension-size-100) var(--spectrum-global-dimension-size-150);
+    font-weight: 600;
+    font-size: var(--spectrum-global-dimension-size-150);
+    cursor: pointer;
+    color: var(--spectrum-global-color-gray-800);
+}
+
 /* ================================
    Welcome Screen Styles (Claude-like)
    ================================ */
@@ -1987,4 +2059,166 @@
     padding: 2px 6px;
     background: var(--spectrum-global-color-gray-200);
     border-radius: 4px;
+}
+
+/* ================================
+   Typing Indicator
+   ================================ */
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--spectrum-global-color-gray-500);
+    animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+    0%,
+    80%,
+    100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.chat-message-assistant .message-avatar.pulse {
+    animation: avatarPulse 2s infinite;
+}
+
+@keyframes avatarPulse {
+    0%,
+    100% {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    50% {
+        box-shadow:
+            0 2px 4px rgba(0, 0, 0, 0.1),
+            0 0 0 6px rgba(168, 85, 247, 0.15);
+    }
+}
+
+/* ================================
+   Context Bar
+   ================================ */
+
+.context-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid var(--spectrum-global-color-gray-200);
+}
+
+/* ================================
+   Follow-up Suggestions
+   ================================ */
+
+.follow-up-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* ================================
+   Welcome Screen Enhancements
+   ================================ */
+
+.welcome-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(
+        135deg,
+        var(--spectrum-global-color-purple-500),
+        var(--spectrum-global-color-fuchsia-500),
+        var(--spectrum-global-color-indigo-500)
+    );
+    color: white;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.welcome-icon-wrapper sp-icon-magic-wand {
+    width: 28px;
+    height: 28px;
+}
+
+.welcome-greeting h1 {
+    background: linear-gradient(
+        135deg,
+        var(--spectrum-global-color-purple-600),
+        var(--spectrum-global-color-fuchsia-600),
+        var(--spectrum-global-color-indigo-600)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.welcome-subtitle {
+    margin: 4px 0 0;
+    font-size: 16px;
+    color: var(--spectrum-global-color-gray-600);
+    font-weight: 400;
+}
+
+/* Chip two-line layout */
+.chip-content {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.chip-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.chip-description {
+    font-size: 12px;
+    color: var(--spectrum-global-color-gray-600);
+    margin-top: 2px;
+}
+
+/* Staggered chip entrance */
+.welcome-chips .welcome-chip {
+    animation: chipEntrance 0.4s ease-out both;
+}
+
+@keyframes chipEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

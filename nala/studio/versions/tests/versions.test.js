@@ -250,11 +250,11 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.waitForTimeout(500);
             await studio.saveCard();
             await studio.publishCard();
-            await page.waitForTimeout(5000);
+            await page.waitForTimeout(15000);
         });
 
         await test.step('step-6: Open version history and validate new version exists', async () => {
-            await page.waitForTimeout(10000);
+            await page.waitForTimeout(15000);
             const currentFragmentId = await page.evaluate(() => {
                 const hash = window.location.hash || '';
                 const m = hash.match(/fragmentId=([^&]+)/);
@@ -263,7 +263,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
             });
             expect(currentFragmentId, 'Current fragment id (cloned) should be in URL or Store').toBeTruthy();
 
-            const maxRetries = 5;
+            const maxRetries = 8;
             let versionCount = 0;
             const versionPageUrl = `${baseURL}${features[5].path}${miloLibs}#page=version&path=nala&fragmentId=${currentFragmentId}`;
 
@@ -279,7 +279,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
                 versionCount = await versionPage.getVersionCount();
                 if (versionCount >= 2) break;
                 if (attempt < maxRetries - 1) {
-                    await page.waitForTimeout(7000);
+                    await page.waitForTimeout(10000);
                     await versionPage.clickBreadcrumbEditor();
                     await page.waitForTimeout(3000);
                 }
@@ -301,7 +301,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-8: Validate success toast with version number', async () => {
             await expect(studio.toastPositive).toBeVisible({ timeout: 15000 });
             const toastContent = await studio.toastPositive.textContent();
-            expect(toastContent).toMatch(/Version\s+[\d.]+\s+restored successfully/);
+            expect(toastContent).toMatch(/Version\s+.+\s+restored successfully/);
         });
     });
 

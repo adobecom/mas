@@ -259,12 +259,16 @@ export class MasRepository extends LitElement {
 
         const currentTags = dataStore.getMeta('tags');
         const tagsString = this.filters.value.tags || '';
+        const currentCreatedBy = dataStore.getMeta('createdBy');
+        const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
+        const createdByString = createdBy.join(',');
         if (
             currentData?.length > 0 &&
             currentPath === path &&
             currentQuery === query &&
             currentLocale === locale &&
-            currentTags === tagsString
+            currentTags === tagsString &&
+            currentCreatedBy === createdByString
         ) {
             const filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
@@ -294,8 +298,6 @@ export class MasRepository extends LitElement {
                 console.warn('Unexpected tags format:', this.filters.value.tags);
             }
         }
-
-        const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
 
         let modelIds = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE)).map((tag) => TAG_MODEL_ID_MAPPING[tag]);
 
@@ -376,6 +378,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('query', query);
             dataStore.setMeta('locale', locale);
             dataStore.setMeta('tags', this.filters.value.tags || '');
+            dataStore.setMeta('createdBy', createdBy.join(','));
 
             this.#abortControllers.search = null;
         } catch (error) {

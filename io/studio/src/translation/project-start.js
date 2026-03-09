@@ -41,10 +41,10 @@ async function main(params) {
             return errorResponse(400, 'Translation project is incomplete (missing items or locales)', logger);
         }
 
-        const versioned = await versionTargetFragments(translationData, authToken);
+        /*const versioned = await versionTargetFragments(translationData, authToken);
         if (!versioned) {
             return errorResponse(500, 'Failed to version target fragments', logger);
-        }
+        }*/
 
         const syncResult = await sendSyncRequests(translationData.itemsToSync, authToken);
         if (!syncResult.success) {

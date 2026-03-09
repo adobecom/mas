@@ -720,8 +720,10 @@ export default class StudioPage {
         await expect(this.variationDialogLocalePicker).toBeEnabled();
         await this.variationDialogLocalePicker.scrollIntoViewIfNeeded();
         await this.page.waitForTimeout(200);
+        await this.variationDialogLocalePicker.click({ timeout: 5000 });
+        await this.page.waitForTimeout(300);
 
-        const localeOption = this.variationDialogLocalePicker.locator(`sp-menu-item[value="${locale}"]`).first();
+        const localeOption = this.page.locator(`sp-menu-item[value="${locale}"]:visible`).first();
         await expect(localeOption).toBeVisible();
         try {
             await localeOption.click({ timeout: 5000 });

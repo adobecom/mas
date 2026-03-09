@@ -3189,6 +3189,7 @@ merch-card-collection.segment merch-card {
 
     merch-card[variant='media'] {
         border: 0;
+        padding: 24px 0;
     }
 
     merch-card[variant='media'] div[slot='bg-image'] img {
@@ -3209,14 +3210,31 @@ merch-card-collection.segment merch-card {
 
     merch-card[variant='media'] h3[slot='heading-xs'] {
         margin-bottom: 16px;
-        font-size: 36px;
-        line-height: 45px;
+        font-size: 28px;
+        line-height: 35px;
     }
 
     merch-card[variant='media'] div[slot='body-xs'] {
         margin-bottom: 24px;
         font-size: 16px;
         line-height: 24px;
+    }
+
+    merch-card[variant='media'] div[slot='body-xs'] .spectrum-Link--secondary {
+        color: inherit;
+    }
+
+    @media screen and (min-width: 600px) {
+        merch-card[variant='media'] {
+            max-width: 1000px;
+        }
+    }
+
+    @media screen and (min-width: 1200px) {
+        merch-card[variant='media'] h3[slot='heading-xs'] {
+            font-size: 36px;
+            line-height: 45px;
+        }
     }
 
 `;var Sa={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},backgroundImage:{tag:"div",slot:"bg-image"},style:"consonant"},Qe=class extends M{constructor(t){super(t)}getGlobalCSS(){return Aa}renderLayout(){return bs`
@@ -3234,7 +3252,7 @@ merch-card-collection.segment merch-card {
         `}};g(Qe,"variantStyle",ys`
         :host([variant='media']) .media-row {
             display: flex;
-            gap: 40px;
+            gap: 24px;
         }
 
         :host([variant='media']) .text {
@@ -3248,6 +3266,24 @@ merch-card-collection.segment merch-card {
         :host([variant='media']) .image {
             flex-grow: 1;
             flex-basis: 0;
+        }
+
+        @media screen and (max-width: 600px) {
+            :host([variant='media']) .media-row {
+                flex-direction: column-reverse;
+            }
+        }
+
+        @media screen and (min-width: 600px) {
+            :host([variant='media']) .media-row {
+                gap: 32px;
+            }
+        }
+
+        @media screen and (min-width: 1200px) {
+            :host([variant='media']) .media-row {
+                gap: 40px;
+            }
         }
     `);import{html as ei,css as Es}from"./lit-all.min.js";var Ta=`
 :root {

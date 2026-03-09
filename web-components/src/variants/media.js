@@ -40,7 +40,7 @@ export class Media extends VariantLayout {
     static variantStyle = css`
         :host([variant='media']) .media-row {
             display: flex;
-            gap: 40px;
+            gap: 24px;
         }
 
         :host([variant='media']) .text {
@@ -54,6 +54,24 @@ export class Media extends VariantLayout {
         :host([variant='media']) .image {
             flex-grow: 1;
             flex-basis: 0;
+        }
+
+        @media screen and (max-width: 600px) {
+            :host([variant='media']) .media-row {
+                flex-direction: column-reverse;
+            }
+        }
+
+        @media screen and (min-width: 600px) {
+            :host([variant='media']) .media-row {
+                gap: 32px;
+            }
+        }
+
+        @media screen and (min-width: 1200px) {
+            :host([variant='media']) .media-row {
+                gap: 40px;
+            }
         }
     `;
 }

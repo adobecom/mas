@@ -103,6 +103,12 @@ class CompareChartPreview extends LitElement {
             font-weight: 700;
         }
 
+        .crossmark::before {
+            content: '\\2715';
+            color: var(--spectrum-global-color-gray-800, #4b4b4b);
+            font-weight: 700;
+        }
+
         .empty-cell {
             color: var(--spectrum-global-color-gray-400, #b3b3b3);
         }
@@ -192,6 +198,7 @@ class CompareChartPreview extends LitElement {
         if (!value?.valueType) return html`<span class="empty-cell">--</span>`;
 
         if (value.valueType === 'true') return html`<span class="checkmark"></span>`;
+        if (value.valueType === 'false') return html`<span class="crossmark"></span>`;
 
         return html`${value.valueType}`;
     }
@@ -264,7 +271,21 @@ class CompareChartPreview extends LitElement {
                                         )}
                                         ${Array.from({
                                             length: Math.max(0, numColumns - (row.values?.length || 0)),
-                                        }).map(() => html`<td class="empty-cell">--</td>`)}
+                                        }).map((_, offset) => {
+                                            const cIdx = (row.values?.length || 0) + offset;
+                                            const isSelected =
+                                                this.selectedSectionIndex === sIdx &&
+                                                this.selectedRowIndex === rIdx &&
+                                                this.selectedCellIndex === cIdx;
+                                            return html`
+                                                <td
+                                                    class="empty-cell ${isSelected ? 'selected' : ''}"
+                                                    @click=${() => this.#onCellClick(sIdx, rIdx, cIdx)}
+                                                >
+                                                    --
+                                                </td>
+                                            `;
+                                        })}
                                     </tr>
                                 `,
                             )}

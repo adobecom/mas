@@ -18,6 +18,9 @@ const PANEL_COLUMN = 'column';
 const PANEL_SECTION = 'section';
 const PANEL_ROW = 'row';
 const PANEL_CELL = 'cell';
+const CELL_TYPE_EMPTY = 'empty';
+const CELL_TYPE_BOOLEAN = 'boolean';
+const CELL_TYPE_TEXT = 'text';
 
 class CompareChartEditor extends LitElement {
     static properties = {
@@ -30,6 +33,7 @@ class CompareChartEditor extends LitElement {
         selectedSectionIndex: { type: Number, state: true },
         selectedRowIndex: { type: Number, state: true },
         selectedCellIndex: { type: Number, state: true },
+        cellEditorType: { type: String, state: true },
         columns: { type: Array, state: true },
         sections: { type: Array, state: true },
         busy: { type: Boolean, state: true },
@@ -49,6 +53,7 @@ class CompareChartEditor extends LitElement {
         this.selectedSectionIndex = -1;
         this.selectedRowIndex = -1;
         this.selectedCellIndex = -1;
+        this.cellEditorType = '';
         this.columns = [];
         this.sections = [];
         this.busy = false;
@@ -179,6 +184,127 @@ class CompareChartEditor extends LitElement {
         this.#buildData();
     }
 
+    async #ensureCellValueFragment(sectionIndex, rowIndex, cellIndex, initialValue = '') {
+        const section = this.sections[sectionIndex];
+        const row = section?.rows?.[rowIndex];
+        if (!row?.fragment) return null;
+
+        const existingValue = row.values?.[cellIndex];
+        if (existingValue?.fragment) return existingValue.fragment;
+
+        const valuePaths = [...this.#getRefFieldValues(row.fragment, 'rowValues')];
+        for (let i = valuePaths.length; i <= cellIndex; i++) {
+            const valueFragment = await this.repository.createFragment(
+                {
+                    title: `Value ${rowIndex + 1}-${i + 1}`,
+                    name: `value-${rowIndex + 1}-${i + 1}-${Date.now()}`,
+                    modelId: COMPARE_VALUE_MODEL_ID,
+                    parentPath: this.#parentPath,
+                    fields: [
+                        {
+                            name: 'valueType',
+                            type: 'enumeration',
+                            values: [i === cellIndex ? initialValue : ''],
+                        },
+                    ],
+                },
+                false,
+            );
+            this.#addReference(valueFragment);
+            valuePaths.push(valueFragment.path);
+        }
+
+        const updatedRow = { ...row.fragment };
+        const valuesField = updatedRow.fields?.find((f) => f.name === 'rowValues');
+        if (valuesField) {
+            valuesField.values = valuePaths;
+        } else {
+            updatedRow.fields = [
+                ...(updatedRow.fields || []),
+                {
+                    name: 'rowValues',
+                    type: 'content-fragment',
+                    multiple: true,
+                    values: valuePaths,
+                },
+            ];
+        }
+        await this.#saveChildFragment(updatedRow);
+
+        for (const source of [
+            row.fragment,
+            this.fragment?.references?.find((r) => r.path === row.path),
+            this.#localRefs.get(row.path),
+        ]) {
+            if (!source) continue;
+            const sourceValuesField = source.fields?.find((f) => f.name === 'rowValues');
+            if (sourceValuesField) {
+                sourceValuesField.values = valuePaths;
+            } else if (source.fields) {
+                source.fields.push({
+                    name: 'rowValues',
+                    type: 'content-fragment',
+                    multiple: true,
+                    values: valuePaths,
+                });
+            }
+        }
+
+        this.#buildData();
+
+        return this.#getRefFragment(valuePaths[cellIndex]);
+    }
+
+    async #saveCellValue(sectionIndex, rowIndex, cellIndex, value) {
+        const section = this.sections[sectionIndex];
+        const row = section?.rows?.[rowIndex];
+        if (!row) return;
+
+        try {
+            const currentValue = row.values?.[cellIndex];
+            if (currentValue?.fragment) {
+                await this.#saveChildField(currentValue.fragment, 'valueType', [value]);
+                return;
+            }
+
+            const createdValue = await this.#ensureCellValueFragment(sectionIndex, rowIndex, cellIndex, value);
+            if (!createdValue) {
+                showToast('Unable to create the missing cell value.', 'negative');
+            }
+        } catch (e) {
+            showToast(`Failed to update cell value: ${e.message}`, 'negative');
+        }
+    }
+
+    #getCellTypeFromValue(rawValue) {
+        if (rawValue === 'true' || rawValue === 'false') return CELL_TYPE_BOOLEAN;
+        if (rawValue) return CELL_TYPE_TEXT;
+        return CELL_TYPE_EMPTY;
+    }
+
+    #getCanonicalValueForType(cellType, currentValue) {
+        if (cellType === CELL_TYPE_EMPTY) return '';
+        if (cellType === CELL_TYPE_BOOLEAN) {
+            if (currentValue === 'true' || currentValue === 'false') return currentValue;
+            return 'false';
+        }
+        if (cellType === CELL_TYPE_TEXT) {
+            if (currentValue === 'true' || currentValue === 'false') return '';
+            return currentValue || '';
+        }
+        return currentValue || '';
+    }
+
+    async #saveSelectedCellValue(value) {
+        await this.#saveCellValue(this.selectedSectionIndex, this.selectedRowIndex, this.selectedCellIndex, value);
+    }
+
+    async #onCellTypeChange(nextType, currentValue) {
+        this.cellEditorType = nextType;
+        const canonical = this.#getCanonicalValueForType(nextType, currentValue);
+        await this.#saveSelectedCellValue(canonical);
+    }
+
     // --- Data building ---
 
     #buildData() {
@@ -246,7 +372,7 @@ class CompareChartEditor extends LitElement {
                     }
 
                     values.push({
-                        valueType: this.#getRefFieldValue(valFragment, 'valueType') || 'true',
+                        valueType: this.#getRefFieldValue(valFragment, 'valueType'),
                         path: vPath,
                         fragment: valFragment,
                     });
@@ -548,6 +674,7 @@ class CompareChartEditor extends LitElement {
         this.selectedSectionIndex = -1;
         this.selectedRowIndex = -1;
         this.selectedCellIndex = -1;
+        this.cellEditorType = '';
     }
 
     #onSectionClick(e) {
@@ -557,6 +684,7 @@ class CompareChartEditor extends LitElement {
         this.selectedColumnIndex = -1;
         this.selectedRowIndex = -1;
         this.selectedCellIndex = -1;
+        this.cellEditorType = '';
     }
 
     #onRowClick(e) {
@@ -566,6 +694,7 @@ class CompareChartEditor extends LitElement {
         this.selectedRowIndex = rowIndex;
         this.selectedColumnIndex = -1;
         this.selectedCellIndex = -1;
+        this.cellEditorType = '';
     }
 
     #onCellClick(e) {
@@ -575,6 +704,9 @@ class CompareChartEditor extends LitElement {
         this.selectedRowIndex = rowIndex;
         this.selectedCellIndex = cellIndex;
         this.selectedColumnIndex = -1;
+        const row = this.sections[sectionIndex]?.rows?.[rowIndex];
+        const rawValue = row?.values?.[cellIndex]?.valueType || '';
+        this.cellEditorType = this.#getCellTypeFromValue(rawValue);
     }
 
     async #onAddRow(e) {
@@ -749,23 +881,57 @@ class CompareChartEditor extends LitElement {
     get #cellPanel() {
         const sec = this.sections[this.selectedSectionIndex];
         const row = sec?.rows?.[this.selectedRowIndex];
-        const val = row?.values?.[this.selectedCellIndex];
-        if (!val) return nothing;
-
+        if (!row) return nothing;
+        const val = row.values?.[this.selectedCellIndex];
+        const rawValue = val?.valueType || '';
+        const cellType = this.cellEditorType || this.#getCellTypeFromValue(rawValue);
         const colName = this.columns[this.selectedCellIndex]?.title || `Column ${this.selectedCellIndex + 1}`;
 
         return html`
             <div class="panel-section">
                 <h3>Cell: ${colName}</h3>
 
-                <sp-field-label for="cell-value">Value</sp-field-label>
-                <sp-textfield
-                    id="cell-value"
-                    value="${val.valueType || ''}"
-                    placeholder="e.g. true, Some text, 3"
-                    @change=${(e) => this.#saveChildField(val.fragment, 'valueType', [e.target.value])}
-                ></sp-textfield>
-                <sp-help-text> "true" = checkmark, text = displayed as-is, number = displayed as-is </sp-help-text>
+                <sp-field-label for="cell-type">Cell Type</sp-field-label>
+                <sp-picker
+                    id="cell-type"
+                    value="${cellType}"
+                    @change=${(e) => this.#onCellTypeChange(e.target.value, rawValue)}
+                    ?disabled=${this.busy}
+                >
+                    <sp-menu>
+                        <sp-menu-item value="${CELL_TYPE_EMPTY}">No value</sp-menu-item>
+                        <sp-menu-item value="${CELL_TYPE_BOOLEAN}">Boolean</sp-menu-item>
+                        <sp-menu-item value="${CELL_TYPE_TEXT}">Text</sp-menu-item>
+                    </sp-menu>
+                </sp-picker>
+
+                ${cellType === CELL_TYPE_BOOLEAN
+                    ? html`
+                          <sp-checkbox
+                              ?checked=${rawValue === 'true'}
+                              @change=${(e) => this.#saveSelectedCellValue(e.target.checked ? 'true' : 'false')}
+                              ?disabled=${this.busy}
+                          >
+                              Show checkmark
+                          </sp-checkbox>
+                          <sp-help-text>Checked = checkmark, unchecked = cross.</sp-help-text>
+                      `
+                    : nothing}
+                ${cellType === CELL_TYPE_TEXT
+                    ? html`
+                          <sp-field-label for="cell-text-value">Text value</sp-field-label>
+                          <sp-textfield
+                              id="cell-text-value"
+                              value="${rawValue}"
+                              placeholder="e.g. 100 GB, Included"
+                              @change=${(e) => this.#saveSelectedCellValue(e.target.value)}
+                              ?disabled=${this.busy}
+                          ></sp-textfield>
+                      `
+                    : nothing}
+                ${cellType === CELL_TYPE_EMPTY
+                    ? html`<sp-help-text>This cell is intentionally empty and renders as "--".</sp-help-text>`
+                    : nothing}
             </div>
         `;
     }
@@ -781,6 +947,7 @@ class CompareChartEditor extends LitElement {
     #formatValue(val) {
         if (!val) return '--';
         if (val.valueType === 'true') return 'Yes';
+        if (val.valueType === 'false') return 'No';
         return val.valueType || '--';
     }
 

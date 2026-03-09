@@ -39,201 +39,322 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import { delay, initElementFromTemplate } from '../utils.js';
+            import { delay } from '../utils.js';
 
             import '../../src/swc.js';
-            import '../../src/editor-panel.js';
             import '../../src/editors/compare-chart-editor.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
             import { COMPARE_CHART_MODEL_PATH } from '../../src/constants.js';
 
-            const mockCompareChartFragment = {
-                id: 'compare-chart-001',
-                title: 'Acrobat Pricing Chart',
-                name: 'acrobat-pricing-chart',
-                path: '/content/dam/mas/sandbox/en_US/acrobat-pricing-chart',
-                model: {
-                    path: COMPARE_CHART_MODEL_PATH,
+            function createMockChartFragment() {
+                return {
+                    id: 'compare-chart-001',
                     title: 'Compare Chart',
-                },
-                status: 'DRAFT',
-                fields: [
-                    {
-                        name: 'fragments',
-                        type: 'content-fragment',
-                        multiple: true,
-                        values: [
-                            '/content/dam/mas/sandbox/en_US/col-reader',
-                            '/content/dam/mas/sandbox/en_US/col-pro',
-                        ],
+                    name: 'compare-chart',
+                    path: '/content/dam/mas/sandbox/en_US/compare-chart',
+                    model: {
+                        path: COMPARE_CHART_MODEL_PATH,
+                        title: 'Compare Chart',
                     },
-                    {
-                        name: 'sections',
-                        type: 'content-fragment',
-                        multiple: true,
-                        values: [
-                            '/content/dam/mas/sandbox/en_US/section-create',
-                        ],
-                    },
-                ],
-                references: [
-                    {
-                        id: 'col-reader-001',
-                        path: '/content/dam/mas/sandbox/en_US/col-reader',
-                        model: { path: '/conf/mas/settings/dam/cfm/models/compare-fragment' },
-                        fields: [
-                            { name: 'column-fragment', type: 'content-fragment', values: ['/content/dam/mas/sandbox/en_US/card-reader'] },
-                            { name: 'column-fields', type: 'text', multiple: true, values: ['cardTitle', 'prices'] },
-                            { name: 'badge', type: 'text', values: [''] },
-                        ],
-                    },
-                    {
-                        id: 'col-pro-001',
-                        path: '/content/dam/mas/sandbox/en_US/col-pro',
-                        model: { path: '/conf/mas/settings/dam/cfm/models/compare-fragment' },
-                        fields: [
-                            { name: 'column-fragment', type: 'content-fragment', values: ['/content/dam/mas/sandbox/en_US/card-pro'] },
-                            { name: 'column-fields', type: 'text', multiple: true, values: ['cardTitle', 'prices', 'ctas'] },
-                            { name: 'badge', type: 'text', values: ['Best Offer'] },
-                        ],
-                    },
-                    {
-                        id: 'card-reader-001',
-                        path: '/content/dam/mas/sandbox/en_US/card-reader',
-                        model: { path: '/conf/mas/settings/dam/cfm/models/card' },
-                        title: 'Acrobat Reader',
-                        fields: [
-                            { name: 'cardTitle', type: 'text', values: ['Acrobat Reader'] },
-                            { name: 'prices', type: 'text', values: ['Free'] },
-                        ],
-                    },
-                    {
-                        id: 'card-pro-001',
-                        path: '/content/dam/mas/sandbox/en_US/card-pro',
-                        model: { path: '/conf/mas/settings/dam/cfm/models/card' },
-                        title: 'Acrobat Pro',
-                        fields: [
-                            { name: 'cardTitle', type: 'text', values: ['Acrobat Pro'] },
-                            { name: 'prices', type: 'text', values: ['$19.99/mo'] },
-                            { name: 'ctas', type: 'text', values: ['Buy now'] },
-                        ],
-                    },
-                    {
-                        id: 'section-create-001',
-                        path: '/content/dam/mas/sandbox/en_US/section-create',
-                        model: { path: '/conf/mas/settings/dam/cfm/models/compare-section' },
-                        fields: [
-                            { name: 'section-title', type: 'text', values: ['Create PDFs'] },
-                            {
-                                name: 'rows',
-                                type: 'content-fragment',
-                                multiple: true,
-                                values: ['/content/dam/mas/sandbox/en_US/row-combine'],
-                            },
-                        ],
-                    },
-                    {
-                        id: 'row-combine-001',
-                        path: '/content/dam/mas/sandbox/en_US/row-combine',
-                        model: { path: '/conf/mas/settings/dam/cfm/models/compare-row' },
-                        fields: [
-                            { name: 'row-title', type: 'text', values: ['Combine files'] },
-                            {
-                                name: 'values',
-                                type: 'content-fragment',
-                                multiple: true,
-                                values: [
-                                    '/content/dam/mas/sandbox/en_US/val-false',
-                                    '/content/dam/mas/sandbox/en_US/val-true',
-                                ],
-                            },
-                        ],
-                    },
-                    {
-                        id: 'val-false-001',
-                        path: '/content/dam/mas/sandbox/en_US/val-false',
-                        model: { path: '/conf/mas/settings/dam/cfm/models/compare-value' },
-                        fields: [
-                            { name: 'type', type: 'enumeration', values: ['boolean'] },
-                            { name: 'booleanValue', type: 'boolean', values: [false] },
-                        ],
-                    },
-                    {
-                        id: 'val-true-001',
-                        path: '/content/dam/mas/sandbox/en_US/val-true',
-                        model: { path: '/conf/mas/settings/dam/cfm/models/compare-value' },
-                        fields: [
-                            { name: 'type', type: 'enumeration', values: ['boolean'] },
-                            { name: 'booleanValue', type: 'boolean', values: [true] },
-                        ],
-                    },
-                ],
-            };
+                    status: 'DRAFT',
+                    fields: [
+                        {
+                            name: 'fragments',
+                            type: 'content-fragment',
+                            multiple: true,
+                            values: [
+                                '/content/dam/mas/sandbox/en_US/col-1',
+                                '/content/dam/mas/sandbox/en_US/col-2',
+                                '/content/dam/mas/sandbox/en_US/col-3',
+                            ],
+                        },
+                        {
+                            name: 'sections',
+                            type: 'content-fragment',
+                            multiple: true,
+                            values: ['/content/dam/mas/sandbox/en_US/sec-1'],
+                        },
+                    ],
+                    references: [
+                        {
+                            id: 'col-1',
+                            path: '/content/dam/mas/sandbox/en_US/col-1',
+                            title: 'Column 1',
+                            fields: [
+                                {
+                                    name: 'fragment',
+                                    type: 'content-fragment',
+                                    values: ['/content/dam/mas/sandbox/en_US/card-1'],
+                                },
+                                {
+                                    name: 'fields',
+                                    type: 'text',
+                                    multiple: true,
+                                    values: ['cardTitle'],
+                                },
+                                {
+                                    name: 'badge',
+                                    type: 'text',
+                                    values: [''],
+                                },
+                            ],
+                        },
+                        {
+                            id: 'col-2',
+                            path: '/content/dam/mas/sandbox/en_US/col-2',
+                            title: 'Column 2',
+                            fields: [
+                                {
+                                    name: 'fragment',
+                                    type: 'content-fragment',
+                                    values: ['/content/dam/mas/sandbox/en_US/card-2'],
+                                },
+                                {
+                                    name: 'fields',
+                                    type: 'text',
+                                    multiple: true,
+                                    values: ['cardTitle'],
+                                },
+                                {
+                                    name: 'badge',
+                                    type: 'text',
+                                    values: [''],
+                                },
+                            ],
+                        },
+                        {
+                            id: 'col-3',
+                            path: '/content/dam/mas/sandbox/en_US/col-3',
+                            title: 'Column 3',
+                            fields: [
+                                {
+                                    name: 'fragment',
+                                    type: 'content-fragment',
+                                    values: ['/content/dam/mas/sandbox/en_US/card-3'],
+                                },
+                                {
+                                    name: 'fields',
+                                    type: 'text',
+                                    multiple: true,
+                                    values: ['cardTitle'],
+                                },
+                                {
+                                    name: 'badge',
+                                    type: 'text',
+                                    values: [''],
+                                },
+                            ],
+                        },
+                        {
+                            id: 'card-1',
+                            path: '/content/dam/mas/sandbox/en_US/card-1',
+                            title: 'Card 1',
+                            fields: [{ name: 'cardTitle', type: 'text', values: ['Acrobat Standard'] }],
+                        },
+                        {
+                            id: 'card-2',
+                            path: '/content/dam/mas/sandbox/en_US/card-2',
+                            title: 'Card 2',
+                            fields: [{ name: 'cardTitle', type: 'text', values: ['Acrobat Pro'] }],
+                        },
+                        {
+                            id: 'card-3',
+                            path: '/content/dam/mas/sandbox/en_US/card-3',
+                            title: 'Card 3',
+                            fields: [{ name: 'cardTitle', type: 'text', values: ['Acrobat Max'] }],
+                        },
+                        {
+                            id: 'sec-1',
+                            path: '/content/dam/mas/sandbox/en_US/sec-1',
+                            title: 'Section 1',
+                            fields: [
+                                { name: 'sectionTitle', type: 'text', values: ['Create PDFs'] },
+                                {
+                                    name: 'rows',
+                                    type: 'content-fragment',
+                                    multiple: true,
+                                    values: ['/content/dam/mas/sandbox/en_US/row-1'],
+                                },
+                            ],
+                        },
+                        {
+                            id: 'row-1',
+                            path: '/content/dam/mas/sandbox/en_US/row-1',
+                            title: 'Row 1',
+                            fields: [
+                                { name: 'rowTitle', type: 'long-text', values: ['Combine files'] },
+                                {
+                                    name: 'rowValues',
+                                    type: 'content-fragment',
+                                    multiple: true,
+                                    values: [
+                                        '/content/dam/mas/sandbox/en_US/val-1',
+                                        '/content/dam/mas/sandbox/en_US/val-2',
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            id: 'val-1',
+                            path: '/content/dam/mas/sandbox/en_US/val-1',
+                            title: 'Value 1',
+                            fields: [{ name: 'valueType', type: 'enumeration', values: ['true'] }],
+                        },
+                        {
+                            id: 'val-2',
+                            path: '/content/dam/mas/sandbox/en_US/val-2',
+                            title: 'Value 2',
+                            fields: [{ name: 'valueType', type: 'enumeration', values: ['false'] }],
+                        },
+                    ],
+                };
+            }
 
             runTests(async () => {
                 describe('compare-chart-editor custom element', async () => {
                     let editor;
+                    let repository;
+                    let createCounter = 0;
+
+                    async function selectCell(sectionIndex, rowIndex, cellIndex) {
+                        const preview = editor.querySelector('compare-chart-preview');
+                        preview.dispatchEvent(
+                            new CustomEvent('cell-click', {
+                                detail: { sectionIndex, rowIndex, cellIndex },
+                                bubbles: true,
+                                composed: true,
+                            }),
+                        );
+                        await delay(30);
+                        await editor.updateComplete;
+                    }
 
                     beforeEach(async () => {
                         document.querySelector('compare-chart-editor')?.remove();
+                        document.querySelector('mas-repository')?.remove();
+                        createCounter = 0;
+
+                        repository = document.createElement('mas-repository');
+                        repository.createFragment = async (payload) => {
+                            createCounter += 1;
+                            return {
+                                id: `generated-${createCounter}`,
+                                path: `/content/dam/mas/sandbox/en_US/generated-${createCounter}`,
+                                title: payload.title,
+                                name: payload.name,
+                                fields: payload.fields || [],
+                            };
+                        };
+                        repository.aem = {
+                            sites: {
+                                cf: {
+                                    fragments: {
+                                        save: async (fragment) => fragment,
+                                        getByPath: async () => null,
+                                        getById: async () => null,
+                                    },
+                                },
+                            },
+                        };
+                        repository.refreshFragment = async () => {};
+                        document.querySelector('main').appendChild(repository);
+
                         editor = document.createElement('compare-chart-editor');
-                        const fragment = new Fragment(mockCompareChartFragment);
-                        const fragmentStore = new FragmentStore(fragment);
-                        editor.fragmentStore = fragmentStore;
+                        const fragment = new Fragment(createMockChartFragment());
+                        editor.fragmentStore = new FragmentStore(fragment);
+                        editor.updateFragment = () => {};
                         document.querySelector('main').appendChild(editor);
+
+                        await delay(60);
                         await editor.updateComplete;
                     });
 
                     afterEach(() => {
                         editor?.remove();
+                        repository?.remove();
                     });
 
-                    it('should render the editor', async () => {
-                        expect(editor).to.exist;
-                        expect(editor.querySelector('compare-chart-preview')).to.exist;
+                    it('shows boolean mode for a true value cell', async () => {
+                        await selectCell(0, 0, 0);
+
+                        const picker = editor.querySelector('#cell-type');
+                        const checkbox = editor.querySelector('sp-checkbox');
+                        expect(picker).to.exist;
+                        expect(picker.value).to.equal('boolean');
+                        expect(checkbox).to.exist;
+                        expect(checkbox.checked).to.equal(true);
                     });
 
-                    it('should display correct column count', async () => {
-                        await delay(50);
+                    it('persists false when boolean checkbox is unchecked', async () => {
+                        await selectCell(0, 0, 0);
+
+                        const checkbox = editor.querySelector('sp-checkbox');
+                        checkbox.checked = false;
+                        checkbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await delay(30);
                         await editor.updateComplete;
-                        expect(editor.columns.length).to.equal(2);
+
+                        expect(editor.sections[0].rows[0].values[0].valueType).to.equal('false');
                     });
 
-                    it('should display correct section count', async () => {
-                        await delay(50);
+                    it('switches to text mode and saves free text', async () => {
+                        await selectCell(0, 0, 0);
+
+                        const picker = editor.querySelector('#cell-type');
+                        picker.value = 'text';
+                        picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await delay(30);
                         await editor.updateComplete;
-                        expect(editor.sections.length).to.equal(1);
+
+                        const textfield = editor.querySelector('#cell-text-value');
+                        textfield.value = '1000 GB';
+                        textfield.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await delay(30);
+                        await editor.updateComplete;
+
+                        expect(editor.sections[0].rows[0].values[0].valueType).to.equal('1000 GB');
                     });
 
-                    it('should resolve column titles from card references', async () => {
-                        await delay(50);
-                        await editor.updateComplete;
-                        expect(editor.columns[0].title).to.equal('Acrobat Reader');
-                        expect(editor.columns[1].title).to.equal('Acrobat Pro');
-                    });
+                    it('creates missing cell value when selecting an empty placeholder cell', async () => {
+                        await selectCell(0, 0, 2);
 
-                    it('should resolve badge on columns', async () => {
-                        await delay(50);
-                        await editor.updateComplete;
-                        expect(editor.columns[1].badge).to.equal('Best Offer');
-                    });
+                        const picker = editor.querySelector('#cell-type');
+                        expect(picker.value).to.equal('empty');
 
-                    it('should resolve section titles', async () => {
-                        await delay(50);
+                        picker.value = 'boolean';
+                        picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await delay(30);
                         await editor.updateComplete;
-                        expect(editor.sections[0].title).to.equal('Create PDFs');
-                    });
 
-                    it('should resolve row values', async () => {
-                        await delay(50);
-                        await editor.updateComplete;
                         const row = editor.sections[0].rows[0];
-                        expect(row.title).to.equal('Combine files');
-                        expect(row.values.length).to.equal(2);
-                        expect(row.values[0].type).to.equal('boolean');
-                        expect(row.values[0].booleanValue).to.equal(false);
-                        expect(row.values[1].booleanValue).to.equal(true);
+                        expect(row.values.length).to.equal(3);
+                        expect(row.values[2].valueType).to.equal('false');
+                    });
+
+                    it('shows text input immediately after switching empty cell to text mode', async () => {
+                        await selectCell(0, 0, 2);
+
+                        const picker = editor.querySelector('#cell-type');
+                        picker.value = 'text';
+                        picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await delay(30);
+                        await editor.updateComplete;
+
+                        const textfield = editor.querySelector('#cell-text-value');
+                        expect(textfield).to.exist;
+                    });
+
+                    it('renders false values as cross in the preview', async () => {
+                        await delay(30);
+                        const preview = editor.querySelector('compare-chart-preview');
+                        await preview.updateComplete;
+
+                        const cross = preview.shadowRoot.querySelector('.crossmark');
+                        expect(cross).to.exist;
                     });
                 });
             });

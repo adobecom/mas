@@ -492,7 +492,7 @@ class AEM {
      * @param {Array<string>} publishReferencesWithStatus - Statuses to include references for
      * @returns {Promise<void>}
      */
-    async publishFragments(fragments, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
+    async publishFragments(fragments, publishReferencesWithStatus = []) {
         if (!fragments || fragments.length === 0) {
             throw new Error('No fragments provided to publish');
         }

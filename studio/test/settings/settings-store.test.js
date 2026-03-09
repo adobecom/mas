@@ -81,7 +81,18 @@ const createMutationHarness = ({ topLevel, overrides = [] }) => {
                     },
                     getWithEtag: async (id) => {
                         calls.getWithEtag.push(id);
-                        return { id, etag: 'test-etag' };
+                        if (id === 'settings-index') {
+                            return {
+                                id,
+                                path: indexPath,
+                                fields: [{ name: 'entries', values: [...indexEntries] }],
+                                references: references.filter((reference) => indexEntries.includes(reference.path)),
+                                etag: 'test-etag',
+                            };
+                        }
+                        const fragment = byId.get(id);
+                        if (!fragment) throw new Error(`Missing fragment ${id}`);
+                        return { ...structuredClone(fragment), etag: 'test-etag' };
                     },
                     create: async (payload) => {
                         calls.create.push(payload);
@@ -125,8 +136,11 @@ const createMutationHarness = ({ topLevel, overrides = [] }) => {
                         references = references.filter((reference) => reference.id !== fragment.id);
                         indexEntries = indexEntries.filter((path) => path !== fragment.path);
                     },
-                    publish: async (fragment) => {
-                        calls.publish.push(fragment.id);
+                    publish: async (fragment, publishReferencesWithStatus) => {
+                        calls.publish.push({
+                            id: fragment.id,
+                            publishReferencesWithStatus,
+                        });
                     },
                     unpublish: async (fragment) => {
                         calls.unpublish.push(fragment.id);
@@ -1138,7 +1152,7 @@ describe('Settings Store Namespace', () => {
         expect(harness.calls.create).to.deep.equal([]);
     });
 
-    it('removes draft settings and supports publish/unpublish paths', async () => {
+    it('removes draft settings', async () => {
         const topLevel = createSettingReference({
             id: 'setting-show-addon',
             name: 'addon',
@@ -1165,6 +1179,29 @@ describe('Settings Store Namespace', () => {
         expect(harness.calls.delete).to.include(topLevel.id);
         expect(harness.calls.delete).to.include(override.id);
         expect(harness.getIndexEntries()).to.deep.equal([]);
+    });
+
+    it('publishes settings and overrides, and republishes the index without children', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-addon',
+            name: 'addon',
+            label: 'Show Addon',
+            status: 'DRAFT',
+            locales: [],
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon',
+        });
+        const override = createSettingReference({
+            id: 'setting-show-addon-fr',
+            name: 'addon',
+            label: 'Show Addon',
+            locales: ['fr_FR'],
+            fieldName: 'entries',
+            path: '/content/dam/mas/sandbox/settings/setting-show-addon-fr',
+        });
+        const harness = createMutationHarness({ topLevel, overrides: [override] });
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+        await store.loadSurface('sandbox');
 
         const publishSettingResult = await store.publishSetting('setting-show-addon');
         const publishOverrideResult = await store.publishOverride('setting-show-addon-fr');
@@ -1174,7 +1211,12 @@ describe('Settings Store Namespace', () => {
         expect(publishOverrideResult).to.equal(true);
         expect(unpublishResult).to.equal(true);
         expect(unpublishOverrideResult).to.equal(true);
-        expect(harness.calls.publish).to.deep.equal(['setting-show-addon', 'setting-show-addon-fr']);
+        expect(harness.calls.publish).to.deep.equal([
+            { id: 'setting-show-addon', publishReferencesWithStatus: undefined },
+            { id: 'settings-index', publishReferencesWithStatus: [] },
+            { id: 'setting-show-addon-fr', publishReferencesWithStatus: undefined },
+            { id: 'settings-index', publishReferencesWithStatus: [] },
+        ]);
         expect(harness.calls.unpublish).to.deep.equal(['setting-show-addon', 'setting-show-addon-fr']);
     });
 

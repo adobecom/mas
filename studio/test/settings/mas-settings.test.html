@@ -612,7 +612,7 @@
                             namePicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
                             await waitForUpdates(settingsPage, 2);
 
-                            expect(settingsPage.form.valueType).to.equal('boolean');
+                            expect(settingsPage.form.valueType).to.equal('optional-text');
                             expect(settingsPage.shadowRoot.textContent.includes('Enabled')).to.equal(false);
                             const valueGroup = [
                                 ...settingsPage.shadowRoot.querySelectorAll('#settings-editor-page sp-field-group'),

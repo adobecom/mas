@@ -596,6 +596,7 @@ export class SettingsStore {
             async () => {
                 const fragment = await this.aem.sites.cf.fragments.getWithEtag(rowId);
                 await this.aem.sites.cf.fragments.publish(fragment);
+                await this.#publishIndexFragment();
             },
             'Setting has been successfully published.',
             'Failed to publish setting.',
@@ -607,6 +608,7 @@ export class SettingsStore {
             async () => {
                 const fragment = await this.aem.sites.cf.fragments.getWithEtag(overrideId);
                 await this.aem.sites.cf.fragments.publish(fragment);
+                await this.#publishIndexFragment();
             },
             'Override has been successfully published.',
             'Failed to publish override.',
@@ -766,6 +768,12 @@ export class SettingsStore {
 
         indexFragment.updateField(INDEX_REFERENCES_FIELD, nextEntries);
         await this.aem.sites.cf.fragments.save(indexFragment);
+    }
+
+    async #publishIndexFragment() {
+        const indexFragment = await this.aem.sites.cf.fragments.getByPath(this.#indexPath);
+        const indexWithEtag = await this.aem.sites.cf.fragments.getWithEtag(indexFragment.id);
+        await this.aem.sites.cf.fragments.publish(indexWithEtag, []);
     }
 
     #buildFragmentName({ settingName, locales = [], templateIds = [] }) {

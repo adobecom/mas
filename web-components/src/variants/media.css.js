@@ -43,11 +43,60 @@ export const CSS = `
         }
     }
 
+    @media screen and (max-width: 430px) {
+        div.dialog-modal .content merch-card[variant='media'] {
+            width: 250px;
+        }
+    }
+
+    @media screen and (max-width: 600px) {
+        div.dialog-modal merch-card[variant='media'] {
+            width: 320px;
+            margin-right: auto;
+            margin-left: auto;
+        }
+    }
+
     @media screen and (min-width: 1200px) {
         merch-card[variant='media'] h3[slot='heading-xs'] {
             font-size: 36px;
             line-height: 45px;
         }
+    }
+
+    @media (min-width: 1366px) {
+        div.dialog-modal merch-card[variant='media'] {
+            margin: 0 100px;
+        }
+    }
+
+    @media (min-width: 769px) and (max-width: 1000px) {
+        div.dialog-modal merch-card[variant='media'] {
+            width: 500px;
+        }
+    }
+
+    @media screen and (min-width: 600px) and (max-width: 768px) {
+        div.dialog-modal merch-card[variant='media'] {
+            width: 320px;
+        }
+
+        div.dialog-modal merch-card[variant='media'] div[slot='bg-image'] {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+
+
+        div.dialog-modal merch-card[variant='media'] div[slot='bg-image'] img {
+            min-height: unset;
+        }
+    }
+
+    .dialog-modal merch-card[variant='media'] {
+        padding: 80px 0;
+        margin: 0 50px;
+        width: 700px;
     }
 
 `;

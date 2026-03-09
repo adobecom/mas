@@ -4278,11 +4278,60 @@ merch-card-collection.segment merch-card {
         }
     }
 
+    @media screen and (max-width: 430px) {
+        div.dialog-modal .content merch-card[variant='media'] {
+            width: 250px;
+        }
+    }
+
+    @media screen and (max-width: 600px) {
+        div.dialog-modal merch-card[variant='media'] {
+            width: 320px;
+            margin-right: auto;
+            margin-left: auto;
+        }
+    }
+
     @media screen and (min-width: 1200px) {
         merch-card[variant='media'] h3[slot='heading-xs'] {
             font-size: 36px;
             line-height: 45px;
         }
+    }
+
+    @media (min-width: 1366px) {
+        div.dialog-modal merch-card[variant='media'] {
+            margin: 0 100px;
+        }
+    }
+
+    @media (min-width: 769px) and (max-width: 1000px) {
+        div.dialog-modal merch-card[variant='media'] {
+            width: 500px;
+        }
+    }
+
+    @media screen and (min-width: 600px) and (max-width: 768px) {
+        div.dialog-modal merch-card[variant='media'] {
+            width: 320px;
+        }
+
+        div.dialog-modal merch-card[variant='media'] div[slot='bg-image'] {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+
+
+        div.dialog-modal merch-card[variant='media'] div[slot='bg-image'] img {
+            min-height: unset;
+        }
+    }
+
+    .dialog-modal merch-card[variant='media'] {
+        padding: 80px 0;
+        margin: 0 50px;
+        width: 700px;
     }
 
 `;var Cc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},backgroundImage:{tag:"div",slot:"bg-image"},style:"consonant"},Yt=class extends T{constructor(t){super(t)}getGlobalCSS(){return _c}renderLayout(){return g`
@@ -4332,6 +4381,17 @@ merch-card-collection.segment merch-card {
             :host([variant='media']) .media-row {
                 gap: 40px;
             }
+        }
+
+        @media screen and (min-width: 600px) and (max-width: 768px) {
+            :host([variant='media']) .image {
+                width: 100%;
+                flex: 0 1 auto;
+            }
+
+            :host([variant='media']) .text {
+                flex: 0 1 auto;
+            }                
         }
     `);L();var kc=`
 :root {

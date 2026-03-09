@@ -73,5 +73,16 @@ export class Media extends VariantLayout {
                 gap: 40px;
             }
         }
+
+        @media screen and (min-width: 600px) and (max-width: 768px) {
+            :host([variant='media']) .image {
+                width: 100%;
+                flex: 0 1 auto;
+            }
+
+            :host([variant='media']) .text {
+                flex: 0 1 auto;
+            }
+        }
     `;
 }

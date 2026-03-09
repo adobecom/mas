@@ -313,12 +313,14 @@ export class SettingsStore {
             },
             message,
             'Failed to update setting.',
+            '',
         );
 
         if (!updated) return false;
 
         this.toast.set({
             message,
+            variant: '',
         });
         return true;
     }
@@ -363,12 +365,14 @@ export class SettingsStore {
             },
             message,
             'Failed to update override.',
+            '',
         );
 
         if (!updated) return false;
 
         this.toast.set({
             message,
+            variant: '',
         });
         return true;
     }
@@ -600,6 +604,7 @@ export class SettingsStore {
             },
             'Setting has been successfully published.',
             'Failed to publish setting.',
+            'positive',
         );
     }
 
@@ -612,6 +617,7 @@ export class SettingsStore {
             },
             'Override has been successfully published.',
             'Failed to publish override.',
+            'positive',
         );
     }
 
@@ -623,6 +629,7 @@ export class SettingsStore {
             },
             'Setting has been successfully unpublished.',
             'Failed to unpublish setting.',
+            'positive',
         );
     }
 
@@ -634,6 +641,7 @@ export class SettingsStore {
             },
             'Override has been successfully unpublished.',
             'Failed to unpublish override.',
+            'positive',
         );
     }
 

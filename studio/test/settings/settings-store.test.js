@@ -278,6 +278,7 @@ describe('Settings Store Namespace', () => {
 
         expect(rowStore.value.value).to.equal(false);
         expect(store.toast.get().message).to.contain("'Display Plan type' is now [Off]");
+        expect(store.toast.get().variant).to.equal('');
     });
 
     it('keeps plain template count wording in toggle toast for cross-branch templates', async () => {
@@ -334,6 +335,7 @@ describe('Settings Store Namespace', () => {
         await store.toggleSetting(reference.id, false);
 
         expect(store.toast.get().message).to.contain('applied to 2 templates selected for all locales');
+        expect(store.toast.get().variant).to.equal('');
     });
 
     it('toggles text settings via booleanValue and keeps text value intact', async () => {
@@ -787,6 +789,7 @@ describe('Settings Store Namespace', () => {
         expect(getByIdCalls).to.deep.equal([overrideId]);
         expect(store.rows.get()[0].value.overrides[0].value).to.equal(false);
         expect(store.toast.get().message).to.contain("'Show plan type (fr_FR)' is now [Off]");
+        expect(store.toast.get().variant).to.equal('');
     });
 
     it('auto-creates and publishes settings index when missing and sets error for generic failures', async () => {

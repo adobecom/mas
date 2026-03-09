@@ -613,14 +613,20 @@
                             await waitForUpdates(settingsPage, 2);
 
                             expect(settingsPage.form.valueType).to.equal('optional-text');
-                            expect(settingsPage.shadowRoot.textContent.includes('Enabled')).to.equal(false);
+                            const enabledGroup = [
+                                ...settingsPage.shadowRoot.querySelectorAll('#settings-editor-page sp-field-group'),
+                            ].find((group) => group.querySelector('sp-field-label')?.textContent.trim() === 'Enabled');
+                            expect(enabledGroup).to.exist;
+                            const enabledSwitch = enabledGroup.querySelector('sp-switch');
+                            expect(enabledSwitch).to.exist;
+                            expect(Boolean(enabledSwitch.checked)).to.equal(true);
                             const valueGroup = [
                                 ...settingsPage.shadowRoot.querySelectorAll('#settings-editor-page sp-field-group'),
                             ].find((group) => group.querySelector('sp-field-label')?.textContent.trim() === 'Value');
                             expect(valueGroup).to.exist;
-                            const valueSwitch = valueGroup.querySelector('sp-switch');
-                            expect(valueSwitch).to.exist;
-                            expect(Boolean(valueSwitch.checked)).to.equal(false);
+                            const valueField = valueGroup.querySelector('sp-textfield');
+                            expect(valueField).to.exist;
+                            expect(valueField.value).to.equal('');
                         });
 
                         it('shows template placeholders for create/edit top-level and override add/edit flows', async () => {

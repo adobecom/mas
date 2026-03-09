@@ -2,12 +2,14 @@
 
 ## 1. Context
 
-**MCS (Merchandising Content Service)** is the source of truth for product arrangement merchandising (names, descriptions, icons, links, T&Cs). MCS content is authored in AEM Content Fragments and served via AOS. M@S Studio currently has no awareness of MCS data.
+**MCS (Merchandising Content Service)** is the source of truth for product arrangement merchandising (names, descriptions, icons, links, T&Cs, promo terms). MCS content is authored as AEM Content Fragments and served via **AOS (Adobe Offer Service)** — the recommended integration path. Clients should always go through AOS (not call MCS directly), passing `locale` explicitly and requesting `MERCHANDISING_CONTENT` or `INLINE_MERCHANDISING` as needed.
+
+M@S Studio currently has no awareness of MCS data.
 
 This design introduces two complementary mechanisms:
 
 1. **MCS Surface** -- a new surface in Studio where PA merchandising data is synced from AOS, stored as M@S card-model fragments, and edited in a structured (non-card) editor with upstream sync/diff capabilities.
-2. **MCS Placeholders** -- a `{{mcs.*}}` placeholder system (per [MCS.md](https://github.com/yesil/mas/blob/MCS/mcs/MCS.md)) that lets cards on any surface reference MCS values. These are resolved at delivery and preview time by reading the MCS fragments stored in MAS, piggy-backing on the existing `replace` transformer pattern.
+2. **MCS Placeholders** -- a `{{mcs.*}}` placeholder system that lets cards on any surface reference MCS values. These are resolved at delivery and preview time by reading the MCS fragments stored in MAS, using the existing pipeline transformer pattern.
 
 ---
 
@@ -15,7 +17,7 @@ This design introduces two complementary mechanisms:
 
 ### 2.1 Fragment Model
 
-MCS data is always consumed via AOS. No dedicated fragment model will be created in MAS.
+MCS data is sourced from AOS and stored in MAS using the existing **card fragment model**. No new fragment model is needed.
 
 MCS fragments are identified by path: `/content/dam/mas/mcs/{locale}/{productArrangementCode}`
 
@@ -23,7 +25,11 @@ Example: `/content/dam/mas/mcs/en_US/creative-cloud-all-apps`
 
 ### 2.2 Surface Registration
 
-Add `MCS` to `SURFACES` in `studio/src/constants.js`.
+Add `MCS` to `SURFACES` and `MCS_EDITOR` to `PAGE_NAMES` in `studio/src/constants.js`.
+
+The router in `studio/src/router.js` handles two MCS-related states:
+- **MCS content list**: shown when the MCS surface is active and no fragment is selected. Displays MCS fragments in **table view only** (no card/render view) with columns: PA Code, Product Name, Locale, Sync Status, Last Synced.
+- **MCS editor**: shown when a fragment under `/content/dam/mas/mcs/` is opened. `mas-fragment-editor.js` delegates rendering to `mas-mcs-editor` instead of the standard card editor.
 
 ### 2.3 Card Tagging
 
@@ -37,14 +43,17 @@ This tag is the source of truth for which PA's MCS data should be used when reso
 
 ### 3.1 Placeholder Format
 
-Per [MCS.md](https://github.com/yesil/mas/blob/MCS/mcs/MCS.md), MCS values are referenced via `{{mcs.*}}` placeholders inside card field content:
+MCS values are referenced via `{{mcs.*}}` placeholders inside card field content:
 
 **Copy placeholders:**
 
 - `{{mcs.copy.name}}` -- Product name
 - `{{mcs.copy.short_name}}` -- Short product name
+- `{{mcs.copy.headline}}` -- Headline
 - `{{mcs.copy.description}}` -- Full description
 - `{{mcs.copy.short_description}}` -- Short description
+- `{{mcs.copy.terms_and_conditions}}` -- Terms and conditions
+- `{{mcs.copy.promo_terms}}` -- Promotional terms (HTML)
 
 **Asset placeholders:**
 
@@ -57,6 +66,11 @@ Per [MCS.md](https://github.com/yesil/mas/blob/MCS/mcs/MCS.md), MCS values are r
 
 - `{{mcs.links.getting_started.text}}` / `{{mcs.links.getting_started.href}}`
 - `{{mcs.links.getting_started_template.text}}` / `{{mcs.links.getting_started_template.href}}`
+- `{{mcs.links.provisioned_user.text}}` / `{{mcs.links.provisioned_user.href}}`
+
+**Composite placeholders:**
+
+- `{{mcs.mnemonics}}` -- Full mnemonic element (see Section 6.3).
 
 **Fulfillable items:**
 
@@ -65,200 +79,193 @@ Per [MCS.md](https://github.com/yesil/mas/blob/MCS/mcs/MCS.md), MCS values are r
 
 ### 3.2 How Placeholders Are Resolved
 
-MCS placeholders follow the same `{{key}}` pattern as existing M@S dictionary placeholders (see `PH_REGEXP` in `io/www/src/fragment/transformers/replace.js` line 6). The resolution flow:
+MCS placeholders follow the same `{{key}}` pattern as existing M@S dictionary placeholders. Resolution is handled by a new `mcs` transformer that slots into the existing pipeline — no new mechanism is introduced. The `mcs` transformer populates `context.dictionary` with `mcs.*` entries before the `replace` transformer runs, so substitution is handled entirely by the existing `replaceValues()` logic.
 
-1. The `replace` transformer detects `{{mcs.*}}` patterns in the serialized fragment body
-2. If any `mcs.*` keys are present, a new **MCS resolve** step reads the card's PA code tag (namespace TBD) and fetches the corresponding MCS fragment from MAS
-3. The MCS fragment's fields are flattened into a dictionary keyed by MCS placeholder paths (e.g., `mcs.copy.name` -> `"Adobe Express"`)
-4. The existing `replaceValues()` function substitutes them alongside regular dictionary placeholders
+For copy and link fields, `mcs.*` values are plain strings (text or URLs). The `replace.js` substitution handles them transparently. For mnemonic inheritance via `{{mcs.mnemonics}}`, see Section 6.3.
 
-### 3.3 Placeholder Resolution in the Pipeline
+### 3.3 Placeholder Resolution in the Delivery Pipeline
 
-Extend the `replace` transformer (or add an `mcs` transformer that runs just before `replace`) in `io/www/src/fragment/pipeline.js`. Pipeline order: `fetchFragment -> promotions -> customize -> settings -> [mcs] -> replace -> wcs -> corrector`.
+A new `mcs` transformer is added to `PIPELINE` in `io/www/src/fragment/pipeline.js`, positioned between `settings` and `replace`:
 
-The `mcs` transformer:
+```
+[fetchFragment, promotions, customize, settings, mcs, replace, wcs, corrector]
+```
 
-- **init**: If the fragment body contains any `{{mcs.*}}` pattern, read the card's PA code tag and fetch the MCS fragment from MAS for that PA + locale (parallelize with dictionary fetch)
-- **process**: Flatten the MCS fragment's fields into `context.dictionary` entries keyed by `mcs.*` paths. The subsequent `replace` step handles the actual substitution.
+The transformer follows the same `{ name, init, process }` contract as all existing transformers:
+
+- **`init`**: Inspects the fragment body for any `{{mcs.*}}` pattern. If found, reads the card's PA code tag and kicks off a parallel fetch via `getMcsDictionary()` (same parallelism model as the `replace` transformer's dictionary fetch via `context.promises`).
+- **`process`**: Awaits `context.promises.mcs`, then:
+  - For **text and link placeholders**: merges the flattened `mcs.*` entries into `context.dictionary`. The subsequent `replace` transformer handles substitution.
+  - For **`{{mcs.mnemonics}}`**: generates and injects `<mas-mnemonic>` markup directly into `context.body`, bypassing `replace.js` (see Section 6.3).
 
 ### 3.4 Preview Resolution in Studio
 
-Extend `previewStudioFragment()` in `studio/libs/fragment-client.js`:
+Studio follows the same transformer pattern on the client side. The same `mcs` step is added to the preview pipeline in `studio/libs/fragment-client.js`, mirroring the server-side transformer:
 
-- Before the `replace` step, if the fragment body contains `{{mcs.*}}`, call the IO action `mcs-resolve` with the card's PA code tag and locale to fetch the MCS fragment from MAS
-- Merge the mapped MCS dictionary into the preview context dictionary
-- The existing replace logic handles the rest
+- **`init`**: Detects `{{mcs.*}}` patterns and calls `getMcsDictionary()` (via `MasRepository`) in parallel.
+- **`process`**: Merges text/link keys into the dictionary for `replace` to handle; injects `<mas-mnemonic>` markup for `{{mcs.mnemonics}}` directly (see Section 6.3).
 
-**Caching**: MCS fragment data for a given OSI + locale is cached with a short TTL (minutes, not hours) per the MCS doc's guidance on eventual consistency.
+**Caching**: `mcs.js` follows the exact same caching pattern as `replace.js` — no separate mechanism:
+- **Server-side**: module-level in-memory cache keyed by `mcs-{paCode}-{locale}`, with the same `CONFIG_CACHE_TTL` (5 minutes).
+- **Client-side (preview)**: `localStorage` keyed identically, read/written in the same way as the dictionary cache in `replace.js`.
 
 ### 3.5 PH_REGEXP Update
 
-The current `PH_REGEXP` in `replace.js` does **not** match dotted keys like `mcs.copy.name`. It must be extended to add `.` to the character class, enabling `{{mcs.copy.name}}` to match. Existing placeholders are unaffected.
+`PH_REGEXP` in `replace.js` currently matches `[\w\-\_]+` which excludes dots. It must be extended to `[\w\-\_\.]+` to match dotted keys like `mcs.copy.name`. Existing placeholders are unaffected.
+
+### 3.6 MCS Resolution Utility (`getMcsDictionary`)
+
+A shared function exported from `io/www/src/fragment/transformers/mcs.js`, co-located with `replace.js`. It is a plain async function — not an IO action — following the same pattern as `getDictionary()` in `replace.js`:
+
+- Fetches the MCS fragment for a given PA code + locale and flattens its fields into a `mcs.*`-keyed dictionary.
+- Caches results using the same pattern as `replace.js`: in-memory on the server side, `localStorage` on the client side, both keyed by `mcs-{paCode}-{locale}` with `CONFIG_CACHE_TTL`.
+- Used server-side by the `mcs` transformer's `init` step, and loaded directly by Studio for the preview pipeline and the placeholder picker.
 
 ---
 
 ## 4. MCS Sync Service (IO Runtime Actions)
 
-New IO Runtime actions at `io/studio/src/mcs/`, following the same pattern as `io/studio/src/ost-products/write.js`.
+New IO Runtime actions at `io/studio/src/mcs/`, providing the data layer for MCS synchronization.
 
 ### 4.1 `mcs-pull` (POST)
 
-1. Fetch paginated offers from AOS: `GET /offers?service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale={locale}`
-2. For each PA, check if a fragment exists under `/content/dam/mas/mcs/{locale}/{paCode}`
-3. Compute diff:
-    - **New PA**: No existing fragment -- mark as "new"
-    - **Changed PA**: Field-by-field comparison using the field mapping -- mark changed fields
-    - **Unchanged PA**: Skip
-4. Return diff summary (JSON) and store in IO Runtime state (Brotli-compressed, keyed by locale)
+Fetches and compares product arrangement (PA) data from AOS against existing MAS fragments for a given locale.
 
-### 4.2 `mcs-preview` (GET)
+1. **Fetch**: Retrieves paginated offers from AOS. Uses `MERCHANDISING_CONTENT` (not `MERCHANDISING`) to get inline copy alongside the merchandising node. `locale` is mandatory — AOS omits the merchandising block entirely without it. For PA+FI coverage in one request, `INLINE_MERCHANDISING` can be used.
+2. **Diff**: Reads existing MCS fragments from MAS via the AEM Content Fragments API (same authentication pattern as other IO studio actions), keyed by path `/content/dam/mas/mcs/{locale}/{paCode}`. Compares each fragment's fields against the AOS payload:
+    - Identifies **New** PAs (no fragment found in MAS).
+    - Identifies **Changed** fields for existing PAs.
+3. **State**: Returns the diff summary and persists it in IO Runtime state (compressed) for the current sync session.
 
-Returns the stored diff summary without applying it. Used by the sync dialog to display changes.
+### 4.2 `mcs-apply` (POST)
 
-### 4.3 `mcs-apply` (POST)
+Persists selected changes from AOS to MAS fragments and optionally creates card variants.
 
-Accepts a list of PA codes and selected fields. For each:
-
-- **New PA**: Create a card fragment via AEM API with mapped field values and MCS tags
-- **Changed PA**: Update the specified fields on the existing fragment
-
-Protected by IMS Bearer token (same as `ost-products-read`).
-
-### 4.4 `mcs-resolve` (GET)
-
-Standalone action that resolves MCS placeholder values for a given PA code + locale:
-
-1. Read the PA code from the card's tag (namespace TBD)
-2. Fetch the MCS fragment from MAS for that PA + locale
-3. Flatten the fragment's fields into `mcs.*` keyed dictionary entries and return it
-
-Used by both the delivery pipeline and the Studio preview. Cached with short TTL.
+- **Create/Update MCS**: Generates or patches MCS fragments in AEM.
+- **Create Variants**: For new PAs, creates corresponding card fragments on selected surfaces (e.g., CC_ALL_APPS, PHOTOGRAPHY) that reference the new MCS fragment via placeholders.
+- **Tagging**: Updates sync metadata (e.g., `mas:mcs/synced-at`) and associates new cards with the PA code.
 
 ---
 
-## 5. MCS Editor (Studio UI)
+## 5. MCS Editor & Sync UI (Studio)
 
-### 5.1 Page & Routing
+The MCS Editor is a specialized interface for managing merchandising data and orchestrating the sync process.
 
-Add `MCS_EDITOR: 'mcs-editor'` to `PAGE_NAMES` in `studio/src/constants.js`. The router delegates to `mas-mcs-editor` when opening a fragment on the MCS surface, based on `Store.search.path` starting with `/content/dam/mas/mcs/`.
+### 5.1 Structured Editor (`mas-mcs-editor`)
 
-### 5.2 Editor Layout
+A non-visual, form-based editor optimized for MCS data categories (Identity, Copy, Assets, Links).
 
-Unlike the card editor's two-column visual layout (`studio/src/mas-fragment-editor.js`), the MCS editor uses a **single-column structured form** organized by MCS data categories: breadcrumbs, sync status bar (last synced timestamp, upstream diff count, Pull Changes / View Diff / Publish actions), product identity (PA code, name, icons), copy (description, short description), links (getting started, getting started template), a read-only placeholder reference panel (all `{{mcs.*}}` keys with resolved values, click to copy), and a consumers panel (cards referencing this PA's OSI).
+- **Sync Status**: Displays the last sync timestamp and pending upstream changes.
+- **Data Categories**: Organized sections for editing and reviewing MCS-mapped fields.
+- **Placeholder Reference**: A read-only panel showing all available `{{mcs.*}}` keys and their current values.
+- **Consumer Tracking**: Lists all MAS cards currently referencing this specific PA's data.
 
-### 5.3 Component: `mas-mcs-editor`
+### 5.2 Sync Wizard (`mas-mcs-sync-wizard`)
 
-New file: `studio/src/editors/mas-mcs-editor.js`
+New file: `studio/src/mcs/mas-mcs-sync-wizard.js`
 
-- Extends `LitElement` with Shadow DOM
-- Reuses existing field components: `rte-field`, `mnemonic-field`, `aem-tag-picker-field`
-- **Sync Status Bar**: Shows last sync timestamp (from `mas:mcs/synced-at:*` tag), upstream diff count, and action buttons
-- **Placeholder Reference**: Read-only section showing all `{{mcs.*}}` keys with their currently resolved values for this PA (fetched from `mcs-resolve` action)
-- **Consumers**: Queries AEM for cards whose content contains `{{mcs.*}}` placeholders matching this PA's OSI
+A full-page multi-step wizard that manages the sync process. It can be launched for a single PA from the editor or for all PAs in a locale from the content list.
 
-### 5.4 Content List for MCS Surface
-
-When navigating to MCS surface, default to **table view** in `mas-content`, showing:
-
-- PA Code, Product Name, Family, Locale, Sync Status, Last Modified
+1. **Discovery**: Calls `mcs-pull` for the target scope. Groups results into "New", "Modified", and "Up-to-date".
+2. **Reconciliation**: Side-by-side diff for each modified PA with "Accept All" / "Reject All" / field-level checkboxes. For new PAs, lists applicable surfaces with checkboxes to create card variants pre-populated with `{{mcs.*}}` placeholders.
+3. **Review**: Summary of all pending actions — "Create N MCS fragments", "Update M MCS fragments", "Create X card variants".
+4. **Apply**: Calls `mcs-apply` with the finalized payload. Reports progress, errors, and provides a "View Updated Fragments" link on completion.
 
 ---
 
-## 6. Upstream Sync Dialog
+## 6. MCS Placeholder Picker (Card Editor)
 
-### 6.1 Component: `mas-mcs-sync-dialog`
+### 6.1 Picker Button in Fragment Editor
 
-New file: `studio/src/mas-mcs-sync-dialog.js`
+A single "MCS" button in `studio/src/mas-fragment-editor.js` opens the `mas-mcs-placeholder-picker` dialog. No per-field buttons or RTE plugin are needed — the picker is a single entry point at the fragment editor level.
 
-Triggered from MCS editor "Pull Changes" or MCS content list toolbar "Sync All".
-
-### 6.2 Single PA Sync Flow
-
-1. Call `mcs-pull` for the selected PA + locale
-2. Show a field-by-field diff table (current vs. upstream) with checkboxes to select which changed fields to accept
-3. User selects fields to accept -> calls `mcs-apply`
-4. Fragment saved via `MasRepository.saveFragment()`
-
-### 6.3 New PA Detection
-
-PAs found in AOS with no corresponding MCS fragment appear as a separate "New Product Arrangements" section in the sync dialog. Users select which to create as new fragments.
-
-### 6.4 Bulk Sync
-
-From the MCS content list toolbar, "Sync All" triggers sync for all PAs in the current locale. The dialog groups diffs by PA with expand/collapse.
-
----
-
-## 7. MCS Placeholder Picker (Card Editor)
-
-### 7.1 Picker Button in Card Editor
-
-In `studio/src/editors/merch-card-editor.js`, add a small "MCS" button next to fields that support MCS placeholders (description, shortDescription, cardTitle, ctas). Clicking it opens the picker dialog.
-
-### 7.2 Picker Dialog: `mas-mcs-placeholder-picker`
+### 6.2 Picker Dialog: `mas-mcs-placeholder-picker`
 
 New file: `studio/src/editors/mas-mcs-placeholder-picker.js`
 
-- Shows available `{{mcs.*}}` placeholder keys grouped by category (Copy, Assets, Links, Fulfillable Items)
-- For each key, shows the **resolved value** for the card's current OSI (fetched via `mcs-resolve` action)
-- Asset placeholders show image thumbnails; link placeholders render as Spectrum links (per MCS.md)
-- Clicking a key inserts/pastes it into the active form field
-- The picker is contextual to the card's offer -- if the card has an OSI, the picker resolves values for that specific offer
+- Shows available `{{mcs.*}}` placeholder keys grouped by category (Copy, Assets, Links, Fulfillable Items).
+- For each key, shows the **resolved value** for the card's current PA (via `getMcsDictionary()` from `io/www/src/fragment/transformers/mcs.js`).
+- Asset placeholders show image thumbnails; link placeholders render as Spectrum links.
+- Clicking a key copies it to the clipboard for the user to paste into the desired field.
 
-### 7.3 Visual Indicators
+### 6.3 Mnemonic Field: "Inherit from MCS"
 
-When a card field contains `{{mcs.*}}` placeholders:
+The mnemonic field (`mas-mnemonic-field`) has a special integration with MCS via the composite placeholder `{{mcs.mnemonics}}`.
 
-- Show a small "MCS" badge next to the field label
-- In the preview, the placeholder is resolved to show the actual value
-- In the editor, the raw `{{mcs.copy.name}}` is shown (editable) with a tooltip showing the resolved value
+**Authoring (Studio — `mnemonic-field.js`, `mas-mnemonic-modal.js`)**:
+
+- The field exposes an **"Inherit from MCS"** checkbox. Its checked state is derived purely from whether the current field value equals `{{mcs.mnemonics}}` — no additional flag or field is stored.
+- **Checking** the box saves the current mnemonic value in memory and writes `{{mcs.mnemonics}}` as the field value.
+- **Unchecking** the box restores the previously saved value. The raw placeholder is never shown in the UI; the modal displays "Inherited from MCS" as a visual indicator instead.
+
+**Resolution (delivery pipeline and Studio preview — `mcs.js`)**:
+
+- When `mcs.js` encounters `{{mcs.mnemonics}}` in the fragment body, it builds the full `<mas-mnemonic>` element (icon, alt text, link) from the resolved MCS asset and copy values and substitutes it directly in `context.body`.
+- This bypasses `replace.js` because the resolved value is HTML markup, not a plain string.
 
 ---
 
-## 8. Store Changes
+## 7. State Management
 
-Extend `studio/src/store.js` with an `mcs` section holding: `syncStatus` (last synced timestamp, diff count), `pendingDiffs` (array of PA diff objects), and `resolvedValues` (OSI -> flattened `mcs.*` dictionary).
+### 7.1 MCSStore
+
+`MCSStore` is the single source of truth for all MCS-related state in Studio. It is a dedicated store module at `studio/src/mcs/mcs-store.js`, composed of `ReactiveStore` instances following the same home-made reactivity pattern used throughout `studio/src/store.js`.
+
+All components and operations read from and write to `MCSStore` — nothing holds MCS state locally.
+
+### 7.2 State Shape
+
+Each property is a `ReactiveStore` instance with `.get()`, `.set()`, and `.subscribe()`:
+
+| Property         | Initial value | Description                                                      |
+| ---------------- | ------------- | ---------------------------------------------------------------- |
+| `syncStatus`     | `'idle'`      | `'idle' \| 'pulling' \| 'applying' \| 'error'`                   |
+| `lastSyncedAt`   | `null`        | Timestamp of the last successful `mcs-apply`                     |
+| `pendingDiffs`   | `[]`          | Diff result from `mcs-pull`, array of PA diff objects            |
+| `resolvedValues` | `{}`          | Last resolved `mcs.*` dictionary for the current PA, populated by `mcs.js` (the cache lives in `mcs.js`, not the store) |
+| `wizardStep`     | `null`        | `'discovery' \| 'reconciliation' \| 'review' \| 'apply' \| null` |
+
+### 7.3 Operations
+
+Each operation is a method on `MCSStore` that drives the corresponding IO action and updates state:
+
+- **`pull(scope)`**: Sets `syncStatus = 'pulling'`, calls `mcs-pull`, stores results in `pendingDiffs`.
+- **`apply(selections)`**: Sets `syncStatus = 'applying'`, calls `mcs-apply` with the user's selected changes, clears `pendingDiffs`, updates `lastSyncedAt` on success.
+- **`resolve(paCode, locale)`**: Calls `getMcsDictionary()` from `mcs.js` (which owns the cache) and writes the result into `resolvedValues` for display by the placeholder picker.
+- **`reset()`**: Clears `pendingDiffs`, `wizardStep`, and `syncStatus` back to idle.
 
 ---
 
-## 9. Security Considerations
+## 8. Security Considerations
 
 - AOS API calls from IO Runtime use server-side API key + IMS token, never exposed to client
 - All `mcs-*` actions are protected by IMS Bearer token authorization
-- PA codes read from card tags are validated against `/^[\w-]+$/` before being used in AOS requests
-- `{{mcs.*}}` placeholders are resolved server-side in the pipeline; unresolved placeholders are left as-is (not stripped) to avoid silent data loss
-- AOS API calls from IO Runtime use server-side API key + IMS token, never exposed to client
+- PA codes read from card tags are validated against `/^[\w-]+$/` before being used in AOS or MAS requests
+- `{{mcs.*}}` placeholders are resolved server-side in the delivery pipeline for published fragments, and client-side in Studio for preview using the same transformer pattern; unresolved MCS placeholders are **stripped** (replaced with empty string) to avoid exposing raw placeholder text in rendered output
 
 ---
 
-## 10. Known Concerns (from MCS.md)
-
-1. **MCS Preview Scalability**: MCS direct APIs don't scale for preview; resolved by reading MCS fragments from MAS at render/preview time (AOS is only called during sync)
-2. **Asset Optimization**: MCS-hosted assets (e.g., 178KB SVG icons) are not web-optimized. Consider proxying through an image optimization layer or documenting this as a known limitation.
-
----
-
-## 11. Key Files to Create / Modify
+## 9. Key Files to Create / Modify
 
 **New files:**
 
 - `io/studio/src/mcs/pull.js` -- Sync pull action (AOS fetch + diff)
-- `io/studio/src/mcs/preview.js` -- Return stored diff
 - `io/studio/src/mcs/apply.js` -- Apply selected diffs to AEM
-- `io/studio/src/mcs/resolve.js` -- Resolve `{{mcs.*}}` placeholders for a PA code + locale
-- `io/www/src/fragment/transformers/mcs.js` -- Pipeline transformer for MCS placeholder resolution
+- `io/www/src/fragment/transformers/mcs.js` -- MCS transformer (`{ name, init, process }`) and shared `getMcsDictionary()` utility; used server-side by the pipeline and loaded directly by Studio for preview and the placeholder picker
 - `studio/src/editors/mas-mcs-editor.js` -- MCS structured editor
 - `studio/src/editors/mas-mcs-placeholder-picker.js` -- Placeholder picker dialog
-- `studio/src/mas-mcs-sync-dialog.js` -- Sync diff/preview dialog
+- `studio/src/mcs/mas-mcs-sync-wizard.js` -- Multi-step sync wizard
+- `studio/src/mcs/mcs-store.js` -- MCSStore: source of truth for all MCS state and operations
 
 **Modified files:**
 
 - `studio/src/constants.js` -- MCS surface, MCS_EDITOR page, MCS placeholder constants, tag prefixes
-- `studio/src/store.js` -- `mcs` store section
+- `studio/src/store.js` -- Register MCSStore
 - `studio/src/router.js` -- MCS editor page routing
 - `studio/src/mas-side-nav.js` -- MCS surface nav entry
-- `studio/src/mas-fragment-editor.js` -- Delegate to MCS editor when surface is mcs
-- `studio/src/editors/merch-card-editor.js` -- MCS placeholder picker button on relevant fields
+- `studio/src/mas-fragment-editor.js` -- Delegate to MCS editor when surface is mcs; add MCS picker button as single entry point
+- `studio/src/fields/mnemonic-field.js` -- Add "Inherit from MCS" checkbox; save/restore previous value
+- `studio/src/mas-mnemonic-modal.js` -- Hide `{{mcs.mnemonics}}` from display; show "Inherited from MCS" indicator
 - `io/www/src/fragment/pipeline.js` -- Add `mcs` transformer before `replace`
-- `io/www/src/fragment/transformers/replace.js` -- Ensure `PH_REGEXP` handles dotted `mcs.*` keys (currently `[\w\-\_]+` needs to include `.`)
-- `studio/libs/fragment-client.js` -- MCS placeholder resolution in preview pipeline
+- `io/www/src/fragment/transformers/replace.js` -- Extend `PH_REGEXP` to match dotted `mcs.*` keys (`[\w\-\_\.]+`)
+- `studio/libs/fragment-client.js` -- Add client-side `mcs` step to preview pipeline

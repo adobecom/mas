@@ -18,6 +18,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/aem-tag-picker-field.js';
+import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -45,8 +46,10 @@ class MerchCardEditor extends LitElement {
         "What's included": ['whatsIncluded', 'quantitySelect'],
         'Product details': ['description', 'shortDescription', 'callout'],
         Footer: ['ctas'],
-        'Options and settings': ['secureLabel', 'planType', 'addon'],
+        'Options and settings': ['addon', 'planType', 'secureLabel'],
     };
+
+    static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel'];
 
     availableSizes = [];
     availableColors = [];
@@ -248,6 +251,73 @@ class MerchCardEditor extends LitElement {
         if (!this.effectiveIsVariation) return nothing;
         if (!this.isSectionOverridden(fieldNames)) return nothing;
         return this.#renderOverrideIndicatorLink(() => this.resetSectionToParent(fieldNames));
+    }
+
+    getEffectiveSettingValue(fieldName) {
+        return this.getEffectiveFieldValue(fieldName, 0) || getGlobalSettingsDefaults()[fieldName] || '';
+    }
+
+    /**
+     * For variations: true when the variation's own value differs from its parent.
+     * For top-level fragments: true when the card has an explicit value (overriding global settings).
+     */
+    isSettingOverridden(fieldName) {
+        if (this.effectiveIsVariation) {
+            return this.getFieldState(fieldName) === 'overridden';
+        }
+        return !!this.getEffectiveFieldValue(fieldName, 0);
+    }
+
+    get isAnySettingOverridden() {
+        return MerchCardEditor.SETTINGS_FIELDS.some((fieldName) => this.isSettingOverridden(fieldName));
+    }
+
+    /**
+     * For variations: resets the field to the parent's value (inherit).
+     * For top-level fragments: clears the field so the global setting applies.
+     */
+    resetSettingToDefault(fieldName) {
+        if (this.effectiveIsVariation) {
+            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        } else {
+            this.fragmentStore.updateField(fieldName, ['']);
+        }
+        showToast('Setting restored to default', 'positive');
+    }
+
+    renderSettingOverrideIndicator(fieldName) {
+        if (!this.isSettingOverridden(fieldName)) return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetSettingToDefault(fieldName));
+    }
+
+    resetAllSettings() {
+        for (const fieldName of MerchCardEditor.SETTINGS_FIELDS) {
+            if (!this.isSettingOverridden(fieldName)) continue;
+            if (this.effectiveIsVariation) {
+                const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+                this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+            } else {
+                this.fragmentStore.updateField(fieldName, ['']);
+            }
+        }
+        showToast('Settings restored to defaults', 'positive');
+    }
+
+    get settingsRestoreAllTemplate() {
+        if (!this.isAnySettingOverridden) return nothing;
+        return html`
+            <a
+                class="restore-all-link"
+                href="javascript:void(0)"
+                @click=${(e) => {
+                    e.preventDefault();
+                    this.resetAllSettings();
+                }}
+            >
+                Restore all
+            </a>
+        `;
     }
 
     getFormWithInheritance() {
@@ -708,6 +778,27 @@ class MerchCardEditor extends LitElement {
                 #badge mas-mnemonic-field {
                     margin-right: 16px;
                 }
+
+                .section-header-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .section-header-row .section-title {
+                    margin-bottom: 0;
+                }
+
+                .restore-all-link {
+                    font-size: 13px;
+                    color: var(--spectrum-blue-700);
+                    cursor: pointer;
+                    text-decoration: none;
+                }
+
+                .restore-all-link:hover {
+                    text-decoration: underline;
+                }
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
@@ -1153,45 +1244,48 @@ class MerchCardEditor extends LitElement {
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')}
                 </sp-field-group>
-                <div class="section-title">Options and settings</div>
+                <div class="section-header-row">
+                    <div class="section-title">Options and settings</div>
+                    ${this.settingsRestoreAllTemplate}
+                </div>
                 <div class="two-column-grid">
-                    <sp-field-group id="secureLabel" class="toggle">
-                        <secure-text-field
-                            id="secure-text-field"
-                            label="Secure Transaction Label"
-                            data-field="showSecureLabel"
-                            data-field-state="${this.getFieldState('showSecureLabel')}"
-                            value="${form.showSecureLabel?.values[0]}"
-                            @change="${this.#handleFragmentUpdate}"
+                    <sp-field-group id="addon" class="toggle">
+                        <mas-addon-field
+                            id="addon-field"
+                            label="Show Addon"
+                            data-field="addon"
+                            data-field-state="${this.isSettingOverridden('addon') ? 'overridden' : 'default'}"
+                            .value="${this.getEffectiveSettingValue('addon')}"
+                            @change="${this.updateFragment}"
                         >
-                        </secure-text-field>
-                        ${this.renderFieldStatusIndicator('showSecureLabel')}
+                        </mas-addon-field>
+                        ${this.renderSettingOverrideIndicator('addon')}
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
                         <mas-plan-type-field
                             id="plan-type-field"
-                            label="Plan Type text"
+                            label="Show Plan type"
                             data-field="showPlanType"
-                            data-field-state="${this.getFieldState('showPlanType')}"
-                            value="${form.showPlanType?.values[0]}"
+                            data-field-state="${this.isSettingOverridden('showPlanType') ? 'overridden' : 'default'}"
+                            value="${this.getEffectiveSettingValue('showPlanType')}"
                             @change="${this.#handleFragmentUpdate}"
                         >
                         </mas-plan-type-field>
-                        ${this.renderFieldStatusIndicator('showPlanType')}
+                        ${this.renderSettingOverrideIndicator('showPlanType')}
+                    </sp-field-group>
+                    <sp-field-group id="secureLabel" class="toggle">
+                        <secure-text-field
+                            id="secure-text-field"
+                            label="Secure transaction"
+                            data-field="showSecureLabel"
+                            data-field-state="${this.isSettingOverridden('showSecureLabel') ? 'overridden' : 'default'}"
+                            value="${this.getEffectiveSettingValue('showSecureLabel')}"
+                            @change="${this.#handleFragmentUpdate}"
+                        >
+                        </secure-text-field>
+                        ${this.renderSettingOverrideIndicator('showSecureLabel')}
                     </sp-field-group>
                 </div>
-                <sp-field-group id="addon" class="toggle">
-                    <mas-addon-field
-                        id="addon-field"
-                        label="Addon"
-                        data-field="addon"
-                        data-field-state="${this.getFieldState('addon')}"
-                        .value="${form.addon?.values[0]}"
-                        @change="${this.updateFragment}"
-                    >
-                    </mas-addon-field>
-                    ${this.renderFieldStatusIndicator('addon')}
-                </sp-field-group>
                 <sp-field-group id="locReady">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                         <sp-field-label for="loc-ready">Send to translation?</sp-field-label>

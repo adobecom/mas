@@ -40,6 +40,7 @@ export class QuantitySelectField extends LitElement {
         title: { type: String, state: true },
         min: { type: String, state: true },
         step: { type: String, state: true },
+        layout: { type: String, reflect: true },
         disabled: { type: Boolean, reflect: true },
     };
 
@@ -48,10 +49,15 @@ export class QuantitySelectField extends LitElement {
             display: block;
         }
 
-        .grid {
+        .fields {
             display: grid;
             gap: 12px;
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        :host([layout='vertical']) .fields {
+            display: flex;
+            flex-direction: column;
         }
 
         sp-field-group {
@@ -65,6 +71,7 @@ export class QuantitySelectField extends LitElement {
         this.title = '';
         this.min = '1';
         this.step = '1';
+        this.layout = 'grid';
         this.disabled = false;
     }
 
@@ -112,11 +119,12 @@ export class QuantitySelectField extends LitElement {
 
     render() {
         return html`
-            <div class="grid">
+            <div class="fields">
                 <sp-field-group>
                     <sp-field-label>Quantity selector title</sp-field-label>
                     <sp-textfield
                         id="quantity-selector-title"
+                        size="m"
                         ?disabled=${this.disabled}
                         .value=${this.title}
                         @change=${this.#suppressNativeChange}
@@ -127,6 +135,7 @@ export class QuantitySelectField extends LitElement {
                     <sp-field-label>Start quantity</sp-field-label>
                     <sp-textfield
                         id="quantity-selector-start"
+                        size="m"
                         ?disabled=${this.disabled}
                         pattern="[0-9]*"
                         .value=${this.min}
@@ -139,6 +148,7 @@ export class QuantitySelectField extends LitElement {
                 <sp-field-label>Step</sp-field-label>
                 <sp-textfield
                     id="quantity-selector-step"
+                    size="m"
                     ?disabled=${this.disabled}
                     pattern="[0-9]*"
                     .value=${this.step}

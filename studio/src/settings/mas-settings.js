@@ -997,6 +997,7 @@ class MasSettings extends LitElement {
         if (this.valueEditorType === 'quantity-select') {
             return html`
                 <quantity-select-field
+                    layout=${this.dialog?.type === 'override' ? 'vertical' : 'grid'}
                     .value=${`${this.form.value || ''}`}
                     @change=${this.#handleQuantitySelectChange}
                 ></quantity-select-field>

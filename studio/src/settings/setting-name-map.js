@@ -8,7 +8,7 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'secureLabel', valueType: 'optional-text', editor: 'text' },
     { name: 'displayAnnual', valueType: 'boolean' },
     { name: 'displayPlanType', valueType: 'boolean' },
-    { name: 'quantitySelect', valueType: 'text', editor: 'quantity-select' },
+    { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
 ];
 
 const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));

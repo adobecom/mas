@@ -542,7 +542,7 @@
 
                             const overrideDialog = settingsPage.shadowRoot.querySelector('sp-dialog.override-dialog');
                             expect(overrideDialog).to.exist;
-                            expect(overrideDialog.textContent.includes('Enabled')).to.equal(false);
+                            expect(overrideDialog.textContent.includes('Enabled')).to.equal(true);
 
                             settingsPage.form = {
                                 ...settingsPage.form,
@@ -562,11 +562,51 @@
 
                             expect(capturedCalls.length).to.equal(1);
                             expect(capturedCalls[0].rowId).to.equal('setting-quantity-select');
-                            expect(capturedCalls[0].payload.valueType).to.equal('text');
+                            expect(capturedCalls[0].payload.valueType).to.equal('optional-text');
                             expect(capturedCalls[0].payload.value).to.equal(
                                 '<merch-quantity-select title="Qty" min="2" step="2"></merch-quantity-select>',
                             );
                             Store.settings.addOverride = originalAddOverride;
+                        });
+
+                        it('renders quantity select override editor with compact stacked inputs', async () => {
+                            const references = [
+                                createSettingReference({
+                                    id: 'setting-quantity-select',
+                                    title: 'Quantity Select',
+                                    name: 'quantitySelect',
+                                    label: 'Quantity Select',
+                                    status: 'DRAFT',
+                                    templates: ['catalog'],
+                                    locales: [],
+                                    valueType: 'text',
+                                    value: '<merch-quantity-select title="Qty" min="1" step="1"></merch-quantity-select>',
+                                }),
+                            ];
+                            const { settingsPage, table } = await setupPage({ references, expectedRows: 1 });
+
+                            table.dispatchEvent(
+                                new CustomEvent('setting-add-override', {
+                                    detail: { id: 'setting-quantity-select' },
+                                    bubbles: true,
+                                    composed: true,
+                                }),
+                            );
+                            await waitForUpdates(settingsPage, 2);
+
+                            const quantitySelect = settingsPage.shadowRoot.querySelector(
+                                'sp-dialog.override-dialog quantity-select-field',
+                            );
+                            expect(quantitySelect).to.exist;
+                            expect(quantitySelect.getAttribute('layout')).to.equal('vertical');
+
+                            const fields = quantitySelect.shadowRoot.querySelector('.fields');
+                            const computedFields = getComputedStyle(fields);
+                            expect(computedFields.display).to.equal('flex');
+                            expect(computedFields.flexDirection).to.equal('column');
+
+                            const textfields = [...quantitySelect.shadowRoot.querySelectorAll('sp-textfield')];
+                            expect(textfields.map((field) => field.getAttribute('size'))).to.deep.equal(['m', 'm', 'm']);
                         });
                     });
 
@@ -778,7 +818,7 @@
                                 description: 'Quantity selector setting',
                                 templateIds: ['catalog'],
                                 tags: [],
-                                valueType: 'text',
+                                valueType: 'optional-text',
                                 value: '<merch-quantity-select title="Qty" min="2" max="10" step="2"></merch-quantity-select>',
                                 booleanValue: true,
                             });

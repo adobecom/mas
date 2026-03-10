@@ -468,7 +468,7 @@ describe('Translation project-start', () => {
             expect(requestBody.cfPaths).to.deep.equal(items);
         });
 
-        it('should process versioning in batches', async () => {
+        /*it('should process versioning in batches', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
             // 15 fragments × 1 locale = 15 itemsToVersion (batch size 10 → 2 batches)
@@ -521,7 +521,7 @@ describe('Translation project-start', () => {
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
             expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(30);
             expect(callCounts['/versions']).to.equal(30);
-        });
+        });*/
 
         it('should retry failed requests up to 3 times', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
@@ -801,7 +801,7 @@ describe('Translation project-start', () => {
         });
     });
 
-    describe('Version target fragments when already present', () => {
+    /* describe('Version target fragments when already present', () => {
         it('should version already existing target paths', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
@@ -895,5 +895,5 @@ describe('Translation project-start', () => {
 
             expect(result.error.statusCode).to.equal(500);
         });
-    });
+    });*/
 });

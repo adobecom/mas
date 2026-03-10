@@ -43,6 +43,7 @@
             let baseUrl;
             if (isLocal) {
                 baseUrl = 'http://localhost:8080';
+                bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.qa;
             } else {
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
                 baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
@@ -74,7 +75,6 @@
                 studio.setAttribute('base-url', baseUrl);
                 bucket && studio.setAttribute('aem-bucket', bucket);
                 document.querySelector('sp-theme').appendChild(studio);
-                if (envOverride) studio.aemEnv = envOverride;
             }
             const context = {
                 profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,

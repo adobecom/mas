@@ -43,9 +43,10 @@
 
             import '../../src/swc.js';
             import '../../src/editors/compare-chart-editor.js';
+            import router from '../../src/router.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
-            import { COMPARE_CHART_MODEL_PATH } from '../../src/constants.js';
+            import { CARD_MODEL_ID, CARD_MODEL_PATH, COMPARE_CHART_MODEL_PATH } from '../../src/constants.js';
 
             function createMockChartFragment() {
                 return {
@@ -216,6 +217,15 @@
                     let editor;
                     let repository;
                     let createCounter = 0;
+                    let searchCalls = [];
+                    let getByIdCalls = [];
+                    let getByPathCalls = [];
+                    let navigateCalls = [];
+                    let openCalls = [];
+                    let getByIdMap = {};
+                    let getByPathMap = {};
+                    const originalNavigateToFragmentEditor = router.navigateToFragmentEditor;
+                    const originalWindowOpen = window.open;
 
                     async function selectCell(sectionIndex, rowIndex, cellIndex) {
                         const preview = editor.querySelector('compare-chart-preview');
@@ -230,10 +240,114 @@
                         await editor.updateComplete;
                     }
 
+                    async function selectColumn(columnIndex) {
+                        const preview = editor.querySelector('compare-chart-preview');
+                        preview.dispatchEvent(
+                            new CustomEvent('column-click', {
+                                detail: { columnIndex },
+                                bubbles: true,
+                                composed: true,
+                            }),
+                        );
+                        await delay(30);
+                        await editor.updateComplete;
+                    }
+
+                    function createCard({
+                        id,
+                        path,
+                        title = 'Card',
+                        cardTitle = 'Card title',
+                        variant = 'plans',
+                        fieldNames = ['cardTitle', 'prices', 'description', 'ctas', 'mnemonicIcon'],
+                    }) {
+                        return {
+                            id,
+                            path,
+                            title,
+                            status: 'DRAFT',
+                            model: {
+                                id: CARD_MODEL_ID,
+                                path: CARD_MODEL_PATH,
+                            },
+                            fields: [
+                                { name: 'cardTitle', type: 'text', values: [cardTitle] },
+                                { name: 'variant', type: 'text', values: [variant] },
+                                ...fieldNames
+                                    .filter((name) => !['cardTitle', 'variant'].includes(name))
+                                    .map((name) => ({ name, type: 'text', values: ['x'] })),
+                            ],
+                        };
+                    }
+
                     beforeEach(async () => {
                         document.querySelector('compare-chart-editor')?.remove();
                         document.querySelector('mas-repository')?.remove();
                         createCounter = 0;
+                        searchCalls = [];
+                        getByIdCalls = [];
+                        getByPathCalls = [];
+                        navigateCalls = [];
+                        openCalls = [];
+                        localStorage.clear();
+
+                        getByIdMap = {
+                            'search-card-1': createCard({
+                                id: 'search-card-1',
+                                path: '/content/dam/mas/sandbox/en_US/search-card-1',
+                                title: 'Search Card One',
+                                cardTitle: 'Search Card One',
+                            }),
+                            'search-card-limited': createCard({
+                                id: 'search-card-limited',
+                                path: '/content/dam/mas/sandbox/en_US/search-card-limited',
+                                title: 'Limited Search Card',
+                                cardTitle: 'Limited Search Card',
+                                fieldNames: ['cardTitle'],
+                            }),
+                            'valid-manual-card': createCard({
+                                id: 'valid-manual-card',
+                                path: '/content/dam/mas/sandbox/en_US/valid-manual-card',
+                                title: 'Valid Manual Card',
+                                cardTitle: 'Valid Manual Card',
+                            }),
+                            'out-of-scope-card': createCard({
+                                id: 'out-of-scope-card',
+                                path: '/content/dam/mas/acom/en_US/out-of-scope-card',
+                                title: 'Out of Scope Card',
+                                cardTitle: 'Out of Scope Card',
+                            }),
+                            'non-card-fragment': {
+                                id: 'non-card-fragment',
+                                path: '/content/dam/mas/sandbox/en_US/non-card-fragment',
+                                title: 'Collection Fragment',
+                                model: {
+                                    id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+                                    path: '/conf/mas/settings/dam/cfm/models/collection',
+                                },
+                                fields: [{ name: 'label', type: 'text', values: ['Collection'] }],
+                            },
+                            'recent-card': createCard({
+                                id: 'recent-card',
+                                path: '/content/dam/mas/sandbox/en_US/recent-card',
+                                title: 'Recent Card',
+                                cardTitle: 'Recent Card',
+                            }),
+                        };
+                        getByPathMap = Object.values(getByIdMap).reduce((acc, value) => {
+                            if (value?.path) {
+                                acc[value.path] = value;
+                            }
+                            return acc;
+                        }, {});
+
+                        router.navigateToFragmentEditor = async (fragmentId) => {
+                            navigateCalls.push(fragmentId);
+                        };
+                        window.open = (url, target, features) => {
+                            openCalls.push({ url, target, features });
+                            return {};
+                        };
 
                         repository = document.createElement('mas-repository');
                         repository.createFragment = async (payload) => {
@@ -251,11 +365,22 @@
                                 cf: {
                                     fragments: {
                                         save: async (fragment) => fragment,
-                                        getByPath: async () => null,
-                                        getById: async () => null,
+                                        getByPath: async (path) => {
+                                            getByPathCalls.push(path);
+                                            return getByPathMap[path] || null;
+                                        },
+                                        getById: async (id) => {
+                                            getByIdCalls.push(id);
+                                            return getByIdMap[id] || null;
+                                        },
                                     },
                                 },
                             },
+                        };
+                        repository.searchFragmentList = async (options) => {
+                            searchCalls.push(options);
+                            if (!options?.query) return [];
+                            return [new Fragment(getByIdMap['search-card-1'])];
                         };
                         repository.refreshFragment = async () => {};
                         document.querySelector('main').appendChild(repository);
@@ -271,6 +396,8 @@
                     });
 
                     afterEach(() => {
+                        router.navigateToFragmentEditor = originalNavigateToFragmentEditor;
+                        window.open = originalWindowOpen;
                         editor?.remove();
                         repository?.remove();
                     });
@@ -346,6 +473,239 @@
 
                         const textfield = editor.querySelector('#cell-text-value');
                         expect(textfield).to.exist;
+                    });
+
+                    it('searches cards using scoped path and card model filter', async () => {
+                        await selectColumn(0);
+
+                        const browseButton = editor.querySelector('#browse-cards-btn');
+                        browseButton.click();
+                        await delay(30);
+                        await editor.updateComplete;
+
+                        const search = editor.querySelector('#card-picker-search');
+                        search.value = 'search card';
+                        search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+
+                        await delay(350);
+                        await editor.updateComplete;
+
+                        expect(searchCalls.length).to.be.greaterThan(0);
+                        expect(searchCalls[0].path).to.equal('/content/dam/mas/sandbox/en_US');
+                        expect(searchCalls[0].modelIds).to.deep.equal([CARD_MODEL_ID]);
+                    });
+
+                    it('assigns card from picker result', async () => {
+                        await selectColumn(0);
+                        await delay(40);
+                        await editor.updateComplete;
+                        const initialPreviewFragment = editor.querySelector('#column-preview-card aem-fragment');
+
+                        const browseButton = editor.querySelector('#browse-cards-btn');
+                        browseButton.click();
+                        await delay(20);
+                        await editor.updateComplete;
+
+                        const search = editor.querySelector('#card-picker-search');
+                        search.value = 'search';
+                        search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+
+                        await delay(350);
+                        await editor.updateComplete;
+
+                        const result = editor.querySelector('.card-picker-item');
+                        expect(result).to.exist;
+                        result.click();
+
+                        await delay(80);
+                        await editor.updateComplete;
+
+                        expect(editor.columns[0].cardFragment.id).to.equal('search-card-1');
+                        const colRef = editor.fragment.references.find((ref) => ref.path === '/content/dam/mas/sandbox/en_US/col-1');
+                        const fragmentField = colRef.fields.find((field) => field.name === 'fragment');
+                        expect(fragmentField.values[0]).to.equal('/content/dam/mas/sandbox/en_US/search-card-1');
+
+                        const updatedPreviewFragment = editor.querySelector('#column-preview-card aem-fragment');
+                        expect(updatedPreviewFragment).to.exist;
+                        expect(updatedPreviewFragment).to.not.equal(initialPreviewFragment);
+                        expect(updatedPreviewFragment.getAttribute('fragment')).to.equal('search-card-1');
+                    });
+
+                    it('manual paste assigns an in-scope valid card', async () => {
+                        await selectColumn(0);
+
+                        const input = editor.querySelector('#col-card-id');
+                        input.value = 'valid-manual-card';
+                        input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await delay(80);
+                        await editor.updateComplete;
+
+                        expect(editor.columns[0].cardFragment.id).to.equal('valid-manual-card');
+                    });
+
+                    it('blocks manual paste for out-of-scope cards', async () => {
+                        await selectColumn(0);
+
+                        const beforePath = editor.columns[0].cardFragment.path;
+                        const input = editor.querySelector('#col-card-id');
+                        input.value = 'out-of-scope-card';
+                        input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await delay(80);
+                        await editor.updateComplete;
+
+                        expect(editor.columns[0].cardFragment.path).to.equal(beforePath);
+                    });
+
+                    it('blocks manual paste for non-card fragments', async () => {
+                        await selectColumn(0);
+
+                        const beforePath = editor.columns[0].cardFragment.path;
+                        const input = editor.querySelector('#col-card-id');
+                        input.value = 'non-card-fragment';
+                        input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await delay(80);
+                        await editor.updateComplete;
+
+                        expect(editor.columns[0].cardFragment.path).to.equal(beforePath);
+                    });
+
+                    it('auto-unchecks incompatible column fields after card change', async () => {
+                        repository.searchFragmentList = async (options) => {
+                            searchCalls.push(options);
+                            return [new Fragment(getByIdMap['search-card-limited'])];
+                        };
+
+                        await selectColumn(0);
+
+                        const fieldCheckboxes = [...editor.querySelectorAll('.field-list sp-checkbox')];
+                        const descriptionCheckbox = fieldCheckboxes.find((checkbox) => checkbox.textContent.includes('description'));
+                        descriptionCheckbox.checked = true;
+                        descriptionCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await delay(40);
+                        await editor.updateComplete;
+
+                        const browseButton = editor.querySelector('#browse-cards-btn');
+                        browseButton.click();
+                        await delay(20);
+                        await editor.updateComplete;
+
+                        const search = editor.querySelector('#card-picker-search');
+                        search.value = 'limited';
+                        search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await delay(350);
+                        await editor.updateComplete;
+
+                        editor.querySelector('.card-picker-item').click();
+                        await delay(90);
+                        await editor.updateComplete;
+
+                        const updatedColRef = editor.fragment.references.find((ref) => ref.path === '/content/dam/mas/sandbox/en_US/col-1');
+                        const fields = updatedColRef.fields.find((field) => field.name === 'fields').values;
+                        expect(fields).to.deep.equal(['cardTitle']);
+                    });
+
+                    it('stores and displays recent cards when picker opens with empty query', async () => {
+                        await selectColumn(0);
+
+                        const input = editor.querySelector('#col-card-id');
+                        input.value = 'recent-card';
+                        input.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await delay(80);
+                        await editor.updateComplete;
+
+                        expect(localStorage.getItem('compare-chart-card-recents:sandbox:en_US')).to.contain('recent-card');
+
+                        const browseButton = editor.querySelector('#browse-cards-btn');
+                        browseButton.click();
+                        await delay(60);
+                        await editor.updateComplete;
+
+                        const popover = editor.querySelector('#card-picker-popover');
+                        expect(popover.textContent).to.contain('Recent Card');
+                    });
+
+                    it('renders column panel with two-column layout and open preview details', async () => {
+                        await selectColumn(0);
+                        await delay(30);
+                        await editor.updateComplete;
+
+                        const layout = editor.querySelector('#column-panel-layout');
+                        const previewDetails = editor.querySelector('#column-preview-details');
+                        const previewFragment = editor.querySelector('#column-preview-card aem-fragment');
+                        const fieldsBlock = editor.querySelector('#column-fields-block');
+
+                        expect(layout).to.exist;
+                        expect(previewDetails).to.exist;
+                        expect(previewDetails.open).to.equal(true);
+                        expect(previewFragment).to.exist;
+                        expect(previewFragment.getAttribute('loading')).to.equal('eager');
+                        expect(fieldsBlock).to.exist;
+                    });
+
+                    it('resolves preview and open-card target using canonical ID from selected card path', async () => {
+                        getByPathMap['/content/dam/mas/sandbox/en_US/stale-card-path'] = createCard({
+                            id: 'resolved-card-id',
+                            path: '/content/dam/mas/sandbox/en_US/stale-card-path',
+                            title: 'Resolved Card',
+                            cardTitle: 'Resolved Card',
+                        });
+                        editor.columns[0].cardFragment = {
+                            id: 'stale-card-id',
+                            path: '/content/dam/mas/sandbox/en_US/stale-card-path',
+                            title: 'Resolved Card',
+                        };
+
+                        await selectColumn(0);
+                        await delay(60);
+                        await editor.updateComplete;
+
+                        const previewFragment = editor.querySelector('#column-preview-card aem-fragment');
+                        expect(previewFragment).to.exist;
+                        expect(previewFragment.getAttribute('fragment')).to.equal('resolved-card-id');
+                        expect(getByPathCalls).to.include('/content/dam/mas/sandbox/en_US/stale-card-path');
+
+                        const openCardButton = editor.querySelector('#open-card-btn');
+                        openCardButton.click();
+                        await delay(30);
+
+                        expect(openCalls.length).to.equal(1);
+                        const openedUrl = new URL(openCalls[0].url, window.location.origin);
+                        const hashParams = new URLSearchParams(openedUrl.hash.slice(1));
+                        expect(hashParams.get('fragmentId')).to.equal('resolved-card-id');
+                    });
+
+                    it('opens selected card in a new tab using current studio host', async () => {
+                        await selectColumn(0);
+
+                        const openCardButton = editor.querySelector('#open-card-btn');
+                        openCardButton.click();
+
+                        await delay(30);
+                        expect(openCalls.length).to.equal(1);
+                        expect(openCalls[0].target).to.equal('_blank');
+                        expect(openCalls[0].features).to.equal('noopener,noreferrer');
+                        const openedUrl = new URL(openCalls[0].url, window.location.origin);
+                        const hashParams = new URLSearchParams(openedUrl.hash.slice(1));
+                        expect(hashParams.get('page')).to.equal('fragment-editor');
+                        expect(hashParams.get('fragmentId')).to.equal('card-1');
+                        expect(hashParams.has('query')).to.equal(false);
+                        expect(navigateCalls.length).to.equal(0);
+                    });
+
+                    it('falls back to same-tab navigation if opening new tab is blocked', async () => {
+                        window.open = () => null;
+                        await selectColumn(0);
+
+                        const openCardButton = editor.querySelector('#open-card-btn');
+                        openCardButton.click();
+
+                        await delay(30);
+                        expect(navigateCalls).to.include('card-1');
                     });
 
                     it('renders false values as cross in the preview', async () => {

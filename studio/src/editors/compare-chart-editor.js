@@ -1,8 +1,12 @@
 import { LitElement, html, nothing } from 'lit';
+import { keyed } from 'lit/directives/keyed.js';
 import { Fragment } from '../aem/fragment.js';
 import './compare-chart-preview.js';
-import { showToast } from '../utils.js';
+import router from '../router.js';
+import { showToast, extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
 import {
+    CARD_MODEL_ID,
+    CARD_MODEL_PATH,
     COMPARE_FRAGMENT_MODEL_PATH,
     COMPARE_FRAGMENT_MODEL_ID,
     COMPARE_SECTION_MODEL_PATH,
@@ -21,6 +25,11 @@ const PANEL_CELL = 'cell';
 const CELL_TYPE_EMPTY = 'empty';
 const CELL_TYPE_BOOLEAN = 'boolean';
 const CELL_TYPE_TEXT = 'text';
+const CARD_PICKER_DEBOUNCE_MS = 250;
+const CARD_PICKER_RESULTS_LIMIT = 20;
+const CARD_RECENTS_MAX = 8;
+const CARD_PREVIEW_TIMEOUT_MS = 12000;
+const COLUMN_FIELD_OPTIONS = ['mnemonicIcon', 'cardTitle', 'prices', 'description', 'ctas'];
 
 class CompareChartEditor extends LitElement {
     static properties = {
@@ -37,6 +46,18 @@ class CompareChartEditor extends LitElement {
         columns: { type: Array, state: true },
         sections: { type: Array, state: true },
         busy: { type: Boolean, state: true },
+        cardPickerOpen: { type: Boolean, state: true },
+        cardPickerQuery: { type: String, state: true },
+        cardPickerResults: { type: Array, state: true },
+        cardPickerRecents: { type: Array, state: true },
+        cardPickerLoading: { type: Boolean, state: true },
+        cardPickerError: { type: String, state: true },
+        cardPickerColumnPath: { type: String, state: true },
+        columnPreviewOpen: { type: Boolean, state: true },
+        columnPreviewStatus: { type: String, state: true },
+        columnPreviewError: { type: String, state: true },
+        columnPreviewCardId: { type: String, state: true },
+        columnPreviewResolvedCardId: { type: String, state: true },
     };
 
     createRenderRoot() {
@@ -45,6 +66,10 @@ class CompareChartEditor extends LitElement {
 
     // Local cache for deep references (rows, values) that direct-hydrated doesn't return
     #localRefs = new Map();
+    #resolvedCardIdsByPath = new Map();
+    #cardPickerSearchTimer;
+    #cardSearchRequestId = 0;
+    #previewHydrationRequestId = 0;
 
     constructor() {
         super();
@@ -57,6 +82,18 @@ class CompareChartEditor extends LitElement {
         this.columns = [];
         this.sections = [];
         this.busy = false;
+        this.cardPickerOpen = false;
+        this.cardPickerQuery = '';
+        this.cardPickerResults = [];
+        this.cardPickerRecents = [];
+        this.cardPickerLoading = false;
+        this.cardPickerError = '';
+        this.cardPickerColumnPath = '';
+        this.columnPreviewOpen = true;
+        this.columnPreviewStatus = 'idle';
+        this.columnPreviewError = '';
+        this.columnPreviewCardId = '';
+        this.columnPreviewResolvedCardId = '';
     }
 
     get fragment() {
@@ -79,11 +116,27 @@ class CompareChartEditor extends LitElement {
         }
     }
 
+    disconnectedCallback() {
+        clearTimeout(this.#cardPickerSearchTimer);
+        super.disconnectedCallback();
+    }
+
     update(changedProperties) {
         if (changedProperties.has('fragmentStore')) {
             this.#buildData();
         }
         super.update(changedProperties);
+    }
+
+    updated(changedProperties) {
+        if (
+            changedProperties.has('columns') ||
+            changedProperties.has('selectedColumnIndex') ||
+            changedProperties.has('panelMode') ||
+            changedProperties.has('columnPreviewOpen')
+        ) {
+            this.#syncColumnPreviewHydration();
+        }
     }
 
     // --- Field helpers ---
@@ -337,7 +390,7 @@ class CompareChartEditor extends LitElement {
                 fields: this.#getRefFieldValues(colFragment, 'fields'),
                 path,
                 fragment: colFragment,
-                cardFragment: cardFragment ? { path: cardFragment.path, title: cardFragment.title, id: cardFragment.id } : null,
+                cardFragment: cardFragment ? { path: cardFragment.path, title: cardTitle, id: cardFragment.id } : null,
             });
         }
 
@@ -669,6 +722,10 @@ class CompareChartEditor extends LitElement {
 
     #onColumnClick(e) {
         const { columnIndex } = e.detail;
+        if (this.selectedColumnIndex !== columnIndex) {
+            this.#closeCardPicker();
+        }
+        this.columnPreviewOpen = true;
         this.panelMode = PANEL_COLUMN;
         this.selectedColumnIndex = columnIndex;
         this.selectedSectionIndex = -1;
@@ -679,6 +736,7 @@ class CompareChartEditor extends LitElement {
 
     #onSectionClick(e) {
         const { sectionIndex } = e.detail;
+        this.#closeCardPicker();
         this.panelMode = PANEL_SECTION;
         this.selectedSectionIndex = sectionIndex;
         this.selectedColumnIndex = -1;
@@ -689,6 +747,7 @@ class CompareChartEditor extends LitElement {
 
     #onRowClick(e) {
         const { sectionIndex, rowIndex } = e.detail;
+        this.#closeCardPicker();
         this.panelMode = PANEL_ROW;
         this.selectedSectionIndex = sectionIndex;
         this.selectedRowIndex = rowIndex;
@@ -699,6 +758,7 @@ class CompareChartEditor extends LitElement {
 
     #onCellClick(e) {
         const { sectionIndex, rowIndex, cellIndex } = e.detail;
+        this.#closeCardPicker();
         this.panelMode = PANEL_CELL;
         this.selectedSectionIndex = sectionIndex;
         this.selectedRowIndex = rowIndex;
@@ -716,18 +776,425 @@ class CompareChartEditor extends LitElement {
 
     // --- Card reference resolution ---
 
+    #getEditorScope() {
+        const fragmentPath = this.fragment?.path;
+        const surface = extractSurfaceFromPath(fragmentPath);
+        const locale = extractLocaleFromPath(fragmentPath);
+        return {
+            surface,
+            locale,
+            path: surface && locale ? `/content/dam/mas/${surface}/${locale}` : '',
+        };
+    }
+
+    #isPathInEditorScope(path) {
+        const { surface, locale } = this.#getEditorScope();
+        if (!surface || !locale) return false;
+        return extractSurfaceFromPath(path) === surface && extractLocaleFromPath(path) === locale;
+    }
+
+    #isCardModel(fragmentData) {
+        if (!fragmentData?.model) return false;
+        return fragmentData.model.path === CARD_MODEL_PATH || fragmentData.model.id === CARD_MODEL_ID;
+    }
+
+    #readFieldValue(fragmentData, fieldName) {
+        if (typeof fragmentData?.getFieldValue === 'function') {
+            return fragmentData.getFieldValue(fieldName) || '';
+        }
+        return fragmentData?.fields?.find((field) => field.name === fieldName)?.values?.[0] || '';
+    }
+
+    #toCardSummary(fragmentData) {
+        const title =
+            this.#readFieldValue(fragmentData, 'cardTitle') || fragmentData?.title || fragmentData?.name || 'Untitled card';
+        return {
+            id: fragmentData?.id,
+            path: fragmentData?.path,
+            title,
+            variant: this.#readFieldValue(fragmentData, 'variant'),
+            status: fragmentData?.status || '',
+            fields: fragmentData?.fields || [],
+            model: fragmentData?.model,
+        };
+    }
+
+    async #primeAemFragmentCache(fragmentData, aliasId = '') {
+        if (!fragmentData?.id) return;
+        try {
+            await customElements.whenDefined('aem-fragment');
+            const cache = document.createElement('aem-fragment').cache;
+            const cacheData = structuredClone(fragmentData);
+
+            // aem-fragment cache supports alias lookup through fields.originalId.
+            cacheData.fields ??= [];
+            if (aliasId && aliasId !== cacheData.id) {
+                cacheData.fields.originalId = aliasId;
+            }
+
+            cache.add(cacheData);
+        } catch {
+            // Ignore cache priming failures; preview will fall back to network.
+        }
+    }
+
+    async #resolveCardIdByPath(path, fallbackId = '') {
+        if (!path) return fallbackId || '';
+        const cachedId = this.#resolvedCardIdsByPath.get(path);
+        if (cachedId) return cachedId;
+
+        try {
+            const cardData = await this.repository.aem.sites.cf.fragments.getByPath(path);
+            if (!cardData?.id) return fallbackId || '';
+            this.#localRefs.set(cardData.path, cardData);
+            this.#resolvedCardIdsByPath.set(path, cardData.id);
+
+            // Keep in-memory references aligned with canonical ID so subsequent panel renders stay consistent.
+            const existingRef = this.fragment?.references?.find((ref) => ref.path === path);
+            if (existingRef) {
+                existingRef.id = cardData.id;
+            }
+            const cachedRef = this.#localRefs.get(path);
+            if (cachedRef) {
+                cachedRef.id = cardData.id;
+            }
+
+            await this.#primeAemFragmentCache(cardData, fallbackId);
+            return cardData.id;
+        } catch {
+            return fallbackId || '';
+        }
+    }
+
+    #validateCardCandidate(cardData) {
+        if (!cardData?.id || !cardData?.path) {
+            return { valid: false, message: 'Card fragment not found.' };
+        }
+        if (!this.#isCardModel(cardData)) {
+            return { valid: false, message: 'Only card fragments can be assigned to compare chart columns.' };
+        }
+        if (!this.#isPathInEditorScope(cardData.path)) {
+            return { valid: false, message: 'Card is outside the current surface/locale scope and cannot be assigned.' };
+        }
+        return { valid: true };
+    }
+
+    #getCardRecentsStorageKey() {
+        const { surface, locale } = this.#getEditorScope();
+        if (!surface || !locale) return '';
+        return `compare-chart-card-recents:${surface}:${locale}`;
+    }
+
+    #readRecentCardIds() {
+        const key = this.#getCardRecentsStorageKey();
+        if (!key) return [];
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+        } catch {
+            return [];
+        }
+    }
+
+    #writeRecentCardIds(ids) {
+        const key = this.#getCardRecentsStorageKey();
+        if (!key) return;
+        try {
+            localStorage.setItem(key, JSON.stringify(ids));
+        } catch {
+            // Ignore storage errors in authoring UI.
+        }
+    }
+
+    #pushRecentCardId(cardId) {
+        if (!cardId) return;
+        const deduped = [cardId, ...this.#readRecentCardIds().filter((id) => id !== cardId)].slice(0, CARD_RECENTS_MAX);
+        this.#writeRecentCardIds(deduped);
+    }
+
+    async #loadCardRecents() {
+        const recentIds = this.#readRecentCardIds();
+        if (!recentIds.length) {
+            this.cardPickerRecents = [];
+            return;
+        }
+        const resolved = await Promise.all(
+            recentIds.map(async (id) => {
+                try {
+                    const cardData = await this.repository.aem.sites.cf.fragments.getById(id);
+                    const validation = this.#validateCardCandidate(cardData);
+                    if (!validation.valid) return null;
+                    this.#localRefs.set(cardData.path, cardData);
+                    return this.#toCardSummary(cardData);
+                } catch {
+                    return null;
+                }
+            }),
+        );
+        const valid = resolved.filter(Boolean);
+        if (valid.length !== recentIds.length) {
+            this.#writeRecentCardIds(valid.map((item) => item.id));
+        }
+        this.cardPickerRecents = valid;
+    }
+
+    async #searchCards(query) {
+        const requestId = ++this.#cardSearchRequestId;
+        const trimmed = query.trim();
+        if (!trimmed) {
+            this.cardPickerResults = [];
+            this.cardPickerLoading = false;
+            this.cardPickerError = '';
+            await this.#loadCardRecents();
+            return;
+        }
+
+        const { path } = this.#getEditorScope();
+        if (!path) {
+            this.cardPickerError = 'Unable to determine compare chart scope for card lookup.';
+            this.cardPickerLoading = false;
+            this.cardPickerResults = [];
+            return;
+        }
+
+        this.cardPickerLoading = true;
+        this.cardPickerError = '';
+        try {
+            const fragments = await this.repository.searchFragmentList(
+                {
+                    path,
+                    query: trimmed,
+                    modelIds: [CARD_MODEL_ID],
+                },
+                CARD_PICKER_RESULTS_LIMIT,
+            );
+            if (requestId !== this.#cardSearchRequestId) return;
+            this.cardPickerResults = fragments
+                .map((fragment) => this.#toCardSummary(fragment))
+                .filter((item) => item.id && item.path && this.#isPathInEditorScope(item.path));
+        } catch (e) {
+            if (requestId !== this.#cardSearchRequestId) return;
+            this.cardPickerError = `Card search failed: ${e.message}`;
+            this.cardPickerResults = [];
+        } finally {
+            if (requestId === this.#cardSearchRequestId) {
+                this.cardPickerLoading = false;
+            }
+        }
+    }
+
+    #queueCardSearch(query) {
+        this.cardPickerQuery = query;
+        clearTimeout(this.#cardPickerSearchTimer);
+        this.#cardPickerSearchTimer = setTimeout(() => {
+            this.#searchCards(query);
+        }, CARD_PICKER_DEBOUNCE_MS);
+    }
+
+    async #openCardPicker(columnPath) {
+        this.cardPickerOpen = true;
+        this.cardPickerColumnPath = columnPath;
+        this.cardPickerError = '';
+        this.cardPickerResults = [];
+        this.cardPickerQuery = '';
+        await this.#loadCardRecents();
+    }
+
+    #closeCardPicker() {
+        this.cardPickerOpen = false;
+        this.cardPickerColumnPath = '';
+        this.cardPickerLoading = false;
+        this.cardPickerError = '';
+        this.cardPickerResults = [];
+        this.cardPickerQuery = '';
+        clearTimeout(this.#cardPickerSearchTimer);
+    }
+
+    #onCardPickerInput(e) {
+        this.#queueCardSearch(e.target.value || '');
+    }
+
+    async #assignCardReference(colFragment, cardData) {
+        if (!cardData?.id) {
+            showToast('Card fragment not found.', 'negative');
+            return false;
+        }
+
+        let resolvedCard = cardData;
+        try {
+            const latestCard = await this.repository.aem.sites.cf.fragments.getById(cardData.id);
+            if (latestCard) {
+                resolvedCard = latestCard;
+            }
+        } catch {
+            showToast('Failed to resolve card fragment ID.', 'negative');
+            return false;
+        }
+
+        const validation = this.#validateCardCandidate(resolvedCard);
+        if (!validation.valid) {
+            showToast(validation.message, 'negative');
+            return false;
+        }
+
+        this.#localRefs.set(resolvedCard.path, resolvedCard);
+        this.#resolvedCardIdsByPath.set(resolvedCard.path, resolvedCard.id);
+        const selectedFields = [...this.#getRefFieldValues(colFragment, 'fields')];
+        await this.#saveChildField(colFragment, 'fragment', [resolvedCard.path]);
+
+        const availableFields = new Set((resolvedCard.fields || []).map((field) => field.name));
+        const missingFields = selectedFields.filter((fieldName) => !availableFields.has(fieldName));
+        if (missingFields.length) {
+            const compatibleFields = selectedFields.filter((fieldName) => availableFields.has(fieldName));
+            await this.#saveChildField(colFragment, 'fields', compatibleFields);
+            showToast(`Removed unavailable column fields: ${missingFields.join(', ')}`, 'info');
+        }
+
+        this.columnPreviewOpen = true;
+        this.#pushRecentCardId(resolvedCard.id);
+        await this.#loadCardRecents();
+        return true;
+    }
+
     async #setCardReference(colFragment, fragmentId) {
         if (!fragmentId?.trim()) return;
         try {
             const cardData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
-            if (!cardData?.path) {
-                showToast('Card fragment not found', 'negative');
-                return;
-            }
-            this.#localRefs.set(cardData.path, cardData);
-            await this.#saveChildField(colFragment, 'fragment', [cardData.path]);
+            await this.#assignCardReference(colFragment, cardData);
         } catch {
-            showToast('Failed to resolve card fragment ID', 'negative');
+            showToast('Failed to resolve card fragment ID.', 'negative');
+        }
+    }
+
+    async #selectCardFromPicker(colFragment, cardSummary) {
+        const assigned = await this.#assignCardReference(colFragment, cardSummary);
+        if (assigned) {
+            this.#closeCardPicker();
+            this.columnPreviewOpen = true;
+            showToast('Card assigned to column.', 'positive');
+        }
+    }
+
+    #onColumnPreviewToggle(e) {
+        this.columnPreviewOpen = e.currentTarget.open;
+    }
+
+    #getSelectedColumnCardReference() {
+        if (this.panelMode !== PANEL_COLUMN || this.selectedColumnIndex < 0) {
+            return { id: '', path: '' };
+        }
+        const cardFragment = this.columns[this.selectedColumnIndex]?.cardFragment;
+        return {
+            id: cardFragment?.id || '',
+            path: cardFragment?.path || '',
+        };
+    }
+
+    async #syncColumnPreviewHydration() {
+        const selected = this.#getSelectedColumnCardReference();
+        const cardPath = selected?.path || '';
+        const fallbackCardId = selected?.id || '';
+        const cardKey = `${cardPath}:${fallbackCardId}`;
+        if (!this.columnPreviewOpen) return;
+
+        if (!cardPath && !fallbackCardId) {
+            this.columnPreviewStatus = 'empty';
+            this.columnPreviewError = '';
+            this.columnPreviewCardId = '';
+            this.columnPreviewResolvedCardId = '';
+            return;
+        }
+
+        if (this.columnPreviewCardId === cardKey && this.columnPreviewStatus === 'ready') {
+            return;
+        }
+
+        this.columnPreviewStatus = 'loading';
+        this.columnPreviewError = '';
+        this.columnPreviewCardId = cardKey;
+        this.columnPreviewResolvedCardId = '';
+
+        const requestId = ++this.#previewHydrationRequestId;
+        const resolvedCardId = await this.#resolveCardIdByPath(cardPath, fallbackCardId);
+        if (requestId !== this.#previewHydrationRequestId) return;
+        if (!resolvedCardId) {
+            this.columnPreviewStatus = 'error';
+            this.columnPreviewError = 'Selected card cannot be resolved by path.';
+            return;
+        }
+        this.columnPreviewResolvedCardId = resolvedCardId;
+
+        await this.updateComplete;
+        if (requestId !== this.#previewHydrationRequestId) return;
+
+        const previewCard = this.querySelector('#column-preview-card merch-card');
+        const previewFragment = previewCard?.querySelector('aem-fragment');
+        if (!previewCard || !previewFragment) {
+            if (requestId === this.#previewHydrationRequestId) {
+                this.columnPreviewStatus = 'error';
+                this.columnPreviewError = 'Preview container did not mount correctly.';
+            }
+            return;
+        }
+
+        try {
+            const previewReady = (async () => {
+                await previewFragment.updateComplete;
+                await previewCard.checkReady();
+            })();
+            await Promise.race([
+                previewReady,
+                new Promise((_, reject) => {
+                    setTimeout(
+                        () => reject(new Error(`Card preview timed out after ${CARD_PREVIEW_TIMEOUT_MS / 1000}s.`)),
+                        CARD_PREVIEW_TIMEOUT_MS,
+                    );
+                }),
+            ]);
+            if (previewCard.failed || previewFragment.classList.contains('error')) {
+                throw new Error('Card preview failed to hydrate.');
+            }
+            if (requestId !== this.#previewHydrationRequestId) return;
+            this.columnPreviewStatus = 'ready';
+            this.columnPreviewError = '';
+        } catch (e) {
+            if (requestId !== this.#previewHydrationRequestId) return;
+            this.columnPreviewStatus = 'error';
+            this.columnPreviewError = e?.message || 'Unable to render selected card preview.';
+        }
+    }
+
+    #buildFragmentEditorUrl(fragmentId) {
+        const targetUrl = new URL(window.location.href);
+        const currentHash = targetUrl.hash?.startsWith('#') ? targetUrl.hash.slice(1) : targetUrl.hash;
+        const params = new URLSearchParams(currentHash || '');
+        params.set('page', 'fragment-editor');
+        params.set('fragmentId', fragmentId);
+        params.delete('query');
+        targetUrl.hash = params.toString();
+        return targetUrl.toString();
+    }
+
+    async #openSelectedCardEditor(cardData) {
+        const cardPath = cardData?.path || '';
+        const fallbackCardId = cardData?.id || '';
+        const cardId = await this.#resolveCardIdByPath(cardPath, fallbackCardId);
+        if (!cardId) {
+            showToast('Failed to resolve selected card ID.', 'negative');
+            return;
+        }
+
+        const fragmentEditorUrl = this.#buildFragmentEditorUrl(cardId);
+        let tab;
+        try {
+            tab = window.open(fragmentEditorUrl, '_blank', 'noopener,noreferrer');
+        } catch {
+            tab = null;
+        }
+        if (!tab) {
+            await router.navigateToFragmentEditor(cardId);
         }
     }
 
@@ -736,6 +1203,13 @@ class CompareChartEditor extends LitElement {
     get #columnPanel() {
         const col = this.columns[this.selectedColumnIndex];
         if (!col) return nothing;
+        const scope = this.#getEditorScope();
+        const isPickerOpen = this.cardPickerOpen && this.cardPickerColumnPath === col.path;
+        const trimmedQuery = this.cardPickerQuery.trim();
+        const pickerItems = trimmedQuery ? this.cardPickerResults : this.cardPickerRecents;
+        const hasSelectedCard = Boolean(col.cardFragment?.path || col.cardFragment?.id);
+        const selectedCardId = this.columnPreviewResolvedCardId || col.cardFragment?.id || '';
+        const previewFragmentId = this.columnPreviewResolvedCardId || '';
 
         return html`
             <div class="panel-section">
@@ -752,47 +1226,195 @@ class CompareChartEditor extends LitElement {
                     </sp-action-button>
                 </div>
 
-                <sp-field-label for="col-badge">Badge</sp-field-label>
-                <sp-textfield
-                    id="col-badge"
-                    value="${col.badge || ''}"
-                    placeholder="e.g. Best Offer"
-                    @change=${(e) => this.#saveChildField(col.fragment, 'badge', [e.target.value])}
-                ></sp-textfield>
+                <div id="column-panel-layout" class="column-panel-layout">
+                    <div class="column-panel-left">
+                        <section class="column-panel-block">
+                            <h4 class="column-block-title">Card Source</h4>
 
-                <sp-field-label>Card Fragment ID</sp-field-label>
-                <sp-textfield
-                    value="${col.cardFragment?.id || ''}"
-                    placeholder="Paste card fragment ID"
-                    @change=${(e) => this.#setCardReference(col.fragment, e.target.value)}
-                ></sp-textfield>
-                ${col.cardFragment?.title
-                    ? html`<div
-                          class="card-ref-info"
-                          style="font-size: 12px; color: var(--spectrum-gray-600); margin-top: 4px;"
-                      >
-                          ${col.cardFragment.title}
-                      </div>`
-                    : nothing}
+                            <sp-field-label for="col-badge">Badge</sp-field-label>
+                            <sp-textfield
+                                id="col-badge"
+                                value="${col.badge || ''}"
+                                placeholder="e.g. Best Offer"
+                                @change=${(e) => this.#saveChildField(col.fragment, 'badge', [e.target.value])}
+                            ></sp-textfield>
 
-                <sp-field-label>Column Fields</sp-field-label>
-                <div class="field-list">
-                    ${['mnemonicIcon', 'cardTitle', 'prices', 'description', 'ctas'].map(
-                        (fieldName) => html`
-                            <sp-checkbox
-                                ?checked=${col.fields.includes(fieldName)}
-                                @change=${(e) => {
-                                    const updated = e.target.checked
-                                        ? [...col.fields, fieldName]
-                                        : col.fields.filter((f) => f !== fieldName);
-                                    this.#saveChildField(col.fragment, 'fields', updated);
-                                }}
+                            <div class="card-action-row">
+                                <sp-button
+                                    id="browse-cards-btn"
+                                    size="s"
+                                    variant="accent"
+                                    @click=${() => (isPickerOpen ? this.#closeCardPicker() : this.#openCardPicker(col.path))}
+                                >
+                                    ${isPickerOpen ? 'Close Browser' : 'Browse Cards'}
+                                </sp-button>
+                                <sp-action-button
+                                    id="open-card-btn"
+                                    size="s"
+                                    quiet
+                                    ?disabled=${!hasSelectedCard}
+                                    @click=${() => this.#openSelectedCardEditor(col.cardFragment)}
+                                >
+                                    Open card
+                                </sp-action-button>
+                            </div>
+
+                            <div class="card-meta">
+                                ${hasSelectedCard
+                                    ? html`
+                                          <div class="card-meta-title">${col.cardFragment.title}</div>
+                                          <div>ID: ${selectedCardId}</div>
+                                          <div class="card-meta-path">${col.cardFragment.path}</div>
+                                      `
+                                    : html`<div>No card selected yet. Use Browse Cards to assign one in-scope.</div>`}
+                            </div>
+
+                            ${isPickerOpen
+                                ? html`
+                                      <div id="card-picker-popover" class="card-picker-panel">
+                                          <sp-search
+                                              id="card-picker-search"
+                                              label="Search cards"
+                                              placeholder="Search cards in this surface and locale"
+                                              .value=${this.cardPickerQuery}
+                                              @input=${this.#onCardPickerInput}
+                                          ></sp-search>
+                                          <div class="card-picker-scope">
+                                              Scope:
+                                              ${scope.path || 'Unknown scope. Picker cannot search until scope is resolved.'}
+                                          </div>
+                                          ${this.cardPickerLoading
+                                              ? html`<div class="card-picker-loading">
+                                                    <sp-progress-circle size="s" indeterminate></sp-progress-circle>
+                                                </div>`
+                                              : nothing}
+                                          ${this.cardPickerError
+                                              ? html`<sp-help-text variant="negative">${this.cardPickerError}</sp-help-text>`
+                                              : nothing}
+                                          ${!trimmedQuery
+                                              ? html`<div class="card-picker-section-title">Recent cards</div>`
+                                              : nothing}
+                                          ${!this.cardPickerLoading
+                                              ? html`
+                                                    <div class="card-picker-results">
+                                                        ${pickerItems.map(
+                                                            (card) => html`
+                                                                <button
+                                                                    type="button"
+                                                                    class="card-picker-item"
+                                                                    @click=${() =>
+                                                                        this.#selectCardFromPicker(col.fragment, card)}
+                                                                >
+                                                                    <div class="card-picker-item-title">${card.title}</div>
+                                                                    <div class="card-picker-item-meta">
+                                                                        ${card.variant ? `Variant: ${card.variant} • ` : ''}ID:
+                                                                        ${card.id}
+                                                                    </div>
+                                                                    <div class="card-picker-item-path">${card.path}</div>
+                                                                </button>
+                                                            `,
+                                                        )}
+                                                        ${!pickerItems.length
+                                                            ? html`<sp-help-text
+                                                                  >${trimmedQuery
+                                                                      ? 'No matching cards in this surface/locale.'
+                                                                      : 'No recent cards yet. Search to browse cards.'}</sp-help-text
+                                                              >`
+                                                            : nothing}
+                                                    </div>
+                                                `
+                                              : nothing}
+                                      </div>
+                                  `
+                                : nothing}
+                        </section>
+
+                        <section class="column-panel-block">
+                            <h4 class="column-block-title">Manual Fallback</h4>
+                            <sp-field-label for="col-card-id">Paste ID</sp-field-label>
+                            <sp-textfield
+                                id="col-card-id"
+                                value="${col.cardFragment?.id || ''}"
+                                placeholder="Paste card fragment ID"
+                                @change=${(e) => this.#setCardReference(col.fragment, e.target.value)}
+                            ></sp-textfield>
+                            <sp-help-text>Only in-scope card IDs are accepted. Non-card IDs are blocked.</sp-help-text>
+                        </section>
+                    </div>
+
+                    <div class="column-panel-right">
+                        <section class="column-panel-block">
+                            <details
+                                id="column-preview-details"
+                                class="column-preview-details"
+                                ?open=${this.columnPreviewOpen}
+                                @toggle=${this.#onColumnPreviewToggle}
                             >
-                                ${fieldName}
-                            </sp-checkbox>
-                        `,
-                    )}
+                                <summary class="column-preview-summary">Selected card preview</summary>
+                                ${hasSelectedCard
+                                    ? html`
+                                          <div
+                                              id="column-preview-card"
+                                              class="column-preview-card ${this.columnPreviewStatus === 'loading'
+                                                  ? 'is-loading'
+                                                  : ''}"
+                                          >
+                                              ${previewFragmentId
+                                                  ? keyed(
+                                                        previewFragmentId,
+                                                        html`
+                                                            <merch-card>
+                                                                <aem-fragment
+                                                                    author
+                                                                    ims
+                                                                    loading="eager"
+                                                                    fragment="${previewFragmentId}"
+                                                                ></aem-fragment>
+                                                            </merch-card>
+                                                        `,
+                                                    )
+                                                  : nothing}
+                                              ${this.columnPreviewStatus === 'loading'
+                                                  ? html`
+                                                        <div class="column-preview-loading">
+                                                            <sp-progress-circle size="m" indeterminate></sp-progress-circle>
+                                                        </div>
+                                                    `
+                                                  : nothing}
+                                              ${this.columnPreviewStatus === 'error'
+                                                  ? html`<sp-help-text variant="negative"
+                                                        >${this.columnPreviewError ||
+                                                        'Unable to render selected card preview.'}</sp-help-text
+                                                    >`
+                                                  : nothing}
+                                          </div>
+                                      `
+                                    : html`<div class="column-preview-empty">Select a card to preview it here.</div>`}
+                            </details>
+                        </section>
+                    </div>
                 </div>
+
+                <section id="column-fields-block" class="column-panel-block column-fields-block">
+                    <h4 class="column-block-title">Column Fields</h4>
+                    <div class="field-list column-fields-list">
+                        ${COLUMN_FIELD_OPTIONS.map(
+                            (fieldName) => html`
+                                <sp-checkbox
+                                    ?checked=${col.fields.includes(fieldName)}
+                                    @change=${(e) => {
+                                        const updated = e.target.checked
+                                            ? [...col.fields, fieldName]
+                                            : col.fields.filter((f) => f !== fieldName);
+                                        this.#saveChildField(col.fragment, 'fields', updated);
+                                    }}
+                                >
+                                    ${fieldName}
+                                </sp-checkbox>
+                            `,
+                        )}
+                    </div>
+                </section>
             </div>
         `;
     }
@@ -968,10 +1590,210 @@ class CompareChartEditor extends LitElement {
         }
     }
 
+    get #styles() {
+        return html`
+            <style>
+                .compare-chart-editor .panel-section {
+                    display: grid;
+                    gap: 12px;
+                }
+
+                .compare-chart-editor .panel-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .compare-chart-editor .panel-header h3 {
+                    margin: 0;
+                }
+
+                .compare-chart-editor .column-panel-layout {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+                    gap: 14px;
+                    align-items: start;
+                }
+
+                .compare-chart-editor .column-panel-left,
+                .compare-chart-editor .column-panel-right {
+                    display: grid;
+                    gap: 12px;
+                }
+
+                .compare-chart-editor .column-panel-block {
+                    border: 1px solid var(--spectrum-gray-300);
+                    background: var(--spectrum-gray-75);
+                    border-radius: 10px;
+                    padding: 12px;
+                    display: grid;
+                    gap: 8px;
+                }
+
+                .compare-chart-editor .column-block-title {
+                    margin: 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: var(--spectrum-gray-900);
+                }
+
+                .compare-chart-editor .card-action-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .compare-chart-editor .card-meta {
+                    font-size: 12px;
+                    color: var(--spectrum-gray-700);
+                    display: grid;
+                    gap: 2px;
+                }
+
+                .compare-chart-editor .card-meta-title {
+                    font-weight: 700;
+                    color: var(--spectrum-gray-900);
+                }
+
+                .compare-chart-editor .card-meta-path {
+                    word-break: break-word;
+                }
+
+                .compare-chart-editor .card-picker-panel {
+                    padding: 10px;
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 8px;
+                    background: var(--spectrum-gray-50);
+                    display: grid;
+                    gap: 8px;
+                    max-width: 100%;
+                }
+
+                .compare-chart-editor .card-picker-panel sp-search {
+                    width: 100%;
+                }
+
+                .compare-chart-editor .card-picker-scope {
+                    font-size: 11px;
+                    color: var(--spectrum-gray-700);
+                }
+
+                .compare-chart-editor .card-picker-loading {
+                    display: flex;
+                    justify-content: center;
+                }
+
+                .compare-chart-editor .card-picker-section-title {
+                    font-size: 12px;
+                    color: var(--spectrum-gray-700);
+                    font-weight: 600;
+                }
+
+                .compare-chart-editor .card-picker-results {
+                    display: grid;
+                    gap: 6px;
+                    max-height: 280px;
+                    overflow: auto;
+                    padding-right: 2px;
+                }
+
+                .compare-chart-editor .card-picker-item {
+                    text-align: left;
+                    border: 1px solid var(--spectrum-gray-300);
+                    background: var(--spectrum-gray-50);
+                    border-radius: 6px;
+                    padding: 8px;
+                    cursor: pointer;
+                    display: grid;
+                    gap: 2px;
+                }
+
+                .compare-chart-editor .card-picker-item:hover {
+                    border-color: var(--spectrum-blue-500);
+                    background: var(--spectrum-blue-75);
+                }
+
+                .compare-chart-editor .card-picker-item-title {
+                    font-weight: 700;
+                    color: var(--spectrum-gray-900);
+                }
+
+                .compare-chart-editor .card-picker-item-meta {
+                    font-size: 12px;
+                    color: var(--spectrum-gray-700);
+                }
+
+                .compare-chart-editor .card-picker-item-path {
+                    font-size: 11px;
+                    color: var(--spectrum-gray-600);
+                    word-break: break-word;
+                }
+
+                .compare-chart-editor .column-preview-details {
+                    display: grid;
+                    gap: 10px;
+                }
+
+                .compare-chart-editor .column-preview-summary {
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: var(--spectrum-gray-900);
+                }
+
+                .compare-chart-editor .column-preview-card {
+                    max-width: 360px;
+                    min-height: 220px;
+                    position: relative;
+                }
+
+                .compare-chart-editor .column-preview-empty {
+                    font-size: 12px;
+                    color: var(--spectrum-gray-700);
+                }
+
+                .compare-chart-editor .column-preview-card merch-card {
+                    display: block;
+                }
+
+                .compare-chart-editor .column-preview-card.is-loading merch-card {
+                    visibility: hidden;
+                }
+
+                .compare-chart-editor .column-preview-loading {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }
+
+                .compare-chart-editor .column-fields-list {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px 16px;
+                }
+
+                @media (max-width: 900px) {
+                    .compare-chart-editor .column-panel-layout {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .compare-chart-editor .column-preview-card {
+                        max-width: 100%;
+                    }
+                }
+            </style>
+        `;
+    }
+
     render() {
         if (!this.fragment) return nothing;
 
         return html`
+            ${this.#styles}
             <div class="compare-chart-editor">
                 <h2>Compare Chart</h2>
                 <div class="chart-summary">

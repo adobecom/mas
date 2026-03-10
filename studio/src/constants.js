@@ -134,6 +134,7 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
+export const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const COMPARE_CHART_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/compare-chart0';
 export const COMPARE_FRAGMENT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/compare-fragment0';
@@ -157,7 +158,7 @@ export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
 
 export const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
-    'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    'mas:studio/content-type/merch-card': CARD_MODEL_ID,
     'mas:studio/content-type/compare-chart': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbXBhcmUtY2hhcnQw',
 };
 

@@ -7,6 +7,7 @@ import {
     getDefaultLocale,
     getDefaultLocaleCode,
     getDefaultLocales,
+    getSurfaceLocales,
     getRegionLocales,
     getLanguageName,
 } from '../../src/fragment/locales.js';
@@ -163,6 +164,29 @@ describe('locales', function () {
 
         it('should return empty array for invalid surface', function () {
             const result = getRegionLocales('invalid_surface', 'en_US', false);
+            expect(result).to.be.an('array');
+            expect(result.length).to.equal(0);
+        });
+    });
+
+    describe('getSurfaceLocales', function () {
+        it('should return default and region locales for a surface', function () {
+            const result = getSurfaceLocales('acom');
+            expect(result).to.be.an('array');
+            expect(result.length).to.be.greaterThan(0);
+            expect(result.some((locale) => locale.lang === 'en' && locale.country === 'US')).to.equal(true);
+            expect(result.some((locale) => locale.lang === 'en' && locale.country === 'AE')).to.equal(true);
+            expect(result.some((locale) => locale.lang === 'en' && locale.country === 'AU')).to.equal(true);
+        });
+
+        it('should not return duplicate locales', function () {
+            const result = getSurfaceLocales('acom');
+            const uniqueCodes = new Set(result.map((locale) => getLocaleCode(locale)));
+            expect(result.length).to.equal(uniqueCodes.size);
+        });
+
+        it('should return empty array for invalid surface', function () {
+            const result = getSurfaceLocales('invalid_surface');
             expect(result).to.be.an('array');
             expect(result.length).to.equal(0);
         });

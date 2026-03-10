@@ -18,6 +18,8 @@ export const VARIANT_NAMES = {
     FRIES: 'fries',
     MINI: 'mini',
     IMAGE: 'image',
+    MINI_COMPARE_CHART: 'mini-compare-chart',
+    MINI_COMPARE_CHART_MWEB: 'mini-compare-chart-mweb',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
     FULL_PRICING_EXPRESS: 'full-pricing-express',
     HEADLESS: 'headless',
@@ -95,6 +97,16 @@ export const VARIANTS = [
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
         surface: SURFACES.SANDBOX.name,
+    },
+    {
+        label: 'Mini Compare Chart',
+        value: VARIANT_NAMES.MINI_COMPARE_CHART,
+        surface: SURFACES.ACOM.name,
+    },
+    {
+        label: 'Mini Compare Chart Mweb',
+        value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
+        surface: SURFACES.ACOM.name,
     },
 ];
 

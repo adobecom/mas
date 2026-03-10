@@ -196,7 +196,9 @@ class MerchOfferSelect extends LitElement {
 
     get miniCompareMobileCard() {
         return (
-            this.merchCard?.variant === 'mini-compare-chart' && this.isMobile
+            (this.merchCard?.variant === 'mini-compare-chart' ||
+                this.merchCard?.variant === 'mini-compare-chart-mweb') &&
+            this.isMobile
         );
     }
 

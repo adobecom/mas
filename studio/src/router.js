@@ -16,11 +16,8 @@ export class Router extends EventTarget {
         this.isNavigating = false;
     }
 
-    #shouldPreserveDefaultParam(key, paramValue, hadParamBeforeUpdate = false) {
-        if (key !== 'page') return false;
-        if (paramValue !== PAGE_NAMES.WELCOME) return false;
-        if (!hadParamBeforeUpdate) return false;
-        return this.currentParams?.get('path') === 'sandbox';
+    #hashValue() {
+        return this.location.hash?.startsWith('#') ? this.location.hash.slice(1) : this.location.hash || '';
     }
 
     updateHistory() {
@@ -310,7 +307,7 @@ export class Router extends EventTarget {
      * @returns {boolean} Whether the store was updated
      */
     syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
-        this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
+        this.currentParams ??= new URLSearchParams(this.#hashValue());
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
 
         for (const key of keysArray) {
@@ -370,7 +367,7 @@ export class Router extends EventTarget {
 
         const self = this;
         store.subscribe((value) => {
-            self.currentParams ??= new URLSearchParams(self.location.hash.slice(1));
+            self.currentParams ??= new URLSearchParams(self.#hashValue());
 
             for (const key of keysArray) {
                 const hadParamBeforeUpdate = self.currentParams.has(key);
@@ -399,10 +396,7 @@ export class Router extends EventTarget {
                 const defaultValue = getDefaultValue();
                 const defaultValueToCompare = isObject ? defaultValue?.[key] : defaultValue;
                 const currentParamValue = self.currentParams.get(key);
-                if (
-                    currentParamValue === String(defaultValueToCompare) &&
-                    !self.#shouldPreserveDefaultParam(key, currentParamValue, hadParamBeforeUpdate)
-                ) {
+                if (currentParamValue === String(defaultValueToCompare) && currentParamValue !== PAGE_NAMES.WELCOME) {
                     self.currentParams.delete(key);
                 }
             }
@@ -411,7 +405,7 @@ export class Router extends EventTarget {
                     self.currentParams.delete(key);
                 }
             }
-            if (self.currentParams.toString() === self.location.hash.slice(1)) {
+            if (self.currentParams.toString() === self.#hashValue()) {
                 return;
             }
             self.updateHistory();
@@ -419,7 +413,7 @@ export class Router extends EventTarget {
     }
 
     start() {
-        this.currentParams = new URLSearchParams(this.location.hash.slice(1));
+        this.currentParams = new URLSearchParams(this.#hashValue());
         const normalizedOnStart = this.#normalizeSettingsEditorRoute();
         const redirectedOnStart = this.#enforceSettingsAccessFromParams();
         if (normalizedOnStart || redirectedOnStart) {
@@ -467,7 +461,7 @@ export class Router extends EventTarget {
             }
 
             /* fix hash when missing params(e.g: manual edit) */
-            this.currentParams = new URLSearchParams(this.location.hash.slice(1));
+            this.currentParams = new URLSearchParams(this.#hashValue());
             if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
@@ -574,7 +568,7 @@ export class Router extends EventTarget {
     }
 
     #resolveSettingsAccessRoute() {
-        this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
+        this.currentParams ??= new URLSearchParams(this.#hashValue());
         if (!this.#isSettingsPage(this.currentParams.get('page'))) {
             this.#stopWatchingSettingsAccessRoute();
             return false;

@@ -57,7 +57,7 @@ describe('Router URL parameter handling', async () => {
         expect(testStore.get()).to.equal('initial');
         testStore.set('updated');
         await delay(60);
-        expect(router.location.hash).to.equal('test=updated');
+        expect(router.location.hash).to.equal('page=welcome&test=updated');
     });
 
     it('should set page parameter to content when query parameter exists', async () => {
@@ -86,7 +86,7 @@ describe('Router URL parameter handling', async () => {
         router.linkStoreToHash(testStore, 'test');
         testStore.set(undefined);
         await delay(60);
-        expect(router.location.hash).to.equal('');
+        expect(router.location.hash).to.equal('page=welcome');
     });
 
     it('should handle popstate events', async () => {
@@ -160,7 +160,7 @@ describe('Router URL parameter handling', async () => {
         Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
-    it('should preserve page=welcome for sandbox when navigating home from settings', async () => {
+    it('should preserve explicit page=welcome when navigating home from settings', async () => {
         const originalPage = Store.page.get();
         const originalProfile = Store.profile.get();
         const originalUsers = Store.users.get();
@@ -191,7 +191,7 @@ describe('Router URL parameter handling', async () => {
         Store.users.setMeta('loaded', originalUsersLoadedMeta);
     });
 
-    it('should preserve a page-less sandbox hash on hashchange even after users resolve', async () => {
+    it('should preserve page=welcome on hashchange even after users resolve', async () => {
         const originalPage = Store.page.get();
         const originalProfile = Store.profile.get();
         const originalUsers = Store.users.get();
@@ -211,7 +211,7 @@ describe('Router URL parameter handling', async () => {
         await delay(60);
 
         expect(router.location.hash).to.include('path=sandbox');
-        expect(router.location.hash).to.not.include('page=');
+        expect(router.location.hash).to.include('page=welcome');
         expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
 
         Store.profile.set({ email: 'power@adobe.com' });
@@ -226,7 +226,7 @@ describe('Router URL parameter handling', async () => {
 
         expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
         expect(router.location.hash).to.include('path=sandbox');
-        expect(router.location.hash).to.not.include('page=');
+        expect(router.location.hash).to.include('page=welcome');
 
         Store.page.set(originalPage);
         Store.profile.set(originalProfile);
@@ -355,7 +355,7 @@ describe('Router URL parameter handling', async () => {
         router.linkStoreToHash(testStore, 'commerce.landscape');
         testStore.set(undefined);
         await delay(60);
-        expect(router.location.hash).to.equal('');
+        expect(router.location.hash).to.equal('page=welcome');
     });
 
     it('should handle landscape parameter in popstate events', async () => {
@@ -392,11 +392,12 @@ describe('Router URL parameter handling', async () => {
         // Test switching between different landscape values
         Store.landscape.set(WCS_LANDSCAPE_PUBLISHED);
         await delay(60);
-        expect(router.location.hash).to.equal(''); // PUBLISHED is default, so hash is empty
+        expect(router.location.hash).to.equal('page=welcome'); // PUBLISHED is default, page=welcome is preserved
 
         Store.landscape.set(WCS_LANDSCAPE_DRAFT);
         await delay(60);
-        expect(router.location.hash).to.equal('commerce.landscape=DRAFT');
+        expect(router.location.hash).to.include('page=welcome');
+        expect(router.location.hash).to.include('commerce.landscape=DRAFT');
     });
 
     it('should remove invalid landscape hash parameter in start method', async () => {

@@ -31,6 +31,7 @@ nala/.auth/
 .specify/
 /specs/
 /agents/
+reports/
 
 # IO Runtime Config
 config.json

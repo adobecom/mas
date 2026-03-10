@@ -106,7 +106,7 @@ describe('MasFragment', () => {
             expect(tableView).to.not.exist;
         });
 
-        it('renders variations when expanded', async () => {
+        it('renders fragment variations when expanded', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`);
             el.expanded = true;

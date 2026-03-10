@@ -1,14 +1,23 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
+import { isPowerUser } from './groups.js';
 
 export class Router extends EventTarget {
+    #settingsAccessRouteWatcher = () => {
+        this.#resolveSettingsAccessRoute();
+    };
+
     constructor(location = window.location) {
         super();
         this.location = location;
         this.updateHistory = debounce(this.updateHistory.bind(this), 50);
         this.linkedStores = [];
         this.isNavigating = false;
+    }
+
+    #hashValue() {
+        return this.location.hash?.startsWith('#') ? this.location.hash.slice(1) : this.location.hash || '';
     }
 
     updateHistory() {
@@ -88,6 +97,16 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.SETTINGS:
+            case PAGE_NAMES.SETTINGS_EDITOR: {
+                const editor = document.querySelector('mas-settings');
+                const hasUnsavedChanges = editor && editor.hasUnsavedChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             default:
                 return { editor: null, hasChanges: false, shouldCheckUnsavedChanges: false };
         }
@@ -100,7 +119,8 @@ export class Router extends EventTarget {
      */
     navigateToPage(value) {
         return async () => {
-            if (Store.page.value === value) return;
+            const targetPage = this.#getAuthorizedPage(value);
+            if (Store.page.value === targetPage) return;
 
             this.isNavigating = true;
             try {
@@ -110,29 +130,36 @@ export class Router extends EventTarget {
                     Store.fragmentEditor.translatedLocales.set(null);
                     if (
                         (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION) &&
-                        value !== PAGE_NAMES.FRAGMENT_EDITOR &&
-                        value !== PAGE_NAMES.VERSION
+                        targetPage !== PAGE_NAMES.FRAGMENT_EDITOR &&
+                        targetPage !== PAGE_NAMES.VERSION
                     ) {
                         Store.fragmentEditor.fragmentId.set(null);
                         Store.fragmentEditor.loading.set(false);
                         Store.version.fragmentId.set(null);
                     }
-                    if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && value !== PAGE_NAMES.TRANSLATION_EDITOR) {
+                    if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && targetPage !== PAGE_NAMES.TRANSLATION_EDITOR) {
                         Store.translationProjects.translationProjectId.set(null);
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
                     }
-                    if (value === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
+                    if (targetPage === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
                         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
                     }
                     Store.fragments.inEdit.set();
-                    if (value !== PAGE_NAMES.CONTENT) {
+                    if (targetPage !== PAGE_NAMES.CONTENT) {
                         Store.fragments.list.data.set([]);
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
                         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
                     }
+                    if (
+                        (Store.page.value === PAGE_NAMES.SETTINGS || Store.page.value === PAGE_NAMES.SETTINGS_EDITOR) &&
+                        targetPage !== PAGE_NAMES.SETTINGS_EDITOR
+                    ) {
+                        Store.settings.creating.set(false);
+                        Store.settings.fragmentId.set(null);
+                    }
                     Store.viewMode.set('default');
-                    Store.page.set(value);
+                    Store.page.set(targetPage);
                 }
             } finally {
                 this.isNavigating = false;
@@ -279,9 +306,8 @@ export class Router extends EventTarget {
      * @returns {boolean} Whether the store was updated
      */
     syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
-        this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
+        this.currentParams ??= new URLSearchParams(this.#hashValue());
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
-        const hashUpdated = false;
 
         for (const key of keysArray) {
             if (this.currentParams.has(key)) {
@@ -307,11 +333,6 @@ export class Router extends EventTarget {
                     newValue = defaultVal;
                 }
             }
-        }
-
-        // Update hash if invalid parameters were removed
-        if (hashUpdated) {
-            this.updateHistory();
         }
 
         if (JSON.stringify(store.value) !== JSON.stringify(newValue)) {
@@ -345,9 +366,10 @@ export class Router extends EventTarget {
 
         const self = this;
         store.subscribe((value) => {
-            self.currentParams ??= new URLSearchParams(self.location.hash.slice(1));
+            self.currentParams ??= new URLSearchParams(self.#hashValue());
 
             for (const key of keysArray) {
+                const hadParamBeforeUpdate = self.currentParams.has(key);
                 const storeValue = isObject ? value?.[key] : value;
 
                 if (Array.isArray(storeValue) && storeValue.length === 0) {
@@ -372,7 +394,8 @@ export class Router extends EventTarget {
 
                 const defaultValue = getDefaultValue();
                 const defaultValueToCompare = isObject ? defaultValue?.[key] : defaultValue;
-                if (self.currentParams.get(key) === defaultValueToCompare) {
+                const currentParamValue = self.currentParams.get(key);
+                if (currentParamValue === String(defaultValueToCompare) && currentParamValue !== PAGE_NAMES.WELCOME) {
                     self.currentParams.delete(key);
                 }
             }
@@ -381,7 +404,7 @@ export class Router extends EventTarget {
                     self.currentParams.delete(key);
                 }
             }
-            if (self.currentParams.toString() === self.location.hash.slice(1)) {
+            if (self.currentParams.toString() === self.#hashValue()) {
                 return;
             }
             self.updateHistory();
@@ -389,7 +412,12 @@ export class Router extends EventTarget {
     }
 
     start() {
-        this.currentParams = new URLSearchParams(this.location.hash.slice(1));
+        this.currentParams = new URLSearchParams(this.#hashValue());
+        const normalizedOnStart = this.#normalizeSettingsEditorRoute();
+        const redirectedOnStart = this.#enforceSettingsAccessFromParams();
+        if (normalizedOnStart || redirectedOnStart) {
+            this.updateHistory();
+        }
         this.previousHash = this.location.hash;
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, ['path', 'query'], {});
@@ -403,6 +431,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
+        this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
@@ -431,12 +460,13 @@ export class Router extends EventTarget {
             }
 
             /* fix hash when missing params(e.g: manual edit) */
-            this.currentParams = new URLSearchParams(this.location.hash.slice(1));
+            this.currentParams = new URLSearchParams(this.#hashValue());
             if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
             const page = this.currentParams.get('page');
-            if (!page && Store.page.value) {
+            const isSandboxRouteWithoutPage = !page && this.currentParams.get('path') === 'sandbox';
+            if (!page && Store.page.value && !isSandboxRouteWithoutPage) {
                 this.currentParams.set('page', Store.page.value);
             }
             const path = this.currentParams.get('path');
@@ -446,6 +476,11 @@ export class Router extends EventTarget {
             const locale = this.currentParams.get('locale');
             if (!locale && Store.filters.value.locale && Store.filters.value.locale !== 'en_US') {
                 this.currentParams.set('locale', Store.filters.value.locale);
+            }
+            const normalizedSettingsRoute = this.#normalizeSettingsEditorRoute();
+            const redirectedSettingsRoute = this.#enforceSettingsAccessFromParams();
+            if (normalizedSettingsRoute || redirectedSettingsRoute) {
+                this.updateHistory();
             }
 
             if (page === PAGE_NAMES.FRAGMENT_EDITOR) {
@@ -481,6 +516,67 @@ export class Router extends EventTarget {
                 return '';
             }
         });
+    }
+
+    #isSettingsPage(page) {
+        return page === PAGE_NAMES.SETTINGS || page === PAGE_NAMES.SETTINGS_EDITOR;
+    }
+
+    #getAuthorizedPage(page) {
+        if (!this.#isSettingsPage(page)) return page;
+        if (!Store.users.getMeta('loaded')) return page;
+        if (isPowerUser()) return page;
+        Store.settings.creating.set(false);
+        Store.settings.fragmentId.set(null);
+        return PAGE_NAMES.WELCOME;
+    }
+
+    #normalizeSettingsEditorRoute() {
+        if (this.currentParams.get('page') !== PAGE_NAMES.SETTINGS_EDITOR) return false;
+        if (this.currentParams.get('fragmentId')) return false;
+        if (Store.settings.creating.get()) return false;
+        this.currentParams.set('page', PAGE_NAMES.SETTINGS);
+        return true;
+    }
+
+    #enforceSettingsAccessFromParams() {
+        const page = this.currentParams.get('page');
+        if (!this.#isSettingsPage(page)) return false;
+        if (!Store.users.getMeta('loaded')) {
+            this.#startWatchingSettingsAccessRoute();
+            return false;
+        }
+        this.#stopWatchingSettingsAccessRoute();
+        if (isPowerUser()) return false;
+        this.currentParams.set('page', PAGE_NAMES.WELCOME);
+        this.currentParams.delete('fragmentId');
+        Store.page.set(PAGE_NAMES.WELCOME);
+        Store.settings.creating.set(false);
+        Store.settings.fragmentId.set(null);
+        return true;
+    }
+
+    #startWatchingSettingsAccessRoute() {
+        Store.profile.subscribe(this.#settingsAccessRouteWatcher);
+        Store.users.subscribe(this.#settingsAccessRouteWatcher);
+    }
+
+    #stopWatchingSettingsAccessRoute() {
+        Store.profile.unsubscribe(this.#settingsAccessRouteWatcher);
+        Store.users.unsubscribe(this.#settingsAccessRouteWatcher);
+    }
+
+    #resolveSettingsAccessRoute() {
+        this.currentParams ??= new URLSearchParams(this.#hashValue());
+        if (!this.#isSettingsPage(this.currentParams.get('page'))) {
+            this.#stopWatchingSettingsAccessRoute();
+            return false;
+        }
+        const redirected = this.#enforceSettingsAccessFromParams();
+        if (redirected) {
+            this.updateHistory();
+        }
+        return redirected;
     }
 }
 

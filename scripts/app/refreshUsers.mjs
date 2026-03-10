@@ -42,7 +42,7 @@ async function getAccessToken() {
             return data.access_token;
         } else {
             // Log the actual response if no token is found
-            reject(new Error(`No access token in response. Check IMS server response for details.`));
+            throw new Error(`No access token in response. Check IMS server response for details.`);
         }
     } catch (error) {
         console.error('Error fetching access token:', error);
@@ -55,35 +55,149 @@ async function fetchLdapMembers(token) {
     console.log('Retrieving users from LDAP');
 
     const tenants = ['CCD', 'ACOM', 'COMMERCE', 'AH', 'SANDBOX', 'NALA'];
-    const fetchPromises = tenants.map((tenant) => {
-        const apiEndpoint = `${LDAP_BASE_URL}/groups/GRP-ODIN-MAS-${tenant}-EDITORS/members?show_all=true`;
-        console.log('Fetching from:', apiEndpoint);
-        return fetch(apiEndpoint, {
+    const fetchPromises = tenants.map(async (tenant) => {
+        const groupName = `GRP-ODIN-MAS-${tenant}-EDITORS`;
+        const apiEndpoint = `${LDAP_BASE_URL}/groups/${groupName}/members?show_all=true`;
+        const res = await fetch(apiEndpoint, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 Accept: 'application/json',
             },
-        }).then(async (res) => {
-            if (!res.ok) {
-                throw new Error(`Request to ${apiEndpoint} failed with status code ${res.status}`);
-            }
-            return res.json();
         });
+
+        const rawResponse = await res.text();
+        if (!res.ok) {
+            throw new Error(`Request to ${apiEndpoint} failed with status code ${res.status}. Response body: ${rawResponse}`);
+        }
+
+        try {
+            return {
+                groupName,
+                members: JSON.parse(rawResponse),
+            };
+        } catch (error) {
+            throw new Error(`Invalid JSON from ${apiEndpoint}. Response body: ${rawResponse}`);
+        }
     });
 
     const results = await Promise.all(fetchPromises);
-    const mergedResults = [].concat(...results);
+    const usersByPrincipalName = new Map();
 
-    // Deduplicate based on userPrincipalName and only return userPrincipalName, displayName
-    const uniqueUsers = Array.from(new Set(mergedResults.map((user) => user.userPrincipalName))).map((userPrincipalName) => {
-        const user = mergedResults.find((user) => user.userPrincipalName === userPrincipalName);
+    for (const { members } of results) {
+        for (const user of members) {
+            if (!user.userPrincipalName) {
+                continue;
+            }
+
+            const key = user.userPrincipalName.toLowerCase();
+            if (usersByPrincipalName.has(key)) {
+                continue;
+            }
+
+            usersByPrincipalName.set(key, {
+                userPrincipalName: user.userPrincipalName,
+                displayName: user.displayName,
+                userId: user.userId || user.userPrincipalName.split('@')[0],
+            });
+        }
+    }
+
+    const uniqueUsers = Array.from(usersByPrincipalName.values()).sort((a, b) =>
+        a.userPrincipalName.localeCompare(b.userPrincipalName),
+    );
+
+    return uniqueUsers;
+}
+
+async function mapWithConcurrency(items, concurrency, mapper) {
+    const results = new Array(items.length);
+    let index = 0;
+
+    async function worker() {
+        while (true) {
+            const currentIndex = index;
+            index += 1;
+
+            if (currentIndex >= items.length) {
+                return;
+            }
+
+            results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+        }
+    }
+
+    const workerCount = Math.min(concurrency, items.length);
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
+    return results;
+}
+
+function extractGroupsFromMemberOfResponse(data) {
+    const memberships = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.value)
+          ? data.value
+          : Array.isArray(data?.groups)
+            ? data.groups
+            : Array.isArray(data?.memberOf)
+              ? data.memberOf
+              : [];
+
+    return Array.from(
+        new Set(
+            memberships
+                .map((group) => {
+                    if (typeof group === 'string') {
+                        return group;
+                    }
+
+                    if (group && typeof group === 'object') {
+                        return group.displayName || group.groupName || group.cn || group.name || group.id || null;
+                    }
+
+                    return null;
+                })
+                .filter(Boolean)
+                .filter((name) => /-MAS-/.test(name)),
+        ),
+    ).sort();
+}
+
+async function fetchMemberOfGroups(users, token) {
+    console.log(`Fetching memberOf groups for ${users.length} users with concurrency 5`);
+    const normalizedBaseUrl = LDAP_BASE_URL.endsWith('/') ? LDAP_BASE_URL.slice(0, -1) : LDAP_BASE_URL;
+
+    const usersWithGroups = await mapWithConcurrency(users, 5, async (user) => {
+        const username = user.userId || user.userPrincipalName.split('@')[0];
+        const apiEndpoint = `${normalizedBaseUrl}/${encodeURIComponent(username)}/memberOf`;
+        console.log('Fetching memberOf from:', apiEndpoint);
+
+        const res = await fetch(apiEndpoint, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+            },
+        });
+
+        const rawResponse = await res.text();
+        if (!res.ok) {
+            throw new Error(`Request to ${apiEndpoint} failed with status code ${res.status}. Response body: ${rawResponse}`);
+        }
+
+        let parsedResponse;
+        try {
+            parsedResponse = JSON.parse(rawResponse);
+        } catch (error) {
+            throw new Error(`Invalid JSON from ${apiEndpoint}. Response body: ${rawResponse}`);
+        }
+
         return {
             userPrincipalName: user.userPrincipalName,
             displayName: user.displayName,
+            groups: extractGroupsFromMemberOfResponse(parsedResponse),
         };
     });
 
-    return uniqueUsers;
+    return usersWithGroups.sort((a, b) => a.userPrincipalName.localeCompare(b.userPrincipalName));
 }
 
 async function sendToEndpoint(users, token) {
@@ -114,8 +228,9 @@ async function main() {
     try {
         const token = await getAccessToken();
         const users = await fetchLdapMembers(token);
-        await sendToEndpoint(users, token);
-        console.log(`Successfully processed ${users.length} unique users`);
+        const usersWithGroups = await fetchMemberOfGroups(users, token);
+        await sendToEndpoint(usersWithGroups, token);
+        console.log(`Successfully processed ${usersWithGroups.length} unique users`);
     } catch (error) {
         console.error('Error:', error.message);
         process.exit(1);

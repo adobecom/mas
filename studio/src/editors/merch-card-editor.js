@@ -1,6 +1,7 @@
 import { html, LitElement, nothing } from 'lit';
 import '../fields/multifield.js';
 import '../fields/included-field.js';
+import '../fields/icon-picker-field.js';
 import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
@@ -11,6 +12,7 @@ import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
+import { createQuantitySelectValue, parseQuantitySelectValue } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
@@ -42,8 +44,9 @@ class MerchCardEditor extends LitElement {
 
     static SECTION_FIELDS = {
         Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color'],
-        "What's included": ['whatsIncluded', 'quantitySelect'],
+        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'quantitySelect'],
         'Product details': ['description', 'shortDescription', 'callout'],
+        'Footer rows': ['footerRows'],
         Footer: ['ctas'],
         'Options and settings': ['secureLabel', 'planType', 'addon'],
     };
@@ -308,12 +311,24 @@ class MerchCardEditor extends LitElement {
     }
 
     getWhatsIncludedProps(el) {
+        const desc = el.querySelector('[slot="description"]');
+        const description = desc?.textContent?.trim() || '';
         const iconEl = el.querySelector('merch-icon');
-        const icon = iconEl?.getAttribute('src') || '';
-        const alt = iconEl?.getAttribute('alt') || '';
-        const linkEl = el.querySelector('[slot="icon"] a');
-        const link = linkEl?.getAttribute('href') || '';
-        return { icon, alt, link };
+        if (iconEl) {
+            const icon = iconEl.getAttribute('src') || '';
+            const alt = iconEl.getAttribute('alt') || '';
+            const linkEl = el.querySelector('[slot="icon"] a');
+            const link = linkEl?.getAttribute('href') || '';
+            return { icon, description, alt, link };
+        }
+        // Fallback for spectrum icons (sp-icon-* elements)
+        const spIcon = el.querySelector('.sp-icon');
+        if (spIcon) {
+            const icon = spIcon.tagName.toLowerCase();
+            const alt = '';
+            return { icon, description, alt, link: '' };
+        }
+        return { icon: '', description: '', alt: '', link: '' };
     }
 
     get whatsIncluded() {
@@ -332,13 +347,13 @@ class MerchCardEditor extends LitElement {
                 const icon = listEl.querySelector('.sp-icon')?.tagName.toLowerCase() || '';
                 const desc = listEl.querySelector('[slot="description"] > span');
                 const text = listEl.querySelector('[slot="description"]')?.textContent || '';
-                let alt;
+                let description;
                 if (desc?.innerHTML == text) {
-                    alt = text;
+                    description = text;
                 } else {
-                    alt = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
+                    description = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
                 }
-                bullets.push({ icon, alt, link: '' });
+                bullets.push({ icon, description, alt: '', link: '' });
             }
         });
 
@@ -391,61 +406,23 @@ class MerchCardEditor extends LitElement {
         return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] || '';
     }
 
-    getQuantityAttribute(name) {
-        if (!this.quantityValue) return undefined;
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(this.quantityValue, 'text/html');
-        const element = doc.querySelector('merch-quantity-select');
-        return element?.getAttribute(name);
-    }
-
-    get quantityTitle() {
-        return this.getQuantityAttribute('title') ?? '';
-    }
-
-    get quantityStart() {
-        return this.getQuantityAttribute('min') ?? 1;
-    }
-
-    get quantityStep() {
-        return this.getQuantityAttribute('step') ?? 1;
-    }
-
     get quantitySelectorDisplayed() {
         return !!this.fragmentQuantityValue.trim();
     }
 
-    createQsElement(min, step, title) {
-        const el = document.createElement('merch-quantity-select');
-        el.setAttribute('title', title);
-        el.setAttribute('min', min);
-        el.setAttribute('max', '10');
-        el.setAttribute('step', step);
-        return el;
-    }
-
-    #updateQuantityValues(event) {
-        const vals = [this.quantityStart, this.quantityStep, this.quantityTitle];
-        if (event.target.dataset.field === 'startQuantity') {
-            vals[0] = event.target.value;
-        } else if (event.target.dataset.field === 'stepQuantity') {
-            vals[1] = event.target.value;
-        } else if (event.target.dataset.field === 'titleQuantity') {
-            vals[2] = event.target.value;
-        }
-
-        const html = this.createQsElement(vals[0], vals[1], vals[2]).outerHTML;
+    #handleQuantityFieldChange = (event) => {
+        const html = event.detail?.value ?? event.currentTarget?.value;
+        if (typeof html !== 'string') return;
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
-    }
+    };
 
     #showQuantityFields = (e) => {
         this.showQuantityFields(e.target.checked);
 
         let html = '';
         if (e.target.checked) {
-            html = this.createQsElement(this.quantityStart, this.quantityStep, this.quantityTitle).outerHTML;
+            html = this.quantityValue || createQuantitySelectValue({ title: '', min: '1', step: '1' });
         } else {
             const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
             this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
@@ -508,6 +485,22 @@ class MerchCardEditor extends LitElement {
                 const field = this.querySelector(`sp-field-group#${attributeId}`);
                 if (field) field.style.display = 'none';
             });
+        }
+
+        // Mini-compare-chart uses icon picker field for whatsIncluded
+        if (variantValue === VARIANT_NAMES.MINI_COMPARE_CHART) {
+            const shared = this.querySelector('sp-field-group.toggle#whatsIncluded');
+            const iconPicker = this.querySelector('sp-field-group.toggle#whatsIncludedIconPicker');
+            if (shared) shared.style.display = 'none';
+            if (iconPicker) iconPicker.style.display = 'block';
+        }
+
+        // Mini-compare-chart-mweb: hide footer rows and quantity selection (Milo-managed)
+        if (variantValue === VARIANT_NAMES.MINI_COMPARE_CHART_MWEB) {
+            const footerRows = this.querySelector('sp-field-group.toggle#footerRows');
+            const quantitySelect = this.querySelector('sp-field-group.toggle#quantitySelect');
+            if (footerRows) footerRows.style.display = 'none';
+            if (quantitySelect) quantitySelect.style.display = 'none';
         }
 
         this.toggleSectionHeadings();
@@ -658,6 +651,10 @@ class MerchCardEditor extends LitElement {
 
                 .full-width {
                     width: 100%;
+                }
+
+                .quantity-component-restores {
+                    margin-top: 8px;
                 }
 
                 sp-field-group sp-textfield {
@@ -919,6 +916,36 @@ class MerchCardEditor extends LitElement {
                     </mas-multifield>
                     ${this.renderFieldStatusIndicator('whatsIncluded')}
                 </sp-field-group>
+                <sp-field-group class="toggle" id="whatsIncludedIconPicker">
+                    <div class="section-title">What's included</div>
+                    <mas-multifield
+                        button-label="Add application"
+                        data-field-state="${this.getFieldState('whatsIncluded')}"
+                        .value="${this.whatsIncluded.values}"
+                        @change="${(e) => this.#updateWhatsIncluded(e, false)}"
+                        @input="${(e) => this.#updateWhatsIncluded(e, false)}"
+                    >
+                        <template>
+                            <mas-icon-picker-field></mas-icon-picker-field>
+                        </template>
+                    </mas-multifield>
+                    ${this.renderFieldStatusIndicator('whatsIncluded')}
+                </sp-field-group>
+                <sp-field-group class="toggle" id="footerRows">
+                    <div class="section-title">Footer rows</div>
+                    <mas-multifield
+                        button-label="Add application"
+                        data-field-state="${this.getFieldState('footerRows')}"
+                        .value="${this.footerRows}"
+                        @change="${this.#updateFooterRows}"
+                        @input="${this.#updateFooterRows}"
+                    >
+                        <template>
+                            <mas-included-field></mas-included-field>
+                        </template>
+                    </mas-multifield>
+                    ${this.renderFieldStatusIndicator('footerRows')}
+                </sp-field-group>
                 <sp-field-group class="toggle" id="quantitySelect">
                     <div class="section-title">Quantity selection</div>
                     <sp-checkbox
@@ -932,46 +959,17 @@ class MerchCardEditor extends LitElement {
                     >
                     ${this.renderFieldStatusIndicator('quantitySelect')}
                     <div id="quantitySelector" style="display: ${this.quantitySelectorDisplayed ? 'block' : 'none'};">
-                        <div class="two-column-grid">
-                            <sp-field-group id="quantitySelectorTitle">
-                                <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
-                                <sp-textfield
-                                    id="title-quantity"
-                                    data-field="titleQuantity"
-                                    data-field-state="${this.getQuantityComponentState('title')}"
-                                    value="${this.quantityTitle}"
-                                    @input="${this.#updateQuantityValues}"
-                                    ?disabled=${this.disabled}
-                                ></sp-textfield>
-                                ${this.renderQuantityComponentOverrideIndicator('title')}
-                            </sp-field-group>
-                            <sp-field-group id="quantitySelectorStart">
-                                <sp-field-label for="start-quantity">Start quantity</sp-field-label>
-                                <sp-textfield
-                                    id="start-quantity"
-                                    data-field="startQuantity"
-                                    data-field-state="${this.getQuantityComponentState('min')}"
-                                    pattern="[0-9]*"
-                                    value="${this.quantityStart}"
-                                    @input="${this.#updateQuantityValues}"
-                                    ?disabled=${this.disabled}
-                                ></sp-textfield>
-                                ${this.renderQuantityComponentOverrideIndicator('min')}
-                            </sp-field-group>
-                        </div>
-                        <sp-field-group id="quantitySelectorStep">
-                            <sp-field-label for="step-quantity">Step</sp-field-label>
-                            <sp-textfield
-                                id="step-quantity"
-                                data-field="stepQuantity"
-                                data-field-state="${this.getQuantityComponentState('step')}"
-                                pattern="[0-9]*"
-                                value="${this.quantityStep}"
-                                @input="${this.#updateQuantityValues}"
-                                ?disabled=${this.disabled}
-                            ></sp-textfield>
+                        <quantity-select-field
+                            data-field-state="${this.getFieldState('quantitySelect')}"
+                            .value=${this.quantityValue}
+                            ?disabled=${this.disabled}
+                            @change=${this.#handleQuantityFieldChange}
+                        ></quantity-select-field>
+                        <div class="quantity-component-restores">
+                            ${this.renderQuantityComponentOverrideIndicator('title')}
+                            ${this.renderQuantityComponentOverrideIndicator('min')}
                             ${this.renderQuantityComponentOverrideIndicator('step')}
-                        </sp-field-group>
+                        </div>
                     </div>
                 </sp-field-group>
                 <div class="two-column-grid">
@@ -1051,10 +1049,13 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="promo-text"
                         link
+                        upt-link
+                        multiline
                         data-field="promoText"
                         data-field-state="${this.getFieldState('promoText')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.promoText?.values[0] || ''}
+                        default-link-style="secondary-link"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('promoText')}
@@ -1257,25 +1258,26 @@ class MerchCardEditor extends LitElement {
                 iconSlot.append(merchIcon);
             }
         }
-        const description = document.createElement('p');
-        description.setAttribute('slot', 'description');
+        const descriptionEl = document.createElement('p');
+        descriptionEl.setAttribute('slot', 'description');
+        const text = value.description || value.alt || '';
         if (isBullet) {
             const span = document.createElement('span');
-            if (value.alt?.startsWith('<p>')) {
+            if (text.startsWith('<p>')) {
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(value.alt, 'text/html');
+                const doc = parser.parseFromString(text, 'text/html');
                 span.innerHTML = doc.querySelector('p').innerHTML;
             } else {
-                span.textContent = value.alt || '';
+                span.textContent = text;
             }
-            description.append(span);
+            descriptionEl.append(span);
         } else {
-            const strong = document.createElement('strong');
-            strong.textContent = value.alt || '';
-            description.append(strong);
+            const span = document.createElement('span');
+            span.textContent = text;
+            descriptionEl.append(span);
         }
         list.append(iconSlot);
-        list.append(description);
+        list.append(descriptionEl);
         return list;
     }
 
@@ -1309,11 +1311,11 @@ class MerchCardEditor extends LitElement {
         let values = [];
         let bullets = [];
         if (Array.isArray(event.target.value)) {
-            event.target.value.forEach(({ icon, alt, link }) => {
+            event.target.value.forEach(({ icon, description, alt, link }) => {
                 if (isBullet) {
-                    bullets.push({ icon, alt, link });
+                    bullets.push({ icon, description, alt, link });
                 } else {
-                    values.push({ icon, alt, link });
+                    values.push({ icon, description, alt, link });
                 }
             });
             label = this.whatsIncluded.label;
@@ -1329,6 +1331,54 @@ class MerchCardEditor extends LitElement {
         }
         const element = this.createIncludedElement(label, values, bullets);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
+    }
+
+    get footerRows() {
+        const html = this.getEffectiveFieldValue('footerRows', 0) || '';
+        if (!html) return [];
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const rows = [];
+        doc.querySelectorAll('.footer-row-cell').forEach((cell) => {
+            rows.push({
+                icon: cell.querySelector('.footer-row-icon img')?.getAttribute('src') || '',
+                alt: cell.querySelector('.footer-row-cell-description p')?.textContent || '',
+                link: '',
+            });
+        });
+        return rows;
+    }
+
+    createFooterRowsElement(values) {
+        if (!values?.length) return undefined;
+        const ul = document.createElement('ul');
+        values.forEach(({ icon, alt }) => {
+            const li = document.createElement('li');
+            li.className = 'footer-row-cell';
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'footer-row-icon';
+            if (icon) {
+                const img = document.createElement('img');
+                img.setAttribute('src', icon);
+                img.setAttribute('alt', alt || '');
+                iconDiv.append(img);
+            }
+            const descDiv = document.createElement('div');
+            descDiv.className = 'footer-row-cell-description';
+            const p = document.createElement('p');
+            p.textContent = alt || '';
+            descDiv.append(p);
+            li.append(iconDiv, descDiv);
+            ul.append(li);
+        });
+        return ul;
+    }
+
+    #updateFooterRows(event) {
+        const items = event?.target?.value;
+        if (!Array.isArray(items)) return;
+        const values = items.map(({ icon, alt, link }) => ({ icon, alt, link }));
+        const element = this.createFooterRowsElement(values);
+        this.fragmentStore.updateField('footerRows', [element?.outerHTML || '']);
     }
 
     #updateMnemonics(event) {
@@ -1492,8 +1542,12 @@ class MerchCardEditor extends LitElement {
         const variant = this.currentVariantMapping;
         this.availableColors = variant?.allowedColors || [];
         if (variant.borderColor || variant.badge?.tag) {
-            this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
-            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
+            const resolve = (curated) =>
+                variant.showAllSpectrumColors && curated
+                    ? [...curated, ...SPECTRUM_COLORS.filter((c) => !curated.includes(c))]
+                    : curated || SPECTRUM_COLORS;
+            this.availableBorderColors = resolve(variant.allowedBorderColors);
+            this.availableBadgeColors = resolve(variant.allowedBadgeColors);
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
@@ -1630,18 +1684,6 @@ class MerchCardEditor extends LitElement {
         return { text: html.trim(), bgColor: '', borderColor: '' };
     }
 
-    #parseQuantityHtml(html) {
-        if (!html) return { title: '', min: '', step: '' };
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const el = doc.querySelector('merch-quantity-select');
-        return {
-            title: el?.getAttribute('title') || '',
-            min: el?.getAttribute('min') || '',
-            step: el?.getAttribute('step') || '',
-        };
-    }
-
     #getCompositeComponentState(fieldName, parser, component, getOwnHtml) {
         if (!this.effectiveIsVariation) return 'no-parent';
         const ownHtml = getOwnHtml ? getOwnHtml() : this.fragment?.getFieldValue(fieldName, 0) || '';
@@ -1655,7 +1697,7 @@ class MerchCardEditor extends LitElement {
     }
 
     getQuantityComponentState(component) {
-        return this.#getCompositeComponentState(QUANTITY_MODEL, this.#parseQuantityHtml.bind(this), component);
+        return this.#getCompositeComponentState(QUANTITY_MODEL, parseQuantitySelectValue, component, () => this.quantityValue);
     }
 
     renderQuantityComponentOverrideIndicator(component) {
@@ -1666,11 +1708,13 @@ class MerchCardEditor extends LitElement {
 
     async resetQuantityComponentToParent(component) {
         const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
-        const parentParsed = this.#parseQuantityHtml(parentHtml);
-        const currentTitle = component === 'title' ? parentParsed.title : this.quantityTitle;
-        const currentMin = component === 'min' ? parentParsed.min : this.quantityStart;
-        const currentStep = component === 'step' ? parentParsed.step : this.quantityStep;
-        const html = this.createQsElement(currentMin, currentStep, currentTitle).outerHTML;
+        const parentValues = parseQuantitySelectValue(parentHtml);
+        const currentValues = parseQuantitySelectValue(this.quantityValue);
+        const html = createQuantitySelectValue({
+            title: component === 'title' ? parentValues.title : currentValues.title,
+            min: component === 'min' ? parentValues.min : currentValues.min,
+            step: component === 'step' ? parentValues.step : currentValues.step,
+        });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
         showToast('Field restored to parent value', 'positive');
@@ -1949,9 +1993,15 @@ class MerchCardEditor extends LitElement {
             displaySelectedValue = 'Transparent';
         }
 
+        const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
         const options = isBackground
             ? ['Default', 'Transparent', ...colorArray]
-            : ['Default', 'Transparent', ...(isBorder ? Object.keys(variantSpecialValues) : []), ...colorArray];
+            : [
+                  'Default',
+                  'Transparent',
+                  ...(isBorder && !showAllSpectrum ? Object.keys(variantSpecialValues) : []),
+                  ...colorArray,
+              ];
 
         const handleChange = (e) => {
             const value = e.target.value;

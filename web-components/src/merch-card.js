@@ -374,7 +374,10 @@ export class MerchCard extends LitElement {
     }
 
     get activeDescriptionLinks() {
-        if (this.variant === 'mini-compare-chart') {
+        if (
+            this.variant === 'mini-compare-chart' ||
+            this.variant === 'mini-compare-chart-mweb'
+        ) {
             return this.checkoutLinkDescriptionCompare;
         }
         return this.checkoutLinksDescription;

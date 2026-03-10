@@ -151,11 +151,10 @@ export class Router extends EventTarget {
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
                         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
                     }
-                    if (Store.page.value === PAGE_NAMES.SETTINGS_EDITOR && targetPage === PAGE_NAMES.SETTINGS) {
-                        Store.settings.creating.set(false);
-                        Store.settings.fragmentId.set(null);
-                    }
-                    if (targetPage !== PAGE_NAMES.SETTINGS && targetPage !== PAGE_NAMES.SETTINGS_EDITOR) {
+                    if (
+                        (Store.page.value === PAGE_NAMES.SETTINGS || Store.page.value === PAGE_NAMES.SETTINGS_EDITOR) &&
+                        targetPage !== PAGE_NAMES.SETTINGS_EDITOR
+                    ) {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
                     }

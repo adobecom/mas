@@ -125,7 +125,7 @@ function validateMCPOperation(operation) {
         'preview_bulk_update',
         'preview_bulk_publish',
         'preview_bulk_delete',
-        'get_variations',
+        'get_fragment_variations',
         'resolve_offer_selector',
         'get_offer_by_id',
         'search_offers',
@@ -142,7 +142,6 @@ function validateMCPOperation(operation) {
     switch (operation.mcpTool) {
         case 'publish_card':
         case 'unpublish_card':
-        case 'get_card':
         case 'delete_card':
         case 'copy_card':
         case 'update_card':
@@ -150,13 +149,18 @@ function validateMCPOperation(operation) {
                 return { valid: false, error: `${operation.mcpTool} requires mcpParams.id` };
             }
             break;
+        case 'get_card':
+            if (!operation.mcpParams.ids?.length && !operation.mcpParams.id) {
+                return { valid: false, error: 'get_card requires mcpParams.ids or mcpParams.id' };
+            }
+            break;
 
         case 'search_cards':
             break;
 
-        case 'get_variations':
+        case 'get_fragment_variations':
             if (!operation.mcpParams.id) {
-                return { valid: false, error: 'get_variations requires mcpParams.id' };
+                return { valid: false, error: 'get_fragment_variations requires mcpParams.id' };
             }
             break;
 

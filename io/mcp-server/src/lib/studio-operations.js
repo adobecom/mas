@@ -154,34 +154,47 @@ export class StudioOperations {
     }
 
     /**
-     * Get a card by ID
-     * @param {Object} params - { id: string }
+     * Get one or more cards by ID
+     * @param {Object} params - { ids: string[] }
      */
-    async getCard(params) {
-        const { id } = params;
+    async getCards(params) {
+        const { ids } = params;
 
-        if (!id) {
-            throw new Error('Card ID is required for get operation');
+        if (!ids || ids.length === 0) {
+            throw new Error('At least one card ID is required for get operation');
         }
 
-        const fragment = await this.aemClient.getFragment(id);
+        const results = await Promise.all(
+            ids.map(async (id) => {
+                try {
+                    const fragment = await this.aemClient.getFragment(id);
+                    if (!fragment) return { id, error: `Card not found: ${id}` };
+                    const card = this.formatCard(fragment);
+                    const studioLinks = this.urlBuilder.createCardLinks(card);
+                    return { card, studioLinks: { viewInStudio: studioLinks.view, viewFolder: studioLinks.folder } };
+                } catch (error) {
+                    return { id, error: error.message };
+                }
+            }),
+        );
 
-        if (!fragment) {
-            throw new Error(`Card not found: ${id}`);
+        const cards = results.filter((r) => r.card).map((r) => r.card);
+        const errors = results.filter((r) => r.error);
+
+        if (cards.length === 0) {
+            throw new Error(errors.map((e) => e.error).join('; '));
         }
 
-        const card = this.formatCard(fragment);
-        const studioLinks = this.urlBuilder.createCardLinks(card);
+        const firstCard = results.find((r) => r.card);
 
         return {
             success: true,
             operation: 'get',
-            card,
-            message: `Found "${fragment.title}"`,
-            studioLinks: {
-                viewInStudio: studioLinks.view,
-                viewFolder: studioLinks.folder,
-            },
+            card: cards[0],
+            cards,
+            count: cards.length,
+            message: cards.length === 1 ? `Found "${cards[0].title}"` : `Found ${cards.length} cards`,
+            studioLinks: firstCard.studioLinks,
         };
     }
 
@@ -1349,6 +1362,15 @@ export class StudioOperations {
 
         const model = fragment.model || '/conf/mas/settings/dam/cfm/models/card';
 
+        const variationCount = Array.isArray(transformedFields.variations) ? transformedFields.variations.length : 0;
+
+        const normalizeDate = (val) => {
+            if (!val) return null;
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object' && val.at) return val.at;
+            return null;
+        };
+
         return {
             id: fragment.id,
             path: fragment.path,
@@ -1359,9 +1381,10 @@ export class StudioOperations {
             osi: transformedFields.osi || null,
             fields: transformedFields,
             tags: fragment.tags || [],
-            modified: fragment.modified,
-            published: fragment.published,
+            modified: normalizeDate(fragment.modified),
+            published: normalizeDate(fragment.published),
             status: fragment.status,
+            variationCount,
         };
     }
 

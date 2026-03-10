@@ -373,7 +373,7 @@ export class MASMCPServer {
                 },
             },
             {
-                name: 'get_variations',
+                name: 'get_fragment_variations',
                 description: 'Get all regional locale variations of a fragment',
                 inputSchema: {
                     type: 'object',
@@ -604,7 +604,7 @@ export class MASMCPServer {
                 return this.studioOperations.previewBulkDelete(args);
             case 'get_job_status':
                 return this.studioOperations.getJobStatus(args);
-            case 'get_variations':
+            case 'get_fragment_variations':
                 return this.studioOperations.getFragmentVariations(args);
 
             case 'create_collection':

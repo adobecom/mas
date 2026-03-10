@@ -9,7 +9,7 @@ import { requireIMSAuth } from '../lib/ims-validator.js';
  * Adobe I/O Runtime action for studio_get_card operation
  */
 async function main(params) {
-    const { id, __ow_headers } = params;
+    const { id, ids, __ow_headers } = params;
 
     try {
         const authError = await requireIMSAuth(__ow_headers);
@@ -29,7 +29,8 @@ async function main(params) {
         const urlBuilder = new StudioURLBuilder(studioBaseUrl);
         const studioOps = new StudioOperations(aemClient, urlBuilder);
 
-        const result = await studioOps.getCard({ id });
+        const cardIds = ids || (id ? [id] : []);
+        const result = await studioOps.getCards({ ids: cardIds });
 
         return {
             statusCode: 200,

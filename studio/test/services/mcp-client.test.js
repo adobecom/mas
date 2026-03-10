@@ -149,15 +149,16 @@ describe('mcp-client', () => {
             expect(warned).to.be.true;
         });
 
-        it('throws on non-OK response', async () => {
+        it('throws on non-OK response (non-retryable)', async () => {
             const { executeMCPTool } = await loadModule();
             setupAuth();
             document.querySelector = () => null;
 
             globalThis.fetch = async () => ({
                 ok: false,
-                status: 500,
-                json: async () => ({ error: 'server error' }),
+                status: 400,
+                headers: new Headers(),
+                json: async () => ({ error: 'bad request' }),
             });
 
             try {
@@ -165,6 +166,31 @@ describe('mcp-client', () => {
                 expect.fail('should have thrown');
             } catch (err) {
                 expect(err.message).to.include('Failed to execute publish_card');
+            }
+        });
+
+        it('retries on retryable errors and eventually throws', async () => {
+            const { executeMCPTool } = await loadModule();
+            setupAuth();
+            document.querySelector = () => null;
+
+            let callCount = 0;
+            globalThis.fetch = async () => {
+                callCount++;
+                return {
+                    ok: false,
+                    status: 503,
+                    headers: new Headers({ 'retry-after': '0' }),
+                    json: async () => ({ error: 'service unavailable' }),
+                };
+            };
+
+            try {
+                await executeMCPTool('publish_card', {});
+                expect.fail('should have thrown');
+            } catch (err) {
+                expect(callCount).to.equal(4);
+                expect(err.message).to.include('503');
             }
         });
     });

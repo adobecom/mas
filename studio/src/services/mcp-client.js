@@ -6,6 +6,7 @@
  */
 
 import { MCP_SERVER_URL, IMS_ORG_ID, AEM_AUTHOR_URL } from '../constants.js';
+import { fetchWithRetry } from './fetch-with-retry.js';
 
 /**
  * Execute an MCP tool on the MCP server
@@ -14,6 +15,7 @@ import { MCP_SERVER_URL, IMS_ORG_ID, AEM_AUTHOR_URL } from '../constants.js';
  * @returns {Promise<Object>} - Tool execution result
  */
 export async function executeMCPTool(toolName, params) {
+    const actionName = toolName.replaceAll('_', '-');
     try {
         const accessToken =
             sessionStorage.getItem('masAccessToken') ??
@@ -39,10 +41,9 @@ export async function executeMCPTool(toolName, params) {
             ...(resolvedAemUrl ? { _aemBaseUrl: resolvedAemUrl } : {}),
         };
 
-        const actionName = toolName.replaceAll('_', '-');
         const endpoint = `${MCP_SERVER_URL}/${actionName}`;
 
-        const response = await fetch(endpoint, {
+        const response = await fetchWithRetry(endpoint, {
             method: 'POST',
             headers,
             body: JSON.stringify(requestBody),
@@ -50,14 +51,14 @@ export async function executeMCPTool(toolName, params) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `MCP server returned ${response.status}`);
+            throw new Error(errorData.error || `MCP server returned ${response.status} for ${actionName}`);
         }
 
         const result = await response.json();
         return result;
     } catch (error) {
         console.error(`MCP tool execution failed (${toolName}):`, error);
-        throw new Error(`Failed to execute ${toolName}: ${error.message}`);
+        throw new Error(`Failed to execute ${toolName} (${actionName}): ${error.message}`);
     }
 }
 
@@ -142,13 +143,18 @@ const TOOL_FORMATTERS = {
         deepLink: result.deepLink,
     }),
 
-    get_card: (result) => ({
-        success: true,
-        operation: 'get',
-        fragment: result.card,
-        message: `Found "${result.card.title}"`,
-        deepLink: result.deepLink,
-    }),
+    get_card: (result) => {
+        const cards = result.cards || (result.card ? [result.card] : []);
+        return {
+            success: true,
+            operation: 'get',
+            fragment: cards[0],
+            cards,
+            count: cards.length,
+            message: result.message || `Found ${cards.length} card(s)`,
+            deepLink: result.deepLink,
+        };
+    },
 
     search_cards: (result) => {
         const cards = result.results || result.cards || [];
@@ -248,9 +254,9 @@ const TOOL_FORMATTERS = {
         message: result.message || `Preview: ${result.summary?.willDelete || 0} cards will be deleted`,
     }),
 
-    get_variations: (result) => ({
+    get_fragment_variations: (result) => ({
         success: true,
-        operation: 'get_variations',
+        operation: 'get_fragment_variations',
         parent: result.parent,
         variations: result.variations || [],
         count: result.count || 0,

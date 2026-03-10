@@ -1,4 +1,5 @@
 import { AI_CHAT_BASE_URL } from '../constants.js';
+import { fetchWithRetry } from './fetch-with-retry.js';
 
 export async function callAIChatAction(params) {
     if (!window.adobeIMS) {
@@ -12,7 +13,7 @@ export async function callAIChatAction(params) {
 
     const actionUrl = `${AI_CHAT_BASE_URL}/ai-chat`;
 
-    const response = await fetch(actionUrl, {
+    const response = await fetchWithRetry(actionUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

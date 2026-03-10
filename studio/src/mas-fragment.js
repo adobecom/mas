@@ -16,6 +16,7 @@ class MasFragment extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
         view: { type: String, attribute: true }, // 'render' | 'table'
+        selectable: { type: Boolean, attribute: true },
         expanded: { type: Boolean, state: true, attribute: false },
         loadingReferences: { type: Boolean, state: true, attribute: false },
     };
@@ -153,26 +154,42 @@ class MasFragment extends LitElement {
     get tableView() {
         if (this.view !== 'table') return nothing;
         const fragment = this.fragmentStore.get();
-        return html`<overlay-trigger placement="top"
-                ><mas-fragment-table
-                    class="mas-fragment"
-                    data-id=${fragment.id}
-                    slot="trigger"
-                    .fragmentStore=${this.fragmentStore}
-                    .expanded=${this.expanded}
-                    .toggleExpand=${this.toggleExpand.bind(this)}
-                    @click=${this.handleClick}
-                    @mouseleave=${this.handleMouseLeave}
-                    @dblclick=${this.edit}
-                ></mas-fragment-table
-                ><sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
-            </overlay-trigger>
-            ${this.expanded
-                ? html`<mas-fragment-variations
-                      .fragment=${this.fragmentStore.value}
-                      .loading=${this.loadingReferences}
-                  ></mas-fragment-variations>`
-                : ''}`;
+        const tableRow = html`<mas-fragment-table
+            class="mas-fragment"
+            data-id=${fragment.id}
+            .fragmentStore=${this.fragmentStore}
+            .expanded=${this.expanded}
+            .toggleExpand=${this.toggleExpand.bind(this)}
+            @click=${this.handleClick}
+            @mouseleave=${this.handleMouseLeave}
+            @dblclick=${this.edit}
+        ></mas-fragment-table>`;
+
+        const table = this.selectable
+            ? tableRow
+            : html`<overlay-trigger placement="top"
+                  >${html`<mas-fragment-table
+                      class="mas-fragment"
+                      data-id=${fragment.id}
+                      slot="trigger"
+                      .fragmentStore=${this.fragmentStore}
+                      .expanded=${this.expanded}
+                      .toggleExpand=${this.toggleExpand.bind(this)}
+                      @click=${this.handleClick}
+                      @mouseleave=${this.handleMouseLeave}
+                      @dblclick=${this.edit}
+                  ></mas-fragment-table>`}<sp-tooltip slot="hover-content" placement="top"
+                      >Double click the card to start editing.</sp-tooltip
+                  >
+              </overlay-trigger>`;
+
+        return html`${table}
+        ${this.expanded
+            ? html`<mas-fragment-variations
+                  .fragment=${this.fragmentStore.value}
+                  .loading=${this.loadingReferences}
+              ></mas-fragment-variations>`
+            : ''}`;
     }
 
     render() {

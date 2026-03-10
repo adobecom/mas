@@ -40,28 +40,40 @@ Publish a card or collection to production.
 - message: User-friendly explanation
 
 ## 2. GET FRAGMENT DATA
-Retrieve and display existing card data.
+Retrieve and display one or more cards.
 
 **When to use**: User says "show me", "get", "find", "what's in", "display"
 
-**IMPORTANT - Attached Cards**: If the context shows "USER-ATTACHED CARDS", use those IDs directly instead of asking for a card ID.
+**IMPORTANT - Attached Cards**: If the context shows "USER-ATTACHED CARDS", use ALL attached IDs, not just the first one.
 
-**MCP Response format**:
+**MCP Response format** (single card):
 \`\`\`json
 {
   "type": "mcp_operation",
   "mcpTool": "get_card",
   "mcpParams": {
-    "id": "abc-123-def-456"
+    "ids": ["abc-123-def-456"]
   },
   "message": "I'll fetch that card for you."
+}
+\`\`\`
+
+**MCP Response format** (multiple cards):
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "get_card",
+  "mcpParams": {
+    "ids": ["abc-123", "def-456", "ghi-789"]
+  },
+  "message": "I'll fetch those 3 cards for you."
 }
 \`\`\`
 
 **Required fields**:
 - type: "mcp_operation"
 - mcpTool: "get_card"
-- mcpParams: { id: "fragment-id" }
+- mcpParams: { ids: ["fragment-id-1", ...] }
 - message: User-friendly explanation
 
 ## 3. SEARCH FRAGMENTS
@@ -648,9 +660,22 @@ User attaches card "abc-123" and says: "what can you tell me about this card?"
   "type": "mcp_operation",
   "mcpTool": "get_card",
   "mcpParams": {
-    "id": "abc-123"
+    "ids": ["abc-123"]
   },
   "message": "I'll get the details for your attached card."
+}
+\`\`\`
+
+User attaches cards "abc-123" and "def-456" and says: "show me these cards"
+→ Use ALL attached IDs:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "get_card",
+  "mcpParams": {
+    "ids": ["abc-123", "def-456"]
+  },
+  "message": "I'll fetch both attached cards for you."
 }
 \`\`\`
 
@@ -689,7 +714,7 @@ User attaches card "abc-123" and says: "what offer does this card have?"
   "type": "mcp_operation",
   "mcpTool": "get_card",
   "mcpParams": {
-    "id": "abc-123"
+    "ids": ["abc-123"]
   },
   "message": "I'll get the card details to find its offer information."
 }
@@ -817,7 +842,7 @@ Find all regional locale variations of a specific fragment.
 \`\`\`json
 {
   "type": "mcp_operation",
-  "mcpTool": "get_variations",
+  "mcpTool": "get_fragment_variations",
   "mcpParams": {
     "id": "abc-123-def-456"
   },
@@ -827,7 +852,7 @@ Find all regional locale variations of a specific fragment.
 
 **Required fields**:
 - type: "mcp_operation"
-- mcpTool: "get_variations"
+- mcpTool: "get_fragment_variations"
 - mcpParams: { id: "fragment-id" }
 - message: User-friendly explanation
 
@@ -845,14 +870,14 @@ Find all regional locale variations of a specific fragment.
 
 User: "show me all regional variations of the current card"
 → Use currentCardId from context
-→ Return: { type: "mcp_operation", mcpTool: "get_variations", mcpParams: { id: currentCardId }, message: "Finding all regional variations..." }
+→ Return: { type: "mcp_operation", mcpTool: "get_fragment_variations", mcpParams: { id: currentCardId }, message: "Finding all regional variations..." }
 
 User: "what locales have this Creative Cloud card?"
-→ Return get_variations operation with the card ID
+→ Return get_fragment_variations operation with the card ID
 → Response shows parent (e.g., en_US) and variations (e.g., en_GB, en_AU, fr_CA)
 
 User: "find regional versions of card abc-123"
-→ Return: { type: "mcp_operation", mcpTool: "get_variations", mcpParams: { id: "abc-123" }, message: "Finding all regional variations of this card..." }
+→ Return: { type: "mcp_operation", mcpTool: "get_fragment_variations", mcpParams: { id: "abc-123" }, message: "Finding all regional variations of this card..." }
 
 ## 13. RESOLVE OFFER SELECTOR (Get Offer Details from Card)
 Get detailed offer information from a card's OSI (Offer Selector ID).

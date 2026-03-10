@@ -219,80 +219,97 @@ export class MasOperationResult extends LitElement {
     }
 
     renderGetResult() {
-        const { fragment } = this.result;
+        const cards = this.result.cards || (this.result.fragment ? [this.result.fragment] : []);
 
-        if (!fragment) {
+        if (cards.length === 0) {
             return html`<p>No fragment data available.</p>`;
         }
 
+        return html`${repeat(
+            cards,
+            (card) => card.id,
+            (card) => this.renderCardDetail(card),
+        )}`;
+    }
+
+    renderCardDetail(fragment) {
         const pathMatch = fragment.path?.match(PATH_TOKENS);
         const surface = pathMatch?.groups?.surface;
         const locale = pathMatch?.groups?.parsedLocale;
         const fields = this.getFieldValues(fragment);
         const truncatedPath = this.truncatePath(fragment.path);
+        const variant = this.extractVariant(fragment);
+        const status = fragment.status || 'draft';
+        const statusVariant = status === 'Published' ? 'positive' : 'neutral';
+        const variationCount = fragment.variationCount ?? 0;
 
         return html`
             <div class="operation-result get-result">
-                <div class="fragment-preview">
+                <div class="card-header">
                     <h4>${fragment.title}</h4>
-                    <div class="fragment-meta">
-                        <sp-badge>${this.extractVariant(fragment)}</sp-badge>
-                        <span class="fragment-status">${fragment.status}</span>
-                        ${surface ? html`<sp-badge size="s" variant="informative">${surface}</sp-badge>` : nothing}
-                        ${locale ? html`<sp-badge size="s" variant="informative">${locale}</sp-badge>` : nothing}
+                    <div class="card-header-status">
+                        <sp-badge size="s">${variant}</sp-badge>
+                        <sp-badge size="s" variant="${statusVariant}">${status}</sp-badge>
                     </div>
+                </div>
 
-                    <div class="card-detail-grid">
-                        <div class="offer-field">
-                            <span class="field-label">Path</span>
-                            <span class="field-value" title="${fragment.path}">${truncatedPath}</span>
-                        </div>
-                        <div class="offer-field">
-                            <span class="field-label">Fragment ID</span>
-                            <code
-                                class="field-value copyable"
-                                tabindex="0"
-                                role="button"
-                                @click=${() => this.copyToClipboard(fragment.id)}
-                                @keydown=${(e) => this.handleCopyKeydown(e, fragment.id)}
-                                >${fragment.id}</code
-                            >
-                        </div>
-                        ${fields.osi
-                            ? html`<div class="offer-field">
-                                  <span class="field-label">OSI</span>
-                                  <code class="field-value">${fields.osi}</code>
-                              </div>`
-                            : nothing}
-                        <div class="offer-field">
-                            <span class="field-label">Modified</span>
-                            <span class="field-value">${this.formatRelativeTime(fragment.modified)}</span>
-                        </div>
-                        <div class="offer-field">
-                            <span class="field-label">Published</span>
-                            <span class="field-value"
-                                >${fragment.published ? this.formatRelativeTime(fragment.published) : 'Never'}</span
-                            >
-                        </div>
-                        ${fields.size && fields.size !== 'wide'
-                            ? html`<div class="offer-field">
-                                  <span class="field-label">Size</span>
-                                  <span class="field-value">${fields.size}</span>
-                              </div>`
-                            : nothing}
+                <div class="card-tags">
+                    ${surface ? html`<sp-badge size="s" variant="informative">${surface}</sp-badge>` : nothing}
+                    ${locale ? html`<sp-badge size="s" variant="informative">${locale}</sp-badge>` : nothing}
+                </div>
+
+                <div class="card-metadata">
+                    <div class="meta-item full-width">
+                        <span class="meta-label">Path</span>
+                        <span class="meta-value mono" title="${fragment.path}">${truncatedPath}</span>
                     </div>
-
-                    ${this.renderCardFields(fields)}
-
-                    <div class="card-detail-actions">
-                        <sp-button size="s" variant="secondary" @click=${() => this.handleOpenCard(fragment)}>
-                            Open in Editor
-                        </sp-button>
-                        <sp-button size="s" variant="secondary" @click=${() => this.copyToClipboard(fragment.id)}>
-                            <sp-icon-copy slot="icon"></sp-icon-copy>
-                            Copy ID
-                        </sp-button>
+                    <div class="meta-item full-width">
+                        <span class="meta-label">Fragment ID</span>
+                        <code
+                            class="meta-value copyable"
+                            tabindex="0"
+                            role="button"
+                            @click=${() => this.copyToClipboard(fragment.id)}
+                            @keydown=${(e) => this.handleCopyKeydown(e, fragment.id)}
+                            >${fragment.id}</code
+                        >
                     </div>
+                    ${fields.osi
+                        ? html`<div class="meta-item full-width">
+                              <span class="meta-label">OSI</span>
+                              <code class="meta-value">${fields.osi}</code>
+                          </div>`
+                        : nothing}
+                    <div class="meta-item">
+                        <span class="meta-label">Modified</span>
+                        <span class="meta-value">${this.formatRelativeTime(fragment.modified)}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Published</span>
+                        <span class="meta-value"
+                            >${fragment.published ? this.formatRelativeTime(fragment.published) : 'Never'}</span
+                        >
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Variations</span>
+                        <span class="meta-value"
+                            >${variationCount > 0
+                                ? `${variationCount} variation${variationCount !== 1 ? 's' : ''}`
+                                : 'None'}</span
+                        >
+                    </div>
+                </div>
+
+                ${this.renderCardFields(fields)}
+
+                <div class="card-detail-actions">
+                    <sp-button size="s" variant="secondary" @click=${() => this.handleOpenCard(fragment)}>
+                        Open in Editor
+                    </sp-button>
+                    <sp-button size="s" variant="secondary" @click=${() => this.copyToClipboard(fragment.id)}>
+                        <sp-icon-copy slot="icon"></sp-icon-copy>
+                        Copy ID
+                    </sp-button>
                 </div>
             </div>
         `;
@@ -375,6 +392,7 @@ export class MasOperationResult extends LitElement {
     formatRelativeTime(dateString) {
         if (!dateString) return 'Unknown';
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Unknown';
         const now = new Date();
         const diffMs = now - date;
         const diffSec = Math.floor(diffMs / 1000);
@@ -1013,7 +1031,7 @@ export class MasOperationResult extends LitElement {
             case 'bulk_delete':
             case 'bulk_delete_cards':
                 return this.renderBulkDeleteResult();
-            case 'get_variations':
+            case 'get_fragment_variations':
                 return this.renderVariationsResult();
             case 'resolve_offer_selector':
                 return this.renderOfferSelectorResult();

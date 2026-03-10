@@ -21,6 +21,7 @@ import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA } from './variant-configs.js';
 import { getVariantsForSurface, buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
+import { createTrace } from './trace-logger.js';
 
 const MAX_HISTORY_PAIRS = 10;
 
@@ -291,6 +292,8 @@ async function main(params) {
         };
     }
 
+    const trace = createTrace(message);
+
     try {
         const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
 
@@ -308,9 +311,14 @@ async function main(params) {
             isCardCreation,
         } = determineSystemPromptWithMeta(intentHint, conversationHistory, message);
 
+        const intent = isDocumentation ? 'documentation' : isCardCreation ? 'card_creation' : 'general';
+        trace.setIntent(intent);
+        trace.setPromptType(isDocumentation ? 'documentation' : isCardCreation ? 'card_or_operation' : 'default');
+
         const enrichedContext = enrichContextWithSurface(context);
 
         const detectedVariant = isCardCreation ? detectVariantFromMessage(message, enrichedContext) : null;
+        trace.setDetectedVariant(detectedVariant);
         const ragVariantDetails = params.RAG_VARIANT_DETAILS === 'true';
 
         const { prompt: systemPrompt, sources: ragSources } = await enhanceWithRAG(basePrompt, message, knowledgeClient, {
@@ -318,10 +326,15 @@ async function main(params) {
             ragVariantDetails,
             detectedVariant,
         });
+        trace.setRAG(ragSources);
 
         const response = await bedrockClient.sendWithContext(conversationHistory, message, systemPrompt, enrichedContext);
+        trace.setTokenUsage(response.usage);
 
         if (!response.success) {
+            trace.setError(response.error || 'Failed to get AI response');
+            trace.setResponseType('error');
+            trace.emit();
             return {
                 statusCode: 500,
                 headers: {
@@ -339,6 +352,9 @@ async function main(params) {
 
         if (operationResult) {
             if (operationResult.type === 'mcp_operation') {
+                trace.setResponseType('mcp_operation');
+                trace.setMCPTool(operationResult.mcpTool);
+
                 if (operationResult.mcpTool === 'search_cards' && enrichedContext) {
                     if (enrichedContext.surface && !operationResult.mcpParams.surface) {
                         operationResult.mcpParams.surface = enrichedContext.surface;
@@ -348,6 +364,7 @@ async function main(params) {
                     }
                 }
 
+                trace.emit();
                 return {
                     statusCode: 200,
                     headers: {
@@ -365,6 +382,8 @@ async function main(params) {
                 };
             }
 
+            trace.setResponseType('legacy_operation');
+            trace.emit();
             return {
                 statusCode: 200,
                 headers: {
@@ -379,11 +398,13 @@ async function main(params) {
         }
 
         const parsedResponse = parseAIResponse(response.message);
+        trace.setResponseType(parsedResponse.type);
 
         if (parsedResponse.type === 'card' && parsedResponse.cardConfig) {
             const variantConfig = getVariantConfig(parsedResponse.cardConfig.variant);
             const validation = validateAIConfig(parsedResponse.cardConfig, variantConfig);
 
+            trace.emit();
             return {
                 statusCode: 200,
                 headers: {
@@ -409,6 +430,8 @@ async function main(params) {
             const collectionValidation = validateCollectionConfig(parsedResponse.collectionConfig);
 
             if (!collectionValidation.valid) {
+                trace.setError(collectionValidation.error);
+                trace.emit();
                 return {
                     statusCode: 200,
                     headers: {
@@ -427,6 +450,7 @@ async function main(params) {
                 return validateAIConfig(card, variantConfig);
             });
 
+            trace.emit();
             return {
                 statusCode: 200,
                 headers: {
@@ -447,6 +471,7 @@ async function main(params) {
         }
 
         if (parsedResponse.type === 'collection-selection') {
+            trace.emit();
             return {
                 statusCode: 200,
                 headers: {
@@ -462,6 +487,7 @@ async function main(params) {
         }
 
         if (parsedResponse.type === 'collection-preview') {
+            trace.emit();
             return {
                 statusCode: 200,
                 headers: {
@@ -478,6 +504,7 @@ async function main(params) {
             };
         }
 
+        trace.emit();
         return {
             statusCode: 200,
             headers: {
@@ -493,6 +520,9 @@ async function main(params) {
         };
     } catch (error) {
         console.error('AI Chat Action Error:', error);
+        trace.setError(error);
+        trace.setResponseType('error');
+        trace.emit();
         return {
             statusCode: 500,
             headers: {

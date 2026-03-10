@@ -43,7 +43,7 @@ class MasCardSelectionDialog extends LitElement {
         this.displayCount = CARDS_PER_PAGE;
         this.cardGridElement = null;
         this.boundHandleScroll = this.handleScroll.bind(this);
-        this.viewMode = 'render';
+        this.viewMode = 'table';
         this.currentFilters = {};
         this.resizeObserver = null;
         this.cardLoadObserver = null;
@@ -204,6 +204,10 @@ class MasCardSelectionDialog extends LitElement {
             }
         }
 
+        if (this.viewMode === 'table') {
+            this.scheduleManageCheckboxes();
+        }
+
         if (changedProperties.has('displayCount') && this.cardGridElement && this.viewMode === 'render') {
             this.scheduleGridReflow();
         }
@@ -254,6 +258,19 @@ class MasCardSelectionDialog extends LitElement {
             clearTimeout(this.reflowTimeout);
             this.reflowTimeout = null;
         }
+    }
+
+    scheduleManageCheckboxes() {
+        if (this.checkboxesManaged) return;
+        requestAnimationFrame(() => {
+            const table = this.querySelector('sp-table');
+            const rows = table?.querySelectorAll('sp-table-row');
+            if (table?.manageCheckboxes && rows?.length > 0) {
+                table.querySelectorAll('sp-table-checkbox-cell').forEach((c) => c.remove());
+                table.manageCheckboxes();
+                this.checkboxesManaged = true;
+            }
+        });
     }
 
     scheduleGridReflow() {
@@ -328,6 +345,7 @@ class MasCardSelectionDialog extends LitElement {
     cleanup() {
         Store.selecting.set(this.previousSelectingState);
         Store.selection.set([]);
+        this.checkboxesManaged = false;
         this.remove();
     }
 
@@ -339,6 +357,7 @@ class MasCardSelectionDialog extends LitElement {
     handleViewModeChange(event) {
         this.viewMode = event.target.value;
         this.displayCount = CARDS_PER_PAGE;
+        this.checkboxesManaged = false;
     }
 
     handleCardClick(fragmentStore) {
@@ -524,6 +543,7 @@ class MasCardSelectionDialog extends LitElement {
 
     get tableView() {
         const filtered = this.filteredFragments;
+        const displayedCards = filtered.slice(0, this.displayCount);
 
         return html`<sp-table
             emphasized
@@ -534,21 +554,22 @@ class MasCardSelectionDialog extends LitElement {
         >
             <sp-table-head>
                 <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                <sp-table-head-cell sortable class="title">Title</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
-                <sp-table-head-cell sortable class="last-modified-by">Modified By</sp-table-head-cell>
-                <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
-                <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
-                <sp-table-head-cell class="actions"></sp-table-head-cell>
-                <sp-table-head-cell class="preview"></sp-table-head-cell>
+                <sp-table-head-cell class="name">Name</sp-table-head-cell>
+                <sp-table-head-cell class="title">Title</sp-table-head-cell>
+                <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
+                <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
+                <sp-table-head-cell class="last-modified-by">Modified By</sp-table-head-cell>
+                <sp-table-head-cell class="price">Price</sp-table-head-cell>
+                <sp-table-head-cell class="status">Status</sp-table-head-cell>
+                <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
+                <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
             </sp-table-head>
             <sp-table-body>
                 ${repeat(
-                    filtered,
+                    displayedCards,
                     (fragmentStore) => fragmentStore.id,
-                    (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+                    (fragmentStore) =>
+                        html`<mas-fragment .fragmentStore=${fragmentStore} view="table" selectable></mas-fragment>`,
                 )}
             </sp-table-body>
         </sp-table>`;
@@ -1170,6 +1191,15 @@ class MasCardSelectionDialog extends LitElement {
                 }
 
                 mas-card-selection-dialog sp-table {
+                    --table-content-name-flex-grow: 1.4;
+                    --table-content-title-flex-grow: 1.6;
+                    --table-content-offer-id-flex-grow: 0.3;
+                    --table-content-offer-type-flex-grow: 0.4;
+                    --table-content-last-modified-by-flex-grow: 0.7;
+                    --table-content-price-flex-grow: 0.7;
+                    --table-content-status-flex-grow: 0.3;
+                    --table-content-actions-flex-grow: 0.2;
+                    --table-content-preview-flex-grow: 0.2;
                     width: 100%;
                     flex: 1;
                     overflow-y: auto;
@@ -1179,65 +1209,6 @@ class MasCardSelectionDialog extends LitElement {
 
                 mas-card-selection-dialog sp-table sp-table-body {
                     background-color: var(--spectrum-gray-100);
-                }
-
-                mas-card-selection-dialog sp-table-cell,
-                mas-card-selection-dialog sp-table-head-cell {
-                    display: flex;
-                    align-items: center;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                }
-
-                mas-card-selection-dialog .expand-cell {
-                    flex: 0 0 40px;
-                    min-width: 40px;
-                }
-
-                mas-card-selection-dialog .name {
-                    flex: 2;
-                    min-width: 150px;
-                }
-
-                mas-card-selection-dialog .title {
-                    flex: 1.5;
-                    min-width: 120px;
-                }
-
-                mas-card-selection-dialog .offer-id {
-                    flex: 1;
-                    min-width: 80px;
-                }
-
-                mas-card-selection-dialog .offer-type {
-                    flex: 0.8;
-                    min-width: 80px;
-                }
-
-                mas-card-selection-dialog .last-modified-by {
-                    flex: 1.2;
-                    min-width: 100px;
-                }
-
-                mas-card-selection-dialog .price {
-                    flex: 0.8;
-                    min-width: 80px;
-                }
-
-                mas-card-selection-dialog .status {
-                    flex: 0.6;
-                    min-width: 80px;
-                }
-
-                mas-card-selection-dialog .actions {
-                    flex: 0 0 50px;
-                    min-width: 50px;
-                }
-
-                mas-card-selection-dialog .preview {
-                    flex: 0 0 50px;
-                    min-width: 50px;
                 }
 
                 mas-card-selection-dialog .dialog-footer {

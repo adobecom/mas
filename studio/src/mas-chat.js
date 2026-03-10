@@ -1,6 +1,5 @@
 import { LitElement, html } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import StoreController from './reactivity/store-controller.js';
 import './mas-chat-message.js';
 import './mas-chat-input.js';
 import './mas-prompt-suggestions.js';
@@ -10,15 +9,22 @@ import './mas-chat-session-selector.js';
 import Store from './store.js';
 import router from './router.js';
 import { createFragmentFromAIConfig } from './utils/ai-card-mapper.js';
-import { executeOperationWithFeedback } from './utils/ai-operations-executor.js';
-import { executeStudioOperation, executeStudioOperationWithProgress } from './services/mcp-client.js';
 import { callAIChatAction } from './services/ai-client.js';
-import { saveDraftToAEM, saveToAEM, publishDraft, deleteDraft, saveCollectionToAEM } from './services/aem-operations.js';
+import { saveToAEM, publishDraft, deleteDraft, saveCollectionToAEM } from './services/aem-operations.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, extractTitleText } from './utils.js';
 import { TAG_MODEL_ID_MAPPING, SURFACE_MAP, PAGE_NAMES, SURFACES } from './constants.js';
 import { getDamPath } from './mas-repository.js';
 import sessionManager from './services/chat-session-manager.js';
+import {
+    buildEnrichedContext,
+    routeResponse,
+    createDraft,
+    dispatchOperation,
+    resolvePreviewApproval,
+    getLastOperationResult,
+    getRecentFragments,
+} from './services/chat-dispatcher.js';
 
 /**
  * Main AI Chat Component
@@ -244,15 +250,9 @@ export class MasChat extends LitElement {
             timestamp: Date.now(),
         };
 
-        if (context?.osi) {
-            userMessage.osi = context.osi;
-        }
-        if (context?.offer) {
-            userMessage.offer = context.offer;
-        }
-        if (context?.cards && context.cards.length > 0) {
-            userMessage.cards = context.cards;
-        }
+        if (context?.osi) userMessage.osi = context.osi;
+        if (context?.offer) userMessage.offer = context.offer;
+        if (context?.cards?.length > 0) userMessage.cards = context.cards;
 
         this.messages = [...this.messages, userMessage];
 
@@ -260,163 +260,29 @@ export class MasChat extends LitElement {
         this.error = null;
 
         try {
-            const currentPath = Store.search?.value?.path || getHashParam('path');
-            const enrichedContext = {
-                ...context,
-                currentPath: currentPath ? `/content/dam/mas/${currentPath}` : null,
-                currentLocale: Store.filters?.value?.locale || 'en_US',
-                lastOperation: this.getLastOperationResult(),
-                workingSet: this.getRecentFragments(),
-            };
+            const enrichedContext = buildEnrichedContext(context, this.messages);
 
-            const response = await this.callAIChatAction({
+            const response = await callAIChatAction({
                 message,
                 conversationHistory: this.conversationHistory,
                 context: enrichedContext,
             });
 
-            if (response.type === 'operation' || response.type === 'mcp_operation') {
-                if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
-                    let surface = null;
+            const routed = routeResponse(response);
+            const messageIndex = this.messages.length;
+            this.messages = [...this.messages, ...routed.messages];
 
-                    if (Store.search?.value?.path) {
-                        surface = this.extractSurfaceFromPath(Store.search.value.path);
-                    }
-
-                    if (!surface) {
-                        const hashPath = getHashParam('path');
-                        surface = SURFACE_MAP[hashPath] || null;
-                    }
-
-                    if (!surface && Store.folders?.data?.value?.length > 0) {
-                        const firstFolder = Store.folders.data.value[0];
-                        surface = this.extractSurfaceFromPath(firstFolder);
-                    }
-
-                    if (!surface) {
-                        surface = 'acom';
-                    }
-
-                    response.mcpParams.surface = surface;
-                    const storeLocale = Store.filters?.value?.locale;
-                    response.mcpParams.locale = storeLocale || 'en_US';
-
-                    if (response.mcpParams.query) {
-                        const query = response.mcpParams.query.toLowerCase();
-                        const imagePatterns = [
-                            /\b(with|has|have|containing|that have)\s+(background\s*)?(image|images|backgroundimage)\b/i,
-                            /\bbackground\s*image\b/i,
-                            /\bhas\s+image\b/i,
-                        ];
-                        const isImageQuery = imagePatterns.some((pattern) => pattern.test(query));
-                        if (isImageQuery && !query.includes('backgroundimage:')) {
-                            response.mcpParams.query = 'backgroundImage:*';
-                        }
-                    }
-                }
-
-                const messageData = {
-                    role: 'assistant',
-                    content: response.message,
-                    confirmationRequired: response.confirmationRequired,
-                    timestamp: Date.now(),
-                };
-
-                if (response.type === 'mcp_operation') {
-                    messageData.mcpOperation = {
-                        mcpTool: response.mcpTool,
-                        mcpParams: response.mcpParams,
-                    };
-                    messageData.operationType = 'mcp_operation';
-                } else {
-                    messageData.operation = response.data;
-                    messageData.operationType = response.operation;
-                }
-
-                this.messages = [...this.messages, messageData];
-
-                if (!response.confirmationRequired) {
-                    const operationToExecute =
-                        response.type === 'mcp_operation'
-                            ? {
-                                  type: 'mcp_operation',
-                                  mcpTool: response.mcpTool,
-                                  mcpParams: response.mcpParams,
-                              }
-                            : response.data;
-
-                    await this.executeOperation(operationToExecute);
-                }
-            } else if (response.type === 'card') {
-                const messageIndex = this.messages.length;
+            if (routed.cardConfig) {
+                const draftResult = await createDraft(routed.cardConfig, routed.messages[0]);
                 this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: response.message,
-                        isCreatingDraft: true,
-                        validation: response.validation,
-                        timestamp: Date.now(),
-                    },
+                    ...this.messages.slice(0, messageIndex),
+                    draftResult.message,
+                    ...this.messages.slice(messageIndex + 1),
                 ];
+            }
 
-                try {
-                    const draftFragment = await saveDraftToAEM(response.cardConfig);
-
-                    this.messages = [
-                        ...this.messages.slice(0, messageIndex),
-                        {
-                            role: 'assistant',
-                            content: response.message,
-                            fragmentId: draftFragment.id,
-                            fragmentPath: draftFragment.path,
-                            fragmentTitle: draftFragment.title,
-                            fragmentStatus: draftFragment.status,
-                            validation: response.validation,
-                            timestamp: Date.now(),
-                        },
-                        ...this.messages.slice(messageIndex + 1),
-                    ];
-
-                    showToast(`Draft card "${draftFragment.title}" created`, 'positive');
-                } catch (error) {
-                    console.error('Failed to create draft:', error);
-                    showToast(`Failed to create draft: ${error.message}`, 'negative');
-
-                    this.messages = [
-                        ...this.messages.slice(0, messageIndex),
-                        {
-                            role: 'error',
-                            content: `Failed to create draft card: ${error.message}. You can try regenerating the card.`,
-                            timestamp: Date.now(),
-                        },
-                        ...this.messages.slice(messageIndex + 1),
-                    ];
-                }
-            } else if (response.type === 'collection') {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: response.message,
-                        collectionConfig: response.collectionConfig,
-                        validation: response.validation,
-                        timestamp: Date.now(),
-                    },
-                ];
-            } else {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: response.message,
-                        type: response.type,
-                        sources: response.sources || [],
-                        fragmentIds: response.fragmentIds,
-                        suggestedTitle: response.suggestedTitle,
-                        timestamp: Date.now(),
-                    },
-                ];
+            if (routed.executeOp) {
+                await this.executeOperation(routed.executeOp);
             }
 
             this.conversationHistory = response.conversationHistory || [];
@@ -436,10 +302,6 @@ export class MasChat extends LitElement {
         }
     }
 
-    async callAIChatAction(params) {
-        return callAIChatAction(params);
-    }
-
     async handleCardAction(event) {
         const { action, config, fragmentId, fragmentTitle } = event.detail;
 
@@ -456,10 +318,9 @@ export class MasChat extends LitElement {
         } else if (action === 'delete') {
             await this.deleteDraft(fragmentId, fragmentTitle);
         } else if (action === 'regenerate') {
-            const regenerateMessage = 'Can you regenerate that card?';
             this.handleSendMessage({
                 detail: {
-                    message: regenerateMessage,
+                    message: 'Can you regenerate that card?',
                     context: { previousCard: config },
                 },
             });
@@ -701,54 +562,27 @@ export class MasChat extends LitElement {
             return;
         }
 
-        const operationType = operation.type === 'mcp_operation' ? operation.mcpTool : operation.operation;
-        const isPreviewOperation = ['preview_bulk_update', 'preview_bulk_publish', 'preview_bulk_delete'].includes(
-            operationType,
-        );
-        const isBulkOperation = ['bulk_update_cards', 'bulk_publish_cards', 'bulk_delete_cards'].includes(operationType);
-
-        if (isPreviewOperation) {
-            await this.executePreviewOperation(operation, operationType);
-        } else if (isBulkOperation) {
-            await this.executeBulkOperationWithProgress(operation, operationType);
-        } else {
-            await this.executeRegularOperation(operation, repository, operationType);
-        }
+        await dispatchOperation(operation, {
+            onMessages: (newMessages) => {
+                this.messages = [...this.messages, ...newMessages];
+            },
+            onAddLoadingMessage: (loadingMessage) => {
+                this.messages = [...this.messages, loadingMessage];
+            },
+            onUpdateMessage: (messageId, updates) => {
+                this.messages = this.messages.map((msg) => (msg.messageId === messageId ? { ...msg, ...updates } : msg));
+                this.requestUpdate();
+            },
+            onReplaceLoadingMessage: (loadingMessage, replacement) => {
+                this.messages = this.messages.map((msg) => (msg === loadingMessage ? replacement : msg));
+            },
+        });
 
         this.endOperation('executeOp');
     }
 
-    async executePreviewOperation(operation, operationType) {
-        try {
-            const previewData = await executeStudioOperation(operation.mcpTool, operation.mcpParams);
-
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'assistant',
-                    content: 'Preview generated. Please review the changes and approve or cancel.',
-                    previewData,
-                    previewOperation: operationType,
-                    previewParams: operation.mcpParams,
-                    timestamp: Date.now(),
-                },
-            ];
-        } catch (error) {
-            console.error('Preview operation error:', error);
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'error',
-                    content: `Failed to generate preview: ${error.message}`,
-                    timestamp: Date.now(),
-                },
-            ];
-            showToast(`Failed to generate preview: ${error.message}`, 'negative');
-        }
-    }
-
     handleApprovePreview(event) {
-        const { previewData, operation } = event.detail;
+        const { operation } = event.detail;
 
         const lastMessage = this.messages[this.messages.length - 1];
         if (!lastMessage.previewParams) {
@@ -756,23 +590,11 @@ export class MasChat extends LitElement {
             return;
         }
 
-        const executionToolMap = {
-            preview_bulk_update: 'bulk_update_cards',
-            preview_bulk_publish: 'bulk_publish_cards',
-            preview_bulk_delete: 'bulk_delete_cards',
-        };
-
-        const executionTool = executionToolMap[operation];
-        if (!executionTool) {
+        const executionOperation = resolvePreviewApproval(operation, lastMessage.previewParams);
+        if (!executionOperation) {
             console.error('Unknown preview operation:', operation);
             return;
         }
-
-        const executionOperation = {
-            type: 'mcp_operation',
-            mcpTool: executionTool,
-            mcpParams: lastMessage.previewParams,
-        };
 
         this.messages = [
             ...this.messages,
@@ -786,9 +608,7 @@ export class MasChat extends LitElement {
         this.executeOperation(executionOperation);
     }
 
-    handleCancelPreview(event) {
-        const { operation } = event.detail;
-
+    handleCancelPreview() {
         this.messages = [
             ...this.messages,
             {
@@ -801,153 +621,10 @@ export class MasChat extends LitElement {
         showToast('Operation cancelled', 'info');
     }
 
-    async executeBulkOperationWithProgress(operation, operationType) {
-        const loadingMessage = this.getOperationLoadingMessage(operationType);
-        const messageId = Date.now();
-        const loadingMessageObj = {
-            role: 'assistant',
-            content: loadingMessage,
-            operationLoading: true,
-            operationType,
-            progress: { current: 0, total: operation.mcpParams.fragmentIds?.length || 0 },
-            timestamp: Date.now(),
-            messageId,
-        };
-
-        this.messages = [...this.messages, loadingMessageObj];
-
-        try {
-            const result = await executeStudioOperationWithProgress(operation.mcpTool, operation.mcpParams, (statusUpdate) => {
-                this.messages = this.messages.map((msg) =>
-                    msg.messageId === messageId
-                        ? {
-                              ...msg,
-                              content: `Processing ${statusUpdate.completed}/${statusUpdate.total} cards...`,
-                              progress: {
-                                  current: statusUpdate.completed,
-                                  total: statusUpdate.total,
-                                  percentage: statusUpdate.percentage,
-                                  successful: statusUpdate.successCount,
-                                  failed: statusUpdate.failureCount,
-                              },
-                          }
-                        : msg,
-                );
-                this.requestUpdate();
-            });
-
-            this.messages = this.messages.map((msg) =>
-                msg.messageId === messageId
-                    ? {
-                          role: 'assistant',
-                          content: result.message,
-                          operationResult: result,
-                          operationType,
-                          operationLoading: false,
-                          timestamp: Date.now(),
-                      }
-                    : msg,
-            );
-
-            showToast(result.message, 'positive');
-        } catch (error) {
-            console.error('Bulk operation error:', error);
-            this.messages = this.messages.map((msg) =>
-                msg.messageId === messageId
-                    ? {
-                          role: 'error',
-                          content: `Operation failed: ${error.message}`,
-                          operationLoading: false,
-                          timestamp: Date.now(),
-                      }
-                    : msg,
-            );
-            showToast(error.message, 'negative');
-        }
-    }
-
-    async executeRegularOperation(operation, repository, operationType) {
-        const loadingMessage = this.getOperationLoadingMessage(operationType);
-
-        const loadingMessageObj = {
-            role: 'assistant',
-            content: loadingMessage,
-            operationLoading: true,
-            operationType,
-            timestamp: Date.now(),
-        };
-
-        this.messages = [...this.messages, loadingMessageObj];
-
-        await executeOperationWithFeedback(
-            operation,
-            repository,
-            (res) => {
-                this.messages = this.messages.map((msg) =>
-                    msg === loadingMessageObj
-                        ? {
-                              role: 'assistant',
-                              content: res.message,
-                              operationResult: res,
-                              operationType,
-                              operationLoading: false,
-                              timestamp: Date.now(),
-                          }
-                        : msg,
-                );
-            },
-            (error) => {
-                this.messages = this.messages.map((msg) =>
-                    msg === loadingMessageObj
-                        ? {
-                              role: 'error',
-                              content: `Operation failed: ${error.message}`,
-                              operationLoading: false,
-                              timestamp: Date.now(),
-                          }
-                        : msg,
-                );
-            },
-        );
-    }
-
-    getOperationLoadingMessage(operationType) {
-        const messages = {
-            search_cards: 'Searching for cards...',
-            search: 'Searching for cards...',
-            publish_card: 'Publishing card...',
-            publish: 'Publishing card...',
-            unpublish_card: 'Unpublishing card...',
-            unpublish: 'Unpublishing card...',
-            delete_card: 'Deleting card...',
-            delete: 'Deleting card...',
-            copy_card: 'Copying card...',
-            copy: 'Copying card...',
-            update_card: 'Updating card...',
-            update: 'Updating card...',
-            get_card: 'Fetching card details...',
-            get: 'Fetching card details...',
-        };
-
-        return messages[operationType] || 'Executing operation...';
-    }
-
     async handleOpenCardFromOperation(event) {
         const { fragment } = event.detail;
         await router.navigateToFragmentEditor(fragment.id);
         showToast('Card opened in editor');
-    }
-
-    extractSurfaceFromPath(path) {
-        if (!path || typeof path !== 'string') return null;
-
-        const pathParts = path.split('/');
-        const surfaceIndex = pathParts.indexOf('mas') + 1;
-
-        if (surfaceIndex === 0 || surfaceIndex >= pathParts.length) return null;
-
-        const pathSegment = pathParts[surfaceIndex];
-        return SURFACE_MAP[pathSegment] || null;
     }
 
     scrollToBottom(smooth = false) {
@@ -970,57 +647,6 @@ export class MasChat extends LitElement {
                 this.saveCurrentSession();
             }
         }
-    }
-
-    getLastOperationResult() {
-        const lastOp = this.messages
-            .slice()
-            .reverse()
-            .find((m) => m.operationResult);
-
-        if (!lastOp) return null;
-
-        const fragmentIds = lastOp.operationResult.results?.map((f) => f.id) || [];
-
-        return {
-            type: lastOp.operationResult.operation,
-            fragmentIds,
-            count: lastOp.operationResult.count || 0,
-            timestamp: lastOp.timestamp,
-        };
-    }
-
-    getRecentFragments(limit = 50) {
-        return this.messages
-            .filter((m) => m.operationResult?.results)
-            .slice(-3)
-            .flatMap((m) =>
-                m.operationResult.results.map((f) => ({
-                    id: f.id,
-                    title: f.title || f.cardTitle,
-                    variant: this.extractVariant(f),
-                    osi: this.extractOsi(f),
-                })),
-            )
-            .slice(0, limit);
-    }
-
-    extractVariant(fragment) {
-        const path = fragment.path || fragment.id;
-        const match = path.match(/\/([^/]+)$/);
-        return match ? match[1] : 'unknown';
-    }
-
-    extractOsi(fragment) {
-        if (fragment.osi) return fragment.osi;
-        if (fragment.fields && !Array.isArray(fragment.fields)) {
-            return fragment.fields.osi || null;
-        }
-        if (Array.isArray(fragment.fields)) {
-            const osiField = fragment.fields.find((f) => f.name === 'osi');
-            return osiField?.values?.[0] || null;
-        }
-        return null;
     }
 
     render() {
@@ -1079,8 +705,8 @@ export class MasChat extends LitElement {
     renderContextBar() {
         const surface = this.getCurrentSurface();
         const locale = Store.filters?.value?.locale;
-        const workingSet = this.getRecentFragments();
-        const lastOp = this.getLastOperationResult();
+        const workingSet = getRecentFragments(this.messages);
+        const lastOp = getLastOperationResult(this.messages);
 
         if (!surface && !locale && !workingSet.length && !lastOp) return '';
 

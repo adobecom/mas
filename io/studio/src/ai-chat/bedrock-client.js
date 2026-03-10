@@ -174,7 +174,7 @@ export class BedrockClient {
 
                 enhancedSystem +=
                     '\nIMPORTANT: When user says "this card" or asks about attached cards, use these IDs directly:\n';
-                enhancedSystem += `- For get_card: use mcpParams.id = "${firstId}"\n`;
+                enhancedSystem += `- For get_card: use mcpParams.ids = ${JSON.stringify(allIds)}\n`;
                 enhancedSystem += `- For bulk operations: use mcpParams.fragmentIds = ${JSON.stringify(allIds)}\n`;
 
                 if (firstOsi) {

@@ -1,5 +1,6 @@
 import { ENVS, EnvColorCode, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED, PAGE_NAMES } from './constants.js';
 import { LitElement, html, nothing } from 'lit';
+import { keyed } from 'lit/directives/keyed.js';
 import { until } from 'lit/directives/until.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
@@ -299,16 +300,20 @@ class MasTopNav extends LitElement {
     get breadcrumbsTemplate() {
         const items = this.breadcrumbItems;
         if (!items.length) return nothing;
-        return html`
-            <div class="nav-breadcrumbs">
-                <sp-breadcrumbs>
-                    ${items.map(
-                        (item) =>
-                            html`<sp-breadcrumb-item @click=${item.handler || nothing}>${item.label}</sp-breadcrumb-item>`,
-                    )}
-                </sp-breadcrumbs>
-            </div>
-        `;
+        const breadcrumbKey = items.map((item) => item.label).join('|');
+        return keyed(
+            breadcrumbKey,
+            html`
+                <div class="nav-breadcrumbs">
+                    <sp-breadcrumbs>
+                        ${items.map(
+                            (item) =>
+                                html`<sp-breadcrumb-item @click=${item.handler || nothing}>${item.label}</sp-breadcrumb-item>`,
+                        )}
+                    </sp-breadcrumbs>
+                </div>
+            `,
+        );
     }
 
     get historyNavigationTemplate() {

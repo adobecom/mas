@@ -503,6 +503,7 @@ export class SettingsStore {
             },
             'Setting created.',
             'Failed to create setting.',
+            'positive',
         );
         if (!created) return null;
         return createdFragmentId;
@@ -523,6 +524,7 @@ export class SettingsStore {
             },
             'Setting updated.',
             'Failed to update setting.',
+            'positive',
         );
     }
 

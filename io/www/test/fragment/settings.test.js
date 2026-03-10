@@ -228,6 +228,134 @@ describe('settings transformer', () => {
         });
     });
 
+    it('should add secure label when variant is mini-compare-chart', async () => {
+        context.body.fields.variant = 'mini-compare-chart';
+
+        const result = await settings.process(context);
+        expect(result.body.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+        });
+    });
+
+    it('should not add secure label when variant is mini-compare-chart and showSecureLabel is false', async () => {
+        context.body.fields = {
+            variant: 'mini-compare-chart',
+            showSecureLabel: false,
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.settings).to.deep.equal({
+            displayPlanType: true,
+        });
+    });
+
+    it('should handle references with mini-compare-chart variant', async () => {
+        context.body = {
+            model: {
+                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+            },
+            references: {
+                ref1: {
+                    type: 'content-fragment',
+                    value: {
+                        fields: {
+                            variant: 'mini-compare-chart',
+                        },
+                    },
+                },
+            },
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.references.ref1.value.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+        });
+    });
+
+    it('should add secure label when variant is mini-compare-chart-mweb', async () => {
+        context.body.fields.variant = 'mini-compare-chart-mweb';
+
+        const result = await settings.process(context);
+        expect(result.body.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+        });
+    });
+
+    it('should not add secure label when variant is mini-compare-chart-mweb and showSecureLabel is false', async () => {
+        context.body.fields = {
+            variant: 'mini-compare-chart-mweb',
+            showSecureLabel: false,
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.settings).to.deep.equal({
+            displayPlanType: true,
+        });
+    });
+
+    it('should not add secure label when variant is mini-compare-chart-mweb and showSecureLabel is string false', async () => {
+        context.body.fields = {
+            variant: 'mini-compare-chart-mweb',
+            showSecureLabel: 'false',
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.settings).to.deep.equal({
+            displayPlanType: true,
+        });
+    });
+
+    it('should handle references with mini-compare-chart-mweb variant', async () => {
+        context.body = {
+            model: {
+                id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+            },
+            references: {
+                ref1: {
+                    type: 'content-fragment',
+                    value: {
+                        fields: {
+                            variant: 'mini-compare-chart-mweb',
+                        },
+                    },
+                },
+            },
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.references.ref1.value.settings).to.deep.equal({
+            secureLabel: '{{secure-label}}',
+            displayPlanType: true,
+        });
+    });
+
+    it('should not add secure label when variant is plans and showSecureLabel is string false', async () => {
+        context.body.fields = {
+            variant: 'plans',
+            showSecureLabel: 'false',
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.settings).to.deep.equal({
+            displayPlanType: true,
+        });
+    });
+
+    it('should not add secure label when variant is mini-compare-chart and showSecureLabel is string false', async () => {
+        context.body.fields = {
+            variant: 'mini-compare-chart',
+            showSecureLabel: 'false',
+        };
+
+        const result = await settings.process(context);
+        expect(result.body.settings).to.deep.equal({
+            displayPlanType: true,
+        });
+    });
+
     it('should not add plan type when variant is mini and locale is not en_AU', async () => {
         context.body.fields = {
             variant: 'mini',

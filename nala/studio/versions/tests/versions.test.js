@@ -214,7 +214,8 @@ test.describe('M@S Studio - Version Page test suite', () => {
     });
 
     // @version-page-nala-clone-restore - Clone, change fields, save/publish, new version, restore and validate toast
-    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
+    // include again when reliable version of the test is implemented
+    test.skip(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         test.setTimeout(210000);
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;

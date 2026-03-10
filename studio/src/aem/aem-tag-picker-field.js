@@ -89,6 +89,7 @@ class AemTagPickerField extends LitElement {
             display: flex;
             align-items: center;
             flex-direction: column;
+            min-height: 40px;
         }
 
         :host([selection='checkbox']) {
@@ -662,7 +663,13 @@ class AemTagPickerField extends LitElement {
         return html`
             <div id="content">
                 ${this.flatTags.length > 7
-                    ? html` <sp-search @input=${this.#handleSearchInput} placeholder="Search"></sp-search> `
+                    ? html`
+                          <sp-search
+                              name="tag-picker-search"
+                              @input=${this.#handleSearchInput}
+                              placeholder="Search"
+                          ></sp-search>
+                      `
                     : nothing}
                 <div class="checkbox-list">
                     ${repeat(

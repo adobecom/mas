@@ -11,6 +11,7 @@ import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
+import { createQuantitySelectValue, parseQuantitySelectValue } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
@@ -391,61 +392,23 @@ class MerchCardEditor extends LitElement {
         return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] || '';
     }
 
-    getQuantityAttribute(name) {
-        if (!this.quantityValue) return undefined;
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(this.quantityValue, 'text/html');
-        const element = doc.querySelector('merch-quantity-select');
-        return element?.getAttribute(name);
-    }
-
-    get quantityTitle() {
-        return this.getQuantityAttribute('title') ?? '';
-    }
-
-    get quantityStart() {
-        return this.getQuantityAttribute('min') ?? 1;
-    }
-
-    get quantityStep() {
-        return this.getQuantityAttribute('step') ?? 1;
-    }
-
     get quantitySelectorDisplayed() {
         return !!this.fragmentQuantityValue.trim();
     }
 
-    createQsElement(min, step, title) {
-        const el = document.createElement('merch-quantity-select');
-        el.setAttribute('title', title);
-        el.setAttribute('min', min);
-        el.setAttribute('max', '10');
-        el.setAttribute('step', step);
-        return el;
-    }
-
-    #updateQuantityValues(event) {
-        const vals = [this.quantityStart, this.quantityStep, this.quantityTitle];
-        if (event.target.dataset.field === 'startQuantity') {
-            vals[0] = event.target.value;
-        } else if (event.target.dataset.field === 'stepQuantity') {
-            vals[1] = event.target.value;
-        } else if (event.target.dataset.field === 'titleQuantity') {
-            vals[2] = event.target.value;
-        }
-
-        const html = this.createQsElement(vals[0], vals[1], vals[2]).outerHTML;
+    #handleQuantityFieldChange = (event) => {
+        const html = event.detail?.value ?? event.currentTarget?.value;
+        if (typeof html !== 'string') return;
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
-    }
+    };
 
     #showQuantityFields = (e) => {
         this.showQuantityFields(e.target.checked);
 
         let html = '';
         if (e.target.checked) {
-            html = this.createQsElement(this.quantityStart, this.quantityStep, this.quantityTitle).outerHTML;
+            html = this.quantityValue || createQuantitySelectValue({ title: '', min: '1', step: '1' });
         } else {
             const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
             this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
@@ -658,6 +621,10 @@ class MerchCardEditor extends LitElement {
 
                 .full-width {
                     width: 100%;
+                }
+
+                .quantity-component-restores {
+                    margin-top: 8px;
                 }
 
                 sp-field-group sp-textfield {
@@ -930,46 +897,17 @@ class MerchCardEditor extends LitElement {
                     >
                     ${this.renderFieldStatusIndicator('quantitySelect')}
                     <div id="quantitySelector" style="display: ${this.quantitySelectorDisplayed ? 'block' : 'none'};">
-                        <div class="two-column-grid">
-                            <sp-field-group id="quantitySelectorTitle">
-                                <sp-field-label for="title-quantity">Quantity selector title</sp-field-label>
-                                <sp-textfield
-                                    id="title-quantity"
-                                    data-field="titleQuantity"
-                                    data-field-state="${this.getQuantityComponentState('title')}"
-                                    value="${this.quantityTitle}"
-                                    @input="${this.#updateQuantityValues}"
-                                    ?disabled=${this.disabled}
-                                ></sp-textfield>
-                                ${this.renderQuantityComponentOverrideIndicator('title')}
-                            </sp-field-group>
-                            <sp-field-group id="quantitySelectorStart">
-                                <sp-field-label for="start-quantity">Start quantity</sp-field-label>
-                                <sp-textfield
-                                    id="start-quantity"
-                                    data-field="startQuantity"
-                                    data-field-state="${this.getQuantityComponentState('min')}"
-                                    pattern="[0-9]*"
-                                    value="${this.quantityStart}"
-                                    @input="${this.#updateQuantityValues}"
-                                    ?disabled=${this.disabled}
-                                ></sp-textfield>
-                                ${this.renderQuantityComponentOverrideIndicator('min')}
-                            </sp-field-group>
-                        </div>
-                        <sp-field-group id="quantitySelectorStep">
-                            <sp-field-label for="step-quantity">Step</sp-field-label>
-                            <sp-textfield
-                                id="step-quantity"
-                                data-field="stepQuantity"
-                                data-field-state="${this.getQuantityComponentState('step')}"
-                                pattern="[0-9]*"
-                                value="${this.quantityStep}"
-                                @input="${this.#updateQuantityValues}"
-                                ?disabled=${this.disabled}
-                            ></sp-textfield>
+                        <quantity-select-field
+                            data-field-state="${this.getFieldState('quantitySelect')}"
+                            .value=${this.quantityValue}
+                            ?disabled=${this.disabled}
+                            @change=${this.#handleQuantityFieldChange}
+                        ></quantity-select-field>
+                        <div class="quantity-component-restores">
+                            ${this.renderQuantityComponentOverrideIndicator('title')}
+                            ${this.renderQuantityComponentOverrideIndicator('min')}
                             ${this.renderQuantityComponentOverrideIndicator('step')}
-                        </sp-field-group>
+                        </div>
                     </div>
                 </sp-field-group>
                 <div class="two-column-grid">
@@ -1633,18 +1571,6 @@ class MerchCardEditor extends LitElement {
         return { text: html.trim(), bgColor: '', borderColor: '' };
     }
 
-    #parseQuantityHtml(html) {
-        if (!html) return { title: '', min: '', step: '' };
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const el = doc.querySelector('merch-quantity-select');
-        return {
-            title: el?.getAttribute('title') || '',
-            min: el?.getAttribute('min') || '',
-            step: el?.getAttribute('step') || '',
-        };
-    }
-
     #getCompositeComponentState(fieldName, parser, component, getOwnHtml) {
         if (!this.effectiveIsVariation) return 'no-parent';
         const ownHtml = getOwnHtml ? getOwnHtml() : this.fragment?.getFieldValue(fieldName, 0) || '';
@@ -1658,7 +1584,7 @@ class MerchCardEditor extends LitElement {
     }
 
     getQuantityComponentState(component) {
-        return this.#getCompositeComponentState(QUANTITY_MODEL, this.#parseQuantityHtml.bind(this), component);
+        return this.#getCompositeComponentState(QUANTITY_MODEL, parseQuantitySelectValue, component, () => this.quantityValue);
     }
 
     renderQuantityComponentOverrideIndicator(component) {
@@ -1669,11 +1595,13 @@ class MerchCardEditor extends LitElement {
 
     async resetQuantityComponentToParent(component) {
         const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
-        const parentParsed = this.#parseQuantityHtml(parentHtml);
-        const currentTitle = component === 'title' ? parentParsed.title : this.quantityTitle;
-        const currentMin = component === 'min' ? parentParsed.min : this.quantityStart;
-        const currentStep = component === 'step' ? parentParsed.step : this.quantityStep;
-        const html = this.createQsElement(currentMin, currentStep, currentTitle).outerHTML;
+        const parentValues = parseQuantitySelectValue(parentHtml);
+        const currentValues = parseQuantitySelectValue(this.quantityValue);
+        const html = createQuantitySelectValue({
+            title: component === 'title' ? parentValues.title : currentValues.title,
+            min: component === 'min' ? parentValues.min : currentValues.min,
+            step: component === 'step' ? parentValues.step : currentValues.step,
+        });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
         showToast('Field restored to parent value', 'positive');

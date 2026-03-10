@@ -98,6 +98,18 @@ export const VARIANTS = [
     },
 ];
 
+/** Flat tree-picker-compatible list of allowed variants, optionally filtered by surface. */
+export const getVariantTreeData = (surface) =>
+    VARIANTS.filter((v) => {
+        if (v.value === VARIANT_NAMES.ALL) return false;
+        if (!surface) return true;
+        if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
+        return v.surface === surface;
+    }).map((v) => ({
+        name: v.value,
+        label: v.label,
+    }));
+
 class VariantPicker extends LitElement {
     static styles = css`
         :host {

@@ -12,98 +12,12 @@ import '../../src/mas-repository.js';
 import '../../src/rte/rte-field.js';
 import '../../src/mas-fragment-status.js';
 import { PAGE_NAMES } from '../../src/constants.js';
-import Events from '../../src/events.js';
-
-// Mock Store - Simplified for UI tests
-function createObservable(initialValue) {
-    let value = initialValue;
-    const listeners = new Set();
-    const stubSet = sinon.stub().callsFake((newValue) => {
-        const oldValue = value;
-        if (typeof newValue === 'function') {
-            value = newValue(value);
-        } else {
-            value = newValue;
-        }
-        listeners.forEach((listener) => listener(value, oldValue));
-        return value;
-    });
-    return {
-        value: initialValue, // Keep track for direct access if needed
-        get: () => value,
-        set: stubSet,
-        subscribe: (listener) => {
-            listeners.add(listener);
-            return { unsubscribe: () => listeners.delete(listener) };
-        },
-    };
-}
-
-function createStoreMock(initialData = {}) {
-    return {
-        search: createObservable(initialData.search || { path: 'test-folder' }),
-        filters: createObservable(initialData.filters || { locale: 'en_US' }),
-        page: createObservable(initialData.page || PAGE_NAMES.PLACEHOLDERS),
-        folders: {
-            data: createObservable(initialData.folderData || ['test-folder']),
-            loaded: createObservable(true),
-        },
-        placeholders: {
-            list: {
-                data: createObservable(initialData.placeholders || []),
-                loading: createObservable(false),
-            },
-            index: createObservable(null),
-            selection: createObservable([]),
-            search: createObservable(''),
-        },
-        sort: createObservable({ sortBy: 'key', sortDirection: 'asc' }),
-        // Mock necessary event emitters if component interacts with them directly
-        toast: {
-            emit: sinon.stub(),
-        },
-    };
-}
-
-// Let's simplify our mock data to reduce test complexity
-const mockPlaceholdersData = [
-    {
-        id: '1',
-        key: 'key-one',
-        value: 'Value One',
-        displayValue: 'Value One',
-        locale: 'en_US',
-        status: 'Draft',
-        updatedBy: 'User A',
-        updatedAt: '2024-01-01',
-        isRichText: false,
-        modified: false,
-        path: '/path/one',
-        fragment: { id: 'frag1', path: '/path/one' },
-    },
-    {
-        id: '2',
-        key: 'key-two',
-        value: '<p>Value Two</p>',
-        displayValue: 'Value Two',
-        locale: 'en_US',
-        status: 'Published',
-        updatedBy: 'User B',
-        updatedAt: '2024-01-02',
-        isRichText: true,
-        modified: true,
-        path: '/path/two',
-        fragment: { id: 'frag2', path: '/path/two' },
-    },
-];
 
 runTests(async () => {
     describe('mas-placeholders component - UI Tests', () => {
         let element;
-        let masRepository;
-        let store;
         let fetchStub;
-        let toastEmitStub;
+        let parent;
 
         beforeEach(async function () {
             // Ensure clean DOM
@@ -135,9 +49,8 @@ runTests(async () => {
                 // Default response for any other calls used in these UI tests
                 return Promise.resolve({ ok: true, json: async () => ({}), text: async () => '' });
             });
-            toastEmitStub = sinon.stub(Events.toast, 'emit'); // Use the actual Events object
-
-            // Initialize Store with test data
+            // Keep repository search side effects out of this component-only suite.
+            Store.profile.set(null);
             Store.search.set({ path: 'test-folder' });
             Store.filters.set({ locale: 'en_US' });
             Store.page.set(PAGE_NAMES.PLACEHOLDERS);
@@ -150,29 +63,17 @@ runTests(async () => {
             Store.placeholders.search.set('');
             Store.placeholders.index.set(null);
 
-            // Create elements manually for more control
-            const parent = document.createElement('div');
-            masRepository = document.createElement('mas-repository');
-            masRepository.setAttribute('bucket', 'test-bucket');
+            // Create element manually for more control
+            parent = document.createElement('div');
             element = document.createElement('mas-placeholders');
-            parent.appendChild(masRepository);
             parent.appendChild(element);
             document.body.appendChild(parent);
-            // Wait for element to be connected
-            await new Promise((r) => setTimeout(r, 0));
-            // Mock repository methods minimally
-            masRepository.aem = { sites: { cf: { fragments: {} } } };
-            await new Promise((r) => setTimeout(r, 10)); // Small delay to ensure rendering
+            await new Promise((r) => setTimeout(r, 10));
         });
 
         afterEach(function () {
             sinon.restore(); // Restore all stubs/spies
-            // Fix parentElement error by safeguarding
-            if (element && element.parentElement) {
-                element.parentElement.remove();
-            } else if (element) {
-                element.remove(); // Direct removal if no parent
-            }
+            parent?.remove();
         });
 
         // Basic render test

@@ -464,10 +464,6 @@ class MasTranslationEditor extends LitElement {
         target.dispatchEvent(closeEvent);
     };
 
-    #handleBackToBreadcrumb = () => {
-        router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
-    };
-
     #openAddItemsOverlay() {
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
@@ -576,19 +572,6 @@ class MasTranslationEditor extends LitElement {
             createEditLabel = 'Edit project';
         }
         return html`
-            <div class="translation-editor-breadcrumb">
-                <sp-breadcrumbs>
-                    <sp-breadcrumb-item @click=${this.#handleBackToBreadcrumb}>Translations</sp-breadcrumb-item>
-                    <sp-breadcrumb-item
-                        >${this.isNewTranslationProject
-                            ? 'Create new project'
-                            : this.isProjectReadonly
-                              ? 'Translation Project'
-                              : 'Edit project'}</sp-breadcrumb-item
-                    >
-                </sp-breadcrumbs>
-            </div>
-
             ${this.renderConfirmDialog()}
 
             <div class="translation-editor-form">

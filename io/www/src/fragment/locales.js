@@ -464,6 +464,24 @@ export function getDefaultLocales(surface) {
 }
 
 /**
+ * Get all locales for a given surface, including default locales and region variants.
+ * @param {string} surface e.g. 'acom'
+ * @returns {{ lang: string, country: string }[]}
+ */
+export function getSurfaceLocales(surface) {
+    const map = new Map();
+    getDefaultLocales(surface)
+        .flatMap(({ lang, country, regions = [] }) => [
+            { lang, country },
+            ...regions.map((region) => ({ lang, country: region })),
+        ])
+        .forEach((locale) => {
+            map.set(getLocaleCode(locale), locale);
+        });
+    return [...map.values()];
+}
+
+/**
  * get region locales for a given surface and a given default locale.
  * acom: will return 'en_AU', 'en_IN' for 'en_GB', because for acom 'en_GB' is a default language.
  * ccd: will return 'en_GB', 'en_AU', 'en_IN' for 'en_US', because for ccd 'en_GB' is NOT a default language.

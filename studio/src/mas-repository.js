@@ -115,6 +115,7 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #addonPlaceholdersRequest = null;
     /** @type {AEM} */
     aem;
 
@@ -172,6 +173,10 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
+                break;
+            case PAGE_NAMES.SETTINGS:
+            case PAGE_NAMES.SETTINGS_EDITOR:
+                this.loadAddonPlaceholders();
                 break;
             case PAGE_NAMES.PROMOTIONS:
                 this.loadPromotions();
@@ -1793,7 +1798,18 @@ export class MasRepository extends LitElement {
      * Uses the preview dictionary (loaded via odinpreview) instead of slow AEM search
      */
     async loadAddonPlaceholders() {
-        if (Store.placeholders.addons.data.get().length > 1) return;
+        const currentOptions = this.#dedupeAddonOptions(Store.placeholders.addons.data.get());
+        if (currentOptions.length !== Store.placeholders.addons.data.get().length) {
+            Store.placeholders.addons.data.set(currentOptions);
+        }
+        if (currentOptions.length > 1) return;
+        if (this.#addonPlaceholdersRequest) return this.#addonPlaceholdersRequest;
+
+        this.#addonPlaceholdersRequest = this.#loadAddonPlaceholders();
+        await this.#addonPlaceholdersRequest;
+    }
+
+    async #loadAddonPlaceholders() {
         Store.placeholders.addons.loading.set(true);
         try {
             await this.loadPreviewPlaceholders();
@@ -1802,13 +1818,27 @@ export class MasRepository extends LitElement {
                 const addonFragments = Object.keys(dictionary)
                     .filter((key) => /^addon-/.test(key))
                     .map((key) => ({ value: key, itemText: key }));
-                Store.placeholders.addons.data.set((prev) => [...prev, ...addonFragments]);
+                const nextOptions = this.#dedupeAddonOptions([...Store.placeholders.addons.data.get(), ...addonFragments]);
+                Store.placeholders.addons.data.set(nextOptions);
             }
         } catch (error) {
             this.processError(error, 'Could not load addon placeholders.');
         } finally {
+            this.#addonPlaceholdersRequest = null;
             Store.placeholders.addons.loading.set(false);
         }
+    }
+
+    #dedupeAddonOptions(options) {
+        const seen = new Set();
+        const uniqueOptions = [];
+        for (const option of options) {
+            const key = option.value;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            uniqueOptions.push(option);
+        }
+        return uniqueOptions;
     }
 
     render() {

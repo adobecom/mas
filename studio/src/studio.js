@@ -14,15 +14,16 @@ import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
 import './fields/user-picker.js';
+import './common/fields/tree-picker-field.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
 import './mas-fragment-editor.js';
 import './editor-panel.js';
-import './mas-chat.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
+import './settings/mas-settings.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
 import './version-page.js';
@@ -147,6 +148,11 @@ class MasStudio extends LitElement {
         return html` <mas-placeholders></mas-placeholders> `;
     }
 
+    get settings() {
+        if (this.page.value !== PAGE_NAMES.SETTINGS && this.page.value !== PAGE_NAMES.SETTINGS_EDITOR) return nothing;
+        return html`<mas-settings bucket=${this.bucket} base-url=${this.baseUrl}></mas-settings>`;
+    }
+
     get splashScreen() {
         if (this.page.value !== PAGE_NAMES.WELCOME) return nothing;
         return html`<mas-splash-screen base-url=${this.baseUrl}></mas-splash-screen>`;
@@ -162,56 +168,6 @@ class MasStudio extends LitElement {
         return html`<mas-fragment-editor></mas-fragment-editor>`;
     }
 
-    get breadcrumbs() {
-        // Define navigation handlers
-        const handlers = {
-            content: async () => {
-                Store.viewMode.set('default');
-                await router.navigateToPage(PAGE_NAMES.CONTENT)();
-            },
-            editor: async () => {
-                const fragmentId = Store.version.fragmentId.get();
-                if (fragmentId) {
-                    await router.navigateToFragmentEditor(fragmentId);
-                }
-            },
-        };
-
-        // Define breadcrumb configurations for each page
-        const breadcrumbConfig = {
-            [PAGE_NAMES.FRAGMENT_EDITOR]: {
-                condition: () => {
-                    const editor = document.querySelector('mas-fragment-editor');
-                    return editor && editor.fragment && !editor.fragmentStore?.loading;
-                },
-                items: [{ label: 'Fragments table', handler: handlers.content }, { label: 'Editor' }],
-            },
-            [PAGE_NAMES.VERSION]: {
-                items: [
-                    { label: 'Fragments table', handler: handlers.content },
-                    { label: 'Editor', handler: handlers.editor },
-                    { label: 'Version history' },
-                ],
-            },
-        };
-
-        const config = breadcrumbConfig[this.page.value];
-        if (!config) return nothing;
-        if (config.condition && !config.condition()) return nothing;
-
-        return html`
-            <div class="breadcrumbs-container">
-                <sp-breadcrumbs>
-                    ${config.items.map(
-                        (item) => html`
-                            <sp-breadcrumb-item @click="${item.handler || nothing}">${item.label}</sp-breadcrumb-item>
-                        `,
-                    )}
-                </sp-breadcrumbs>
-            </div>
-        `;
-    }
-
     get promotions() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS) return nothing;
         return html`<mas-promotions></mas-promotions>`;
@@ -220,11 +176,6 @@ class MasStudio extends LitElement {
     get promotionsEditor() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR) return nothing;
         return html`<mas-promotions-editor></mas-promotions-editor>`;
-    }
-
-    get aiAssistant() {
-        if (this.page.value !== PAGE_NAMES.AI_ASSISTANT) return nothing;
-        return html`<mas-chat></mas-chat>`;
     }
 
     get translation() {
@@ -248,7 +199,7 @@ class MasStudio extends LitElement {
 
         function rtePriceProvider(element, options) {
             if (element.dataset.template !== 'legal') return;
-            if (!element.getRootNode()?.host?.nodeName === 'RTE-FIELD') return;
+            if (element.getRootNode()?.host?.nodeName !== 'RTE-FIELD') return;
             options.displayPlanType = true;
         }
         if (typeof this.commerceService.providers?.price === 'function') {
@@ -283,12 +234,12 @@ class MasStudio extends LitElement {
             ${this.topNav}
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
-                ${this.sideNav} ${this.breadcrumbs}
+                ${this.sideNav}
                 ${this.masJsReady
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
-                          ${this.promotionsEditor} ${this.versionPage} ${this.aiAssistant} ${this.translation}
-                          ${this.translationEditor} ${this.editorPanel}
+                          ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
+                          ${this.editorPanel} ${this.settings}
                       </div>`
                     : nothing}
             </div>

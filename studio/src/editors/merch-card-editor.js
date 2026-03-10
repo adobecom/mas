@@ -1490,8 +1490,12 @@ class MerchCardEditor extends LitElement {
         const variant = this.currentVariantMapping;
         this.availableColors = variant?.allowedColors || [];
         if (variant.borderColor || variant.badge?.tag) {
-            this.availableBorderColors = variant.allowedBorderColors || SPECTRUM_COLORS;
-            this.availableBadgeColors = variant.allowedBadgeColors || SPECTRUM_COLORS;
+            const resolve = (curated) =>
+                variant.showAllSpectrumColors && curated
+                    ? [...curated, ...SPECTRUM_COLORS.filter((c) => !curated.includes(c))]
+                    : curated || SPECTRUM_COLORS;
+            this.availableBorderColors = resolve(variant.allowedBorderColors);
+            this.availableBadgeColors = resolve(variant.allowedBadgeColors);
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
@@ -1946,9 +1950,15 @@ class MerchCardEditor extends LitElement {
             displaySelectedValue = 'Transparent';
         }
 
+        const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
         const options = isBackground
             ? ['Default', 'Transparent', ...colorArray]
-            : ['Default', 'Transparent', ...(isBorder ? Object.keys(variantSpecialValues) : []), ...colorArray];
+            : [
+                  'Default',
+                  'Transparent',
+                  ...(isBorder && !showAllSpectrum ? Object.keys(variantSpecialValues) : []),
+                  ...colorArray,
+              ];
 
         const handleChange = (e) => {
             const value = e.target.value;

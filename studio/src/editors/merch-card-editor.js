@@ -46,8 +46,10 @@ class MerchCardEditor extends LitElement {
         "What's included": ['whatsIncluded', 'quantitySelect'],
         'Product details': ['description', 'shortDescription', 'callout'],
         Footer: ['ctas'],
-        'Options and settings': ['secureLabel', 'planType', 'addon'],
+        'Options and settings': ['addon', 'planType', 'secureLabel'],
     };
+
+    static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel'];
 
     availableSizes = [];
     availableColors = [];
@@ -249,6 +251,33 @@ class MerchCardEditor extends LitElement {
         if (!this.effectiveIsVariation) return nothing;
         if (!this.isSectionOverridden(fieldNames)) return nothing;
         return this.#renderOverrideIndicatorLink(() => this.resetSectionToParent(fieldNames));
+    }
+
+    get isAnySettingOverridden() {
+        return MerchCardEditor.SETTINGS_FIELDS.some((fieldName) => !!this.getEffectiveFieldValue(fieldName, 0));
+    }
+
+    resetAllSettings() {
+        for (const fieldName of MerchCardEditor.SETTINGS_FIELDS) {
+            this.fragmentStore.updateField(fieldName, ['']);
+        }
+        showToast('Settings restored to defaults', 'positive');
+    }
+
+    get settingsRestoreAllTemplate() {
+        if (!this.isAnySettingOverridden) return nothing;
+        return html`
+            <a
+                class="restore-all-link"
+                href="javascript:void(0)"
+                @click=${(e) => {
+                    e.preventDefault();
+                    this.resetAllSettings();
+                }}
+            >
+                Restore all
+            </a>
+        `;
     }
 
     getFormWithInheritance() {
@@ -675,6 +704,27 @@ class MerchCardEditor extends LitElement {
                 #badge mas-mnemonic-field {
                     margin-right: 16px;
                 }
+
+                .section-header-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .section-header-row .section-title {
+                    margin-bottom: 0;
+                }
+
+                .restore-all-link {
+                    font-size: 13px;
+                    color: var(--spectrum-blue-700);
+                    cursor: pointer;
+                    text-decoration: none;
+                }
+
+                .restore-all-link:hover {
+                    text-decoration: underline;
+                }
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
@@ -1091,24 +1141,27 @@ class MerchCardEditor extends LitElement {
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')}
                 </sp-field-group>
-                <div class="section-title">Options and settings</div>
+                <div class="section-header-row">
+                    <div class="section-title">Options and settings</div>
+                    ${this.settingsRestoreAllTemplate}
+                </div>
                 <div class="two-column-grid">
-                    <sp-field-group id="secureLabel" class="toggle">
-                        <secure-text-field
-                            id="secure-text-field"
-                            label="Secure Transaction Label"
-                            data-field="showSecureLabel"
-                            data-field-state="${this.getFieldState('showSecureLabel')}"
-                            value="${form.showSecureLabel?.values[0]}"
-                            @change="${this.#handleFragmentUpdate}"
+                    <sp-field-group id="addon" class="toggle">
+                        <mas-addon-field
+                            id="addon-field"
+                            label="Show Addon"
+                            data-field="addon"
+                            data-field-state="${this.getFieldState('addon')}"
+                            .value="${form.addon?.values[0]}"
+                            @change="${this.updateFragment}"
                         >
-                        </secure-text-field>
-                        ${this.renderFieldStatusIndicator('showSecureLabel')}
+                        </mas-addon-field>
+                        ${this.renderFieldStatusIndicator('addon')}
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
                         <mas-plan-type-field
                             id="plan-type-field"
-                            label="Plan Type text"
+                            label="Show Plan type"
                             data-field="showPlanType"
                             data-field-state="${this.getFieldState('showPlanType')}"
                             value="${form.showPlanType?.values[0]}"
@@ -1117,19 +1170,19 @@ class MerchCardEditor extends LitElement {
                         </mas-plan-type-field>
                         ${this.renderFieldStatusIndicator('showPlanType')}
                     </sp-field-group>
+                    <sp-field-group id="secureLabel" class="toggle">
+                        <secure-text-field
+                            id="secure-text-field"
+                            label="Secure transaction"
+                            data-field="showSecureLabel"
+                            data-field-state="${this.getFieldState('showSecureLabel')}"
+                            value="${form.showSecureLabel?.values[0]}"
+                            @change="${this.#handleFragmentUpdate}"
+                        >
+                        </secure-text-field>
+                        ${this.renderFieldStatusIndicator('showSecureLabel')}
+                    </sp-field-group>
                 </div>
-                <sp-field-group id="addon" class="toggle">
-                    <mas-addon-field
-                        id="addon-field"
-                        label="Addon"
-                        data-field="addon"
-                        data-field-state="${this.getFieldState('addon')}"
-                        .value="${form.addon?.values[0]}"
-                        @change="${this.updateFragment}"
-                    >
-                    </mas-addon-field>
-                    ${this.renderFieldStatusIndicator('addon')}
-                </sp-field-group>
                 <sp-field-group id="locReady">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                         <sp-field-label for="loc-ready">Send to translation?</sp-field-label>

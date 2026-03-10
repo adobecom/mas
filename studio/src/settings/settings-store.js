@@ -997,3 +997,15 @@ export class SettingsStore {
         return summary;
     }
 }
+
+/**
+ * Returns the global settings defaults for card-level settings fields.
+ * Keys are card fragment field names.
+ * TODO: Replace hardcoded mock data with real source of truth.
+ * @returns {Record<string, string>}
+ */
+export const getGlobalSettingsDefaults = () => ({
+    addon: '',
+    showPlanType: 'true',
+    showSecureLabel: 'true',
+});

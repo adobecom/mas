@@ -59,19 +59,14 @@ export class SecureTextField extends LitElement {
 
     #handleToggle(e) {
         this.isEditable = e.target.checked;
-        if (this.isEditable) {
-            this.value = this.showSecureTextField ? '' : 'false';
-            this.dispatchInputEvent(this.value);
-        } else {
-            this.value = '';
-            this.dispatchInputEvent(this.value);
-        }
+        this.value = this.isEditable ? (this.showSecureTextField ? 'true' : 'false') : 'false';
+        this.dispatchInputEvent(this.value);
     }
 
     #handleCheckbox(e) {
         this.showSecureTextField = e.target.checked;
         if (this.isEditable) {
-            this.value = e.target.checked ? '' : 'false';
+            this.value = e.target.checked ? 'true' : 'false';
             this.dispatchInputEvent(this.value);
         }
     }

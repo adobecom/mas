@@ -19,6 +19,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/aem-tag-picker-field.js';
+import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -253,13 +254,53 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetSectionToParent(fieldNames));
     }
 
+    getEffectiveSettingValue(fieldName) {
+        return this.getEffectiveFieldValue(fieldName, 0) || getGlobalSettingsDefaults()[fieldName] || '';
+    }
+
+    /**
+     * For variations: true when the variation's own value differs from its parent.
+     * For top-level fragments: true when the card has an explicit value (overriding global settings).
+     */
+    isSettingOverridden(fieldName) {
+        if (this.effectiveIsVariation) {
+            return this.getFieldState(fieldName) === 'overridden';
+        }
+        return !!this.getEffectiveFieldValue(fieldName, 0);
+    }
+
     get isAnySettingOverridden() {
-        return MerchCardEditor.SETTINGS_FIELDS.some((fieldName) => !!this.getEffectiveFieldValue(fieldName, 0));
+        return MerchCardEditor.SETTINGS_FIELDS.some((fieldName) => this.isSettingOverridden(fieldName));
+    }
+
+    /**
+     * For variations: resets the field to the parent's value (inherit).
+     * For top-level fragments: clears the field so the global setting applies.
+     */
+    resetSettingToDefault(fieldName) {
+        if (this.effectiveIsVariation) {
+            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+            this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        } else {
+            this.fragmentStore.updateField(fieldName, ['']);
+        }
+        showToast('Setting restored to default', 'positive');
+    }
+
+    renderSettingOverrideIndicator(fieldName) {
+        if (!this.isSettingOverridden(fieldName)) return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetSettingToDefault(fieldName));
     }
 
     resetAllSettings() {
         for (const fieldName of MerchCardEditor.SETTINGS_FIELDS) {
-            this.fragmentStore.updateField(fieldName, ['']);
+            if (!this.isSettingOverridden(fieldName)) continue;
+            if (this.effectiveIsVariation) {
+                const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+                this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+            } else {
+                this.fragmentStore.updateField(fieldName, ['']);
+            }
         }
         showToast('Settings restored to defaults', 'positive');
     }
@@ -1151,36 +1192,36 @@ class MerchCardEditor extends LitElement {
                             id="addon-field"
                             label="Show Addon"
                             data-field="addon"
-                            data-field-state="${this.getFieldState('addon')}"
-                            .value="${form.addon?.values[0]}"
+                            data-field-state="${this.isSettingOverridden('addon') ? 'overridden' : 'default'}"
+                            .value="${this.getEffectiveSettingValue('addon')}"
                             @change="${this.updateFragment}"
                         >
                         </mas-addon-field>
-                        ${this.renderFieldStatusIndicator('addon')}
+                        ${this.renderSettingOverrideIndicator('addon')}
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
                         <mas-plan-type-field
                             id="plan-type-field"
                             label="Show Plan type"
                             data-field="showPlanType"
-                            data-field-state="${this.getFieldState('showPlanType')}"
-                            value="${form.showPlanType?.values[0]}"
+                            data-field-state="${this.isSettingOverridden('showPlanType') ? 'overridden' : 'default'}"
+                            value="${this.getEffectiveSettingValue('showPlanType')}"
                             @change="${this.#handleFragmentUpdate}"
                         >
                         </mas-plan-type-field>
-                        ${this.renderFieldStatusIndicator('showPlanType')}
+                        ${this.renderSettingOverrideIndicator('showPlanType')}
                     </sp-field-group>
                     <sp-field-group id="secureLabel" class="toggle">
                         <secure-text-field
                             id="secure-text-field"
                             label="Secure transaction"
                             data-field="showSecureLabel"
-                            data-field-state="${this.getFieldState('showSecureLabel')}"
-                            value="${form.showSecureLabel?.values[0]}"
+                            data-field-state="${this.isSettingOverridden('showSecureLabel') ? 'overridden' : 'default'}"
+                            value="${this.getEffectiveSettingValue('showSecureLabel')}"
                             @change="${this.#handleFragmentUpdate}"
                         >
                         </secure-text-field>
-                        ${this.renderFieldStatusIndicator('showSecureLabel')}
+                        ${this.renderSettingOverrideIndicator('showSecureLabel')}
                     </sp-field-group>
                 </div>
                 <sp-field-group id="locReady">

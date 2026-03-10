@@ -583,6 +583,279 @@
                         expect(relatedVariations).to.not.exist;
                     });
 
+                    describe('Options and settings override behavior', () => {
+                        const SETTINGS_FIELD_DEFS = [
+                            { name: 'showSecureLabel', type: 'text', multiple: false, locked: false, values: [] },
+                            { name: 'showPlanType', type: 'text', multiple: false, locked: false, values: [] },
+                            { name: 'addon', type: 'text', multiple: false, locked: false, values: [] },
+                        ];
+
+                        const settingsMockFields = [...baseMockData.fields, ...SETTINGS_FIELD_DEFS];
+
+                        function buildSettingsFragment(overrides = {}) {
+                            return {
+                                ...baseMockData,
+                                fields: settingsMockFields.map((field) => {
+                                    if (field.name === 'variant') return { ...field, values: ['plans'] };
+                                    if (overrides[field.name] !== undefined) {
+                                        return { ...field, values: overrides[field.name] };
+                                    }
+                                    return { ...field, values: [] };
+                                }),
+                            };
+                        }
+
+                        async function setupSettingsTest({
+                            variationOverrides = {},
+                            parentOverrides = {},
+                            isVariation = true,
+                            testId = 'settings',
+                        } = {}) {
+                            const parentData = {
+                                ...buildSettingsFragment(parentOverrides),
+                                path: '/content/dam/mas/nala/en_US/test-settings-parent',
+                                id: 'test-settings-parent-id',
+                                tags: [],
+                            };
+                            const variationData = {
+                                ...buildSettingsFragment(variationOverrides),
+                                path: `/content/dam/mas/nala/en_AU/test-settings-${testId}`,
+                                title: `Test Settings ${testId}`,
+                                id: `test-settings-${testId}`,
+                                tags: [],
+                            };
+
+                            const variationFragment = new Fragment(structuredClone(variationData));
+                            const parentFragment = new Fragment(structuredClone(parentData));
+                            const store = isVariation
+                                ? generateFragmentStore(variationFragment, parentFragment)
+                                : generateFragmentStore(variationFragment);
+
+                            Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
+                            Store.fragmentEditor.fragmentId.set(`test-settings-${testId}`);
+                            Store.fragments.inEdit.set(store);
+                            Store.fragments.list.data.set([store]);
+                            Store.placeholders.preview.set({});
+                            Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: 'en_AU' }));
+                            Store.viewMode.set('editing');
+
+                            layoutContainer = document.createElement('div');
+                            layoutContainer.style.cssText = 'display: flex; width: 100%;';
+
+                            sideNav = document.createElement('mas-side-nav');
+                            layoutContainer.appendChild(sideNav);
+
+                            fragmentEditor = document.createElement('mas-fragment-editor');
+                            fragmentEditor.style.cssText = 'flex: 1;';
+                            const repository = document.querySelector('mas-repository');
+                            repository.refreshFragment = async () => {};
+                            repository.loadPreviewPlaceholders = async () => {};
+
+                            fragmentEditor.editorContextStore = {
+                                localeDefaultFragment: null,
+                                loadFragmentContext: async () => {},
+                                isVariation: () => isVariation,
+                                getLocaleDefaultFragmentAsync: async () => structuredClone(parentData),
+                                getDefaultLocaleId: () => 'test-settings-parent-id',
+                                getLocaleDefaultFragment: () => structuredClone(parentData),
+                                setParent(data) {
+                                    if (!data) return;
+                                    this.localeDefaultFragment = data;
+                                },
+                            };
+                            fragmentEditor.localeDefaultFragment = isVariation ? parentFragment : null;
+                            fragmentEditor.initState = 'ready';
+                            store.previewStore.resolved = true;
+
+                            const AemFragment = customElements.get('aem-fragment');
+                            if (AemFragment?.cache) {
+                                AemFragment.cache.add(store.previewStore.value);
+                            }
+
+                            sideNav.reactiveController.updateStores([
+                                Store.page,
+                                Store.search,
+                                Store.viewMode,
+                                Store.fragmentEditor.editorContext,
+                                Store.fragments.inEdit,
+                                store,
+                            ]);
+
+                            layoutContainer.appendChild(fragmentEditor);
+                            spTheme.appendChild(layoutContainer);
+
+                            await fragmentEditor.updateComplete;
+                            await sideNav.updateComplete;
+                            await delay(200);
+
+                            editor = fragmentEditor.querySelector('merch-card-editor');
+                            fragmentStore = store;
+
+                            store.get().hasChanges = false;
+                            store.notify();
+                            await sideNav.updateComplete;
+
+                            return { store, editor };
+                        }
+
+                        it('shows global defaults when no card-level override exists', async () => {
+                            await setupSettingsTest({ isVariation: false, testId: 'global-shown' });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.false;
+
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.not.exist;
+
+                            const indicators = editor.querySelectorAll(
+                                '#addon .field-status-indicator, #planType .field-status-indicator, #secureLabel .field-status-indicator',
+                            );
+                            expect(indicators.length).to.equal(0);
+                        });
+
+                        it('shows override indicator when card overrides a global setting', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'card-override',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.exist;
+
+                            const planTypeIndicator = editor.querySelector('#planType .field-status-indicator');
+                            expect(planTypeIndicator).to.exist;
+
+                            const secureLabelIndicator = editor.querySelector('#secureLabel .field-status-indicator');
+                            expect(secureLabelIndicator).to.not.exist;
+                        });
+
+                        it('restores card-level setting to global default', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'], showSecureLabel: ['true'] },
+                                testId: 'card-restore',
+                            });
+
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.false;
+                        });
+
+                        it('shows override indicator when variation overrides a global setting (parent has no override)', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-overrides-global',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            const planTypeIndicator = editor.querySelector('#planType .field-status-indicator');
+                            expect(planTypeIndicator).to.exist;
+                        });
+
+                        it('restores variation-level override to inherit from parent (global default)', async () => {
+                            const { store } = await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-restore-global',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+
+                            editor.resetSettingToDefault('showPlanType');
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                        });
+
+                        it('shows override indicator when variation overrides parent setting', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'] },
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-overrides-parent',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            const planTypeIndicator = editor.querySelector('#planType .field-status-indicator');
+                            expect(planTypeIndicator).to.exist;
+                        });
+
+                        it('restores variation-level override to inherit parent setting value', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'] },
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-restore-parent',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+
+                            editor.resetSettingToDefault('showPlanType');
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                        });
+
+                        it('does not show override indicator when variation inherits parent setting', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'] },
+                                variationOverrides: {},
+                                testId: 'variation-inherits-parent',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+
+                            const planTypeIndicator = editor.querySelector('#planType .field-status-indicator');
+                            expect(planTypeIndicator).to.not.exist;
+                        });
+
+                        it('Restore all resets only overridden variation settings to parent values', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'], showSecureLabel: ['true'] },
+                                variationOverrides: { showPlanType: ['false'], showSecureLabel: ['false'] },
+                                testId: 'variation-restore-all',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.true;
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                        });
+                    });
+
                     describe('description field inheritance logic', () => {
                         it('correctly handles inheritance and overrides for RTE fields', async () => {
                             const parent = new Fragment(structuredClone(parentWithAllFields));

@@ -68,7 +68,7 @@ describe('FragmentClient', () => {
                     value: {
                         fields: {
                             name: 'displayPlanType',
-                            type: 'boolean',
+                            valuetype: 'boolean',
                             booleanValue: true,
                         },
                     },
@@ -77,7 +77,8 @@ describe('FragmentClient', () => {
                     value: {
                         fields: {
                             name: 'secureLabel',
-                            type: 'text',
+                            valuetype: 'optional-text',
+                            booleanValue: true,
                             textValue: 'Secure transaction',
                         },
                     },

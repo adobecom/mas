@@ -62,11 +62,9 @@ async function getSettingsId(context) {
 }
 
 function extractValue(entry) {
-    switch (entry.type) {
+    switch (entry.valuetype) {
         case 'boolean':
             return entry.booleanValue;
-        case 'placeholder':
-            return entry.textValue;
         case 'richText':
             return entry.richTextValue;
         case 'text':

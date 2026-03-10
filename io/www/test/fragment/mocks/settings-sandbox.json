@@ -17,7 +17,7 @@
     },
     "references": {
         "31a9f6d2-13ed-4958-bcd0-f1166f49cfab": {
-            "type": "content-fragment",
+            "valuetype": "content-fragment",
             "value": {
                 "path": "/content/dam/mas/sandbox/settings/show-secured-transaction",
                 "name": "",
@@ -38,7 +38,7 @@
             }
         },
         "99e7b47f-f9c1-4a93-bee3-7c00bbf13a28": {
-            "type": "content-fragment",
+            "valuetype": "content-fragment",
             "value": {
                 "path": "/content/dam/mas/sandbox/settings/show-secure-transaction-fr",
                 "name": "",
@@ -50,14 +50,14 @@
                     "name": "secureLabel",
                     "templates": [],
                     "locales": ["fr_FR", "fr_BE", "fr_CH"],
-                    "type": "optional-text",
+                    "valuetype": "optional-text",
                     "tags": [],
                     "booleanValue": true
                 }
             }
         },
         "ac4184a7-b4af-4633-8dcb-e10f32bc28ca": {
-            "type": "content-fragment",
+            "valuetype": "content-fragment",
             "value": {
                 "path": "/content/dam/mas/sandbox/settings/display-plan-type",
                 "name": "",
@@ -76,7 +76,7 @@
             }
         },
         "58f46650-e0c6-4e68-8175-79b012fe7612": {
-            "type": "content-fragment",
+            "valuetype": "content-fragment",
             "value": {
                 "path": "/content/dam/mas/sandbox/settings/display-plan-type-true",
                 "name": "",
@@ -118,7 +118,7 @@
             }
         },
         "58f46650-e0c6-4e68-8175-79b012fe7613": {
-            "type": "content-fragment",
+            "valuetype": "content-fragment",
             "value": {
                 "path": "/content/dam/mas/sandbox/settings/display-plan-type-true",
                 "name": "",
@@ -137,7 +137,7 @@
             }
         },
         "511b3df8-9a35-4e27-9241-31d038ff2630": {
-            "type": "content-fragment",
+            "valuetype": "content-fragment",
             "value": {
                 "path": "/content/dam/mas/sandbox/settings/display-annual",
                 "name": "",
@@ -156,7 +156,7 @@
             }
         },
         "baebc1db-a806-41de-b74e-1c2ba699d05c": {
-            "type": "content-fragment",
+            "valuetype": "content-fragment",
             "value": {
                 "path": "/content/dam/mas/sandbox/settings/display-annual-true",
                 "name": "",
@@ -188,21 +188,21 @@
             "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdz",
             "path": "/conf/mas/settings/dam/cfm/models/settings",
             "title": "Settings",
-            "fields": { "parentSettings": { "type": "content-fragment" }, "entries": { "type": "content-fragment" } }
+            "fields": { "parentSettings": { "valuetype": "content-fragment" }, "entries": { "valuetype": "content-fragment" } }
         },
         "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5": {
             "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5",
             "path": "/conf/mas/settings/dam/cfm/models/settings-entry",
             "title": "Settings Entry",
             "fields": {
-                "name": { "type": "text" },
-                "templates": { "type": "text" },
-                "locales": { "type": "text" },
-                "tags": { "type": "tag" },
-                "valuetype": { "type": "text" },
-                "textValue": { "type": "text" },
-                "richTextValue": { "type": "long-text" },
-                "booleanValue": { "type": "boolean" }
+                "name": { "valuetype": "text" },
+                "templates": { "valuetype": "text" },
+                "locales": { "valuetype": "text" },
+                "tags": { "valuetype": "tag" },
+                "valuetype": { "valuetype": "text" },
+                "textValue": { "valuetype": "text" },
+                "richTextValue": { "valuetype": "long-text" },
+                "booleanValue": { "valuetype": "boolean" }
             }
         }
     }

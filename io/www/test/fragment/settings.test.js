@@ -178,7 +178,7 @@ describe('settings', () => {
                     value: {
                         fields: {
                             name: 'secureLabel',
-                            type: 'boolean',
+                            valuetype: 'boolean',
                             booleanValue: true,
                         },
                     },
@@ -242,12 +242,12 @@ describe('settings', () => {
             clearSettingsCache();
             const bodyA = {
                 references: {
-                    ref1: { value: { fields: { name: 'x', type: 'text', textValue: 'A' } } },
+                    ref1: { value: { fields: { name: 'x', valuetype: 'text', textValue: 'A' } } },
                 },
             };
             const bodyB = {
                 references: {
-                    ref1: { value: { fields: { name: 'x', type: 'text', textValue: 'B' } } },
+                    ref1: { value: { fields: { name: 'x', valuetype: 'text', textValue: 'B' } } },
                 },
             };
             mockSettingsFetch('surfaceA', 'id-a', bodyA);
@@ -264,7 +264,7 @@ describe('settings', () => {
             const referencesBody = {
                 references: {
                     ref1: {
-                        value: { fields: { name: 'x', type: 'text', textValue: 'shared' } },
+                        value: { fields: { name: 'x', valuetype: 'text', textValue: 'shared' } },
                     },
                 },
             };
@@ -289,16 +289,20 @@ describe('settings', () => {
                         secureLabel: {
                             default: {
                                 name: 'secureLabel',
-                                type: 'optional-text',
-                                booleanValue: true,
+                                templates: ['plans', 'plans-students'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'optional-text',
                                 textValue: '{{secure-label}}',
+                                richTextValue: { mimeType: 'text/html' },
+                                booleanValue: true,
                             },
                             override: [],
                         },
                         checkoutWorkflow: {
                             default: {
                                 name: 'checkoutWorkflow',
-                                type: 'text',
+                                valuetype: 'text',
                                 textValue: 'UCv3',
                             },
                             override: [],
@@ -309,27 +313,6 @@ describe('settings', () => {
             const result = await settings.process(context);
             expect(result.body.settings.secureLabel).to.equal('{{secure-label}}');
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3');
-        });
-
-        it('applies placeholder for secureLabel when secureLabel is true', async () => {
-            const context = {
-                locale: 'fr_FR',
-                body: { fields: { variant: 'plans' } },
-                promises: {
-                    settings: Promise.resolve({
-                        secureLabel: {
-                            default: {
-                                name: 'secureLabel',
-                                type: 'placeholder',
-                                textValue: '{{secure-label}}',
-                            },
-                            override: [],
-                        },
-                    }),
-                },
-            };
-            const result = await settings.process(context);
-            expect(result.body.settings.secureLabel).to.equal('{{secure-label}}');
         });
 
         it('always applies priceLiterals', async () => {
@@ -413,20 +396,20 @@ describe('settings', () => {
                         badgeLabel: {
                             default: {
                                 name: 'badgeLabel',
-                                type: 'text',
+                                valuetype: 'text',
                                 textValue: 'Default badge',
                             },
                             override: [
                                 {
                                     name: 'badgeLabel',
-                                    type: 'text',
+                                    valuetype: 'text',
                                     textValue: 'Premium badge',
                                     locales: ['fr_FR'],
                                     tags: ['premium'],
                                 },
                                 {
                                     name: 'badgeLabel',
-                                    type: 'text',
+                                    valuetype: 'text',
                                     textValue: 'Premium B2B badge',
                                     locales: ['fr_FR'],
                                     tags: ['premium', 'b2b'],
@@ -449,14 +432,14 @@ describe('settings', () => {
                         checkoutWorkflow: {
                             default: {
                                 name: 'checkoutWorkflow',
-                                type: 'text',
+                                valuetype: 'text',
                                 templates: ['plans', 'other-variant'],
                                 textValue: 'UCv3',
                             },
                             override: [
                                 {
                                     name: 'checkoutWorkflow',
-                                    type: 'text',
+                                    valuetype: 'text',
                                     textValue: 'UCv3-FR',
                                     locales: ['fr_FR'],
                                 },
@@ -510,7 +493,7 @@ describe('settings', () => {
                         trustCopy: {
                             default: {
                                 name: 'trustCopy',
-                                type: 'richText',
+                                valuetype: 'richText',
                                 richTextValue: richText,
                             },
                             override: [],

@@ -1,0 +1,106 @@
+.sidenav {
+    display: none;
+}
+
+.sidenav .sidenav-title {
+    display: block;
+    margin: 0 0 20px;
+    font-family: var(--heading-font-family);
+    font-size: var(--body-font-size-s);
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.sidenav ul {
+    margin: 0;
+    padding: 0 0 0 12px;
+    list-style: none;
+}
+
+.sidenav > ul {
+    padding-left: 0;
+}
+
+.sidenav li {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidenav li > a {
+    flex: 1 1 0;
+    color: var(--text-color);
+    text-decoration: none;
+    line-height: 1.4;
+}
+
+.sidenav li > a[aria-current='page'] {
+    color: var(--link-color);
+    font-weight: 700;
+}
+
+.sidenav .sidenav-toggle {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: var(--dark-color);
+    line-height: 1;
+    font-size: 12px;
+    cursor: pointer;
+    transform: rotate(0deg);
+    transition: transform 0.15s ease-in-out;
+}
+
+.sidenav .sidenav-branch {
+    display: none;
+    flex: 1 0 100%;
+}
+
+.sidenav li.is-open > .sidenav-toggle {
+    transform: rotate(90deg);
+}
+
+.sidenav li.is-open > .sidenav-branch {
+    display: block;
+}
+
+.sidenav .sidenav-error {
+    margin: 0;
+    color: var(--dark-color);
+    font-size: var(--body-font-size-xs);
+}
+
+.sidenav .sidenav-studio-button {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background-color: var(--link-color);
+    color: var(--background-color);
+    text-decoration: none;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.sidenav .sidenav-studio-button:hover,
+.sidenav .sidenav-studio-button:focus {
+    background-color: var(--link-hover-color);
+    text-decoration: none;
+}
+
+@media (width >= 900px) {
+    .sidenav {
+        display: block;
+        padding: 28px 24px 32px;
+        font-size: var(--body-font-size-xs);
+        box-sizing: border-box;
+        width: 300px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        overflow-y: auto;
+    }
+}

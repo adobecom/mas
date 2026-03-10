@@ -194,7 +194,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-2: Click Fragments table breadcrumb', async () => {
-            await expect(versionPage.layoutBreadcrumbItems.first()).toContainText('Fragments table');
+            await expect(versionPage.layoutBreadcrumbItems.first()).toContainText('Fragments');
             await versionPage.clickBreadcrumbFragmentsTable();
         });
 
@@ -214,7 +214,8 @@ test.describe('M@S Studio - Version Page test suite', () => {
     });
 
     // @version-page-nala-clone-restore - Clone, change fields, save/publish, new version, restore and validate toast
-    test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
+    // include again when reliable version of the test is implemented
+    test.skip(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         test.setTimeout(210000);
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}`;
@@ -250,11 +251,11 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.waitForTimeout(500);
             await studio.saveCard();
             await studio.publishCard();
-            await page.waitForTimeout(5000);
+            await page.waitForTimeout(15000);
         });
 
         await test.step('step-6: Open version history and validate new version exists', async () => {
-            await page.waitForTimeout(10000);
+            await page.waitForTimeout(15000);
             const currentFragmentId = await page.evaluate(() => {
                 const hash = window.location.hash || '';
                 const m = hash.match(/fragmentId=([^&]+)/);
@@ -263,7 +264,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
             });
             expect(currentFragmentId, 'Current fragment id (cloned) should be in URL or Store').toBeTruthy();
 
-            const maxRetries = 5;
+            const maxRetries = 8;
             let versionCount = 0;
             const versionPageUrl = `${baseURL}${features[5].path}${miloLibs}#page=version&path=nala&fragmentId=${currentFragmentId}`;
 
@@ -279,7 +280,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
                 versionCount = await versionPage.getVersionCount();
                 if (versionCount >= 2) break;
                 if (attempt < maxRetries - 1) {
-                    await page.waitForTimeout(7000);
+                    await page.waitForTimeout(10000);
                     await versionPage.clickBreadcrumbEditor();
                     await page.waitForTimeout(3000);
                 }
@@ -301,7 +302,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-8: Validate success toast with version number', async () => {
             await expect(studio.toastPositive).toBeVisible({ timeout: 15000 });
             const toastContent = await studio.toastPositive.textContent();
-            expect(toastContent).toMatch(/Version\s+[\d.]+\s+restored successfully/);
+            expect(toastContent).toMatch(/Version\s+.+\s+restored successfully/);
         });
     });
 

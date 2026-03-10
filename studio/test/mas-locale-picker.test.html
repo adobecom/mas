@@ -74,7 +74,435 @@
                 display: block;
             }
         </style>
-        <script src="./mas-locale-picker.test.html.js" type="module"></script>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { initElementFromTemplate, oneEvent } from './utils.js';
+            import Store from '../src/store.js';
+            import '../src/mas-locale-picker.js';
+            import { getDefaultLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
+
+            runTests(async () => {
+                describe('mas-locale-picker custom element', async () => {
+                    beforeEach(async function () {
+                        // Reset store to default
+                        Store.filters.set({ locale: 'en_US' });
+                    });
+
+                    describe('Display modes', () => {
+                        it('should render in strong display mode with globe icon', async function () {
+                            const el = initElementFromTemplate('strongMode', this.test.title);
+                            await el.updateComplete;
+                            expect(el.displayMode).to.equal('strong');
+                            expect(el.classList.contains('strong')).to.be.true;
+                            const globeIcon = el.shadowRoot.querySelector('sp-icon-globe-grid');
+                            expect(globeIcon).to.exist;
+                        });
+
+                        it('should render in light display mode without globe icon', async function () {
+                            const el = initElementFromTemplate('lightMode', this.test.title);
+                            await el.updateComplete;
+                            expect(el.displayMode).to.equal('light');
+                            expect(el.classList.contains('strong')).to.be.false;
+                            const globeIcon = el.shadowRoot.querySelector('sp-icon-globe-grid');
+                            expect(globeIcon).to.not.exist;
+                        });
+                    });
+
+                    describe('Locales', () => {
+                        const setContext = (locale) => {
+                            Store.filters.set({ locale });
+                        };
+                        it('should initialize with US English locale', async function () {
+                            setContext('en_US');
+                            const el = initElementFromTemplate('localeEN_US', this.test.title);
+                            await el.updateComplete;
+                            expect(el.locale).to.equal('en_US');
+                            expect(el.currentLocale.country).to.equal('US');
+                            expect(el.currentLocale.lang).to.equal('en');
+                        });
+                        it('should initialize with German locale', async function () {
+                            setContext('de_DE');
+                            const el = initElementFromTemplate('localeDE_DE', this.test.title);
+                            await el.updateComplete;
+                            expect(el.locale).to.equal('de_DE');
+                            expect(el.currentLocale.country).to.equal('DE');
+                            expect(el.currentLocale.lang).to.equal('de');
+                        });
+                        it('should initialize with Japanese locale', async function () {
+                            setContext('ja_JP');
+                            const el = initElementFromTemplate('localeJA_JP', this.test.title);
+                            await el.updateComplete;
+                            expect(el.locale).to.equal('ja_JP');
+                            expect(el.currentLocale.country).to.equal('JP');
+                            expect(el.currentLocale.lang).to.equal('ja');
+                        });
+                        it('should initialize with default locale if requested locale is not present on surface', async function () {
+                            setContext('ar_SA'); // Assume es_MX is not on default surface
+                            const el = initElementFromTemplate('nonpresentLocale', this.test.title);
+                            await el.updateComplete;
+                            expect(el.locale).to.equal('en_US'); // Fallback to en_US
+                            expect(el.currentLocale.country).to.equal('US');
+                            expect(el.currentLocale.lang).to.equal('en');
+                        });
+                        it('should return nothing when currentLocale is null', async function () {
+                            setContext('en_US');
+                            const el = initElementFromTemplate('localeEN_US', this.test.title);
+                            await el.updateComplete;
+                            // Override currentLocale getter to return null
+                            Object.defineProperty(el, 'currentLocale', {
+                                get: () => null,
+                                configurable: true,
+                            });
+                            el.requestUpdate();
+                            await el.updateComplete;
+                            // Verify render returns nothing (shadowRoot should be empty or minimal)
+                            const actionMenu = el.shadowRoot.querySelector('sp-action-menu');
+                            expect(actionMenu).to.be.null;
+                        });
+                    });
+
+                    describe('Modes', () => {
+                        it('should work in language mode', async function () {
+                            const el = initElementFromTemplate('languageMode', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.mode).to.equal('language');
+                            const locales = el.getLocales();
+                            expect(locales.length).to.be.greaterThan(0);
+                            //should contain en_US, de_DE, fr_FR, ja_JP
+                            const expectedLocales = ['en_US', 'de_DE', 'fr_FR', 'ja_JP'];
+                            expectedLocales.forEach((code) => {
+                                expect(locales.some((loc) => getLocaleCode(loc) === code)).to.be.true;
+                            });
+                        });
+
+                        it('should work in region mode with English', async function () {
+                            const el = initElementFromTemplate('regionModeEN', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.mode).to.equal('region');
+                            const locales = el.getLocales();
+                            expect(locales.length).to.be.greaterThan(0);
+                            // All should be English
+                            expect(locales.every((loc) => loc.lang === 'en')).to.be.true;
+                            // Should contain en_US, en_GB, en_CA, en_AU
+                            const expectedLocales = ['en_US', 'en_KW', 'en_CA', 'en_EG'];
+                            expectedLocales.forEach((code) => {
+                                expect(locales.some((loc) => getLocaleCode(loc) === code)).to.be.true;
+                            });
+                        });
+
+                        it('should work in region mode with German', async function () {
+                            Store.filters.set({ locale: 'de_DE' });
+                            const el = initElementFromTemplate('regionModeDE', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.mode).to.equal('region');
+                            const locales = el.getLocales();
+                            // All should be German
+                            expect(locales.every((loc) => loc.lang === 'de')).to.be.true;
+                            // Should contain de_DE, de_AT, de_CH
+                            const expectedLocales = ['de_DE', 'de_AT', 'de_CH'];
+                            expectedLocales.forEach((code) => {
+                                expect(locales.some((loc) => getLocaleCode(loc) === code)).to.be.true;
+                            });
+                        });
+                    });
+
+                    describe('Surfaces', () => {
+                        it('should filter by acom surface', async function () {
+                            const el = initElementFromTemplate('surfaceAcom', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.surface).to.equal('acom');
+                            const locales = getDefaultLocales('acom');
+                            expect(locales.length).to.be.greaterThan(0);
+                        });
+                        it('should filter by express surface', async function () {
+                            const locales = getDefaultLocales('express');
+                            expect(locales.map((loc) => getLocaleCode(loc))).to.deep.equal([
+                                'da_DK',
+                                'de_DE',
+                                'en_GB',
+                                'en_US',
+                                'fi_FI',
+                                'fr_FR',
+                                'id_ID',
+                                'it_IT',
+                                'ja_JP',
+                                'ko_KR',
+                                'nb_NO',
+                                'nl_NL',
+                                'pt_BR',
+                                'es_ES',
+                                'sv_SE',
+                                'zh_CN',
+                                'zh_TW',
+                            ]);
+                        });
+
+                        it('should filter by nala surface', async function () {
+                            const el = initElementFromTemplate('surfaceNala', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.surface).to.equal('nala');
+                            const locales = getDefaultLocales('nala');
+                            expect(locales.length).to.be.greaterThan(0);
+                        });
+                    });
+
+                    describe('Search functionality', () => {
+                        it('should enable search by default', async function () {
+                            const el = initElementFromTemplate('searchEnabled', this.test.title);
+                            await el.updateComplete;
+                            const searchField = el.searchField;
+                            expect(searchField).to.not.be.null;
+                        });
+
+                        it('should disable search when specified', async function () {
+                            const el = initElementFromTemplate('searchDisabled', this.test.title);
+                            await el.updateComplete;
+                            const searchField = el.searchField;
+                            expect(searchField).to.be.null;
+                        });
+
+                        it('should use custom search placeholder', async function () {
+                            const el = initElementFromTemplate('customSearchPlaceholder', this.test.title);
+                            await el.updateComplete;
+                            expect(el.searchPlaceholder).to.equal('Find a locale...');
+                        });
+
+                        it('should filter locales by search query', async function () {
+                            const el = initElementFromTemplate('filterLocaleSearch', this.test.title);
+                            await el.updateComplete;
+
+                            el.searchQuery = 'german';
+                            const filtered = el.getFilteredLocales();
+                            expect(filtered.every((loc) => loc.lang === 'de')).to.be.true;
+                        });
+                    });
+
+                    describe('Disabled state', () => {
+                        it('should render in disabled state', async function () {
+                            const el = initElementFromTemplate('disabled', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.disabled).to.be.true;
+                            const actionMenu = el.shadowRoot.querySelector('sp-action-menu');
+                            expect(actionMenu.hasAttribute('disabled')).to.be.true;
+                        });
+                    });
+
+                    describe('Locale change events', () => {
+                        it('should dispatch locale-changed event', async function () {
+                            const el = initElementFromTemplate('localeChangedEvent', this.test.title);
+                            await el.updateComplete;
+
+                            const eventPromise = oneEvent(el, 'locale-changed');
+                            el.handleLocaleChange('de_DE');
+                            const event = await eventPromise;
+
+                            expect(event.detail.locale).to.equal('de_DE');
+                            expect(event.bubbles).to.be.true;
+                            expect(event.composed).to.be.true;
+                            expect(el.locale).to.equal('de_DE');
+                            expect(el.lang).to.equal('de');
+                        });
+                    });
+
+                    describe('Checkbox selection mode', () => {
+                        it('should render trigger label from selection-label attribute', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionSelectLocalesLabel', this.test.title);
+                            await el.updateComplete;
+
+                            const trigger = el.shadowRoot.querySelector('.selection-trigger');
+                            expect(trigger).to.exist;
+                            expect(trigger.textContent).to.include('Select locales');
+                        });
+
+                        it('should render empty-selection-label as placeholder text in region checkbox mode', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionEmptyLabelRegion', this.test.title);
+                            await el.updateComplete;
+
+                            const triggerLabel = el.shadowRoot.querySelector('.selection-trigger-label');
+                            expect(triggerLabel).to.exist;
+                            expect(triggerLabel.textContent.trim()).to.equal('All locales');
+                            expect(triggerLabel.classList.contains('is-placeholder')).to.equal(true);
+                        });
+
+                        it('should clear placeholder class after selecting locales', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionEmptyLabelRegion', this.test.title);
+                            await el.updateComplete;
+
+                            const trigger = el.shadowRoot.querySelector('.selection-trigger');
+                            trigger.click();
+                            await el.updateComplete;
+
+                            const deCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="de_DE"]');
+                            deCheckbox.checked = true;
+                            deCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await el.updateComplete;
+
+                            const applyButton = [...el.shadowRoot.querySelectorAll('sp-button[slot="button"]')].find(
+                                (button) => button.textContent.trim() === 'Apply',
+                            );
+                            applyButton.click();
+                            await el.updateComplete;
+
+                            const triggerLabel = el.shadowRoot.querySelector('.selection-trigger-label');
+                            expect(triggerLabel.classList.contains('is-placeholder')).to.equal(false);
+                            expect(triggerLabel.textContent).to.include('de_DE');
+                        });
+
+                        it('should treat empty selection as value when empty-selection-is-value is enabled', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionEmptyValueIsSelection', this.test.title);
+                            await el.updateComplete;
+
+                            const triggerLabel = el.shadowRoot.querySelector('.selection-trigger-label');
+                            expect(triggerLabel.textContent.trim()).to.equal('All locales');
+                            expect(triggerLabel.classList.contains('is-placeholder')).to.equal(false);
+                        });
+
+                        it('should render language labels in dialog by default', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionLanguageDefault', this.test.title);
+                            await el.updateComplete;
+
+                            el.shadowRoot.querySelector('.selection-trigger').click();
+                            await el.updateComplete;
+
+                            const deCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="de_DE"]');
+                            expect(deCheckbox).to.exist;
+                            expect(deCheckbox.textContent).to.include('German');
+                            expect(deCheckbox.textContent).to.not.include('de_DE');
+                        });
+
+                        it('should render locale labels in dialog when mode is region', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionModeRegion', this.test.title);
+                            await el.updateComplete;
+
+                            el.shadowRoot.querySelector('.selection-trigger').click();
+                            await el.updateComplete;
+
+                            const deCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="de_DE"]');
+                            const enCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="en_US"]');
+                            expect(deCheckbox).to.exist;
+                            expect(enCheckbox).to.exist;
+                            expect(deCheckbox.textContent).to.include('de_DE');
+                        });
+
+                        it('should render a modal dialog and dispatch selected locales with display-value', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionDisplayValue', this.test.title);
+                            await el.updateComplete;
+
+                            const trigger = el.shadowRoot.querySelector('.selection-trigger');
+                            expect(trigger).to.exist;
+                            expect(trigger.textContent).to.include('Pick languages');
+
+                            trigger.click();
+                            await el.updateComplete;
+
+                            const dialog = el.shadowRoot.querySelector('sp-dialog.selection-dialog');
+                            const heading = el.shadowRoot.querySelector('h2[slot="heading"]');
+                            expect(dialog).to.exist;
+                            expect(heading.textContent.trim()).to.equal('Pick languages');
+
+                            const deCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="de_DE"]');
+                            expect(deCheckbox).to.exist;
+                            expect(deCheckbox.textContent).to.include('de_DE');
+
+                            deCheckbox.checked = true;
+                            deCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await el.updateComplete;
+
+                            const eventPromise = oneEvent(el, 'locale-changed');
+                            const applyButton = [...el.shadowRoot.querySelectorAll('sp-button[slot="button"]')].find(
+                                (button) => button.textContent.trim() === 'Apply',
+                            );
+                            applyButton.click();
+                            const event = await eventPromise;
+
+                            expect(event.detail.locale).to.equal('de_DE');
+                            expect(event.detail.locales).to.deep.equal(['de_DE']);
+                            expect(el.locale).to.equal('de_DE');
+                            expect(trigger.textContent).to.include('de_DE');
+                            expect(trigger.textContent).to.not.include('Pick languages');
+                        });
+
+                        it('should support select-all and render a live selection count', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionDisplayValue', this.test.title);
+                            await el.updateComplete;
+
+                            el.shadowRoot.querySelector('.selection-trigger').click();
+                            await el.updateComplete;
+
+                            const selectAllCheckbox = el.shadowRoot.querySelector(
+                                '.selection-controls sp-checkbox[value="all"]',
+                            );
+                            const selectionCount = el.shadowRoot.querySelector('.selection-count');
+                            expect(selectAllCheckbox).to.exist;
+                            expect(selectionCount).to.exist;
+                            expect(selectionCount.textContent.trim()).to.equal('0 locale selected');
+
+                            selectAllCheckbox.checked = true;
+                            selectAllCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await el.updateComplete;
+
+                            const filteredCount = el.getFilteredLocales().length;
+                            expect(el.tempSelectedLocales.length).to.equal(filteredCount);
+                            expect(selectionCount.textContent.trim()).to.equal(`${filteredCount} locales selected`);
+                        });
+
+                        it('should preserve comma-separated locales in checkbox mode', async function () {
+                            const el = initElementFromTemplate('checkboxSelectionMultipleLocales', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.locale).to.equal('de_DE,fr_FR');
+                            expect(el.selectedLocales).to.deep.equal(['de_DE', 'fr_FR']);
+
+                            const trigger = el.shadowRoot.querySelector('.selection-trigger');
+                            expect(trigger.textContent).to.include('de_DE');
+                            expect(trigger.textContent).to.include('fr_FR');
+
+                            trigger.click();
+                            await el.updateComplete;
+
+                            const deCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="de_DE"]');
+                            const frCheckbox = el.shadowRoot.querySelector('sp-checkbox[value="fr_FR"]');
+                            expect(deCheckbox.checked).to.be.true;
+                            expect(frCheckbox.checked).to.be.true;
+                        });
+                    });
+
+                    describe('Combined configurations', () => {
+                        it('should work with strong mode + region mode + acom surface', async function () {
+                            const el = initElementFromTemplate('combined1', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.displayMode).to.equal('strong');
+                            expect(el.mode).to.equal('region');
+                            expect(el.surface).to.equal('acom');
+                            expect(el.classList.contains('strong')).to.be.true;
+
+                            const locales = el.getLocales();
+                            expect(locales.every((loc) => loc.lang === 'en')).to.be.true;
+                        });
+
+                        it('should work with light mode + language mode + disabled', async function () {
+                            const el = initElementFromTemplate('combined2', this.test.title);
+                            await el.updateComplete;
+
+                            expect(el.displayMode).to.equal('light');
+                            expect(el.mode).to.equal('language');
+                            expect(el.disabled).to.be.true;
+
+                            const actionMenu = el.shadowRoot.querySelector('sp-action-menu');
+                            expect(actionMenu.hasAttribute('disabled')).to.be.true;
+                        });
+                    });
+                });
+            });
+        </script>
     </head>
 
     <body>
@@ -235,6 +663,95 @@
                             <p><strong>Disabled:</strong> Cannot interact</p>
                             <template id="disabled">
                                 <mas-locale-picker disabled></mas-locale-picker>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <h2>Checkbox Selection Mode</h2>
+                    <div class="test-grid">
+                        <div class="test-item">
+                            <p><strong>Checkbox + Modal:</strong> Example with "Select locales" label</p>
+                            <template id="checkboxSelectionSelectLocalesLabel">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    selection-label="Select locales"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p><strong>Checkbox + Modal:</strong> Dialog picker with language labels (default)</p>
+                            <template id="checkboxSelectionLanguageDefault">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    selection-label="Pick languages"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p><strong>Checkbox + Modal:</strong> Dialog picker with locale labels in region mode</p>
+                            <template id="checkboxSelectionModeRegion">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    mode="region"
+                                    locale="de_DE"
+                                    selection-label="Pick languages"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p><strong>Checkbox + Modal:</strong> Dialog picker with locale codes</p>
+                            <template id="checkboxSelectionDisplayValue">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    display-value
+                                    selection-label="Pick languages"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p><strong>Checkbox + Modal:</strong> Preserves comma-separated locale values</p>
+                            <template id="checkboxSelectionMultipleLocales">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    mode="region"
+                                    display-value
+                                    locale="de_DE,fr_FR"
+                                    selection-label="Select locale"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p><strong>Checkbox + Modal:</strong> Uses custom empty placeholder label for region mode</p>
+                            <template id="checkboxSelectionEmptyLabelRegion">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    mode="region"
+                                    display-value
+                                    empty-selection-label="All locales"
+                                    selection-label="Select locale"
+                                ></mas-locale-picker>
+                            </template>
+                        </div>
+                        <div class="test-item">
+                            <p><strong>Checkbox + Modal:</strong> Treats empty selection as a real value</p>
+                            <template id="checkboxSelectionEmptyValueIsSelection">
+                                <mas-locale-picker
+                                    surface="sandbox"
+                                    selection="checkbox"
+                                    mode="region"
+                                    display-value
+                                    empty-selection-label="All locales"
+                                    empty-selection-is-value
+                                    selection-label="Select locale"
+                                ></mas-locale-picker>
                             </template>
                         </div>
                     </div>

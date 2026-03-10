@@ -60,7 +60,7 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.breadcrumbs-container sp-breadcrumb-item:has-text("Fragments")');
+        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
@@ -717,12 +717,19 @@ export default class StudioPage {
         await this.page.waitForTimeout(500);
 
         await expect(this.variationDialogLocalePicker).toBeVisible();
-        await this.variationDialogLocalePicker.click();
-        await this.page.waitForTimeout(500);
+        await expect(this.variationDialogLocalePicker).toBeEnabled();
+        await this.variationDialogLocalePicker.scrollIntoViewIfNeeded();
+        await this.page.waitForTimeout(200);
+        await this.variationDialogLocalePicker.click({ timeout: 5000 });
+        await this.page.waitForTimeout(300);
 
-        const localeOption = this.variationDialogLocalePicker.locator(`sp-menu-item[value="${locale}"]`).first();
+        const localeOption = this.page.locator(`sp-menu-item[value="${locale}"]:visible`).first();
         await expect(localeOption).toBeVisible();
-        await localeOption.click();
+        try {
+            await localeOption.click({ timeout: 5000 });
+        } catch (localeOptionClickError) {
+            await localeOption.click({ force: true });
+        }
         await this.page.waitForTimeout(500);
 
         await expect(this.variationDialogCreateButton).toBeEnabled();

@@ -1,7 +1,9 @@
 import {
     buildBlock,
+    decorateBlock,
     loadHeader,
     loadFooter,
+    loadBlock,
     decorateButtons,
     decorateIcons,
     decorateBlocks,
@@ -16,6 +18,35 @@ import {
     toClassName,
     toCamelCase,
 } from './aem.js';
+
+function isDocsPage(pathname = window.location.pathname) {
+    return pathname === '/docs' || pathname.startsWith('/docs/');
+}
+
+async function loadSideNav(doc) {
+    if (doc.querySelector('.docs-sidenav-shell')) return;
+
+    const main = doc.querySelector('main');
+    if (!main) return;
+
+    const shell = document.createElement('aside');
+    shell.className = 'docs-sidenav-shell';
+
+    const nav = document.createElement('nav');
+    nav.className = 'sidenav';
+    shell.append(nav);
+    main.insertAdjacentElement('beforebegin', shell);
+
+    decorateBlock(nav);
+
+    try {
+        await loadBlock(nav);
+        doc.body.classList.add('has-docs-sidenav');
+    } catch (error) {
+        shell.remove();
+        console.error('Failed to load sidenav block', error);
+    }
+}
 
 /**
  * Builds hero block and prepends to main in a new section.
@@ -142,6 +173,9 @@ async function loadEager(doc) {
     decorateTemplateAndTheme();
     if (getMetadata('breadcrumbs').toLowerCase() === 'true') {
         doc.body.dataset.breadcrumbs = true;
+    }
+    if (isDocsPage()) {
+        await loadSideNav(doc);
     }
     const main = doc.querySelector('main');
     if (main) {

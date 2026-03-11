@@ -346,7 +346,7 @@ export function extractSurfaceFromPath(fragmentPath) {
 export function extractLocaleFromPath(fragmentPath) {
     if (!fragmentPath) return null;
     const parts = fragmentPath.split('/');
-    const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
+    const localePattern = /^[a-z]{2,3}_[A-Z]{2,}$/;
     return parts.find((part) => localePattern.test(part)) || null;
 }
 

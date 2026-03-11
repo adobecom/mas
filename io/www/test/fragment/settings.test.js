@@ -343,7 +343,7 @@ describe('settings', () => {
                         secureLabel: {
                             default: {
                                 name: 'secureLabel',
-                                type: 'boolean',
+                                valuetype: 'optional-text',
                                 booleanValue: true,
                                 textValue: '{{secure-label}}',
                             },
@@ -353,7 +353,7 @@ describe('settings', () => {
                 },
             };
             const result = await settings.process(context);
-            expect(result.body.references.ref1.value.settings.secureLabel).to.be.true;
+            expect(result.body.references.ref1.value.settings.secureLabel).to.equal('{{secure-label}}');
             expect(result.body.placeholders).to.exist;
             expect(result.body.settings?.tagLabels).to.exist;
         });
@@ -390,7 +390,7 @@ describe('settings', () => {
         it('picks override with most tag matches when multiple overrides match locale', async () => {
             const context = {
                 locale: 'fr_FR',
-                body: { fields: { variant: 'plans' }, tags: ['premium', 'b2b'] },
+                body: { fields: { variant: 'plans', tags: ['premium', 'b2b'] } },
                 promises: {
                     settings: Promise.resolve({
                         badgeLabel: {
@@ -454,6 +454,37 @@ describe('settings', () => {
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3-FR');
         });
 
+        it('applies secureLabel locale override when fragment locale matches', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        secureLabel: {
+                            default: {
+                                name: 'secureLabel',
+                                valuetype: 'optional-text',
+                                templates: ['plans', 'plans-students'],
+                                booleanValue: false,
+                                textValue: '{{secure-label}}',
+                            },
+                            override: [
+                                {
+                                    name: 'secureLabel',
+                                    valuetype: 'optional-text',
+                                    booleanValue: true,
+                                    textValue: '{{secure-label-fr}}',
+                                    locales: ['fr_FR'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.secureLabel).to.equal('{{secure-label-fr}}');
+        });
+
         it('does not apply settings when template is not in settings', async () => {
             const context = {
                 locale: 'fr_FR',
@@ -463,14 +494,14 @@ describe('settings', () => {
                         checkoutWorkflow: {
                             default: {
                                 name: 'checkoutWorkflow',
-                                type: 'text',
+                                valuetype: 'text',
                                 templates: ['plans', 'other-variant'],
                                 textValue: 'UCv3',
                             },
                             override: [
                                 {
                                     name: 'checkoutWorkflow',
-                                    type: 'text',
+                                    valuetype: 'text',
                                     textValue: 'UCv3-FR',
                                     locales: ['fr_FR'],
                                 },
@@ -523,6 +554,101 @@ describe('settings', () => {
             };
             const result = await settings.process(context);
             expect(result.body.settings.legacyFlag).to.be.true;
+        });
+
+        it('uses perUnitLabel from fragment fields when present', async () => {
+            const customPerUnitLabel = '/per-unit-custom';
+            const context = {
+                locale: 'en_US',
+                body: {
+                    fields: { perUnitLabel: customPerUnitLabel, variant: 'plans' },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        secureLabel: {
+                            default: {
+                                name: 'secureLabel',
+                                booleanValue: false,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.priceLiterals).to.exist;
+            expect(result.body.priceLiterals.perUnitLabel).to.equal(customPerUnitLabel);
+        });
+
+        it('uses displayPlanType (showPlanType) from fragment settings when present', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: {
+                    fields: { variant: 'plans', showPlanType: false },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        displayPlanType: {
+                            default: {
+                                name: 'displayPlanType',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.displayPlanType).to.be.false;
+        });
+
+        it('returns empty string for optional-text when fragment sets secureLabel to false', async () => {
+            const context = {
+                locale: 'en_US',
+                body: {
+                    fields: { variant: 'plans', showSecureLabel: false },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        secureLabel: {
+                            default: {
+                                name: 'secureLabel',
+                                valuetype: 'optional-text',
+                                templates: ['plans'],
+                                booleanValue: true,
+                                textValue: '{{secure-label}}',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.secureLabel).to.equal('');
+        });
+
+        it('uses fragment value for text-type setting when fragment provides one', async () => {
+            const context = {
+                locale: 'en_US',
+                body: {
+                    fields: { customLabel: 'fragment-override' },
+                },
+                promises: {
+                    settings: Promise.resolve({
+                        customLabel: {
+                            default: {
+                                name: 'customLabel',
+                                valuetype: 'text',
+                                textValue: '{{default-label}}',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.customLabel).to.equal('fragment-override');
         });
     });
 });

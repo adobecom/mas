@@ -174,7 +174,7 @@ async function customize(context) {
     const promos = await context.promises?.promotions;
 
     if (status != 200) {
-        return { status, message };
+        return { ...context, status, message };
     }
     const baseFragment = skimFragmentFromReferences(body);
     //todo check

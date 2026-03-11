@@ -6,6 +6,19 @@ const SETTINGS_ID_PATH = 'settings/index';
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
+/**
+ * Available setting name definitions.
+ */
+const SETTING_NAME_DEFINITIONS = [
+    { name: 'addon', valueType: 'optional-text', editor: 'addon' },
+    { name: 'secureLabel', valueType: 'optional-text', editor: 'text', propertyName: 'showSecureLabel' },
+    { name: 'displayAnnual', valueType: 'boolean' },
+    { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
+    { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
+];
+
+export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
+
 let settingsCache;
 
 export function clearSettingsCache(preview = false) {
@@ -61,18 +74,34 @@ async function getSettingsId(context) {
     return { status: 200, id };
 }
 
-function extractValue(entry) {
+function extractValue(entry, fragment) {
+    const definition = SETTING_NAME_BY_VALUE.get(entry.name);
+    const propertyName = definition?.propertyName || entry.name;
+    const localeValue = fragment.fields?.[propertyName];
+    let booleanValue = entry.booleanValue;
+    let textValue = entry.textValue;
+    if (typeof localeValue !== 'undefined') {
+        if (['boolean', 'optional-text'].includes(entry.valuetype)) {
+            booleanValue = localeValue;
+        }
+        if (entry.valuetype === 'optional-text' && localeValue === false) {
+            textValue = '';
+        }
+        if (entry.valuetype === 'text') {
+            textValue = localeValue;
+        }
+    }
     switch (entry.valuetype) {
         case 'boolean':
-            return entry.booleanValue;
+            return booleanValue;
         case 'richText':
             return entry.richTextValue;
         case 'text':
-            return entry.textValue;
+            return textValue;
         case 'optional-text':
-            return entry.booleanValue ? entry.textValue : '';
+            return booleanValue ? textValue : '';
         default:
-            return entry.booleanValue;
+            return booleanValue;
     }
 }
 
@@ -137,10 +166,10 @@ function resolveSettingEntry(fragment, locale, setting) {
     // Find all overrides matching the locale; now select best by tags
     let bestMatch = defaultEntry;
     let maxTagMatches = -1;
-
-    if (filteredLocale.length > 1 && fragment?.tags) {
+    const tags = fragment.fields?.tags;
+    if (filteredLocale.length > 1 && tags?.length > 0) {
         for (const overrideSetting of filteredLocale) {
-            const tagMatches = overrideSetting.tags.filter((tag) => fragment.tags.includes(tag)).length;
+            const tagMatches = overrideSetting.tags.filter((tag) => tags.includes(tag)).length;
             if (tagMatches > maxTagMatches) {
                 maxTagMatches = tagMatches;
                 bestMatch = overrideSetting;
@@ -160,8 +189,13 @@ function applySettings(context, fragment, locale, settings) {
         if (!entry) continue;
         fragment.settings = {
             ...fragment.settings,
-            [entry.name]: extractValue(entry),
+            [entry.name]: extractValue(entry, fragment),
         };
+    }
+    //temporary fix waiting for MWPW-189860 to be implemented
+    if (fragment?.fields?.perUnitLabel) {
+        fragment.priceLiterals ??= {};
+        fragment.priceLiterals.perUnitLabel = fragment.fields.perUnitLabel;
     }
     logDebug(() => `Applying settings for fragment ${fragment.id}: ${JSON.stringify(fragment.settings)}`, context);
 }

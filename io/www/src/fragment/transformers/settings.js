@@ -9,7 +9,7 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 /**
  * Available setting name definitions.
  */
-const SETTING_NAME_DEFINITIONS = [
+export const SETTING_NAME_DEFINITIONS = [
     { name: 'addon', valueType: 'optional-text', editor: 'addon' },
     { name: 'secureLabel', valueType: 'optional-text', editor: 'text', propertyName: 'showSecureLabel' },
     { name: 'displayAnnual', valueType: 'boolean' },

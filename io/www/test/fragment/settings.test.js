@@ -514,6 +514,52 @@ describe('settings', () => {
             expect(result).to.deep.equal(context);
         });
 
+        it('applies setting when templates are not configured (no template filter)', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'any-variant' } },
+                promises: {
+                    settings: Promise.resolve({
+                        checkoutWorkflow: {
+                            default: {
+                                name: 'checkoutWorkflow',
+                                valuetype: 'text',
+                                textValue: 'UCv3',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings).to.exist;
+            expect(result.body.settings.checkoutWorkflow).to.equal('UCv3');
+        });
+
+        it('applies setting when templates is empty array (no template filter)', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        secureLabel: {
+                            default: {
+                                name: 'secureLabel',
+                                valuetype: 'optional-text',
+                                templates: [],
+                                booleanValue: true,
+                                textValue: '{{secure-label}}',
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings).to.exist;
+            expect(result.body.settings.secureLabel).to.equal('{{secure-label}}');
+        });
+
         it('applies richText setting from richTextValue', async () => {
             const richText = { mimeType: 'text/html', html: '<p>Trust badge copy</p>' };
             const context = {

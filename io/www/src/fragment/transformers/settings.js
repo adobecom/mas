@@ -163,7 +163,7 @@ function resolveSettingEntry(fragment, locale, setting) {
     const defaultEntry = setting.default;
     const template = fragment.fields?.variant;
     if (!defaultEntry) return null;
-    if (defaultEntry.templates && !defaultEntry.templates.includes(template)) return null;
+    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) return null;
     const filteredLocale = setting.override.filter(
         (overrideSetting) =>
             !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale),

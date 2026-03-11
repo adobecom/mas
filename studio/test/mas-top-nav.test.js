@@ -411,6 +411,19 @@ describe('MasTopNav', () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             expect(el.currentFragmentLocale).to.be.null;
         });
+
+        it('should pass currentFragmentLocale to locale picker when viewing a variation', async () => {
+            const fragmentStore = {
+                get: () => ({ path: '/content/dam/mas/s/en_GB/f' }),
+            };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.value = fragmentStore;
+
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const localePicker = el.querySelector('mas-locale-picker');
+            expect(localePicker.getAttribute('locale')).to.equal('en_GB');
+        });
     });
 
     describe('onLocaleChanged', () => {

@@ -5805,13 +5805,6 @@ merch-card-collection.segment merch-card {
             display: flex;
             justify-content: center;
             flex-direction: column;
-            flex-grow: 1;
-            flex-basis: 0;
-        }
-
-        :host([variant='media']) .image {
-            flex-grow: 1;
-            flex-basis: 0;
         }
 
         @media screen and (max-width: 600px) {
@@ -5829,16 +5822,6 @@ merch-card-collection.segment merch-card {
         @media screen and (min-width: 1200px) {
             :host([variant='media']) .media-row {
                 gap: 40px;
-            }
-        }
-
-        @media screen and (min-width: 600px) and (max-width: 768px) {
-            :host([variant='media']) .image {
-                flex: 0 1 auto;
-            }
-
-            :host([variant='media']) .text {
-                flex: 0 1 auto;
             }
         }
     `);_();var Rc=`

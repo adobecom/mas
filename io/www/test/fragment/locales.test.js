@@ -109,6 +109,8 @@ describe('locales', function () {
             expect(getDefaultLocaleCode('ccd', 'en_AU'), 'return en_US for en_AU for ccd').to.equal('en_US');
             expect(getDefaultLocaleCode('ccd', 'en_IN'), 'return en_US for en_IN for ccd').to.equal('en_US');
 
+            expect(getDefaultLocaleCode('express', 'en_IN'), 'return en_GB for en_IN for express').to.equal('en_GB');
+
             expect(getDefaultLocaleCode(null, 'pt_BR'), 'return null if no surface').to.be.null;
             expect(getDefaultLocaleCode('acom', null), 'return null if no locale code').to.be.null;
             expect(getDefaultLocaleCode('acom', undefined), 'return null if no locale code').to.be.null;

@@ -5783,7 +5783,7 @@ merch-card-collection.segment merch-card {
         width: 700px;
     }
 
-`;var Mc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},backgroundImage:{tag:"div",slot:"bg-image"},style:"consonant"},Xt=class extends A{constructor(t){super(t)}getGlobalCSS(){return Lc}renderLayout(){return u`
+`;var Mc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"body-xxs"},description:{tag:"div",slot:"body-xs"},ctas:{slot:"footer",size:"m"},backgroundImage:{tag:"div",slot:"bg-image"},style:"consonant"},Xt=class extends A{constructor(t){super(t)}getGlobalCSS(){return Lc}removeFocusFromModalClose(){let t=this.card.closest(".dialog-modal");t&&t.querySelector(".dialog-close")?.blur()}async postCardUpdateHook(){this.removeFocusFromModalClose()}renderLayout(){return u`
             <div class="media-row">
                 <div class="text">
                     <slot name="body-xxs"></slot>

@@ -21,6 +21,15 @@ export class Media extends VariantLayout {
         return CSS;
     }
 
+    removeFocusFromModalClose() {
+        const modal = this.card.closest('.dialog-modal');
+        if (modal) modal.querySelector('.dialog-close')?.blur();
+    }
+
+    async postCardUpdateHook() {
+        this.removeFocusFromModalClose();
+    }
+
     renderLayout() {
         return html`
             <div class="media-row">

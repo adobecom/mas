@@ -207,7 +207,6 @@ const EXPRESS = [
             'ID',
             'IE',
             'IL',
-            'IN',
             'KW',
             'LU',
             'MY',

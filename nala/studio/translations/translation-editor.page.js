@@ -3,6 +3,7 @@ export default class ProjectEditorComponent {
         this.page = page;
         this.form = page.locator('.translation-editor-form');
         this.titleField = page.locator('sp-textfield#title');
+        this.titleInput = page.locator('mas-studio >> mas-translation-editor >> sp-textfield#title >> input');
         this.saveButton = page.locator('sp-action-button[title="Save"]');
         this.addLanguagesButton = page.getByRole('button', { name: 'Add Languages' });
         this.addItemsButton = page.getByRole('button', { name: 'Add Items' });

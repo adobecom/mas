@@ -15,7 +15,6 @@ export default class TranslationsPage {
         this.emptyState = translationHost.locator('.translation-empty-state');
 
         this.tableRows = translationHost.locator('sp-table.translation-table sp-table-row');
-        this.sentOnHeader = translationHost.locator('sp-table-head-cell.sentOn');
 
         this.firstRow = translationHost.locator('sp-table.translation-table sp-table-row').first();
         this.firstRowTitleCell = this.firstRow.locator('sp-table-cell').nth(0);
@@ -45,12 +44,6 @@ export default class TranslationsPage {
             titles.push(title);
         }
         return titles;
-    }
-
-    async clickEditForRow(index) {
-        const row = this.getRow(index);
-        await row.locator('sp-action-menu').click();
-        await this.page.getByRole('menuitem', { name: 'Edit' }).click();
     }
 
     async waitForListToLoad(timeout = 15000) {

@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 export default class ProjectEditorComponent {
     constructor(page) {
         this.page = page;
@@ -41,5 +43,16 @@ export default class ProjectEditorComponent {
         await this.page.waitForTimeout(500);
         await this.selectItemsDialog.getByRole('button', { name: 'Add selected items' }).click();
         await this.selectItemsDialog.waitFor({ state: 'hidden', timeout: 5000 });
+    }
+
+    async createAndSaveTranslationProject(title) {
+        await expect(this.form).toBeVisible({ timeout: 10000 });
+        await expect(this.titleField).toBeVisible({ timeout: 5000 });
+        await this.titleInput.fill(title);
+        await this.addLanguageAndConfirm();
+        await this.addOneItemAndConfirm();
+        await expect(this.saveButton).toBeEnabled({ timeout: 10000 });
+        await this.saveButton.click();
+        await this.page.waitForTimeout(2000);
     }
 }

@@ -1,4 +1,5 @@
 import { test, expect, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { getTranslationTitle } from '../../../utils/fragment-tracker.js';
 import TranslationsPage from '../translations.page.js';
 import ProjectEditorComponent from '../translation-editor.page.js';
 import TranslationsSpec from '../specs/translations.spec.js';
@@ -56,7 +57,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
     // @studio-translations-new-project-on-top - Click Create on Translations page, create project in editor, go back and verify on top, then delete
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const translationEditorForTest = new ProjectEditorComponent(page);
-        const projectTitle = `Nala Translation ${Date.now()}`;
+        const projectTitle = getTranslationTitle();
         const translationsUrl = `${baseURL}/studio.html${miloLibs}#page=translations&path=nala&locale=en_US`;
 
         await test.step('step-1: Navigate to Translations and click Create project', async () => {
@@ -70,14 +71,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
         });
 
         await test.step('step-2: Fill and save the new project in translation editor', async () => {
-            await expect(translationEditorForTest.form).toBeVisible({ timeout: 10000 });
-            await expect(translationEditorForTest.titleField).toBeVisible({ timeout: 5000 });
-            await translationEditorForTest.titleInput.fill(projectTitle);
-            await translationEditorForTest.addLanguageAndConfirm();
-            await translationEditorForTest.addOneItemAndConfirm();
-            await expect(translationEditorForTest.saveButton).toBeEnabled({ timeout: 10000 });
-            await translationEditorForTest.saveButton.click();
-            await page.waitForTimeout(2000);
+            await translationEditorForTest.createAndSaveTranslationProject(projectTitle);
         });
 
         await test.step('step-3: Go back to Translations and verify new project is first', async () => {

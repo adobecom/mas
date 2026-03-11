@@ -74,17 +74,23 @@ async function getSettingsId(context) {
     return { status: 200, id };
 }
 
+function normalizeBoolean(value) {
+    if (value === true || value === 'true') return true;
+    if (value === false || value === 'false') return false;
+    return value;
+}
+
 function extractValue(entry, fragment) {
     const definition = SETTING_NAME_BY_VALUE.get(entry.name);
     const propertyName = definition?.propertyName || entry.name;
     const localeValue = fragment.fields?.[propertyName];
-    let booleanValue = entry.booleanValue;
+    let booleanValue = normalizeBoolean(entry.booleanValue);
     let textValue = entry.textValue;
     if (typeof localeValue !== 'undefined') {
         if (['boolean', 'optional-text'].includes(entry.valuetype)) {
-            booleanValue = localeValue;
+            booleanValue = normalizeBoolean(localeValue);
         }
-        if (entry.valuetype === 'optional-text' && localeValue === false) {
+        if (entry.valuetype === 'optional-text' && normalizeBoolean(localeValue) === false) {
             textValue = '';
         }
         if (entry.valuetype === 'text') {

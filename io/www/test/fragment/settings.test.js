@@ -650,5 +650,163 @@ describe('settings', () => {
             const result = await settings.process(context);
             expect(result.body.settings.customLabel).to.equal('fragment-override');
         });
+
+        describe('booleanValue from entry or fragment.fields (true, false, "true", "false")', () => {
+            it('normalizes entry booleanValue string "true" to boolean true for boolean type', async () => {
+                const context = {
+                    locale: 'en_US',
+                    body: { fields: {} },
+                    promises: {
+                        settings: Promise.resolve({
+                            displayAnnual: {
+                                default: {
+                                    name: 'displayAnnual',
+                                    valuetype: 'boolean',
+                                    booleanValue: 'true',
+                                },
+                                override: [],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.displayAnnual).to.equal(true);
+            });
+
+            it('normalizes entry booleanValue string "false" to boolean false for boolean type', async () => {
+                const context = {
+                    locale: 'en_US',
+                    body: { fields: {} },
+                    promises: {
+                        settings: Promise.resolve({
+                            displayAnnual: {
+                                default: {
+                                    name: 'displayAnnual',
+                                    valuetype: 'boolean',
+                                    booleanValue: 'false',
+                                },
+                                override: [],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.displayAnnual).to.equal(false);
+            });
+
+            it('normalizes fragment.fields boolean string "true" for boolean type (e.g. showPlanType)', async () => {
+                const context = {
+                    locale: 'en_US',
+                    body: {
+                        fields: { variant: 'plans', showPlanType: 'true' },
+                    },
+                    promises: {
+                        settings: Promise.resolve({
+                            displayPlanType: {
+                                default: {
+                                    name: 'displayPlanType',
+                                    valuetype: 'boolean',
+                                    booleanValue: false,
+                                },
+                                override: [],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.displayPlanType).to.equal(true);
+            });
+
+            it('normalizes fragment.fields boolean string "false" for boolean type (e.g. showPlanType)', async () => {
+                const context = {
+                    locale: 'en_US',
+                    body: {
+                        fields: { variant: 'plans', showPlanType: 'false' },
+                    },
+                    promises: {
+                        settings: Promise.resolve({
+                            displayPlanType: {
+                                default: {
+                                    name: 'displayPlanType',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                },
+                                override: [],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.displayPlanType).to.equal(false);
+            });
+
+            it('optional-text returns empty string when entry booleanValue is string "false"', async () => {
+                const context = {
+                    locale: 'en_US',
+                    body: { fields: { variant: 'plans' } },
+                    promises: {
+                        settings: Promise.resolve({
+                            secureLabel: {
+                                default: {
+                                    name: 'secureLabel',
+                                    valuetype: 'optional-text',
+                                    booleanValue: 'false',
+                                    textValue: '{{secure-label}}',
+                                },
+                                override: [],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.secureLabel).to.equal('');
+            });
+
+            it('optional-text returns textValue when entry booleanValue is string "true"', async () => {
+                const context = {
+                    locale: 'en_US',
+                    body: { fields: { variant: 'plans' } },
+                    promises: {
+                        settings: Promise.resolve({
+                            secureLabel: {
+                                default: {
+                                    name: 'secureLabel',
+                                    valuetype: 'optional-text',
+                                    booleanValue: 'true',
+                                    textValue: '{{secure-label}}',
+                                },
+                                override: [],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.secureLabel).to.equal('{{secure-label}}');
+            });
+
+            it('optional-text returns empty string when fragment.fields showSecureLabel is string "false"', async () => {
+                const context = {
+                    locale: 'en_US',
+                    body: {
+                        fields: { variant: 'plans', showSecureLabel: 'false' },
+                    },
+                    promises: {
+                        settings: Promise.resolve({
+                            secureLabel: {
+                                default: {
+                                    name: 'secureLabel',
+                                    valuetype: 'optional-text',
+                                    booleanValue: true,
+                                    textValue: '{{secure-label}}',
+                                },
+                                override: [],
+                            },
+                        }),
+                    },
+                };
+                const result = await settings.process(context);
+                expect(result.body.settings.secureLabel).to.equal('');
+            });
+        });
     });
 });

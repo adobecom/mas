@@ -194,7 +194,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-2: Click Fragments table breadcrumb', async () => {
-            await expect(versionPage.layoutBreadcrumbItems.first()).toContainText('Fragments table');
+            await expect(versionPage.layoutBreadcrumbItems.first()).toContainText('Fragments');
             await versionPage.clickBreadcrumbFragmentsTable();
         });
 

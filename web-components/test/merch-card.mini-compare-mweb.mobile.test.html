@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Merch Card Web Component - mini-compare-chart-mweb mobile</title>
+        <script>
+            window.process = {
+                env: {},
+            };
+        </script>
+        <style>
+            main {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                flex-direction: column;
+                padding-top: 80px;
+            }
+
+            main > div {
+                display: initial;
+            }
+
+            .action-area {
+                display: contents;
+            }
+        </style>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+        <script
+            type="module"
+            src="./merch-card.mini-compare-mweb.mobile.test.html.js"
+        ></script>
+    </head>
+
+    <body>
+        <main>
+            <div class="three-merch-cards mini-compare-chart-mweb">
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    secure-label="Secured"
+                    tabindex="0"
+                    id="card-mweb-mobile-1"
+                >
+                    <h3 slot="heading-xs">Creative Cloud All Apps</h3>
+                    <p slot="subtitle">Desktop + Mobile</p>
+                    <p slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="abm"
+                        ></span>
+                    </p>
+                    <div slot="body-m">
+                        <p>Get 20+ apps.</p>
+                    </div>
+                    <div slot="body-xs">
+                        <p><strong>See what's included:</strong></p>
+                        <ul>
+                            <li><p>Feature A</p></li>
+                            <li><p>Feature B</p></li>
+                        </ul>
+                    </div>
+                    <div slot="footer-rows">
+                        <ul>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Feature 1
+                                </div>
+                            </li>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description"></div>
+                            </li>
+                        </ul>
+                    </div>
+                    <p class="action-area" slot="footer">
+                        <a
+                            href="https://adobe.com/"
+                            class="con-button blue button-l"
+                            >Buy now</a
+                        >
+                    </p>
+                </merch-card>
+            </div>
+        </main>
+    </body>
+</html>

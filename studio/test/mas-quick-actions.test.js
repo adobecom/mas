@@ -194,7 +194,7 @@ describe('MasQuickActions', () => {
             });
             const button = el.shadowRoot.querySelector('sp-action-button');
             expect(button.title).to.equal('Cancel');
-            const icon = button.querySelector('sp-icon-publish-remove');
+            const icon = button.querySelector('sp-icon-undo');
             expect(icon).to.exist;
         });
         it('should render copy action button', async () => {

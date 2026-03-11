@@ -861,9 +861,11 @@ class MerchCardEditor extends LitElement {
                             .icon="${this.badge.icon}"
                             .iconLibrary="${true}"
                             .variant="${this.getEffectiveFieldValue('variant')}"
+                            data-field-state="${this.getBadgeComponentState('badge', 'icon')}"
                             style="display: ${this.badge.text ? 'block' : 'none'};"
                             @change=${this.#updateBadgeIcon}
                         ></mas-mnemonic-field>
+                        ${this.renderBadgeComponentOverrideIndicator('badge', 'icon')}
                     </sp-field-group>
                 </div>
                 ${this.#renderBadgeColors()} ${this.#renderTrialBadgeColors()}
@@ -1609,12 +1611,10 @@ class MerchCardEditor extends LitElement {
 
         const text = this.badgeElement?.textContent || '';
         const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
-        const bgColorSelected = document.querySelector('sp-picker[data-field="badgeColor"]')?.value;
-        const bgColor = bgColorAttr?.toLowerCase() || bgColorSelected || 'spectrum-yellow-300';
+        const bgColor = bgColorAttr?.toLowerCase();
 
         const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
-        const borderColorSelected = document.querySelector('sp-picker[data-field="badgeBorderColor"]')?.value;
-        const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
+        const borderColor = borderColorAttr?.toLowerCase();
         const icon = this.badgeElement?.getAttribute?.('icon');
 
         return {
@@ -1678,6 +1678,7 @@ class MerchCardEditor extends LitElement {
                 text: el?.textContent?.trim() || '',
                 bgColor: el?.getAttribute('background-color')?.toLowerCase() || '',
                 borderColor: el?.getAttribute('border-color')?.toLowerCase() || '',
+                icon: el?.getAttribute('icon') || '',
             };
         }
         return { text: html.trim(), bgColor: '', borderColor: '' };
@@ -1691,7 +1692,7 @@ class MerchCardEditor extends LitElement {
         const parentParsed = parser(parentHtml);
         const ownValue = ownParsed[component];
         const parentValue = parentParsed[component];
-        if (!ownValue) return 'inherited';
+        if (fieldName !== 'badge' && !ownValue) return 'inherited';
         return ownValue === parentValue ? 'inherited' : 'overridden';
     }
 
@@ -1757,6 +1758,8 @@ class MerchCardEditor extends LitElement {
                 this.#updateBadge(this.badge.text, parentParsed.bgColor, this.badge.borderColor, this.badge.icon);
             } else if (component === 'borderColor') {
                 this.#updateBadge(this.badge.text, this.badge.bgColor, parentParsed.borderColor, this.badge.icon);
+            } else if (component === 'icon') {
+                this.#updateBadge(this.badge.text, this.badge.bgColor, this.badge.borderColor, parentParsed.icon);
             }
         } else if (fieldName === 'trialBadge') {
             if (component === 'text') {
@@ -1779,13 +1782,13 @@ class MerchCardEditor extends LitElement {
             if (bgColor.includes('-green-900-') || bgColor.includes('-gray-700-') || bgColor === 'gradient-purple-blue')
                 element.setAttribute('color', '#fff');
         }
-        if (borderColor) {
+        if (borderColor && borderColor !== 'Default') {
             element.setAttribute('border-color', borderColor);
         }
         if (icon) {
             element.setAttribute('icon', icon);
         }
-        element.setAttribute('variant', this.fragment.variant);
+        element.setAttribute('variant', this.getEffectiveFieldValue('variant'));
         element.textContent = text;
         return element;
     }
@@ -2018,11 +2021,11 @@ class MerchCardEditor extends LitElement {
                     }
                 } else if (isBorder) {
                     const fragment = this.fragmentStore.get();
-                    fragment.updateField(dataField, ['']);
+                    fragment.updateField(dataField, ['Default']);
                     this.fragmentStore.set(fragment);
                 } else if (isBackground) {
                     const fragment = this.fragmentStore.get();
-                    fragment.updateField(dataField, ['']);
+                    fragment.updateField(dataField, ['Default']);
                     this.fragmentStore.set(fragment);
                 }
             } else if (value === 'Transparent') {

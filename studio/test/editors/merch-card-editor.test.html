@@ -125,7 +125,13 @@
                                 return { ...field, values: ['https://parent.com'], multiple: true };
                             if (field.name === 'backgroundImage') return { ...field, values: ['/parent-bg.jpg'] };
                             if (field.name === 'backgroundImageAltText') return { ...field, values: ['Parent BG Alt'] };
-                            if (field.name === 'badge') return { ...field, values: ['{"text":"Parent Badge"}'] };
+                            if (field.name === 'badge')
+                                return {
+                                    ...field,
+                                    values: [
+                                        '<merch-badge background-color=\"color-yellow-300-variation\" border-color=\"color-yellow-300-variation\" icon=\"sp-icon-star\" variant=\"ccd-slice\">badge text</merch-badge>',
+                                    ],
+                                };
                             if (field.name === 'osi') return { ...field, values: ['parent-osi'] };
                             return field;
                         }),
@@ -307,6 +313,65 @@
                         await editor.updateComplete;
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
                         expect(editor.mnemonics).to.have.length(1);
+                    });
+
+                    it('removes inherited badge values and restores it via override indicator', async () => {
+                        await setupTestEnvironment();
+                        expect(editor.getFieldState('badge')).to.equal('inherited');
+                        expect(editor.getFieldState('badgeColor')).to.equal('inherited');
+                        expect(editor.getFieldState('badgeBorderColor')).to.equal('inherited');
+                        expect(editor.getFieldState('borderColor')).to.equal('inherited');
+
+                        const badgeTextEl = editor.querySelector('sp-textfield#card-badge');
+                        expect(badgeTextEl).to.exist;
+                        badgeTextEl.value = 'updated badge text';
+                        badgeTextEl.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+
+                        const badgeColorPicker = editor.querySelector('sp-picker#badgeColor');
+                        expect(badgeColorPicker).to.exist;
+                        badgeColorPicker.value = 'color-green-900-variation';
+                        badgeColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const badgeBorderColorPicker = editor.querySelector('sp-picker#badgeBorderColor');
+                        expect(badgeBorderColorPicker).to.exist;
+                        badgeBorderColorPicker.value = 'color-green-900-variation';
+                        badgeBorderColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const borderColorPicker = editor.querySelector('sp-picker#border-color');
+                        expect(borderColorPicker).to.exist;
+                        borderColorPicker.value = 'color-green-900-variation';
+                        borderColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+
+                        expect(editor.getBadgeComponentState('badge', 'text')).to.equal('overridden');
+                        expect(editor.querySelector('sp-picker#badgeColor').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+                        expect(editor.querySelector('sp-picker#badgeBorderColor').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+                        expect(editor.querySelector('sp-picker#border-color').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+
+                        editor.querySelector('sp-field-group#badge .field-status-indicator a').click();
+                        editor.querySelector('sp-field-group#badgeColor .field-status-indicator a').click();
+                        editor.querySelector('sp-field-group#badgeBorderColor .field-status-indicator a').click();
+                        editor.querySelector('sp-field-group#border-color .field-status-indicator a').click();
+
+                        await editor.updateComplete;
+
+                        expect(editor.getBadgeComponentState('badge', 'text')).to.equal('inherited');
+                        expect(editor.querySelector('sp-picker#badgeColor').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
+                        expect(editor.querySelector('sp-picker#badgeBorderColor').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
+                        expect(editor.querySelector('sp-picker#border-color').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
                     });
 
                     it('maintains inherited state after add visual then cancel', async () => {

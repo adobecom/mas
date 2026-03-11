@@ -41,6 +41,12 @@ export const CSS = `
         merch-card[variant='media'] {
             max-width: 1000px;
         }
+
+        merch-card[variant='media'] div[slot='bg-image'] {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }        
     }
 
     @media screen and (max-width: 430px) {
@@ -54,6 +60,11 @@ export const CSS = `
             width: 320px;
             margin-right: auto;
             margin-left: auto;
+            padding: 70px 0;
+        }
+
+        .dialog-modal merch-card[variant='media'] div[slot='body-xs'] {
+            font-size: 14px;
         }
     }
 
@@ -76,18 +87,19 @@ export const CSS = `
         }
     }
 
-    @media screen and (min-width: 600px) and (max-width: 768px) {
+    @media screen and (min-width: 600px) and (max-width: 680px) {
         div.dialog-modal merch-card[variant='media'] {
             width: 320px;
         }
+    }
 
-        merch-card[variant='media'] div[slot='bg-image'] {
-            display: flex;
-            align-items: center;
-            height: 100%;
+    @media screen and (min-width: 681px) and (max-width: 768px) {
+        div.dialog-modal merch-card[variant='media'] {
+            width: 440px;
         }
+    }
 
-
+    @media screen and (min-width: 600px) and (max-width: 768px) {
         div.dialog-modal merch-card[variant='media'] div[slot='bg-image'] img {
             min-height: unset;
         }

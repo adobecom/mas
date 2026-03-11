@@ -4835,7 +4835,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] {
 
 merch-card[variant="simplified-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="simplified-pricing-express"] [slot="cta"] button,
-merch-card[variant="simplified-pricing-express"] [slot="cta"] a.button {
+merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button {
     display: block;
     width: 100%;
     box-sizing: border-box;
@@ -6012,7 +6012,7 @@ merch-card[variant="full-pricing-express"] [slot="cta"] {
 
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="full-pricing-express"] [slot="cta"] button,
-merch-card[variant="full-pricing-express"] [slot="cta"] a.button,
+merch-card[variant="full-pricing-express"] [slot="cta"] a.con-button,
 merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button {
     --mod-button-height: 40px;
     --mod-button-top-to-text: 9px;

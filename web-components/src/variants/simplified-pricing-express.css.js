@@ -113,7 +113,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] {
 
 merch-card[variant="simplified-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="simplified-pricing-express"] [slot="cta"] button,
-merch-card[variant="simplified-pricing-express"] [slot="cta"] a.button {
+merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button {
     display: block;
     width: 100%;
     box-sizing: border-box;

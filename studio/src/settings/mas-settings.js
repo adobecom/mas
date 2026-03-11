@@ -12,7 +12,7 @@ import '../common/fields/tree-picker-field.js';
 import '../common/fields/quantity-select.js';
 import { getVariantTreeData } from '../editors/variant-picker.js';
 import { getSettingDefaultValue, getSettingNameDefinition } from './setting-name-map.js';
-import { SETTING_NAME_DEFINITIONS } from '../../io/www/src/fragment/transformers/settings.js';
+import { SETTING_NAME_DEFINITIONS } from '../../../io/www/src/fragment/transformers/settings.js';
 import { DELETE_BLOCKED_STATUSES } from './settings-store.js';
 
 class MasSettings extends LitElement {

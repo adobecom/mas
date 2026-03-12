@@ -28,10 +28,7 @@ export default {
             path: '/studio.html',
             data: {
                 cardid: 'cc85b026-240a-4280-ab41-7618e65daac4',
-                title: 'Cloned Field Edit',
                 subtitle: 'New Subtitle',
-                iconURL: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
-                description: 'New Test Description',
                 backgroundURL: 'https://milo.adobe.com/assets/img/commerce/media_1d63dab9ee1edbf371d6f0548516c9e12b3ea3ff4.png',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',

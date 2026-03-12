@@ -1,4 +1,4 @@
-import { test, expect, versionPage, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, versions, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import VersionPageSpec from '../specs/versions.spec.js';
 const { features } = VersionPageSpec;
 
@@ -16,21 +16,21 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-2: Validate version page elements', async () => {
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
-            await expect(versionPage.versionListPanel).toBeVisible();
-            await expect(versionPage.previewPanel).toBeVisible();
-            await expect(versionPage.searchInput).toBeVisible();
-            await expect(versionPage.versionStatus).toBeVisible();
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionListPanel).toBeVisible();
+            await expect(versions.previewPanel).toBeVisible();
+            await expect(versions.searchInput).toBeVisible();
+            await expect(versions.versionStatus).toBeVisible();
         });
 
         await test.step('step-3: Validate version items loaded', async () => {
             await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-            const versionCount = await versionPage.getVersionCount();
+            const versionCount = await versions.getVersionCount();
             expect(versionCount).toBeGreaterThan(0);
         });
 
         await test.step('step-4: Validate version item details', async () => {
-            const firstVersion = versionPage.getVersionByIndex(0);
+            const firstVersion = versions.getVersionByIndex(0);
             await expect(firstVersion).toBeVisible();
             const dateTime = firstVersion.locator('.version-date-time');
             const author = firstVersion.locator('.version-author');
@@ -40,12 +40,12 @@ test.describe('M@S Studio - Version Page test suite', () => {
 
         await test.step('step-5: Validate current version indicator and styling', async () => {
             // Check if version status indicator exists with green dot
-            await expect(versionPage.currentDot).toBeVisible();
-            await expect(versionPage.versionStatus).toContainText('Current');
+            await expect(versions.currentDot).toBeVisible();
+            await expect(versions.versionStatus).toContainText('Current');
 
             // The first version item should have the 'current' class (green border)
-            await expect(versionPage.currentVersionItem).toBeVisible();
-            const firstItem = versionPage.getVersionByIndex(0);
+            await expect(versions.currentVersionItem).toBeVisible();
+            const firstItem = versions.getVersionByIndex(0);
             await expect(firstItem).toHaveClass(/current/);
         });
     });
@@ -60,48 +60,48 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Validate initial preview displays', async () => {
-            await expect(versionPage.previewPanel).toBeVisible();
-            await expect(versionPage.previewContent).toBeVisible();
+            await expect(versions.previewPanel).toBeVisible();
+            await expect(versions.previewContent).toBeVisible();
             // Wait for preview columns to render
             await page.waitForTimeout(2000);
-            const columnCount = await versionPage.previewColumns.count();
+            const columnCount = await versions.previewColumns.count();
             expect(columnCount).toBeGreaterThanOrEqual(1);
         });
 
         await test.step('step-3: Select a different version', async () => {
-            const versionCount = await versionPage.getVersionCount();
+            const versionCount = await versions.getVersionCount();
             if (versionCount > 1) {
                 // Select the second version (first historical version)
-                await versionPage.selectVersionByIndex(1);
-                await versionPage.waitForPreviewUpdate();
+                await versions.selectVersionByIndex(1);
+                await versions.waitForPreviewUpdate();
 
                 // Should now have 2 preview columns (current + selected)
-                const columnCount = await versionPage.previewColumns.count();
+                const columnCount = await versions.previewColumns.count();
                 expect(columnCount).toBe(2);
             }
         });
 
         await test.step('step-4: Validate changed fields section', async () => {
-            const hasChanges = await versionPage.hasChangedFields();
+            const hasChanges = await versions.hasChangedFields();
 
             if (hasChanges) {
                 // Validate the changed fields label
-                await expect(versionPage.changedFieldsLabel).toBeVisible();
-                await expect(versionPage.changedFieldsLabel).toContainText('Changed Fields');
+                await expect(versions.changedFieldsLabel).toBeVisible();
+                await expect(versions.changedFieldsLabel).toContainText('Changed Fields');
 
                 // Validate the list structure (ul element)
-                await expect(versionPage.changedFieldsList).toBeVisible();
+                await expect(versions.changedFieldsList).toBeVisible();
 
                 // Verify list items exist
-                const fieldCount = await versionPage.getChangedFieldsCount();
+                const fieldCount = await versions.getChangedFieldsCount();
                 expect(fieldCount).toBeGreaterThan(0);
 
                 // Validate field display format
-                const fields = await versionPage.getAllChangedFields();
+                const fields = await versions.getAllChangedFields();
                 expect(fields.length).toBeGreaterThan(0);
 
                 // All fields should have labels
@@ -122,31 +122,31 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Get initial version count', async () => {
             await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-            const initialCount = await versionPage.getVersionCount();
+            const initialCount = await versions.getVersionCount();
             expect(initialCount).toBeGreaterThan(0);
         });
 
         await test.step('step-3: Search for versions', async () => {
-            await versionPage.searchVersions(data.searchQuery);
+            await versions.searchVersions(data.searchQuery);
             await page.waitForTimeout(1000);
         });
 
         await test.step('step-4: Validate search results', async () => {
-            await expect(versionPage.versionListPanel).toBeVisible();
-            const searchResultCount = await versionPage.getVersionCount();
+            await expect(versions.versionListPanel).toBeVisible();
+            const searchResultCount = await versions.getVersionCount();
             // Search should filter results or show all if no match
             expect(searchResultCount).toBeGreaterThanOrEqual(0);
         });
 
         await test.step('step-5: Clear search', async () => {
-            await versionPage.clearSearch();
+            await versions.clearSearch();
             await page.waitForTimeout(1000);
-            const finalCount = await versionPage.getVersionCount();
+            const finalCount = await versions.getVersionCount();
             expect(finalCount).toBeGreaterThan(0);
         });
     });

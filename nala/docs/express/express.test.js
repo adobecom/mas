@@ -23,7 +23,6 @@ test.describe('MAS Express Cards test suite', () => {
     });
 
     test.afterEach(async ({}, testInfo) => {
-        // eslint-disable-line no-empty-pattern
         workerSetup.attachWorkerErrorsToFailure(testInfo);
     });
 

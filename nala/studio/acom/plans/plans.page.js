@@ -28,7 +28,7 @@ export default class ACOMPlansCardPage {
         this.cardUptLink = this.card.locator('a.upt-link');
 
         // Plans individual card properties:
-        this.cssProp = {
+        this.individualsCSSProp = {
             card: {
                 'background-color': 'rgb(245, 199, 0)',
                 'background-image': 'rgb(255, 255, 255)',

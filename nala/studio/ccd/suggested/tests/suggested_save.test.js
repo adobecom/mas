@@ -149,7 +149,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Validate all field changes in parallel', async () => {
-            const validationLabels = ['title', 'eyebrow', 'mnemonic', 'description', 'background image'];
+            const validationLabels = ['eyebrow', 'background image'];
 
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify eyebrow saved', async () => {

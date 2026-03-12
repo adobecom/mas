@@ -373,7 +373,7 @@ class MasTopNav extends LitElement {
                                   @locale-changed=${this.onLocaleChanged}
                                   ?disabled=${this.isLocalePickerDisabled}
                                   surface=${Store.surface()}
-                                  locale=${Store.localeOrRegion()}
+                                  locale=${this.currentFragmentLocale || Store.localeOrRegion()}
                               ></mas-locale-picker>
                               <sp-switch
                                   class="landscape-switch"

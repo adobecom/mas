@@ -6,6 +6,7 @@ import {
     getRegionLocales,
     getSurfaceLocales,
     getDefaultLocale,
+    getLocaleByCode,
     getLanguageName,
     getLocaleCode,
     getCountryName,
@@ -359,17 +360,19 @@ export class MasLocalePicker extends LitElement {
 
     willUpdate(changedProperties) {
         if (!this.isCheckboxSelection && changedProperties.has('locale')) {
-            const found = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
-            if (!found) this.locale = 'en_US';
+            const surfaceLocale = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
+            if (!surfaceLocale && !this.disabled) this.locale = 'en_US';
         }
         if (changedProperties.has('tempSelectedLocales')) {
             this.#tempSelectedSet = new Set(this.tempSelectedLocales);
         }
     }
 
-    /** can only be one of default languages, not regional ones */
     get currentLocale() {
-        return this.getLocales().find((l) => getLocaleCode(l) === this.locale) || getDefaultLocale(this.surface, this.locale);
+        const surfaceLocale = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
+        if (surfaceLocale) return surfaceLocale;
+        if (this.disabled) return getLocaleByCode(this.locale);
+        return getDefaultLocale(this.surface, this.locale);
     }
 
     get searchField() {

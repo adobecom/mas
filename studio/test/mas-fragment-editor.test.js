@@ -476,9 +476,15 @@ describe('MasFragmentEditor', () => {
                 const locales = Store.fragmentEditor.translatedLocales.get();
                 expect(locales).to.have.lengthOf(2);
                 const filPh = locales.find((l) => l.locale === 'fil_PH');
-                expect(filPh).to.deep.include({ locale: 'fil_PH', id: 'fil-ph-frag-id', path: '/content/dam/mas/acom/fil_PH/my-fragment' });
+                expect(filPh).to.deep.include({
+                    locale: 'fil_PH',
+                    id: 'fil-ph-frag-id',
+                    path: '/content/dam/mas/acom/fil_PH/my-fragment',
+                });
                 expect(fetchStub.calledOnce).to.be.true;
-                expect(fetchStub.firstCall.args[0]).to.equal(`${ODIN_PREVIEW_ORIGIN}/content/dam/mas/acom/fil_PH/my-fragment.json`);
+                expect(fetchStub.firstCall.args[0]).to.equal(
+                    `${ODIN_PREVIEW_ORIGIN}/content/dam/mas/acom/fil_PH/my-fragment.json`,
+                );
             } finally {
                 Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
                 Store.fragmentEditor.fragmentId.value = null;

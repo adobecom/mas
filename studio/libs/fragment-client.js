@@ -49,7 +49,9 @@ const DEFAULT_CONTEXT = {
     locale: 'en_US',
 };
 
-DEFAULT_CONTEXT.debugLogs = new URLSearchParams(window.location.search).has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
+if (typeof window !== 'undefined') {
+    DEFAULT_CONTEXT.debugLogs = new URLSearchParams(window.location.search).has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
+}
 
 function clearCaches() {
     clearDictionaryCache(true);

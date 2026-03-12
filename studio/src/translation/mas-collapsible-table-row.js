@@ -101,7 +101,9 @@ export class MasCollapsibleTableRow extends LitElement {
             </div>`;
         }
         /* Some grouped variations may not have tags - we do not save them in the Store, and do not show them in the table */
-        const filteredVariationPaths = this.variationPaths.filter((path) => this.topLevelCardVariationsByPaths.has(path));
+        const filteredVariationPaths = this.variationPaths.filter(
+            (path) => Fragment.isGroupedVariationPath(path) && this.topLevelCardVariationsByPaths.has(path),
+        );
         return filteredVariationPaths.length === 0
             ? html`<div class="empty-grouped-variations">No grouped variations found</div>`
             : html`<sp-table>

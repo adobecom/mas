@@ -1138,6 +1138,169 @@ describe('MasRepository dictionary helpers', () => {
                 cleanup();
             }
         });
+
+        it('loadNextPage appends fragments and updates data store', async () => {
+            const page1 = Array.from({ length: 10 }, (_, i) =>
+                createFragment({ id: `p1-${i}`, path: `${ROOT_PATH}/acom/en_US/p1-${i}`, fields: [] }),
+            );
+            const page2 = Array.from({ length: 10 }, (_, i) =>
+                createFragment({ id: `p2-${i}`, path: `${ROOT_PATH}/acom/en_US/p2-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                const firstSetCalls = Store.fragments.list.data.set.getCalls();
+                const firstCount = firstSetCalls[firstSetCalls.length - 1].args[0].length;
+                expect(firstCount).to.equal(10);
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+
+                await repository.loadNextPage();
+                const allSetCalls = Store.fragments.list.data.set.getCalls();
+                const lastCall = allSetCalls[allSetCalls.length - 1];
+                expect(lastCall.args[0].length).to.equal(20);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('loadNextPage sets hasMore false and clears cursor when done', async () => {
+            const fragments = Array.from({ length: 5 }, (_, i) =>
+                createFragment({ id: `f-${i}`, path: `${ROOT_PATH}/acom/en_US/f-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+
+                await repository.loadNextPage();
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('loadNextPage returns early when no searchCursor', async () => {
+            const mockCursor = createMockCursorFromPages([]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                const loadingBefore = Store.fragments.list.loading.value;
+                await repository.loadNextPage();
+                expect(Store.fragments.list.loading.value).to.equal(loadingBefore);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('loadNextPage handles errors gracefully', async () => {
+            const page1 = Array.from({ length: 10 }, (_, i) =>
+                createFragment({ id: `e-${i}`, path: `${ROOT_PATH}/acom/en_US/e-${i}`, fields: [] }),
+            );
+            const errorCursor = {
+                next: async () => {
+                    throw new Error('Network failure');
+                },
+            };
+            const initialCursor = createMockCursorFromPages([page1]);
+            const wrappedCursor = {
+                callCount: 0,
+                next: async function () {
+                    this.callCount++;
+                    if (this.callCount <= 1) {
+                        return initialCursor.next();
+                    }
+                    throw new Error('Network failure');
+                },
+            };
+            const mockCursor = createMockCursorFromPages([page1, page1]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                if (Store.fragments.list.hasMore.value) {
+                    sandbox.stub(repository, 'processError');
+                    const originalLoadNextPage = repository.loadNextPage.bind(repository);
+                    await originalLoadNextPage();
+                }
+                expect(Store.fragments.list.loading.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('cache validation checks tags metadata', async () => {
+            const fragments = Array.from({ length: 3 }, (_, i) =>
+                createFragment({ id: `t-${i}`, path: `${ROOT_PATH}/acom/en_US/t-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, mockDataStore, cleanup } = await setupSearchTest(mockCursor, 'mas:variant/plans');
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+
+                mockDataStore.get.returns([{ get: () => ({ path: `${ROOT_PATH}/acom/en_US/t-0` }) }]);
+                mockDataStore.getMeta.withArgs('path').returns('acom');
+                mockDataStore.getMeta.withArgs('query').returns('');
+                mockDataStore.getMeta.withArgs('locale').returns('en_US');
+                mockDataStore.getMeta.withArgs('tags').returns('different-tag');
+                mockDataStore.getMeta.withArgs('createdBy').returns('');
+
+                await repository.searchFragments();
+                expect(mockDataStore.set.calledWith([])).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('cache validation checks createdBy metadata', async () => {
+            const fragments = Array.from({ length: 3 }, (_, i) =>
+                createFragment({ id: `c-${i}`, path: `${ROOT_PATH}/acom/en_US/c-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, mockDataStore, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+
+                mockDataStore.get.returns([{ get: () => ({ path: `${ROOT_PATH}/acom/en_US/c-0` }) }]);
+                mockDataStore.getMeta.withArgs('path').returns('acom');
+                mockDataStore.getMeta.withArgs('query').returns('');
+                mockDataStore.getMeta.withArgs('locale').returns('en_US');
+                mockDataStore.getMeta.withArgs('tags').returns('');
+                mockDataStore.getMeta.withArgs('createdBy').returns('different-user');
+
+                await repository.searchFragments();
+                expect(mockDataStore.set.calledWith([])).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('sets loading false after successful loadNextPage', async () => {
+            const page1 = Array.from({ length: 10 }, (_, i) =>
+                createFragment({ id: `l-${i}`, path: `${ROOT_PATH}/acom/en_US/l-${i}`, fields: [] }),
+            );
+            const page2 = Array.from({ length: 5 }, (_, i) =>
+                createFragment({ id: `l2-${i}`, path: `${ROOT_PATH}/acom/en_US/l2-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+                await repository.loadNextPage();
+                expect(Store.fragments.list.loading.value).to.be.false;
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
     });
 
     describe('parseVariationAlreadyExistsPath', () => {

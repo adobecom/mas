@@ -71,7 +71,7 @@ class MasContent extends LitElement {
                     document.querySelector('mas-repository')?.loadNextPage();
                 }
             },
-            { rootMargin: '200px' },
+            { root: this.closest('.main-container'), rootMargin: '200px' },
         );
     }
 

@@ -100,6 +100,10 @@ sp-sidenav-item sp-icon {
     overflow-y: auto;
 }
 
+.scroll-sentinel {
+    height: 1px;
+}
+
 #content-container {
     height: fit-content;
     border-radius: 8px;

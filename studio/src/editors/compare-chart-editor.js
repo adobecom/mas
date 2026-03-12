@@ -1352,166 +1352,151 @@ class CompareChartEditor extends LitElement {
                     ></sp-textfield>
                 </div>
 
-                <div id="column-panel-layout" class="column-panel-layout">
-                    <div class="column-panel-left">
-                        <section class="column-panel-block">
-                            <h4 class="column-block-title">Card Source</h4>
+                <section class="column-card-source-section">
+                    <h4 class="column-block-title">Card Source</h4>
 
-                            <div class="card-action-row">
-                                <sp-button
-                                    id="browse-cards-btn"
-                                    size="s"
-                                    variant="accent"
-                                    @click=${() => (isPickerOpen ? this.#closeCardPicker() : this.#openCardPicker(col.path))}
-                                >
-                                    ${isPickerOpen ? 'Close Browser' : 'Browse Cards'}
-                                </sp-button>
-                                <sp-action-button
-                                    id="open-card-btn"
-                                    size="s"
-                                    quiet
-                                    ?disabled=${!hasSelectedCard}
-                                    @click=${() => this.#openSelectedCardEditor(col.cardFragment)}
-                                >
-                                    Open card
-                                </sp-action-button>
-                            </div>
-
-                            <div class="card-meta">
-                                ${hasSelectedCard
-                                    ? html`
-                                          <div class="card-meta-title">${col.cardFragment.title}</div>
-                                          <div>ID: ${selectedCardId}</div>
-                                          <div class="card-meta-path">${col.cardFragment.path}</div>
-                                      `
-                                    : html`<div>No card selected yet. Use Browse Cards to assign one in-scope.</div>`}
-                            </div>
-
-                            ${isPickerOpen
-                                ? html`
-                                      <div id="card-picker-popover" class="card-picker-panel">
-                                          <sp-search
-                                              id="card-picker-search"
-                                              label="Search cards"
-                                              placeholder="Search cards in this surface and locale"
-                                              .value=${this.cardPickerQuery}
-                                              @input=${this.#onCardPickerInput}
-                                          ></sp-search>
-                                          <div class="card-picker-scope">
-                                              Scope:
-                                              ${scope.path || 'Unknown scope. Picker cannot search until scope is resolved.'}
-                                          </div>
-                                          ${this.cardPickerLoading
-                                              ? html`<div class="card-picker-loading">
-                                                    <sp-progress-circle size="s" indeterminate></sp-progress-circle>
-                                                </div>`
-                                              : nothing}
-                                          ${this.cardPickerError
-                                              ? html`<sp-help-text variant="negative">${this.cardPickerError}</sp-help-text>`
-                                              : nothing}
-                                          ${!trimmedQuery
-                                              ? html`<div class="card-picker-section-title">Recent cards</div>`
-                                              : nothing}
-                                          ${!this.cardPickerLoading
-                                              ? html`
-                                                    <div class="card-picker-results">
-                                                        ${pickerItems.map(
-                                                            (card) => html`
-                                                                <button
-                                                                    type="button"
-                                                                    class="card-picker-item"
-                                                                    @click=${() =>
-                                                                        this.#selectCardFromPicker(col.fragment, card)}
-                                                                >
-                                                                    <div class="card-picker-item-title">${card.title}</div>
-                                                                    <div class="card-picker-item-meta">
-                                                                        ${card.variant ? `Variant: ${card.variant} • ` : ''}ID:
-                                                                        ${card.id}
-                                                                    </div>
-                                                                    <div class="card-picker-item-path">${card.path}</div>
-                                                                </button>
-                                                            `,
-                                                        )}
-                                                        ${!pickerItems.length
-                                                            ? html`<sp-help-text
-                                                                  >${trimmedQuery
-                                                                      ? 'No matching cards in this surface/locale.'
-                                                                      : 'No recent cards yet. Search to browse cards.'}</sp-help-text
-                                                              >`
-                                                            : nothing}
-                                                    </div>
-                                                `
-                                              : nothing}
-                                      </div>
-                                  `
-                                : nothing}
-                        </section>
-
-                        <section class="column-panel-block">
-                            <h4 class="column-block-title">Manual Fallback</h4>
-                            <sp-field-label for="col-card-id">Paste ID</sp-field-label>
-                            <sp-textfield
-                                id="col-card-id"
-                                value="${col.cardFragment?.id || ''}"
-                                placeholder="Paste card fragment ID"
-                                @change=${(e) => this.#setCardReference(col.fragment, e.target.value)}
-                            ></sp-textfield>
-                            <sp-help-text>Only in-scope card IDs are accepted. Non-card IDs are blocked.</sp-help-text>
-                        </section>
+                    <div class="card-action-row">
+                        <sp-button
+                            id="browse-cards-btn"
+                            size="s"
+                            variant="accent"
+                            @click=${() => (isPickerOpen ? this.#closeCardPicker() : this.#openCardPicker(col.path))}
+                        >
+                            ${isPickerOpen ? 'Close Browser' : 'Browse Cards'}
+                        </sp-button>
+                        <sp-action-button
+                            id="open-card-btn"
+                            size="s"
+                            quiet
+                            ?disabled=${!hasSelectedCard}
+                            @click=${() => this.#openSelectedCardEditor(col.cardFragment)}
+                        >
+                            Open card
+                        </sp-action-button>
                     </div>
 
-                    <div class="column-panel-right">
-                        <section class="column-panel-block">
-                            <details
-                                id="column-preview-details"
-                                class="column-preview-details"
-                                ?open=${this.columnPreviewOpen}
-                                @toggle=${this.#onColumnPreviewToggle}
+                    <div class="card-meta">
+                        ${hasSelectedCard
+                            ? html`
+                                  <div class="card-meta-title">${col.cardFragment.title}</div>
+                                  <div>ID: ${selectedCardId}</div>
+                                  <div class="card-meta-path">${col.cardFragment.path}</div>
+                              `
+                            : html`<div>No card selected yet. Use Browse Cards to assign one in-scope.</div>`}
+                    </div>
+
+                    ${isPickerOpen
+                        ? html`
+                              <div id="card-picker-popover" class="card-picker-panel">
+                                  <sp-search
+                                      id="card-picker-search"
+                                      label="Search cards"
+                                      placeholder="Search cards in this surface and locale"
+                                      .value=${this.cardPickerQuery}
+                                      @input=${this.#onCardPickerInput}
+                                  ></sp-search>
+                                  <div class="card-picker-scope">
+                                      Scope: ${scope.path || 'Unknown scope. Picker cannot search until scope is resolved.'}
+                                  </div>
+                                  ${this.cardPickerLoading
+                                      ? html`<div class="card-picker-loading">
+                                            <sp-progress-circle size="s" indeterminate></sp-progress-circle>
+                                        </div>`
+                                      : nothing}
+                                  ${this.cardPickerError
+                                      ? html`<sp-help-text variant="negative">${this.cardPickerError}</sp-help-text>`
+                                      : nothing}
+                                  ${!trimmedQuery ? html`<div class="card-picker-section-title">Recent cards</div>` : nothing}
+                                  ${!this.cardPickerLoading
+                                      ? html`
+                                            <div class="card-picker-results">
+                                                ${pickerItems.map(
+                                                    (card) => html`
+                                                        <button
+                                                            type="button"
+                                                            class="card-picker-item"
+                                                            @click=${() => this.#selectCardFromPicker(col.fragment, card)}
+                                                        >
+                                                            <div class="card-picker-item-title">${card.title}</div>
+                                                            <div class="card-picker-item-meta">
+                                                                ${card.variant ? `Variant: ${card.variant} • ` : ''}ID:
+                                                                ${card.id}
+                                                            </div>
+                                                            <div class="card-picker-item-path">${card.path}</div>
+                                                        </button>
+                                                    `,
+                                                )}
+                                                ${!pickerItems.length
+                                                    ? html`<sp-help-text
+                                                          >${trimmedQuery
+                                                              ? 'No matching cards in this surface/locale.'
+                                                              : 'No recent cards yet. Search to browse cards.'}</sp-help-text
+                                                      >`
+                                                    : nothing}
+                                            </div>
+                                        `
+                                      : nothing}
+                              </div>
+                          `
+                        : nothing}
+                </section>
+
+                <section class="column-manual-fallback-section">
+                    <h4 class="column-block-title">Manual Fallback</h4>
+                    <sp-field-label for="col-card-id">Paste ID</sp-field-label>
+                    <sp-textfield
+                        id="col-card-id"
+                        value="${col.cardFragment?.id || ''}"
+                        placeholder="Paste card fragment ID"
+                        @change=${(e) => this.#setCardReference(col.fragment, e.target.value)}
+                    ></sp-textfield>
+                    <sp-help-text>Only in-scope card IDs are accepted. Non-card IDs are blocked.</sp-help-text>
+                </section>
+
+                <section class="column-card-preview-section">
+                    <h4 class="column-block-title">Card Preview</h4>
+                    ${(() => {
+                        const hasSelectedCard = Boolean(col.cardFragment?.path || col.cardFragment?.id);
+                        const previewFragmentId = this.columnPreviewResolvedCardId || '';
+                        if (!hasSelectedCard) {
+                            return html`<div class="column-preview-empty">Select a card to preview it here.</div>`;
+                        }
+                        return html`
+                            <div
+                                id="column-preview-card"
+                                class="column-preview-card ${this.columnPreviewStatus === 'loading' ? 'is-loading' : ''}"
                             >
-                                <summary class="column-preview-summary">Selected card preview</summary>
-                                ${hasSelectedCard
+                                ${previewFragmentId
+                                    ? keyed(
+                                          previewFragmentId,
+                                          html`
+                                              <merch-card>
+                                                  <aem-fragment
+                                                      author
+                                                      ims
+                                                      loading="eager"
+                                                      fragment="${previewFragmentId}"
+                                                  ></aem-fragment>
+                                              </merch-card>
+                                          `,
+                                      )
+                                    : nothing}
+                                ${this.columnPreviewStatus === 'loading'
                                     ? html`
-                                          <div
-                                              id="column-preview-card"
-                                              class="column-preview-card ${this.columnPreviewStatus === 'loading'
-                                                  ? 'is-loading'
-                                                  : ''}"
-                                          >
-                                              ${previewFragmentId
-                                                  ? keyed(
-                                                        previewFragmentId,
-                                                        html`
-                                                            <merch-card>
-                                                                <aem-fragment
-                                                                    author
-                                                                    ims
-                                                                    loading="eager"
-                                                                    fragment="${previewFragmentId}"
-                                                                ></aem-fragment>
-                                                            </merch-card>
-                                                        `,
-                                                    )
-                                                  : nothing}
-                                              ${this.columnPreviewStatus === 'loading'
-                                                  ? html`
-                                                        <div class="column-preview-loading">
-                                                            <sp-progress-circle size="m" indeterminate></sp-progress-circle>
-                                                        </div>
-                                                    `
-                                                  : nothing}
-                                              ${this.columnPreviewStatus === 'error'
-                                                  ? html`<sp-help-text variant="negative"
-                                                        >${this.columnPreviewError ||
-                                                        'Unable to render selected card preview.'}</sp-help-text
-                                                    >`
-                                                  : nothing}
+                                          <div class="column-preview-loading">
+                                              <sp-progress-circle size="m" indeterminate></sp-progress-circle>
                                           </div>
                                       `
-                                    : html`<div class="column-preview-empty">Select a card to preview it here.</div>`}
-                            </details>
-                        </section>
-                    </div>
-                </div>
+                                    : nothing}
+                                ${this.columnPreviewStatus === 'error'
+                                    ? html`<sp-help-text variant="negative"
+                                          >${this.columnPreviewError || 'Unable to render selected card preview.'}</sp-help-text
+                                      >`
+                                    : nothing}
+                            </div>
+                        `;
+                    })()}
+                </section>
             </div>
         `;
     }
@@ -1744,6 +1729,15 @@ class CompareChartEditor extends LitElement {
     get #styles() {
         return html`
             <style>
+                /* Neutralize parent .section card — compare-chart manages its own two-card layout */
+                .section:has(.compare-chart-editor) {
+                    background: transparent;
+                    border: none;
+                    border-radius: 0;
+                    box-shadow: none;
+                    padding: 0;
+                }
+
                 .compare-chart-editor .chart-header {
                     display: grid;
                     gap: 8px;
@@ -1879,19 +1873,6 @@ class CompareChartEditor extends LitElement {
                     margin: 0;
                 }
 
-                .compare-chart-editor .column-panel-layout {
-                    display: grid;
-                    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-                    gap: 14px;
-                    align-items: start;
-                }
-
-                .compare-chart-editor .column-panel-left,
-                .compare-chart-editor .column-panel-right {
-                    display: grid;
-                    gap: 12px;
-                }
-
                 .compare-chart-editor .badge-field {
                     display: flex;
                     align-items: center;
@@ -1908,19 +1889,39 @@ class CompareChartEditor extends LitElement {
                 }
 
                 .compare-chart-editor .column-panel-block {
-                    border: 1px solid var(--spectrum-gray-300);
-                    background: var(--spectrum-gray-75);
-                    border-radius: 10px;
-                    padding: 12px;
+                    border: none;
+                    background: transparent;
+                    border-radius: 0;
+                    padding: 0;
                     display: grid;
                     gap: 8px;
                 }
 
                 .compare-chart-editor .column-block-title {
                     margin: 0;
-                    font-size: 14px;
+                    font-size: 16px;
                     font-weight: 700;
                     color: var(--spectrum-gray-900);
+                }
+
+                .compare-chart-editor .column-card-source-section,
+                .compare-chart-editor .column-manual-fallback-section {
+                    display: grid;
+                    gap: 8px;
+                }
+
+                .compare-chart-editor .panel-section > .badge-field,
+                .compare-chart-editor .panel-section > .column-card-source-section,
+                .compare-chart-editor .panel-section > .column-manual-fallback-section {
+                    padding-top: 16px;
+                    border-top: 1px solid var(--spectrum-gray-200);
+                }
+
+                .compare-chart-editor .column-card-preview-section {
+                    display: grid;
+                    gap: 10px;
+                    padding-top: 16px;
+                    border-top: 1px solid var(--spectrum-gray-200);
                 }
 
                 .compare-chart-editor .card-action-row {
@@ -2016,18 +2017,6 @@ class CompareChartEditor extends LitElement {
                     word-break: break-word;
                 }
 
-                .compare-chart-editor .column-preview-details {
-                    display: grid;
-                    gap: 10px;
-                }
-
-                .compare-chart-editor .column-preview-summary {
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: var(--spectrum-gray-900);
-                }
-
                 .compare-chart-editor .column-preview-card {
                     max-width: 360px;
                     min-height: 220px;
@@ -2120,14 +2109,15 @@ class CompareChartEditor extends LitElement {
                     grid-template-columns: 1fr 1fr;
                     gap: 24px;
                     align-items: start;
-                    margin-top: 16px;
                 }
 
                 .compare-chart-editor .chart-editor-panel {
                     min-width: 0;
                     max-height: calc(100vh - 220px);
                     overflow-y: auto;
-                    padding-right: 8px;
+                    background: var(--spectrum-white, #fff);
+                    border-radius: 12px;
+                    padding: 24px;
                 }
 
                 .compare-chart-editor .chart-preview-panel {
@@ -2136,10 +2126,10 @@ class CompareChartEditor extends LitElement {
                     min-width: 0;
                     max-height: calc(100vh - 220px);
                     overflow: auto;
-                    border: 1px solid var(--spectrum-gray-300);
-                    border-radius: 10px;
-                    background: var(--spectrum-gray-50);
-                    padding: 12px;
+                    border-radius: 12px;
+                    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+                    background: var(--spectrum-white, #fff);
+                    padding: 16px;
                 }
 
                 .compare-chart-editor .chart-empty-state {
@@ -2150,10 +2140,6 @@ class CompareChartEditor extends LitElement {
                     color: var(--spectrum-gray-600);
                     font-size: 14px;
                     text-align: center;
-                }
-
-                .compare-chart-editor .column-panel-layout {
-                    grid-template-columns: 1fr;
                 }
 
                 @media (max-width: 1100px) {
@@ -2170,11 +2156,6 @@ class CompareChartEditor extends LitElement {
                     .compare-chart-editor .chart-editor-panel {
                         max-height: none;
                         overflow-y: visible;
-                        padding-right: 0;
-                    }
-
-                    .compare-chart-editor .column-panel-layout {
-                        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
                     }
 
                     .compare-chart-editor .column-preview-card {
@@ -2191,47 +2172,48 @@ class CompareChartEditor extends LitElement {
         return html`
             ${this.#styles}
             <div class="compare-chart-editor">
-                <div class="chart-header">
-                    <div class="chart-header-top">
-                        <h2>Compare Chart</h2>
-                        <div class="chart-header-actions">
-                            <span class="chart-count"
-                                >${this.columns.length} column${this.columns.length !== 1 ? 's' : ''}</span
-                            >
-                            <span class="chart-count-separator">·</span>
-                            <span class="chart-count"
-                                >${this.sections.length} section${this.sections.length !== 1 ? 's' : ''}</span
-                            >
-                            <sp-action-group size="s" compact quiet>
-                                <sp-action-button @click=${() => this.#addColumn()} ?disabled=${this.busy}>
-                                    <sp-icon-add slot="icon"></sp-icon-add>
-                                    Add Column
-                                </sp-action-button>
-                                <sp-action-button @click=${() => this.#addSection()} ?disabled=${this.busy}>
-                                    <sp-icon-add slot="icon"></sp-icon-add>
-                                    Add Section
-                                </sp-action-button>
-                            </sp-action-group>
-                        </div>
-                    </div>
-                    <div class="chart-header-config">
-                        <sp-field-label size="s">Block</sp-field-label>
-                        <sp-picker
-                            size="s"
-                            label="Block Name"
-                            value="${this.#getField('blockName')?.values?.[0] || 'Comparison Table'}"
-                            @change=${(e) => this.#updateFieldValues('blockName', [e.target.value])}
-                        >
-                            <sp-menu-item value="Comparison Table">Comparison Table</sp-menu-item>
-                            <sp-menu-item value="Table">Table</sp-menu-item>
-                        </sp-picker>
-                        ${this.#renderVariantCheckboxes()}
-                    </div>
-                </div>
-                <sp-divider size="s"></sp-divider>
-
                 <div class="chart-workspace">
-                    <div class="chart-editor-panel">${this.#sidePanel}</div>
+                    <div class="chart-editor-panel">
+                        <div class="chart-header">
+                            <div class="chart-header-top">
+                                <h2>Compare Chart</h2>
+                                <div class="chart-header-actions">
+                                    <span class="chart-count"
+                                        >${this.columns.length} column${this.columns.length !== 1 ? 's' : ''}</span
+                                    >
+                                    <span class="chart-count-separator">·</span>
+                                    <span class="chart-count"
+                                        >${this.sections.length} section${this.sections.length !== 1 ? 's' : ''}</span
+                                    >
+                                    <sp-action-group size="s" compact quiet>
+                                        <sp-action-button @click=${() => this.#addColumn()} ?disabled=${this.busy}>
+                                            <sp-icon-add slot="icon"></sp-icon-add>
+                                            Add Column
+                                        </sp-action-button>
+                                        <sp-action-button @click=${() => this.#addSection()} ?disabled=${this.busy}>
+                                            <sp-icon-add slot="icon"></sp-icon-add>
+                                            Add Section
+                                        </sp-action-button>
+                                    </sp-action-group>
+                                </div>
+                            </div>
+                            <div class="chart-header-config">
+                                <sp-field-label size="s">Block</sp-field-label>
+                                <sp-picker
+                                    size="s"
+                                    label="Block Name"
+                                    value="${this.#getField('blockName')?.values?.[0] || 'Comparison Table'}"
+                                    @change=${(e) => this.#updateFieldValues('blockName', [e.target.value])}
+                                >
+                                    <sp-menu-item value="Comparison Table">Comparison Table</sp-menu-item>
+                                    <sp-menu-item value="Table">Table</sp-menu-item>
+                                </sp-picker>
+                                ${this.#renderVariantCheckboxes()}
+                            </div>
+                        </div>
+                        <sp-divider size="s"></sp-divider>
+                        ${this.#sidePanel}
+                    </div>
                     <div class="chart-preview-panel">
                         ${this.busy ? html`<sp-progress-circle size="s" indeterminate></sp-progress-circle>` : nothing}
                         <compare-chart-preview

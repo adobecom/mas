@@ -38,6 +38,10 @@ merch-card:hover:not(.selected) sp-icon-add {
     display: block;
 }
 
+.mas-fragment .render-fragment-content merch-card[variant='media'] {
+    width: 600px;
+}
+
 @media (min-width: 926px) and (max-width: 1235px) {
     .mas-fragment merch-card[variant^='plans'][size='super-wide'],
     .mas-fragment merch-card[variant^='catalog'][size='super-wide'] {

@@ -19,7 +19,9 @@
             "type": "text",
             "multiple": false,
             "locked": false,
-            "values": ["0ef2a804-e788-4959-abb8-b4d96a18b0ef"]
+            "values": [
+                "0ef2a804-e788-4959-abb8-b4d96a18b0ef"
+            ]
         },
         {
             "name": "osi",
@@ -64,7 +66,9 @@
             "multiple": false,
             "locked": false,
             "mimeType": "text/html",
-            "values": []
+            "values": [
+                "<merch-badge background-color=\"color-yellow-300-variation\" border-color=\"color-yellow-300-variation\" icon=\"sp-icon-star\" variant=\"ccd-slice\">badge text</merch-badge>"
+            ]
         },
         {
             "name": "backgroundImage",

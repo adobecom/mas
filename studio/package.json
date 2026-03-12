@@ -16,5 +16,8 @@
     "main": "src/index.js",
     "keywords": [],
     "author": "",
-    "license": "ISC"
+    "license": "ISC",
+    "dependencies": {
+        "@spectrum-web-components/illustrated-message": "^1.11.2"
+    }
 }

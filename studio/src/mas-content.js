@@ -112,21 +112,33 @@ class MasContent extends LitElement {
         fragmentElement.scrollIntoView({ behavior: 'smooth' });
     }
 
+    get emptyState() {
+        return html`<sp-illustrated-message
+            heading="No items match your search"
+            description="Try adjusting your search or filters to find what you're looking for."
+        >
+            <sp-icon-cloud></sp-icon-cloud>
+        </sp-illustrated-message>`;
+    }
+
     get renderView() {
         if (!this.firstPageLoaded.value) {
             return html`<div id="render">${Array.from({ length: 8 }, cardSkeleton)}</div>`;
         }
+        const visibleFragments = this.fragments.value.filter((fragmentStore) => {
+            const value = fragmentStore.get();
+            if (!value) return false;
+            if (fragmentStore.new) return true;
+            if (value.model?.path === CARD_MODEL_PATH && !variantValues.includes(fragmentStore.value.variant)) return false;
+            return true;
+        });
+        if (visibleFragments.length === 0) {
+            return html`<div id="render">${this.emptyState}</div>`;
+        }
         return html`
             <div id="render">
                 ${repeat(
-                    this.fragments.value.filter((fragmentStore) => {
-                        const value = fragmentStore.get();
-                        if (!value) return false;
-                        if (fragmentStore.new) return true;
-                        if (value.model?.path === CARD_MODEL_PATH && !variantValues.includes(fragmentStore.value.variant))
-                            return false;
-                        return true;
-                    }),
+                    visibleFragments,
                     (fragmentStore) => fragmentStore.get()?.path || fragmentStore.id || Math.random(),
                     (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="render"></mas-fragment>`,
                 )}
@@ -156,34 +168,36 @@ class MasContent extends LitElement {
                 <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
+        const visibleFragments = this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null);
         return html`<sp-table
-            emphasized
-            scroller
-            selects=${this.selecting.value ? 'multiple' : undefined}
-            selected=${JSON.stringify(this.selection.value)}
-            @change=${this.updateTableSelection}
-        >
-            <sp-table-head>
-                <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
-                <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
-                <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
-                <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
-                <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
-                <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
-            </sp-table-head>
-            <sp-table-body>
-                ${repeat(
-                    this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null),
-                    (fragmentStore) => fragmentStore.get().path,
-                    (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
-                )}
-                ${this.tableLoadingSkeletons}
-            </sp-table-body>
-        </sp-table>`;
+                emphasized
+                scroller
+                selects=${this.selecting.value ? 'multiple' : undefined}
+                selected=${JSON.stringify(this.selection.value)}
+                @change=${this.updateTableSelection}
+            >
+                <sp-table-head>
+                    <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
+                    <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
+                    <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
+                    <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
+                    <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
+                </sp-table-head>
+                <sp-table-body>
+                    ${repeat(
+                        visibleFragments,
+                        (fragmentStore) => fragmentStore.get().path,
+                        (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+                    )}
+                    ${this.tableLoadingSkeletons}
+                </sp-table-body>
+            </sp-table>
+            ${visibleFragments.length === 0 ? this.emptyState : nothing}`;
     }
 
     get tableLoadingSkeletons() {

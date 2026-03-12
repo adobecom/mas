@@ -372,6 +372,7 @@ mas-content {
 #content {
     display: flex;
     justify-content: center;
+    flex-wrap: wrap;
     padding-bottom: 30px;
 }
 
@@ -402,6 +403,17 @@ mas-content {
     display: flex;
     flex-wrap: wrap;
     gap: 15px;
+}
+
+#content sp-illustrated-message {
+    width: 100%;
+    padding: 40px 20px;
+}
+
+#content sp-illustrated-message sp-icon-cloud {
+    width: 100px;
+    height: 96px;
+    color: var(--spectrum-gray-800, #292929);
 }
 
 .render-fragment-placeholder {

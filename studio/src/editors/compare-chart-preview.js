@@ -141,28 +141,7 @@ class CompareChartPreview extends LitElement {
 
         .add-row-row td {
             border: none;
-            text-align: left;
             padding: 4px 12px;
-            cursor: default;
-        }
-
-        .add-row-row td:hover {
-            background: transparent;
-        }
-
-        .add-row-btn {
-            cursor: pointer;
-            font-size: 12px;
-            color: var(--spectrum-global-color-blue-500, #1473e6);
-            background: none;
-            border: 1px dashed var(--spectrum-global-color-gray-400, #b3b3b3);
-            border-radius: 4px;
-            padding: 4px 10px;
-        }
-
-        .add-row-btn:hover {
-            background: var(--spectrum-global-color-blue-100, #e8f0fe);
-            border-color: var(--spectrum-global-color-blue-500, #1473e6);
         }
     `;
 
@@ -345,7 +324,10 @@ class CompareChartPreview extends LitElement {
                             )}
                             <tr class="add-row-row">
                                 <td colspan="${numColumns + 1}">
-                                    <button class="add-row-btn" @click=${() => this.#onAddRow(sIdx)}>+ Add Row</button>
+                                    <sp-action-button size="s" quiet @click=${() => this.#onAddRow(sIdx)}>
+                                        <sp-icon-add slot="icon"></sp-icon-add>
+                                        Add Row
+                                    </sp-action-button>
                                 </td>
                             </tr>
                         `,

@@ -1,5 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
+import { live } from 'lit/directives/live.js';
 import { Fragment } from '../aem/fragment.js';
 import './compare-chart-preview.js';
 import router from '../router.js';
@@ -1104,6 +1105,7 @@ class CompareChartEditor extends LitElement {
 
         this.#localRefs.set(resolvedCard.path, resolvedCard);
         this.#resolvedCardIdsByPath.set(resolvedCard.path, resolvedCard.id);
+        await this.#primeAemFragmentCache(resolvedCard);
         const selectedFields = [...this.#getRefFieldValues(colFragment, 'fields')];
         await this.#saveChildField(colFragment, 'fragment', [resolvedCard.path]);
 
@@ -1273,7 +1275,14 @@ class CompareChartEditor extends LitElement {
         const hasSelectedCard = Boolean(col.cardFragment?.path || col.cardFragment?.id);
         const selectedCardId = this.columnPreviewResolvedCardId || col.cardFragment?.id || '';
         const previewFragmentId = this.columnPreviewResolvedCardId || '';
-        const availableFields = sortFieldsByGroup(COLUMN_FIELD_OPTIONS.filter((f) => !col.fields.includes(f)));
+        const selectedSet = new Set(col.fields);
+        // Build unified list respecting user's drag order for selected fields.
+        // For each group: selected fields in col.fields order, then unselected in default order.
+        const allFieldsSorted = ['title', 'price', 'desc'].flatMap((group) => {
+            const selected = col.fields.filter((f) => getFieldGroup(f) === group);
+            const unselected = COLUMN_FIELD_OPTIONS.filter((f) => getFieldGroup(f) === group && !selectedSet.has(f));
+            return [...selected, ...unselected];
+        });
 
         return html`
             <div class="panel-section">
@@ -1293,52 +1302,39 @@ class CompareChartEditor extends LitElement {
                 <section id="column-fields-block" class="column-panel-block column-fields-block">
                     <h4 class="column-block-title">Column Fields</h4>
                     <div class="column-fields-sortable">
-                        ${col.fields.map(
-                            (fieldName, index) => html`
-                                ${index > 0 && getFieldGroup(fieldName) !== getFieldGroup(col.fields[index - 1])
+                        ${allFieldsSorted.map((fieldName, index) => {
+                            const isSelected = selectedSet.has(fieldName);
+                            const fieldIndex = isSelected ? col.fields.indexOf(fieldName) : -1;
+                            return html`
+                                ${index > 0 && getFieldGroup(fieldName) !== getFieldGroup(allFieldsSorted[index - 1])
                                     ? html`<div class="column-fields-group-divider"></div>`
                                     : nothing}
                                 <label
-                                    class="column-field-row selected ${this.draggingFieldIndex === index ? 'dragging' : ''}"
-                                    draggable="true"
-                                    @dragstart=${(e) => this.#fieldDragStart(e, index)}
-                                    @dragover=${(e) => this.#fieldDragOver(e, col, index)}
-                                    @dragleave=${(e) => this.#fieldDragLeave(e)}
-                                    @drop=${(e) => this.#fieldDrop(e, col, index)}
-                                    @dragend=${(e) => this.#fieldDragEnd(e)}
+                                    class="column-field-row ${isSelected ? 'selected' : ''} ${isSelected &&
+                                    this.draggingFieldIndex === fieldIndex
+                                        ? 'dragging'
+                                        : ''}"
+                                    draggable="${isSelected}"
+                                    @dragstart=${isSelected ? (e) => this.#fieldDragStart(e, fieldIndex) : nothing}
+                                    @dragover=${isSelected ? (e) => this.#fieldDragOver(e, col, fieldIndex) : nothing}
+                                    @dragleave=${isSelected ? (e) => this.#fieldDragLeave(e) : nothing}
+                                    @drop=${isSelected ? (e) => this.#fieldDrop(e, col, fieldIndex) : nothing}
+                                    @dragend=${isSelected ? (e) => this.#fieldDragEnd(e) : nothing}
                                 >
                                     <input
                                         type="checkbox"
-                                        checked
+                                        .checked=${live(isSelected)}
                                         @change=${() => {
-                                            const updated = sortFieldsByGroup(col.fields.filter((f) => f !== fieldName));
+                                            const updated = isSelected
+                                                ? sortFieldsByGroup(col.fields.filter((f) => f !== fieldName))
+                                                : sortFieldsByGroup([...col.fields, fieldName]);
                                             this.#saveChildField(col.fragment, 'fields', updated);
                                         }}
                                     />
                                     <span class="column-field-label">${columnFieldLabel(fieldName)}</span>
                                 </label>
-                            `,
-                        )}
-                        ${col.fields.length > 0 && availableFields.length > 0
-                            ? html`<div class="column-fields-divider"></div>`
-                            : nothing}
-                        ${availableFields.map(
-                            (fieldName, index, arr) => html`
-                                ${index > 0 && getFieldGroup(fieldName) !== getFieldGroup(arr[index - 1])
-                                    ? html`<div class="column-fields-group-divider"></div>`
-                                    : nothing}
-                                <label class="column-field-row">
-                                    <input
-                                        type="checkbox"
-                                        @change=${() => {
-                                            const updated = sortFieldsByGroup([...col.fields, fieldName]);
-                                            this.#saveChildField(col.fragment, 'fields', updated);
-                                        }}
-                                    />
-                                    <span class="column-field-label">${columnFieldLabel(fieldName)}</span>
-                                </label>
-                            `,
-                        )}
+                            `;
+                        })}
                     </div>
                 </section>
 
@@ -2072,18 +2068,8 @@ class CompareChartEditor extends LitElement {
                 }
 
                 .compare-chart-editor .column-field-row.selected {
+                    font-weight: 500;
                     cursor: grab;
-                }
-
-                .compare-chart-editor .column-field-row input[type='checkbox'] {
-                    margin: 0;
-                    cursor: pointer;
-                    accent-color: var(--spectrum-blue-900);
-                }
-
-                .compare-chart-editor .column-field-row .column-field-label {
-                    flex: 1;
-                    user-select: none;
                 }
 
                 .compare-chart-editor .column-field-row.dragging {
@@ -2095,8 +2081,15 @@ class CompareChartEditor extends LitElement {
                     outline-offset: -2px;
                 }
 
-                .compare-chart-editor .column-fields-divider {
-                    border-top: 1px dashed var(--spectrum-gray-300);
+                .compare-chart-editor .column-field-row input[type='checkbox'] {
+                    margin: 0;
+                    cursor: pointer;
+                    accent-color: var(--spectrum-blue-900);
+                }
+
+                .compare-chart-editor .column-field-row .column-field-label {
+                    flex: 1;
+                    user-select: none;
                 }
 
                 .compare-chart-editor .column-fields-group-divider {
@@ -2118,6 +2111,7 @@ class CompareChartEditor extends LitElement {
                     background: var(--spectrum-white, #fff);
                     border-radius: 12px;
                     padding: 24px;
+                    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
                 }
 
                 .compare-chart-editor .chart-preview-panel {

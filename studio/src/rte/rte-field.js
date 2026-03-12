@@ -194,6 +194,7 @@ class RteField extends LitElement {
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
+        hideFormatButtons: { type: Boolean, attribute: 'hide-format-buttons' },
         osi: { type: String },
         value: { type: String },
     };
@@ -1784,6 +1785,7 @@ class RteField extends LitElement {
     }
 
     get #formatButtons() {
+        if (this.hideFormatButtons) return nothing;
         return html`
             <sp-action-button
                 @click=${this.#handleToolbarAction('strong')}

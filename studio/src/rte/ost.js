@@ -56,6 +56,7 @@ const OST_TYPE_MAPPING = {
     priceStrikethrough: 'strikethrough',
     priceAnnual: 'annual',
     priceOptical: 'optical',
+    discount: 'discount',
     checkoutUrl: null,
 };
 
@@ -64,6 +65,7 @@ const OST_IS_MAPPING = {
     strikethrough: 'inline-price',
     annual: 'inline-price',
     optical: 'inline-price',
+    discount: 'inline-price',
     checkoutUrl: 'checkout-link',
     legal: 'inline-price',
     'promo-strikethrough': 'inline-price',

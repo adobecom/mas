@@ -5,7 +5,7 @@ import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore, { SourceFragmentStore } from '../src/reactivity/source-fragment-store.js';
-import { PAGE_NAMES, CARD_MODEL_PATH } from '../src/constants.js';
+import { PAGE_NAMES, CARD_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
@@ -447,6 +447,239 @@ describe('MasFragmentEditor', () => {
                 expect(getTranslations.calledOnceWith('test-id')).to.be.true;
             } finally {
                 Store.fragmentEditor.fragmentId.value = originalFragmentId;
+            }
+        });
+
+        it('adds fil_PH to locales when not in languageCopies and Odin preview returns OK', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            const fragmentPath = '/content/dam/mas/acom/en_US/my-fragment';
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = 'frag-1';
+                const getTranslations = sandbox.stub().resolves({
+                    languageCopies: [{ path: '/content/dam/mas/acom/en_US/my-fragment', id: 'frag-1' }],
+                });
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+
+                const fetchStub = sandbox.stub(window, 'fetch').resolves({
+                    ok: true,
+                    json: () => Promise.resolve({ id: 'fil-ph-frag-id' }),
+                });
+
+                await el.updateTranslatedLocalesStore(false, fragmentPath);
+
+                const locales = Store.fragmentEditor.translatedLocales.get();
+                expect(locales).to.have.lengthOf(2);
+                const filPh = locales.find((l) => l.locale === 'fil_PH');
+                expect(filPh).to.deep.include({ locale: 'fil_PH', id: 'fil-ph-frag-id', path: '/content/dam/mas/acom/fil_PH/my-fragment' });
+                expect(fetchStub.calledOnce).to.be.true;
+                expect(fetchStub.firstCall.args[0]).to.equal(`${ODIN_PREVIEW_ORIGIN}/content/dam/mas/acom/fil_PH/my-fragment.json`);
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = null;
+            }
+        });
+
+        it('does not fetch fil_PH when already in languageCopies', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = 'frag-1';
+                const getTranslations = sandbox.stub().resolves({
+                    languageCopies: [
+                        { path: '/content/dam/mas/acom/en_US/my-fragment', id: 'frag-1' },
+                        { path: '/content/dam/mas/acom/fil_PH/my-fragment', id: 'fil-ph-id' },
+                    ],
+                });
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+                const fetchStub = sandbox.stub(window, 'fetch');
+
+                await el.updateTranslatedLocalesStore(false, '/content/dam/mas/acom/en_US/my-fragment');
+
+                expect(Store.fragmentEditor.translatedLocales.get()).to.have.lengthOf(2);
+                expect(fetchStub.called).to.be.false;
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = null;
+            }
+        });
+
+        it('keeps locales from languageCopies when fil_PH fetch fails', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = 'frag-1';
+                const getTranslations = sandbox.stub().resolves({
+                    languageCopies: [{ path: '/content/dam/mas/acom/en_US/my-fragment', id: 'frag-1' }],
+                });
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+                sandbox.stub(window, 'fetch').rejects(new Error('Network error'));
+
+                await el.updateTranslatedLocalesStore(false, '/content/dam/mas/acom/en_US/my-fragment');
+
+                const locales = Store.fragmentEditor.translatedLocales.get();
+                expect(locales).to.have.lengthOf(1);
+                expect(locales[0].locale).to.equal('en_US');
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = null;
+            }
+        });
+
+        it('keeps locales from languageCopies when fil_PH URL returns not ok', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = 'frag-1';
+                const getTranslations = sandbox.stub().resolves({
+                    languageCopies: [{ path: '/content/dam/mas/acom/en_US/my-fragment', id: 'frag-1' }],
+                });
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+                sandbox.stub(window, 'fetch').resolves({ ok: false });
+
+                await el.updateTranslatedLocalesStore(false, '/content/dam/mas/acom/en_US/my-fragment');
+
+                const locales = Store.fragmentEditor.translatedLocales.get();
+                expect(locales).to.have.lengthOf(1);
+                expect(locales[0].locale).to.equal('en_US');
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = null;
+            }
+        });
+
+        it('does not fetch fil_PH when fragmentPath is not provided', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = 'frag-1';
+                const getTranslations = sandbox.stub().resolves({
+                    languageCopies: [{ path: '/content/dam/mas/acom/en_US/my-fragment', id: 'frag-1' }],
+                });
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+                const fetchStub = sandbox.stub(window, 'fetch');
+
+                await el.updateTranslatedLocalesStore(false);
+
+                expect(Store.fragmentEditor.translatedLocales.get()).to.have.lengthOf(1);
+                expect(fetchStub.called).to.be.false;
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = null;
+            }
+        });
+
+        it('sets translatedLocales to null and warns when getTranslations throws', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            const warnStub = sandbox.stub(console, 'warn');
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = 'frag-1';
+                const getTranslations = sandbox.stub().rejects(new Error('API error'));
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+
+                await el.updateTranslatedLocalesStore(false, '/content/dam/mas/acom/en_US/my-fragment');
+
+                expect(Store.fragmentEditor.translatedLocales.get()).to.be.null;
+                expect(warnStub.calledOnce).to.be.true;
+                expect(warnStub.firstCall.args[0]).to.include('Failed to fetch fragment translations');
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = null;
+            }
+        });
+
+        it('does not set locales when fragmentId changes before getTranslations resolves', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            const originalFragmentId = Store.fragmentEditor.fragmentId.value;
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = 'frag-1';
+                const deferred = {};
+                const getTranslations = sandbox.stub().returns(
+                    new Promise((resolve) => {
+                        deferred.resolve = resolve;
+                    }),
+                );
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+
+                const updatePromise = el.updateTranslatedLocalesStore(false, '/content/dam/mas/acom/en_US/my-fragment');
+                Store.fragmentEditor.fragmentId.value = 'other-frag';
+                deferred.resolve({
+                    languageCopies: [{ path: '/content/dam/mas/acom/en_US/my-fragment', id: 'frag-1' }],
+                });
+
+                await updatePromise;
+
+                expect(Store.fragmentEditor.translatedLocales.get()).to.be.null;
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = originalFragmentId;
+            }
+        });
+
+        it('adds fil_PH with id null when response json has no id', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = 'frag-1';
+                const getTranslations = sandbox.stub().resolves({
+                    languageCopies: [{ path: '/content/dam/mas/acom/en_US/my-fragment', id: 'frag-1' }],
+                });
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+                sandbox.stub(window, 'fetch').resolves({
+                    ok: true,
+                    json: () => Promise.resolve({}),
+                });
+
+                await el.updateTranslatedLocalesStore(false, '/content/dam/mas/acom/en_US/my-fragment');
+
+                const locales = Store.fragmentEditor.translatedLocales.get();
+                const filPh = locales.find((l) => l.locale === 'fil_PH');
+                expect(filPh).to.deep.include({ locale: 'fil_PH', id: null, path: '/content/dam/mas/acom/fil_PH/my-fragment' });
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = null;
             }
         });
     });

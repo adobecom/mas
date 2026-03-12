@@ -100,6 +100,10 @@ class MasSettings extends LitElement {
             width: 100%;
         }
 
+        mas-locale-picker {
+            z-index: 2;
+        }
+
         .addon-toggle-row {
             display: flex;
             align-items: center;

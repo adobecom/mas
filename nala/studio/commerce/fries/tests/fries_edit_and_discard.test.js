@@ -1,4 +1,4 @@
-import { test, expect, studio, editor, fries, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
+import { test, expect, studio, editor, fries, webUtil, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
 import COMFriesSpec from '../specs/fries_edit_and_discard.spec.js';
 
 const { features } = COMFriesSpec;
@@ -63,6 +63,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await editor.trialBadgeColor).toContainText(data.color.original);
             await editor.trialBadgeColor.scrollIntoViewIfNeeded();
             await editor.trialBadgeColor.click();
+            await expect(await editor.trialBadgeColor.locator('sp-menu-item').first()).toBeVisible();
             await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });
@@ -71,7 +72,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await editor.trialBadgeColor).toContainText(data.color.updated);
             expect(
                 await webUtil.verifyCSS(friesCard.locator(fries.trialBadge), {
-                    'background-color': data.colorCSS.updated,
+                    color: data.colorCSS.updated,
                 }),
             ).toBeTruthy();
         });
@@ -83,7 +84,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-5: Verify badge color is unchanged', async () => {
             expect(
                 await webUtil.verifyCSS(friesCard.locator(fries.trialBadge), {
-                    'background-color': data.colorCSS.original,
+                    color: data.colorCSS.original,
                 }),
             ).toBeTruthy();
         });
@@ -107,6 +108,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
             await expect(await editor.trialBadgeBorderColor).toContainText(data.color.original);
             await editor.trialBadgeBorderColor.scrollIntoViewIfNeeded();
             await editor.trialBadgeBorderColor.click();
+            await expect(await editor.trialBadgeBorderColor.locator('sp-menu-item').first()).toBeVisible();
             await page.getByRole('option', { name: data.color.updated, exact: true }).click();
             await page.waitForTimeout(2000);
         });

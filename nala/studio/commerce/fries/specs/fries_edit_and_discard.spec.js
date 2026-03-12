@@ -12,7 +12,7 @@ export default {
                     updated: 'Change trial badge',
                 },
             },
-            browserParams: 'page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
         {
@@ -27,10 +27,10 @@ export default {
                 },
                 colorCSS: {
                     original: 'rgb(7, 147, 85)',
-                    updated: 'rgb(245, 199, 0)',
+                    updated: 'rgb(255, 222, 44)',
                 },
             },
-            browserParams: 'page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
         {
@@ -45,10 +45,10 @@ export default {
                 },
                 colorCSS: {
                     original: 'rgb(7, 147, 85)',
-                    updated: 'rgb(245, 199, 0)',
+                    updated: 'rgb(255, 222, 44)',
                 },
             },
-            browserParams: 'page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
     ],

@@ -1,4 +1,4 @@
-import { test, expect, versions, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, versions, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import VersionPageSpec from '../specs/versions.spec.js';
 
 const { features } = VersionPageSpec;
@@ -282,9 +282,9 @@ test.describe('M@S Studio - Version Page test suite', () => {
                         await page.waitForLoadState('domcontentloaded');
                         await page.waitForTimeout(3000);
                     }
-                    await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+                    await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
                     await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-                    versionCount = await versionPage.getVersionCount();
+                    versionCount = await versions.getVersionCount();
                     if (versionCount >= 2) break;
                     throw new Error('Expected version not yet visible');
                 } catch (err) {

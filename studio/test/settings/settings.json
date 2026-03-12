@@ -1,0 +1,327 @@
+{
+    "path": "/content/dam/mas/sandbox/settings/index",
+    "title": "index",
+    "description": "",
+    "id": "417dd2aa-c08b-46fe-8d18-8a7f9be85666",
+    "created": { "at": "2026-02-16T09:20:02.351Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+    "modified": { "at": "2026-02-20T10:23:34.008Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+    "published": { "at": "2026-02-20T10:37:43.436Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+    "status": "PUBLISHED",
+    "previewReplicationStatus": "NEVER_PUBLISHED",
+    "fields": [
+        { "name": "parentSettings", "type": "content-fragment", "multiple": false, "locked": false, "values": [] },
+        {
+            "name": "entries",
+            "type": "content-fragment",
+            "multiple": true,
+            "locked": false,
+            "values": [
+                "/content/dam/mas/sandbox/settings/show-secured-transaction",
+                "/content/dam/mas/sandbox/settings/show-secure-transaction-fr",
+                "/content/dam/mas/sandbox/settings/display-plan-type",
+                "/content/dam/mas/sandbox/settings/display-plan-type-true",
+                "/content/dam/mas/sandbox/settings/display-annual",
+                "/content/dam/mas/sandbox/settings/display-annual-true"
+            ]
+        }
+    ],
+    "variations": [],
+    "tags": [],
+    "references": [
+        {
+            "name": "display-annual",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "displayAnnual",
+            "path": "/content/dam/mas/sandbox/settings/display-annual",
+            "created": { "at": "2026-02-20T10:21:46.515Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "modified": { "at": "2026-02-20T10:22:16.556Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "published": { "at": "2026-02-20T10:37:43.435Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "511b3df8-9a35-4e27-9241-31d038ff2630",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/settings-entry",
+                "name": "Settings Entry",
+                "title": "Settings Entry"
+            },
+            "description": "",
+            "fields": [
+                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["displayAnnual"] },
+                {
+                    "name": "templates",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["plans", "plans-students"]
+                },
+                { "name": "locales", "type": "text", "multiple": true, "locked": false, "values": [] },
+                { "name": "tags", "type": "tag", "multiple": true, "locked": false, "values": [] },
+                { "name": "valuetype", "type": "text", "multiple": false, "locked": false, "values": ["boolean"] },
+                { "name": "textValue", "type": "text", "multiple": false, "locked": false, "values": [] },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                { "name": "booleanValue", "type": "boolean", "multiple": false, "locked": false, "values": [] }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "display-annual-true",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "displayAnnualTrue",
+            "path": "/content/dam/mas/sandbox/settings/display-annual-true",
+            "created": { "at": "2026-02-20T10:22:39.39Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "modified": { "at": "2026-02-20T10:22:59.715Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "published": { "at": "2026-02-20T10:37:43.436Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "baebc1db-a806-41de-b74e-1c2ba699d05c",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/settings-entry",
+                "name": "Settings Entry",
+                "title": "Settings Entry"
+            },
+            "description": "",
+            "fields": [
+                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["displayAnnual"] },
+                { "name": "templates", "type": "text", "multiple": true, "locked": false, "values": [] },
+                { "name": "locales", "type": "text", "multiple": true, "locked": false, "values": ["en_AU"] },
+                { "name": "tags", "type": "tag", "multiple": true, "locked": false, "values": [] },
+                { "name": "valuetype", "type": "text", "multiple": false, "locked": false, "values": [] },
+                { "name": "textValue", "type": "text", "multiple": false, "locked": false, "values": [] },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                { "name": "booleanValue", "type": "boolean", "multiple": false, "locked": false, "values": [true] }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "display-plan-type",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "displayPlanType",
+            "path": "/content/dam/mas/sandbox/settings/display-plan-type",
+            "created": { "at": "2026-02-20T09:48:54.29Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "modified": { "at": "2026-02-20T09:50:30.21Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "published": { "at": "2026-02-20T09:52:43.91Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "ac4184a7-b4af-4633-8dcb-e10f32bc28ca",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/settings-entry",
+                "name": "Settings Entry",
+                "title": "Settings Entry"
+            },
+            "description": "",
+            "fields": [
+                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["displayPlanType"] },
+                {
+                    "name": "templates",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["plans", "plans-students", "plans-education"]
+                },
+                { "name": "locales", "type": "text", "multiple": true, "locked": false, "values": [] },
+                { "name": "tags", "type": "tag", "multiple": true, "locked": false, "values": [] },
+                { "name": "valuetype", "type": "text", "multiple": false, "locked": false, "values": ["boolean"] },
+                { "name": "textValue", "type": "text", "multiple": false, "locked": false, "values": [] },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                { "name": "booleanValue", "type": "boolean", "multiple": false, "locked": false, "values": [] }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "display-plan-type-true",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "displayPlanTypeTrue",
+            "path": "/content/dam/mas/sandbox/settings/display-plan-type-true",
+            "created": { "at": "2026-02-20T09:54:38.451Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "modified": { "at": "2026-02-20T09:59:27.926Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "published": { "at": "2026-02-20T10:01:44.024Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "58f46650-e0c6-4e68-8175-79b012fe7612",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/settings-entry",
+                "name": "Settings Entry",
+                "title": "Settings Entry"
+            },
+            "description": "",
+            "fields": [
+                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["displayPlanType"] },
+                { "name": "templates", "type": "text", "multiple": true, "locked": false, "values": [] },
+                {
+                    "name": "locales",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "en_US",
+                        "en_AU",
+                        "en_HK",
+                        "zh_HK",
+                        "en_ID",
+                        "id_ID",
+                        "en_MY",
+                        "ms_MY",
+                        "en_NZ",
+                        "en_PH",
+                        "fil_PH",
+                        "en_SG",
+                        "en_TH",
+                        "th_TH",
+                        "zh_TW",
+                        "en_VN",
+                        "vi_VN",
+                        "en_IN",
+                        "de_AT",
+                        "de_CH",
+                        "de_LU",
+                        "de_DE"
+                    ]
+                },
+                { "name": "tags", "type": "tag", "multiple": true, "locked": false, "values": [] },
+                { "name": "valuetype", "type": "text", "multiple": false, "locked": false, "values": [] },
+                { "name": "textValue", "type": "text", "multiple": false, "locked": false, "values": [] },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                { "name": "booleanValue", "type": "boolean", "multiple": false, "locked": false, "values": [true] }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "show-secure-transaction-fr",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "Show secure transaction fr",
+            "path": "/content/dam/mas/sandbox/settings/show-secure-transaction-fr",
+            "created": { "at": "2026-02-20T09:37:04.438Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "modified": { "at": "2026-02-20T09:38:32.223Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "published": { "at": "2026-02-20T09:40:43.85Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "99e7b47f-f9c1-4a93-bee3-7c00bbf13a28",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/settings-entry",
+                "name": "Settings Entry",
+                "title": "Settings Entry"
+            },
+            "description": "",
+            "fields": [
+                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["secureLabel"] },
+                { "name": "templates", "type": "text", "multiple": true, "locked": false, "values": [] },
+                { "name": "locales", "type": "text", "multiple": true, "locked": false, "values": ["fr_FR", "fr_BE", "fr_CH"] },
+                { "name": "tags", "type": "tag", "multiple": true, "locked": false, "values": [] },
+                { "name": "valuetype", "type": "text", "multiple": false, "locked": false, "values": [] },
+                { "name": "textValue", "type": "text", "multiple": false, "locked": false, "values": [] },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                { "name": "booleanValue", "type": "boolean", "multiple": false, "locked": false, "values": [] }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "show-secured-transaction",
+            "fieldName": "entries",
+            "type": "content-fragment",
+            "title": "Show secured transaction",
+            "path": "/content/dam/mas/sandbox/settings/show-secured-transaction",
+            "created": { "at": "2026-02-16T09:24:23.273Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "modified": { "at": "2026-02-16T09:26:03.265Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "published": { "at": "2026-02-17T08:28:23.044Z", "by": "npeltier@adobe.com", "fullName": "npeltier@adobe.com" },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "31a9f6d2-13ed-4958-bcd0-f1166f49cfab",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5",
+                "path": "/conf/mas/settings/dam/cfm/models/settings-entry",
+                "name": "Settings Entry",
+                "title": "Settings Entry"
+            },
+            "description": "Controls whether the “Secure transaction” lock icon/label appears near the checkout CTA on the card. When enabled, the trust badge is rendered; when disabled, it is suppressed for that fragment, overriding page‑level defaults.\r\n",
+            "fields": [
+                { "name": "name", "type": "text", "multiple": false, "locked": false, "values": ["secureLabel"] },
+                {
+                    "name": "templates",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["plans", "plans-edu", "plans-teams"]
+                },
+                { "name": "locales", "type": "text", "multiple": true, "locked": false, "values": [] },
+                { "name": "tags", "type": "tag", "multiple": true, "locked": false, "values": [] },
+                { "name": "valuetype", "type": "text", "multiple": false, "locked": false, "values": ["boolean"] },
+                { "name": "textValue", "type": "text", "multiple": false, "locked": false, "values": [] },
+                {
+                    "name": "richTextValue",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                { "name": "booleanValue", "type": "boolean", "multiple": false, "locked": false, "values": [true] }
+            ],
+            "variations": [],
+            "tags": []
+        }
+    ],
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdz",
+        "path": "/conf/mas/settings/dam/cfm/models/settings",
+        "name": "Settings",
+        "title": "Settings"
+    },
+    "validationStatus": [],
+    "fieldTags": []
+}

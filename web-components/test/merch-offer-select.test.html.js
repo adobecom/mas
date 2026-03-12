@@ -4,7 +4,7 @@ import { expect } from '@esm-bundle/chai';
 import { mockLana } from './mocks/lana.js';
 import { mockFetch } from './mocks/fetch.js';
 
-import { delay } from './utils.js';
+import { delay, toggleMobile, toggleDesktop } from './utils.js';
 import { withWcs } from './mocks/wcs.js';
 import '../src/mas.js';
 
@@ -191,6 +191,24 @@ runTests(async () => {
             expect(price.innerText).to.equal('US$54.99/mo');
             expect(cta.getAttribute('data-wcs-osi')).to.equal('abm');
             expect(cta.getAttribute('data-quantity')).to.equal('2');
+        });
+    });
+
+    describe('merch-offer-select with mini-compare-chart-mweb', () => {
+        it('should recognize mini-compare-chart-mweb as miniCompareMobileCard on mobile', async () => {
+            await toggleMobile();
+            const { merchCard, merchOfferSelect } =
+                await renderCard('mwebCard');
+            await delay(200);
+            expect(merchOfferSelect).to.exist;
+            expect(merchCard.variant).to.equal('mini-compare-chart-mweb');
+            expect(merchOfferSelect.merchCard).to.equal(merchCard);
+            // miniCompareMobileCard checks variant AND isMobile
+            const isMobile = merchOfferSelect.isMobile;
+            if (isMobile) {
+                expect(merchOfferSelect.miniCompareMobileCard).to.be.true;
+            }
+            await toggleDesktop();
         });
     });
 });

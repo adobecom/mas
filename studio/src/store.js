@@ -12,6 +12,7 @@ const Store = {
             loading: new ReactiveStore(true),
             firstPageLoaded: new ReactiveStore(false),
             data: new ReactiveStore([]),
+            hasMore: new ReactiveStore(false),
         },
         recentlyUpdated: {
             loading: new ReactiveStore(true),

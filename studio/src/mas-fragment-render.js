@@ -4,17 +4,42 @@ import './mas-fragment-status.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { cardSkeleton } from './mas-content.js';
 
 class MasFragmentRender extends LitElement {
     static properties = {
         selected: { type: Boolean, attribute: true },
         fragmentStore: { type: Object, attribute: false },
+        visible: { type: Boolean, state: true },
     };
 
     #reactiveControllers = new ReactiveController(this);
+    #observer = null;
 
     createRenderRoot() {
         return this;
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.#observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    this.visible = true;
+                    this.#observer.disconnect();
+                    this.#observer = null;
+                    this.fragmentStore?.resolvePreviewFragment?.();
+                }
+            },
+            { rootMargin: '200px' },
+        );
+        this.#observer.observe(this);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#observer?.disconnect();
+        this.#observer = null;
     }
 
     update(changedProperties) {
@@ -91,6 +116,10 @@ class MasFragmentRender extends LitElement {
         </merch-card>`;
     }
 
+    get placeholder() {
+        return cardSkeleton();
+    }
+
     get unknown() {
         const label = this.fragment.fields.find((field) => field.name === 'label')?.values[0];
         return html`<div class="unknown-fragment" slot="trigger">
@@ -100,6 +129,7 @@ class MasFragmentRender extends LitElement {
     }
 
     render() {
+        if (!this.visible) return this.placeholder;
         if (!this.fragment || !this.fragment.model) {
             return nothing;
         }

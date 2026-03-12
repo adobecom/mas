@@ -1,7 +1,14 @@
 import { Catalog, CATALOG_AEM_FRAGMENT_MAPPING } from './catalog.js';
-import { Image } from './image.js';
+import { Image, IMAGE_AEM_FRAGMENT_MAPPING } from './image.js';
 import { InlineHeading } from './inline-heading.js';
-import { MiniCompareChart } from './mini-compare-chart.js';
+import {
+    MiniCompareChart,
+    MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+} from './mini-compare-chart.js';
+import {
+    MiniCompareChartMweb,
+    MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING,
+} from './mini-compare-chart-mweb.js';
 import {
     Plans,
     PLANS_AEM_FRAGMENT_MAPPING,
@@ -9,8 +16,9 @@ import {
     PLANS_STUDENTS_AEM_FRAGMENT_MAPPING,
 } from './plans.js';
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
-import { Product } from './product.js';
-import { Segment } from './segment.js';
+import { Product, PRODUCT_AEM_FRAGMENT_MAPPING } from './product.js';
+import { Segment, SEGMENT_AEM_FRAGMENT_MAPPING } from './segment.js';
+import { Media, MEDIA_AEM_FRAGMENT_MAPPING } from './media.js';
 import {
     SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
     SpecialOffer,
@@ -23,6 +31,7 @@ import {
     FullPricingExpress,
     FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
 } from './full-pricing-express.js';
+import { Headless, HEADLESS_AEM_FRAGMENT_MAPPING } from './headless.js';
 import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
 
 // Registry for dynamic variants
@@ -61,8 +70,14 @@ registerVariant('inline-heading', InlineHeading);
 registerVariant(
     'mini-compare-chart',
     MiniCompareChart,
-    null,
+    MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
     MiniCompareChart.variantStyle,
+);
+registerVariant(
+    'mini-compare-chart-mweb',
+    MiniCompareChartMweb,
+    MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING,
+    MiniCompareChartMweb.variantStyle,
 );
 registerVariant(
     'plans',
@@ -92,8 +107,25 @@ registerVariant(
     PlansV2.variantStyle,
     PlansV2.collectionOptions,
 );
-registerVariant('product', Product, null, Product.variantStyle);
-registerVariant('segment', Segment, null, Segment.variantStyle);
+registerVariant(
+    'product',
+    Product,
+    PRODUCT_AEM_FRAGMENT_MAPPING,
+    Product.variantStyle,
+);
+registerVariant(
+    'segment',
+    Segment,
+    SEGMENT_AEM_FRAGMENT_MAPPING,
+    Segment.variantStyle,
+);
+registerVariant('media', Media, MEDIA_AEM_FRAGMENT_MAPPING, Media.variantStyle);
+registerVariant(
+    'headless',
+    Headless,
+    HEADLESS_AEM_FRAGMENT_MAPPING,
+    Headless.variantStyle,
+);
 registerVariant(
     'special-offers',
     SpecialOffer,
@@ -113,6 +145,7 @@ registerVariant(
     FullPricingExpress.variantStyle,
 );
 registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
+registerVariant('image', Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
 
 const applyStyleSheet = (card, style, state) => {
     try {

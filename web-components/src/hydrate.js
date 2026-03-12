@@ -355,6 +355,7 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
             isLinkStyle,
             isPrimary,
             isSecondary,
+            aemFragmentMapping?.ctas?.size,
         );
     } else if (isLinkStyle) {
         newButtonElement = linkElement;
@@ -644,14 +645,28 @@ function createConsonantButton(
     isLinkStyle,
     isPrimary,
     isSecondary,
+    size,
 ) {
     let button = cta;
     if (isCheckout) {
-        const CheckoutLink = customElements.get('checkout-link');
-        button = CheckoutLink.createCheckoutLink(cta.dataset, cta.innerHTML);
+        try {
+            const CheckoutLink = customElements.get('checkout-link');
+            if (CheckoutLink) {
+                button =
+                    CheckoutLink.createCheckoutLink(
+                        cta.dataset,
+                        cta.innerHTML,
+                    ) ?? cta;
+            }
+        } catch {
+            // Fall back to regular button if checkout-link creation fails
+        }
     }
     if (!isLinkStyle) {
-        button.classList.add('button', 'con-button');
+        button.classList.add('con-button');
+        if (size && size !== 'm') {
+            button.classList.add(`button-${size}`);
+        }
         if (isAccent) {
             button.classList.add('blue');
         }
@@ -672,14 +687,9 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
 
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
-        const ctas = [...footer.querySelectorAll('a')].map((cta) => {
-            const checkoutButton = transformLinkToButton(
-                cta,
-                merchCard,
-                aemFragmentMapping,
-            );
-            return checkoutButton;
-        });
+        const ctas = [...footer.querySelectorAll('a')].map((cta) =>
+            transformLinkToButton(cta, merchCard, aemFragmentMapping),
+        );
 
         footer.innerHTML = '';
         footer.append(...ctas);
@@ -791,11 +801,11 @@ export async function hydrate(fragment, merchCard) {
         merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);
-    processBadge(fields, merchCard, mapping);
     processTrialBadge(fields, merchCard, mapping);
     processSize(fields, merchCard, mapping.size);
     processCardName(fields, merchCard);
     processTitle(fields, merchCard, mapping.title);
+    processBadge(fields, merchCard, mapping);
     processSubtitle(fields, merchCard, mapping);
     processPrices(fields, merchCard, mapping);
     processBackgroundImage(fields, merchCard, mapping.backgroundImage);
@@ -810,7 +820,12 @@ export async function hydrate(fragment, merchCard) {
     processAddon(fields, merchCard, mapping);
     processAddonConfirmation(fields, merchCard, mapping);
     processStockOffersAndSecureLabel(fields, merchCard, mapping, settings);
-    processUptLinks(fields, merchCard);
+    try {
+        processUptLinks(fields, merchCard);
+    } catch {
+        // UptLink construction may fail (customized built-in element timing);
+        // must not block remaining hydration steps.
+    }
     processCTAs(fields, merchCard, mapping, variant);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);

@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Merch Card Web Component - mini-compare-chart-mweb</title>
+        <script>
+            window.process = {
+                env: {},
+            };
+        </script>
+        <style>
+            main {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                flex-direction: column;
+                padding-top: 80px;
+            }
+
+            main > div {
+                display: initial;
+            }
+
+            .action-area {
+                display: contents;
+            }
+        </style>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+        <script
+            type="module"
+            src="./merch-card.mini-compare-mweb.test.html.js"
+        ></script>
+    </head>
+
+    <body>
+        <main>
+            <div class="three-merch-cards mini-compare-chart-mweb">
+                <!-- Card 1: All slots filled, 2 footer rows -->
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    secure-label="Secured"
+                    badge-background-color="#EDCC2D"
+                    badge-color="#000000"
+                    badge-text="Most popular"
+                    tabindex="0"
+                    id="card-mweb-1"
+                >
+                    <merch-icon
+                        slot="icons"
+                        size="l"
+                        src="../img/illustrator.svg"
+                        alt="Illustrator"
+                    ></merch-icon>
+                    <h3 slot="heading-xs">Creative Cloud All Apps</h3>
+                    <p slot="subtitle">Desktop + Mobile</p>
+                    <p slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-display-old-price="true"
+                            data-display-per-unit="true"
+                            data-display-recurrence="true"
+                            data-display-tax="true"
+                            data-display-plan-type="true"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="abm"
+                        ></span>
+                    </p>
+                    <div slot="promo-text">
+                        <p>
+                            Save 19% with an annual plan
+                            <a href="https://adobe.com/">Learn more</a>
+                        </p>
+                    </div>
+                    <div slot="body-m">
+                        <p>
+                            Get 20+ apps including Photoshop, Illustrator, and
+                            more.
+                        </p>
+                    </div>
+                    <div slot="body-xs">
+                        <p><strong>See what's included:</strong></p>
+                        <ul>
+                            <li><p>Illustrator on desktop</p></li>
+                            <li><p>100GB cloud storage</p></li>
+                        </ul>
+                    </div>
+                    <div slot="footer-rows">
+                        <ul>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Illustrator on desktop
+                                </div>
+                            </li>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    100GB cloud storage
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <p class="action-area" slot="footer">
+                        <a
+                            href="https://adobe.com/"
+                            class="con-button blue button-l"
+                            >Buy now</a
+                        >
+                    </p>
+                </merch-card>
+
+                <!-- Card 2: All slots + 3 footer rows (uneven row count) -->
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    secure-label="Secured"
+                    tabindex="0"
+                    id="card-mweb-2"
+                >
+                    <h3 slot="heading-xs">Illustrator</h3>
+                    <p slot="subtitle">Desktop only</p>
+                    <p slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-display-old-price="true"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="abm"
+                        ></span>
+                    </p>
+                    <div slot="promo-text"></div>
+                    <div slot="body-m">
+                        <p>Industry-standard vector graphics software.</p>
+                    </div>
+                    <div slot="body-xs"></div>
+                    <div slot="footer-rows">
+                        <ul>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Illustrator on desktop
+                                </div>
+                            </li>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    100GB cloud storage
+                                </div>
+                            </li>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Adobe Fonts
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <p class="action-area" slot="footer">
+                        <a
+                            href="https://adobe.com/"
+                            class="con-button blue button-l"
+                            >Buy now</a
+                        >
+                    </p>
+                </merch-card>
+
+                <!-- Card 3: Missing subtitle, has badge, 2 footer rows -->
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    secure-label="Secured"
+                    badge-background-color="#05834e"
+                    badge-color="#ffffff"
+                    badge-text="Best value"
+                    tabindex="0"
+                    id="card-mweb-3"
+                >
+                    <h3 slot="heading-xs">Photoshop</h3>
+                    <p slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-display-old-price="true"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="puf"
+                        ></span>
+                    </p>
+                    <div slot="promo-text"></div>
+                    <div slot="body-m">
+                        <p>Photo editing and compositing.</p>
+                    </div>
+                    <div slot="body-xs"></div>
+                    <div slot="footer-rows">
+                        <ul>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Photoshop on desktop and iPad
+                                </div>
+                            </li>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    100GB cloud storage
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <p class="action-area" slot="footer">
+                        <a
+                            href="https://adobe.com/"
+                            class="con-button blue button-l"
+                            >Buy now</a
+                        >
+                    </p>
+                </merch-card>
+            </div>
+
+            <!-- Uneven rows section with empty descriptions for removeEmptyRows testing -->
+            <div
+                id="uneven-rows"
+                class="three-merch-cards mini-compare-chart-mweb"
+            >
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    secure-label="Secured"
+                    tabindex="0"
+                    id="card-mweb-uneven-1"
+                >
+                    <h3 slot="heading-xs">Card A</h3>
+                    <p slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="abm"
+                        ></span>
+                    </p>
+                    <div slot="body-m"><p>Card A body.</p></div>
+                    <div slot="body-xs"></div>
+                    <div slot="footer-rows">
+                        <ul>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Feature A1
+                                </div>
+                            </li>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description"></div>
+                            </li>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Feature A3
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <p class="action-area" slot="footer">
+                        <a
+                            href="https://adobe.com/"
+                            class="con-button blue button-l"
+                            >Buy now</a
+                        >
+                    </p>
+                </merch-card>
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    secure-label="Secured"
+                    tabindex="0"
+                    id="card-mweb-uneven-2"
+                >
+                    <h3 slot="heading-xs">Card B</h3>
+                    <p slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="puf"
+                        ></span>
+                    </p>
+                    <div slot="body-m"><p>Card B body.</p></div>
+                    <div slot="body-xs"></div>
+                    <div slot="footer-rows">
+                        <ul>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Feature B1
+                                </div>
+                            </li>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Feature B2
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <p class="action-area" slot="footer">
+                        <a
+                            href="https://adobe.com/"
+                            class="con-button blue button-l"
+                            >Buy now</a
+                        >
+                    </p>
+                </merch-card>
+            </div>
+
+            <!-- 2-card collection for TwoColumns test -->
+            <div
+                id="two-card-collection"
+                class="two-merch-cards mini-compare-chart-mweb"
+            >
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    secure-label="Secured"
+                    tabindex="0"
+                    id="card-mweb-two-1"
+                >
+                    <h3 slot="heading-xs">Plan A</h3>
+                    <p slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="abm"
+                        ></span>
+                    </p>
+                    <div slot="body-m"><p>Plan A description.</p></div>
+                    <div slot="body-xs"></div>
+                    <div slot="footer-rows">
+                        <ul>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Feature 1
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <p class="action-area" slot="footer">
+                        <a
+                            href="https://adobe.com/"
+                            class="con-button blue button-l"
+                            >Buy now</a
+                        >
+                    </p>
+                </merch-card>
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    secure-label="Secured"
+                    tabindex="0"
+                    id="card-mweb-two-2"
+                >
+                    <h3 slot="heading-xs">Plan B</h3>
+                    <p slot="heading-m-price">
+                        <span
+                            is="inline-price"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="puf"
+                        ></span>
+                    </p>
+                    <div slot="body-m"><p>Plan B description.</p></div>
+                    <div slot="body-xs"></div>
+                    <div slot="footer-rows">
+                        <ul>
+                            <li class="footer-row-cell">
+                                <div class="footer-row-cell-description">
+                                    Feature 1
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <p class="action-area" slot="footer">
+                        <a
+                            href="https://adobe.com/"
+                            class="con-button blue button-l"
+                            >Buy now</a
+                        >
+                    </p>
+                </merch-card>
+            </div>
+        </main>
+    </body>
+</html>

@@ -135,21 +135,41 @@ describe('class "InlinePrice"', () => {
         expect(inlinePrice.outerHTML).to.be.html(snapshots.annual);
     });
 
-    it('renders promo price', async () => {
-        await initMasCommerceService();
-        const inlinePrice = mockInlinePrice('promoStikethrough', 'abm-promo');
-        inlinePrice.dataset.promotionCode = 'nicopromo';
-        inlinePrice.dataset.displayOldPrice = 'true';
-        await inlinePrice.onceSettled();
-        expect(inlinePrice.outerHTML).to.be.html(snapshots.promoStikethrough);
-    });
-
-    it('renders price with promo', async () => {
+    it('renders default promo price: old and new price', async () => {
         await initMasCommerceService();
         const inlinePrice = mockInlinePrice('promo', 'abm-promo');
         inlinePrice.dataset.promotionCode = 'nicopromo';
         await inlinePrice.onceSettled();
         expect(inlinePrice.outerHTML).to.be.html(snapshots.promo);
+    });
+
+    it('renders promo price with old price set to true: old and new price', async () => {
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('promo', 'abm-promo');
+        inlinePrice.dataset.promotionCode = 'nicopromo';
+        inlinePrice.dataset.displayOldPrice = 'true';
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.outerHTML).to.be.html(snapshots.promoWithOldPrice);
+    });
+
+    it('renders promo price with displayOldPrice=false: only new price', async () => {
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('promo', 'abm-promo');
+        inlinePrice.dataset.promotionCode = 'nicopromo';
+        inlinePrice.dataset.displayOldPrice = 'false';
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.outerHTML).to.be.html(
+            snapshots.promoWithOldPriceFalse,
+        );
+    });
+
+    it('renders strikethrough promo price: only old strikethrough price', async () => {
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('strikethrough', 'abm-promo');
+        inlinePrice.dataset.promotionCode = 'nicopromo';
+        inlinePrice.dataset.displayOldPrice = 'true'; // should make no impact on strikethrough
+        await inlinePrice.onceSettled();
+        expect(inlinePrice.outerHTML).to.be.html(snapshots.promoStrikethrough);
     });
 
     it('overrides price literals', async () => {
@@ -238,6 +258,7 @@ describe('class "InlinePrice"', () => {
         inlinePrice.dataset.displayTax = 'true';
         inlinePrice.dataset.forceTaxExclusive = 'true';
         inlinePrice.dataset.promotionCode = 'nicopromo';
+        inlinePrice.dataset.displayOldPrice = 'false';
         await inlinePrice.onceSettled();
         expect(inlinePrice.outerHTML).to.be.html(snapshots.taxExclusive);
     });

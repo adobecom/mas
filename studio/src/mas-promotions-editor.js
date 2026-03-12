@@ -278,14 +278,6 @@ class MasPromotionsEditor extends LitElement {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
         }
         return html`
-            <div class="promotions-form-breadcrumb">
-                <sp-breadcrumbs>
-                    <sp-breadcrumb-item slot="root" href="/studio.html#page=promotions">Promotions</sp-breadcrumb-item>
-                    <sp-breadcrumb-item value="trend"
-                        >${this.isNewPromotion ? 'Create new project' : 'Edit project'}</sp-breadcrumb-item
-                    >
-                </sp-breadcrumbs>
-            </div>
             ${this.renderConfirmDialog()}
             <div class="promotions-form-container">
                 <div class="promotions-form-header">

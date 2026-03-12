@@ -497,6 +497,37 @@ describe('MasRepository dictionary helpers', () => {
                 Store.folders.data.set = originalStoreData;
             }
         });
+
+        it('should set search path to sandbox when current path is not in folders and no query', async () => {
+            const repository = createRepository();
+            const mockChildren = [{ name: 'acom' }, { name: 'express' }, { name: 'sandbox' }];
+            repository.aem = createAemMock({
+                folders: {
+                    list: sandbox.stub().resolves({ children: mockChildren }),
+                },
+            });
+            repository.search = { value: { path: undefined, query: undefined } };
+            repository.filters = { value: { locale: 'en_US' } };
+            const searchSetSpy = sandbox.stub(Store.search, 'set');
+            const originalStoreLoaded = Store.folders.loaded.set.bind(Store.folders.loaded);
+            const originalStoreData = Store.folders.data.set.bind(Store.folders.data);
+            const mockFoldersLoaded = { set: sandbox.stub() };
+            const mockFoldersData = { set: sandbox.stub() };
+            Store.folders.loaded.set = mockFoldersLoaded.set;
+            Store.folders.data.set = mockFoldersData.set;
+            sandbox.stub(window.localStorage, 'getItem').returns(null);
+            try {
+                await repository.loadFolders();
+                expect(searchSetSpy.calledOnce).to.be.true;
+                const setArg = searchSetSpy.firstCall.args[0];
+                expect(setArg).to.be.a('function');
+                expect(setArg({})).to.deep.equal({ path: SURFACES.SANDBOX.name });
+            } finally {
+                searchSetSpy.restore();
+                Store.folders.loaded.set = originalStoreLoaded;
+                Store.folders.data.set = originalStoreData;
+            }
+        });
     });
 
     describe('getTranslationsPath', () => {
@@ -1168,7 +1199,11 @@ describe('MasRepository dictionary helpers', () => {
             const repository = createRepository();
             const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
             const parentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
-            const parentByPath = { id: 'parent-id', path: parentPath };
+            const parentByPath = {
+                id: 'parent-id',
+                path: parentPath,
+                fields: [{ name: 'variations', values: [sourcePath] }],
+            };
             const hydratedParent = { ...parentByPath, references: [{ id: 'ref-1' }] };
 
             repository.aem = createAemMock({
@@ -1210,12 +1245,57 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
         });
 
-        it('falls back to parent fetched by path when hydration by id fails', async () => {
+        it('selects the parent whose variations field contains the fragment path', async () => {
             const repository = createRepository();
             const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
-            const parentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
-            const parentByPath = { id: 'parent-id', path: parentPath };
-            const consoleDebugStub = sandbox.stub(console, 'debug');
+            const wrongParentPath = '/content/dam/mas/sandbox/en_US/pac/unrelated-fragment';
+            const correctParentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
+            const wrongParent = {
+                id: 'wrong-id',
+                path: wrongParentPath,
+                fields: [{ name: 'variations', values: ['/content/dam/mas/sandbox/en_US/pac/pzn/other-variation'] }],
+            };
+            const correctParent = {
+                id: 'correct-id',
+                path: correctParentPath,
+                fields: [{ name: 'variations', values: [sourcePath] }],
+            };
+            const hydratedCorrectParent = { ...correctParent, references: [{ id: 'ref-1' }] };
+
+            const getByPathStub = sandbox.stub();
+            getByPathStub.withArgs(wrongParentPath).resolves(wrongParent);
+            getByPathStub.withArgs(correctParentPath).resolves(correctParent);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getReferencedBy: sandbox.stub().resolves({
+                        path: sourcePath,
+                        parentReferences: [
+                            { type: 'content-fragment', path: wrongParentPath },
+                            { type: 'content-fragment', path: correctParentPath },
+                        ],
+                    }),
+                    getByPath: getByPathStub,
+                    getById: sandbox.stub().resolves(hydratedCorrectParent),
+                },
+            });
+
+            const result = await repository.resolveHydratedParentFragment(sourcePath);
+
+            expect(repository.aem.sites.cf.fragments.getByPath.calledTwice).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('correct-id')).to.be.true;
+            expect(result).to.deep.equal(hydratedCorrectParent);
+        });
+
+        it('returns null when no parent has the fragment path in its variations', async () => {
+            const repository = createRepository();
+            const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
+            const parentPath = '/content/dam/mas/sandbox/en_US/pac/unrelated-fragment';
+            const parentByPath = {
+                id: 'parent-id',
+                path: parentPath,
+                fields: [{ name: 'variations', values: ['/content/dam/mas/sandbox/en_US/pac/pzn/other-variation'] }],
+            };
 
             repository.aem = createAemMock({
                 fragments: {
@@ -1224,14 +1304,13 @@ describe('MasRepository dictionary helpers', () => {
                         parentReferences: [{ type: 'content-fragment', path: parentPath }],
                     }),
                     getByPath: sandbox.stub().resolves(parentByPath),
-                    getById: sandbox.stub().rejects(new Error('Hydration failed')),
                 },
             });
 
             const result = await repository.resolveHydratedParentFragment(sourcePath);
 
-            expect(result).to.deep.equal(parentByPath);
-            expect(consoleDebugStub.calledWithMatch('Failed to hydrate parent fragment references:')).to.be.true;
+            expect(result).to.be.null;
+            expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
         });
     });
 
@@ -1325,6 +1404,41 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.updateParentVariations.firstCall.args[0].id).to.equal(parentFragment.id);
             expect(repository.updateParentVariations.firstCall.args[1]).to.equal(createdFragment.path);
             expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('appends a random suffix to fragment name when path already exists', async () => {
+            const repository = createRepository();
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+
+            const getByPathStub = sandbox.stub().callsFake(async (path) => {
+                if (path === createdFragment.path) return createdFragment;
+                if (path.startsWith('/content/dam/mas/sandbox/en_US/pac/pzn/')) return { id: 'existing' };
+                return null;
+            });
+
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(parentFragment),
+                    getByPath: getByPathStub,
+                    ensureFolderExists: sandbox.stub().resolves(),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            await repository.createGroupedVariation(parentFragment.id, ['mas:locale/EG/ar_EG'], {
+                productArrangementCode: 'pac',
+            });
+
+            const createCall = createStub.firstCall.args[0];
+            expect(createCall.name).to.match(/-[a-z]{4}$/);
         });
 
         it('throws when grouped source has no parent reference', async () => {

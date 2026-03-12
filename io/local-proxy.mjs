@@ -13,10 +13,16 @@
  * Requires: Studio proxy running on port 8080 (npm run studio)
  */
 import { createServer } from 'node:http';
+import { createServer as createHttpsServer } from 'node:https';
 import { request as httpRequest } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const AEM_PROXY = 'http://localhost:8080';
 const PORT = 9001;
+const HTTPS_PORT = 9002;
 
 let authToken = process.env.AEM_TOKEN || null;
 
@@ -329,10 +335,25 @@ server.listen(PORT, () => {
     console.log('');
     console.log('Set token from Studio console:');
     console.log(
-        '  fetch("http://localhost:9001/set-token", { method: "POST", body: adobeIMS.getAccessToken().token })',
+        `  fetch("https://localhost:${HTTPS_PORT}/set-token", { method: "POST", body: adobeIMS.getAccessToken().token })`,
     );
     console.log('');
     console.log(
         `Test: http://localhost:${PORT}/io/fragment?id=<fragment-id>`,
     );
 });
+
+// HTTPS server for mixed-content bypass (HTTPS pages fetching local proxy)
+try {
+    const sslOptions = {
+        key: readFileSync(join(__dirname, 'local-proxy-key.pem')),
+        cert: readFileSync(join(__dirname, 'local-proxy-cert.pem')),
+    };
+    const httpsServer = createHttpsServer(sslOptions, handler);
+    httpsServer.listen(HTTPS_PORT, () => {
+        console.log(`HTTPS proxy running on https://localhost:${HTTPS_PORT}`);
+    });
+} catch {
+    console.log('No SSL certs found, skipping HTTPS server. Generate with:');
+    console.log('  openssl req -x509 -newkey rsa:2048 -keyout io/local-proxy-key.pem -out io/local-proxy-cert.pem -days 365 -nodes -subj /CN=localhost');
+}

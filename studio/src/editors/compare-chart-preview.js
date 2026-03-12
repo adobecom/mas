@@ -1,4 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { sortFieldsByGroup } from './compare-chart-fields.js';
 
 const EVENT_COLUMN_CLICK = 'column-click';
 const EVENT_SECTION_CLICK = 'section-click';
@@ -95,6 +97,24 @@ class CompareChartPreview extends LitElement {
         .column-subtitle {
             font-size: 11px;
             color: var(--spectrum-global-color-gray-700, #6e6e6e);
+        }
+
+        .column-field {
+            font-size: 11px;
+            color: var(--spectrum-global-color-gray-700, #6e6e6e);
+            font-weight: 400;
+            line-height: 1.3;
+        }
+
+        .column-field-icon {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .column-field-icon img {
+            width: 24px;
+            height: 24px;
         }
 
         .checkmark::before {
@@ -203,11 +223,45 @@ class CompareChartPreview extends LitElement {
         return html`${value.valueType}`;
     }
 
+    #renderColumnFieldPreview(fieldName, cardFieldData) {
+        const value = cardFieldData?.[fieldName];
+        if (value === undefined || value === null || value === '') return nothing;
+        if (fieldName === 'mnemonicIcon') {
+            const urls = Array.isArray(value) ? value : [value];
+            return html`<div class="column-field-icon">
+                ${urls.filter(Boolean).map((url) => html`<img src="${url}" alt="" />`)}
+            </div>`;
+        }
+        if (fieldName === 'cardTitle') {
+            const text = typeof value === 'object' ? value.value || '' : String(value);
+            return html`<div class="column-title">${this.#extractPlainText(text)}</div>`;
+        }
+        const isHtml = typeof value === 'object' && value.mimeType === 'text/html';
+        const raw = isHtml ? value.value || '' : String(value);
+        if (!raw) return nothing;
+        if (isHtml) {
+            return html`<div class="column-field">${unsafeHTML(raw)}</div>`;
+        }
+        return html`<div class="column-field">${this.#extractPlainText(raw)}</div>`;
+    }
+
+    /** Groups fields by semantic category to match autoblock rendering order. */
+    #groupFields(fields) {
+        return sortFieldsByGroup(fields);
+    }
+
     #renderColumnHeader(column, colIndex) {
         const isSelected = this.selectedColumnIndex === colIndex;
+        const selectedFields = column.fields || [];
+        const cardFieldData = column.cardFieldData || {};
+        const hasFieldData = Object.keys(cardFieldData).length > 0;
+        const grouped = this.#groupFields(selectedFields);
+
         return html`
             <th class="column-header ${isSelected ? 'selected' : ''}" @click=${() => this.#onColumnClick(colIndex)}>
-                <div class="column-title">${column.title || `Column ${colIndex + 1}`}</div>
+                ${hasFieldData && grouped.length
+                    ? grouped.map((f) => this.#renderColumnFieldPreview(f, cardFieldData))
+                    : html`<div class="column-title">${column.title || `Column ${colIndex + 1}`}</div>`}
                 ${column.badge ? html`<div class="badge">${column.badge}</div>` : nothing}
             </th>
         `;

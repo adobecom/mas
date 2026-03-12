@@ -16,6 +16,7 @@ import {
     COMPARE_VALUE_MODEL_PATH,
     COMPARE_VALUE_MODEL_ID,
 } from '../constants.js';
+import { getFieldGroup, sortFieldsByGroup } from './compare-chart-fields.js';
 
 const PANEL_NONE = 'none';
 const PANEL_COLUMN = 'column';
@@ -58,6 +59,7 @@ class CompareChartEditor extends LitElement {
         columnPreviewError: { type: String, state: true },
         columnPreviewCardId: { type: String, state: true },
         columnPreviewResolvedCardId: { type: String, state: true },
+        draggingFieldIndex: { type: Number, state: true },
     };
 
     createRenderRoot() {
@@ -207,6 +209,46 @@ class CompareChartEditor extends LitElement {
             await this.repository.refreshFragment(this.fragmentStore);
         }
         this.#buildData();
+    }
+
+    // --- Column field drag-and-drop reorder ---
+
+    #fieldDragStart(e, index) {
+        this.draggingFieldIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        e.target.classList.add('dragging');
+    }
+
+    #fieldDragOver(e, col, index) {
+        if (this.draggingFieldIndex == null || this.draggingFieldIndex === index) return;
+        const sourceGroup = getFieldGroup(col.fields[this.draggingFieldIndex]);
+        const targetGroup = getFieldGroup(col.fields[index]);
+        if (sourceGroup !== targetGroup) return;
+        e.preventDefault();
+        e.currentTarget.classList.add('dragover');
+    }
+
+    #fieldDragLeave(e) {
+        e.currentTarget.classList.remove('dragover');
+    }
+
+    #fieldDrop(e, col, index) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+        if (this.draggingFieldIndex === index || this.draggingFieldIndex == null) return;
+        const sourceGroup = getFieldGroup(col.fields[this.draggingFieldIndex]);
+        const targetGroup = getFieldGroup(col.fields[index]);
+        if (sourceGroup !== targetGroup) return;
+        const updated = [...col.fields];
+        const [dragged] = updated.splice(this.draggingFieldIndex, 1);
+        updated.splice(index, 0, dragged);
+        this.draggingFieldIndex = undefined;
+        this.#saveChildField(col.fragment, 'fields', sortFieldsByGroup(updated));
+    }
+
+    #fieldDragEnd(e) {
+        e.target.classList.remove('dragging');
+        this.draggingFieldIndex = undefined;
     }
 
     // --- Save field on child fragment ---
@@ -384,10 +426,22 @@ class CompareChartEditor extends LitElement {
                 ? this.#getRefFieldValue(cardFragment, 'cardTitle') || cardFragment.title
                 : 'No card';
 
+            const cardFieldData = {};
+            if (cardFragment) {
+                for (const f of cardFragment.fields || []) {
+                    if (f.mimeType === 'text/html') {
+                        cardFieldData[f.name] = { mimeType: 'text/html', value: f.values?.[0] ?? '' };
+                    } else {
+                        cardFieldData[f.name] = f.values?.[0] ?? '';
+                    }
+                }
+            }
+
             columns.push({
                 title: cardTitle,
                 badge: this.#getRefFieldValue(colFragment, 'badge'),
-                fields: this.#getRefFieldValues(colFragment, 'fields'),
+                fields: sortFieldsByGroup(this.#getRefFieldValues(colFragment, 'fields')),
+                cardFieldData,
                 path,
                 fragment: colFragment,
                 cardFragment: cardFragment ? { path: cardFragment.path, title: cardTitle, id: cardFragment.id } : null,
@@ -480,7 +534,14 @@ class CompareChartEditor extends LitElement {
                     name: `column-${colCount}-${Date.now()}`,
                     modelId: COMPARE_FRAGMENT_MODEL_ID,
                     parentPath: this.#parentPath,
-                    fields: [],
+                    fields: [
+                        {
+                            name: 'fields',
+                            type: 'text',
+                            multiple: true,
+                            values: ['cardTitle'],
+                        },
+                    ],
                 },
                 false,
             );
@@ -1397,20 +1458,53 @@ class CompareChartEditor extends LitElement {
 
                 <section id="column-fields-block" class="column-panel-block column-fields-block">
                     <h4 class="column-block-title">Column Fields</h4>
-                    <div class="field-list column-fields-list">
-                        ${COLUMN_FIELD_OPTIONS.map(
-                            (fieldName) => html`
-                                <sp-checkbox
-                                    ?checked=${col.fields.includes(fieldName)}
-                                    @change=${(e) => {
-                                        const updated = e.target.checked
-                                            ? [...col.fields, fieldName]
-                                            : col.fields.filter((f) => f !== fieldName);
-                                        this.#saveChildField(col.fragment, 'fields', updated);
-                                    }}
+                    <div class="column-fields-sortable">
+                        ${col.fields.map(
+                            (fieldName, index) => html`
+                                ${index > 0 && getFieldGroup(fieldName) !== getFieldGroup(col.fields[index - 1])
+                                    ? html`<div class="column-fields-group-divider"></div>`
+                                    : nothing}
+                                <label
+                                    class="column-field-row selected ${this.draggingFieldIndex === index ? 'dragging' : ''}"
+                                    draggable="true"
+                                    @dragstart=${(e) => this.#fieldDragStart(e, index)}
+                                    @dragover=${(e) => this.#fieldDragOver(e, col, index)}
+                                    @dragleave=${(e) => this.#fieldDragLeave(e)}
+                                    @drop=${(e) => this.#fieldDrop(e, col, index)}
+                                    @dragend=${(e) => this.#fieldDragEnd(e)}
                                 >
-                                    ${fieldName}
-                                </sp-checkbox>
+                                    <span class="drag-handle">⠿</span>
+                                    <input
+                                        type="checkbox"
+                                        checked
+                                        @change=${() => {
+                                            const updated = sortFieldsByGroup(col.fields.filter((f) => f !== fieldName));
+                                            this.#saveChildField(col.fragment, 'fields', updated);
+                                        }}
+                                    />
+                                    <span class="column-field-label">${fieldName}</span>
+                                </label>
+                            `,
+                        )}
+                        ${col.fields.length > 0 && COLUMN_FIELD_OPTIONS.some((f) => !col.fields.includes(f))
+                            ? html`<div class="column-fields-divider"></div>`
+                            : nothing}
+                        ${sortFieldsByGroup(COLUMN_FIELD_OPTIONS.filter((f) => !col.fields.includes(f))).map(
+                            (fieldName, index, arr) => html`
+                                ${index > 0 && getFieldGroup(fieldName) !== getFieldGroup(arr[index - 1])
+                                    ? html`<div class="column-fields-group-divider"></div>`
+                                    : nothing}
+                                <label class="column-field-row">
+                                    <span class="drag-handle-spacer"></span>
+                                    <input
+                                        type="checkbox"
+                                        @change=${() => {
+                                            const updated = sortFieldsByGroup([...col.fields, fieldName]);
+                                            this.#saveChildField(col.fragment, 'fields', updated);
+                                        }}
+                                    />
+                                    <span class="column-field-label">${fieldName}</span>
+                                </label>
                             `,
                         )}
                     </div>
@@ -1446,17 +1540,26 @@ class CompareChartEditor extends LitElement {
                 ></sp-textfield>
 
                 <sp-field-label>Rows (${sec.rows.length})</sp-field-label>
-                <div class="field-list">
+                <div class="row-list">
                     ${sec.rows.map(
                         (row, i) =>
-                            html`<div class="field-item">
-                                ${i + 1}. ${this.#extractPlainText(row.title) || 'Untitled row'}
+                            html`<div
+                                class="row-list-item"
+                                @click=${() => {
+                                    this.selectedRowIndex = i;
+                                    this.panelMode = 'row';
+                                }}
+                            >
+                                <span class="row-list-index">${i + 1}</span>
+                                <span class="row-list-title">${this.#extractPlainText(row.title) || 'Untitled row'}</span>
+                                <sp-icon-chevron-right class="row-list-chevron"></sp-icon-chevron-right>
                             </div>`,
                     )}
                 </div>
 
-                <sp-action-button size="s" @click=${() => this.#addRow(this.selectedSectionIndex)} ?disabled=${this.busy}>
-                    + Add Row
+                <sp-action-button size="s" quiet @click=${() => this.#addRow(this.selectedSectionIndex)} ?disabled=${this.busy}>
+                    <sp-icon-add slot="icon"></sp-icon-add>
+                    Add Row
                 </sp-action-button>
             </div>
         `;
@@ -1490,10 +1593,19 @@ class CompareChartEditor extends LitElement {
                 ></sp-textfield>
 
                 <sp-field-label>Values (${row.values.length})</sp-field-label>
-                <div class="field-list">
+                <div class="row-list">
                     ${row.values.map((val, i) => {
                         const colName = this.columns[i]?.title || `Column ${i + 1}`;
-                        return html`<div class="field-item">${colName}: ${this.#formatValue(val)}</div>`;
+                        return html`<div
+                            class="row-list-item"
+                            @click=${() => {
+                                this.selectedCellIndex = i;
+                                this.panelMode = 'cell';
+                            }}
+                        >
+                            <span class="row-list-title"><strong>${colName}:</strong> ${this.#formatValue(val)}</span>
+                            <sp-icon-chevron-right class="row-list-chevron"></sp-icon-chevron-right>
+                        </div>`;
                     })}
                 </div>
             </div>
@@ -1509,51 +1621,63 @@ class CompareChartEditor extends LitElement {
         const cellType = this.cellEditorType || this.#getCellTypeFromValue(rawValue);
         const colName = this.columns[this.selectedCellIndex]?.title || `Column ${this.selectedCellIndex + 1}`;
 
+        const rowTitle = this.#extractPlainText(row.title) || 'Untitled';
         return html`
             <div class="panel-section">
-                <h3>Cell: ${colName}</h3>
+                <div class="panel-header">
+                    <h3>Cell: ${colName}</h3>
+                </div>
 
-                <sp-field-label for="cell-type">Cell Type</sp-field-label>
-                <sp-picker
-                    id="cell-type"
-                    value="${cellType}"
-                    @change=${(e) => this.#onCellTypeChange(e.target.value, rawValue)}
-                    ?disabled=${this.busy}
-                >
-                    <sp-menu>
-                        <sp-menu-item value="${CELL_TYPE_EMPTY}">No value</sp-menu-item>
-                        <sp-menu-item value="${CELL_TYPE_BOOLEAN}">Boolean</sp-menu-item>
-                        <sp-menu-item value="${CELL_TYPE_TEXT}">Text</sp-menu-item>
-                    </sp-menu>
-                </sp-picker>
+                <div class="cell-context">
+                    <span class="cell-context-label">Row</span>
+                    <span class="cell-context-value">${rowTitle}</span>
+                </div>
 
-                ${cellType === CELL_TYPE_BOOLEAN
-                    ? html`
-                          <sp-checkbox
-                              ?checked=${rawValue === 'true'}
-                              @change=${(e) => this.#saveSelectedCellValue(e.target.checked ? 'true' : 'false')}
-                              ?disabled=${this.busy}
-                          >
-                              Show checkmark
-                          </sp-checkbox>
-                          <sp-help-text>Checked = checkmark, unchecked = cross.</sp-help-text>
-                      `
-                    : nothing}
-                ${cellType === CELL_TYPE_TEXT
-                    ? html`
-                          <sp-field-label for="cell-text-value">Text value</sp-field-label>
-                          <sp-textfield
-                              id="cell-text-value"
-                              value="${rawValue}"
-                              placeholder="e.g. 100 GB, Included"
-                              @change=${(e) => this.#saveSelectedCellValue(e.target.value)}
-                              ?disabled=${this.busy}
-                          ></sp-textfield>
-                      `
-                    : nothing}
-                ${cellType === CELL_TYPE_EMPTY
-                    ? html`<sp-help-text>This cell is intentionally empty and renders as "--".</sp-help-text>`
-                    : nothing}
+                <div class="cell-form">
+                    <sp-field-label for="cell-type">Cell Type</sp-field-label>
+                    <sp-picker
+                        id="cell-type"
+                        value="${cellType}"
+                        @change=${(e) => this.#onCellTypeChange(e.target.value, rawValue)}
+                        ?disabled=${this.busy}
+                    >
+                        <sp-menu>
+                            <sp-menu-item value="${CELL_TYPE_EMPTY}">No value</sp-menu-item>
+                            <sp-menu-item value="${CELL_TYPE_BOOLEAN}">Boolean</sp-menu-item>
+                            <sp-menu-item value="${CELL_TYPE_TEXT}">Text</sp-menu-item>
+                        </sp-menu>
+                    </sp-picker>
+
+                    ${cellType === CELL_TYPE_BOOLEAN
+                        ? html`
+                              <div class="cell-boolean-group">
+                                  <sp-checkbox
+                                      ?checked=${rawValue === 'true'}
+                                      @change=${(e) => this.#saveSelectedCellValue(e.target.checked ? 'true' : 'false')}
+                                      ?disabled=${this.busy}
+                                  >
+                                      Show checkmark
+                                  </sp-checkbox>
+                                  <sp-help-text>Checked = ✓ checkmark, unchecked = ✗ cross.</sp-help-text>
+                              </div>
+                          `
+                        : nothing}
+                    ${cellType === CELL_TYPE_TEXT
+                        ? html`
+                              <sp-field-label for="cell-text-value">Text value</sp-field-label>
+                              <sp-textfield
+                                  id="cell-text-value"
+                                  value="${rawValue}"
+                                  placeholder="e.g. 100 GB, Included"
+                                  @change=${(e) => this.#saveSelectedCellValue(e.target.value)}
+                                  ?disabled=${this.busy}
+                              ></sp-textfield>
+                          `
+                        : nothing}
+                    ${cellType === CELL_TYPE_EMPTY
+                        ? html`<sp-help-text>This cell will render as "—" (empty dash).</sp-help-text>`
+                        : nothing}
+                </div>
             </div>
         `;
     }
@@ -1584,15 +1708,158 @@ class CompareChartEditor extends LitElement {
             case PANEL_CELL:
                 return this.#cellPanel;
             default:
-                return html`<div class="panel-section">
-                    <p>Click on a column, section, row, or cell in the preview to edit it.</p>
+                return html`<div class="chart-empty-state">
+                    <p>Click on a column, section, row, or cell in the table to edit it.</p>
                 </div>`;
         }
+    }
+
+    #renderVariantCheckboxes() {
+        const blockName = this.#getField('blockName')?.values?.[0] || 'Comparison Table';
+        if (blockName !== 'Table') return nothing;
+        const selected = this.#getField('variantName')?.values || [];
+        const options = ['merch', 'highlight', 'sticky', 'collapse', 'm-heading-icon'];
+        return html`
+            <div class="variant-checkboxes">
+                ${options.map(
+                    (opt) => html`
+                        <sp-checkbox
+                            size="s"
+                            ?checked=${selected.includes(opt)}
+                            @change=${(e) => {
+                                const updated = e.target.checked ? [...selected, opt] : selected.filter((v) => v !== opt);
+                                this.#updateFieldValues('variantName', updated);
+                            }}
+                            >${opt}</sp-checkbox
+                        >
+                    `,
+                )}
+            </div>
+        `;
     }
 
     get #styles() {
         return html`
             <style>
+                .compare-chart-editor .chart-header {
+                    display: grid;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                }
+
+                .compare-chart-editor .chart-header-top {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .compare-chart-editor .chart-header-top h2 {
+                    margin: 0;
+                }
+
+                .compare-chart-editor .chart-header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .compare-chart-editor .chart-count {
+                    font-size: 13px;
+                    color: var(--spectrum-gray-700);
+                    font-weight: 600;
+                }
+
+                .compare-chart-editor .chart-count-separator {
+                    color: var(--spectrum-gray-400);
+                }
+
+                .compare-chart-editor .chart-header-config {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .compare-chart-editor .variant-checkboxes {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    margin-left: 8px;
+                    padding-left: 12px;
+                    border-left: 1px solid var(--spectrum-gray-300);
+                }
+
+                .compare-chart-editor .row-list {
+                    display: grid;
+                    gap: 2px;
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+
+                .compare-chart-editor .row-list-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 8px 12px;
+                    background: var(--spectrum-gray-50);
+                    cursor: pointer;
+                    transition: background 0.15s;
+                }
+
+                .compare-chart-editor .row-list-item:hover {
+                    background: var(--spectrum-gray-100);
+                }
+
+                .compare-chart-editor .row-list-index {
+                    color: var(--spectrum-gray-500);
+                    font-size: 12px;
+                    font-weight: 600;
+                    min-width: 18px;
+                }
+
+                .compare-chart-editor .row-list-title {
+                    flex: 1;
+                    font-size: 13px;
+                }
+
+                .compare-chart-editor .row-list-chevron {
+                    color: var(--spectrum-gray-400);
+                    width: 12px;
+                    height: 12px;
+                }
+
+                .compare-chart-editor .cell-context {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 12px;
+                    background: var(--spectrum-gray-75);
+                    border-radius: 4px;
+                    font-size: 13px;
+                }
+
+                .compare-chart-editor .cell-context-label {
+                    color: var(--spectrum-gray-600);
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    font-size: 11px;
+                    letter-spacing: 0.05em;
+                }
+
+                .compare-chart-editor .cell-context-value {
+                    color: var(--spectrum-gray-800);
+                }
+
+                .compare-chart-editor .cell-form {
+                    display: grid;
+                    gap: 8px;
+                }
+
+                .compare-chart-editor .cell-boolean-group {
+                    display: grid;
+                    gap: 4px;
+                }
+
                 .compare-chart-editor .panel-section {
                     display: grid;
                     gap: 12px;
@@ -1770,15 +2037,140 @@ class CompareChartEditor extends LitElement {
                     align-items: center;
                 }
 
-                .compare-chart-editor .column-fields-list {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px 16px;
+                .compare-chart-editor .column-fields-sortable {
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 4px;
+                    overflow: hidden;
                 }
 
-                @media (max-width: 900px) {
-                    .compare-chart-editor .column-panel-layout {
+                .compare-chart-editor .column-field-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 7px 12px;
+                    background: var(--spectrum-gray-50);
+                    cursor: pointer;
+                    font-size: 13px;
+                    color: var(--spectrum-gray-800);
+                    transition: background 0.15s;
+                    border-bottom: 1px solid var(--spectrum-gray-200);
+                }
+
+                .compare-chart-editor .column-field-row:last-child {
+                    border-bottom: none;
+                }
+
+                .compare-chart-editor .column-field-row:hover {
+                    background: var(--spectrum-gray-100);
+                }
+
+                .compare-chart-editor .column-field-row.selected {
+                    cursor: grab;
+                }
+
+                .compare-chart-editor .column-field-row .drag-handle {
+                    width: 16px;
+                    text-align: center;
+                    color: var(--spectrum-gray-500);
+                    cursor: grab;
+                    font-size: 14px;
+                    line-height: 1;
+                    user-select: none;
+                }
+
+                .compare-chart-editor .column-field-row .drag-handle-spacer {
+                    width: 16px;
+                }
+
+                .compare-chart-editor .column-field-row input[type='checkbox'] {
+                    margin: 0;
+                    cursor: pointer;
+                    accent-color: var(--spectrum-blue-900);
+                }
+
+                .compare-chart-editor .column-field-row .column-field-label {
+                    flex: 1;
+                    user-select: none;
+                }
+
+                .compare-chart-editor .column-field-row.dragging {
+                    opacity: 0.4;
+                }
+
+                .compare-chart-editor .column-field-row.dragover {
+                    outline: 2px dashed var(--spectrum-blue-500);
+                    outline-offset: -2px;
+                }
+
+                .compare-chart-editor .column-fields-divider {
+                    border-top: 1px dashed var(--spectrum-gray-300);
+                }
+
+                .compare-chart-editor .column-fields-group-divider {
+                    border-top: 1px solid var(--spectrum-gray-400);
+                    margin: 4px 0;
+                }
+
+                .compare-chart-editor .chart-workspace {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 24px;
+                    align-items: start;
+                    margin-top: 16px;
+                }
+
+                .compare-chart-editor .chart-editor-panel {
+                    min-width: 0;
+                    max-height: calc(100vh - 220px);
+                    overflow-y: auto;
+                    padding-right: 8px;
+                }
+
+                .compare-chart-editor .chart-preview-panel {
+                    position: sticky;
+                    top: 16px;
+                    min-width: 0;
+                    max-height: calc(100vh - 220px);
+                    overflow: auto;
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 10px;
+                    background: var(--spectrum-gray-50);
+                    padding: 12px;
+                }
+
+                .compare-chart-editor .chart-empty-state {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 200px;
+                    color: var(--spectrum-gray-600);
+                    font-size: 14px;
+                    text-align: center;
+                }
+
+                .compare-chart-editor .column-panel-layout {
+                    grid-template-columns: 1fr;
+                }
+
+                @media (max-width: 1100px) {
+                    .compare-chart-editor .chart-workspace {
                         grid-template-columns: 1fr;
+                    }
+
+                    .compare-chart-editor .chart-preview-panel {
+                        position: relative;
+                        max-height: none;
+                        order: -1;
+                    }
+
+                    .compare-chart-editor .chart-editor-panel {
+                        max-height: none;
+                        overflow-y: visible;
+                        padding-right: 0;
+                    }
+
+                    .compare-chart-editor .column-panel-layout {
+                        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
                     }
 
                     .compare-chart-editor .column-preview-card {
@@ -1795,42 +2187,64 @@ class CompareChartEditor extends LitElement {
         return html`
             ${this.#styles}
             <div class="compare-chart-editor">
-                <h2>Compare Chart</h2>
-                <div class="chart-summary">
-                    <span>${this.columns.length} column(s)</span>
-                    <span>${this.sections.length} section(s)</span>
+                <div class="chart-header">
+                    <div class="chart-header-top">
+                        <h2>Compare Chart</h2>
+                        <div class="chart-header-actions">
+                            <span class="chart-count"
+                                >${this.columns.length} column${this.columns.length !== 1 ? 's' : ''}</span
+                            >
+                            <span class="chart-count-separator">·</span>
+                            <span class="chart-count"
+                                >${this.sections.length} section${this.sections.length !== 1 ? 's' : ''}</span
+                            >
+                            <sp-action-group size="s" compact quiet>
+                                <sp-action-button @click=${() => this.#addColumn()} ?disabled=${this.busy}>
+                                    <sp-icon-add slot="icon"></sp-icon-add>
+                                    Add Column
+                                </sp-action-button>
+                                <sp-action-button @click=${() => this.#addSection()} ?disabled=${this.busy}>
+                                    <sp-icon-add slot="icon"></sp-icon-add>
+                                    Add Section
+                                </sp-action-button>
+                            </sp-action-group>
+                        </div>
+                    </div>
+                    <div class="chart-header-config">
+                        <sp-field-label size="s">Block</sp-field-label>
+                        <sp-picker
+                            size="s"
+                            label="Block Name"
+                            value="${this.#getField('blockName')?.values?.[0] || 'Comparison Table'}"
+                            @change=${(e) => this.#updateFieldValues('blockName', [e.target.value])}
+                        >
+                            <sp-menu-item value="Comparison Table">Comparison Table</sp-menu-item>
+                            <sp-menu-item value="Table">Table</sp-menu-item>
+                        </sp-picker>
+                        ${this.#renderVariantCheckboxes()}
+                    </div>
                 </div>
-
-                <div class="chart-actions">
-                    <sp-action-button size="s" @click=${() => this.#addColumn()} ?disabled=${this.busy}>
-                        + Add Column
-                    </sp-action-button>
-                    <sp-action-button size="s" @click=${() => this.#addSection()} ?disabled=${this.busy}>
-                        + Add Section
-                    </sp-action-button>
-                </div>
-
                 <sp-divider size="s"></sp-divider>
 
-                ${this.busy ? html`<sp-progress-circle size="s" indeterminate></sp-progress-circle>` : nothing}
-
-                <compare-chart-preview
-                    .columns=${this.columns}
-                    .sections=${this.sections}
-                    .selectedColumnIndex=${this.selectedColumnIndex}
-                    .selectedSectionIndex=${this.selectedSectionIndex}
-                    .selectedRowIndex=${this.selectedRowIndex}
-                    .selectedCellIndex=${this.selectedCellIndex}
-                    @column-click=${this.#onColumnClick}
-                    @section-click=${this.#onSectionClick}
-                    @row-click=${this.#onRowClick}
-                    @cell-click=${this.#onCellClick}
-                    @add-row=${this.#onAddRow}
-                ></compare-chart-preview>
-
-                <sp-divider size="s"></sp-divider>
-
-                <div class="side-panel">${this.#sidePanel}</div>
+                <div class="chart-workspace">
+                    <div class="chart-editor-panel">${this.#sidePanel}</div>
+                    <div class="chart-preview-panel">
+                        ${this.busy ? html`<sp-progress-circle size="s" indeterminate></sp-progress-circle>` : nothing}
+                        <compare-chart-preview
+                            .columns=${this.columns}
+                            .sections=${this.sections}
+                            .selectedColumnIndex=${this.selectedColumnIndex}
+                            .selectedSectionIndex=${this.selectedSectionIndex}
+                            .selectedRowIndex=${this.selectedRowIndex}
+                            .selectedCellIndex=${this.selectedCellIndex}
+                            @column-click=${this.#onColumnClick}
+                            @section-click=${this.#onSectionClick}
+                            @row-click=${this.#onRowClick}
+                            @cell-click=${this.#onCellClick}
+                            @add-row=${this.#onAddRow}
+                        ></compare-chart-preview>
+                    </div>
+                </div>
             </div>
         `;
     }

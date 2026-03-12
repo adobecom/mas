@@ -74,6 +74,14 @@ export default class MasFragmentEditor extends LitElement {
             }
         }
 
+        #editor-content:has(compare-chart-editor) {
+            grid-template-columns: 1fr;
+        }
+
+        #editor-content:has(compare-chart-editor) #form-column {
+            padding-right: 0;
+        }
+
         #form-column {
             padding-right: 16px;
         }

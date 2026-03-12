@@ -18,6 +18,7 @@ const EMPTY_TAGS = {
     market_segments: [],
     customer_segment: [],
     product_code: [],
+    personalization: [],
     status: [],
     'studio/content-type': [],
     variant: [],
@@ -281,6 +282,16 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.variant)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="personalization"
+                    label="Personalization"
+                    multiple
+                    selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.personalization)}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 

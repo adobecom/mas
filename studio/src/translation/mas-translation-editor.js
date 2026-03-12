@@ -488,6 +488,11 @@ class MasTranslationEditor extends LitElement {
         target.dispatchEvent(closeEvent);
     };
 
+    #toggleSelectedItemsOpen = ({ target }) => {
+        if (target.closest('mas-items-selector')) return;
+        this.isSelectedItemsOpen = !this.isSelectedItemsOpen;
+    };
+
     renderAddItemsDialog() {
         return html`
             <sp-dialog-wrapper
@@ -580,7 +585,7 @@ class MasTranslationEditor extends LitElement {
                 </div>
                 ${this.isLoading
                     ? html`
-                          <div class="loading-container">
+                          <div class="loading-container--absolute">
                               <sp-progress-circle
                                   label="Loading translation project"
                                   indeterminate
@@ -621,7 +626,13 @@ class MasTranslationEditor extends LitElement {
                                               @sp-opened=${this.#openAddLanguagesOverlay}
                                           >
                                               ${this.renderAddLanguagesDialog()}
-                                              <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
+                                              <sp-button
+                                                  slot="trigger"
+                                                  variant="secondary"
+                                                  size="xl"
+                                                  icon-only
+                                                  class="ghost-button"
+                                              >
                                                   <sp-icon-add size="xxl" slot="icon" label="Add Languages"></sp-icon-add>
                                               </sp-button>
                                           </overlay-trigger>
@@ -633,7 +644,10 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                           `
-                        : html`<div class="form-field selected-langs">
+                        : html`<div
+                              class="form-field selected-langs"
+                              @click=${() => (this.isSelectedLangsOpen = !this.isSelectedLangsOpen)}
+                          >
                               <div class="selected-langs-header">
                                   <h2>
                                       Selected languages
@@ -650,11 +664,7 @@ class MasTranslationEditor extends LitElement {
                                                 </sp-action-button>
                                             </overlay-trigger>`
                                           : nothing}
-                                      <sp-button
-                                          icon-only
-                                          class="toggle-btn"
-                                          @click=${() => (this.isSelectedLangsOpen = !this.isSelectedLangsOpen)}
-                                      >
+                                      <sp-button icon-only class="toggle-btn ghost-button">
                                           <sp-icon-chevron-down
                                               slot="icon"
                                               label="${this.isSelectedLangsOpen ? 'Close' : 'Open'}"
@@ -681,7 +691,13 @@ class MasTranslationEditor extends LitElement {
                                               @sp-opened=${this.#openAddItemsOverlay}
                                           >
                                               ${this.renderAddItemsDialog()}
-                                              <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
+                                              <sp-button
+                                                  slot="trigger"
+                                                  variant="secondary"
+                                                  size="xl"
+                                                  icon-only
+                                                  class="ghost-button"
+                                              >
                                                   <sp-icon-add size="xxl" slot="icon" label="Add Items"></sp-icon-add>
                                               </sp-button>
                                           </overlay-trigger>
@@ -693,7 +709,7 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                           `
-                        : html`<div class="form-field selected-items">
+                        : html`<div class="form-field selected-items" @click=${this.#toggleSelectedItemsOpen}>
                               <div class="selected-items-header">
                                   <h2>
                                       Selected items
@@ -710,11 +726,7 @@ class MasTranslationEditor extends LitElement {
                                                 </sp-action-button>
                                             </overlay-trigger>`
                                           : nothing}
-                                      <sp-button
-                                          icon-only
-                                          class="toggle-btn"
-                                          @click=${() => (this.isSelectedItemsOpen = !this.isSelectedItemsOpen)}
-                                      >
+                                      <sp-button icon-only class="toggle-btn ghost-button">
                                           <sp-icon-chevron-down
                                               slot="icon"
                                               .label=${this.isSelectedItemsOpen ? 'Close' : 'Open'}

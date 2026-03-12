@@ -25,8 +25,18 @@ const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
     plans: ['four-merch-cards'],
     plansThreeColumns: ['three-merch-cards'],
+    product: ['four-merch-cards'],
+    productTwoColumns: ['two-merch-cards'],
+    productThreeColumns: ['three-merch-cards'],
+    segment: ['four-merch-cards'],
+    segmentTwoColumns: ['two-merch-cards'],
+    segmentThreeColumns: ['three-merch-cards'],
     'special-offers': ['three-merch-cards'],
     image: ['three-merch-cards'],
+    'mini-compare-chart': ['three-merch-cards'],
+    'mini-compare-chartTwoColumns': ['two-merch-cards'],
+    'mini-compare-chart-mweb': ['three-merch-cards'],
+    'mini-compare-chart-mwebTwoColumns': ['two-merch-cards'],
 };
 
 const SIDENAV_AUTOCLOSE = {
@@ -548,8 +558,22 @@ export class MerchCardCollection extends LitElement {
                 variant === 'plans' &&
                 cards.length === 3 &&
                 !cards.some((card) => card.fields?.size?.includes('wide'))
-            )
+            ) {
                 nmbOfColumns = 'ThreeColumns';
+            } else if (
+                (variant === 'segment' || variant === 'product') &&
+                (cards.length === 2 || cards.length === 3)
+            ) {
+                nmbOfColumns =
+                    cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
+            } else if (
+                (variant === 'mini-compare-chart' ||
+                    variant === 'mini-compare-chart-mweb') &&
+                cards.length <= 2
+            ) {
+                nmbOfColumns = cards.length === 1 ? '' : 'TwoColumns';
+            }
+
             if (variant) {
                 this.classList.add(
                     'merch-card-collection',

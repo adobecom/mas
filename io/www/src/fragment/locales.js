@@ -77,7 +77,6 @@ const ACOM = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'BE',
             'CA',
             'EG',
@@ -144,7 +143,6 @@ const CCD = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'AU',
             'BE',
             'CA',
@@ -201,7 +199,6 @@ const EXPRESS = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'BE',
             'CA',
             'EG',
@@ -210,7 +207,6 @@ const EXPRESS = [
             'ID',
             'IE',
             'IL',
-            'IN',
             'KW',
             'LU',
             'MY',
@@ -233,7 +229,6 @@ const EXPRESS = [
     { lang: 'ko', country: 'KR' },
     { lang: 'nb', country: 'NO' },
     { lang: 'nl', country: 'NL', regions: ['BE'] },
-    { lang: 'pt', country: 'PT' },
     { lang: 'pt', country: 'BR' },
     { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
     { lang: 'sv', country: 'SE' },
@@ -250,7 +245,6 @@ const ADOBE_HOME = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'AU',
             'BE',
             'CA',
@@ -306,7 +300,6 @@ const COMMERCE = [
         country: 'US',
         regions: [
             'AE',
-            'AR',
             'AU',
             'BE',
             'CA',
@@ -467,6 +460,24 @@ export function getDefaultLocaleCode(surface, localeCode) {
 
 export function getDefaultLocales(surface) {
     return DEFAULT_LOCALES[surface] || [];
+}
+
+/**
+ * Get all locales for a given surface, including default locales and region variants.
+ * @param {string} surface e.g. 'acom'
+ * @returns {{ lang: string, country: string }[]}
+ */
+export function getSurfaceLocales(surface) {
+    const map = new Map();
+    getDefaultLocales(surface)
+        .flatMap(({ lang, country, regions = [] }) => [
+            { lang, country },
+            ...regions.map((region) => ({ lang, country: region })),
+        ])
+        .forEach((locale) => {
+            map.set(getLocaleCode(locale), locale);
+        });
+    return [...map.values()];
 }
 
 /**

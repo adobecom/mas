@@ -53,15 +53,16 @@ export default class EditorPage {
 
         this.prices = this.panel.locator('sp-field-group#prices');
 
-        this.promoText = this.panel.locator('#promo-text input');
+        this.promoText = this.panel.locator('sp-field-group#promoText rte-field#promo-text div.ProseMirror');
         this.promoTextFieldGroup = this.panel.locator('sp-field-group#promoText');
         this.promoCode = this.panel.locator('#promo-code input');
         this.promoCodeFieldGroup = this.panel.locator('sp-field-group#promoCode');
 
         this.quantitySelectorCheckbox = this.panel.locator('#quantitySelect sp-checkbox input');
-        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelectorTitle #title-quantity input');
-        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelectorStart #start-quantity input');
-        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
+        this.quantitySelectorFields = this.panel.locator('#quantitySelector quantity-select-field');
+        this.quantitySelectorTitle = this.quantitySelectorFields.locator('#quantity-selector-title input');
+        this.quantitySelectorStart = this.quantitySelectorFields.locator('#quantity-selector-start input');
+        this.quantitySelectorStep = this.quantitySelectorFields.locator('#quantity-selector-step input');
 
         this.shortDescription = this.panel.locator('rte-field#shortDescription div[contenteditable="true"]');
         this.size = this.panel.locator('#card-size');
@@ -81,7 +82,7 @@ export default class EditorPage {
         this.trialBadgeColor = this.panel.locator('sp-picker#trialBadgeColor');
         this.trialBadgeColorFieldGroup = this.panel.locator('sp-field-group#trialBadgeColor');
 
-        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Variant"]');
+        this.variant = this.panel.locator('#card-variant sp-picker[label="Card Template"]');
 
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');

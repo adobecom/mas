@@ -35,7 +35,13 @@ function applyCollectionSettings(context) {
         Object.entries(context.body.references).forEach(([key, ref]) => {
             if (ref && ref.type === 'content-fragment') {
                 const variant = ref.value?.fields?.variant;
-                if (variant?.startsWith('plans')) {
+                if (
+                    variant?.startsWith('plans') ||
+                    variant === 'segment' ||
+                    variant === 'product' ||
+                    variant === 'mini-compare-chart' ||
+                    variant === 'mini-compare-chart-mweb'
+                ) {
                     applyPlansSettings(ref.value, context);
                 }
                 if (variant === 'mini') {
@@ -85,7 +91,7 @@ function applyCollectionSettings(context) {
 function applyPlansSettings(fragment, context) {
     const { locale } = context;
     fragment.settings = {};
-    if (fragment?.fields?.showSecureLabel !== false) {
+    if (fragment?.fields?.showSecureLabel !== false && fragment?.fields?.showSecureLabel !== 'false') {
         fragment.settings.secureLabel = '{{secure-label}}';
     }
     if (fragment?.fields?.showPlanType != null) {
@@ -131,11 +137,18 @@ function applyPriceLiterals(fragment) {
 async function settings(context) {
     applyPriceLiterals(context.body);
 
-    if (context.body?.fields?.variant?.startsWith('plans')) {
+    const variant = context.body?.fields?.variant;
+    if (
+        variant?.startsWith('plans') ||
+        variant === 'segment' ||
+        variant === 'product' ||
+        variant === 'mini-compare-chart' ||
+        variant === 'mini-compare-chart-mweb'
+    ) {
         applyPlansSettings(context.body, context);
     }
 
-    if (context.body?.fields?.variant === 'mini') {
+    if (variant === 'mini') {
         applyMiniSettings(context.body, context);
     }
 

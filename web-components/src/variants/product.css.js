@@ -4,6 +4,60 @@ export const CSS = `
   --consonant-merch-card-product-width: 300px;
 }
 
+merch-card[variant="product"] {
+    --consonant-merch-card-callout-icon-size: 18px;
+    width: var(--consonant-merch-card-product-width);
+}
+
+merch-card[variant="product"][id] [slot='callout-content'] > div > div,
+merch-card[variant="product"][id] [slot="callout-content"] > p {
+    position: relative;
+    padding: 2px 10px 3px;
+    background: #D9D9D9;
+    color: var(--text-color);
+}
+
+merch-card[variant="product"] [slot="callout-content"] > p:has(> .icon-button) {
+  padding-inline-end: 36px;
+}
+
+merch-card[variant="product"] [slot="callout-content"] .icon-button {
+  margin: 1.5px 0 1.5px 8px;
+}
+
+merch-card[variant="product"] a.spectrum-Link--secondary {
+  color: inherit;
+}
+
+merch-card[variant="product"][id] span[data-template="legal"] {
+    display: block;
+    color: var(----merch-color-grey-80);
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 21px;
+}
+
+merch-card[variant="product"][id] .price-unit-type:not(.disabled)::before {
+    content: "";
+}
+
+merch-card[variant="product"] [slot="footer"] a.con-button.primary {
+    border: 2px solid var(--text-color);
+    color: var(--text-color);
+}
+
+merch-card[variant="product"] [slot="footer"] a.con-button.primary:hover {
+    background-color: var(--color-black);
+    border-color: var(--color-black);
+    color: var(--color-white);
+}
+
+merch-card-collection.product merch-card {
+    width: auto;
+    height: 100%;
+}
+
   merch-card[variant="product"] merch-addon {
     padding-left: 4px;
     padding-top: 8px;
@@ -32,6 +86,13 @@ export const CSS = `
     padding: 8px 4px 8px 0;
     width: 100%;
   }
+
+.one-merch-card.section merch-card[variant="product"],
+.two-merch-cards.section merch-card[variant="product"],
+.three-merch-cards.section merch-card[variant="product"],
+.four-merch-cards.section merch-card[variant="product"] {
+    width: auto;
+}
 
 /* grid style for product */
 .one-merch-card.product,
@@ -65,4 +126,12 @@ export const CSS = `
       grid-template-columns: repeat(4, var(--consonant-merch-card-product-width-4clm));
   }
 }
+
+merch-card[variant="product"] {
+    merch-whats-included merch-mnemonic-list,
+    merch-whats-included [slot="heading"] {
+        width: 100%;
+    }
+}
+
 `;

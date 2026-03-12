@@ -381,6 +381,7 @@ class MasTranslationEditor extends LitElement {
 
     async #sendTranslationProject() {
         showToast('Sending translation project to localization...', 'positive');
+        this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
 
         try {
             const params = {
@@ -402,11 +403,11 @@ class MasTranslationEditor extends LitElement {
         } catch (error) {
             console.error('Error sending translation project to localization:', error);
             showToast('Failed to send translation project to localization.', 'negative');
+            this.#updateDisabledActions({ remove: [QUICK_ACTION.LOC] });
             return;
         }
         showToast('Translation project sent to localization successfully.', 'positive');
         this.isProjectReadonly = true;
-        this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
     }
 
     async #showDialog(title, message, options = {}) {
@@ -461,10 +462,6 @@ class MasTranslationEditor extends LitElement {
         this.showSelectedEmptyState = this.selectedCount === 0;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
-    };
-
-    #handleBackToBreadcrumb = () => {
-        router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
     };
 
     #openAddItemsOverlay() {
@@ -575,19 +572,6 @@ class MasTranslationEditor extends LitElement {
             createEditLabel = 'Edit project';
         }
         return html`
-            <div class="translation-editor-breadcrumb">
-                <sp-breadcrumbs>
-                    <sp-breadcrumb-item @click=${this.#handleBackToBreadcrumb}>Translations</sp-breadcrumb-item>
-                    <sp-breadcrumb-item
-                        >${this.isNewTranslationProject
-                            ? 'Create new project'
-                            : this.isProjectReadonly
-                              ? 'Translation Project'
-                              : 'Edit project'}</sp-breadcrumb-item
-                    >
-                </sp-breadcrumbs>
-            </div>
-
             ${this.renderConfirmDialog()}
 
             <div class="translation-editor-form">

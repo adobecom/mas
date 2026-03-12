@@ -350,6 +350,24 @@ export function extractLocaleFromPath(fragmentPath) {
     return parts.find((part) => localePattern.test(part)) || null;
 }
 
+/**
+ * Builds a fragment path with the locale segment replaced (e.g. for fil_PH check).
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @param {string} newLocale - The new locale code (e.g. 'fil_PH')
+ * @returns {string | null} - The path with locale replaced, or null if no locale segment found
+ */
+export function replaceLocaleInPath(fragmentPath, newLocale) {
+    if (!fragmentPath || !newLocale) return null;
+    const parts = fragmentPath.split('/');
+    const localePattern = /^[a-z]{2,3}_[A-Z]{2,}$/;
+    const idx = parts.findIndex((part) => localePattern.test(part));
+    if (idx < 0) return null;
+    const out = [...parts];
+    out[idx] = newLocale;
+    return out.join('/');
+}
+
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
 }

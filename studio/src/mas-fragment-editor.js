@@ -5,10 +5,10 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
@@ -705,7 +705,7 @@ export default class MasFragmentEditor extends LitElement {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
 
-        this.updateTranslatedLocalesStore(isVariationAfterContext); // no need to await
+        this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath); // no need to await
 
         // Use existing store - just refresh it
         if (existingStore.previewStore) {
@@ -786,7 +786,7 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             Store.editor.resetChanges();
-            this.updateTranslatedLocalesStore(isVariationForStore); // no need to await
+            this.updateTranslatedLocalesStore(isVariationForStore, fragment.path); // no need to await
             this.#markInitReady();
         } catch (error) {
             console.error('Failed to fetch fragment:', error);
@@ -869,7 +869,7 @@ export default class MasFragmentEditor extends LitElement {
         return null;
     }
 
-    async updateTranslatedLocalesStore(isVariation) {
+    async updateTranslatedLocalesStore(isVariation, fragmentPath) {
         // Only fetch translations for default fragments, not variations
         if (isVariation) {
             Store.fragmentEditor.translatedLocales.set(null);
@@ -891,13 +891,31 @@ export default class MasFragmentEditor extends LitElement {
             this.#translatedLocalesRequest = { fragmentId, requestPromise };
 
             const { languageCopies = [] } = await requestPromise;
-            const locales = languageCopies
+            let locales = languageCopies
                 .map((copy) => ({
                     locale: extractLocaleFromPath(copy.path),
                     id: copy.id,
                     path: copy.path,
                 }))
                 .filter((item) => item.locale);
+
+            // AEM getTranslations omits 3-letter locales (e.g. fil_PH). Check Odin preview by path.
+            const hasFilPh = locales.some((item) => item.locale === 'fil_PH');
+            if (fragmentPath && !hasFilPh) {
+                const filPhPath = replaceLocaleInPath(fragmentPath, 'fil_PH');
+                if (filPhPath) {
+                    try {
+                        const filPhUrl = `${ODIN_PREVIEW_ORIGIN}${filPhPath}.json`;
+                        const res = await fetch(filPhUrl);
+                        if (res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            locales = [...locales, { locale: 'fil_PH', id: data?.id ?? null, path: filPhPath }];
+                        }
+                    } catch {
+                        // No fil_PH for this fragment.
+                    }
+                }
+            }
 
             // Ignore stale responses when fragment/context changes while request is in flight.
             if (Store.fragmentEditor.fragmentId.get() !== fragmentId || this.editorContextStore.isVariation(fragmentId)) {

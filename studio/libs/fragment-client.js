@@ -50,7 +50,11 @@ const DEFAULT_CONTEXT = {
 };
 
 if (typeof window !== 'undefined') {
-    DEFAULT_CONTEXT.debugLogs = new URLSearchParams(window.location.search).has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
+    const params = new URLSearchParams(window.location.search);
+    DEFAULT_CONTEXT.debugLogs = params.has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
+    if (params.has('clearCaches.io')) {
+        clearCaches();
+    }
 }
 
 function clearCaches() {

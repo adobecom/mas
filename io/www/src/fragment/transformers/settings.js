@@ -22,6 +22,7 @@ export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((defin
 let settingsCache;
 
 export function clearSettingsCache(preview = false) {
+    log(`Clearing settings cache (preview=${preview})`);
     if (preview) {
         Object.keys(localStorage).forEach((key) => {
             if (key.startsWith('settings-')) {

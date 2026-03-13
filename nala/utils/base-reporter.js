@@ -2,6 +2,9 @@
 // https://github.com/microsoft/playwright/issues/13522
 // https://github.com/chalk/ansi-regex/blob/main/index.js#L3
 
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
+
 const pattern = [
     '[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]+)*|[a-zA-Z\\d]+(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
     '(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]))',
@@ -15,6 +18,25 @@ const failedStatus = ['failed', 'flaky', 'timedOut', 'interrupted'];
 function stripAnsi(str) {
     if (!str || typeof str !== 'string') return str;
     return str.replace(ansiRegex, '');
+}
+
+/** True if this test file is under nala/docs (docs-only run = no auth, no teardown). */
+function isDocsTestFile(filePath) {
+    if (!filePath || typeof filePath !== 'string') return false;
+    const normalized = filePath.replace(/\\/g, '/');
+    return normalized.includes('nala/docs/');
+}
+
+/** Write flag so global teardown (non-GitHub) knows at least one non-docs test ran. */
+function markNonDocsTestsRan(config) {
+    try {
+        const outputDir = config?.outputDir ?? 'test-results';
+        const dir = join(process.cwd(), outputDir);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, 'nala-non-docs-tests-ran'), '', 'utf8');
+    } catch {
+        // ignore
+    }
 }
 
 export default class BaseReporter {
@@ -32,6 +54,9 @@ export default class BaseReporter {
     }
 
     async onTestEnd(test, result) {
+        if (!isDocsTestFile(test.location?.file)) {
+            markNonDocsTestsRan(this.config);
+        }
         const { title, retries, _projectId, annotations } = test;
         const { name, tags, url, browser, env, branch, repo } = this.parseTestTitle(title, _projectId);
         const { status, duration, error, retry } = result;
@@ -181,7 +206,7 @@ export default class BaseReporter {
                         console.log(`    \x1b[36m   🔗 ${testPageUrl}\x1b[0m`);
                     }
                     if (lineNumber) {
-                        console.log(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? ': ' + lineContent : ''}\x1b[0m`);
+                        console.log(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? `: ${lineContent}` : ''}\x1b[0m`);
                     }
                 });
             console.log('    \x1b[1m\x1b[34m------------------------------------------\x1b[0m');

@@ -18,6 +18,7 @@ export default class MasPlans {
         // Plans individual card properties:
         this.cssProp = {
             card: {
+                'background-image': 'linear-gradient(rgb(255, 255, 255), rgb(255, 255, 255)), none',
                 'background-color': 'rgb(245, 199, 0)',
                 // 'max-width': '378px',
             },
@@ -26,7 +27,7 @@ export default class MasPlans {
                 height: '40px',
             },
             badge: {
-                // 'background-color': 'rgb(255, 204, 0)', // set when configurable
+                'background-color': 'rgb(245, 199, 0)',
                 color: 'rgb(0, 0, 0)',
                 // 'height': '26px',
                 'font-size': '14px',

@@ -88,6 +88,32 @@ function sanitizeTestName(name) {
 }
 
 /**
+ * Sanitize test name for translation project title
+ * @param {string} name
+ * @returns {string}
+ */
+function sanitizeTestNameForTranslation(name) {
+    if (!name || typeof name !== 'string') return '';
+    return name
+        .replace(/[/\\:*?"<>|,@\s]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 80);
+}
+
+/**
+ * Generate translation project title with run ID
+ * Format: MAS.Nala.Automation.nala-run-<runId>.tag
+ * @returns {string}
+ */
+export function getTranslationTitle() {
+    const runId = getCurrentRunId();
+    const base = `MAS.Nala.Automation.${runId}`;
+    const tag = sanitizeTestNameForTranslation(getCurrentTestName());
+    return tag ? `${base}.${tag}` : base;
+}
+
+/**
  * Generate fragment title with run ID and optional test name/tag
  * @returns {string} Fragment title in format "MAS Nala Automation Fragment [runId]" or with " - TestName" when set
  */
@@ -107,4 +133,5 @@ export default {
     setCurrentTestName,
     getCurrentTestName,
     getFragmentTitle,
+    getTranslationTitle,
 };

@@ -4,7 +4,7 @@ import AHPromotedPlansSpec from '../specs/promoted_plans_edit_and_discard.spec.j
 const { features } = AHPromotedPlansSpec;
 
 test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
-    // @studio-promoted-plans-edit-and-discard-gradient-border - Validate editing and discarding gradient border
+    // @studio-promoted-plans-edit-discard-gradient-border - Validate editing and discarding gradient border
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const { data } = features[0];
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
@@ -15,8 +15,8 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
-            await expect(await promotedplans.card).toBeVisible();
-            await expect(await promotedplans.card).toHaveAttribute('variant', 'ah-promoted-plans');
+            await expect(await promotedPlansCard).toBeVisible();
+            await expect(await promotedPlansCard).toHaveAttribute('variant', 'ah-promoted-plans');
         });
 
         await test.step('step-2: Edit border color field', async () => {

@@ -220,7 +220,20 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
                 test.step('Validation-3: Verify description saved', async () => {
                     await expect(await editor.description).toContainText(data.description);
-                    await expect(await clonedCard.locator(plans.cardDescription)).toHaveText(data.description);
+                    await expect(await clonedCard.locator(plans.cardDescription)).toContainText(data.description);
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute('data-analytics-id', 'see-terms');
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'href',
+                        expect.stringContaining(data.uptLinkUrl),
+                    );
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'href',
+                        expect.stringContaining(`&promotion_code=${data.promoCode}`),
+                    );
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'data-promotion-code',
+                        data.promoCode,
+                    );
                 }),
 
                 test.step('Validation-4: Verify mnemonic saved', async () => {
@@ -237,7 +250,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 }),
 
                 test.step('Validation-6: Verify promo text saved', async () => {
-                    await expect(await editor.promoText).toHaveValue(data.promoText);
+                    await expect(await editor.promoText).toHaveText(data.promoText);
                     await expect(await clonedCard.locator(plans.cardPromoText)).toHaveText(data.promoText);
                 }),
 

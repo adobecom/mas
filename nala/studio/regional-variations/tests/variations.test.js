@@ -382,7 +382,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
                     await expect(await card.locator(plans.cardBadge)).toHaveText(data.badge);
-                    await editor.overrideRestoreIn(editor.cardBadgeFieldGroup).first().click();
+                    await editor.overrideRestoreIn(editor.badgeFieldGroup).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.badge).toHaveValue(original.badge);
                     await expect((await studio.getCard(data.cardid)).locator(plans.cardBadge)).toHaveText(original.badge);
@@ -440,7 +440,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await expect(await card.locator(plans.cardPromoText)).toHaveText(data.promoText);
                     await editor.overrideRestoreIn(editor.promoTextFieldGroup).first().click();
                     await page.waitForTimeout(300);
-                    await expect(await editor.promoText).toHaveValue(original.promoText);
+                    await expect(await editor.promoText).toHaveText(original.promoText);
                     await expect((await studio.getCard(data.cardid)).locator(plans.cardPromoText)).not.toBeVisible();
                 }),
             () =>

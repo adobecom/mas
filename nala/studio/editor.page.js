@@ -22,7 +22,6 @@ export default class EditorPage {
         this.borderColor = this.panel.locator('sp-picker#border-color');
         this.borderColorFieldGroup = this.panel.locator('sp-field-group#border-color');
 
-        this.calloutFieldGroup = this.panel.locator('sp-field-group#callout');
         this.callout = this.panel.locator('sp-field-group#callout');
         this.calloutRTE = this.panel.locator('sp-field-group#callout div[contenteditable="true"]');
         this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
@@ -86,10 +85,11 @@ export default class EditorPage {
 
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');
-        this.whatsIncludedIconURL = this.panel.locator('#whatsIncluded #icon input');
-        this.whatsIncludedIconLabel = this.panel.locator('#whatsIncluded #text input');
-        this.whatsIncludedIconRemoveButton = this.panel.locator('#whatsIncluded sp-icon-close');
+        this.whatsIncludedEditButton = page.locator('sp-menu sp-menu-item:has-text("Edit")');
+        this.whatsIncludedEditMenu = page.locator('mas-included-field sp-action-menu').first();
+        this.whatsIncludedDeleteButton = page.locator('sp-menu sp-menu-item:has-text("Delete")');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
+        this.whatsIncludedAddedIcon = this.panel.locator('#whatsIncluded mas-included-field');
 
         // Discard dialog
         // this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
@@ -106,7 +106,7 @@ export default class EditorPage {
 
         // RTE content
         this.phoneLink = page.locator('a[href^="tel:"]');
-        this.uptLink = this.panel.locator('a.upt-link');
+        this.uptLink = page.locator('a.upt-link');
 
         // RTE panel toolbar
         this.addIcon = page.locator('#addIconButton');

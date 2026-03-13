@@ -4,6 +4,7 @@ import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
+let underlay;
 
 if (!ostRoot) {
     ostRoot = document.createElement('div');
@@ -217,6 +218,12 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         }
         ostRoot.style.display = 'block';
 
+        underlay?.remove();
+        underlay = document.createElement('sp-underlay');
+        underlay.open = true;
+        underlay.style.zIndex = '1999';
+        document.body.appendChild(underlay);
+
         closeFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
@@ -260,7 +267,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
-            onSelect: triggerElement.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
+            onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });
     } catch (error) {
         console.error('Error opening offer selector tool:', error);
@@ -269,4 +276,6 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
 
 export function closeOfferSelectorTool() {
     closeFunction?.();
+    underlay?.remove();
+    underlay = null;
 }

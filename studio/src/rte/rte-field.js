@@ -223,6 +223,18 @@ class RteField extends LitElement {
                     font-size: var(--spectrum-font-size-200);
                 }
 
+                :host([hide-format-buttons]) {
+                    gap: 0;
+                }
+
+                :host([hide-format-buttons]) #editor {
+                    height: 32px;
+                    min-height: 32px;
+                    padding: 0 12px;
+                    display: flex;
+                    align-items: center;
+                }
+
                 :host([focused]) #editor {
                     outline: 2px solid;
                     outline-color: var(--spectrum-blue-900);
@@ -238,6 +250,16 @@ class RteField extends LitElement {
                         .map(([mark]) => `span.${mark}`)
                         .join(',\n')} { background-color: rgba(250, 50, 50, 0.1); }`,
                 )}
+
+                #editor-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                #editor-row #editor {
+                    flex: 1;
+                }
 
                 #editor {
                     padding: 8px 4px 4px 4px;
@@ -1718,11 +1740,18 @@ class RteField extends LitElement {
         return html`
             <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                 ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
-                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton} ${this.#iconsButton} ${this.#uptLinkButton}
-                ${this.#mnemonicButton} ${this.#dividerButton}
+                ${this.#unlinkEditorButton} ${this.hideFormatButtons ? nothing : this.#toolbarOfferSelectorButton}
+                ${this.#iconsButton} ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton}
             </sp-action-group>
-            <div id="editor"></div>
-            <p id="counter"><span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}</p>
+            <div id="editor-row">
+                <div id="editor"></div>
+                ${this.hideFormatButtons ? this.#offerSelectorToolButton : nothing}
+            </div>
+            ${this.hideFormatButtons
+                ? nothing
+                : html`<p id="counter">
+                      <span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}
+                  </p>`}
             ${this.linkEditor} ${this.iconEditor} ${this.mnemonicEditor}
         `;
     }
@@ -1754,10 +1783,24 @@ class RteField extends LitElement {
         `;
     }
 
-    get #offerSelectorToolButton() {
+    get #toolbarOfferSelectorButton() {
         if (this.hideOfferSelector) return nothing;
         return html`
             <sp-divider size="s" vertical></sp-divider>
+            <sp-action-button
+                emphasized
+                id="offerSelectorToolButton"
+                @click=${this.handleOpenOfferSelector}
+                title="Offer Selector Tool"
+            >
+                <sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>
+            </sp-action-button>
+        `;
+    }
+
+    get #offerSelectorToolButton() {
+        if (this.hideOfferSelector) return nothing;
+        return html`
             <sp-action-button
                 emphasized
                 id="offerSelectorToolButton"

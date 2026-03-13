@@ -67,7 +67,7 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'ZA_en',
 ];
 
-// countries where tax is displayed by default for some segments only 
+// countries where tax is displayed by default for some segments only
 const DISPLAY_TAX_MAP = {
     [INDIVIDUAL]: ['SA_en', 'SA_ar'],
     [BUSINESS]: ['CO_es'],

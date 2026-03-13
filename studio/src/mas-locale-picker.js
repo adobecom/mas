@@ -189,6 +189,7 @@ export class MasLocalePicker extends LitElement {
             transform: translate(-50%, -50%);
             width: 684px;
             max-width: calc(100vw - 32px);
+            max-height: calc(100vh - 32px);
             background: var(--spectrum-white, #ffffff);
             overflow: hidden;
             display: flex;
@@ -200,6 +201,8 @@ export class MasLocalePicker extends LitElement {
             flex-direction: column;
             gap: 12px;
             max-height: 50vh;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .selection-dialog-content sp-search {
@@ -222,14 +225,18 @@ export class MasLocalePicker extends LitElement {
 
         .checkbox-list {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
             column-gap: 12px;
             row-gap: 4px;
+            flex: 1 1 auto;
+            min-height: 0;
             overflow-y: auto;
             padding: 4px 0;
+            align-content: start;
         }
 
         .checkbox-item {
+            min-width: 0;
             padding: 4px 0;
         }
     `;

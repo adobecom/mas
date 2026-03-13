@@ -1,6 +1,6 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
-import { log, logDebug } from '../utils/log.js';
+import { logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';

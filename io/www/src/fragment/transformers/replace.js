@@ -11,8 +11,8 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 let dictionaryCache;
 
 export function clearDictionaryCache(preview = false) {
-    log(`Clearing dictionary cache (preview=${preview})`);
     if (preview) {
+        console.log('Clearing dictionary preview cache');
         Object.keys(localStorage).forEach((key) => {
             if (key.startsWith('dictionary-')) {
                 localStorage.removeItem(key);

@@ -375,7 +375,7 @@ describe('class "InlinePrice"', () => {
                 locale: 'AT_de',
                 expected: [
                     [true, false],
-                    [true, false],
+                    [true, true],
                     [true, false],
                     [true, true],
                 ],
@@ -629,7 +629,7 @@ describe('class "InlinePrice"', () => {
                     [true, false],
                     [true, true],
                     [true, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {
@@ -665,7 +665,7 @@ describe('class "InlinePrice"', () => {
                     [true, false],
                     [true, true],
                     [true, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {
@@ -691,8 +691,8 @@ describe('class "InlinePrice"', () => {
                 expected: [
                     [true, false],
                     [true, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, false],
                 ],
             },
             {
@@ -907,7 +907,7 @@ describe('class "InlinePrice"', () => {
                 expected: [
                     [true, false],
                     [true, true],
-                    [false, false],
+                    [true, false],
                     [true, true],
                 ],
             },
@@ -960,7 +960,7 @@ describe('class "InlinePrice"', () => {
                 locale: 'SG_en',
                 expected: [
                     [true, false],
-                    [false, false],
+                    [true, true],
                     [true, false],
                     [true, true],
                 ],
@@ -1052,7 +1052,7 @@ describe('class "InlinePrice"', () => {
                     [false, false],
                     [true, true],
                     [false, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {

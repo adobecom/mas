@@ -58,6 +58,35 @@ describe('FragmentClient', () => {
                 ],
             }),
         );
+        // Settings fetch (preview pipeline now loads settings)
+        const settingsIndexUrl = `${baseUrl}?path=/content/dam/mas/sandbox/settings/index`;
+        const settingsId = 'preview-settings-id';
+        const settingsContentUrl = `${baseUrl}/${settingsId}?references=all-hydrated`;
+        const settingsBody = {
+            references: {
+                ref1: {
+                    value: {
+                        fields: {
+                            name: 'displayPlanType',
+                            valuetype: 'boolean',
+                            booleanValue: true,
+                        },
+                    },
+                },
+                ref2: {
+                    value: {
+                        fields: {
+                            name: 'secureLabel',
+                            valuetype: 'optional-text',
+                            booleanValue: true,
+                            textValue: 'Secure transaction',
+                        },
+                    },
+                },
+            },
+        };
+        fetchStub.withArgs(settingsIndexUrl).returns(createResponse(200, { items: [{ id: settingsId }] }));
+        fetchStub.withArgs(settingsContentUrl).returns(createResponse(200, settingsBody));
     });
 
     after(() => {

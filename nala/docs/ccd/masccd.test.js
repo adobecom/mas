@@ -982,7 +982,10 @@ test.describe('CCD Merchcard feature test suite', () => {
             await expect(await CCD.getCardDescription(data.id, 'slice')).toContainText(data.description);
             await expect(await CCD.getCardLegalLink(data.id, 'slice')).toBeVisible();
             await expect(await CCD.getCardLegalLink(data.id, 'slice')).toContainText(data.linkText);
-            await expect(await CCD.getCardLegalLink(data.id, 'slice')).toHaveAttribute('data-analytics-id', /.*/);
+            await expect(await CCD.getCardLegalLink(data.id, 'slice')).toHaveAttribute(
+                'data-analytics-id',
+                new RegExp(data.linkAnalyticsId),
+            );
             await expect(await CCD.getCardPrice(data.id, 'slice')).toBeVisible();
             await expect(await CCD.getCardPrice(data.id, 'slice')).toContainText(new RegExp(data.price));
             await expect(await CCD.getCardCTA(data.id, 'slice')).toBeVisible();

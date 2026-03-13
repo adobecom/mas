@@ -134,6 +134,15 @@ jobs:
               with:
                   fetch-depth: 2
 
+            - name: Detect io/www changes
+              id: filter
+              run: |
+                  if git diff --quiet origin/${{ github.event.pull_request.base.ref }}...HEAD -- io/www/ 2>/dev/null; then
+                      echo "io-www=false" >> $GITHUB_OUTPUT
+                  else
+                      echo "io-www=true" >> $GITHUB_OUTPUT
+                  fi
+
             - name: Set up Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4
               with:
@@ -166,6 +175,18 @@ jobs:
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh
+
+            - name: Set MAS_IO_URL when io/www has changes
+              if: steps.filter.outputs.io-www == 'true'
+              run: |
+                  ACTOR_NS="${{ secrets[format('AIO_NS_{0}', github.actor)] }}"
+                  if [ -n "$ACTOR_NS" ]; then
+                    echo "Using AIO namespace: actor (${{ github.actor }})"
+                    echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  else
+                    echo "Using AIO namespace: QA (fallback)"
+                    echo "MAS_IO_URL=?mas-io-url=https://${{ secrets.AIO_NS_QA }}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  fi
 
             - name: Run Nala Docs Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh

@@ -85,7 +85,10 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 // Card price CSS
                 test.step('Validation-7: Validate card price CSS', async () => {
                     expect(
-                        await webUtil.verifyCSS(individualsCard.locator(plans.cardPrice), plans.individualsCSSProp.price),
+                        await webUtil.verifyCSS(
+                            individualsCard.locator(plans.cardPriceAlternative),
+                            plans.individualsCSSProp.price,
+                        ),
                     ).toBeTruthy();
                 }),
 

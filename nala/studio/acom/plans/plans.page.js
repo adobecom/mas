@@ -12,6 +12,7 @@ export default class ACOMPlansCardPage {
         this.cardLegalLink = page.locator('a.modal-Link');
         this.cardPhoneLink = page.locator('div[slot="body-xs"] a[href^="tel:"]');
         this.cardPrice = page.locator('p[slot="heading-m"] span[data-template="price"]');
+        this.cardPriceAlternative = page.locator('p[slot="heading-m"] span.price-alternative');
         this.cardPriceStrikethrough = page.locator('p[slot="heading-m"] span.price-strikethrough');
         this.cardPriceLegal = page.locator('span[is="inline-price"][data-template="legal"]');
         this.cardCTA = page.locator('div[slot="footer"] > a[is="checkout-link"]');

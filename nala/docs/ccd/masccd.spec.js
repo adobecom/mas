@@ -1,5 +1,3 @@
-/* eslint-disable max-len */
-
 import { PRICE_PATTERN, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
 
 export const FeatureName = 'Merch CCD Card Feature';
@@ -164,13 +162,13 @@ export const features = [
             description: 'Save over 40% when you upgrade to Creative Cloud All apps',
             percentage: '40%',
             cta: 'Buy now',
-            osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
+            osi: 'fake-m2m0-00ff-aabb-ccdd-112233445566',
             background: 'media-1508e7aec70760ac0ac13d9152f8030c1b67f70bf.png',
             // iconLink: '',
             cardDaaLH: 'ppro',
             ctadDaaLL: 'buy-now-1',
             ctaAnalyticsId: 'buy-now',
-            promo: 'UMRM2MUSPr501YOC',
+            promo: 'NICOPROMO',
         },
         browserParams: '?theme=darkest',
         tags: '@mas-docs @mas-ccd @slice-card @slice-single @commerce @smoke @regression @milo',
@@ -360,7 +358,7 @@ export const features = [
             linkText: 'See terms',
             offerid: '3B8086C370FDF28C8AEEE1C5BD233E5A',
             uptLinkUrl:
-                'https://www.adobe.com/offers/promo-terms.html?locale=en_US&country=US&offer_id=3B8086C370FDF28C8AEEE1C5BD233E5A&promotion_code=UMRM2MUSPr501YOC',
+                'https://www.adobe.com/offers/promo-terms.html?locale=en_US&country=US&offer_id=3B8086C370FDF28C8AEEE1C5BD233E5A&promotion_code=NICOPROMO',
             // iconLink: '',
         },
         browserParams: '?theme=darkest',

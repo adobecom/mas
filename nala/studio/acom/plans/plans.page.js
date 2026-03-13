@@ -64,9 +64,9 @@ export default class ACOMPlansCardPage {
             },
             price: {
                 color: 'rgb(44, 44, 44)',
-                'font-size': '24px',
+                'font-size': '14px',
                 'font-weight': '700',
-                'line-height': '30px',
+                'line-height': '21px',
             },
             strikethroughPrice: {
                 color: 'rgb(44, 44, 44)',

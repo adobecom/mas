@@ -4,12 +4,31 @@ import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');
 let closeFunction;
-let underlay;
+
+function handleEscape(e) {
+    if (e.key === 'Escape') closeOfferSelectorTool();
+}
+
+function handleBackdropClick(e) {
+    const dialog = document.querySelector('[role="dialog"]');
+    if (!dialog?.contains(e.target)) {
+        closeOfferSelectorTool();
+    }
+}
+
+function resetOstRoot() {
+    document.removeEventListener('keydown', handleEscape);
+    document.removeEventListener('click', handleBackdropClick, true);
+}
 
 if (!ostRoot) {
     ostRoot = document.createElement('div');
     document.body.appendChild(ostRoot);
 }
+ostRoot.dataset.ostRoot = '';
+const ostStyle = document.createElement('style');
+ostStyle.textContent = '[data-ost-root]:has(> *) { position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.5) }';
+document.head.appendChild(ostStyle);
 
 const ostDefaultSettings = () => {
     const masCommerceService = document.querySelector('mas-commerce-service');
@@ -216,15 +235,10 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
-        ostRoot.style.display = 'block';
+        document.addEventListener('keydown', handleEscape);
+        document.addEventListener('click', handleBackdropClick, true);
 
-        underlay?.remove();
-        underlay = document.createElement('sp-underlay');
-        underlay.open = true;
-        underlay.style.zIndex = '1999';
-        document.body.appendChild(underlay);
-
-        closeFunction = window.ost.openOfferSelectorTool({
+        const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
             environment: 'PROD',
@@ -267,8 +281,19 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
+            onCancel: () => closeOfferSelectorTool(),
             onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });
+
+        const spectrumProvider = ostRoot.firstElementChild;
+        if (spectrumProvider) {
+            spectrumProvider.style.background = 'transparent';
+        }
+
+        closeFunction = () => {
+            ostCloseFunction?.();
+            resetOstRoot();
+        };
     } catch (error) {
         console.error('Error opening offer selector tool:', error);
     }
@@ -276,6 +301,4 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
 
 export function closeOfferSelectorTool() {
     closeFunction?.();
-    underlay?.remove();
-    underlay = null;
 }

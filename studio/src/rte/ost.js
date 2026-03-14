@@ -5,10 +5,30 @@ import Store from '../store.js';
 let ostRoot = document.getElementById('ost');
 let closeFunction;
 
+function handleEscape(e) {
+    if (e.key === 'Escape') closeOfferSelectorTool();
+}
+
+function handleBackdropClick(e) {
+    const dialog = document.querySelector('[role="dialog"]');
+    if (!dialog?.contains(e.target)) {
+        closeOfferSelectorTool();
+    }
+}
+
+function resetOstRoot() {
+    document.removeEventListener('keydown', handleEscape);
+    document.removeEventListener('click', handleBackdropClick, true);
+}
+
 if (!ostRoot) {
     ostRoot = document.createElement('div');
     document.body.appendChild(ostRoot);
 }
+ostRoot.dataset.ostRoot = '';
+const ostStyle = document.createElement('style');
+ostStyle.textContent = '[data-ost-root]:has(> *) { position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.5) }';
+document.head.appendChild(ostStyle);
 
 const ostDefaultSettings = () => {
     const masCommerceService = document.querySelector('mas-commerce-service');
@@ -56,6 +76,7 @@ const OST_TYPE_MAPPING = {
     priceStrikethrough: 'strikethrough',
     priceAnnual: 'annual',
     priceOptical: 'optical',
+    discount: 'discount',
     checkoutUrl: null,
 };
 
@@ -64,6 +85,7 @@ const OST_IS_MAPPING = {
     strikethrough: 'inline-price',
     annual: 'inline-price',
     optical: 'inline-price',
+    discount: 'inline-price',
     checkoutUrl: 'checkout-link',
     legal: 'inline-price',
     'promo-strikethrough': 'inline-price',
@@ -213,9 +235,10 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
-        ostRoot.style.display = 'block';
+        document.addEventListener('keydown', handleEscape);
+        document.addEventListener('click', handleBackdropClick, true);
 
-        closeFunction = window.ost.openOfferSelectorTool({
+        const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
             environment: 'PROD',
@@ -258,8 +281,19 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
-            onSelect: triggerElement.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
+            onCancel: () => closeOfferSelectorTool(),
+            onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });
+
+        const spectrumProvider = ostRoot.firstElementChild;
+        if (spectrumProvider) {
+            spectrumProvider.style.background = 'transparent';
+        }
+
+        closeFunction = () => {
+            ostCloseFunction?.();
+            resetOstRoot();
+        };
     } catch (error) {
         console.error('Error opening offer selector tool:', error);
     }

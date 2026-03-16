@@ -306,9 +306,7 @@ async function cleanupClonedCards() {
                 requestReporter.printRequestSummary();
 
                 // Fail if any path found no fragments (test suite should create fragments)
-                const pathsWithNoFragments = pathResults.filter(
-                    (result) => result.fragmentsFound === 0 && !result.timedOut,
-                );
+                const pathsWithNoFragments = pathResults.filter((result) => result.fragmentsFound === 0 && !result.timedOut);
 
                 if (pathsWithNoFragments.length > 0) {
                     const pathNames = pathsWithNoFragments.map((r) => r.path).join(', ');

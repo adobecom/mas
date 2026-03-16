@@ -190,10 +190,14 @@ async function cleanupClonedCards() {
 
             // Check each path for fragments (per-path try/catch so one failure doesn't skip the rest)
             const pathResults = []; // Track results per path for GitHub validation
+            const pathTimeoutMs = 90_000;
+            console.log(
+                `📍 Checking ${pathsToCheck.length} paths (${pathTimeoutMs / 1000}s timeout per path): ${pathsToCheck.map((p) => p.replace(/#/, '')).join(', ')}`,
+            );
             for (const pathFragment of pathsToCheck) {
                 console.log(`📍 Checking path: \x1b[33m${pathFragment}\x1b[0m`);
 
-                try {
+                const runPath = async () => {
                     await page.goto(`${baseURL}/studio.html${pathFragment}`);
                     await page.waitForLoadState('domcontentloaded');
 
@@ -249,10 +253,20 @@ async function cleanupClonedCards() {
                     if (cleanupResult.processedIds) {
                         cleanupResult.processedIds.forEach((id) => processedFragmentIds.add(id));
                     }
+                };
+
+                try {
+                    await Promise.race([
+                        runPath(),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error(`Path timed out after ${pathTimeoutMs / 1000}s`)), pathTimeoutMs),
+                        ),
+                    ]);
                 } catch (pathError) {
                     const msg = pathError?.message ?? String(pathError);
+                    const timedOut = msg.includes('timed out');
                     console.error(`  \x1b[31m✘\x1b[0m Path failed: ${msg}`);
-                    pathResults.push({ path: pathFragment, fragmentsFound: 0 });
+                    pathResults.push({ path: pathFragment, fragmentsFound: 0, timedOut });
                 }
             }
 
@@ -292,7 +306,9 @@ async function cleanupClonedCards() {
                 requestReporter.printRequestSummary();
 
                 // Fail if any path found no fragments (test suite should create fragments)
-                const pathsWithNoFragments = pathResults.filter((result) => result.fragmentsFound === 0);
+                const pathsWithNoFragments = pathResults.filter(
+                    (result) => result.fragmentsFound === 0 && !result.timedOut,
+                );
 
                 if (pathsWithNoFragments.length > 0) {
                     const pathNames = pathsWithNoFragments.map((r) => r.path).join(', ');

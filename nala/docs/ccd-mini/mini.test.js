@@ -11,6 +11,7 @@ const workerSetup = createWorkerPageSetup({
     pages: [
         { name: 'US', url: DOCS_GALLERY_PATH.CCD_MINI.US },
         { name: 'FR', url: DOCS_GALLERY_PATH.CCD_MINI.FR },
+        { name: 'AU', url: DOCS_GALLERY_PATH.CCD_MINI.AU },
     ],
 });
 
@@ -24,7 +25,6 @@ test.describe('CCD Mini Cards Feature', () => {
     });
 
     test.afterEach(async ({}, testInfo) => {
-        // eslint-disable-line no-empty-pattern
         workerSetup.attachWorkerErrorsToFailure(testInfo);
     });
 
@@ -33,8 +33,9 @@ test.describe('CCD Mini Cards Feature', () => {
             const { data } = feature;
 
             // Determine which worker page to use based on the feature path
-            const isUSPath = feature.path === DOCS_GALLERY_PATH.CCD_MINI.US;
-            const pageName = isUSPath ? 'US' : 'FR';
+            const pageName = Object.keys(DOCS_GALLERY_PATH.CCD_MINI).find(
+                (k) => DOCS_GALLERY_PATH.CCD_MINI[k] === feature.path,
+            );
             const page = workerSetup.getPage(pageName);
 
             await test.step('1. Verify CCD Mini Card page is loaded', async () => {
@@ -50,8 +51,15 @@ test.describe('CCD Mini Cards Feature', () => {
                 const title = await cardLocator.evaluate((card) => card.title);
                 expect(title).toBe(data.title);
 
-                const regularPrice = await cardLocator.evaluate((card) => card.regularPrice);
-                expect(regularPrice).toBe(data.regularPrice);
+                if (data.regularPrice) {
+                    const regularPrice = await cardLocator.evaluate((card) => card.regularPrice);
+                    expect(regularPrice).toBe(data.regularPrice);
+                }
+
+                if (data.annualPrice) {
+                    const annualPrice = await cardLocator.evaluate((card) => card.annualPrice);
+                    expect(annualPrice).toBe(data.annualPrice);
+                }
 
                 const unitText = await cardLocator.evaluate((card) => card.unitText);
                 expect(unitText ?? '').toBe(data.unitText ?? '');
@@ -87,15 +95,19 @@ test.describe('CCD Mini Cards Feature', () => {
                     expect(seeTerms.href).toBe(data.seeTerms.href);
                 }
 
-                const primaryCta = await cardLocator.evaluate((card) => card.primaryCta);
-                expect(primaryCta.text).toBe(data.primaryCta.text);
-                expect(primaryCta.analyticsId).toBe(data.primaryCta.analyticsId);
-                expect(primaryCta.href).toBe(data.primaryCta.href);
+                if (data.primaryCta) {
+                    const primaryCta = await cardLocator.evaluate((card) => card.primaryCta);
+                    expect(primaryCta.text).toBe(data.primaryCta.text);
+                    expect(primaryCta.analyticsId).toBe(data.primaryCta.analyticsId);
+                    expect(primaryCta.href).toBe(data.primaryCta.href);
+                }
 
-                const secondaryCta = await cardLocator.evaluate((card) => card.secondaryCta);
-                expect(secondaryCta.text).toBe(data.secondaryCta.text);
-                expect(secondaryCta.analyticsId).toBe(data.secondaryCta.analyticsId);
-                expect(secondaryCta.href).toBe(data.secondaryCta.href);
+                if (data.secondaryCta) {
+                    const secondaryCta = await cardLocator.evaluate((card) => card.secondaryCta);
+                    expect(secondaryCta.text).toBe(data.secondaryCta.text);
+                    expect(secondaryCta.analyticsId).toBe(data.secondaryCta.analyticsId);
+                    expect(secondaryCta.href).toBe(data.secondaryCta.href);
+                }
             });
         });
     });

@@ -95,6 +95,59 @@
             // Load the existing mock data for a merch card
             const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
 
+            const createSettingRow = ({
+                name,
+                value,
+                valueType = 'boolean',
+                booleanValue = valueType === 'boolean' ? Boolean(value) : true,
+                templateIds = ['plans'],
+                locales = [],
+                tags = [],
+                overrides = [],
+            }) => ({
+                value: {
+                    id: `setting-${name}`,
+                    name,
+                    locales,
+                    templateIds,
+                    value,
+                    booleanValue,
+                    valueType,
+                    tags,
+                    overrides,
+                },
+            });
+
+            const createDefaultSettingsRows = () => [
+                createSettingRow({
+                    name: 'displayPlanType',
+                    value: true,
+                    overrides: [
+                        {
+                            id: 'setting-display-plan-type-fr',
+                            locales: ['fr_FR'],
+                            templateIds: ['plans'],
+                            value: false,
+                            booleanValue: false,
+                            valueType: 'boolean',
+                            tags: [],
+                        },
+                    ],
+                }),
+                createSettingRow({
+                    name: 'secureLabel',
+                    value: '{{secure-label-default}}',
+                    valueType: 'optional-text',
+                    booleanValue: true,
+                }),
+                createSettingRow({
+                    name: 'addon',
+                    value: '',
+                    valueType: 'optional-text',
+                    booleanValue: false,
+                }),
+            ];
+
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
 
@@ -169,6 +222,7 @@
                         Store.placeholders.preview.set({});
                         Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
                         Store.viewMode.set('editing');
+                        Store.settings.rows.set(createDefaultSettingsRows());
 
                         layoutContainer = document.createElement('div');
                         layoutContainer.style.cssText = 'display: flex; width: 100%;';
@@ -291,6 +345,7 @@
                             layoutContainer.remove();
                             layoutContainer = null;
                         }
+                        Store.settings.rows.set([]);
                         Store.editor.resetChanges();
                     });
 
@@ -703,6 +758,7 @@
                             Store.placeholders.preview.set({});
                             Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: 'en_AU' }));
                             Store.viewMode.set('editing');
+                            Store.settings.rows.set(createDefaultSettingsRows());
 
                             layoutContainer = document.createElement('div');
                             layoutContainer.style.cssText = 'display: flex; width: 100%;';
@@ -771,14 +827,16 @@
                             expect(editor.isSettingOverridden('addon')).to.be.false;
                             expect(editor.isAnySettingOverridden).to.be.false;
 
-                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
-                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('true');
+                            expect(`${editor.getEffectiveSettingValue('showSecureLabel')}`).to.equal(
+                                '{{secure-label-default}}',
+                            );
 
                             const restoreAllLink = editor.querySelector('.restore-all-link');
                             expect(restoreAllLink).to.not.exist;
 
                             const indicators = editor.querySelectorAll(
-                                '#addon .field-status-indicator, #planType .field-status-indicator, #secureLabel .field-status-indicator',
+                                '#addon .setting-override-indicator, #planType .setting-override-indicator, #secureLabel .setting-override-indicator',
                             );
                             expect(indicators.length).to.equal(0);
                         });
@@ -797,11 +855,25 @@
                             const restoreAllLink = editor.querySelector('.restore-all-link');
                             expect(restoreAllLink).to.exist;
 
-                            const planTypeIndicator = editor.querySelector('#planType .field-status-indicator');
+                            const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
                             expect(planTypeIndicator).to.exist;
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('false');
 
-                            const secureLabelIndicator = editor.querySelector('#secureLabel .field-status-indicator');
+                            const secureLabelIndicator = editor.querySelector('#secureLabel .setting-override-indicator');
                             expect(secureLabelIndicator).to.not.exist;
+                        });
+
+                        it('treats explicit false secure label as an override on top-level cards', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showSecureLabel: [false] },
+                                testId: 'card-secure-false-override',
+                            });
+
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.true;
+
+                            const secureLabelIndicator = editor.querySelector('#secureLabel .setting-override-indicator');
+                            expect(secureLabelIndicator).to.exist;
                         });
 
                         it('restores card-level setting to global default', async () => {
@@ -832,7 +904,7 @@
                             expect(editor.isSettingOverridden('showPlanType')).to.be.true;
                             expect(editor.isAnySettingOverridden).to.be.true;
 
-                            const planTypeIndicator = editor.querySelector('#planType .field-status-indicator');
+                            const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
                             expect(planTypeIndicator).to.exist;
                         });
 
@@ -850,7 +922,7 @@
                             await editor.updateComplete;
 
                             expect(editor.isSettingOverridden('showPlanType')).to.be.false;
-                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('true');
                         });
 
                         it('shows override indicator when variation overrides parent setting', async () => {
@@ -864,7 +936,7 @@
                             expect(editor.isSettingOverridden('showPlanType')).to.be.true;
                             expect(editor.isAnySettingOverridden).to.be.true;
 
-                            const planTypeIndicator = editor.querySelector('#planType .field-status-indicator');
+                            const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
                             expect(planTypeIndicator).to.exist;
                         });
 
@@ -896,7 +968,7 @@
                             expect(editor.isSettingOverridden('showPlanType')).to.be.false;
                             expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
 
-                            const planTypeIndicator = editor.querySelector('#planType .field-status-indicator');
+                            const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
                             expect(planTypeIndicator).to.not.exist;
                         });
 

@@ -1,0 +1,61 @@
+import { expect } from '@esm-bundle/chai';
+import { mergeResolvedPreviewFields, serializePreviewFields } from '../../src/reactivity/preview-fragment-store.js';
+
+describe('serializePreviewFields', () => {
+    it('omits single-value settings inherit sentinels from preview payloads', () => {
+        const result = serializePreviewFields([
+            { name: 'showSecureLabel', values: [''] },
+            { name: 'showPlanType', values: [''] },
+            { name: 'addon', values: [''] },
+            { name: 'description', values: [''] },
+            { name: 'tags', multiple: true, values: [''] },
+        ]);
+
+        expect(result).to.not.have.property('showSecureLabel');
+        expect(result).to.not.have.property('showPlanType');
+        expect(result).to.not.have.property('addon');
+        expect(result.description).to.equal('');
+        expect(result.tags).to.deep.equal(['']);
+    });
+
+    it('keeps explicit setting values in preview payloads', () => {
+        const result = serializePreviewFields([
+            { name: 'showSecureLabel', values: ['true'] },
+            { name: 'showPlanType', values: ['false'] },
+            { name: 'addon', values: ['{{addon-stock-trial}}'] },
+        ]);
+
+        expect(result.showSecureLabel).to.equal('true');
+        expect(result.showPlanType).to.equal('false');
+        expect(result.addon).to.equal('{{addon-stock-trial}}');
+    });
+});
+
+describe('mergeResolvedPreviewFields', () => {
+    it('backfills addon from resolved settings for preview rendering', () => {
+        const result = mergeResolvedPreviewFields(
+            [
+                { name: 'variant', values: ['plans'] },
+                { name: 'addon', values: [] },
+            ],
+            { variant: 'plans' },
+            { addon: '<p>Resolved addon</p>' },
+        );
+
+        expect(result.find((field) => field.name === 'addon')?.values).to.deep.equal(['<p>Resolved addon</p>']);
+    });
+
+    it('preserves unresolved author fields instead of writing undefined', () => {
+        const result = mergeResolvedPreviewFields(
+            [
+                { name: 'addon', values: [] },
+                { name: 'showPlanType', values: [''] },
+            ],
+            {},
+            {},
+        );
+
+        expect(result.find((field) => field.name === 'addon')?.values).to.deep.equal([]);
+        expect(result.find((field) => field.name === 'showPlanType')?.values).to.deep.equal(['']);
+    });
+});

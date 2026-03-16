@@ -32,16 +32,23 @@ export class AddonField extends LitElement {
                 --spectrum-fieldgroup-margin: 0;
             }
 
-            div {
+            .field-row {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
                 gap: 8px;
             }
 
             sp-combobox {
                 width: 100%;
                 margin-block-end: 16px;
+            }
+
+            ::slotted(.setting-override-indicator) {
+                flex: none;
+            }
+
+            .field-row sp-switch {
+                flex: none;
             }
 
             :host([data-field-state='overridden']) sp-switch[checked] {
@@ -58,14 +65,23 @@ export class AddonField extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        if (this.placeholderKey) {
-            this.repository.loadAddonPlaceholders();
+        this.#loadAddonPlaceholders();
+    }
+
+    updated(changedProperties) {
+        if (changedProperties.has('placeholderKey')) {
+            this.#loadAddonPlaceholders();
         }
     }
 
     /** @type {MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
+    }
+
+    #loadAddonPlaceholders() {
+        if (!this.placeholderKey) return;
+        this.repository?.loadAddonPlaceholders();
     }
 
     #handleToggle(e) {
@@ -119,9 +135,9 @@ export class AddonField extends LitElement {
     render() {
         return html`
             <sp-field-group>
-                <div>
-                    <sp-field-label for="addon-field">${this.label}</sp-field-label>
-                    <sp-switch size="m" .checked="${this.isEditable}" @change="${this.#handleToggle}"></sp-switch>
+                <div class="field-row">
+                    <sp-switch size="m" .checked="${this.isEditable}" @change="${this.#handleToggle}">${this.label}</sp-switch>
+                    <slot name="indicator"></slot>
                 </div>
                 <!-- style hack -->
                 <span></span>

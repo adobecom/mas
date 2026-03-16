@@ -635,6 +635,29 @@ describe('processAddon', async () => {
         expect(abm.getAttribute('data-plan-type')).to.equal('ABM');
         expect(m2m.getAttribute('data-plan-type')).to.equal('M2M');
     });
+
+    it('should fall back to settings addon when the field is not provided', () => {
+        processAddon({}, merchCard, PLANS_AEM_FRAGMENT_MAPPING, {
+            addon: '<p>Resolved settings addon</p>',
+        });
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.innerHTML).to.equal('<p>Resolved settings addon</p>');
+    });
+
+    it('should prefer fragment addon over settings addon', () => {
+        processAddon(
+            { addon: '<p>Fragment addon</p>' },
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+            { addon: '<p>Settings addon</p>' },
+        );
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.innerHTML).to.equal('<p>Fragment addon</p>');
+    });
 });
 
 describe('getTruncatedTextData', () => {

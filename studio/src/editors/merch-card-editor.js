@@ -257,7 +257,23 @@ class MerchCardEditor extends LitElement {
     }
 
     getEffectiveSettingValue(fieldName) {
-        return this.getEffectiveFieldValue(fieldName, 0) || getGlobalSettingsDefaults()[fieldName] || '';
+        if (!this.effectiveIsVariation) {
+            void Store.settings.ensureSurfaceLoaded(Store.surface());
+        }
+        const globalDefaults = getGlobalSettingsDefaults(this.fragment, Store.settings.rows.get());
+        const value = this.getEffectiveFieldValue(fieldName, 0);
+        if (value === undefined || value === null || value === '') {
+            return globalDefaults[fieldName] ?? '';
+        }
+        return value;
+    }
+
+    hasExplicitSettingOverride(fieldName) {
+        const field = this.fragment.getField(fieldName);
+        const values = field?.values || [];
+        if (values.length === 0) return false;
+        if (values.length === 1 && values[0] === '') return false;
+        return true;
     }
 
     /**
@@ -268,7 +284,7 @@ class MerchCardEditor extends LitElement {
         if (this.effectiveIsVariation) {
             return this.getFieldState(fieldName) === 'overridden';
         }
-        return !!this.getEffectiveFieldValue(fieldName, 0);
+        return this.hasExplicitSettingOverride(fieldName);
     }
 
     get isAnySettingOverridden() {
@@ -291,7 +307,18 @@ class MerchCardEditor extends LitElement {
 
     renderSettingOverrideIndicator(fieldName) {
         if (!this.isSettingOverridden(fieldName)) return nothing;
-        return this.#renderOverrideIndicatorLink(() => this.resetSettingToDefault(fieldName));
+        return html`
+            <sp-action-button
+                slot="indicator"
+                class="setting-override-indicator"
+                quiet
+                title="Restore setting to default"
+                aria-label="Restore setting to default"
+                @click=${() => this.resetSettingToDefault(fieldName)}
+            >
+                <sp-icon-unlink slot="icon"></sp-icon-unlink>
+            </sp-action-button>
+        `;
     }
 
     resetAllSettings() {
@@ -354,7 +381,7 @@ class MerchCardEditor extends LitElement {
     willUpdate(changedProperties) {
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
-            this.reactiveController.updateStores([this.fragmentStore]);
+            this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows]);
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
             this.#updateAvailableColors();
@@ -795,6 +822,18 @@ class MerchCardEditor extends LitElement {
 
                 .restore-all-link:hover {
                     text-decoration: underline;
+                }
+
+                .setting-override-indicator {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--spectrum-blue-700);
+                    line-height: 0;
+                }
+
+                .setting-override-indicator:hover {
+                    color: var(--spectrum-blue-800);
                 }
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
@@ -1261,8 +1300,8 @@ class MerchCardEditor extends LitElement {
                             .value="${this.getEffectiveSettingValue('addon')}"
                             @change="${this.updateFragment}"
                         >
+                            ${this.renderSettingOverrideIndicator('addon')}
                         </mas-addon-field>
-                        ${this.renderSettingOverrideIndicator('addon')}
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
                         <mas-plan-type-field
@@ -1273,8 +1312,8 @@ class MerchCardEditor extends LitElement {
                             value="${this.getEffectiveSettingValue('showPlanType')}"
                             @change="${this.#handleFragmentUpdate}"
                         >
+                            ${this.renderSettingOverrideIndicator('showPlanType')}
                         </mas-plan-type-field>
-                        ${this.renderSettingOverrideIndicator('showPlanType')}
                     </sp-field-group>
                     <sp-field-group id="secureLabel" class="toggle">
                         <secure-text-field
@@ -1285,8 +1324,8 @@ class MerchCardEditor extends LitElement {
                             value="${this.getEffectiveSettingValue('showSecureLabel')}"
                             @change="${this.#handleFragmentUpdate}"
                         >
+                            ${this.renderSettingOverrideIndicator('showSecureLabel')}
                         </secure-text-field>
-                        ${this.renderSettingOverrideIndicator('showSecureLabel')}
                     </sp-field-group>
                 </div>
                 <sp-field-group id="locReady">

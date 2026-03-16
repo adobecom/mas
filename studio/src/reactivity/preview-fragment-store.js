@@ -3,6 +3,51 @@ import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 import { Fragment } from '../aem/fragment.js';
 
+const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel']);
+const PREVIEW_FIELD_SETTING_FALLBACKS = new Map([['addon', 'addon']]);
+
+export function serializePreviewFields(fields = []) {
+    return fields.reduce((result, field) => {
+        const values = field.values || [];
+        const isSingleEmptyString = field.multiple !== true && values.length === 1 && values[0] === '';
+
+        // Studio uses [''] as the single-value "inherit/default" sentinel for settings.
+        // Omit those fields from preview payloads so fragment-client resolves surface defaults.
+        if (isSingleEmptyString && INHERITED_SETTINGS_FIELDS.has(field.name)) {
+            return result;
+        }
+
+        result[field.name] = field.multiple ? values : values[0];
+        return result;
+    }, {});
+}
+
+export function mergeResolvedPreviewFields(originalFields = [], resolvedFields = {}, resolvedSettings = {}) {
+    return originalFields.map((field) => {
+        const resolvedValue = resolvedFields?.[field.name];
+        const fallbackSettingName = PREVIEW_FIELD_SETTING_FALLBACKS.get(field.name);
+        const fallbackValue = fallbackSettingName ? resolvedSettings?.[fallbackSettingName] : undefined;
+
+        if (field.multiple) {
+            if (Array.isArray(resolvedValue)) {
+                field.values = resolvedValue;
+            }
+            return field;
+        }
+
+        if (resolvedValue !== undefined) {
+            field.values = [resolvedValue];
+            return field;
+        }
+
+        if (fallbackValue !== undefined) {
+            field.values = [fallbackValue];
+        }
+
+        return field;
+    });
+}
+
 export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
     placeholderUnsubscribe = null;
@@ -152,10 +197,7 @@ export class PreviewFragmentStore extends FragmentStore {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
         const originalFields = body.fields;
-        body.fields = {};
-        for (const field of originalFields) {
-            body.fields[field.name] = field.multiple ? field.values : field.values[0];
-        }
+        body.fields = serializePreviewFields(originalFields);
 
         const context = {
             locale: Store.localeOrRegion(),
@@ -165,11 +207,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const result = await previewStudioFragment(body, context);
 
         /* Transform fields back to author */
-        for (const field of originalFields) {
-            const resolvedField = result.fields[field.name];
-            field.values = field.multiple ? resolvedField : [resolvedField];
-        }
-        result.fields = originalFields;
+        result.fields = mergeResolvedPreviewFields(originalFields, result.fields, result.settings);
 
         const essentialProps = [
             'path',

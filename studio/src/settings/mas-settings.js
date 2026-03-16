@@ -10,10 +10,18 @@ import '../mas-locale-picker.js';
 import '../aem/aem-tag-picker-field.js';
 import '../common/fields/tree-picker-field.js';
 import '../common/fields/quantity-select.js';
+import { createQuantitySelectValue } from '../common/fields/quantity-select.js';
 import { getVariantTreeData } from '../editors/variant-picker.js';
-import { getSettingDefaultValue, getSettingNameDefinition } from './setting-name-map.js';
 import { SETTING_NAME_DEFINITIONS } from '../../../io/www/src/fragment/transformers/settings.js';
-import { DELETE_BLOCKED_STATUSES } from './settings-store.js';
+import { DELETE_BLOCKED_STATUSES, getSettingNameDefinition } from './settings-store.js';
+
+const getSettingDefaultValue = (definition) => {
+    if (definition.editor === 'boolean') return true;
+    if (definition.editor === 'quantity-select') {
+        return createQuantitySelectValue({ title: '', min: '1', step: '1' });
+    }
+    return '';
+};
 
 class MasSettings extends LitElement {
     static styles = css`
@@ -185,7 +193,6 @@ class MasSettings extends LitElement {
         showDiscardDialog: { state: true },
     };
 
-    #loadedAem = null;
     #pendingDiscardPromise = null;
 
     reactiveController = new ReactiveController(this, [
@@ -261,6 +268,10 @@ class MasSettings extends LitElement {
     }
 
     update(changedProperties) {
+        if (changedProperties.has('aem') && this.aem) {
+            Store.settings.setAem(this.aem);
+            this.loadedSurface = '';
+        }
         const surfaceChanged = this.surface !== this.loadedSurface;
         if (
             changedProperties.has('aem') ||
@@ -276,14 +287,10 @@ class MasSettings extends LitElement {
 
     #loadSettings() {
         const surface = this.surface;
-        if (this.aem) Store.settings.setAem(this.aem);
-        if (!this.aem) Store.settings.initAem(this.bucket, this.baseUrl);
-        const aem = Store.settings.aem;
-        if (surface === this.loadedSurface && aem === this.#loadedAem) return;
+        if (surface === this.loadedSurface) return;
 
         this.loadedSurface = surface;
-        this.#loadedAem = aem;
-        Store.settings.loadSurface(surface).then(() => {
+        Store.settings.ensureSurfaceLoaded(surface).then(() => {
             if (this.surface !== surface) {
                 this.#loadSettings();
             }

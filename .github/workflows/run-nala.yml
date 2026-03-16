@@ -107,14 +107,6 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
 
-            - name: Upload screenshots
-              uses: actions/upload-artifact@v4
-              if: failure()
-              with:
-                  name: test-results-studio
-                  path: test-results
-                  retention-days: 7
-
     run-nala-docs-tests:
         name: Running Nala Docs E2E UI Tests
         needs: nala-gate
@@ -181,10 +173,3 @@ jobs:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
 
-            - name: Upload screenshots
-              uses: actions/upload-artifact@v4
-              if: failure()
-              with:
-                  name: test-results-docs
-                  path: test-results
-                  retention-days: 7

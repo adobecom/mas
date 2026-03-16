@@ -838,6 +838,22 @@ class CompareChartEditor extends LitElement {
         await this.#addRow(sectionIndex);
     }
 
+    #onSectionTitleChange(e) {
+        const { sectionIndex, value } = e.detail;
+        const sec = this.sections?.[sectionIndex];
+        if (sec?.fragment) {
+            this.#saveChildField(sec.fragment, 'sectionTitle', [value]);
+        }
+    }
+
+    #onRowTitleChange(e) {
+        const { sectionIndex, rowIndex, value } = e.detail;
+        const row = this.sections?.[sectionIndex]?.rows?.[rowIndex];
+        if (row?.fragment) {
+            this.#saveChildField(row.fragment, 'rowTitle', [value]);
+        }
+    }
+
     // --- Card reference resolution ---
 
     #getEditorScope() {
@@ -2222,6 +2238,8 @@ class CompareChartEditor extends LitElement {
                             @row-click=${this.#onRowClick}
                             @cell-click=${this.#onCellClick}
                             @add-row=${this.#onAddRow}
+                            @section-title-change=${this.#onSectionTitleChange}
+                            @row-title-change=${this.#onRowTitleChange}
                         ></compare-chart-preview>
                     </div>
                 </div>

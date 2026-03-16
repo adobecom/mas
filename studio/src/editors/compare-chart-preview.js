@@ -7,6 +7,8 @@ const EVENT_SECTION_CLICK = 'section-click';
 const EVENT_ROW_CLICK = 'row-click';
 const EVENT_CELL_CLICK = 'cell-click';
 const EVENT_ADD_ROW = 'add-row';
+const EVENT_SECTION_TITLE_CHANGE = 'section-title-change';
+const EVENT_ROW_TITLE_CHANGE = 'row-title-change';
 
 class CompareChartPreview extends LitElement {
     static properties = {
@@ -16,6 +18,8 @@ class CompareChartPreview extends LitElement {
         selectedSectionIndex: { type: Number, attribute: false },
         selectedRowIndex: { type: Number, attribute: false },
         selectedCellIndex: { type: Number, attribute: false },
+        editingSectionIndex: { type: Number, state: true },
+        editingRowIndex: { type: Number, state: true },
     };
 
     static styles = css`
@@ -64,6 +68,13 @@ class CompareChartPreview extends LitElement {
             font-weight: 700;
             text-align: left;
             font-size: 13px;
+            cursor: text;
+        }
+
+        .section-row td:hover,
+        .row-label:hover {
+            text-decoration: underline dashed var(--spectrum-global-color-gray-500, #929292);
+            text-underline-offset: 3px;
         }
 
         .row-label {
@@ -73,6 +84,15 @@ class CompareChartPreview extends LitElement {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            cursor: text;
+        }
+
+        .inline-edit-input {
+            all: unset;
+            width: 100%;
+            font: inherit;
+            background: var(--spectrum-global-color-blue-100, #e8f0fe);
+            border-bottom: 2px solid var(--spectrum-global-color-blue-500, #1473e6);
         }
 
         .badge {
@@ -153,6 +173,8 @@ class CompareChartPreview extends LitElement {
         this.selectedSectionIndex = -1;
         this.selectedRowIndex = -1;
         this.selectedCellIndex = -1;
+        this.editingSectionIndex = -1;
+        this.editingRowIndex = -1;
     }
 
     #dispatch(eventName, detail) {
@@ -183,6 +205,59 @@ class CompareChartPreview extends LitElement {
 
     #onAddRow(sectionIndex) {
         this.#dispatch(EVENT_ADD_ROW, { sectionIndex });
+    }
+
+    #onSectionDblClick(sIdx) {
+        this.editingSectionIndex = sIdx;
+        this.editingRowIndex = -1;
+    }
+
+    #onRowDblClick(sIdx, rIdx) {
+        this.editingSectionIndex = sIdx;
+        this.editingRowIndex = rIdx;
+    }
+
+    #commitSectionTitle(sIdx, inputEl) {
+        if (this.editingSectionIndex === -1) return;
+        this.#dispatch(EVENT_SECTION_TITLE_CHANGE, {
+            sectionIndex: sIdx,
+            value: inputEl.value,
+        });
+        this.#cancelEdit();
+    }
+
+    #commitRowTitle(sIdx, rIdx, inputEl) {
+        if (this.editingSectionIndex === -1) return;
+        this.#dispatch(EVENT_ROW_TITLE_CHANGE, {
+            sectionIndex: sIdx,
+            rowIndex: rIdx,
+            value: inputEl.value,
+        });
+        this.#cancelEdit();
+    }
+
+    #cancelEdit() {
+        this.editingSectionIndex = -1;
+        this.editingRowIndex = -1;
+    }
+
+    #onEditKeydown(e, commitFn) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            commitFn();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            this.#cancelEdit();
+        }
+    }
+
+    updated() {
+        if (this.editingSectionIndex === -1) return;
+        const input = this.renderRoot?.querySelector('.inline-edit-input');
+        if (input) {
+            input.focus();
+            input.select();
+        }
     }
 
     #extractPlainText(htmlString) {
@@ -271,8 +346,21 @@ class CompareChartPreview extends LitElement {
                                         ? 'selected'
                                         : ''}"
                                     @click=${() => this.#onSectionClick(sIdx)}
+                                    @dblclick=${(e) => {
+                                        e.stopPropagation();
+                                        this.#onSectionDblClick(sIdx);
+                                    }}
                                 >
-                                    ${section.title || `Section ${sIdx + 1}`}
+                                    ${this.editingSectionIndex === sIdx && this.editingRowIndex === -1
+                                        ? html`<input
+                                              class="inline-edit-input"
+                                              .value=${section.title || ''}
+                                              @blur=${(e) => this.#commitSectionTitle(sIdx, e.target)}
+                                              @keydown=${(e) =>
+                                                  this.#onEditKeydown(e, () => this.#commitSectionTitle(sIdx, e.target))}
+                                              @click=${(e) => e.stopPropagation()}
+                                          />`
+                                        : section.title || `Section ${sIdx + 1}`}
                                 </td>
                             </tr>
                             ${(section.rows || []).map(
@@ -285,8 +373,23 @@ class CompareChartPreview extends LitElement {
                                                 ? 'selected'
                                                 : ''}"
                                             @click=${() => this.#onRowClick(sIdx, rIdx)}
+                                            @dblclick=${(e) => {
+                                                e.stopPropagation();
+                                                this.#onRowDblClick(sIdx, rIdx);
+                                            }}
                                         >
-                                            ${this.#extractPlainText(row.title)}
+                                            ${this.editingSectionIndex === sIdx && this.editingRowIndex === rIdx
+                                                ? html`<input
+                                                      class="inline-edit-input"
+                                                      .value=${this.#extractPlainText(row.title)}
+                                                      @blur=${(e) => this.#commitRowTitle(sIdx, rIdx, e.target)}
+                                                      @keydown=${(e) =>
+                                                          this.#onEditKeydown(e, () =>
+                                                              this.#commitRowTitle(sIdx, rIdx, e.target),
+                                                          )}
+                                                      @click=${(e) => e.stopPropagation()}
+                                                  />`
+                                                : this.#extractPlainText(row.title)}
                                         </td>
                                         ${(row.values || []).map(
                                             (val, cIdx) => html`

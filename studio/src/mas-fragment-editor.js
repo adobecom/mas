@@ -909,7 +909,7 @@ export default class MasFragmentEditor extends LitElement {
                         const res = await fetch(filPhUrl);
                         if (res.ok) {
                             const data = await res.json().catch(() => ({}));
-                            locales = [...locales, { locale: 'fil_PH', id: data?.id ?? null, path: filPhPath }];
+                            locales = [...locales, { locale: 'fil_PH', id: data['jcr:uuid'] ?? null, path: filPhPath }];
                         }
                     } catch {
                         // No fil_PH for this fragment.

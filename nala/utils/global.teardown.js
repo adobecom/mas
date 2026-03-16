@@ -1,10 +1,4 @@
-import { existsSync } from 'fs';
-import { join } from 'path';
-
 const ROOT_PATH = '/content/dam/mas';
-
-/** When running outside GitHub: teardown runs only if at least one non-docs test ran (same as auth). */
-const NON_DOCS_FLAG_FILE = join(process.cwd(), 'test-results', 'nala-non-docs-tests-ran');
 
 /**
  * Search and delete fragments via AEM API: search by path/locale, keep only items whose title contains [runId], then delete.
@@ -340,11 +334,6 @@ async function cleanupClonedCards() {
 
 async function globalTeardown() {
     if (process.env.SKIP_AUTH === 'true') return;
-    /* Same logic as auth: when only nala/docs tests ran, skip teardown (no studio/auth was used). */
-    if (!existsSync(NON_DOCS_FLAG_FILE)) {
-        console.info(`\n---- Nala Global Teardown: only docs tests ran, skipping ----\n`);
-        return;
-    }
     console.info(`\n---- Executing Nala Global Teardown ----\n`);
     try {
         await cleanupClonedCards();

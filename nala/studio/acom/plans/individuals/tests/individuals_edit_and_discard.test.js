@@ -1058,7 +1058,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit card border color field', async () => {
             await expect(await editor.borderColor).toBeVisible();
-            await expect(await editor.borderColor).toContainText(data.color.original);
+            await expect(await editor.borderColor).toContainText(data.color.updated);
             await editor.borderColor.scrollIntoViewIfNeeded();
             await editor.borderColor.click();
             await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();

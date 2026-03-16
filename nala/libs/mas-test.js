@@ -35,6 +35,7 @@ let clonedCardID = '';
 let currentTestPage = '';
 
 const miloLibs = process.env.MILO_LIBS || '';
+const masIOUrl = process.env.MAS_IO_URL || '';
 
 /**
  * Extended Playwright test that automatically handles common MAS test operations
@@ -131,6 +132,7 @@ export {
     getClonedCardID,
     setTestPage,
     miloLibs,
+    masIOUrl,
 };
 
 export { masTest as test };

@@ -14,6 +14,7 @@ export const features = [
             title: 'Acrobat Pro',
             promoText: 'Save over 30% with an annual plan.',
             description: 'Create, edit, sign, and manage your PDFs — quickly, easily, anywhere.',
+            planTypeText: 'Annual, billed monthly',
             price: PRICE_PATTERN.US.mo,
             cta: 'Buy now',
             ctaOsi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',

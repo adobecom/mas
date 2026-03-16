@@ -12,6 +12,7 @@ let dictionaryCache;
 
 export function clearDictionaryCache(preview = false) {
     if (preview) {
+        console.log('Clearing dictionary preview cache');
         Object.keys(localStorage).forEach((key) => {
             if (key.startsWith('dictionary-')) {
                 localStorage.removeItem(key);
@@ -56,7 +57,7 @@ async function cache(context, dictionary) {
 async function getDictionaryId(context) {
     const { surface } = await getRequestInfos(context);
     const { locale, preview } = context;
-    const dictionaryUrl = odinUrl(surface, locale, DICTIONARY_ID_PATH, preview);
+    const dictionaryUrl = odinUrl(surface, { locale, fragmentPath: DICTIONARY_ID_PATH, preview });
     const { id, status, message } = await getFragmentId(context, dictionaryUrl, 'dictionary-id');
     if (status != 200) {
         return { status, message };
@@ -75,10 +76,8 @@ function collectDictionariesEntries(fragmentId, rootFragment, references, dictio
     // Get the fragment from references or use root
     const fragment = fragmentId === rootFragment.id ? rootFragment : references[fragmentId]?.value;
 
-    if (!fragment) return;
-
     // Process this fragment's entries first (child takes precedence)
-    const entries = fragment.fields?.entries || [];
+    const entries = fragment?.fields?.entries || [];
     entries.forEach((entryId) => {
         const entry = references[entryId]?.value?.fields;
         if (entry?.key && !(entry.key in dictionary)) {
@@ -89,7 +88,7 @@ function collectDictionariesEntries(fragmentId, rootFragment, references, dictio
     });
 
     // Then process parent if exists
-    const parentId = fragment.fields?.parent;
+    const parentId = fragment?.fields?.parent;
     if (parentId) {
         collectDictionariesEntries(parentId, rootFragment, references, dictionary);
     }

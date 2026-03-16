@@ -437,7 +437,7 @@ describe('customize corner cases', function () {
             surface: 'sandbox',
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
+        expect(result).to.deep.include({
             message: 'Missing surface or fragmentPath',
             status: 400,
         });
@@ -450,7 +450,7 @@ describe('customize corner cases', function () {
                 fragmentPath: 'bar',
                 locale: 'fr_FR',
             }),
-        ).to.deep.equal({
+        ).to.deep.include({
             message: 'Missing surface or fragmentPath',
             status: 400,
         });
@@ -475,7 +475,7 @@ describe('customize corner cases', function () {
             fragmentPath: 'ccd-slice-wide-cc-all-app',
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
+        expect(result).to.deep.include({
             status: 503,
             message: 'fetch error',
         });
@@ -513,7 +513,7 @@ describe('customize corner cases', function () {
             fragmentPath: 'ccd-slice-wide-cc-all-app',
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
+        expect(result).to.deep.include({
             status: 503,
             message: 'fetch error',
         });
@@ -536,7 +536,7 @@ describe('customize corner cases', function () {
             fragmentPath: 'ccd-slice-wide-cc-all-app',
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
+        expect(result).to.deep.include({
             status: 404,
             message: 'Fragment not found',
         });

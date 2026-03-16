@@ -1717,7 +1717,7 @@ class CompareChartEditor extends LitElement {
     #renderVariantCheckboxes() {
         const blockName = this.#getField('blockName')?.values?.[0] || 'Comparison Table';
         if (blockName !== 'Table') return nothing;
-        const selected = this.#getField('variantName')?.values || [];
+        const selected = this.#getField('selectedVariantNames')?.values || [];
         const options = ['merch', 'highlight', 'sticky', 'collapse', 'm-heading-icon'];
         return html`
             <div class="variant-checkboxes">
@@ -1728,7 +1728,7 @@ class CompareChartEditor extends LitElement {
                             ?checked=${selected.includes(opt)}
                             @change=${(e) => {
                                 const updated = e.target.checked ? [...selected, opt] : selected.filter((v) => v !== opt);
-                                this.#updateFieldValues('variantName', updated);
+                                this.#updateFieldValues('selectedVariantNames', updated);
                             }}
                             >${opt}</sp-checkbox
                         >

@@ -10,8 +10,7 @@ function handleEscape(e) {
 }
 
 function handleBackdropClick(e) {
-    const dialog = document.querySelector('[role="dialog"]');
-    if (!dialog?.contains(e.target)) {
+    if (e.target === ostRoot) {
         closeOfferSelectorTool();
     }
 }
@@ -235,9 +234,6 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
-        document.addEventListener('keydown', handleEscape);
-        document.addEventListener('click', handleBackdropClick, true);
-
         const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
@@ -294,6 +290,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             ostCloseFunction?.();
             resetOstRoot();
         };
+
+        document.addEventListener('keydown', handleEscape);
+        document.addEventListener('click', handleBackdropClick, true);
     } catch (error) {
         console.error('Error opening offer selector tool:', error);
     }
@@ -301,4 +300,5 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
 
 export function closeOfferSelectorTool() {
     closeFunction?.();
+    closeFunction = null;
 }

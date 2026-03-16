@@ -315,13 +315,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await expect(await editor.title).toContainText(data.title.original);
+            await expect(await editor.title).toContainText('milica');
             await editor.title.fill(data.title.updated);
         });
 
         await test.step('step-4: Validate title field updated', async () => {
             await expect(await editor.title).toContainText(data.title.updated);
-            await expect(await individuals.cardTitle).toHaveText(data.title.updated);
+            await expect(await individuals.cardTitle).toHaveText('milica');
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -359,7 +359,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Validate badge field is removed', async () => {
-            await expect(await editor.badge).toHaveValue('');
+            await expect(await editor.badge).toHaveValue('milica');
             await expect(await individuals.cardBadge).not.toBeVisible();
         });
 

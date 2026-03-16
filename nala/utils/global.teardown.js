@@ -21,7 +21,7 @@ const searchAndDeleteFragmentsByAPI = async ({ runId, processedIds, pathFragment
     const path = params.get('path') || 'nala';
     const locale = params.get('locale') || 'en_US'; // no locale in path => default en_US
     const apiPath = `${rootPath}/${path}/${locale}`;
-    const runIdInTitle = `[${runId}]`; // only delete fragments whose title contains this
+    const runIdInTitle = `${runId}`; // only delete fragments whose title contains this
     const toDelete = [];
 
     try {

@@ -2,6 +2,7 @@ import { test } from '@playwright/test';
 
 const MILO_LIBS = process.env.MILO_LIBS || '';
 const MAS_LIBS = process.env.MAS_LIBS || '';
+const MAS_IO_URL = process.env.MAS_IO_URL || '';
 
 const PRICE_PATTERN = {
     US: {
@@ -24,6 +25,7 @@ const DOCS_GALLERY_PATH = {
     CCD_MINI: {
         US: '/web-components/docs/ccd-mini.html',
         FR: '/web-components/docs/ccd-mini.html?country=FR&language=fr',
+        AU: '/web-components/docs/ccd-mini.html?country=AU&language=en',
     },
     ADOBE_HOME: { US: '/web-components/docs/adobe-home.html' },
     PLANS: '/web-components/docs/plans.html',
@@ -183,7 +185,7 @@ function validateCommerceUrl(url, options = {}) {
 
 /**
  * Helper function to construct test URLs with proper query parameter handling
- * Includes MILO_LIBS and MAS_LIBS environment variables
+ * Includes MAS_IO_URL, MILO_LIBS and MAS_LIBS environment variables
  * @param {string} baseURL - The base URL from Playwright test context
  * @param {string} path - The path to append to the base URL
  * @param {string} browserParams - Browser parameters to append (optional, may start with ? or &)
@@ -192,6 +194,7 @@ function validateCommerceUrl(url, options = {}) {
 function constructTestUrl(baseURL, path, browserParams = '') {
     let fullUrl = `${baseURL}${path}`;
     fullUrl = addUrlQueryParams(fullUrl, browserParams);
+    fullUrl = addUrlQueryParams(fullUrl, MAS_IO_URL);
     fullUrl = addUrlQueryParams(fullUrl, MILO_LIBS);
     fullUrl = addUrlQueryParams(fullUrl, MAS_LIBS);
     return fullUrl;
@@ -312,6 +315,7 @@ function createWorkerPageSetup(config = {}) {
             const { name, url } = pageConfig;
 
             let fullUrl = `${baseURL}${url}`;
+            fullUrl = addUrlQueryParams(fullUrl, MAS_IO_URL);
             fullUrl = addUrlQueryParams(fullUrl, MILO_LIBS);
             fullUrl = addUrlQueryParams(fullUrl, MAS_LIBS);
 

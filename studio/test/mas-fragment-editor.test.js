@@ -468,7 +468,7 @@ describe('MasFragmentEditor', () => {
 
                 const fetchStub = sandbox.stub(window, 'fetch').resolves({
                     ok: true,
-                    json: () => Promise.resolve({ id: 'fil-ph-frag-id' }),
+                    json: () => Promise.resolve({ 'jcr:uuid': 'fil-ph-frag-id' }),
                 });
 
                 await el.updateTranslatedLocalesStore(false, fragmentPath);

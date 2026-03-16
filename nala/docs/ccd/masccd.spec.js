@@ -199,6 +199,7 @@ export const features = [
             id: '51c23f28-504f-450d-9764-0e60f1e279b2',
             description: 'Save 25% on Photoshop. Starting at',
             linkText: 'See terms',
+            linkAnalyticsId: 'see-terms',
             linkUrl: '',
             price: PRICE_PATTERN.US.mo,
             cta: 'Buy now',

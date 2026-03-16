@@ -189,6 +189,10 @@ export default class MasPlans {
         return this.getCard(id).locator('div[slot="callout-content"] > p');
     }
 
+    getCardPlanType(id) {
+        return this.getCard(id).locator('p[slot="heading-m"] span.price-legal span.price-plan-type');
+    }
+
     getCardQS(id) {
         const card = this.getCard(id);
         return card.locator('merch-quantity-select');

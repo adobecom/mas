@@ -35,6 +35,8 @@ export class SecureTextField extends LitElement {
         `;
     }
 
+    #interacting = false;
+
     constructor() {
         super();
         this.id = '';
@@ -46,24 +48,31 @@ export class SecureTextField extends LitElement {
     }
 
     updated(changedProperties) {
-        if (changedProperties.has('value')) {
-            if (!this.value) {
+        if (changedProperties.has('value') && !this.#interacting) {
+            if (!this.value || this.value === 'false') {
                 this.isEditable = false;
                 this.showSecureTextField = true;
             } else {
                 this.isEditable = true;
-                this.showSecureTextField = this.value !== 'false';
+                this.showSecureTextField = true;
             }
         }
+        this.#interacting = false;
     }
 
     #handleToggle(e) {
+        this.#interacting = true;
         this.isEditable = e.target.checked;
-        this.value = this.isEditable ? (this.showSecureTextField ? 'true' : 'false') : 'false';
+        if (this.isEditable) {
+            this.value = this.showSecureTextField ? 'true' : 'false';
+        } else {
+            this.value = 'false';
+        }
         this.dispatchInputEvent(this.value);
     }
 
     #handleCheckbox(e) {
+        this.#interacting = true;
         this.showSecureTextField = e.target.checked;
         if (this.isEditable) {
             this.value = e.target.checked ? 'true' : 'false';

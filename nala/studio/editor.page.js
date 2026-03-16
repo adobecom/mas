@@ -48,9 +48,10 @@ export default class EditorPage {
         this.calloutRTEIcon = this.panel.locator('sp-field-group#callout .icon-button');
         this.showAddOn = this.panel.locator('#addon-field #input');
         this.showQuantitySelector = this.panel.locator('#quantitySelect sp-checkbox input');
-        this.quantitySelectorTitle = this.panel.locator('sp-field-group#quantitySelectorTitle #title-quantity input');
-        this.quantitySelectorStart = this.panel.locator('sp-field-group#quantitySelectorStart #start-quantity input');
-        this.quantitySelectorStep = this.panel.locator('sp-field-group#quantitySelectorStep #step-quantity input');
+        this.quantitySelectorFields = this.panel.locator('#quantitySelector quantity-select-field');
+        this.quantitySelectorTitle = this.quantitySelectorFields.locator('#quantity-selector-title input');
+        this.quantitySelectorStart = this.quantitySelectorFields.locator('#quantity-selector-start input');
+        this.quantitySelectorStep = this.quantitySelectorFields.locator('#quantity-selector-step input');
         this.whatsIncluded = this.panel.locator('sp-field-group#whatsIncluded');
         this.whatsIncludedLabel = this.panel.locator('#whatsIncludedLabel input');
         this.whatsIncludedAddIcon = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add application")');

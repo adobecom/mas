@@ -2,8 +2,9 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { Router } from '../src/router.js';
 import Store from '../src/store.js';
-import { PAGE_NAMES } from '../src/constants.js';
+import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
+import { ReactiveStore } from '../src/reactivity/reactive-store.js';
 import { Fragment } from '../src/aem/fragment.js';
 
 describe('Router', () => {
@@ -17,6 +18,16 @@ describe('Router', () => {
     let originalSelectedCollections;
     let originalSelectedPlaceholders;
     let originalTargetLocales;
+    let originalSearch;
+    let originalFilters;
+    let originalViewMode;
+    let originalFragmentEditorLoading;
+    let originalFragmentEditorId;
+    let originalSettingsCreating;
+    let originalSettingsFragmentId;
+    let originalProfile;
+    let originalUsers;
+    let originalUsersLoadedMeta;
 
     const createMockFragment = (hasChanges = false) => {
         const fragment = new Fragment({ id: 'test-id', fields: [] });
@@ -53,6 +64,17 @@ describe('Router', () => {
         originalSelectedCollections = Store.translationProjects.selectedCollections.value;
         originalSelectedPlaceholders = Store.translationProjects.selectedPlaceholders.value;
         originalTargetLocales = Store.translationProjects.targetLocales.value;
+        originalSearch = structuredClone(Store.search.get());
+        originalFilters = structuredClone(Store.filters.get());
+        originalViewMode = Store.viewMode.get();
+        originalFragmentEditorLoading = Store.fragmentEditor.loading.get();
+        originalFragmentEditorId = Store.fragmentEditor.fragmentId.get();
+        originalSettingsCreating = Store.settings.creating.get();
+        originalSettingsFragmentId = Store.settings.fragmentId.get();
+        originalProfile = structuredClone(Store.profile.get());
+        originalUsers = structuredClone(Store.users.get());
+        originalUsersLoadedMeta = Store.users.getMeta('loaded');
+        Store.users.setMeta('loaded', true);
         Store.fragments.inEdit.set(null);
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.selectedCards.set([]);
@@ -70,7 +92,17 @@ describe('Router', () => {
         Store.translationProjects.selectedCollections.set(originalSelectedCollections);
         Store.translationProjects.selectedPlaceholders.set(originalSelectedPlaceholders);
         Store.translationProjects.targetLocales.set(originalTargetLocales);
-        document.querySelectorAll('mas-fragment-editor, mas-translation-editor').forEach((el) => el.remove());
+        Store.search.set(originalSearch);
+        Store.filters.set(originalFilters);
+        Store.viewMode.set(originalViewMode);
+        Store.fragmentEditor.loading.set(originalFragmentEditorLoading);
+        Store.fragmentEditor.fragmentId.set(originalFragmentEditorId);
+        Store.settings.creating.set(originalSettingsCreating);
+        Store.settings.fragmentId.set(originalSettingsFragmentId);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
+        document.querySelectorAll('mas-fragment-editor, mas-translation-editor, mas-settings').forEach((el) => el.remove());
     });
 
     describe('getActiveEditor', () => {
@@ -539,6 +571,69 @@ describe('Router', () => {
             sandbox.stub(document, 'querySelector').withArgs('mas-fragment-editor').returns(mockEditor);
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
             expect(router.isNavigating).to.be.false;
+        });
+    });
+
+    describe('settings route and editor branches', () => {
+        it('should return settings editor metadata on settings page', () => {
+            Store.page.value = PAGE_NAMES.SETTINGS;
+            const settingsEditor = document.createElement('mas-settings');
+            settingsEditor.hasUnsavedChanges = true;
+            document.body.appendChild(settingsEditor);
+
+            const result = router.getActiveEditor();
+            expect(result.editor).to.equal(settingsEditor);
+            expect(result.hasChanges).to.equal(true);
+            expect(result.shouldCheckUnsavedChanges).to.equal(true);
+        });
+
+        it('should return settings editor metadata on settings-editor page', () => {
+            Store.page.value = PAGE_NAMES.SETTINGS_EDITOR;
+            const settingsEditor = document.createElement('mas-settings');
+            settingsEditor.hasUnsavedChanges = false;
+            document.body.appendChild(settingsEditor);
+
+            const result = router.getActiveEditor();
+            expect(result.editor).to.equal(settingsEditor);
+            expect(result.hasChanges).to.equal(false);
+            expect(result.shouldCheckUnsavedChanges).to.equal(false);
+        });
+
+        it('should clear settings route state when returning from settings-editor to settings', async () => {
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-POWERUSERS'] }]);
+            Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
+            Store.settings.creating.set(true);
+            Store.settings.fragmentId.set('setting-id');
+
+            await router.navigateToPage(PAGE_NAMES.SETTINGS)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+            expect(Store.settings.creating.get()).to.equal(false);
+            expect(Store.settings.fragmentId.get()).to.equal(null);
+        });
+
+        it('should clear settings route state when leaving settings pages', async () => {
+            Store.page.set(PAGE_NAMES.SETTINGS);
+            Store.settings.creating.set(true);
+            Store.settings.fragmentId.set('setting-id');
+
+            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+            expect(Store.settings.creating.get()).to.equal(false);
+            expect(Store.settings.fragmentId.get()).to.equal(null);
+        });
+
+        it('should block unauthorized settings page navigation', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+            Store.settings.creating.set(true);
+            Store.settings.fragmentId.set('setting-id');
+
+            await router.navigateToPage(PAGE_NAMES.SETTINGS)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            expect(Store.settings.creating.get()).to.equal(false);
+            expect(Store.settings.fragmentId.get()).to.equal(null);
         });
     });
 });

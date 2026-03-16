@@ -1,8 +1,10 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { main as action, resetCache } from '../../src/fragment/pipeline.js';
+import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { mockDictionary } from './replace.test.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
+import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import zlib from 'zlib';
 
 import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
@@ -37,9 +39,26 @@ const EXPECTED_HEADERS = {
     'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
 };
 
+const SETTINGS_INDEX_URL_SANDBOX = 'https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/settings/index';
+const SETTINGS_INDEX_URL_PREVIEW =
+    'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments?path=/content/dam/mas/sandbox/settings/index';
+const SETTINGS_CONTENT_URL = (settingsId) =>
+    `https://odin.adobe.com/adobe/sites/fragments/${settingsId}?references=all-hydrated`;
+const SETTINGS_CONTENT_URL_PREVIEW = (settingsId) =>
+    `https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments/${settingsId}?references=all-hydrated`;
+
+function mockSettings(fetchStub, preview = false, settingsId = 'settings-id') {
+    const indexUrl = preview ? SETTINGS_INDEX_URL_PREVIEW : SETTINGS_INDEX_URL_SANDBOX;
+    const contentUrl = preview ? SETTINGS_CONTENT_URL_PREVIEW(settingsId) : SETTINGS_CONTENT_URL(settingsId);
+    fetchStub.withArgs(indexUrl).returns(createResponse(200, { items: [{ id: settingsId }] }));
+    fetchStub.withArgs(contentUrl).returns(createResponse(200, SETTINGS_RESPONSE));
+}
+
 function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = false) {
     // setup dictionary mocks
     mockDictionary(preview, fetchStub);
+    // setup settings mocks so pipeline context gets settings
+    mockSettings(fetchStub, preview);
 
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
@@ -70,7 +89,7 @@ const EXPECTED_BODY = {
     id: 'some-fr-fr-fragment',
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
-//EXPECTED BODY SHA256 hash
+// EXPECTED BODY SHA256 hash (includes settings/priceLiterals from mocked settings)
 const EXPECTED_BODY_HASH = 'e40a8c822bb0e6fd5ef462ee327d1e9240aa74219ec67d8da63ca15aa7250de9';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
@@ -100,6 +119,7 @@ describe('pipeline full use case', () => {
         fetchStub = sinon.stub(globalThis, 'fetch');
         mockDictionary(false, fetchStub);
         resetCache();
+        clearSettingsCache();
     });
 
     afterEach(() => {
@@ -130,6 +150,7 @@ describe('pipeline full use case', () => {
             fragmentsIds: {
                 'dictionary-id': 'sandbox_fr_FR_dictionary',
                 'default-locale-id': 'some-fr-fr-fragment',
+                'settings-id': 'settings-id',
             },
             hash: EXPECTED_BODY_HASH,
         });
@@ -173,6 +194,7 @@ describe('pipeline full use case', () => {
             fragmentsIds: {
                 'dictionary-id': 'sandbox_fr_FR_dictionary',
                 'default-locale-id': 'some-fr-fr-fragment',
+                'settings-id': 'settings-id',
             },
             hash: EXPECTED_BODY_HASH,
         });
@@ -186,6 +208,7 @@ describe('pipeline full use case', () => {
                 fragmentsIds: {
                     'dictionary-id': 'sandbox_fr_FR_dictionary',
                     'default-locale-id': 'some-fr-fr-fragment',
+                    'settings-id': 'settings-id',
                 },
                 fragmentPath: 'someFragment',
                 lastModified: RANDOM_OLD_DATE,
@@ -232,6 +255,14 @@ describe('pipeline full use case', () => {
     it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
         const fragmentId = '8ede258f-a996-43c4-8525-b52543925ab0';
 
+        // Mock settings for adobe-home surface
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/adobe-home/settings/index')
+            .returns(createResponse(200, { items: [{ id: 'adobe-home-settings-id' }] }));
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/adobe-home-settings-id?references=all-hydrated')
+            .returns(createResponse(200, SETTINGS_RESPONSE));
+
         // Mock the fragment fetch
         fetchStub
             .withArgs(`https://odin.adobe.com/adobe/sites/fragments/${fragmentId}?references=all-hydrated`)
@@ -276,6 +307,7 @@ describe('pipeline full use case', () => {
 describe('collection placeholders', () => {
     beforeEach(function () {
         fetchStub = sinon.stub(globalThis, 'fetch');
+        clearSettingsCache();
     });
 
     afterEach(function () {
@@ -283,6 +315,7 @@ describe('collection placeholders', () => {
     });
 
     it('should work', async () => {
+        mockSettings(fetchStub);
         const state = new MockState();
         fetchStub
             .withArgs(
@@ -296,7 +329,7 @@ describe('collection placeholders', () => {
             .returns(createResponse(200, DICTIONARY_FOR_COLLECTION_RESPONSE));
         state.put(
             'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
-            '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","fragmentsIds":{"dictionary-id":"412fda08-7b73-4a01-a04f-1953e183bad2"}}',
+            '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","fragmentsIds":{"settings-id":"settings-id","dictionary-id":"412fda08-7b73-4a01-a04f-1953e183bad2"}}',
         );
         const result = await getFragment({
             id: '07f9729e-dc1f-4634-829d-7aa469bb0d33',
@@ -314,6 +347,7 @@ describe('pipeline corner cases', () => {
         fetchStub = sinon.stub(globalThis, 'fetch');
         mockDictionary(false, fetchStub);
         resetCache();
+        clearSettingsCache();
     });
 
     afterEach(() => {
@@ -376,6 +410,7 @@ describe('pipeline corner cases', () => {
                 fragmentsIds: {
                     'dictionary-id': 'sandbox_fr_FR_dictionary',
                     'default-locale-id': 'some-fr-fr-fragment',
+                    'settings-id': 'settings-id',
                 },
                 lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
                 hash: EXPECTED_BODY_HASH,
@@ -463,6 +498,7 @@ describe('pipeline corner cases', () => {
                 fragmentsIds: {
                     'dictionary-id': 'sandbox_fr_FR_dictionary',
                     'default-locale-id': 'some-fr-fr-fragment',
+                    'settings-id': 'settings-id',
                 },
                 lastModified: 'Tue, 21 Nov 2024 08:00:00 GMT',
                 hash: EXPECTED_BODY_HASH,
@@ -482,6 +518,7 @@ describe('pipeline corner cases', () => {
                 fragmentsIds: {
                     'dictionary-id': 'sandbox_fr_FR_dictionary',
                     'default-locale-id': 'some-fr-fr-fragment',
+                    'settings-id': 'settings-id',
                 },
                 hash: EXPECTED_BODY_HASH,
             }),
@@ -506,173 +543,186 @@ describe('pipeline corner cases', () => {
     });
 });
 
-describe('configuration caching', () => {
+describe('pipeline configuration caching', () => {
     beforeEach(() => {
         fetchStub = sinon.stub(globalThis, 'fetch');
         resetCache();
+        clearSettingsCache();
     });
 
     afterEach(() => {
         fetchStub.restore();
+        if (typeof performance !== 'undefined' && performance.now?.restore) {
+            performance.now.restore();
+        }
     });
 
     it('should cache configuration and reuse it on subsequent requests', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-            fields: {
-                description: 'corps',
-                cta: '{{buy-now}}',
-            },
-        });
+        let performanceStub;
+        let stateGetSpy;
+        try {
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+                fields: {
+                    description: 'corps',
+                    cta: '{{buy-now}}',
+                },
+            });
 
-        const state = new MockState();
-        await state.put('configuration', JSON.stringify({ debugLogs: true }));
-        const stateGetSpy = sinon.spy(state, 'get');
+            const state = new MockState();
+            await state.put('configuration', JSON.stringify({ debugLogs: true }));
+            stateGetSpy = sinon.spy(state, 'get');
 
-        const result1 = await getFragment({
-            id: 'some-en-us-fragment',
-            state,
-            locale: 'fr_FR',
-        });
-        expect(result1.statusCode).to.equal(200);
+            const result1 = await getFragment({
+                id: 'some-en-us-fragment',
+                state,
+                locale: 'fr_FR',
+            });
+            expect(result1.statusCode).to.equal(200);
 
-        const result2 = await getFragment({
-            id: 'some-en-us-fragment',
-            state,
-            locale: 'fr_FR',
-        });
-        expect(result2.statusCode).to.equal(200);
-        expect(result1.body).to.deep.equal(result2.body);
+            const result2 = await getFragment({
+                id: 'some-en-us-fragment',
+                state,
+                locale: 'fr_FR',
+            });
+            expect(result2.statusCode).to.equal(200);
+            expect(result1.body).to.deep.equal(result2.body);
 
-        let configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(1);
+            let configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
+            expect(configCalls).to.have.length(1);
 
-        const performanceStub = sinon.stub(performance, 'now');
-        // Return a time that's guaranteed to be > 5 minutes after any test start time
-        // Tests typically start around 0-2000ms, so 305000 ensures > 5min difference
-        performanceStub.returns(5 * 60 * 1000 + 5000);
+            performanceStub = sinon.stub(performance, 'now');
+            performanceStub.returns(5 * 60 * 1000 + 5000);
 
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-            fields: {
-                description: 'corps',
-                cta: '{{buy-now}}',
-            },
-        });
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+                fields: {
+                    description: 'corps',
+                    cta: '{{buy-now}}',
+                },
+            });
 
-        const result3 = await getFragment({
-            id: 'some-en-us-fragment',
-            state,
-            locale: 'fr_FR',
-        });
-        expect(result3.statusCode).to.equal(200);
+            const result3 = await getFragment({
+                id: 'some-en-us-fragment',
+                state,
+                locale: 'fr_FR',
+            });
+            expect(result3.statusCode).to.equal(200);
 
-        configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(2);
-
-        performanceStub.restore();
-        stateGetSpy.restore();
+            configCalls = stateGetSpy.getCalls().filter((call) => call.args[0] === 'configuration');
+            expect(configCalls).to.have.length(2);
+        } finally {
+            if (performanceStub?.restore) performanceStub.restore();
+            if (stateGetSpy?.restore) stateGetSpy.restore();
+        }
     });
 
     it('should use stale cache when configuration refresh times out', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
-
-        const state = new MockState();
-        await state.put('configuration', JSON.stringify({ debugLogs: true }));
-
-        const originalGet = state.get.bind(state);
-        const stateGetStub = sinon.stub(state, 'get');
-        stateGetStub.callsFake(async (key) => {
-            if (key === 'configuration') {
-                await new Promise((resolve) => setTimeout(resolve, 250));
-            }
-            return originalGet(key);
-        });
-
-        const result1 = await getFragment({
-            id: 'some-en-us-fragment',
-            state,
-            locale: 'fr_FR',
-        });
-        expect(result1.statusCode).to.equal(200);
-        let configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(1);
-
         const performanceStub = sinon.stub(performance, 'now');
-        performanceStub.returns(5 * 60 * 1000 + 1000);
+        let stateGetStub;
+        try {
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
 
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
+            const state = new MockState();
+            await state.put('configuration', JSON.stringify({ debugLogs: true }));
 
-        const result2 = await getFragment({
-            id: 'some-en-us-fragment',
-            state,
-            locale: 'fr_FR',
-        });
+            const originalGet = state.get.bind(state);
+            stateGetStub = sinon.stub(state, 'get');
+            stateGetStub.callsFake(async (key) => {
+                if (key === 'configuration') {
+                    await new Promise((resolve) => setTimeout(resolve, 250));
+                }
+                return originalGet(key);
+            });
 
-        expect(result2.statusCode).to.equal(200);
-        configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(2);
+            const result1 = await getFragment({
+                id: 'some-en-us-fragment',
+                state,
+                locale: 'fr_FR',
+            });
+            expect(result1.statusCode).to.equal(200);
+            let configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
+            expect(configCalls).to.have.length(1);
 
-        performanceStub.restore();
-        stateGetStub.restore();
+            performanceStub.returns(5 * 60 * 1000 + 1000);
+
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
+
+            const result2 = await getFragment({
+                id: 'some-en-us-fragment',
+                state,
+                locale: 'fr_FR',
+            });
+
+            expect(result2.statusCode).to.equal(200);
+            configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
+            expect(configCalls).to.have.length(2);
+        } finally {
+            performanceStub.restore();
+            if (stateGetStub?.restore) stateGetStub.restore();
+        }
     });
 
     it('should respect configTimeout from networkConfig', async () => {
+        if (performance.now.restore) performance.now.restore();
         const performanceStub = sinon.stub(performance, 'now');
-        performanceStub.returns(0);
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
+        let stateGetStub;
+        try {
+            performanceStub.returns(0);
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
 
-        const state = new MockState();
-        await state.put('configuration', '{"networkConfig":{"configTimeout": 50}}');
+            const state = new MockState();
+            await state.put('configuration', '{"networkConfig":{"configTimeout": 50}}');
 
-        const originalGet = state.get.bind(state);
-        const stateGetStub = sinon.stub(state, 'get');
-        stateGetStub.callsFake(async (key) => {
-            if (key === 'configuration') {
-                await new Promise((resolve) => setTimeout(resolve, 100));
-            }
-            return originalGet(key);
-        });
+            const originalGet = state.get.bind(state);
+            stateGetStub = sinon.stub(state, 'get');
+            stateGetStub.callsFake(async (key) => {
+                if (key === 'configuration') {
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                }
+                return originalGet(key);
+            });
 
-        const result1 = await getFragment({
-            id: 'some-en-us-fragment',
-            state,
-            locale: 'fr_FR',
-        });
-        expect(result1.statusCode).to.equal(200);
-        let configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(1);
+            const result1 = await getFragment({
+                id: 'some-en-us-fragment',
+                state,
+                locale: 'fr_FR',
+            });
+            expect(result1.statusCode).to.equal(200);
+            let configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
+            expect(configCalls).to.have.length(1);
 
-        performanceStub.returns(5 * 60 * 1000 + 5000);
+            performanceStub.returns(5 * 60 * 1000 + 5000);
 
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
 
-        const result2 = await getFragment({
-            id: 'some-en-us-fragment',
-            state,
-            locale: 'fr_FR',
-        });
+            const result2 = await getFragment({
+                id: 'some-en-us-fragment',
+                state,
+                locale: 'fr_FR',
+            });
 
-        expect(result2.statusCode).to.equal(200);
-        configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
-        expect(configCalls).to.have.length(2);
-
-        performanceStub.restore();
-        stateGetStub.restore();
+            expect(result2.statusCode).to.equal(200);
+            configCalls = stateGetStub.getCalls().filter((call) => call.args[0] === 'configuration');
+            expect(configCalls).to.have.length(2);
+        } finally {
+            performanceStub.restore();
+            if (stateGetStub?.restore) stateGetStub.restore();
+        }
     });
 });
 
@@ -680,6 +730,7 @@ describe('caching headers', () => {
     beforeEach(() => {
         fetchStub = sinon.stub(globalThis, 'fetch');
         resetCache();
+        clearSettingsCache();
     });
 
     afterEach(() => {
@@ -710,6 +761,7 @@ describe('caching headers', () => {
                 fragmentsIds: {
                     'dictionary-id': 'sandbox_fr_FR_dictionary',
                     'default-locale-id': 'some-fr-fr-fragment',
+                    'settings-id': 'settings-id',
                 },
                 lastModified: RANDOM_OLD_DATE,
                 hash: EXPECTED_BODY_HASH,

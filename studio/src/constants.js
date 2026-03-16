@@ -113,6 +113,8 @@ export const STATUS_MODIFIED = 'MODIFIED';
 export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
+    SETTINGS: 'settings',
+    SETTINGS_EDITOR: 'settings-editor',
     CONTENT: 'content',
     VERSION: 'version',
     FRAGMENT_EDITOR: 'fragment-editor',
@@ -211,6 +213,7 @@ export const QUICK_ACTION = {
     SAVE: 'save',
     DUPLICATE: 'duplicate',
     PUBLISH: 'publish',
+    UNPUBLISH: 'unpublish',
     CANCEL: 'cancel',
     COPY: 'copy',
     LOCK: 'lock',

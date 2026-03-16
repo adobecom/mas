@@ -193,11 +193,15 @@ class AEM {
     /**
      * Get fragment by path
      * @param {string} path fragment path
+     * @param {Object} options query options
+     * @param {string} options.references references query value
      * @returns {Promise<Object>} the raw fragment item
      */
-    async getFragmentByPath(path) {
+    async getFragmentByPath(path, options = {}) {
         const headers = this.#author ? this.headers : {};
-        const response = await fetch(`${this.cfFragmentsUrl}?path=${path}`, {
+        const params = new URLSearchParams({ path });
+        if (options.references) params.set('references', options.references);
+        const response = await fetch(`${this.cfFragmentsUrl}?${params.toString()}`, {
             headers,
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
@@ -457,12 +461,38 @@ class AEM {
     }
 
     /**
+     * Unpublish a fragment
+     * @param {Object} fragment
+     * @returns {Promise<void>}
+     */
+    async unpublishFragment(fragment) {
+        const response = await fetch(this.cfPublishUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'If-Match': fragment.etag,
+                ...this.headers,
+            },
+            body: JSON.stringify({
+                paths: [fragment.path],
+                workflowModelId: '/var/workflow/models/scheduled_deactivation',
+            }),
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to unpublish fragment: ${response.status} ${response.statusText}`);
+        }
+        return await response.json();
+    }
+
+    /**
      * Publish multiple fragments in a single request
      * @param {Array<Object>} fragments - Array of fragment objects
      * @param {Array<string>} publishReferencesWithStatus - Statuses to include references for
      * @returns {Promise<void>}
      */
-    async publishFragments(fragments, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED']) {
+    async publishFragments(fragments, publishReferencesWithStatus = []) {
         if (!fragments || fragments.length === 0) {
             throw new Error('No fragments provided to publish');
         }
@@ -1285,6 +1315,10 @@ class AEM {
                  * @see AEM#publishFragments
                  */
                 publishFragments: this.publishFragments.bind(this),
+                /**
+                 * @see AEM#unpublishFragment
+                 */
+                unpublish: this.unpublishFragment.bind(this),
                 /**
                  * @see AEM#deleteFragment
                  */

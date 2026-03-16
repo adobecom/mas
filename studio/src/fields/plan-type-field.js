@@ -59,8 +59,13 @@ export class PlanTypeField extends LitElement {
 
     #handleToggle(e) {
         this.isEditable = e.target.checked;
-        this.value = this.isEditable ? (this.showPlanType ? 'true' : 'false') : 'false';
-        this.dispatchInputEvent(this.value);
+        if (this.isEditable) {
+            this.value = this.showPlanType ? 'true' : 'false';
+            this.dispatchInputEvent(this.value);
+        } else {
+            this.value = '';
+            this.dispatchInputEvent(this.value);
+        }
     }
 
     #handleCheckbox(e) {

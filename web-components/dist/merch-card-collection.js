@@ -2522,6 +2522,16 @@ merch-card[variant="plans-education"] [slot="body-xs"] span.price.price-promo-st
     font-weight: 700;
 }
 
+merch-card[variant^="plans"] [slot="heading-m"] p {
+    font-size: var(--consonant-merch-card-heading-xxxs-font-size);
+    line-height: var(--consonant-merch-card-body-xs-line-height);
+}
+
+merch-card[variant^="plans"] [slot="heading-m"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal) {
+    font-size: var(--consonant-merch-card-heading-m-font-size);
+    line-height: var(--consonant-merch-card-heading-m-line-height);
+}
+
 merch-card[variant^="plans"] [slot='heading-xs'],
 merch-card[variant="plans-education"] span.heading-xs,
 merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough) {

@@ -118,6 +118,7 @@ export default class BaseReporter {
         const passPercentage = ((this.passedTests / totalTests) * 100).toFixed(2);
         const failPercentage = ((this.failedTests / totalTests) * 100).toFixed(2);
         const miloLibs = process.env.MILO_LIBS || '';
+        const masIOUrl = process.env.MAS_IO_URL || '';
         const prBranchUrl = process.env.PR_BRANCH_LIVE_URL ? process.env.PR_BRANCH_LIVE_URL + miloLibs : undefined;
         const projectBaseUrl = this.config.projects[0].use.baseURL;
         const envURL = prBranchUrl ? prBranchUrl : projectBaseUrl;
@@ -148,6 +149,7 @@ export default class BaseReporter {
     \x1b[1m\x1b[33m# Test Fail          :\x1b[0m \x1b[31m${this.failedTests} (${failPercentage}%)\x1b[0m
     \x1b[1m\x1b[33m# Test Skipped       :\x1b[0m \x1b[32m${this.skippedTests}\x1b[0m
     \x1b[1m\x1b[33m** Application URL   :\x1b[0m \x1b[32m${envURL}\x1b[0m
+    ${masIOUrl ? `    \x1b[1m\x1b[33m** MAS IO URL       :\x1b[0m \x1b[32m${masIOUrl}\x1b[0m` : ''}
     \x1b[1m\x1b[33m** Executed on       :\x1b[0m \x1b[32m${exeEnv}\x1b[0m
     \x1b[1m\x1b[33m** Execution details :\x1b[0m \x1b[32m${runUrl}\x1b[0m
     \x1b[1m\x1b[33m** Workflow name     :\x1b[0m \x1b[32m${runName}\x1b[0m`;

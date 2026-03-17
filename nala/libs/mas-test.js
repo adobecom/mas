@@ -28,7 +28,7 @@ let individuals;
 let fullPricingExpress;
 let ost;
 let translationEditor;
-let translationsPage;
+let translations;
 let webUtil;
 let versionPage;
 let clonedCardID = '';
@@ -73,7 +73,7 @@ const masTest = base.extend({
         fullPricingExpress = new EXPRESSFullPricingPage(page);
         ost = new OSTPage(page);
         translationEditor = new TranslationEditorPage(page);
-        translationsPage = new TranslationsPage(page);
+        translations = new TranslationsPage(page);
         webUtil = new WebUtil(page);
         versionPage = new VersionPage(page);
         // Initialize counter
@@ -124,7 +124,7 @@ export {
     fullPricingExpress,
     ost,
     translationEditor,
-    translationsPage,
+    translations,
     webUtil,
     versionPage,
     setClonedCardID,

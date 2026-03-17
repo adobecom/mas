@@ -1,4 +1,4 @@
-import { test, expect, translationsPage, translationEditor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, translations, translationEditor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import { getTitle } from '../../../utils/fragment-tracker.js';
 import TranslationsPage from '../translations.page.js';
 import TranslationsSpec from '../specs/translations.spec.js';
@@ -17,18 +17,18 @@ test.describe('M@S Studio Translations Test Suite', () => {
         });
 
         await test.step('step-2: Wait for list to load', async () => {
-            await translationsPage.waitForListToLoad();
+            await translations.waitForListToLoad();
         });
 
         await test.step('step-3: Validate table is visible with at least 3 projects and sorted newest first', async () => {
-            await expect(translationsPage.translationTable).toBeVisible();
-            const rowCount = await translationsPage.tableRows.count();
+            await expect(translations.translationTable).toBeVisible();
+            const rowCount = await translations.tableRows.count();
             expect(rowCount).toBeGreaterThanOrEqual(3);
-            const allTitles = await translationsPage.getAllProjectTitles();
+            const allTitles = await translations.getAllProjectTitles();
             expect(allTitles.find((t) => t.includes('loc 1'))).toBeDefined();
             expect(allTitles.find((t) => t.includes('loc 2'))).toBeDefined();
             expect(allTitles.find((t) => t.includes('loc 3'))).toBeDefined();
-            const sentOnTexts = await translationsPage.getSentOnColumnTexts();
+            const sentOnTexts = await translations.getSentOnColumnTexts();
             const timestamps = sentOnTexts.map(TranslationsPage.parseSentOnText);
             for (let i = 1; i < timestamps.length; i++) {
                 expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
@@ -36,14 +36,14 @@ test.describe('M@S Studio Translations Test Suite', () => {
         });
 
         await test.step('step-4: Validate table headers', async () => {
-            await expect(translationsPage.tableHeaders.translationProject).toBeVisible();
-            await expect(translationsPage.tableHeaders.translationProject).toHaveText('Translation Project');
-            await expect(translationsPage.tableHeaders.lastUpdatedBy).toBeVisible();
-            await expect(translationsPage.tableHeaders.lastUpdatedBy).toHaveText('Last updated by');
-            await expect(translationsPage.tableHeaders.sentOn).toBeVisible();
-            await expect(translationsPage.tableHeaders.sentOn).toHaveText('Sent on');
-            await expect(translationsPage.tableHeaders.actions).toBeVisible();
-            await expect(translationsPage.tableHeaders.actions).toHaveText('Actions');
+            await expect(translations.tableHeaders.translationProject).toBeVisible();
+            await expect(translations.tableHeaders.translationProject).toHaveText('Translation Project');
+            await expect(translations.tableHeaders.lastUpdatedBy).toBeVisible();
+            await expect(translations.tableHeaders.lastUpdatedBy).toHaveText('Last updated by');
+            await expect(translations.tableHeaders.sentOn).toBeVisible();
+            await expect(translations.tableHeaders.sentOn).toHaveText('Sent on');
+            await expect(translations.tableHeaders.actions).toBeVisible();
+            await expect(translations.tableHeaders.actions).toHaveText('Actions');
         });
     });
 
@@ -55,9 +55,9 @@ test.describe('M@S Studio Translations Test Suite', () => {
         await test.step('step-1: Navigate to Translations and click Create project', async () => {
             await page.goto(translationsUrl);
             await page.waitForLoadState('domcontentloaded');
-            await translationsPage.waitForListToLoad();
-            await expect(translationsPage.translationTable).toBeVisible();
-            await translationsPage.createProjectButton.click();
+            await translations.waitForListToLoad();
+            await expect(translations.translationTable).toBeVisible();
+            await translations.createProjectButton.click();
             await page.waitForTimeout(2000);
             await expect(page).toHaveURL(/page=translation-editor/);
         });
@@ -70,23 +70,23 @@ test.describe('M@S Studio Translations Test Suite', () => {
         await test.step('step-3: Go back to Translations and verify new project is first', async () => {
             await page.goto(translationsUrl);
             await page.waitForLoadState('domcontentloaded');
-            await translationsPage.waitForListToLoad();
-            await expect(translationsPage.translationTable).toBeVisible();
-            await expect(translationsPage.firstRowTitleCell).toHaveText(projectTitle, { timeout: 20000 });
+            await translations.waitForListToLoad();
+            await expect(translations.translationTable).toBeVisible();
+            await expect(translations.firstRowTitleCell).toHaveText(projectTitle, { timeout: 20000 });
         });
 
         await test.step('step-4: Open Actions and delete the project', async () => {
-            await translationsPage.firstRowActionMenu.click();
+            await translations.firstRowActionMenu.click();
             await page.getByRole('menuitem', { name: 'Delete' }).click();
             await page.waitForTimeout(500);
-            await expect(translationsPage.deleteConfirmDialog).toBeVisible({ timeout: 10000 });
-            await translationsPage.deleteConfirmButton.click();
+            await expect(translations.deleteConfirmDialog).toBeVisible({ timeout: 10000 });
+            await translations.deleteConfirmButton.click();
             await page.waitForTimeout(1500);
         });
 
         await test.step('step-5: Verify project removed from list', async () => {
-            await translationsPage.waitForListToLoad();
-            const firstTitle = await translationsPage.firstRowTitleCell.textContent().catch(() => '');
+            await translations.waitForListToLoad();
+            const firstTitle = await translations.firstRowTitleCell.textContent().catch(() => '');
             expect(firstTitle).not.toBe(projectTitle);
         });
     });

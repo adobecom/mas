@@ -82,9 +82,9 @@ export function getCurrentTestName() {
 function sanitizeTestName(name) {
     if (!name || typeof name !== 'string') return '';
     return name
-        .replace(/[/\\:*?"<>|,@\s]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '')
+        .replace(/[/\\:*?"<>|,@]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
         .slice(0, 80);
 }
 
@@ -95,8 +95,8 @@ function sanitizeTestName(name) {
 export function getTitle() {
     const runId = getCurrentRunId();
     const base = `MAS.Nala.Automation.${runId}`;
-    const tag = sanitizeTestName(getCurrentTestName());
-    return tag ? `${base}.${tag}` : base;
+    const testName = sanitizeTestName(getCurrentTestName());
+    return testName ? `${base}.${testName}` : base;
 }
 
 // Default export for backward compatibility

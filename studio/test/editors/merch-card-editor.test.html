@@ -732,6 +732,7 @@
                             parentOverrides = {},
                             isVariation = true,
                             testId = 'settings',
+                            settingsRows = createDefaultSettingsRows(),
                         } = {}) {
                             const parentData = {
                                 ...buildSettingsFragment(parentOverrides),
@@ -760,7 +761,7 @@
                             Store.placeholders.preview.set({});
                             Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: 'en_AU' }));
                             Store.viewMode.set('editing');
-                            Store.settings.rows.set(createDefaultSettingsRows());
+                            Store.settings.rows.set(settingsRows);
 
                             layoutContainer = document.createElement('div');
                             layoutContainer.style.cssText = 'display: flex; width: 100%;';
@@ -972,6 +973,18 @@
 
                             const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
                             expect(planTypeIndicator).to.not.exist;
+                        });
+
+                        it('resolves global settings for variations that inherit variant from the parent', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { variant: [] },
+                                testId: 'variation-inherits-variant-for-settings',
+                            });
+
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal(true);
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('{{secure-label-default}}');
                         });
 
                         it('Restore all resets only overridden variation settings to parent values', async () => {

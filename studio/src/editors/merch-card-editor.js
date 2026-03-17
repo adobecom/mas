@@ -250,8 +250,33 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetSectionToParent(fieldNames));
     }
 
+    getSettingsContextFragment() {
+        if (!this.effectiveIsVariation || !this.localeDefaultFragment) {
+            return this.fragment;
+        }
+
+        const fragment = structuredClone(this.fragment);
+        const inheritedVariant = this.localeDefaultFragment.getFieldValue('variant');
+        const ownVariant = this.fragment.getFieldValue('variant');
+
+        if ((ownVariant === undefined || ownVariant === null || ownVariant === '') && inheritedVariant) {
+            const variantField = fragment.fields.find((field) => field.name === 'variant');
+            if (variantField) {
+                variantField.values = [inheritedVariant];
+            } else {
+                fragment.fields.push({ name: 'variant', type: 'text', multiple: false, values: [inheritedVariant] });
+            }
+        }
+
+        if (!(fragment.tags || []).length && (this.localeDefaultFragment.tags || []).length) {
+            fragment.tags = structuredClone(this.localeDefaultFragment.tags);
+        }
+
+        return fragment;
+    }
+
     getEffectiveSettingValue(fieldName) {
-        const globalDefaults = getGlobalSettingsDefaults(this.fragment, Store.settings.rows.get());
+        const globalDefaults = getGlobalSettingsDefaults(this.getSettingsContextFragment(), Store.settings.rows.get());
         const value = this.getEffectiveFieldValue(fieldName, 0);
         if (value === undefined || value === null || value === '') {
             return globalDefaults[fieldName] ?? '';
@@ -378,13 +403,6 @@ class MerchCardEditor extends LitElement {
     }
 
     firstUpdated() {}
-
-    updated() {
-        if (this.effectiveIsVariation) return;
-        const surface = Store.surface();
-        if (!surface) return;
-        void Store.settings.ensureSurfaceLoaded(surface);
-    }
 
     get whatsIncludedElement() {
         const whatsIncludedHtml = this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '';
@@ -523,9 +541,12 @@ class MerchCardEditor extends LitElement {
 
     async updated(changedProperties) {
         super.updated(changedProperties);
+        const surface = Store.surface();
+        if (surface) {
+            Store.settings.ensureSurfaceLoaded(surface);
+        }
         if (!this.fieldsReady && this.fragment) {
             await this.updateComplete;
-            void this.offsetHeight;
             await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
             this.toggleFields();
         }

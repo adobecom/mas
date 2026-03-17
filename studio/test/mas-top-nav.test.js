@@ -394,30 +394,21 @@ describe('MasTopNav', () => {
         });
     });
 
-    describe('currentFragmentLocale getter', () => {
-        it('should return locale from current fragment in editor', async () => {
-            const fragmentStore = {
-                get: () => ({ path: '/content/dam/mas/s/fr_FR/f' }),
-            };
-            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
-            Store.fragments.inEdit.value = fragmentStore;
-
-            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            expect(el.currentFragmentLocale).to.equal('fr_FR');
-        });
-
-        it('should return null if not on fragment editor page', async () => {
+    describe('locale picker region awareness', () => {
+        it('should pass Store.localeOrRegion() to locale picker', async () => {
             Store.page.value = PAGE_NAMES.CONTENT;
-            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            expect(el.currentFragmentLocale).to.be.null;
+            Store.search.set((prev) => ({ ...prev, region: null }));
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const localePicker = el.querySelector('mas-locale-picker');
+            expect(localePicker.getAttribute('locale')).to.equal('en_US');
         });
 
-        it('should pass currentFragmentLocale to locale picker when viewing a variation', async () => {
-            const fragmentStore = {
-                get: () => ({ path: '/content/dam/mas/s/en_GB/f' }),
-            };
+        it('should reflect region override in locale picker via Store.localeOrRegion()', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
-            Store.fragments.inEdit.value = fragmentStore;
+            Store.search.set((prev) => ({ ...prev, region: 'en_GB' }));
 
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;

@@ -138,7 +138,7 @@
                             expect(el.currentLocale.lang).to.equal('ja');
                         });
                         it('should initialize with default locale if requested locale is not present on surface', async function () {
-                            setContext('ar_SA'); // Assume es_MX is not on default surface
+                            setContext('en_US'); // Store says en_US, element has ar_SA which is not on surface
                             const el = initElementFromTemplate('nonpresentLocale', this.test.title);
                             await el.updateComplete;
                             expect(el.locale).to.equal('en_US'); // Fallback to en_US

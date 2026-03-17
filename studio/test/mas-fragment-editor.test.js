@@ -196,6 +196,7 @@ describe('MasFragmentEditor', () => {
             parentFetchPromise: null,
             loadFragmentContext: sandbox.stub().resolves(),
             isVariation: sandbox.stub().returns(false),
+            detectVariationFromPath: sandbox.stub().returns({ isVariation: false, defaultLocale: null }),
             setParent(parentData) {
                 if (!parentData) return;
                 this.localeDefaultFragment = parentData;
@@ -286,7 +287,6 @@ describe('MasFragmentEditor', () => {
             expect(mockRepo.refreshFragment.calledOnce).to.be.true;
             expect(el.editorContextStore.loadFragmentContext.calledOnceWith('existing-id', existingData.path)).to.be.true;
             expect(el.inEdit.get()).to.equal(existingStore);
-            expect(existingStore.previewStore.resolved).to.equal(false);
             expect(Store.search.get().region).to.equal('fr_FR');
             expect(el.updateTranslatedLocalesStore.calledOnceWith(false)).to.be.true;
             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);

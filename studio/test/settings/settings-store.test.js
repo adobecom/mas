@@ -278,6 +278,40 @@ describe('Settings Store Namespace', () => {
         expect(defaults.addon).to.equal('{{addon-checkout}}');
     });
 
+    it('deduplicates in-flight surface loads for the same surface', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-display-plan-type',
+            name: 'displayPlanType',
+            templates: ['plans'],
+            value: true,
+            path: '/content/dam/mas/sandbox/settings/display-plan-type',
+        });
+        const harness = createMutationHarness({ topLevel });
+        const originalGetByPath = harness.aem.sites.cf.fragments.getByPath;
+        let resolveDeferred;
+        const deferred = new Promise((resolve) => {
+            resolveDeferred = resolve;
+        });
+        let getByPathCalls = 0;
+
+        harness.aem.sites.cf.fragments.getByPath = async (path) => {
+            getByPathCalls += 1;
+            await deferred;
+            return originalGetByPath(path);
+        };
+
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+
+        const firstLoad = store.loadSurface('sandbox');
+        const secondLoad = store.ensureSurfaceLoaded('sandbox');
+
+        resolveDeferred();
+        await Promise.all([firstLoad, secondLoad]);
+
+        expect(getByPathCalls).to.equal(1);
+    });
+
     it('reuses row stores by fragment id', () => {
         const store = new SettingsStore();
         store.setSettingFragments([

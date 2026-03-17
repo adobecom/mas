@@ -362,7 +362,7 @@
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('overridden');
                         expect(editor.mnemonics).to.have.length(0);
 
-                        const indicator = editor.querySelector('#mnemonics .field-status-indicator a');
+                        const indicator = editor.querySelector('#mnemonics .field-status-indicator sp-action-button');
                         indicator.click();
 
                         await editor.updateComplete;
@@ -410,10 +410,12 @@
                             'overridden',
                         );
 
-                        editor.querySelector('sp-field-group#badge .field-status-indicator a').click();
-                        editor.querySelector('sp-field-group#badgeColor .field-status-indicator a').click();
-                        editor.querySelector('sp-field-group#badgeBorderColor .field-status-indicator a').click();
-                        editor.querySelector('sp-field-group#border-color .field-status-indicator a').click();
+                        editor.querySelector('sp-field-group#badge .field-status-indicator sp-action-button').click();
+                        editor.querySelector('sp-field-group#badgeColor .field-status-indicator sp-action-button').click();
+                        editor
+                            .querySelector('sp-field-group#badgeBorderColor .field-status-indicator sp-action-button')
+                            .click();
+                        editor.querySelector('sp-field-group#border-color .field-status-indicator sp-action-button').click();
 
                         await editor.updateComplete;
 
@@ -484,7 +486,7 @@
                             expect(editor.getFieldState(field)).to.equal('overridden');
                             expect(saveNavItem.disabled).to.be.true;
 
-                            const indicator = editor.querySelector(`${selector} .field-status-indicator a`);
+                            const indicator = editor.querySelector(`${selector} .field-status-indicator sp-action-button`);
                             indicator.click();
                             await editor.updateComplete;
                             await sideNav.updateComplete;
@@ -499,7 +501,7 @@
                         editor.fragment.newTags = ['mas:product/illustrator'];
                         await editor.updateComplete;
 
-                        const indicator = editor.querySelector('#tags .field-status-indicator a');
+                        const indicator = editor.querySelector('#tags .field-status-indicator sp-action-button');
                         indicator.click();
                         await editor.updateComplete;
                         await sideNav.updateComplete;

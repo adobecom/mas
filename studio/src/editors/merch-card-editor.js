@@ -166,16 +166,10 @@ class MerchCardEditor extends LitElement {
     #renderOverrideIndicatorLink(resetCallback) {
         return html`
             <div class="field-status-indicator">
-                <a
-                    href="javascript:void(0)"
-                    @click=${(e) => {
-                        e.preventDefault();
-                        resetCallback();
-                    }}
-                >
-                    <sp-icon-unlink></sp-icon-unlink>
+                <sp-action-button quiet @click=${resetCallback}>
+                    <sp-icon-unlink slot="icon"></sp-icon-unlink>
                     Overridden. Click to restore.
-                </a>
+                </sp-action-button>
             </div>
         `;
     }
@@ -257,9 +251,6 @@ class MerchCardEditor extends LitElement {
     }
 
     getEffectiveSettingValue(fieldName) {
-        if (!this.effectiveIsVariation) {
-            void Store.settings.ensureSurfaceLoaded(Store.surface());
-        }
         const globalDefaults = getGlobalSettingsDefaults(this.fragment, Store.settings.rows.get());
         const value = this.getEffectiveFieldValue(fieldName, 0);
         if (value === undefined || value === null || value === '') {
@@ -337,16 +328,7 @@ class MerchCardEditor extends LitElement {
     get settingsRestoreAllTemplate() {
         if (!this.isAnySettingOverridden) return nothing;
         return html`
-            <a
-                class="restore-all-link"
-                href="javascript:void(0)"
-                @click=${(e) => {
-                    e.preventDefault();
-                    this.resetAllSettings();
-                }}
-            >
-                Restore all
-            </a>
+            <sp-action-button class="restore-all-link" quiet @click=${this.resetAllSettings}>Restore all</sp-action-button>
         `;
     }
 
@@ -381,7 +363,7 @@ class MerchCardEditor extends LitElement {
     willUpdate(changedProperties) {
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
-            this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows]);
+            this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows, Store.search]);
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
             this.#updateAvailableColors();
@@ -396,6 +378,13 @@ class MerchCardEditor extends LitElement {
     }
 
     firstUpdated() {}
+
+    updated() {
+        if (this.effectiveIsVariation) return;
+        const surface = Store.surface();
+        if (!surface) return;
+        void Store.settings.ensureSurfaceLoaded(surface);
+    }
 
     get whatsIncludedElement() {
         const whatsIncludedHtml = this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '';
@@ -708,17 +697,11 @@ class MerchCardEditor extends LitElement {
                     color: var(--spectrum-blue-700);
                 }
 
-                .field-status-indicator a {
-                    color: var(--spectrum-blue-700);
-                    text-decoration: none;
-                    cursor: pointer;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                }
-
-                .field-status-indicator a:hover {
-                    text-decoration: underline;
+                .field-status-indicator sp-action-button {
+                    --mod-actionbutton-icon-color-default: var(--spectrum-blue-700);
+                    --mod-actionbutton-label-color-default: var(--spectrum-blue-700);
+                    --mod-actionbutton-icon-color-hover: var(--spectrum-blue-800);
+                    --mod-actionbutton-label-color-hover: var(--spectrum-blue-800);
                 }
 
                 .section-title {
@@ -814,14 +797,8 @@ class MerchCardEditor extends LitElement {
                 }
 
                 .restore-all-link {
-                    font-size: 13px;
-                    color: var(--spectrum-blue-700);
-                    cursor: pointer;
-                    text-decoration: none;
-                }
-
-                .restore-all-link:hover {
-                    text-decoration: underline;
+                    --mod-actionbutton-label-color-default: var(--spectrum-blue-700);
+                    --mod-actionbutton-label-color-hover: var(--spectrum-blue-800);
                 }
 
                 .setting-override-indicator {

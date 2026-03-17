@@ -222,6 +222,8 @@ export class SettingsStore {
 
     #sourceFragment = null;
     #surface = '';
+    #loadingSurface = '';
+    #loadSurfacePromise = null;
 
     constructor(bucket = '', baseUrl = '') {
         this.bucket = bucket;
@@ -258,13 +260,20 @@ export class SettingsStore {
 
     async ensureSurfaceLoaded(surface) {
         if (!surface) return;
-        if (surface === this.#surface) return;
+        if (surface === this.#surface) return this.#loadSurfacePromise;
         return this.loadSurface(surface);
     }
 
     async loadSurface(surface) {
-        this.#surface = surface || '';
-        if (!this.#surface) {
+        const nextSurface = surface || '';
+        if (nextSurface && this.#loadingSurface === nextSurface && this.#loadSurfacePromise) {
+            return this.#loadSurfacePromise;
+        }
+
+        this.#surface = nextSurface;
+        if (!nextSurface) {
+            this.#loadingSurface = '';
+            this.#loadSurfacePromise = null;
             this.error.set(null);
             this.setSettingFragments([]);
             return;
@@ -272,31 +281,47 @@ export class SettingsStore {
 
         if (!this.aem) return;
 
-        this.loading.set(true);
-        this.error.set(null);
+        this.#loadingSurface = nextSurface;
+        const settingsPath = `${ROOT_PATH}/${nextSurface}/settings`;
+        const indexPath = `${settingsPath}/index`;
+        const loadPromise = (async () => {
+            this.loading.set(true);
+            this.error.set(null);
 
-        try {
-            let indexFragment;
             try {
-                indexFragment = await this.aem.sites.cf.fragments.getByPath(this.#indexPath, {
-                    references: 'direct-hydrated',
-                });
-            } catch (error) {
-                if (!INDEX_NOT_FOUND_MESSAGES.some((message) => error.message.includes(message))) {
-                    throw error;
+                let indexFragment;
+                try {
+                    indexFragment = await this.aem.sites.cf.fragments.getByPath(indexPath, {
+                        references: 'direct-hydrated',
+                    });
+                } catch (error) {
+                    if (!INDEX_NOT_FOUND_MESSAGES.some((message) => error.message.includes(message))) {
+                        throw error;
+                    }
+                    await this.#createIndexFragment(settingsPath, indexPath);
+                    this.setSettingFragments([]);
+                    return;
                 }
-                await this.#createIndexFragment();
-                this.setSettingFragments([]);
-                return;
+                this.#setRowsFromIndex(indexFragment);
+            } catch (error) {
+                this.error.set('Failed to load settings.');
+                showToast('Failed to load settings.', 'negative');
+                this.setSettingFragments([], new Map(), false);
+            } finally {
+                if (this.#loadingSurface === nextSurface) {
+                    this.#loadingSurface = '';
+                }
+                this.loading.set(false);
             }
-            this.#setRowsFromIndex(indexFragment);
-        } catch (error) {
-            this.error.set('Failed to load settings.');
-            showToast('Failed to load settings.', 'negative');
-            this.setSettingFragments([], new Map(), false);
-        } finally {
-            this.loading.set(false);
-        }
+        })();
+
+        const wrappedPromise = loadPromise.finally(() => {
+            if (this.#loadSurfacePromise === wrappedPromise) {
+                this.#loadSurfacePromise = null;
+            }
+        });
+        this.#loadSurfacePromise = wrappedPromise;
+        return wrappedPromise;
     }
 
     setSourceFragment(fragment) {
@@ -898,14 +923,14 @@ export class SettingsStore {
         }
     }
 
-    async #createIndexFragment() {
-        const surfacePath = this.#settingsPath.slice(0, this.#settingsPath.lastIndexOf('/'));
+    async #createIndexFragment(settingsPath = this.#settingsPath, indexPath = this.#indexPath) {
+        const surfacePath = settingsPath.slice(0, settingsPath.lastIndexOf('/'));
         await this.aem.folders.create(surfacePath, 'settings', 'settings');
         await this.aem.wait(2000);
         let fragment;
         try {
             fragment = await this.aem.sites.cf.fragments.create({
-                parentPath: this.#settingsPath,
+                parentPath: settingsPath,
                 modelId: SETTINGS_INDEX_MODEL_ID,
                 name: 'index',
                 title: 'Settings Index',
@@ -917,7 +942,7 @@ export class SettingsStore {
             });
         } catch (error) {
             if (!`${error?.message || ''}`.includes('already exists')) throw error;
-            return this.aem.sites.cf.fragments.getByPath(this.#indexPath);
+            return this.aem.sites.cf.fragments.getByPath(indexPath);
         }
         await this.aem.wait(2000);
         const withEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);

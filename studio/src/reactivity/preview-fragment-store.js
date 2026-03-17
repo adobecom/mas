@@ -2,7 +2,6 @@ import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 import { Fragment } from '../aem/fragment.js';
-
 const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel']);
 const PREVIEW_FIELD_SETTING_FALLBACKS = new Map([['addon', 'addon']]);
 
@@ -30,18 +29,26 @@ export function mergeResolvedPreviewFields(originalFields = [], resolvedFields =
 
         if (field.multiple) {
             if (Array.isArray(resolvedValue)) {
-                field.values = resolvedValue;
+                return {
+                    ...field,
+                    values: resolvedValue,
+                };
             }
             return field;
         }
 
         if (resolvedValue !== undefined) {
-            field.values = [resolvedValue];
-            return field;
+            return {
+                ...field,
+                values: [resolvedValue],
+            };
         }
 
         if (fallbackValue !== undefined) {
-            field.values = [fallbackValue];
+            return {
+                ...field,
+                values: [fallbackValue],
+            };
         }
 
         return field;

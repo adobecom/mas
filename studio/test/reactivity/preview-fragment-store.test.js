@@ -58,4 +58,20 @@ describe('mergeResolvedPreviewFields', () => {
         expect(result.find((field) => field.name === 'addon')?.values).to.deep.equal([]);
         expect(result.find((field) => field.name === 'showPlanType')?.values).to.deep.equal(['']);
     });
+
+    it('does not mutate the original field objects', () => {
+        const originalFields = [
+            { name: 'variant', values: ['plans'] },
+            { name: 'addon', values: [] },
+        ];
+
+        const result = mergeResolvedPreviewFields(originalFields, { variant: 'business' }, { addon: '<p>Resolved addon</p>' });
+
+        expect(originalFields[0].values).to.deep.equal(['plans']);
+        expect(originalFields[1].values).to.deep.equal([]);
+        expect(result[0].values).to.deep.equal(['business']);
+        expect(result[1].values).to.deep.equal(['<p>Resolved addon</p>']);
+        expect(result[0]).to.not.equal(originalFields[0]);
+        expect(result[1]).to.not.equal(originalFields[1]);
+    });
 });

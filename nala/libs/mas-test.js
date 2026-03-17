@@ -11,6 +11,7 @@ import AHPromotedPlansPage from '../studio/ahome/promoted-plans/promoted-plans.p
 import ACOMPlansIndividualsPage from '../studio/acom/plans/individuals/individuals.page.js';
 import EXPRESSFullPricingPage from '../studio/express/full-pricing/full-pricing.page.js';
 import VersionPage from '../studio/versions/versions.page.js';
+import TranslationsPage from '../studio/translations/translations.page.js';
 import OSTPage from '../studio/ost.page.js';
 import TranslationEditorPage from '../studio/translation-editor.page.js';
 import WebUtil from './webutil.js';
@@ -27,6 +28,7 @@ let individuals;
 let fullPricingExpress;
 let ost;
 let translationEditor;
+let translations;
 let webUtil;
 let versionPage;
 let clonedCardID = '';
@@ -71,6 +73,7 @@ const masTest = base.extend({
         fullPricingExpress = new EXPRESSFullPricingPage(page);
         ost = new OSTPage(page);
         translationEditor = new TranslationEditorPage(page);
+        translations = new TranslationsPage(page);
         webUtil = new WebUtil(page);
         versionPage = new VersionPage(page);
         // Initialize counter
@@ -121,6 +124,7 @@ export {
     fullPricingExpress,
     ost,
     translationEditor,
+    translations,
     webUtil,
     versionPage,
     setClonedCardID,

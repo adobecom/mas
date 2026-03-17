@@ -3,7 +3,6 @@ import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 import { Fragment } from '../aem/fragment.js';
 const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel']);
-const PREVIEW_FIELD_SETTING_FALLBACKS = new Map([['addon', 'addon']]);
 
 export function serializePreviewFields(fields = []) {
     return fields.reduce((result, field) => {
@@ -24,8 +23,6 @@ export function serializePreviewFields(fields = []) {
 export function mergeResolvedPreviewFields(originalFields = [], resolvedFields = {}, resolvedSettings = {}) {
     return originalFields.map((field) => {
         const resolvedValue = resolvedFields?.[field.name];
-        const fallbackSettingName = PREVIEW_FIELD_SETTING_FALLBACKS.get(field.name);
-        const fallbackValue = fallbackSettingName ? resolvedSettings?.[fallbackSettingName] : undefined;
 
         if (field.multiple) {
             if (Array.isArray(resolvedValue)) {
@@ -44,11 +41,16 @@ export function mergeResolvedPreviewFields(originalFields = [], resolvedFields =
             };
         }
 
-        if (fallbackValue !== undefined) {
-            return {
-                ...field,
-                values: [fallbackValue],
-            };
+        // For inherited settings fields omitted from the preview payload,
+        // the resolved value comes back in result.settings instead of result.fields.
+        if (INHERITED_SETTINGS_FIELDS.has(field.name)) {
+            const settingValue = resolvedSettings?.[field.name];
+            if (settingValue !== undefined) {
+                return {
+                    ...field,
+                    values: [settingValue],
+                };
+            }
         }
 
         return field;

@@ -284,6 +284,11 @@ class MerchCardEditor extends LitElement {
         return value;
     }
 
+    /**
+     * Returns true when the card has an explicit setting value.
+     * Empty values ([] or ['']) mean "inherit from global settings" — notably
+     * ['false'] is a real override, not an inherit sentinel.
+     */
     hasExplicitSettingOverride(fieldName) {
         const field = this.fragment.getField(fieldName);
         const values = field?.values || [];
@@ -311,14 +316,14 @@ class MerchCardEditor extends LitElement {
      * For variations: resets the field to the parent's value (inherit).
      * For top-level fragments: clears the field so the global setting applies.
      */
-    resetSettingToDefault(fieldName) {
+    resetSettingToDefault(fieldName, silent = false) {
         if (this.effectiveIsVariation) {
             const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
             this.fragmentStore.resetFieldToParent(fieldName, parentValues);
         } else {
             this.fragmentStore.updateField(fieldName, ['']);
         }
-        showToast('Setting restored to default', 'positive');
+        if (!silent) showToast('Setting restored to default', 'positive');
     }
 
     renderSettingOverrideIndicator(fieldName) {
@@ -340,20 +345,20 @@ class MerchCardEditor extends LitElement {
     resetAllSettings() {
         for (const fieldName of MerchCardEditor.SETTINGS_FIELDS) {
             if (!this.isSettingOverridden(fieldName)) continue;
-            if (this.effectiveIsVariation) {
-                const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
-                this.fragmentStore.resetFieldToParent(fieldName, parentValues);
-            } else {
-                this.fragmentStore.updateField(fieldName, ['']);
-            }
+            this.resetSettingToDefault(fieldName, true);
         }
         showToast('Settings restored to defaults', 'positive');
     }
 
+    #handleRestoreAllSettingsClick = (event) => {
+        event.preventDefault();
+        this.resetAllSettings();
+    };
+
     get settingsRestoreAllTemplate() {
         if (!this.isAnySettingOverridden) return nothing;
         return html`
-            <sp-action-button class="restore-all-link" quiet @click=${this.resetAllSettings}>Restore all</sp-action-button>
+            <sp-link href="#" class="restore-all-link" @click=${this.#handleRestoreAllSettingsClick}>Restore all</sp-link>
         `;
     }
 
@@ -541,9 +546,11 @@ class MerchCardEditor extends LitElement {
 
     async updated(changedProperties) {
         super.updated(changedProperties);
-        const surface = Store.surface();
-        if (surface) {
-            Store.settings.ensureSurfaceLoaded(surface);
+        if (!this.effectiveIsVariation) {
+            const surface = Store.surface();
+            if (surface) {
+                Store.settings.ensureSurfaceLoaded(surface);
+            }
         }
         if (!this.fieldsReady && this.fragment) {
             await this.updateComplete;
@@ -818,8 +825,10 @@ class MerchCardEditor extends LitElement {
                 }
 
                 .restore-all-link {
-                    --mod-actionbutton-label-color-default: var(--spectrum-blue-700);
-                    --mod-actionbutton-label-color-hover: var(--spectrum-blue-800);
+                    --mod-link-text-color-primary-default: var(--spectrum-accent-content-color-default);
+                    --mod-link-text-color-primary-hover: var(--spectrum-accent-content-color-hover);
+                    --mod-link-text-color-primary-active: var(--spectrum-accent-content-color-down);
+                    --mod-link-text-color-primary-focus: var(--spectrum-accent-content-color-key-focus);
                 }
 
                 .setting-override-indicator {

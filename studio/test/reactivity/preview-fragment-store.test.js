@@ -32,17 +32,33 @@ describe('serializePreviewFields', () => {
 });
 
 describe('mergeResolvedPreviewFields', () => {
-    it('backfills addon from resolved settings for preview rendering', () => {
+    it('uses resolved field values from the preview response', () => {
         const result = mergeResolvedPreviewFields(
             [
                 { name: 'variant', values: ['plans'] },
                 { name: 'addon', values: [] },
             ],
-            { variant: 'plans' },
-            { addon: '<p>Resolved addon</p>' },
+            { variant: 'plans', addon: '<p>Resolved addon</p>' },
         );
 
         expect(result.find((field) => field.name === 'addon')?.values).to.deep.equal(['<p>Resolved addon</p>']);
+    });
+
+    it('backfills inherited settings from resolvedSettings when not in resolvedFields', () => {
+        const result = mergeResolvedPreviewFields(
+            [
+                { name: 'variant', values: ['plans'] },
+                { name: 'addon', values: [] },
+                { name: 'showPlanType', values: [] },
+                { name: 'showSecureLabel', values: [] },
+            ],
+            { variant: 'plans' },
+            { addon: '<p>Resolved addon</p>', showPlanType: 'true', showSecureLabel: 'true' },
+        );
+
+        expect(result.find((field) => field.name === 'addon')?.values).to.deep.equal(['<p>Resolved addon</p>']);
+        expect(result.find((field) => field.name === 'showPlanType')?.values).to.deep.equal(['true']);
+        expect(result.find((field) => field.name === 'showSecureLabel')?.values).to.deep.equal(['true']);
     });
 
     it('preserves unresolved author fields instead of writing undefined', () => {

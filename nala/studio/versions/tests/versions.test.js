@@ -1,4 +1,4 @@
-import { test, expect, studio, editor, versionPage, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, versions, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import VersionPageSpec from '../specs/versions.spec.js';
 
 const { features } = VersionPageSpec;
@@ -17,21 +17,21 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-2: Validate version page elements', async () => {
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
-            await expect(versionPage.versionListPanel).toBeVisible();
-            await expect(versionPage.previewPanel).toBeVisible();
-            await expect(versionPage.searchInput).toBeVisible();
-            await expect(versionPage.versionStatus).toBeVisible();
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionListPanel).toBeVisible();
+            await expect(versions.previewPanel).toBeVisible();
+            await expect(versions.searchInput).toBeVisible();
+            await expect(versions.versionStatus).toBeVisible();
         });
 
         await test.step('step-3: Validate version items loaded', async () => {
             await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-            const versionCount = await versionPage.getVersionCount();
+            const versionCount = await versions.getVersionCount();
             expect(versionCount).toBeGreaterThan(0);
         });
 
         await test.step('step-4: Validate version item details', async () => {
-            const firstVersion = versionPage.getVersionByIndex(0);
+            const firstVersion = versions.getVersionByIndex(0);
             await expect(firstVersion).toBeVisible();
             const dateTime = firstVersion.locator('.version-date-time');
             const author = firstVersion.locator('.version-author');
@@ -40,10 +40,10 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-5: Validate current version indicator and styling', async () => {
-            await expect(versionPage.currentDot).toBeVisible();
-            await expect(versionPage.versionStatus).toContainText('Current');
-            await expect(versionPage.currentVersionItem).toBeVisible();
-            const firstItem = versionPage.getVersionByIndex(0);
+            await expect(versions.currentDot).toBeVisible();
+            await expect(versions.versionStatus).toContainText('Current');
+            await expect(versions.currentVersionItem).toBeVisible();
+            const firstItem = versions.getVersionByIndex(0);
             await expect(firstItem).toHaveClass(/current/);
         });
     });
@@ -58,36 +58,41 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Validate initial preview displays', async () => {
-            await expect(versionPage.previewPanel).toBeVisible();
-            await expect(versionPage.previewContent).toBeVisible();
+            await expect(versions.previewPanel).toBeVisible();
+            await expect(versions.previewContent).toBeVisible();
             await page.waitForTimeout(2000);
-            const columnCount = await versionPage.previewColumns.count();
+            const columnCount = await versions.previewColumns.count();
             expect(columnCount).toBeGreaterThanOrEqual(1);
         });
 
         await test.step('step-3: Select a different version', async () => {
-            const versionCount = await versionPage.getVersionCount();
+            const versionCount = await versions.getVersionCount();
             if (versionCount > 1) {
-                await versionPage.selectVersionByIndex(1);
-                await versionPage.waitForPreviewUpdate();
-                const columnCount = await versionPage.previewColumns.count();
+                await versions.selectVersionByIndex(1);
+                await versions.waitForPreviewUpdate();
+
+                const columnCount = await versions.previewColumns.count();
                 expect(columnCount).toBe(2);
             }
         });
 
         await test.step('step-4: Validate changed fields section', async () => {
-            const hasChanges = await versionPage.hasChangedFields();
+            const hasChanges = await versions.hasChangedFields();
+
             if (hasChanges) {
-                await expect(versionPage.changedFieldsLabel).toBeVisible();
-                await expect(versionPage.changedFieldsLabel).toContainText('Changed Fields');
-                await expect(versionPage.changedFieldsList).toBeVisible();
-                const fieldCount = await versionPage.getChangedFieldsCount();
+                await expect(versions.changedFieldsLabel).toBeVisible();
+                await expect(versions.changedFieldsLabel).toContainText('Changed Fields');
+
+                await expect(versions.changedFieldsList).toBeVisible();
+
+                const fieldCount = await versions.getChangedFieldsCount();
                 expect(fieldCount).toBeGreaterThan(0);
-                const fields = await versionPage.getAllChangedFields();
+
+                const fields = await versions.getAllChangedFields();
                 expect(fields.length).toBeGreaterThan(0);
                 fields.forEach((field) => {
                     expect(field.length).toBeGreaterThan(0);
@@ -119,30 +124,30 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Get initial version count', async () => {
             await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-            const initialCount = await versionPage.getVersionCount();
+            const initialCount = await versions.getVersionCount();
             expect(initialCount).toBeGreaterThan(0);
         });
 
         await test.step('step-3: Search for versions', async () => {
-            await versionPage.searchVersions(data.searchQuery);
+            await versions.searchVersions(data.searchQuery);
             await page.waitForTimeout(1000);
         });
 
         await test.step('step-4: Validate search results', async () => {
-            await expect(versionPage.versionListPanel).toBeVisible();
-            const searchResultCount = await versionPage.getVersionCount();
+            await expect(versions.versionListPanel).toBeVisible();
+            const searchResultCount = await versions.getVersionCount();
             expect(searchResultCount).toBeGreaterThanOrEqual(0);
         });
 
         await test.step('step-5: Clear search', async () => {
-            await versionPage.clearSearch();
+            await versions.clearSearch();
             await page.waitForTimeout(1000);
-            const finalCount = await versionPage.getVersionCount();
+            const finalCount = await versions.getVersionCount();
             expect(finalCount).toBeGreaterThan(0);
         });
     });
@@ -157,12 +162,12 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Click Editor breadcrumb', async () => {
-            await expect(versionPage.layoutBreadcrumbItems.nth(1)).toContainText('Editor');
-            await versionPage.clickBreadcrumbEditor();
+            await expect(versions.layoutBreadcrumbItems.nth(1)).toContainText('Editor');
+            await versions.clickBreadcrumbEditor();
         });
 
         await test.step('step-3: Validate URL is fragment editor with correct fragmentId', async () => {
@@ -190,12 +195,12 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Click Fragments table breadcrumb', async () => {
-            await expect(versionPage.layoutBreadcrumbItems.first()).toContainText('Fragments');
-            await versionPage.clickBreadcrumbFragmentsTable();
+            await expect(versions.layoutBreadcrumbItems.first()).toContainText('Fragments');
+            await versions.clickBreadcrumbFragmentsTable();
         });
 
         await test.step('step-3: Validate URL is content page with path=nala and no fragmentId', async () => {
@@ -264,38 +269,41 @@ test.describe('M@S Studio - Version Page test suite', () => {
             });
             expect(currentFragmentId, 'Current fragment id (cloned) should be in URL or Store').toBeTruthy();
 
-            const maxRetries = 8;
+            const maxRetries = 3;
             let versionCount = 0;
-            const versionPageUrl = `${baseURL}${features[5].path}${miloLibs}#page=version&path=nala&fragmentId=${currentFragmentId}`;
 
-            for (let attempt = 0; attempt < maxRetries; attempt += 1) {
-                if (attempt === 0) {
-                    await studio.versionHistoryButton.click();
-                } else {
-                    await page.goto(versionPageUrl);
-                }
-                await page.waitForTimeout(3000);
-                await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
-                await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-                versionCount = await versionPage.getVersionCount();
-                if (versionCount >= 2) break;
-                if (attempt < maxRetries - 1) {
-                    await page.waitForTimeout(10000);
-                    await versionPage.clickBreadcrumbEditor();
-                    await page.waitForTimeout(3000);
+            await studio.versionHistoryButton.click();
+            await page.waitForTimeout(3000);
+
+            for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+                try {
+                    if (attempt > 1) {
+                        await page.reload();
+                        await page.waitForLoadState('domcontentloaded');
+                        await page.waitForTimeout(3000);
+                    }
+                    await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
+                    await page.waitForSelector('version-page .version-item', { timeout: 15000 });
+                    versionCount = await versions.getVersionCount();
+                    if (versionCount >= 2) break;
+                    throw new Error('Expected version not yet visible');
+                } catch (err) {
+                    if (attempt < maxRetries) {
+                        await page.waitForTimeout(15000);
+                    }
                 }
             }
             expect(versionCount).toBeGreaterThanOrEqual(2);
         });
 
         await test.step('step-7: Restore previous version', async () => {
-            await versionPage.selectVersionByIndex(1);
+            await versions.selectVersionByIndex(1);
             await page.waitForTimeout(1000);
-            await versionPage.openVersionMenu(1);
-            await versionPage.clickRestoreThisVersion();
+            await versions.openVersionMenu(1);
+            await versions.clickRestoreThisVersion();
             await page.waitForTimeout(500);
-            await expect(versionPage.confirmRestoreButton).toBeVisible({ timeout: 5000 });
-            await versionPage.confirmRestoreButton.click();
+            await expect(versions.confirmRestoreButton).toBeVisible({ timeout: 5000 });
+            await versions.confirmRestoreButton.click();
             await page.waitForTimeout(5000);
         });
 
@@ -316,20 +324,20 @@ test.describe('M@S Studio - Version Page test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(5000);
-            await expect(versionPage.versionPage).toBeVisible({ timeout: 10000 });
+            await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Search by author name', async () => {
             await page.waitForSelector('version-page .version-item', { timeout: 15000 });
-            await versionPage.searchVersions(data.authorName);
+            await versions.searchVersions(data.authorName);
             await page.waitForTimeout(1500);
         });
 
         await test.step('step-3: Validate filtered results contain that author', async () => {
-            const count = await versionPage.getVersionCount();
+            const count = await versions.getVersionCount();
             expect(count).toBeGreaterThan(0);
             for (let i = 0; i < count; i++) {
-                const item = versionPage.getVersionByIndex(i);
+                const item = versions.getVersionByIndex(i);
                 const text = await item.textContent();
                 expect(text?.toLowerCase()).toContain(data.authorName.toLowerCase());
             }

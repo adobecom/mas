@@ -519,7 +519,10 @@ export default class StudioPage {
     async discardEditorChanges(editor) {
         // Close the editor and verify discard is triggered
         // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
-        await this.page.goBack();
+        await expect(this.fragmentsTable).toBeVisible();
+        await this.fragmentsTable.scrollIntoViewIfNeeded();
+        await this.fragmentsTable.click();
+        // await this.page.goBack();
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();

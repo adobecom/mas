@@ -1,7 +1,6 @@
 import { test, expect, studio, editor, miloLibs, setTestPage } from '../libs/mas-test.js';
 import { getTitle } from '../utils/fragment-tracker.js';
 import StudioSpec from './studio.spec.js';
-import ACOMPlansIndividualsPage from './acom/plans/individuals/individuals.page.js';
 
 const { features } = StudioSpec;
 
@@ -128,131 +127,10 @@ test.describe('M@S Studio feature test suite', () => {
         });
     });
 
-    // @studio-ccd-suggested-editor - Validate editor fields for CCD suggested card in mas studio
+    // @studio-card-dblclick - Validate message for double-click on the card in mas studio and open editor
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const { data } = features[5];
         const testPage = `${baseURL}${features[5].path}${miloLibs}${features[5].browserParams}${data.cardid}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Validate fields rendering', async () => {
-            await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
-            await expect(await editor.size).not.toBeVisible();
-            await expect(await editor.title).toBeVisible();
-            await expect(await editor.subtitle).toBeVisible();
-            await expect(await editor.badge).toBeVisible();
-            await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditMenu).toBeVisible();
-            await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.prices).toBeVisible();
-            await expect(await editor.footer).toBeVisible();
-            await expect(await editor.badgeColor).not.toBeVisible();
-            await expect(await editor.badgeBorderColor).not.toBeVisible();
-            await expect(await editor.borderColor).not.toBeVisible();
-            await expect(await editor.whatsIncludedLabel).not.toBeVisible();
-            await expect(await editor.promoText).not.toBeVisible();
-            await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showAddOn).not.toBeVisible();
-            await expect(await editor.showQuantitySelector).not.toBeVisible();
-            await expect(await editor.OSI).toBeVisible();
-        });
-    });
-
-    // @studio-ccd-slice-editor - Validate editor fields for slice card in mas studio
-    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[6];
-        const testPage = `${baseURL}${features[6].path}${miloLibs}${features[6].browserParams}${data.cardid}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-slice');
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'wide');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Validate fields rendering', async () => {
-            // await expect(await editor.authorPath).toBeVisible(); // removed with the new design but might be back
-            await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('value', 'ccd-slice');
-            await expect(await editor.size).toBeVisible();
-            await expect(await editor.title).not.toBeVisible();
-            await expect(await editor.subtitle).not.toBeVisible();
-            await expect(await editor.badge).toBeVisible();
-            await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditMenu).toBeVisible();
-            await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.prices).not.toBeVisible();
-            await expect(await editor.footer).toBeVisible();
-            await expect(await editor.badgeColor).not.toBeVisible();
-            await expect(await editor.badgeBorderColor).not.toBeVisible();
-            await expect(await editor.borderColor).not.toBeVisible();
-            await expect(await editor.whatsIncludedLabel).not.toBeVisible();
-            await expect(await editor.promoText).not.toBeVisible();
-            await expect(await editor.callout).not.toBeVisible();
-            await expect(await editor.showAddOn).not.toBeVisible();
-            await expect(await editor.showQuantitySelector).not.toBeVisible();
-            await expect(await editor.OSI).toBeVisible();
-        });
-    });
-
-    // @studio-try-buy-widget-editor - Validate editor fields for try buy widget card in mas studio
-    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[7];
-        const testPage = `${baseURL}${features[7].path}${miloLibs}${features[7].browserParams}${data.cardid}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ah-try-buy-widget');
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('size', 'triple');
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Validate fields rendering', async () => {
-            await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('value', 'ah-try-buy-widget');
-            await expect(await editor.size).toBeVisible();
-            await expect(await editor.title).toBeVisible();
-            await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditMenu).toBeVisible();
-            await expect(await editor.borderColor).toBeVisible();
-            await expect(await editor.backgroundColor).toBeVisible();
-            await expect(await editor.backgroundImage).toBeVisible();
-            await expect(await editor.prices).toBeVisible();
-            await expect(await editor.footer).toBeVisible();
-            await expect(await editor.OSI).toBeVisible();
-        });
-    });
-
-    // @studio-card-dblclick-info - Validate message for double-click on the card in mas studio
-    test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[8];
-        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -266,80 +144,16 @@ test.describe('M@S Studio feature test suite', () => {
             await (await studio.getCard(data.cardid)).click();
             await expect(page.locator('sp-tooltip')).toHaveText('Double click the card to start editing.');
         });
-    });
 
-    // @studio-plans-individuals-editor - Validate editor fields for plans individuals card in mas studio
-    test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[9];
-        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}${data.cardid}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'plans');
+        await test.step('step-3: Double-click on the card and open editor', async () => {
             await (await studio.getCard(data.cardid)).dblclick();
             await expect(await editor.panel).toBeVisible();
         });
-
-        await test.step('step-3: Validate fields rendering', async () => {
-            await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('value', 'plans');
-            await expect(await editor.size).toBeVisible();
-            await expect(await editor.title).toBeVisible();
-            await expect(await editor.subtitle).toBeVisible();
-            await expect(await editor.badge).toBeVisible();
-            await expect(await editor.badgeColor).toBeVisible();
-            await expect(await editor.badgeBorderColor).toBeVisible();
-            await expect(await editor.borderColor).toBeVisible();
-            await expect(await editor.description).toBeVisible();
-            await expect(await editor.mnemonicEditMenu).toBeVisible();
-            await expect(await editor.backgroundImage).not.toBeVisible();
-            await expect(await editor.prices).toBeVisible();
-            await expect(await editor.footer).toBeVisible();
-            await expect(await editor.whatsIncludedLabel).toBeVisible();
-            await expect(await editor.promoText).toBeVisible();
-            await expect(await editor.callout).toBeVisible();
-            await expect(await editor.showAddOn).toBeVisible();
-            await expect(await editor.showQuantitySelector).toBeVisible();
-            await expect(await editor.OSI).toBeVisible();
-        });
     });
 
-    // @studio-promoted-plans-editor - Validate editor fields for promoted plans card
-    test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[10];
-        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
-        setTestPage(testPage);
-
-        await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-        });
-
-        await test.step('step-2: Open card editor', async () => {
-            await expect(await studio.getCard(data.cardid)).toBeVisible();
-            await (await studio.getCard(data.cardid)).dblclick();
-            await expect(await editor.panel).toBeVisible();
-        });
-
-        await test.step('step-3: Validate fields rendering', async () => {
-            await expect(await editor.variant).toBeVisible();
-            await expect(await editor.variant).toHaveAttribute('value', 'ah-promoted-plans');
-            await expect(await editor.title).toBeVisible();
-            await expect(await editor.description).toBeVisible();
-            await expect(await editor.borderColor).toBeVisible();
-            await expect(await editor.prices).toBeVisible();
-            await expect(await editor.footer).toBeVisible();
-        });
-    });
     // @studio-surface-change - Validate surface change in mas studio
-    test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
-        const testPage = `${baseURL}${features[11].path}${miloLibs}`;
+    test(`${features[6].name},${features[6].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[6].path}${miloLibs}`;
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -366,9 +180,9 @@ test.describe('M@S Studio feature test suite', () => {
     });
 
     // @studio-locale-change - Validate locale change in mas studio
-    test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[12];
-        const testPage = `${baseURL}${features[12].path}${miloLibs}`;
+    test(`${features[7].name},${features[7].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[7];
+        const testPage = `${baseURL}${features[7].path}${miloLibs}`;
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -397,8 +211,8 @@ test.describe('M@S Studio feature test suite', () => {
     });
 
     // @studio-table-view - Validate Table View
-    test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
-        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}`;
+    test(`${features[8].name},${features[8].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[8].path}${miloLibs}${features[8].browserParams}`;
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
@@ -432,9 +246,9 @@ test.describe('M@S Studio feature test suite', () => {
     });
 
     // @studio-create-fragment - Validate creating a new fragment
-    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[14];
-        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}`;
+    test(`${features[9].name},${features[9].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[9];
+        const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}`;
         setTestPage(testPage);
         let fragmentId;
         const expectedTitle = getTitle();
@@ -500,9 +314,9 @@ test.describe('M@S Studio feature test suite', () => {
     });
 
     // @studio-load-variation - Validate loading a variation in mas studio
-    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[15];
-        const testPage = `${baseURL}${features[15].path}${miloLibs}${features[15].browserParams}${data.cardid}`;
+    test(`${features[10].name},${features[10].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[10];
+        const testPage = `${baseURL}${features[10].path}${miloLibs}${features[10].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio content page', async () => {

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { getTitle } from '../utils/fragment-tracker.js';
+import { getTitle } from '../../utils/fragment-tracker.js';
 
 export default class TranslationEditorPage {
     constructor(page) {

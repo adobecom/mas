@@ -24,7 +24,7 @@ export default {
                 cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            tags: '@mas-studio @ccd @ccd-suggested',
+            tags: '@mas-studio @fragment-editor @ccd @ccd-suggested',
         },
         {
             tcid: '2',
@@ -44,7 +44,7 @@ export default {
                 cardid: '02ee0d3c-a472-44a1-b15a-f65c24eefc4b',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            tags: '@mas-studio @ahome @ahome-try-buy-widget',
+            tags: '@mas-studio @fragment-editor @ahome @ahome-try-buy-widget',
         },
         {
             tcid: '4',
@@ -54,7 +54,7 @@ export default {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            tags: '@mas-studio @acom @acom-plans @acom-plans-individuals',
+            tags: '@mas-studio @fragment-editor @acom @acom-plans @acom-plans-individuals',
         },
         {
             tcid: '5',
@@ -64,7 +64,7 @@ export default {
                 cardid: '2cf0ed0e-84ea-4bd4-8e89-ddf527a7a75b',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            tags: '@mas-studio @ahome @ahome-promoted-plans',
+            tags: '@mas-studio @fragment-editor @ahome @ahome-promoted-plans',
         },
     ],
 };

@@ -13,7 +13,7 @@ import EXPRESSFullPricingPage from '../studio/express/full-pricing/full-pricing.
 import VersionPage from '../studio/versions/versions.page.js';
 import PlaceholdersPage from '../studio/placeholders/placeholders.page.js';
 import TranslationsPage from '../studio/translations/translations.page.js';
-import TranslationEditorPage from '../studio/translation-editor.page.js';
+import TranslationEditorPage from '../studio/translations/translation-editor.page.js';
 import OSTPage from '../studio/ost.page.js';
 import WebUtil from './webutil.js';
 

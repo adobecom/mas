@@ -84,6 +84,10 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
     merch-card[variant="simplified-pricing-express"] [slot="price"] {
         min-height: var(--consonant-merch-card-simplified-pricing-express-price-height);
     }
+
+    merch-card[variant="simplified-pricing-express"] [slot="callout-content"] {
+        min-height: var(--consonant-merch-card-simplified-pricing-express-callout-height);
+    }
 }
 
 merch-card[variant="simplified-pricing-express"] p {

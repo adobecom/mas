@@ -93,6 +93,11 @@ export class SimplifiedPricingExpress extends VariantLayout {
             this.updateCardElementMinHeight(priceSlot, 'price');
         }
 
+        const calloutSlot = this.card.querySelector('[slot="callout-content"]');
+        if (calloutSlot) {
+            this.updateCardElementMinHeight(calloutSlot, 'callout');
+        }
+
         const iconRow = this.card.querySelector(
             '[slot="body-xs"] p:has(mas-mnemonic)',
         );

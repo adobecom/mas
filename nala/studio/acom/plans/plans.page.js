@@ -1,16 +1,18 @@
-export default class ACOMPlansIndividualsPage {
+export default class ACOMPlansCardPage {
     constructor(page) {
         this.page = page;
 
         // Card element selectors
         this.cardIcon = page.locator('merch-icon').first();
         this.cardTitle = page.locator('h3[slot="heading-xs"]');
+        this.cardEducationTitle = page.locator('h3[slot="heading-s"]');
         this.cardBadge = page.locator('merch-badge');
         this.cardBadgeLabel = page.locator('.plans-badge');
         this.cardDescription = page.locator('div[slot="body-xs"] p');
         this.cardLegalLink = page.locator('a.modal-Link');
         this.cardPhoneLink = page.locator('div[slot="body-xs"] a[href^="tel:"]');
         this.cardPrice = page.locator('p[slot="heading-m"] span[data-template="price"]');
+        this.cardPriceAlternative = page.locator('p[slot="heading-m"] span.price-alternative');
         this.cardPriceStrikethrough = page.locator('p[slot="heading-m"] span.price-strikethrough');
         this.cardPriceLegal = page.locator('span[is="inline-price"][data-template="legal"]');
         this.cardCTA = page.locator('div[slot="footer"] > a[is="checkout-link"]');
@@ -24,12 +26,13 @@ export default class ACOMPlansIndividualsPage {
         this.cardWhatsIncludedLabel = page.locator('merch-whats-included div[slot="heading"]');
         this.cardWhatsIncludedIcon = page.locator('merch-whats-included div[slot="content"] merch-icon');
         this.cardWhatsIncludedIconLabel = page.locator('merch-whats-included p[slot="description"]');
+        this.cardUptLink = page.locator('a[is="upt-link"]');
 
         // Plans individual card properties:
-        this.cssProp = {
+        this.individualsCSSProp = {
             card: {
                 'background-color': 'rgb(245, 199, 0)',
-                //'border-color': 'rgb(245, 199, 0)',
+                'background-image': 'linear-gradient(rgb(255, 255, 255), rgb(255, 255, 255)), none',
             },
             icon: {
                 width: '41.5px',
@@ -61,9 +64,9 @@ export default class ACOMPlansIndividualsPage {
             },
             price: {
                 color: 'rgb(44, 44, 44)',
-                'font-size': '14px',
+                'font-size': '24px',
                 'font-weight': '700',
-                'line-height': '21px',
+                'line-height': '30px',
             },
             strikethroughPrice: {
                 color: 'rgb(44, 44, 44)',

@@ -462,7 +462,6 @@ export const tableStyles = css`
         align-items: center;
         justify-content: center;
         gap: 16px;
-        z-index: 1000;
         pointer-events: none;
     }
 `;

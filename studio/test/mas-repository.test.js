@@ -754,6 +754,26 @@ describe('MasRepository dictionary helpers', () => {
                 Store.translationProjects.list.loading.set = originalLoading;
             }
         });
+
+        it('calls searchFragmentList with sort option modifiedOrCreated DESC', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: 'sandbox' } };
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+            const { default: Store } = await import('../src/store.js');
+            const originalLoading = Store.translationProjects.list.loading.set.bind(Store.translationProjects.list.loading);
+            const originalData = Store.translationProjects.list.data.set.bind(Store.translationProjects.list.data);
+            Store.translationProjects.list.loading.set = sandbox.stub();
+            Store.translationProjects.list.data.set = sandbox.stub();
+            try {
+                await repository.loadTranslationProjects();
+                expect(repository.searchFragmentList.calledOnce).to.be.true;
+                const options = repository.searchFragmentList.firstCall.args[0];
+                expect(options.sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'DESC' }]);
+            } finally {
+                Store.translationProjects.list.loading.set = originalLoading;
+                Store.translationProjects.list.data.set = originalData;
+            }
+        });
     });
 
     describe('searchFragments', () => {

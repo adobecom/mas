@@ -1,0 +1,209 @@
+{
+    "path": "/content/dam/mas/sandbox/settings/index",
+    "name": "",
+    "title": "index",
+    "id": "417dd2aa-c08b-46fe-8d18-8a7f9be85666",
+    "description": "",
+    "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdz" },
+    "fields": {
+        "entries": [
+            "31a9f6d2-13ed-4958-bcd0-f1166f49cfab",
+            "99e7b47f-f9c1-4a93-bee3-7c00bbf13a28",
+            "ac4184a7-b4af-4633-8dcb-e10f32bc28ca",
+            "58f46650-e0c6-4e68-8175-79b012fe7612",
+            "511b3df8-9a35-4e27-9241-31d038ff2630",
+            "baebc1db-a806-41de-b74e-1c2ba699d05c"
+        ]
+    },
+    "references": {
+        "31a9f6d2-13ed-4958-bcd0-f1166f49cfab": {
+            "valuetype": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/show-secured-transaction",
+                "name": "",
+                "title": "Show secured transaction",
+                "id": "31a9f6d2-13ed-4958-bcd0-f1166f49cfab",
+                "description": "Controls whether the “Secure transaction” lock icon/label appears near the checkout CTA on the card. When enabled, the trust badge is rendered; when disabled, it is suppressed for that fragment, overriding page‑level defaults.\r\n",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
+                "fields": {
+                    "name": "secureLabel",
+                    "templates": ["plans", "plans-edu", "plans-teams"],
+                    "locales": [],
+                    "tags": [],
+                    "valuetype": "optional-text",
+                    "richTextValue": { "mimeType": "text/html" },
+                    "booleanValue": false,
+                    "textValue": "{{secure-label}}"
+                }
+            }
+        },
+        "99e7b47f-f9c1-4a93-bee3-7c00bbf13a28": {
+            "valuetype": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/show-secure-transaction-fr",
+                "name": "",
+                "title": "Show secure transaction fr",
+                "id": "99e7b47f-f9c1-4a93-bee3-7c00bbf13a28",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
+                "fields": {
+                    "name": "secureLabel",
+                    "templates": [],
+                    "locales": ["fr_FR", "fr_BE", "fr_CH"],
+                    "valuetype": "optional-text",
+                    "tags": [],
+                    "booleanValue": true
+                }
+            }
+        },
+        "ac4184a7-b4af-4633-8dcb-e10f32bc28ca": {
+            "valuetype": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/display-plan-type",
+                "name": "",
+                "title": "displayPlanType",
+                "id": "ac4184a7-b4af-4633-8dcb-e10f32bc28ca",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
+                "fields": {
+                    "name": "displayPlanType",
+                    "templates": ["plans", "plans-students", "plans-education"],
+                    "locales": [],
+                    "tags": [],
+                    "valuetype": "boolean",
+                    "richTextValue": { "mimeType": "text/html" }
+                }
+            }
+        },
+        "58f46650-e0c6-4e68-8175-79b012fe7612": {
+            "valuetype": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/display-plan-type-true",
+                "name": "",
+                "title": "displayPlanTypeTrue",
+                "id": "58f46650-e0c6-4e68-8175-79b012fe7612",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
+                "fields": {
+                    "name": "displayPlanType",
+                    "templates": [],
+                    "locales": [
+                        "en_US",
+                        "en_AU",
+                        "en_HK",
+                        "zh_HK",
+                        "en_ID",
+                        "id_ID",
+                        "en_MY",
+                        "ms_MY",
+                        "en_NZ",
+                        "en_PH",
+                        "fil_PH",
+                        "en_SG",
+                        "en_TH",
+                        "th_TH",
+                        "zh_TW",
+                        "en_VN",
+                        "vi_VN",
+                        "en_IN",
+                        "de_AT",
+                        "de_CH",
+                        "de_LU",
+                        "de_DE"
+                    ],
+                    "tags": [],
+                    "richTextValue": { "mimeType": "text/html" },
+                    "booleanValue": true
+                }
+            }
+        },
+        "58f46650-e0c6-4e68-8175-79b012fe7613": {
+            "valuetype": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/display-plan-type-true",
+                "name": "",
+                "title": "displayPlanTypeTrue",
+                "id": "58f46650-e0c6-4e68-8175-79b012fe7612",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
+                "fields": {
+                    "name": "displayPlanType",
+                    "templates": [],
+                    "locales": ["es_PE"],
+                    "tags": ["EDU"],
+                    "richTextValue": { "mimeType": "text/html" },
+                    "booleanValue": true
+                }
+            }
+        },
+        "511b3df8-9a35-4e27-9241-31d038ff2630": {
+            "valuetype": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/display-annual",
+                "name": "",
+                "title": "displayAnnual",
+                "id": "511b3df8-9a35-4e27-9241-31d038ff2630",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
+                "fields": {
+                    "name": "displayAnnual",
+                    "templates": ["plans", "plans-students"],
+                    "locales": [],
+                    "tags": [],
+                    "valuetype": "boolean",
+                    "richTextValue": { "mimeType": "text/html" }
+                }
+            }
+        },
+        "baebc1db-a806-41de-b74e-1c2ba699d05c": {
+            "valuetype": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/settings/display-annual-true",
+                "name": "",
+                "title": "displayAnnualTrue",
+                "id": "baebc1db-a806-41de-b74e-1c2ba699d05c",
+                "description": "",
+                "model": { "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5" },
+                "fields": {
+                    "name": "displayAnnual",
+                    "templates": [],
+                    "locales": ["en_AU"],
+                    "tags": [],
+                    "richTextValue": { "mimeType": "text/html" },
+                    "booleanValue": true
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        { "fieldName": "entries", "identifier": "31a9f6d2-13ed-4958-bcd0-f1166f49cfab", "referencesTree": [] },
+        { "fieldName": "entries", "identifier": "99e7b47f-f9c1-4a93-bee3-7c00bbf13a28", "referencesTree": [] },
+        { "fieldName": "entries", "identifier": "ac4184a7-b4af-4633-8dcb-e10f32bc28ca", "referencesTree": [] },
+        { "fieldName": "entries", "identifier": "58f46650-e0c6-4e68-8175-79b012fe7612", "referencesTree": [] },
+        { "fieldName": "entries", "identifier": "511b3df8-9a35-4e27-9241-31d038ff2630", "referencesTree": [] },
+        { "fieldName": "entries", "identifier": "baebc1db-a806-41de-b74e-1c2ba699d05c", "referencesTree": [] }
+    ],
+    "modelReferences": {
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdz": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdz",
+            "path": "/conf/mas/settings/dam/cfm/models/settings",
+            "title": "Settings",
+            "fields": { "parentSettings": { "valuetype": "content-fragment" }, "entries": { "valuetype": "content-fragment" } }
+        },
+        "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5": {
+            "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3NldHRpbmdzLWVudHJ5",
+            "path": "/conf/mas/settings/dam/cfm/models/settings-entry",
+            "title": "Settings Entry",
+            "fields": {
+                "name": { "valuetype": "text" },
+                "templates": { "valuetype": "text" },
+                "locales": { "valuetype": "text" },
+                "tags": { "valuetype": "tag" },
+                "valuetype": { "valuetype": "text" },
+                "textValue": { "valuetype": "text" },
+                "richTextValue": { "valuetype": "long-text" },
+                "booleanValue": { "valuetype": "boolean" }
+            }
+        }
+    }
+}

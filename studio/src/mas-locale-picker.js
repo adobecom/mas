@@ -189,7 +189,6 @@ export class MasLocalePicker extends LitElement {
             transform: translate(-50%, -50%);
             width: 684px;
             max-width: calc(100vw - 32px);
-            max-height: calc(100vh - 32px);
             background: var(--spectrum-white, #ffffff);
             overflow: hidden;
             display: flex;
@@ -201,8 +200,6 @@ export class MasLocalePicker extends LitElement {
             flex-direction: column;
             gap: 12px;
             max-height: 50vh;
-            min-height: 0;
-            overflow: hidden;
         }
 
         .selection-dialog-content sp-search {
@@ -225,18 +222,14 @@ export class MasLocalePicker extends LitElement {
 
         .checkbox-list {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             column-gap: 12px;
             row-gap: 4px;
-            flex: 1 1 auto;
-            min-height: 0;
             overflow-y: auto;
             padding: 4px 0;
-            align-content: start;
         }
 
         .checkbox-item {
-            min-width: 0;
             padding: 4px 0;
         }
     `;
@@ -270,11 +263,7 @@ export class MasLocalePicker extends LitElement {
         if (this.displayMode === 'strong') {
             this.classList.add('strong');
         }
-        this.filtersSubscription = Store.filters.subscribe(() => {
-            if (this.selection === 'checkbox') return;
-            this.locale = Store.localeOrRegion();
-        });
-        this.searchSubscription = Store.search.subscribe(() => {
+        this.searchSubscriptions = Store.filters.subscribe(() => {
             if (this.selection === 'checkbox') return;
             this.locale = Store.localeOrRegion();
         });
@@ -283,8 +272,9 @@ export class MasLocalePicker extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
 
-        this.filtersSubscription?.unsubscribe();
-        this.searchSubscription?.unsubscribe();
+        if (this.searchSubscriptions) {
+            this.searchSubscriptions.unsubscribe();
+        }
     }
 
     handleLocaleChange(locale, fragmentId) {
@@ -362,23 +352,17 @@ export class MasLocalePicker extends LitElement {
 
     willUpdate(changedProperties) {
         if (!this.isCheckboxSelection && changedProperties.has('locale')) {
-            const knownLocale = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
-            if (!knownLocale) {
-                if (Store.search.value.region === this.locale) return;
-                this.locale = 'en_US';
-            }
+            const found = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
+            if (!found) this.locale = 'en_US';
         }
         if (changedProperties.has('tempSelectedLocales')) {
             this.#tempSelectedSet = new Set(this.tempSelectedLocales);
         }
     }
 
+    /** can only be one of default languages, not regional ones */
     get currentLocale() {
-        const knownLocale = this.getLocales().find((l) => getLocaleCode(l) === this.locale);
-        if (knownLocale) return knownLocale;
-        const [lang, country] = (this.locale || '').split('_');
-        if (lang && country) return { lang, country };
-        return getDefaultLocale(this.surface, this.locale);
+        return this.getLocales().find((l) => getLocaleCode(l) === this.locale) || getDefaultLocale(this.surface, this.locale);
     }
 
     get searchField() {

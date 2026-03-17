@@ -235,7 +235,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 <div class="description">
                     <slot name="body-xs"></slot>
                 </div>
-                <div class="price">
+                <div class="price-container">
                     <slot name="price"></slot>
                     <slot name="callout-content"></slot>
                 </div>
@@ -471,7 +471,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
             flex-direction: column;
         }
 
-        :host([variant='simplified-pricing-express']) .price {
+        :host([variant='simplified-pricing-express']) .price-container {
             display: flex;
             flex-direction: column;
             justify-content: flex-end;

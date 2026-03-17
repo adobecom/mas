@@ -1,4 +1,4 @@
-import { test, expect, studio, editor, individuals, ost, webUtil, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, plans, ost, webUtil, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import VariationsSpec from '../specs/variations.spec.js';
 
 const { features } = VariationsSpec;
@@ -15,7 +15,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-2: Clone the fragment', async () => {
@@ -53,7 +53,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             const cardPreview = await studio.getCard(variationId);
             await expect(cardPreview).toBeVisible();
 
-            const cardPrice = cardPreview.locator(individuals.cardPrice);
+            const cardPrice = cardPreview.locator(plans.cardPrice);
             await expect(cardPrice).toBeVisible({ timeout: 10000 });
             await expect(await cardPrice).toContainText(data.price);
         });
@@ -86,7 +86,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-2: Clone the fragment', async () => {
@@ -131,7 +131,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             const cardPreview = await studio.getCard(variationId);
             await expect(cardPreview).toBeVisible();
 
-            const cardPrice = cardPreview.locator(individuals.cardPrice);
+            const cardPrice = cardPreview.locator(plans.cardPrice);
             await expect(cardPrice).toBeVisible({ timeout: 10000 });
             await expect(await cardPrice).toContainText(data.price);
         });
@@ -186,7 +186,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             const cardPreview = await studio.getCard(variationId);
             await expect(cardPreview).toBeVisible();
 
-            const cardPrice = cardPreview.locator(individuals.cardPrice);
+            const cardPrice = cardPreview.locator(plans.cardPrice);
             await expect(cardPrice).toBeVisible({ timeout: 10000 });
             await expect(await cardPrice).toContainText(data.price);
         });
@@ -203,7 +203,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-2: Clone the fragment', async () => {
@@ -253,7 +253,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Open create variation dialog and verify locales', async () => {
@@ -302,7 +302,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
         });
 
         await test.step('step-3: Open create variation dialog and verify only AU and IN locales', async () => {
@@ -355,7 +355,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
             await expect(editor.derivedFromContainer).toBeVisible();
             await expect(editor.derivedFromContainer).toContainText('Derived from');
             await expect(editor.derivedFromContainer).toContainText('View fragment');
@@ -369,11 +369,11 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await editor.title.fill(data.title);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(await card.locator(individuals.cardTitle)).toHaveText(data.title);
-                    await editor.overrideRestoreIn(editor.cardTitleFieldGroup).first().click();
+                    await expect(await card.locator(plans.cardTitle)).toHaveText(data.title);
+                    await editor.overrideRestoreIn(editor.titleFieldGroup).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.title).toContainText(original.title);
-                    await expect((await studio.getCard(data.cardid)).locator(individuals.cardTitle)).toHaveText(original.title);
+                    await expect((await studio.getCard(data.cardid)).locator(plans.cardTitle)).toHaveText(original.title);
                 }),
             () =>
                 test.step('field: badge — edit, verify preview, click restore, verify original', async () => {
@@ -381,22 +381,22 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await editor.badge.fill(data.badge);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(await card.locator(individuals.cardBadge)).toHaveText(data.badge);
-                    await editor.overrideRestoreIn(editor.cardBadgeFieldGroup).first().click();
+                    await expect(await card.locator(plans.cardBadge)).toHaveText(data.badge);
+                    await editor.overrideRestoreIn(editor.badgeFieldGroup).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.badge).toHaveValue(original.badge);
-                    await expect((await studio.getCard(data.cardid)).locator(individuals.cardBadge)).toHaveText(original.badge);
+                    await expect((await studio.getCard(data.cardid)).locator(plans.cardBadge)).toHaveText(original.badge);
                 }),
             () =>
                 test.step('field: description — edit, verify preview, click restore, verify original', async () => {
                     await editor.description.fill(data.description);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(await card.locator(individuals.cardDescription)).toHaveText(data.description);
+                    await expect(await card.locator(plans.cardDescription)).toHaveText(data.description);
                     await editor.overrideRestoreIn(editor.descriptionFieldGroup).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.description).toContainText(original.description);
-                    await expect((await studio.getCard(data.cardid)).locator(individuals.cardDescription)).toContainText(
+                    await expect((await studio.getCard(data.cardid)).locator(plans.cardDescription)).toContainText(
                         original.description,
                     );
                 }),
@@ -409,14 +409,14 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await editor.saveMnemonicModal();
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(await card.locator(individuals.cardIcon)).toHaveAttribute('src', data.iconURL);
+                    await expect(await card.locator(plans.cardIcon)).toHaveAttribute('src', data.iconURL);
                     await editor.overrideRestoreIn(editor.mnemonicFieldGroup).first().click();
                     await page.waitForTimeout(300);
                     await editor.openMnemonicModal();
                     await editor.mnemonicUrlTab.click();
                     await expect(await editor.iconURL).toHaveValue(original.iconURL);
                     await editor.cancelMnemonicModal();
-                    await expect((await studio.getCard(data.cardid)).locator(individuals.cardIcon)).toHaveAttribute(
+                    await expect((await studio.getCard(data.cardid)).locator(plans.cardIcon)).toHaveAttribute(
                         'src',
                         original.iconURL,
                     );
@@ -426,33 +426,33 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await editor.calloutRTE.fill(data.callout);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(await card.locator(individuals.cardCallout)).toHaveText(data.callout);
-                    await editor.overrideRestoreIn(editor.calloutFieldGroup).first().click();
+                    await expect(await card.locator(plans.cardCallout)).toHaveText(data.callout);
+                    await editor.overrideRestoreIn(editor.callout).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.calloutRTE).toContainText(original.callout);
-                    await expect((await studio.getCard(data.cardid)).locator(individuals.cardCallout)).not.toBeVisible();
+                    await expect((await studio.getCard(data.cardid)).locator(plans.cardCallout)).not.toBeVisible();
                 }),
             () =>
                 test.step('field: promo text — edit, verify preview, click restore, verify original', async () => {
                     await editor.promoText.fill(data.promoText);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(await card.locator(individuals.cardPromoText)).toHaveText(data.promoText);
+                    await expect(await card.locator(plans.cardPromoText)).toHaveText(data.promoText);
                     await editor.overrideRestoreIn(editor.promoTextFieldGroup).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.promoText).toHaveText(original.promoText);
-                    await expect((await studio.getCard(data.cardid)).locator(individuals.cardPromoText)).not.toBeVisible();
+                    await expect((await studio.getCard(data.cardid)).locator(plans.cardPromoText)).not.toBeVisible();
                 }),
             () =>
                 test.step('field: whats included — edit, verify preview, click restore, verify original', async () => {
                     await editor.whatsIncludedLabel.fill(data.whatsIncludedText);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(await card.locator(individuals.cardWhatsIncluded)).toHaveText(data.whatsIncludedText);
-                    await editor.overrideRestoreIn(editor.whatsIncludedFieldGroup).first().click();
+                    await expect(await card.locator(plans.cardWhatsIncluded)).toHaveText(data.whatsIncludedText);
+                    await editor.overrideRestoreIn(editor.whatsIncluded).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.whatsIncludedLabel).toHaveValue(original.whatsIncludedText);
-                    await expect((await studio.getCard(data.cardid)).locator(individuals.cardWhatsIncluded)).not.toBeVisible();
+                    await expect((await studio.getCard(data.cardid)).locator(plans.cardWhatsIncluded)).not.toBeVisible();
                 }),
             () =>
                 test.step('field: badge color — edit, verify preview, click restore, verify original', async () => {
@@ -463,7 +463,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
                     expect(
-                        await webUtil.verifyCSS(card.locator(individuals.cardBadge), {
+                        await webUtil.verifyCSS(card.locator(plans.cardBadge), {
                             'background-color': data.badgeColor.css,
                         }),
                     ).toBeTruthy();
@@ -480,7 +480,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
                     expect(
-                        await webUtil.verifyCSS(card.locator(individuals.cardBadge), {
+                        await webUtil.verifyCSS(card.locator(plans.cardBadge), {
                             'border-left-color': data.badgeBorderColor.css,
                             'border-top-color': data.badgeBorderColor.css,
                             'border-bottom-color': data.badgeBorderColor.css,
@@ -515,17 +515,15 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     const editorUnitType = await editor.prices.locator('.price-unit-type');
                     await expect(editorUnitType).not.toHaveClass(/disabled/);
                     const card = await studio.getCard(data.cardid);
-                    const cardUnitType = await card.locator(individuals.cardPriceLegal).locator('.price-unit-type');
+                    const cardUnitType = await card.locator(plans.cardPriceLegal).locator('.price-unit-type');
                     await expect(cardUnitType).not.toHaveClass(/disabled/);
-                    await editor.overrideRestoreIn(editor.pricesFieldGroup).first().click();
+                    await editor.overrideRestoreIn(editor.prices).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.prices).toContainText(original.price);
                     await expect(await editor.prices.locator('.price-unit-type')).toHaveClass(/disabled/);
                     const cardAfter = await studio.getCard(data.cardid);
-                    await expect(cardAfter.locator(individuals.cardPrice)).toContainText(original.price);
-                    await expect(cardAfter.locator(individuals.cardPriceLegal).locator('.price-unit-type')).toHaveClass(
-                        /disabled/,
-                    );
+                    await expect(cardAfter.locator(plans.cardPrice)).toContainText(original.price);
+                    await expect(cardAfter.locator(plans.cardPriceLegal).locator('.price-unit-type')).toHaveClass(/disabled/);
                 }),
             () =>
                 test.step('field: CTA label (link edit) — edit, verify preview, click restore, verify original', async () => {
@@ -538,13 +536,11 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await editor.linkSave.click();
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
-                    await expect(await card.locator(individuals.cardCTA)).toContainText(data.ctaLabel);
-                    await editor.overrideRestoreIn(editor.ctasFieldGroup).first().click();
+                    await expect(await card.locator(plans.cardCTA)).toContainText(data.ctaLabel);
+                    await editor.overrideRestoreIn(editor.footer).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.footer).toContainText(original.ctaLabel);
-                    await expect((await studio.getCard(data.cardid)).locator(individuals.cardCTA)).toContainText(
-                        original.ctaLabel,
-                    );
+                    await expect((await studio.getCard(data.cardid)).locator(plans.cardCTA)).toContainText(original.ctaLabel);
                 }),
             () =>
                 test.step('field: OSI — edit, verify OSI and tags, click restore, verify original', async () => {
@@ -563,7 +559,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await expect(await editor.tags).toHaveAttribute('value', new RegExp(data.osiTags.offerType));
                     await expect(await editor.tags).toHaveAttribute('value', new RegExp(data.osiTags.marketSegment));
                     await expect(await editor.tags).toHaveAttribute('value', new RegExp(data.osiTags.planType));
-                    await editor.overrideRestoreIn(editor.osiFieldGroup).first().click();
+                    await editor.overrideRestoreIn(editor.OSIFieldGroup).first().click();
                     await page.waitForTimeout(300);
                     await expect(await editor.OSI).toContainText(original.osi);
                     await editor.overrideRestoreIn(editor.tagsFieldGroup).first().click();
@@ -629,7 +625,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             const cardPreview = await studio.getCard(variationId);
             await expect(await cardPreview).toBeVisible();
 
-            const cardPrice = cardPreview.locator(individuals.cardPrice);
+            const cardPrice = cardPreview.locator(plans.cardPrice);
             await expect(await cardPrice).toBeVisible({ timeout: 10000 });
             await expect(await cardPrice).toContainText(data.price);
         });
@@ -657,7 +653,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor and clone', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await expect(await studio.editorPanel).toBeVisible();
+            await expect(await editor.panel).toBeVisible();
             await studio.cloneCard(data.cardid);
             const clonedCard = await studio.getCard(data.cardid, 'cloned');
             await expect(clonedCard).toBeVisible();

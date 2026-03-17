@@ -7,7 +7,6 @@ export default {
             path: '/studio.html',
             browserParams: '#page=placeholders&path=nala&locale=en_US',
             tags: '@mas-studio @placeholders @smoke',
-            description: 'Verify that placeholders page loads correctly with all essential elements for en_US locale',
         },
         {
             tcid: '1',
@@ -19,7 +18,6 @@ export default {
             },
             browserParams: '#page=placeholders&path=nala&locale=en_US',
             tags: '@mas-studio @placeholders',
-            description: 'Verify locale picker is functional',
         },
         {
             tcid: '2',
@@ -31,7 +29,6 @@ export default {
             },
             browserParams: '#page=placeholders&path=nala&locale=en_US',
             tags: '@mas-studio @placeholders',
-            description: 'Validate search functionality works with en_US locale placeholders',
         },
     ],
 };

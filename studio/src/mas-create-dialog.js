@@ -211,10 +211,7 @@ export class MasCreateDialog extends LitElement {
         this.loading = true;
 
         const modelId = TAG_MODEL_ID_MAPPING[`mas:studio/content-type/${this.type}`];
-        if (!modelId) {
-            this.loading = false;
-            return;
-        }
+        if (!modelId) return;
 
         const fragmentData = {
             modelId,

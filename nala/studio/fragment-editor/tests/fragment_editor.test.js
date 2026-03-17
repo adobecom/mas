@@ -1,7 +1,7 @@
 import { test, expect, studio, editor, translationEditor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
-import FragmentEditorLocaleSpec from '../specs/fragment_editor_locale.spec.js';
+import FragmentEditorSpec from '../specs/fragment_editor.spec.js';
 
-const { features } = FragmentEditorLocaleSpec;
+const { features } = FragmentEditorSpec;
 
 test.describe('M@S Studio Fragment Editor Locale test suite', () => {
     // @studio-fragment-editor-locale-switch - Validate locale switching and translation project creation

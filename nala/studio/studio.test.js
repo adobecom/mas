@@ -1,5 +1,5 @@
 import { test, expect, studio, editor, miloLibs, setTestPage } from '../libs/mas-test.js';
-import { getFragmentTitle } from '../utils/fragment-tracker.js';
+import { getTitle } from '../utils/fragment-tracker.js';
 import StudioSpec from './studio.spec.js';
 
 const { features } = StudioSpec;
@@ -251,7 +251,7 @@ test.describe('M@S Studio feature test suite', () => {
         const testPage = `${baseURL}${features[9].path}${miloLibs}${features[9].browserParams}`;
         setTestPage(testPage);
         let fragmentId;
-        const expectedTitle = getFragmentTitle();
+        const expectedTitle = getTitle();
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);

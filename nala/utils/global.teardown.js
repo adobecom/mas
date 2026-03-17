@@ -21,7 +21,7 @@ const searchAndDeleteFragmentsByAPI = async ({ runId, processedIds, pathFragment
     const path = params.get('path') || 'nala';
     const locale = params.get('locale') || 'en_US'; // no locale in path => default en_US
     const apiPath = `${rootPath}/${path}/${locale}`;
-    const runIdInTitle = `[${runId}]`; // only delete fragments whose title contains this
+    const runIdInTitle = `${runId}`; // only delete fragments whose title contains this
     const toDelete = [];
 
     try {
@@ -191,9 +191,6 @@ async function cleanupClonedCards() {
             // Check each path for fragments (per-path try/catch so one failure doesn't skip the rest)
             const pathResults = []; // Track results per path for GitHub validation
             const pathTimeoutMs = 90_000;
-            console.log(
-                `📍 Checking ${pathsToCheck.length} paths (${pathTimeoutMs / 1000}s timeout per path): ${pathsToCheck.map((p) => p.replace(/#/, '')).join(', ')}`,
-            );
             for (const pathFragment of pathsToCheck) {
                 console.log(`📍 Checking path: \x1b[33m${pathFragment}\x1b[0m`);
 

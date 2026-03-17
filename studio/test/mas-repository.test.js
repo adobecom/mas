@@ -849,6 +849,7 @@ describe('MasRepository dictionary helpers', () => {
                     if (key === 'query') return '';
                     if (key === 'locale') return 'en_US';
                     if (key === 'tags') return '';
+                    if (key === 'createdBy') return '';
                     return null;
                 }),
                 set: sandbox.stub(),

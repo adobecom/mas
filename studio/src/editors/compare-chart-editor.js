@@ -1718,7 +1718,7 @@ class CompareChartEditor extends LitElement {
         const blockName = this.#getField('blockName')?.values?.[0] || 'Comparison Table';
         if (blockName !== 'Table') return nothing;
         const selected = this.#getField('selectedVariantNames')?.values || [];
-        const options = ['merch', 'highlight', 'sticky', 'collapse', 'm-heading-icon'];
+        const options = ['merch', 'highlight', 'sticky', 'collapse', 'm-heading-icon', 'pricing-bottom', 'header-left'];
         return html`
             <div class="variant-checkboxes">
                 ${options.map(

@@ -360,7 +360,7 @@ class CompareChartPreview extends LitElement {
                                                   this.#onEditKeydown(e, () => this.#commitSectionTitle(sIdx, e.target))}
                                               @click=${(e) => e.stopPropagation()}
                                           />`
-                                        : section.title || `Section ${sIdx + 1}`}
+                                        : section.title}
                                 </td>
                             </tr>
                             ${(section.rows || []).map(

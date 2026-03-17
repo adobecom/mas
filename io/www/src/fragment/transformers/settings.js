@@ -225,6 +225,7 @@ function applyCollectionSettings(context, locale, settings) {
         noResultsText: '{{coll-no-results-text}}',
         plansSidenavTitle: '{{coll-plans-sidenav-title}}',
         catalogSidenavTitle: '{{coll-catalog-sidenav-title}}',
+        catalogSidenavClose: '{{coll-catalog-sidenav-close}}',
         catalogSpecialOffersAlt: '{{catalog-special-offers-alt}}',
         sidenavFilterCategories: '{{sidenav-filter-categories}}',
         sidenavResources: '{{sidenav-resources}}',

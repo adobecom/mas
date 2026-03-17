@@ -924,7 +924,6 @@ export class MasRepository extends LitElement {
     async saveFragment(fragmentStore, withToast = true) {
         if (withToast) showToast('Saving fragment...');
         this.operation.set(OPERATIONS.SAVE);
-        await initFragmentCache();
 
         const fragment = fragmentStore.get();
         const parentFragment = fragmentStore.parentFragment;

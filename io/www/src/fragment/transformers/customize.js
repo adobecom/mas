@@ -128,7 +128,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     //now we look into referenced fragments to customize them as well
     for (const reference of referencesTree) {
         //customize each card/collection
-        if (CF_REFERENCE_FIELDS.includes(reference.fieldName)) {
+        if (CF_REFERENCE_FIELDS.includes(reference.fieldName) && reference.fieldName !== 'entries') {
             const child = customizeContext.references[reference.identifier]?.value;
             if (child) {
                 //start customization of the child fragment

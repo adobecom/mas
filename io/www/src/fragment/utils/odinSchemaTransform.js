@@ -1,6 +1,6 @@
 //utitilies to transform payload from old schema to new schema
 
-const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries', 'fragments', 'sections', 'rows', 'values'];
+const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries', 'fragment', 'fragments', 'sections', 'rows', 'rowValues', 'values'];
 const REFERENCE_FIELDS = [...CF_REFERENCE_FIELDS, 'tags'];
 
 function transformFields(body) {

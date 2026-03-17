@@ -4,9 +4,11 @@ import { transformBody, CF_REFERENCE_FIELDS } from '../../../src/fragment/utils/
 describe('odinSchemaTransform', function () {
     describe('CF_REFERENCE_FIELDS', function () {
         it('should include compare-chart field names', function () {
+            expect(CF_REFERENCE_FIELDS).to.include('fragment');
             expect(CF_REFERENCE_FIELDS).to.include('fragments');
             expect(CF_REFERENCE_FIELDS).to.include('sections');
             expect(CF_REFERENCE_FIELDS).to.include('rows');
+            expect(CF_REFERENCE_FIELDS).to.include('rowValues');
             expect(CF_REFERENCE_FIELDS).to.include('values');
         });
 

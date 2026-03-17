@@ -3,7 +3,7 @@ import {
     expect,
     studio,
     editor,
-    individuals,
+    plans,
     ost,
     setClonedCardID,
     getClonedCardID,
@@ -33,8 +33,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
@@ -70,8 +68,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
@@ -91,7 +87,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     });
 
     // @studio-plans-individuals-save-edited-RTE-fields - Validate field edits and save for plans individuals card in mas studio
-    // Combines: title, badge, description, mnemonic, callout, promo text, OSI, stock checkbox, what's included, and color changes
+    // Combines: title, badge, description, mnemonic, callout, promo text, OSI, stock checkbox, what's included, UPT link and color changes
     test(`${features[2].name},${features[2].tags}`, async ({ page, baseURL }) => {
         const { data } = features[2];
         const testPage = `${baseURL}${features[2].path}${miloLibs}${features[2].browserParams}${data.cardid}`;
@@ -107,8 +103,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
@@ -123,9 +117,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await editor.badge.fill(data.badge);
         });
 
-        await test.step('step-5: Edit description field', async () => {
+        await test.step('step-5: Edit promocode and description field', async () => {
             await expect(await editor.description).toBeVisible();
             await editor.description.fill(data.description);
+            await editor.promoCode.fill(data.promoCode);
+            await editor.descriptionFieldGroup.locator(editor.UPTButton).click();
         });
 
         await test.step('step-6: Edit mnemonic field', async () => {
@@ -208,22 +204,36 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 'badge color',
                 'badge border color',
                 'card border color',
+                'UPT link',
             ];
 
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify title saved', async () => {
                     await expect(await editor.title).toContainText(data.title);
-                    await expect(await clonedCard.locator(individuals.cardTitle)).toHaveText(data.title);
+                    await expect(await clonedCard.locator(plans.cardTitle)).toHaveText(data.title);
                 }),
 
                 test.step('Validation-2: Verify badge saved', async () => {
                     await expect(await editor.badge).toHaveValue(data.badge);
-                    await expect(await clonedCard.locator(individuals.cardBadge)).toHaveText(data.badge);
+                    await expect(await clonedCard.locator(plans.cardBadge)).toHaveText(data.badge);
                 }),
 
                 test.step('Validation-3: Verify description saved', async () => {
                     await expect(await editor.description).toContainText(data.description);
-                    await expect(await clonedCard.locator(individuals.cardDescription)).toHaveText(data.description);
+                    await expect(await clonedCard.locator(plans.cardDescription)).toContainText(data.description);
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute('data-analytics-id', 'see-terms');
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'href',
+                        expect.stringContaining(data.uptLinkUrl),
+                    );
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'href',
+                        expect.stringContaining(`&promotion_code=${data.promoCode}`),
+                    );
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'data-promotion-code',
+                        data.promoCode,
+                    );
                 }),
 
                 test.step('Validation-4: Verify mnemonic saved', async () => {
@@ -231,17 +241,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                     await editor.mnemonicUrlTab.click();
                     await expect(await editor.iconURL).toHaveValue(data.iconURL);
                     await editor.cancelMnemonicModal();
-                    await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.iconURL);
+                    await expect(await clonedCard.locator(plans.cardIcon)).toHaveAttribute('src', data.iconURL);
                 }),
 
                 test.step('Validation-5: Verify callout saved', async () => {
                     await expect(await editor.calloutRTE).toContainText(data.callout);
-                    await expect(await clonedCard.locator(individuals.cardCallout)).toHaveText(data.callout);
+                    await expect(await clonedCard.locator(plans.cardCallout)).toHaveText(data.callout);
                 }),
 
                 test.step('Validation-6: Verify promo text saved', async () => {
                     await expect(await editor.promoText).toHaveText(data.promoText);
-                    await expect(await clonedCard.locator(individuals.cardPromoText)).toHaveText(data.promoText);
+                    await expect(await clonedCard.locator(plans.cardPromoText)).toHaveText(data.promoText);
                 }),
 
                 test.step('Validation-7: Verify OSI changes saved', async () => {
@@ -269,13 +279,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
                 test.step('Validation-8: Verify whats included saved', async () => {
                     await expect(await editor.whatsIncludedLabel).toHaveValue(data.whatsIncludedText);
-                    await expect(await clonedCard.locator(individuals.cardWhatsIncluded)).toHaveText(data.whatsIncludedText);
+                    await expect(await clonedCard.locator(plans.cardWhatsIncluded)).toHaveText(data.whatsIncludedText);
                 }),
 
                 test.step('Validation-9: Verify badge color saved', async () => {
                     await expect(await editor.badgeColor).toContainText(data.badgeColor.name);
                     expect(
-                        await webUtil.verifyCSS(clonedCard.locator(individuals.cardBadge), {
+                        await webUtil.verifyCSS(clonedCard.locator(plans.cardBadge), {
                             'background-color': data.badgeColor.css,
                         }),
                     ).toBeTruthy();
@@ -284,7 +294,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 test.step('Validation-10: Verify badge border color saved', async () => {
                     await expect(await editor.badgeBorderColor).toContainText(data.badgeBorderColor.name);
                     expect(
-                        await webUtil.verifyCSS(clonedCard.locator(individuals.cardBadge), {
+                        await webUtil.verifyCSS(clonedCard.locator(plans.cardBadge), {
                             'border-left-color': data.badgeBorderColor.css,
                             'border-top-color': data.badgeBorderColor.css,
                             'border-bottom-color': data.badgeBorderColor.css,
@@ -299,6 +309,29 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                             'background-color': data.borderColor.css,
                         }),
                     ).toBeTruthy();
+                }),
+
+                test.step('Validation-12: Verify UPT link saved', async () => {
+                    await expect(await editor.description.locator(editor.uptLink)).toBeVisible();
+                    await expect(await editor.description.locator(editor.uptLink)).toHaveAttribute(
+                        'data-analytics-id',
+                        'see-terms',
+                    );
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toBeVisible();
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute('data-analytics-id', 'see-terms');
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'href',
+                        expect.stringContaining(data.uptLinkUrl),
+                    );
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'href',
+                        expect.stringContaining(`&promotion_code=${data.promoCode}`),
+                    );
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute('data-wcs-osi', data.osi);
+                    await expect(await clonedCard.locator(plans.cardUptLink)).toHaveAttribute(
+                        'data-promotion-code',
+                        data.promoCode,
+                    );
                 }),
             ]);
 
@@ -332,8 +365,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
@@ -352,8 +383,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-4: Verify price changes are saved', async () => {
             await expect(await editor.prices).toContainText(data.price);
             await expect(await editor.prices).not.toContainText(data.strikethroughPrice);
-            await expect(await clonedCard.locator(individuals.cardPrice)).toContainText(data.price);
-            await expect(await clonedCard.locator(individuals.cardPrice)).not.toContainText(data.strikethroughPrice);
+            await expect(await clonedCard.locator(plans.cardPrice)).toContainText(data.price);
+            await expect(await clonedCard.locator(plans.cardPrice)).not.toContainText(data.strikethroughPrice);
         });
     });
 
@@ -373,21 +404,19 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Toggle quantity selector', async () => {
-            await expect(await editor.showQuantitySelector).toBeVisible();
-            await editor.showQuantitySelector.click();
+            await expect(await editor.quantitySelectorCheckbox).toBeVisible();
+            await editor.quantitySelectorCheckbox.click();
             await studio.saveCard();
         });
 
         await test.step('step-4: Verify quantity selector change is saved', async () => {
-            await expect(await editor.showQuantitySelector).toBeChecked();
-            await expect(await clonedCard.locator(individuals.cardQuantitySelector)).toBeVisible();
+            await expect(await editor.quantitySelectorCheckbox).toBeChecked();
+            await expect(await clonedCard.locator(plans.cardQuantitySelector)).toBeVisible();
         });
     });
 
@@ -408,8 +437,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
@@ -418,7 +445,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.CTA).toBeVisible();
             await expect(await editor.footer).toContainText(data.cta.original.label);
             await expect(await editor.CTA).toHaveClass(data.cta.original.variant);
-            expect(await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.cta.original.css)).toBeTruthy();
+            expect(await webUtil.verifyCSS(await clonedCard.locator(plans.cardCTA), data.cta.original.css)).toBeTruthy();
 
             // Open link edit form
             await editor.CTA.click();
@@ -454,24 +481,19 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify CTA label saved', async () => {
                     await expect(await editor.footer).toContainText(data.cta.updated.label);
-                    await expect(await clonedCard.locator(individuals.cardCTA)).toContainText(data.cta.updated.label);
+                    await expect(await clonedCard.locator(plans.cardCTA)).toContainText(data.cta.updated.label);
                 }),
 
                 test.step('Validation-2: Verify CTA variant saved', async () => {
                     await expect(await editor.CTA).toHaveClass(data.cta.updated.variant);
                     await expect(await editor.CTA).not.toHaveClass(data.cta.original.variant);
-                    expect(
-                        await webUtil.verifyCSS(await clonedCard.locator(individuals.cardCTA), data.cta.updated.css),
-                    ).toBeTruthy();
+                    expect(await webUtil.verifyCSS(await clonedCard.locator(plans.cardCTA), data.cta.updated.css)).toBeTruthy();
                 }),
 
                 test.step('Validation-3: Verify checkout parameters saved', async () => {
-                    await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute(
-                        'data-wcs-osi',
-                        data.osi.updated,
-                    );
-                    await expect(await clonedCard.locator(individuals.cardCTA)).toHaveAttribute('is', 'checkout-link');
-                    const CTAhref = await clonedCard.locator(individuals.cardCTA).getAttribute('href');
+                    await expect(await clonedCard.locator(plans.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi.updated);
+                    await expect(await clonedCard.locator(plans.cardCTA)).toHaveAttribute('is', 'checkout-link');
+                    const CTAhref = await clonedCard.locator(plans.cardCTA).getAttribute('href');
                     const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
                     expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
                     expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
@@ -509,8 +531,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
@@ -533,7 +553,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-4: Validate description field updated', async () => {
             await expect(await editor.description).toContainText(data.legalDisclaimer);
-            await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimer);
+            await expect(await clonedCard.locator(plans.cardDescription)).toContainText(data.cardLegalDisclaimer);
         });
 
         await test.step('step-5: Edit legal disclaimer tax field', async () => {
@@ -553,7 +573,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Validate legal disclaimer tax field updated', async () => {
             await expect(await editor.description).toContainText(data.legalDisclaimerTax);
-            await expect(await clonedCard.locator(individuals.cardDescription)).toContainText(data.cardLegalDisclaimerTax);
+            await expect(await clonedCard.locator(plans.cardDescription)).toContainText(data.cardLegalDisclaimerTax);
         });
     });
 
@@ -574,14 +594,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
             data.clonedCardID = getClonedCardID();
-            await expect(await clonedCard).toBeVisible();
-            await clonedCard.dblclick();
             await expect(await editor.panel).toBeVisible();
             await expect(await clonedCard).toBeVisible();
         });
 
         await test.step('step-3: Validate original icon', async () => {
-            await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.productIcon.original.src);
+            await expect(await clonedCard.locator(plans.cardIcon)).toHaveAttribute('src', data.productIcon.original.src);
         });
 
         await test.step('step-4: Select product icon from icon picker', async () => {
@@ -592,7 +610,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate mnemonic icon saved', async () => {
-            await expect(await clonedCard.locator(individuals.cardIcon)).toHaveAttribute('src', data.productIcon.updated.src);
+            await expect(await clonedCard.locator(plans.cardIcon)).toHaveAttribute('src', data.productIcon.updated.src);
         });
     });
 });

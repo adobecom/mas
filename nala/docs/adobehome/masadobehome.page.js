@@ -51,7 +51,7 @@ export default class AdobeHomePage {
                     'font-size': '16px',
                     'line-height': '20px',
                     'font-weight': '700',
-                    // eslint-disable-next-line quote-props
+
                     color: 'var(--merch-card-ah-try-buy-widget-text-color)',
                 },
                 price: {

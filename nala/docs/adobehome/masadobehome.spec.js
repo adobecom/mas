@@ -1,5 +1,3 @@
-/* eslint-disable max-len */
-
 import { DOCS_GALLERY_PATH } from '../../utils/commerce.js';
 
 export const FeatureName = 'Mas Adobe Home Try Buy Widget';

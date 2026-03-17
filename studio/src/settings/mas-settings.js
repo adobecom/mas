@@ -514,7 +514,8 @@ class MasSettings extends LitElement {
     };
 
     #handleAddOverrideDialog = ({ detail: { id } }) => {
-        const row = Store.settings.getRowStore(id).value;
+        const row = Store.settings.getRowStore(id)?.value;
+        if (!row) return;
         const settingDefinition = getSettingNameDefinition(row.name);
         const valueType = settingDefinition ? settingDefinition.valueType : row.valueType;
         const value = settingDefinition?.editor === 'addon' ? this.#toAddonValue(row.value) : row.value;
@@ -534,7 +535,8 @@ class MasSettings extends LitElement {
     };
 
     #buildConfirmDialogConfig(action, rowId, overrideId = null) {
-        const row = Store.settings.getRowStore(rowId).value;
+        const row = Store.settings.getRowStore(rowId)?.value;
+        if (!row) return null;
         const settingLabel = row.label;
 
         if (action === 'delete-override') {
@@ -617,13 +619,15 @@ class MasSettings extends LitElement {
     }
 
     #openConfirmDialog(action, rowId, overrideId = null, resetOnCancel = false) {
+        const config = this.#buildConfirmDialogConfig(action, rowId, overrideId);
+        if (!config) return;
         this.dialog = {
             type: 'confirm',
             action,
             rowId,
             overrideId,
             resetOnCancel,
-            config: this.#buildConfirmDialogConfig(action, rowId, overrideId),
+            config,
         };
     }
 
@@ -738,7 +742,8 @@ class MasSettings extends LitElement {
     get overrideConflict() {
         if (this.dialog?.type !== 'override') return null;
         if (!this.form.locales.length) return null;
-        const row = Store.settings.getRowStore(this.dialog.rowId).value;
+        const row = Store.settings.getRowStore(this.dialog.rowId)?.value;
+        if (!row) return null;
         return (
             row.overrides.find((override) => {
                 if (this.dialog.mode === 'edit' && override.id === this.dialog.overrideId) return false;
@@ -1070,7 +1075,8 @@ class MasSettings extends LitElement {
 
     get addOverrideDialogTemplate() {
         if (this.dialog?.type !== 'override') return nothing;
-        const row = Store.settings.getRowStore(this.dialog.rowId).value;
+        const row = Store.settings.getRowStore(this.dialog.rowId)?.value;
+        if (!row) return nothing;
         const conflict = this.overrideConflict;
         return html`
             <sp-underlay open @click=${this.#handleDialogCancel}></sp-underlay>

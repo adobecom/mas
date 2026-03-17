@@ -786,7 +786,13 @@ export class SettingsStore {
         this.rows.set([]);
         this.expandedRowIds.set([]);
         this.activeTabByRowId.set({});
+        this.loading.set(false);
+        this.error.set(null);
         this.toast.set(null);
+        this.#sourceFragment = null;
+        this.#surface = '';
+        this.#loadingSurface = '';
+        this.#loadSurfacePromise = null;
     }
 
     async #runMutation(operation, successMessage, errorMessage, successVariant = '') {

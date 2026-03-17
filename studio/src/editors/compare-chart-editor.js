@@ -1,6 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
-import { live } from 'lit/directives/live.js';
 import { Fragment } from '../aem/fragment.js';
 import './compare-chart-preview.js';
 import router from '../router.js';
@@ -1339,7 +1338,7 @@ class CompareChartEditor extends LitElement {
                                 >
                                     <input
                                         type="checkbox"
-                                        .checked=${live(isSelected)}
+                                        .checked=${isSelected}
                                         @change=${() => {
                                             const updated = isSelected
                                                 ? sortFieldsByGroup(col.fields.filter((f) => f !== fieldName))

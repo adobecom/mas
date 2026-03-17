@@ -825,7 +825,10 @@ export class MasRepository extends LitElement {
             this.#abortControllers.translations = new AbortController();
             Store.translationProjects.list.loading.set(true);
             const fragments = await this.searchFragmentList(
-                { path: translationsPath },
+                {
+                    path: translationsPath,
+                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                },
                 50,
                 this.#abortControllers.translations,
             );

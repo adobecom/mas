@@ -324,9 +324,7 @@ async function cleanupClonedCards() {
                 totalAttempted: totalFragmentsFound,
             };
         } catch (error) {
-            console.error(
-                `\x1b[31m✘\x1b[0m Cleanup failed before or during path check: ${error?.message ?? error}`,
-            );
+            console.error(`\x1b[31m✘\x1b[0m Cleanup failed before or during path check: ${error?.message ?? error}`);
             if (error?.stack) console.error(error.stack);
             clearRunId();
 

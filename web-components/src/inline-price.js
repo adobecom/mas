@@ -20,6 +20,7 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'CH_fr',
     'CH_it',
     'CZ_cs',
+    'CO_es',
     'DE_de',
     'DK_da',
     'EE_et',
@@ -53,6 +54,7 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'NG_en',
     'NO_nb',
     'NZ_en',
+    'PE_es',
     'PL_pl',
     'PT_pt',
     'RO_ro',
@@ -70,9 +72,9 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
 // countries where tax is displayed by default for some segments only
 const DISPLAY_TAX_MAP = {
     [INDIVIDUAL]: ['SA_en', 'SA_ar'],
-    [BUSINESS]: ['CO_es'],
+    [BUSINESS]: [],
     [STUDENT]: ['SA_en', 'SA_ar'],
-    [UNIVERSITY]: ['CO_es'],
+    [UNIVERSITY]: [],
 };
 
 // For most countries where tax label is displayed the tax is included for Individuals and Students
@@ -86,6 +88,7 @@ const TAX_EXCLUDED_MAP = {
     ['TH_en']: [false, false, false, false],
     ['TH_th']: [false, false, false, false],
     ['ZA_en']: [false, false, false, false],
+    ['PE_es']: [false, false, false, false],
 };
 const TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
 const defaultTaxExcluded = (segment) =>

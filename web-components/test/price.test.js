@@ -1049,9 +1049,9 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'CO_es',
                 expected: [
-                    [false, false],
+                    [true, false],
                     [true, true],
-                    [false, false],
+                    [true, false],
                     [true, true],
                 ],
             },
@@ -1103,10 +1103,10 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'PE_es',
                 expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, false],
+                    [true, false],
+                    [true, false],
                 ],
             },
             {

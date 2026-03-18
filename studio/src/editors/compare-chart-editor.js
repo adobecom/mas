@@ -62,6 +62,8 @@ class CompareChartEditor extends LitElement {
         columnPreviewCardId: { type: String, state: true },
         columnPreviewResolvedCardId: { type: String, state: true },
         draggingFieldIndex: { type: Number, state: true },
+        popoverAnchorRect: { type: Object, state: true },
+        columnModalOpen: { type: Boolean, state: true },
     };
 
     createRenderRoot() {
@@ -76,6 +78,8 @@ class CompareChartEditor extends LitElement {
     #cardPickerSearchTimer;
     #cardSearchRequestId = 0;
     #previewHydrationRequestId = 0;
+    #popoverOutsideHandler = null;
+    #onKeydown = null;
 
     constructor() {
         super();
@@ -100,6 +104,8 @@ class CompareChartEditor extends LitElement {
         this.columnPreviewError = '';
         this.columnPreviewCardId = '';
         this.columnPreviewResolvedCardId = '';
+        this.popoverAnchorRect = null;
+        this.columnModalOpen = false;
     }
 
     get fragment() {
@@ -120,10 +126,22 @@ class CompareChartEditor extends LitElement {
         if (this.fragmentStore) {
             this.#buildData();
         }
+        this.#onKeydown = (e) => {
+            if (e.key === 'Escape') {
+                if (this.columnModalOpen) {
+                    this.#closeColumnModal();
+                } else if (this.panelMode !== PANEL_NONE) {
+                    this.#dismissPopover();
+                }
+            }
+        };
+        document.addEventListener('keydown', this.#onKeydown);
     }
 
     disconnectedCallback() {
         clearTimeout(this.#cardPickerSearchTimer);
+        this.#removePopoverOutsideListener();
+        if (this.#onKeydown) document.removeEventListener('keydown', this.#onKeydown);
         super.disconnectedCallback();
     }
 
@@ -140,7 +158,8 @@ class CompareChartEditor extends LitElement {
             changedProperties.has('columns') ||
             changedProperties.has('selectedColumnIndex') ||
             changedProperties.has('panelMode') ||
-            changedProperties.has('columnPreviewOpen')
+            changedProperties.has('columnPreviewOpen') ||
+            changedProperties.has('columnModalOpen')
         ) {
             this.#syncColumnPreviewHydration();
         }
@@ -821,21 +840,22 @@ class CompareChartEditor extends LitElement {
     // --- Event handlers ---
 
     #onColumnClick(e) {
-        const { columnIndex } = e.detail;
+        const { columnIndex, anchorRect } = e.detail;
         if (this.selectedColumnIndex !== columnIndex) {
             this.#closeCardPicker();
         }
-        this.columnPreviewOpen = true;
         this.panelMode = PANEL_COLUMN;
         this.selectedColumnIndex = columnIndex;
         this.selectedSectionIndex = -1;
         this.selectedRowIndex = -1;
         this.selectedCellIndex = -1;
         this.cellEditorType = '';
+        this.popoverAnchorRect = anchorRect || null;
+        this.#attachPopoverOutsideListener();
     }
 
     #onSectionClick(e) {
-        const { sectionIndex } = e.detail;
+        const { sectionIndex, anchorRect } = e.detail;
         this.#closeCardPicker();
         this.panelMode = PANEL_SECTION;
         this.selectedSectionIndex = sectionIndex;
@@ -843,10 +863,12 @@ class CompareChartEditor extends LitElement {
         this.selectedRowIndex = -1;
         this.selectedCellIndex = -1;
         this.cellEditorType = '';
+        this.popoverAnchorRect = anchorRect || null;
+        this.#attachPopoverOutsideListener();
     }
 
     #onRowClick(e) {
-        const { sectionIndex, rowIndex } = e.detail;
+        const { sectionIndex, rowIndex, anchorRect } = e.detail;
         this.#closeCardPicker();
         this.panelMode = PANEL_ROW;
         this.selectedSectionIndex = sectionIndex;
@@ -854,10 +876,12 @@ class CompareChartEditor extends LitElement {
         this.selectedColumnIndex = -1;
         this.selectedCellIndex = -1;
         this.cellEditorType = '';
+        this.popoverAnchorRect = anchorRect || null;
+        this.#attachPopoverOutsideListener();
     }
 
     #onCellClick(e) {
-        const { sectionIndex, rowIndex, cellIndex } = e.detail;
+        const { sectionIndex, rowIndex, cellIndex, anchorRect } = e.detail;
         this.#closeCardPicker();
         this.panelMode = PANEL_CELL;
         this.selectedSectionIndex = sectionIndex;
@@ -867,6 +891,73 @@ class CompareChartEditor extends LitElement {
         const row = this.sections[sectionIndex]?.rows?.[rowIndex];
         const rawValue = row?.values?.[cellIndex]?.valueType || '';
         this.cellEditorType = this.#getCellTypeFromValue(rawValue);
+        this.popoverAnchorRect = anchorRect || null;
+        this.#attachPopoverOutsideListener();
+    }
+
+    #dismissPopover() {
+        this.#removePopoverOutsideListener();
+        this.panelMode = PANEL_NONE;
+        this.popoverAnchorRect = null;
+        this.selectedColumnIndex = -1;
+        this.selectedSectionIndex = -1;
+        this.selectedRowIndex = -1;
+        this.selectedCellIndex = -1;
+        this.cellEditorType = '';
+    }
+
+    #attachPopoverOutsideListener() {
+        this.#removePopoverOutsideListener();
+        // Use rAF so the triggering click doesn't immediately dismiss
+        requestAnimationFrame(() => {
+            this.#popoverOutsideHandler = (mouseEvent) => {
+                const popover = this.querySelector('.chart-context-popover');
+                const preview = this.querySelector('compare-chart-preview');
+                if (!popover) return;
+                const target = mouseEvent.target;
+                if (popover.contains(target)) return;
+                // Clicks on the preview table are handled by the cell/column/row/section click events
+                if (preview && (target === preview || preview.contains(target))) return;
+                this.#dismissPopover();
+            };
+            document.addEventListener('mousedown', this.#popoverOutsideHandler);
+        });
+    }
+
+    #removePopoverOutsideListener() {
+        if (this.#popoverOutsideHandler) {
+            document.removeEventListener('mousedown', this.#popoverOutsideHandler);
+            this.#popoverOutsideHandler = null;
+        }
+    }
+
+    #openColumnModal() {
+        this.columnModalOpen = true;
+        this.#removePopoverOutsideListener();
+    }
+
+    #closeColumnModal() {
+        this.columnModalOpen = false;
+        this.columnPreviewOpen = false;
+        this.#closeCardPicker();
+        // Re-attach outside listener when modal closes if column is still selected
+        if (this.panelMode === PANEL_COLUMN && this.popoverAnchorRect) {
+            this.#attachPopoverOutsideListener();
+        }
+    }
+
+    #popoverStyle(anchorRect) {
+        if (!anchorRect) return '';
+        const popoverWidth = 320;
+        const margin = 8;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        let top = anchorRect.bottom + margin;
+        let left = anchorRect.left;
+        // Flip up if near bottom of viewport
+        if (top + 320 > viewportHeight) top = Math.max(margin, anchorRect.top - 320 - margin);
+        left = Math.max(margin, Math.min(left, viewportWidth - popoverWidth - margin));
+        return `top: ${top}px; left: ${left}px;`;
     }
 
     async #onAddRow(e) {
@@ -1169,7 +1260,6 @@ class CompareChartEditor extends LitElement {
             showToast(`Removed unavailable column fields: ${missingFields.join(', ')}`, 'info');
         }
 
-        this.columnPreviewOpen = true;
         this.#pushRecentCardId(resolvedCard.id);
         await this.#loadCardRecents();
         return true;
@@ -1189,13 +1279,8 @@ class CompareChartEditor extends LitElement {
         const assigned = await this.#assignCardReference(colFragment, cardSummary);
         if (assigned) {
             this.#closeCardPicker();
-            this.columnPreviewOpen = true;
             showToast('Card assigned to column.', 'positive');
         }
-    }
-
-    #onColumnPreviewToggle(e) {
-        this.columnPreviewOpen = e.currentTarget.open;
     }
 
     #getSelectedColumnCardReference() {
@@ -1315,400 +1400,6 @@ class CompareChartEditor extends LitElement {
         }
     }
 
-    // --- Editable panels ---
-
-    get #columnPanel() {
-        const col = this.columns[this.selectedColumnIndex];
-        if (!col) return nothing;
-        const scope = this.#getEditorScope();
-        const isPickerOpen = this.cardPickerOpen && this.cardPickerColumnPath === col.path;
-        const trimmedQuery = this.cardPickerQuery.trim();
-        const pickerItems = trimmedQuery ? this.cardPickerResults : this.cardPickerRecents;
-        const hasSelectedCard = Boolean(col.cardFragment?.path || col.cardFragment?.id);
-        const selectedCardId = this.columnPreviewResolvedCardId || col.cardFragment?.id || '';
-        const previewFragmentId = this.columnPreviewResolvedCardId || '';
-        const selectedSet = new Set(col.fields);
-        // Display order is stable: initialized from col.fields on first render, updated only on drag.
-        const allFieldsSorted = this.#getFieldDisplayOrder(col);
-
-        return html`
-            <div class="panel-section">
-                <div class="panel-header">
-                    <h3>Column: ${col.title}</h3>
-                    <sp-action-button
-                        size="s"
-                        quiet
-                        @click=${() => this.#deleteColumn(this.selectedColumnIndex)}
-                        ?disabled=${this.busy}
-                    >
-                        <sp-icon-delete slot="icon"></sp-icon-delete>
-                        Delete
-                    </sp-action-button>
-                </div>
-
-                <section id="column-fields-block" class="column-panel-block column-fields-block">
-                    <h4 class="column-block-title">Column Fields</h4>
-                    <div class="column-fields-sortable">
-                        ${allFieldsSorted.map((fieldName, index) => {
-                            const isSelected = selectedSet.has(fieldName);
-                            const fieldIndex = isSelected ? col.fields.indexOf(fieldName) : -1;
-                            return html`
-                                ${index > 0 && getFieldGroup(fieldName) !== getFieldGroup(allFieldsSorted[index - 1])
-                                    ? html`<div class="column-fields-group-divider"></div>`
-                                    : nothing}
-                                <label
-                                    class="column-field-row ${isSelected ? 'selected' : ''} ${isSelected &&
-                                    this.draggingFieldIndex === fieldIndex
-                                        ? 'dragging'
-                                        : ''}"
-                                    draggable="${isSelected}"
-                                    @dragstart=${isSelected ? (e) => this.#fieldDragStart(e, fieldIndex) : nothing}
-                                    @dragover=${isSelected ? (e) => this.#fieldDragOver(e, col, fieldIndex) : nothing}
-                                    @dragleave=${isSelected ? (e) => this.#fieldDragLeave(e) : nothing}
-                                    @drop=${isSelected ? (e) => this.#fieldDrop(e, col, fieldIndex) : nothing}
-                                    @dragend=${isSelected ? (e) => this.#fieldDragEnd(e) : nothing}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        .checked=${isSelected}
-                                        @change=${() =>
-                                            this.#toggleField(col, fieldName, isSelected, selectedSet, allFieldsSorted)}
-                                    />
-                                    <span class="column-field-label">${columnFieldLabel(fieldName)}</span>
-                                </label>
-                            `;
-                        })}
-                    </div>
-                </section>
-
-                <div class="badge-field">
-                    <sp-field-label for="col-badge">Badge</sp-field-label>
-                    <sp-textfield
-                        id="col-badge"
-                        value="${col.badge || ''}"
-                        placeholder="e.g. Best Offer"
-                        @change=${(e) => this.#saveChildField(col.fragment, 'badge', [e.target.value])}
-                    ></sp-textfield>
-                </div>
-
-                <section class="column-card-source-section">
-                    <h4 class="column-block-title">Card Source</h4>
-
-                    <div class="card-action-row">
-                        <sp-button
-                            id="browse-cards-btn"
-                            size="s"
-                            variant="accent"
-                            @click=${() => (isPickerOpen ? this.#closeCardPicker() : this.#openCardPicker(col.path))}
-                        >
-                            ${isPickerOpen ? 'Close Browser' : 'Browse Cards'}
-                        </sp-button>
-                        <sp-action-button
-                            id="open-card-btn"
-                            size="s"
-                            quiet
-                            ?disabled=${!hasSelectedCard}
-                            @click=${() => this.#openSelectedCardEditor(col.cardFragment)}
-                        >
-                            Open card
-                        </sp-action-button>
-                    </div>
-
-                    <div class="card-meta">
-                        ${hasSelectedCard
-                            ? html`
-                                  <div class="card-meta-title">${col.cardFragment.title}</div>
-                                  <div>ID: ${selectedCardId}</div>
-                                  <div class="card-meta-path">${col.cardFragment.path}</div>
-                              `
-                            : html`<div>No card selected yet. Use Browse Cards to assign one in-scope.</div>`}
-                    </div>
-
-                    ${isPickerOpen
-                        ? html`
-                              <div id="card-picker-popover" class="card-picker-panel">
-                                  <sp-search
-                                      id="card-picker-search"
-                                      label="Search cards"
-                                      placeholder="Search cards in this surface and locale"
-                                      .value=${this.cardPickerQuery}
-                                      @input=${this.#onCardPickerInput}
-                                  ></sp-search>
-                                  <div class="card-picker-scope">
-                                      Scope: ${scope.path || 'Unknown scope. Picker cannot search until scope is resolved.'}
-                                  </div>
-                                  ${this.cardPickerLoading
-                                      ? html`<div class="card-picker-loading">
-                                            <sp-progress-circle size="s" indeterminate></sp-progress-circle>
-                                        </div>`
-                                      : nothing}
-                                  ${this.cardPickerError
-                                      ? html`<sp-help-text variant="negative">${this.cardPickerError}</sp-help-text>`
-                                      : nothing}
-                                  ${!trimmedQuery ? html`<div class="card-picker-section-title">Recent cards</div>` : nothing}
-                                  ${!this.cardPickerLoading
-                                      ? html`
-                                            <div class="card-picker-results">
-                                                ${pickerItems.map(
-                                                    (card) => html`
-                                                        <button
-                                                            type="button"
-                                                            class="card-picker-item"
-                                                            @click=${() => this.#selectCardFromPicker(col.fragment, card)}
-                                                        >
-                                                            <div class="card-picker-item-title">${card.title}</div>
-                                                            <div class="card-picker-item-meta">
-                                                                ${card.variant ? `Variant: ${card.variant} • ` : ''}ID:
-                                                                ${card.id}
-                                                            </div>
-                                                            <div class="card-picker-item-path">${card.path}</div>
-                                                        </button>
-                                                    `,
-                                                )}
-                                                ${!pickerItems.length
-                                                    ? html`<sp-help-text
-                                                          >${trimmedQuery
-                                                              ? 'No matching cards in this surface/locale.'
-                                                              : 'No recent cards yet. Search to browse cards.'}</sp-help-text
-                                                      >`
-                                                    : nothing}
-                                            </div>
-                                        `
-                                      : nothing}
-                              </div>
-                          `
-                        : nothing}
-                </section>
-
-                <section class="column-manual-fallback-section">
-                    <h4 class="column-block-title">Manual Fallback</h4>
-                    <sp-field-label for="col-card-id">Paste ID</sp-field-label>
-                    <sp-textfield
-                        id="col-card-id"
-                        value="${col.cardFragment?.id || ''}"
-                        placeholder="Paste card fragment ID"
-                        @change=${(e) => this.#setCardReference(col.fragment, e.target.value)}
-                    ></sp-textfield>
-                    <sp-help-text>Only in-scope card IDs are accepted. Non-card IDs are blocked.</sp-help-text>
-                </section>
-
-                <section class="column-card-preview-section">
-                    <h4 class="column-block-title">Card Preview</h4>
-                    ${(() => {
-                        const hasSelectedCard = Boolean(col.cardFragment?.path || col.cardFragment?.id);
-                        const previewFragmentId = this.columnPreviewResolvedCardId || '';
-                        if (!hasSelectedCard) {
-                            return html`<div class="column-preview-empty">Select a card to preview it here.</div>`;
-                        }
-                        return html`
-                            <div
-                                id="column-preview-card"
-                                class="column-preview-card ${this.columnPreviewStatus === 'loading' ? 'is-loading' : ''}"
-                            >
-                                ${previewFragmentId
-                                    ? keyed(
-                                          previewFragmentId,
-                                          html`
-                                              <merch-card>
-                                                  <aem-fragment
-                                                      author
-                                                      ims
-                                                      loading="eager"
-                                                      fragment="${previewFragmentId}"
-                                                  ></aem-fragment>
-                                              </merch-card>
-                                          `,
-                                      )
-                                    : nothing}
-                                ${this.columnPreviewStatus === 'loading'
-                                    ? html`
-                                          <div class="column-preview-loading">
-                                              <sp-progress-circle size="m" indeterminate></sp-progress-circle>
-                                          </div>
-                                      `
-                                    : nothing}
-                                ${this.columnPreviewStatus === 'error'
-                                    ? html`<sp-help-text variant="negative"
-                                          >${this.columnPreviewError || 'Unable to render selected card preview.'}</sp-help-text
-                                      >`
-                                    : nothing}
-                            </div>
-                        `;
-                    })()}
-                </section>
-            </div>
-        `;
-    }
-
-    get #sectionPanel() {
-        const sec = this.sections[this.selectedSectionIndex];
-        if (!sec) return nothing;
-
-        return html`
-            <div class="panel-section">
-                <div class="panel-header">
-                    <h3>Section: ${sec.title}</h3>
-                    <sp-action-button
-                        size="s"
-                        quiet
-                        @click=${() => this.#deleteSection(this.selectedSectionIndex)}
-                        ?disabled=${this.busy}
-                    >
-                        <sp-icon-delete slot="icon"></sp-icon-delete>
-                        Delete
-                    </sp-action-button>
-                </div>
-
-                <sp-field-label for="sec-title">Section Title</sp-field-label>
-                <sp-textfield
-                    id="sec-title"
-                    value="${sec.title || ''}"
-                    @change=${(e) => this.#saveChildField(sec.fragment, 'sectionTitle', [e.target.value])}
-                ></sp-textfield>
-
-                <sp-field-label>Rows (${sec.rows.length})</sp-field-label>
-                <div class="row-list">
-                    ${sec.rows.map(
-                        (row, i) =>
-                            html`<div
-                                class="row-list-item"
-                                @click=${() => {
-                                    this.selectedRowIndex = i;
-                                    this.panelMode = 'row';
-                                }}
-                            >
-                                <span class="row-list-index">${i + 1}</span>
-                                <span class="row-list-title">${this.#extractPlainText(row.title) || 'Untitled row'}</span>
-                                <sp-icon-chevron-right class="row-list-chevron"></sp-icon-chevron-right>
-                            </div>`,
-                    )}
-                </div>
-
-                <sp-action-button size="s" quiet @click=${() => this.#addRow(this.selectedSectionIndex)} ?disabled=${this.busy}>
-                    <sp-icon-add slot="icon"></sp-icon-add>
-                    Add Row
-                </sp-action-button>
-            </div>
-        `;
-    }
-
-    get #rowPanel() {
-        const sec = this.sections[this.selectedSectionIndex];
-        const row = sec?.rows?.[this.selectedRowIndex];
-        if (!row) return nothing;
-
-        return html`
-            <div class="panel-section">
-                <div class="panel-header">
-                    <h3>Row: ${this.#extractPlainText(row.title) || 'Untitled'}</h3>
-                    <sp-action-button
-                        size="s"
-                        quiet
-                        @click=${() => this.#deleteRow(this.selectedSectionIndex, this.selectedRowIndex)}
-                        ?disabled=${this.busy}
-                    >
-                        <sp-icon-delete slot="icon"></sp-icon-delete>
-                        Delete
-                    </sp-action-button>
-                </div>
-
-                <sp-field-label for="row-title">Row Title</sp-field-label>
-                <sp-textfield
-                    id="row-title"
-                    value="${this.#extractPlainText(row.title) || ''}"
-                    @change=${(e) => this.#saveChildField(row.fragment, 'rowTitle', [e.target.value])}
-                ></sp-textfield>
-
-                <sp-field-label>Values (${row.values.length})</sp-field-label>
-                <div class="row-list">
-                    ${row.values.map((val, i) => {
-                        const colName = this.columns[i]?.title || `Column ${i + 1}`;
-                        return html`<div
-                            class="row-list-item"
-                            @click=${() => {
-                                this.selectedCellIndex = i;
-                                this.panelMode = 'cell';
-                            }}
-                        >
-                            <span class="row-list-title"><strong>${colName}:</strong> ${this.#formatValue(val)}</span>
-                            <sp-icon-chevron-right class="row-list-chevron"></sp-icon-chevron-right>
-                        </div>`;
-                    })}
-                </div>
-            </div>
-        `;
-    }
-
-    get #cellPanel() {
-        const sec = this.sections[this.selectedSectionIndex];
-        const row = sec?.rows?.[this.selectedRowIndex];
-        if (!row) return nothing;
-        const val = row.values?.[this.selectedCellIndex];
-        const rawValue = val?.valueType || '';
-        const cellType = this.cellEditorType || this.#getCellTypeFromValue(rawValue);
-        const colName = this.columns[this.selectedCellIndex]?.title || `Column ${this.selectedCellIndex + 1}`;
-
-        const rowTitle = this.#extractPlainText(row.title) || 'Untitled';
-        return html`
-            <div class="panel-section">
-                <div class="panel-header">
-                    <h3>Cell: ${colName}</h3>
-                </div>
-
-                <div class="cell-context">
-                    <span class="cell-context-label">Row</span>
-                    <span class="cell-context-value">${rowTitle}</span>
-                </div>
-
-                <div class="cell-form">
-                    <sp-field-label for="cell-type">Cell Type</sp-field-label>
-                    <sp-picker
-                        id="cell-type"
-                        value="${cellType}"
-                        @change=${(e) => this.#onCellTypeChange(e.target.value, rawValue)}
-                        ?disabled=${this.busy}
-                    >
-                        <sp-menu>
-                            <sp-menu-item value="${CELL_TYPE_EMPTY}">No value</sp-menu-item>
-                            <sp-menu-item value="${CELL_TYPE_BOOLEAN}">Boolean</sp-menu-item>
-                            <sp-menu-item value="${CELL_TYPE_TEXT}">Text</sp-menu-item>
-                        </sp-menu>
-                    </sp-picker>
-
-                    ${cellType === CELL_TYPE_BOOLEAN
-                        ? html`
-                              <div class="cell-boolean-group">
-                                  <sp-checkbox
-                                      ?checked=${rawValue === 'true'}
-                                      @change=${(e) => this.#saveSelectedCellValue(e.target.checked ? 'true' : 'false')}
-                                      ?disabled=${this.busy}
-                                  >
-                                      Show checkmark
-                                  </sp-checkbox>
-                                  <sp-help-text>Checked = ✓ checkmark, unchecked = ✗ cross.</sp-help-text>
-                              </div>
-                          `
-                        : nothing}
-                    ${cellType === CELL_TYPE_TEXT
-                        ? html`
-                              <sp-field-label for="cell-text-value">Text value</sp-field-label>
-                              <sp-textfield
-                                  id="cell-text-value"
-                                  value="${rawValue}"
-                                  placeholder="e.g. 100 GB, Included"
-                                  @change=${(e) => this.#saveSelectedCellValue(e.target.value)}
-                                  ?disabled=${this.busy}
-                              ></sp-textfield>
-                          `
-                        : nothing}
-                    ${cellType === CELL_TYPE_EMPTY
-                        ? html`<sp-help-text>This cell will render as "—" (empty dash).</sp-help-text>`
-                        : nothing}
-                </div>
-            </div>
-        `;
-    }
-
     #extractPlainText(htmlString) {
         if (!htmlString) return '';
         if (!htmlString.includes('<')) return htmlString;
@@ -1724,21 +1415,467 @@ class CompareChartEditor extends LitElement {
         return val.valueType || '--';
     }
 
-    get #sidePanel() {
+    get #columnPopover() {
+        const col = this.columns[this.selectedColumnIndex];
+        if (!col) return nothing;
+        const hasSelectedCard = Boolean(col.cardFragment?.path || col.cardFragment?.id);
+        return html`
+            <div class="popover-header">
+                <span class="popover-title">Column</span>
+                <div class="popover-header-actions">
+                    <sp-action-button
+                        size="s"
+                        quiet
+                        @click=${() => this.#deleteColumn(this.selectedColumnIndex)}
+                        ?disabled=${this.busy}
+                    >
+                        <sp-icon-delete slot="icon"></sp-icon-delete>
+                    </sp-action-button>
+                    <sp-action-button size="s" quiet @click=${() => this.#dismissPopover()}>✕</sp-action-button>
+                </div>
+            </div>
+            <div class="popover-divider"></div>
+            <div class="popover-field-stack">
+                <sp-field-label size="s" for="pop-col-badge">Badge</sp-field-label>
+                <sp-textfield
+                    id="pop-col-badge"
+                    size="s"
+                    value="${col.badge || ''}"
+                    placeholder="e.g. Best Offer"
+                    @change=${(e) => this.#saveChildField(col.fragment, 'badge', [e.target.value])}
+                ></sp-textfield>
+            </div>
+            <div class="popover-field-stack">
+                <sp-field-label size="s">Card</sp-field-label>
+                <div class="popover-card-row">
+                    <span class="popover-card-name">${hasSelectedCard ? col.cardFragment.title : 'No card linked'}</span>
+                    <sp-action-button size="s" quiet @click=${() => this.#openColumnModal()}> Configure ▸ </sp-action-button>
+                </div>
+            </div>
+        `;
+    }
+
+    get #sectionPopover() {
+        const sec = this.sections[this.selectedSectionIndex];
+        if (!sec) return nothing;
+        return html`
+            <div class="popover-header">
+                <div class="popover-header-text">
+                    <span class="popover-title">Section</span>
+                    <span class="popover-subtitle">${sec.title || 'Untitled section'}</span>
+                </div>
+                <div class="popover-header-actions">
+                    <sp-action-button
+                        size="s"
+                        quiet
+                        @click=${() => this.#deleteSection(this.selectedSectionIndex)}
+                        ?disabled=${this.busy}
+                    >
+                        <sp-icon-delete slot="icon"></sp-icon-delete>
+                    </sp-action-button>
+                    <sp-action-button size="s" quiet @click=${() => this.#dismissPopover()}>✕</sp-action-button>
+                </div>
+            </div>
+            <div class="popover-divider"></div>
+            <div class="popover-field-stack">
+                <sp-field-label size="s" for="pop-sec-title">Title</sp-field-label>
+                <sp-textfield
+                    id="pop-sec-title"
+                    size="s"
+                    value="${sec.title || ''}"
+                    @change=${(e) => this.#saveChildField(sec.fragment, 'sectionTitle', [e.target.value])}
+                ></sp-textfield>
+            </div>
+        `;
+    }
+
+    get #rowPopover() {
+        const sec = this.sections[this.selectedSectionIndex];
+        const row = sec?.rows?.[this.selectedRowIndex];
+        if (!row) return nothing;
+        const rowTitle = this.#extractPlainText(row.title) || '';
+        const secTitle = sec.title || 'Untitled section';
+        return html`
+            <div class="popover-header">
+                <div class="popover-header-text">
+                    <span class="popover-title">Row</span>
+                    <span class="popover-subtitle">${secTitle}</span>
+                </div>
+                <div class="popover-header-actions">
+                    <sp-action-button
+                        size="s"
+                        quiet
+                        @click=${() => this.#deleteRow(this.selectedSectionIndex, this.selectedRowIndex)}
+                        ?disabled=${this.busy}
+                    >
+                        <sp-icon-delete slot="icon"></sp-icon-delete>
+                    </sp-action-button>
+                    <sp-action-button size="s" quiet @click=${() => this.#dismissPopover()}>✕</sp-action-button>
+                </div>
+            </div>
+            <div class="popover-divider"></div>
+            <div class="popover-field-stack">
+                <sp-field-label size="s" for="pop-row-title">Title</sp-field-label>
+                <sp-textfield
+                    id="pop-row-title"
+                    size="s"
+                    value="${rowTitle}"
+                    @change=${(e) => this.#saveChildField(row.fragment, 'rowTitle', [e.target.value])}
+                ></sp-textfield>
+            </div>
+        `;
+    }
+
+    get #cellPopover() {
+        const sec = this.sections[this.selectedSectionIndex];
+        const row = sec?.rows?.[this.selectedRowIndex];
+        if (!row) return nothing;
+        const val = row.values?.[this.selectedCellIndex];
+        const rawValue = val?.valueType || '';
+        const cellType = this.cellEditorType || this.#getCellTypeFromValue(rawValue);
+        const colName = this.columns[this.selectedCellIndex]?.title || `Column ${this.selectedCellIndex + 1}`;
+        const rowTitle = this.#extractPlainText(row.title) || 'Untitled';
+
+        return html`
+            <div class="popover-header">
+                <div class="popover-header-text">
+                    <span class="popover-title">${colName}</span>
+                    <span class="popover-subtitle">${rowTitle}</span>
+                </div>
+                <sp-action-button size="s" quiet @click=${() => this.#dismissPopover()}>✕</sp-action-button>
+            </div>
+            <div class="popover-divider"></div>
+            <div class="popover-field-stack">
+                <sp-field-label size="s" for="pop-cell-type">Value type</sp-field-label>
+                <sp-picker
+                    id="pop-cell-type"
+                    size="s"
+                    value="${cellType}"
+                    @change=${(e) => this.#onCellTypeChange(e.target.value, rawValue)}
+                    ?disabled=${this.busy}
+                >
+                    <sp-menu>
+                        <sp-menu-item value="${CELL_TYPE_EMPTY}">No value</sp-menu-item>
+                        <sp-menu-item value="${CELL_TYPE_BOOLEAN}">Boolean</sp-menu-item>
+                        <sp-menu-item value="${CELL_TYPE_TEXT}">Text</sp-menu-item>
+                    </sp-menu>
+                </sp-picker>
+                ${cellType === CELL_TYPE_EMPTY ? html`<p class="popover-hint">Renders as "—" in the chart.</p>` : nothing}
+            </div>
+            ${cellType === CELL_TYPE_BOOLEAN
+                ? html`
+                      <sp-checkbox
+                          ?checked=${rawValue === 'true'}
+                          @change=${(e) => this.#saveSelectedCellValue(e.target.checked ? 'true' : 'false')}
+                          ?disabled=${this.busy}
+                      >
+                          Show checkmark
+                      </sp-checkbox>
+                  `
+                : nothing}
+            ${cellType === CELL_TYPE_TEXT
+                ? html`
+                      <sp-textfield
+                          size="s"
+                          value="${rawValue}"
+                          placeholder="e.g. 100 GB, Included"
+                          @change=${(e) => this.#saveSelectedCellValue(e.target.value)}
+                          ?disabled=${this.busy}
+                      ></sp-textfield>
+                  `
+                : nothing}
+        `;
+    }
+
+    get #contextualPopover() {
+        let content;
         switch (this.panelMode) {
             case PANEL_COLUMN:
-                return this.#columnPanel;
+                content = this.#columnPopover;
+                break;
             case PANEL_SECTION:
-                return this.#sectionPanel;
+                content = this.#sectionPopover;
+                break;
             case PANEL_ROW:
-                return this.#rowPanel;
+                content = this.#rowPopover;
+                break;
             case PANEL_CELL:
-                return this.#cellPanel;
+                content = this.#cellPopover;
+                break;
             default:
-                return html`<div class="chart-empty-state">
-                    <p>Click on a column, section, row, or cell in the table to edit it.</p>
-                </div>`;
+                return nothing;
         }
+        return html`
+            <div
+                class="chart-context-popover"
+                style="${this.#popoverStyle(this.popoverAnchorRect)}"
+                @click=${(e) => e.stopPropagation()}
+            >
+                ${content}
+            </div>
+        `;
+    }
+
+    get #columnConfigModal() {
+        const col = this.columns[this.selectedColumnIndex];
+        if (!col) return nothing;
+
+        const scope = this.#getEditorScope();
+        const isPickerOpen = this.cardPickerOpen && this.cardPickerColumnPath === col.path;
+        const trimmedQuery = this.cardPickerQuery.trim();
+        const pickerItems = trimmedQuery ? this.cardPickerResults : this.cardPickerRecents;
+        const hasSelectedCard = Boolean(col.cardFragment?.path || col.cardFragment?.id);
+        const selectedCardId = this.columnPreviewResolvedCardId || col.cardFragment?.id || '';
+        const previewFragmentId = this.columnPreviewResolvedCardId || '';
+        const selectedSet = new Set(col.fields);
+        const allFieldsSorted = this.#getFieldDisplayOrder(col);
+
+        return html`
+            <div
+                class="chart-modal-backdrop"
+                @mousedown=${(e) => {
+                    if (e.target === e.currentTarget) this.#closeColumnModal();
+                }}
+            >
+                <div class="chart-modal" role="dialog" aria-modal="true" aria-label="Configure Column">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Configure Column: ${col.title}</h3>
+                        <sp-action-button size="s" quiet @click=${() => this.#closeColumnModal()}>✕</sp-action-button>
+                    </div>
+
+                    <!-- Display Fields + Badge: what appears in this column header -->
+                    <section class="modal-section">
+                        <h4 class="modal-section-title">Display Fields</h4>
+                        <div class="column-fields-sortable">
+                            ${allFieldsSorted.map((fieldName, index) => {
+                                const isSelected = selectedSet.has(fieldName);
+                                const fieldIndex = isSelected ? col.fields.indexOf(fieldName) : -1;
+                                return html`
+                                    ${index > 0 && getFieldGroup(fieldName) !== getFieldGroup(allFieldsSorted[index - 1])
+                                        ? html`<div class="column-fields-group-divider"></div>`
+                                        : nothing}
+                                    ${keyed(
+                                        fieldName,
+                                        html`<label
+                                            class="column-field-row ${isSelected ? 'selected' : ''} ${isSelected &&
+                                            this.draggingFieldIndex === fieldIndex
+                                                ? 'dragging'
+                                                : ''}"
+                                            draggable="${isSelected}"
+                                            @dragstart=${isSelected ? (e) => this.#fieldDragStart(e, fieldIndex) : nothing}
+                                            @dragover=${isSelected ? (e) => this.#fieldDragOver(e, col, fieldIndex) : nothing}
+                                            @dragleave=${isSelected ? (e) => this.#fieldDragLeave(e) : nothing}
+                                            @drop=${isSelected ? (e) => this.#fieldDrop(e, col, fieldIndex) : nothing}
+                                            @dragend=${isSelected ? (e) => this.#fieldDragEnd(e) : nothing}
+                                        >
+                                            <span class="column-field-drag-handle" aria-hidden="true"
+                                                >${isSelected ? '⠿' : ''}</span
+                                            >
+                                            <input
+                                                type="checkbox"
+                                                .checked=${isSelected}
+                                                @change=${() =>
+                                                    this.#toggleField(col, fieldName, isSelected, selectedSet, allFieldsSorted)}
+                                            />
+                                            <span class="column-field-label">${columnFieldLabel(fieldName)}</span>
+                                        </label>`,
+                                    )}
+                                `;
+                            })}
+                        </div>
+                        <div class="modal-badge-row">
+                            <sp-field-label size="s" for="modal-col-badge">Badge</sp-field-label>
+                            <sp-textfield
+                                id="modal-col-badge"
+                                size="s"
+                                value="${col.badge || ''}"
+                                placeholder="e.g. Best Offer"
+                                @change=${(e) => this.#saveChildField(col.fragment, 'badge', [e.target.value])}
+                            ></sp-textfield>
+                        </div>
+                    </section>
+
+                    <!-- Card: browse + manual ID entry unified -->
+                    <section class="modal-section">
+                        <h4 class="modal-section-title">Card</h4>
+
+                        ${hasSelectedCard
+                            ? html`
+                                  <div class="modal-card-chip">
+                                      <div class="modal-card-chip-info">
+                                          <span class="modal-card-chip-title">${col.cardFragment.title}</span>
+                                          <span class="modal-card-chip-id">${selectedCardId}</span>
+                                      </div>
+                                      <div class="modal-card-chip-actions">
+                                          <sp-action-button
+                                              size="s"
+                                              quiet
+                                              @click=${() => this.#openSelectedCardEditor(col.cardFragment)}
+                                              >Open ↗</sp-action-button
+                                          >
+                                          <sp-action-button
+                                              size="s"
+                                              quiet
+                                              @click=${() =>
+                                                  isPickerOpen ? this.#closeCardPicker() : this.#openCardPicker(col.path)}
+                                              >${isPickerOpen ? 'Close' : 'Change'}</sp-action-button
+                                          >
+                                      </div>
+                                  </div>
+                              `
+                            : html`
+                                  <div class="modal-card-empty">
+                                      <span>No card assigned.</span>
+                                      <sp-action-button
+                                          size="s"
+                                          quiet
+                                          @click=${() =>
+                                              isPickerOpen ? this.#closeCardPicker() : this.#openCardPicker(col.path)}
+                                          >${isPickerOpen ? 'Close' : 'Browse Cards'}</sp-action-button
+                                      >
+                                  </div>
+                              `}
+                        ${isPickerOpen
+                            ? html`
+                                  <div class="card-picker-panel">
+                                      <sp-search
+                                          label="Search cards"
+                                          placeholder="Search cards in this surface and locale"
+                                          .value=${this.cardPickerQuery}
+                                          @input=${this.#onCardPickerInput}
+                                      ></sp-search>
+                                      <div class="card-picker-scope">Scope: ${scope.path || 'Unknown scope.'}</div>
+                                      ${this.cardPickerLoading
+                                          ? html`<div class="card-picker-loading">
+                                                <sp-progress-circle size="s" indeterminate></sp-progress-circle>
+                                            </div>`
+                                          : nothing}
+                                      ${this.cardPickerError
+                                          ? html`<sp-help-text variant="negative">${this.cardPickerError}</sp-help-text>`
+                                          : nothing}
+                                      ${!trimmedQuery
+                                          ? html`<div class="card-picker-section-title">Recent cards</div>`
+                                          : nothing}
+                                      ${!this.cardPickerLoading
+                                          ? html`
+                                                <div class="card-picker-results">
+                                                    ${pickerItems.map(
+                                                        (card) => html`
+                                                            <button
+                                                                type="button"
+                                                                class="card-picker-item"
+                                                                @click=${() => this.#selectCardFromPicker(col.fragment, card)}
+                                                            >
+                                                                <div class="card-picker-item-title">${card.title}</div>
+                                                                <div class="card-picker-item-meta">
+                                                                    ${card.variant ? `Variant: ${card.variant} • ` : ''}ID:
+                                                                    ${card.id}
+                                                                </div>
+                                                            </button>
+                                                        `,
+                                                    )}
+                                                    ${!pickerItems.length
+                                                        ? html`<sp-help-text
+                                                              >${trimmedQuery
+                                                                  ? 'No matching cards in this surface/locale.'
+                                                                  : 'No recent cards yet. Search to browse cards.'}</sp-help-text
+                                                          >`
+                                                        : nothing}
+                                                </div>
+                                            `
+                                          : nothing}
+                                  </div>
+                              `
+                            : nothing}
+
+                        <div class="modal-manual-id">
+                            <sp-field-label size="s" for="modal-col-card-id">Or enter ID</sp-field-label>
+                            <sp-textfield
+                                id="modal-col-card-id"
+                                size="s"
+                                value="${col.cardFragment?.id || ''}"
+                                placeholder="Paste fragment ID"
+                                @change=${(e) => this.#setCardReference(col.fragment, e.target.value)}
+                            ></sp-textfield>
+                        </div>
+                    </section>
+
+                    <details
+                        class="modal-preview-disclosure"
+                        open
+                        @toggle=${(e) => {
+                            this.columnPreviewOpen = e.target.open;
+                        }}
+                    >
+                        <summary class="modal-preview-summary">Card Preview</summary>
+                        <div class="modal-preview-body">
+                            ${this.columnPreviewOpen
+                                ? (() => {
+                                      if (!hasSelectedCard) {
+                                          return html`<div class="column-preview-empty">
+                                              Select a card to preview it here.
+                                          </div>`;
+                                      }
+                                      return html`
+                                          <div
+                                              id="column-preview-card"
+                                              class="column-preview-card ${this.columnPreviewStatus === 'loading'
+                                                  ? 'is-loading'
+                                                  : ''}"
+                                          >
+                                              ${previewFragmentId
+                                                  ? keyed(
+                                                        previewFragmentId,
+                                                        html`
+                                                            <merch-card>
+                                                                <aem-fragment
+                                                                    author
+                                                                    ims
+                                                                    loading="eager"
+                                                                    fragment="${previewFragmentId}"
+                                                                ></aem-fragment>
+                                                            </merch-card>
+                                                        `,
+                                                    )
+                                                  : nothing}
+                                              ${this.columnPreviewStatus === 'loading'
+                                                  ? html`
+                                                        <div class="column-preview-loading">
+                                                            <sp-progress-circle size="m" indeterminate></sp-progress-circle>
+                                                        </div>
+                                                    `
+                                                  : nothing}
+                                              ${this.columnPreviewStatus === 'error'
+                                                  ? html`<sp-help-text variant="negative"
+                                                        >${this.columnPreviewError ||
+                                                        'Unable to render selected card preview.'}</sp-help-text
+                                                    >`
+                                                  : nothing}
+                                          </div>
+                                      `;
+                                  })()
+                                : nothing}
+                        </div>
+                    </details>
+
+                    <div class="modal-footer">
+                        <sp-action-button
+                            size="s"
+                            class="modal-delete-btn"
+                            @click=${() => {
+                                this.#closeColumnModal();
+                                this.#deleteColumn(this.selectedColumnIndex);
+                            }}
+                            ?disabled=${this.busy}
+                        >
+                            <sp-icon-delete slot="icon"></sp-icon-delete>
+                            Delete Column
+                        </sp-action-button>
+                        <sp-button variant="accent" @click=${() => this.#closeColumnModal()}>Done</sp-button>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     #renderVariantCheckboxes() {
@@ -1824,94 +1961,6 @@ class CompareChartEditor extends LitElement {
                     border-left: 1px solid var(--spectrum-gray-300);
                 }
 
-                .compare-chart-editor .row-list {
-                    display: grid;
-                    gap: 2px;
-                    border: 1px solid var(--spectrum-gray-300);
-                    border-radius: 4px;
-                    overflow: hidden;
-                }
-
-                .compare-chart-editor .row-list-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding: 8px 12px;
-                    background: var(--spectrum-gray-50);
-                    cursor: pointer;
-                    transition: background 0.15s;
-                }
-
-                .compare-chart-editor .row-list-item:hover {
-                    background: var(--spectrum-gray-100);
-                }
-
-                .compare-chart-editor .row-list-index {
-                    color: var(--spectrum-gray-500);
-                    font-size: 12px;
-                    font-weight: 600;
-                    min-width: 18px;
-                }
-
-                .compare-chart-editor .row-list-title {
-                    flex: 1;
-                    font-size: 13px;
-                }
-
-                .compare-chart-editor .row-list-chevron {
-                    color: var(--spectrum-gray-400);
-                    width: 12px;
-                    height: 12px;
-                }
-
-                .compare-chart-editor .cell-context {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    padding: 8px 12px;
-                    background: var(--spectrum-gray-75);
-                    border-radius: 4px;
-                    font-size: 13px;
-                }
-
-                .compare-chart-editor .cell-context-label {
-                    color: var(--spectrum-gray-600);
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    font-size: 11px;
-                    letter-spacing: 0.05em;
-                }
-
-                .compare-chart-editor .cell-context-value {
-                    color: var(--spectrum-gray-800);
-                }
-
-                .compare-chart-editor .cell-form {
-                    display: grid;
-                    gap: 8px;
-                }
-
-                .compare-chart-editor .cell-boolean-group {
-                    display: grid;
-                    gap: 4px;
-                }
-
-                .compare-chart-editor .panel-section {
-                    display: grid;
-                    gap: 12px;
-                }
-
-                .compare-chart-editor .panel-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 12px;
-                }
-
-                .compare-chart-editor .panel-header h3 {
-                    margin: 0;
-                }
-
                 .compare-chart-editor .badge-field {
                     display: flex;
                     align-items: center;
@@ -1925,42 +1974,6 @@ class CompareChartEditor extends LitElement {
 
                 .compare-chart-editor .badge-field sp-textfield {
                     flex: 1;
-                }
-
-                .compare-chart-editor .column-panel-block {
-                    border: none;
-                    background: transparent;
-                    border-radius: 0;
-                    padding: 0;
-                    display: grid;
-                    gap: 8px;
-                }
-
-                .compare-chart-editor .column-block-title {
-                    margin: 0;
-                    font-size: 16px;
-                    font-weight: 700;
-                    color: var(--spectrum-gray-900);
-                }
-
-                .compare-chart-editor .column-card-source-section,
-                .compare-chart-editor .column-manual-fallback-section {
-                    display: grid;
-                    gap: 8px;
-                }
-
-                .compare-chart-editor .panel-section > .badge-field,
-                .compare-chart-editor .panel-section > .column-card-source-section,
-                .compare-chart-editor .panel-section > .column-manual-fallback-section {
-                    padding-top: 16px;
-                    border-top: 1px solid var(--spectrum-gray-200);
-                }
-
-                .compare-chart-editor .column-card-preview-section {
-                    display: grid;
-                    gap: 10px;
-                    padding-top: 16px;
-                    border-top: 1px solid var(--spectrum-gray-200);
                 }
 
                 .compare-chart-editor .card-action-row {
@@ -2084,22 +2097,26 @@ class CompareChartEditor extends LitElement {
                 }
 
                 .compare-chart-editor .column-fields-sortable {
-                    border: 1px solid var(--spectrum-gray-300);
-                    border-radius: 4px;
+                    border: 1px solid var(--spectrum-gray-300, #dadada);
+                    border-radius: 6px;
                     overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .compare-chart-editor .column-field-row {
                     display: flex;
                     align-items: center;
                     gap: 8px;
-                    padding: 7px 12px;
-                    background: var(--spectrum-gray-50);
+                    padding: 8px 12px;
+                    background: var(--spectrum-gray-50, #fafafa);
                     cursor: pointer;
                     font-size: 13px;
                     color: var(--spectrum-gray-800);
                     transition: background 0.15s;
-                    border-bottom: 1px solid var(--spectrum-gray-200);
+                    border-bottom: 1px solid var(--spectrum-gray-200, #e3e3e3);
+                    width: 100%;
+                    box-sizing: border-box;
                 }
 
                 .compare-chart-editor .column-field-row:last-child {
@@ -2107,7 +2124,7 @@ class CompareChartEditor extends LitElement {
                 }
 
                 .compare-chart-editor .column-field-row:hover {
-                    background: var(--spectrum-gray-100);
+                    background: var(--spectrum-gray-100, #f0f0f0);
                 }
 
                 .compare-chart-editor .column-field-row.selected {
@@ -2120,14 +2137,24 @@ class CompareChartEditor extends LitElement {
                 }
 
                 .compare-chart-editor .column-field-row.dragover {
-                    outline: 2px dashed var(--spectrum-blue-500);
+                    outline: 2px dashed var(--spectrum-blue-500, #1473e6);
                     outline-offset: -2px;
                 }
 
                 .compare-chart-editor .column-field-row input[type='checkbox'] {
                     margin: 0;
                     cursor: pointer;
-                    accent-color: var(--spectrum-blue-900);
+                    accent-color: var(--spectrum-blue-900, #0d66d0);
+                    flex-shrink: 0;
+                }
+
+                .compare-chart-editor .column-field-drag-handle {
+                    width: 14px;
+                    flex-shrink: 0;
+                    color: var(--spectrum-gray-400, #b3b3b3);
+                    font-size: 14px;
+                    line-height: 1;
+                    user-select: none;
                 }
 
                 .compare-chart-editor .column-field-row .column-field-label {
@@ -2136,68 +2163,350 @@ class CompareChartEditor extends LitElement {
                 }
 
                 .compare-chart-editor .column-fields-group-divider {
-                    border-top: 1px solid var(--spectrum-gray-400);
-                    margin: 4px 0;
+                    border-top: 2px solid var(--spectrum-gray-200, #e3e3e3);
                 }
 
-                .compare-chart-editor .chart-workspace {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 24px;
-                    align-items: start;
+                /* Badge row inline below fields list */
+                .compare-chart-editor .modal-badge-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 4px;
                 }
 
-                .compare-chart-editor .chart-editor-panel {
+                .compare-chart-editor .modal-badge-row sp-field-label {
+                    flex-shrink: 0;
+                    margin: 0;
+                    color: var(--spectrum-gray-700);
+                    font-size: 12px;
+                }
+
+                .compare-chart-editor .modal-badge-row sp-textfield {
+                    flex: 1;
+                }
+
+                /* Card chip — selected card display */
+                .compare-chart-editor .modal-card-chip {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 10px 12px;
+                    background: var(--spectrum-gray-75, #f5f5f5);
+                    border-radius: 6px;
+                    border: 1px solid var(--spectrum-gray-200, #e3e3e3);
+                }
+
+                .compare-chart-editor .modal-card-chip-info {
+                    flex: 1;
                     min-width: 0;
-                    max-height: calc(100vh - 220px);
-                    overflow-y: auto;
+                    display: grid;
+                    gap: 2px;
+                }
+
+                .compare-chart-editor .modal-card-chip-title {
+                    font-weight: 600;
+                    font-size: 13px;
+                    color: var(--spectrum-gray-900);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .compare-chart-editor .modal-card-chip-id {
+                    font-size: 11px;
+                    color: var(--spectrum-gray-600, #6e6e6e);
+                    font-family: monospace;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .compare-chart-editor .modal-card-chip-actions {
+                    display: flex;
+                    gap: 4px;
+                    flex-shrink: 0;
+                }
+
+                /* Empty card state */
+                .compare-chart-editor .modal-card-empty {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    font-size: 13px;
+                    color: var(--spectrum-gray-600, #6e6e6e);
+                    padding: 10px 12px;
+                    background: var(--spectrum-gray-75, #f5f5f5);
+                    border-radius: 6px;
+                    border: 1px solid var(--spectrum-gray-200, #e3e3e3);
+                }
+
+                /* Manual ID row */
+                .compare-chart-editor .modal-manual-id {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 4px;
+                }
+
+                .compare-chart-editor .modal-manual-id sp-field-label {
+                    flex-shrink: 0;
+                    margin: 0;
+                    color: var(--spectrum-gray-600, #6e6e6e);
+                    font-size: 12px;
+                }
+
+                .compare-chart-editor .modal-manual-id sp-textfield {
+                    flex: 1;
+                }
+
+                .compare-chart-editor {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                }
+
+                .compare-chart-editor .chart-toolbar {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    width: 100%;
+                    padding: 16px 20px;
                     background: var(--spectrum-white, #fff);
                     border-radius: 12px;
-                    padding: 24px;
-                    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+                    box-shadow: 0 2px 8px 0 rgb(0 0 0 / 16%);
+                    align-self: center;
+                    box-sizing: border-box;
+                }
+
+                .compare-chart-editor .chart-toolbar-top {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .compare-chart-editor .chart-toolbar-top h2 {
+                    margin: 0;
+                }
+
+                .compare-chart-editor .chart-toolbar-config {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
                 }
 
                 .compare-chart-editor .chart-preview-panel {
-                    position: sticky;
-                    top: 16px;
                     min-width: 0;
-                    max-height: calc(100vh - 220px);
+                    width: 100%;
                     overflow: auto;
                     border-radius: 12px;
-                    box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+                    box-shadow: 0 2px 8px 0 rgb(0 0 0 / 16%);
                     background: var(--spectrum-white, #fff);
-                    padding: 16px;
+                    padding: 16px 20px;
+                    align-self: center;
+                    box-sizing: border-box;
                 }
 
-                .compare-chart-editor .chart-empty-state {
+                @media (min-width: 1400px) {
+                    .compare-chart-editor .chart-preview-panel,
+                    .compare-chart-editor .chart-toolbar {
+                        max-width: 65%;
+                    }
+                }
+
+                @media (min-width: 1800px) {
+                    .compare-chart-editor .chart-preview-panel,
+                    .compare-chart-editor .chart-toolbar {
+                        max-width: 60%;
+                    }
+                }
+
+                /* Contextual floating popover */
+                .chart-context-popover {
+                    position: fixed;
+                    z-index: 1000;
+                    background: var(--spectrum-white, #fff);
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px 0 rgb(0 0 0 / 28%);
+                    padding: 14px 16px;
+                    min-width: 240px;
+                    max-width: 320px;
+                    display: grid;
+                    gap: 8px;
+                    border: 1px solid var(--spectrum-gray-200, #e3e3e3);
+                }
+
+                .chart-context-popover .popover-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                }
+
+                .chart-context-popover .popover-title {
+                    font-weight: 700;
+                    font-size: 13px;
+                    color: var(--spectrum-gray-900);
+                }
+
+                .chart-context-popover .popover-header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    margin-left: auto;
+                }
+
+                .chart-context-popover .popover-field-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .chart-context-popover .popover-field-row sp-field-label {
+                    flex-shrink: 0;
+                    margin: 0;
+                }
+
+                .chart-context-popover .popover-field-row sp-textfield,
+                .chart-context-popover .popover-field-row sp-picker {
+                    flex: 1;
+                }
+
+                .chart-context-popover .popover-card-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+
+                .chart-context-popover .popover-card-name {
+                    flex: 1;
+                    font-size: 13px;
+                    color: var(--spectrum-gray-800);
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .chart-context-popover .popover-header-text {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                    min-width: 0;
+                    flex: 1;
+                }
+
+                .chart-context-popover .popover-subtitle {
+                    font-size: 11px;
+                    color: var(--spectrum-gray-600);
+                    font-weight: 400;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .chart-context-popover .popover-divider {
+                    height: 1px;
+                    background: var(--spectrum-gray-200, #e3e3e3);
+                    margin: 2px -16px;
+                }
+
+                .chart-context-popover .popover-field-stack {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+
+                .chart-context-popover .popover-field-stack sp-picker,
+                .chart-context-popover .popover-field-stack sp-textfield {
+                    width: 100%;
+                }
+
+                .chart-context-popover .popover-hint {
+                    margin: 0;
+                    padding: 0;
+                    font-size: 12px;
+                    color: var(--spectrum-gray-600);
+                }
+
+                /* Column config modal */
+                .chart-modal-backdrop {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 1001;
+                    background: rgb(0 0 0 / 50%);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    min-height: 200px;
-                    color: var(--spectrum-gray-600);
-                    font-size: 14px;
-                    text-align: center;
+                    padding: 16px;
                 }
 
-                @media (max-width: 1100px) {
-                    .compare-chart-editor .chart-workspace {
-                        grid-template-columns: 1fr;
-                    }
+                .chart-modal {
+                    background: var(--spectrum-white, #fff);
+                    border-radius: 12px;
+                    padding: 24px;
+                    width: min(600px, 100%);
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    display: grid;
+                    gap: 20px;
+                    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 32%);
+                }
 
-                    .compare-chart-editor .chart-preview-panel {
-                        position: relative;
-                        max-height: none;
-                        order: -1;
-                    }
+                .chart-modal .modal-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                }
 
-                    .compare-chart-editor .chart-editor-panel {
-                        max-height: none;
-                        overflow-y: visible;
-                    }
+                .chart-modal .modal-title {
+                    margin: 0;
+                    font-size: 18px;
+                    font-weight: 700;
+                }
 
-                    .compare-chart-editor .column-preview-card {
-                        max-width: 100%;
-                    }
+                .chart-modal .modal-section {
+                    display: grid;
+                    gap: 10px;
+                    padding-top: 16px;
+                    border-top: 1px solid var(--spectrum-gray-200, #e3e3e3);
+                }
+
+                .chart-modal .modal-section-title {
+                    margin: 0;
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: var(--spectrum-gray-900);
+                }
+
+                .chart-modal .modal-preview-disclosure {
+                    border-top: 1px solid var(--spectrum-gray-200, #e3e3e3);
+                    padding-top: 16px;
+                }
+
+                .chart-modal .modal-preview-summary {
+                    font-size: 14px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    color: var(--spectrum-blue-600, #1473e6);
+                    user-select: none;
+                }
+
+                .chart-modal .modal-preview-body {
+                    margin-top: 12px;
+                }
+
+                .chart-modal .modal-footer {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding-top: 8px;
+                    border-top: 1px solid var(--spectrum-gray-200, #e3e3e3);
+                    margin-top: 4px;
+                }
+
+                .chart-modal .modal-delete-btn {
+                    color: var(--spectrum-red-600, #d7373f);
                 }
             </style>
         `;
@@ -2209,68 +2518,64 @@ class CompareChartEditor extends LitElement {
         return html`
             ${this.#styles}
             <div class="compare-chart-editor">
-                <div class="chart-workspace">
-                    <div class="chart-editor-panel">
-                        <div class="chart-header">
-                            <div class="chart-header-top">
-                                <h2>Compare Chart</h2>
-                                <div class="chart-header-actions">
-                                    <span class="chart-count"
-                                        >${this.columns.length} column${this.columns.length !== 1 ? 's' : ''}</span
-                                    >
-                                    <span class="chart-count-separator">·</span>
-                                    <span class="chart-count"
-                                        >${this.sections.length} section${this.sections.length !== 1 ? 's' : ''}</span
-                                    >
-                                    <sp-action-group size="s" compact quiet>
-                                        <sp-action-button @click=${() => this.#addColumn()} ?disabled=${this.busy}>
-                                            <sp-icon-add slot="icon"></sp-icon-add>
-                                            Add Column
-                                        </sp-action-button>
-                                        <sp-action-button @click=${() => this.#addSection()} ?disabled=${this.busy}>
-                                            <sp-icon-add slot="icon"></sp-icon-add>
-                                            Add Section
-                                        </sp-action-button>
-                                    </sp-action-group>
-                                </div>
-                            </div>
-                            <div class="chart-header-config">
-                                <sp-field-label size="s">Block</sp-field-label>
-                                <sp-picker
-                                    size="s"
-                                    label="Block Name"
-                                    value="${this.#getField('blockName')?.values?.[0] || 'Comparison Table'}"
-                                    @change=${(e) => this.#updateFieldValues('blockName', [e.target.value])}
-                                >
-                                    <sp-menu-item value="Comparison Table">Comparison Table</sp-menu-item>
-                                    <sp-menu-item value="Table">Table</sp-menu-item>
-                                </sp-picker>
-                                ${this.#renderVariantCheckboxes()}
-                            </div>
+                <div class="chart-toolbar">
+                    <div class="chart-toolbar-top">
+                        <h2>Compare Chart</h2>
+                        <div class="chart-header-actions">
+                            <span class="chart-count"
+                                >${this.columns.length} column${this.columns.length !== 1 ? 's' : ''}</span
+                            >
+                            <span class="chart-count-separator">·</span>
+                            <span class="chart-count"
+                                >${this.sections.length} section${this.sections.length !== 1 ? 's' : ''}</span
+                            >
+                            <sp-action-group size="s" compact quiet>
+                                <sp-action-button @click=${() => this.#addColumn()} ?disabled=${this.busy}>
+                                    <sp-icon-add slot="icon"></sp-icon-add>
+                                    Add Column
+                                </sp-action-button>
+                                <sp-action-button @click=${() => this.#addSection()} ?disabled=${this.busy}>
+                                    <sp-icon-add slot="icon"></sp-icon-add>
+                                    Add Section
+                                </sp-action-button>
+                            </sp-action-group>
+                            ${this.busy ? html`<sp-progress-circle size="s" indeterminate></sp-progress-circle>` : nothing}
                         </div>
-                        <sp-divider size="s"></sp-divider>
-                        ${this.#sidePanel}
                     </div>
-                    <div class="chart-preview-panel">
-                        ${this.busy ? html`<sp-progress-circle size="s" indeterminate></sp-progress-circle>` : nothing}
-                        <compare-chart-preview
-                            .columns=${this.columns}
-                            .sections=${this.sections}
-                            .selectedColumnIndex=${this.selectedColumnIndex}
-                            .selectedSectionIndex=${this.selectedSectionIndex}
-                            .selectedRowIndex=${this.selectedRowIndex}
-                            .selectedCellIndex=${this.selectedCellIndex}
-                            @column-click=${this.#onColumnClick}
-                            @section-click=${this.#onSectionClick}
-                            @row-click=${this.#onRowClick}
-                            @cell-click=${this.#onCellClick}
-                            @add-row=${this.#onAddRow}
-                            @section-title-change=${this.#onSectionTitleChange}
-                            @row-title-change=${this.#onRowTitleChange}
-                        ></compare-chart-preview>
+                    <div class="chart-toolbar-config">
+                        <sp-field-label size="s">Block</sp-field-label>
+                        <sp-picker
+                            size="s"
+                            label="Block Name"
+                            value="${this.#getField('blockName')?.values?.[0] || 'Comparison Table'}"
+                            @change=${(e) => this.#updateFieldValues('blockName', [e.target.value])}
+                        >
+                            <sp-menu-item value="Comparison Table">Comparison Table</sp-menu-item>
+                            <sp-menu-item value="Table">Table</sp-menu-item>
+                        </sp-picker>
+                        ${this.#renderVariantCheckboxes()}
                     </div>
                 </div>
+                <div class="chart-preview-panel">
+                    <compare-chart-preview
+                        .columns=${this.columns}
+                        .sections=${this.sections}
+                        .selectedColumnIndex=${this.selectedColumnIndex}
+                        .selectedSectionIndex=${this.selectedSectionIndex}
+                        .selectedRowIndex=${this.selectedRowIndex}
+                        .selectedCellIndex=${this.selectedCellIndex}
+                        @column-click=${this.#onColumnClick}
+                        @section-click=${this.#onSectionClick}
+                        @row-click=${this.#onRowClick}
+                        @cell-click=${this.#onCellClick}
+                        @add-row=${this.#onAddRow}
+                        @section-title-change=${this.#onSectionTitleChange}
+                        @row-title-change=${this.#onRowTitleChange}
+                    ></compare-chart-preview>
+                </div>
             </div>
+            ${this.panelMode !== PANEL_NONE && this.popoverAnchorRect ? this.#contextualPopover : nothing}
+            ${this.columnModalOpen ? this.#columnConfigModal : nothing}
         `;
     }
 }

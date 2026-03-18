@@ -107,6 +107,26 @@ class CompareChartPreview extends LitElement {
 
         .column-header {
             min-width: 100px;
+            position: relative;
+        }
+
+        .column-config-affordance {
+            display: contents;
+        }
+
+        .column-gear-icon {
+            display: none;
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 10px;
+            opacity: 0.5;
+            line-height: 1;
+        }
+
+        .column-header:hover .column-gear-icon,
+        .column-header.selected .column-gear-icon {
+            display: block;
         }
 
         .column-title {
@@ -187,20 +207,24 @@ class CompareChartPreview extends LitElement {
         );
     }
 
-    #onColumnClick(colIndex) {
-        this.#dispatch(EVENT_COLUMN_CLICK, { columnIndex: colIndex });
+    #onColumnClick(colIndex, event) {
+        const anchorRect = event.currentTarget.getBoundingClientRect();
+        this.#dispatch(EVENT_COLUMN_CLICK, { columnIndex: colIndex, anchorRect });
     }
 
-    #onSectionClick(sectionIndex) {
-        this.#dispatch(EVENT_SECTION_CLICK, { sectionIndex });
+    #onSectionClick(sectionIndex, event) {
+        const anchorRect = event.currentTarget.getBoundingClientRect();
+        this.#dispatch(EVENT_SECTION_CLICK, { sectionIndex, anchorRect });
     }
 
-    #onRowClick(sectionIndex, rowIndex) {
-        this.#dispatch(EVENT_ROW_CLICK, { sectionIndex, rowIndex });
+    #onRowClick(sectionIndex, rowIndex, event) {
+        const anchorRect = event.currentTarget.getBoundingClientRect();
+        this.#dispatch(EVENT_ROW_CLICK, { sectionIndex, rowIndex, anchorRect });
     }
 
-    #onCellClick(sectionIndex, rowIndex, cellIndex) {
-        this.#dispatch(EVENT_CELL_CLICK, { sectionIndex, rowIndex, cellIndex });
+    #onCellClick(sectionIndex, rowIndex, cellIndex, event) {
+        const anchorRect = event.currentTarget.getBoundingClientRect();
+        this.#dispatch(EVENT_CELL_CLICK, { sectionIndex, rowIndex, cellIndex, anchorRect });
     }
 
     #onAddRow(sectionIndex) {
@@ -312,11 +336,14 @@ class CompareChartPreview extends LitElement {
         const grouped = this.#groupFields(selectedFields);
 
         return html`
-            <th class="column-header ${isSelected ? 'selected' : ''}" @click=${() => this.#onColumnClick(colIndex)}>
-                ${hasFieldData && grouped.length
-                    ? grouped.map((f) => this.#renderColumnFieldPreview(f, cardFieldData))
-                    : html`<div class="column-title">${column.title || `Column ${colIndex + 1}`}</div>`}
-                ${column.badge ? html`<div class="badge">${column.badge}</div>` : nothing}
+            <th class="column-header ${isSelected ? 'selected' : ''}" @click=${(e) => this.#onColumnClick(colIndex, e)}>
+                <div class="column-config-affordance">
+                    ${hasFieldData && grouped.length
+                        ? grouped.map((f) => this.#renderColumnFieldPreview(f, cardFieldData))
+                        : html`<div class="column-title">${column.title || `Column ${colIndex + 1}`}</div>`}
+                    ${column.badge ? html`<div class="badge">${column.badge}</div>` : nothing}
+                </div>
+                <div class="column-gear-icon">⚙</div>
             </th>
         `;
     }
@@ -345,7 +372,7 @@ class CompareChartPreview extends LitElement {
                                     class="${this.selectedSectionIndex === sIdx && this.selectedRowIndex === -1
                                         ? 'selected'
                                         : ''}"
-                                    @click=${() => this.#onSectionClick(sIdx)}
+                                    @click=${(e) => this.#onSectionClick(sIdx, e)}
                                     @dblclick=${(e) => {
                                         e.stopPropagation();
                                         this.#onSectionDblClick(sIdx);
@@ -372,7 +399,7 @@ class CompareChartPreview extends LitElement {
                                             this.selectedCellIndex === -1
                                                 ? 'selected'
                                                 : ''}"
-                                            @click=${() => this.#onRowClick(sIdx, rIdx)}
+                                            @click=${(e) => this.#onRowClick(sIdx, rIdx, e)}
                                             @dblclick=${(e) => {
                                                 e.stopPropagation();
                                                 this.#onRowDblClick(sIdx, rIdx);
@@ -399,7 +426,7 @@ class CompareChartPreview extends LitElement {
                                                     this.selectedCellIndex === cIdx
                                                         ? 'selected'
                                                         : ''}"
-                                                    @click=${() => this.#onCellClick(sIdx, rIdx, cIdx)}
+                                                    @click=${(e) => this.#onCellClick(sIdx, rIdx, cIdx, e)}
                                                 >
                                                     ${this.#renderCellValue(val)}
                                                 </td>
@@ -416,7 +443,7 @@ class CompareChartPreview extends LitElement {
                                             return html`
                                                 <td
                                                     class="empty-cell ${isSelected ? 'selected' : ''}"
-                                                    @click=${() => this.#onCellClick(sIdx, rIdx, cIdx)}
+                                                    @click=${(e) => this.#onCellClick(sIdx, rIdx, cIdx, e)}
                                                 >
                                                     --
                                                 </td>

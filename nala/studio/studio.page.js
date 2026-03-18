@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { getFragmentTitle } from '../utils/fragment-tracker.js';
+import { getTitle } from '../utils/fragment-tracker.js';
 import OSTPage from './ost.page';
 import EditorPage from './editor.page';
 
@@ -229,7 +229,7 @@ export default class StudioPage {
 
                 // Enter fragment title with run ID
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
-                await titleInput.fill(getFragmentTitle());
+                await titleInput.fill(getTitle());
 
                 await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 
@@ -519,7 +519,10 @@ export default class StudioPage {
     async discardEditorChanges(editor) {
         // Close the editor and verify discard is triggered
         // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
-        await this.page.goBack();
+        await expect(this.fragmentsTable).toBeVisible();
+        await this.fragmentsTable.scrollIntoViewIfNeeded();
+        await this.fragmentsTable.click();
+        // await this.page.goBack();
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
@@ -573,7 +576,7 @@ export default class StudioPage {
         await this.page.waitForTimeout(500);
 
         await expect(this.createDialogTitleInput).toBeVisible({ timeout: 10000 });
-        const titleWithRunId = getFragmentTitle();
+        const titleWithRunId = getTitle();
         await this.createDialogTitleInput.fill(titleWithRunId);
 
         await expect(this.createDialogOSIButton).toBeVisible({ timeout: 10000 });

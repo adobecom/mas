@@ -181,11 +181,16 @@ runTests(async () => {
             const cardWithShortCta = document.querySelector(
                 'merch-card[variant="simplified-pricing-express"]',
             );
-            const cardWithLongCta = document.querySelector('#card-with-long-cta');
+            const cardWithLongCta = document.querySelector(
+                '#card-with-long-cta',
+            );
             await delay(100);
 
-            expect(cardWithShortCta.classList.contains('small-font-size-button')).to.be.false;
-            expect(cardWithLongCta.classList.contains('small-font-size-button')).to.be.true;
+            expect(
+                cardWithShortCta.classList.contains('small-font-size-button'),
+            ).to.be.false;
+            expect(cardWithLongCta.classList.contains('small-font-size-button'))
+                .to.be.true;
         });
 
         it('should remove small-font-size-button when CTA text is short or missing', async () => {
@@ -193,7 +198,9 @@ runTests(async () => {
                 'merch-card[variant="simplified-pricing-express"]',
             );
             await delay(100);
-            expect(cardWithShortCta.classList.contains('small-font-size-button')).to.be.false;
+            expect(
+                cardWithShortCta.classList.contains('small-font-size-button'),
+            ).to.be.false;
         });
     });
 

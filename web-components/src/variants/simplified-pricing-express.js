@@ -120,15 +120,18 @@ export class SimplifiedPricingExpress extends VariantLayout {
         const cards = container.querySelectorAll(
             `merch-card[variant="${this.card.variant}"]`,
         );
+
+        /* Set small font size button class if button text is too long */
+        const CTA_LONG_TEXT_CHAR_THRESHOLD = 34;
         cards.forEach((card) => {
-            if (
-                card.querySelector(
-                    '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button',
-                )?.textContent?.length > 34
-            ) {
-                card.classList.add('small-font-size-button');
-            }
+            const cta = card.querySelector(
+                '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button',
+            );
+            const isLong =
+                cta && cta.textContent.length > CTA_LONG_TEXT_CHAR_THRESHOLD;
+            card.classList.toggle('small-font-size-button', !!isLong);
         });
+
         if (Media.isDesktopOrUp) {
             requestAnimationFrame(() => {
                 cards.forEach((card) => card.variantLayout?.syncHeights?.());

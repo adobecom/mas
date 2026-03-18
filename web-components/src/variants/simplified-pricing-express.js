@@ -32,6 +32,11 @@ export const SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
         tag: 'div',
         slot: 'price',
     },
+    callout: {
+        tag: 'div',
+        slot: 'callout-content',
+        editorLabel: 'Price description',
+    },
     ctas: {
         slot: 'cta',
         size: 'XL',
@@ -86,6 +91,11 @@ export class SimplifiedPricingExpress extends VariantLayout {
         const priceSlot = this.card.querySelector('[slot="price"]');
         if (priceSlot) {
             this.updateCardElementMinHeight(priceSlot, 'price');
+        }
+
+        const calloutSlot = this.card.querySelector('[slot="callout-content"]');
+        if (calloutSlot) {
+            this.updateCardElementMinHeight(calloutSlot, 'callout');
         }
 
         const iconRow = this.card.querySelector(
@@ -230,8 +240,9 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 <div class="description">
                     <slot name="body-xs"></slot>
                 </div>
-                <div class="price">
+                <div class="price-container">
                     <slot name="price"></slot>
+                    <slot name="callout-content"></slot>
                 </div>
                 <div class="cta">
                     <slot name="cta"></slot>
@@ -465,11 +476,21 @@ export class SimplifiedPricingExpress extends VariantLayout {
             flex-direction: column;
         }
 
-        :host([variant='simplified-pricing-express']) .price {
+        :host([variant='simplified-pricing-express']) .price-container {
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             margin-top: auto;
+        }
+
+        :host([variant='simplified-pricing-express']) [slot='callout-content'] {
+            font-size: 12px;
+            font-weight: 400;
+            font-style: normal;
+            line-height: 18px;
+            color: var(--spectrum-gray-800);
+            background: transparent;
+            margin-top: 2px;
         }
 
         /* Desktop only - Fixed heights for alignment */

@@ -71,6 +71,8 @@ class CompareChartEditor extends LitElement {
     // Local cache for deep references (rows, values) that direct-hydrated doesn't return
     #localRefs = new Map();
     #resolvedCardIdsByPath = new Map();
+    /** @type {Map<string, string[]>} column path → stable display order of all field names */
+    #fieldDisplayOrders = new Map();
     #cardPickerSearchTimer;
     #cardSearchRequestId = 0;
     #previewHydrationRequestId = 0;
@@ -127,6 +129,7 @@ class CompareChartEditor extends LitElement {
 
     update(changedProperties) {
         if (changedProperties.has('fragmentStore')) {
+            this.#fieldDisplayOrders.clear();
             this.#buildData();
         }
         super.update(changedProperties);
@@ -241,9 +244,21 @@ class CompareChartEditor extends LitElement {
         const sourceGroup = getFieldGroup(col.fields[this.draggingFieldIndex]);
         const targetGroup = getFieldGroup(col.fields[index]);
         if (sourceGroup !== targetGroup) return;
+        const draggedField = col.fields[this.draggingFieldIndex];
+        const targetField = col.fields[index];
         const updated = [...col.fields];
         const [dragged] = updated.splice(this.draggingFieldIndex, 1);
         updated.splice(index, 0, dragged);
+        // Keep display order in sync with drag reorder
+        const displayOrder = this.#fieldDisplayOrders.get(col.path);
+        if (displayOrder) {
+            const newOrder = [...displayOrder];
+            const fromIdx = newOrder.indexOf(draggedField);
+            const toIdx = newOrder.indexOf(targetField);
+            newOrder.splice(fromIdx, 1);
+            newOrder.splice(toIdx, 0, draggedField);
+            this.#fieldDisplayOrders.set(col.path, newOrder);
+        }
         this.draggingFieldIndex = undefined;
         this.#saveChildField(col.fragment, 'fields', sortFieldsByGroup(updated));
     }
@@ -251,6 +266,14 @@ class CompareChartEditor extends LitElement {
     #fieldDragEnd(e) {
         e.target.classList.remove('dragging');
         this.draggingFieldIndex = undefined;
+    }
+
+    /** Toggle a column field on/off, preserving stable display order. */
+    #toggleField(col, fieldName, isSelected, selectedSet, displayOrder) {
+        const updated = isSelected
+            ? col.fields.filter((f) => f !== fieldName)
+            : displayOrder.filter((f) => selectedSet.has(f) || f === fieldName);
+        this.#saveChildField(col.fragment, 'fields', updated);
     }
 
     // --- Save field on child fragment ---
@@ -403,6 +426,20 @@ class CompareChartEditor extends LitElement {
     }
 
     // --- Data building ---
+
+    #getFieldDisplayOrder(col) {
+        const key = col.path;
+        if (!this.#fieldDisplayOrders.has(key)) {
+            const selectedSet = new Set(col.fields);
+            const order = ['title', 'price', 'desc'].flatMap((group) => {
+                const selected = col.fields.filter((f) => getFieldGroup(f) === group);
+                const unselected = COLUMN_FIELD_OPTIONS.filter((f) => getFieldGroup(f) === group && !selectedSet.has(f));
+                return [...selected, ...unselected];
+            });
+            this.#fieldDisplayOrders.set(key, order);
+        }
+        return this.#fieldDisplayOrders.get(key);
+    }
 
     #buildData() {
         if (!this.fragment) return;
@@ -1291,13 +1328,8 @@ class CompareChartEditor extends LitElement {
         const selectedCardId = this.columnPreviewResolvedCardId || col.cardFragment?.id || '';
         const previewFragmentId = this.columnPreviewResolvedCardId || '';
         const selectedSet = new Set(col.fields);
-        // Build unified list respecting user's drag order for selected fields.
-        // For each group: selected fields in col.fields order, then unselected in default order.
-        const allFieldsSorted = ['title', 'price', 'desc'].flatMap((group) => {
-            const selected = col.fields.filter((f) => getFieldGroup(f) === group);
-            const unselected = COLUMN_FIELD_OPTIONS.filter((f) => getFieldGroup(f) === group && !selectedSet.has(f));
-            return [...selected, ...unselected];
-        });
+        // Display order is stable: initialized from col.fields on first render, updated only on drag.
+        const allFieldsSorted = this.#getFieldDisplayOrder(col);
 
         return html`
             <div class="panel-section">
@@ -1339,12 +1371,8 @@ class CompareChartEditor extends LitElement {
                                     <input
                                         type="checkbox"
                                         .checked=${isSelected}
-                                        @change=${() => {
-                                            const updated = isSelected
-                                                ? sortFieldsByGroup(col.fields.filter((f) => f !== fieldName))
-                                                : sortFieldsByGroup([...col.fields, fieldName]);
-                                            this.#saveChildField(col.fragment, 'fields', updated);
-                                        }}
+                                        @change=${() =>
+                                            this.#toggleField(col, fieldName, isSelected, selectedSet, allFieldsSorted)}
                                     />
                                     <span class="column-field-label">${columnFieldLabel(fieldName)}</span>
                                 </label>

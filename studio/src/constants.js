@@ -138,11 +138,23 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
+export const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
+export const COMPARE_CHART_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/compare-chart0';
+export const COMPARE_FRAGMENT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/compare-fragment0';
+export const COMPARE_SECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/compare-section0';
+export const COMPARE_ROW_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/compare-row0';
+export const COMPARE_VALUE_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/compare-value0';
+
+export const COMPARE_FRAGMENT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbXBhcmUtZnJhZ21lbnQw';
+export const COMPARE_SECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbXBhcmUtc2VjdGlvbjA';
+export const COMPARE_ROW_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbXBhcmUtcm93MA';
+export const COMPARE_VALUE_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbXBhcmUtdmFsdWUw';
 
 export const FIELD_MODEL_MAPPING = {
     [CARD_MODEL_PATH]: 'cards',
     [COLLECTION_MODEL_PATH]: 'collections',
+    [COMPARE_CHART_MODEL_PATH]: 'fragments',
 };
 
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
@@ -151,6 +163,7 @@ export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
 export const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
     'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+    'mas:studio/content-type/compare-chart': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbXBhcmUtY2hhcnQw',
 };
 
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);

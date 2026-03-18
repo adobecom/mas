@@ -29,6 +29,10 @@ const contentTypes = [
         value: 'merch-card-collection',
         label: 'Merch Card Collection',
     },
+    {
+        value: 'compare-chart',
+        label: 'Compare Chart',
+    },
 ];
 
 class MasToolbar extends LitElement {

@@ -75,6 +75,21 @@ describe('customize collections', function () {
         expect(result).to.deep.equal(expected);
     });
 
+    it('should preserve left value when right has undefined (e.g. fields.variant)', function () {
+        const left = { fields: { variant: 'regional-variant', title: 'Root' } };
+        const right = { fields: { variant: undefined, title: 'Regional' } };
+        const result = deepMerge(left, right);
+        expect(result.fields.variant).to.equal('regional-variant');
+        expect(result.fields.title).to.equal('Regional');
+    });
+
+    it('should erase variant when right has empty string', function () {
+        const left = { fields: { variant: 'regional-variant' } };
+        const right = { fields: { variant: '' } };
+        const result = deepMerge(left, right);
+        expect(result.fields.variant).to.equal('');
+    });
+
     it('should customize subcollections and sub fragments', async function () {
         const result = await process({
             ...FAKE_CONTEXT,

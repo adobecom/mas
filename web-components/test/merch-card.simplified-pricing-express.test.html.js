@@ -184,7 +184,8 @@ runTests(async () => {
             const cardWithLongCta = document.querySelector(
                 '#card-with-long-cta',
             );
-            await delay(100);
+            await cardWithLongCta?.updateComplete;
+            await delay(300);
 
             expect(
                 cardWithShortCta.classList.contains('small-font-size-button'),

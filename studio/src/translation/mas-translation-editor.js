@@ -158,7 +158,7 @@ class MasTranslationEditor extends LitElement {
                 Store.translationProjects.selectedPlaceholders.set(translationProject.getFieldValues('placeholders'));
                 Store.translationProjects.selectedCollections.set(translationProject.getFieldValues('collections'));
                 Store.translationProjects.targetLocales.set(translationProject.getFieldValues('targetLocales'));
-                Store.translationProjects.projectType.set(translationProject.getFieldValue('projectType'));
+                Store.translationProjects.projectType.set(translationProject.getFieldValue('projectType') ?? 'translation');
                 this.showSelectedEmptyState = this.selectedCount === 0;
                 this.showLangSelectedEmptyState = Store.translationProjects.targetLocales.value.length === 0;
             }
@@ -264,7 +264,7 @@ class MasTranslationEditor extends LitElement {
             collections: { type: 'content-fragment', multiple: true },
             targetLocales: { type: 'text', multiple: true },
             submissionDate: { type: 'date-time', multiple: false },
-            rolloutOnly: { type: 'boolean', multiple: false },
+            projectType: { type: 'enumeration', multiple: false },
         };
 
         const fragmentPayload = {
@@ -623,7 +623,6 @@ class MasTranslationEditor extends LitElement {
                                           id="title"
                                           data-field="title"
                                           value="${this.translationProject?.getFieldValue('title') || ''}"
-                                          ?readonly=${this.isProjectReadonly}
                                           @input=${this.#handleFragmentUpdate}
                                       ></sp-textfield>`
                             }
@@ -643,10 +642,8 @@ class MasTranslationEditor extends LitElement {
                                           .selected=${Store.translationProjects.projectType.value}
                                           @change=${this.#handleProjectTypeChange}
                                       >
-                                          <sp-radio value="translation" ?disabled=${this.isProjectReadonly}
-                                              >Translation</sp-radio
-                                          >
-                                          <sp-radio value="rollout" ?disabled=${this.isProjectReadonly}>Rollout</sp-radio>
+                                          <sp-radio value="translation">Translation</sp-radio>
+                                          <sp-radio value="rollout">Rollout</sp-radio>
                                       </sp-radio-group>`
                             }
                         </div>

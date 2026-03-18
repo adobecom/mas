@@ -604,7 +604,7 @@ describe('MasTranslationEditor', () => {
             expect(metadataInfo).to.exist;
         });
 
-        it('should make title field readonly in readonly mode', async () => {
+        it('should render title and project type as span in readonly mode', async () => {
             const mockFragment = new Fragment(createMockFragment());
             const fragmentStore = new FragmentStore(mockFragment);
             Store.translationProjects.inEdit.set(fragmentStore);
@@ -612,7 +612,11 @@ describe('MasTranslationEditor', () => {
             el.isProjectReadonly = true;
             await el.updateComplete;
             const titleField = el.shadowRoot.querySelector('#title');
-            expect(titleField.readonly).to.be.true;
+            const projectTypeField = el.shadowRoot.querySelector('#projectType');
+            expect(titleField).to.exist;
+            expect(titleField.localName).to.equal('span');
+            expect(projectTypeField).to.exist;
+            expect(projectTypeField.localName).to.equal('span');
         });
     });
 
@@ -626,6 +630,7 @@ describe('MasTranslationEditor', () => {
                         { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
                         { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
                         { name: 'targetLocales', type: 'text', multiple: true, values: [] },
+                        { name: 'projectType', type: 'enumeration', multiple: false, values: ['translation'] },
                     ],
                 }),
             );

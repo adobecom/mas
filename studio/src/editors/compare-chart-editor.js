@@ -80,6 +80,8 @@ class CompareChartEditor extends LitElement {
     #previewHydrationRequestId = 0;
     #popoverOutsideHandler = null;
     #onKeydown = null;
+    #popoverAnchorElement = null;
+    #scrollHandler = null;
 
     constructor() {
         super();
@@ -840,7 +842,7 @@ class CompareChartEditor extends LitElement {
     // --- Event handlers ---
 
     #onColumnClick(e) {
-        const { columnIndex, anchorRect } = e.detail;
+        const { columnIndex, anchorRect, anchorElement } = e.detail;
         if (this.selectedColumnIndex !== columnIndex) {
             this.#closeCardPicker();
         }
@@ -851,11 +853,13 @@ class CompareChartEditor extends LitElement {
         this.selectedCellIndex = -1;
         this.cellEditorType = '';
         this.popoverAnchorRect = anchorRect || null;
+        this.#popoverAnchorElement = anchorElement || null;
+        this.#attachScrollListener();
         this.#attachPopoverOutsideListener();
     }
 
     #onSectionClick(e) {
-        const { sectionIndex, anchorRect } = e.detail;
+        const { sectionIndex, anchorRect, anchorElement } = e.detail;
         this.#closeCardPicker();
         this.panelMode = PANEL_SECTION;
         this.selectedSectionIndex = sectionIndex;
@@ -864,11 +868,13 @@ class CompareChartEditor extends LitElement {
         this.selectedCellIndex = -1;
         this.cellEditorType = '';
         this.popoverAnchorRect = anchorRect || null;
+        this.#popoverAnchorElement = anchorElement || null;
+        this.#attachScrollListener();
         this.#attachPopoverOutsideListener();
     }
 
     #onRowClick(e) {
-        const { sectionIndex, rowIndex, anchorRect } = e.detail;
+        const { sectionIndex, rowIndex, anchorRect, anchorElement } = e.detail;
         this.#closeCardPicker();
         this.panelMode = PANEL_ROW;
         this.selectedSectionIndex = sectionIndex;
@@ -877,11 +883,13 @@ class CompareChartEditor extends LitElement {
         this.selectedCellIndex = -1;
         this.cellEditorType = '';
         this.popoverAnchorRect = anchorRect || null;
+        this.#popoverAnchorElement = anchorElement || null;
+        this.#attachScrollListener();
         this.#attachPopoverOutsideListener();
     }
 
     #onCellClick(e) {
-        const { sectionIndex, rowIndex, cellIndex, anchorRect } = e.detail;
+        const { sectionIndex, rowIndex, cellIndex, anchorRect, anchorElement } = e.detail;
         this.#closeCardPicker();
         this.panelMode = PANEL_CELL;
         this.selectedSectionIndex = sectionIndex;
@@ -892,11 +900,15 @@ class CompareChartEditor extends LitElement {
         const rawValue = row?.values?.[cellIndex]?.valueType || '';
         this.cellEditorType = this.#getCellTypeFromValue(rawValue);
         this.popoverAnchorRect = anchorRect || null;
+        this.#popoverAnchorElement = anchorElement || null;
+        this.#attachScrollListener();
         this.#attachPopoverOutsideListener();
     }
 
     #dismissPopover() {
         this.#removePopoverOutsideListener();
+        this.#removeScrollListener();
+        this.#popoverAnchorElement = null;
         this.panelMode = PANEL_NONE;
         this.popoverAnchorRect = null;
         this.selectedColumnIndex = -1;
@@ -904,6 +916,24 @@ class CompareChartEditor extends LitElement {
         this.selectedRowIndex = -1;
         this.selectedCellIndex = -1;
         this.cellEditorType = '';
+    }
+
+    #attachScrollListener() {
+        this.#removeScrollListener();
+        const panel = this.closest('.main-container');
+        if (!panel || !this.#popoverAnchorElement) return;
+        this.#scrollHandler = () => {
+            this.popoverAnchorRect = this.#popoverAnchorElement.getBoundingClientRect();
+        };
+        panel.addEventListener('scroll', this.#scrollHandler, { passive: true });
+    }
+
+    #removeScrollListener() {
+        if (this.#scrollHandler) {
+            const panel = this.closest('.main-container');
+            panel?.removeEventListener('scroll', this.#scrollHandler);
+            this.#scrollHandler = null;
+        }
     }
 
     #attachPopoverOutsideListener() {
@@ -954,8 +984,9 @@ class CompareChartEditor extends LitElement {
         const viewportHeight = window.innerHeight;
         let top = anchorRect.bottom + margin;
         let left = anchorRect.left;
-        // Flip up if near bottom of viewport
-        if (top + 320 > viewportHeight) top = Math.max(margin, anchorRect.top - 320 - margin);
+        // Clamp to viewport bottom — always stay below anchor, never flip above
+        top = Math.min(top, viewportHeight - margin);
+        // Clamp horizontally
         left = Math.max(margin, Math.min(left, viewportWidth - popoverWidth - margin));
         return `top: ${top}px; left: ${left}px;`;
     }
@@ -1445,6 +1476,7 @@ class CompareChartEditor extends LitElement {
                     @change=${(e) => this.#saveChildField(col.fragment, 'badge', [e.target.value])}
                 ></sp-textfield>
             </div>
+            <div class="popover-divider"></div>
             <div class="popover-field-stack">
                 <sp-field-label size="s">Card</sp-field-label>
                 <div class="popover-card-row">
@@ -2163,7 +2195,9 @@ class CompareChartEditor extends LitElement {
                 }
 
                 .compare-chart-editor .column-fields-group-divider {
-                    border-top: 2px solid var(--spectrum-gray-200, #e3e3e3);
+                    height: 0;
+                    border-top: 1px solid var(--spectrum-gray-300, #dadada);
+                    margin: 4px 12px;
                 }
 
                 /* Badge row inline below fields list */
@@ -2334,6 +2368,8 @@ class CompareChartEditor extends LitElement {
                     display: grid;
                     gap: 8px;
                     border: 1px solid var(--spectrum-gray-200, #e3e3e3);
+                    max-height: calc(100vh - 16px);
+                    overflow-y: auto;
                 }
 
                 .chart-context-popover .popover-header {
@@ -2381,6 +2417,7 @@ class CompareChartEditor extends LitElement {
                 .chart-context-popover .popover-card-name {
                     flex: 1;
                     font-size: 13px;
+                    font-weight: 600;
                     color: var(--spectrum-gray-800);
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -2573,9 +2610,9 @@ class CompareChartEditor extends LitElement {
                         @row-title-change=${this.#onRowTitleChange}
                     ></compare-chart-preview>
                 </div>
+                ${this.columnModalOpen ? this.#columnConfigModal : nothing}
             </div>
             ${this.panelMode !== PANEL_NONE && this.popoverAnchorRect ? this.#contextualPopover : nothing}
-            ${this.columnModalOpen ? this.#columnConfigModal : nothing}
         `;
     }
 }

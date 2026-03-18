@@ -208,23 +208,38 @@ class CompareChartPreview extends LitElement {
     }
 
     #onColumnClick(colIndex, event) {
-        const anchorRect = event.currentTarget.getBoundingClientRect();
-        this.#dispatch(EVENT_COLUMN_CLICK, { columnIndex: colIndex, anchorRect });
+        const anchorElement = event.currentTarget;
+        this.#dispatch(EVENT_COLUMN_CLICK, {
+            columnIndex: colIndex,
+            anchorRect: anchorElement.getBoundingClientRect(),
+            anchorElement,
+        });
     }
 
     #onSectionClick(sectionIndex, event) {
-        const anchorRect = event.currentTarget.getBoundingClientRect();
-        this.#dispatch(EVENT_SECTION_CLICK, { sectionIndex, anchorRect });
+        const anchorElement = event.currentTarget;
+        this.#dispatch(EVENT_SECTION_CLICK, { sectionIndex, anchorRect: anchorElement.getBoundingClientRect(), anchorElement });
     }
 
     #onRowClick(sectionIndex, rowIndex, event) {
-        const anchorRect = event.currentTarget.getBoundingClientRect();
-        this.#dispatch(EVENT_ROW_CLICK, { sectionIndex, rowIndex, anchorRect });
+        const anchorElement = event.currentTarget;
+        this.#dispatch(EVENT_ROW_CLICK, {
+            sectionIndex,
+            rowIndex,
+            anchorRect: anchorElement.getBoundingClientRect(),
+            anchorElement,
+        });
     }
 
     #onCellClick(sectionIndex, rowIndex, cellIndex, event) {
-        const anchorRect = event.currentTarget.getBoundingClientRect();
-        this.#dispatch(EVENT_CELL_CLICK, { sectionIndex, rowIndex, cellIndex, anchorRect });
+        const anchorElement = event.currentTarget;
+        this.#dispatch(EVENT_CELL_CLICK, {
+            sectionIndex,
+            rowIndex,
+            cellIndex,
+            anchorRect: anchorElement.getBoundingClientRect(),
+            anchorElement,
+        });
     }
 
     #onAddRow(sectionIndex) {

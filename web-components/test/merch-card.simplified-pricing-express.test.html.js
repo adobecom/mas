@@ -176,6 +176,25 @@ runTests(async () => {
             const title = card.title;
             expect(title).to.equal('Express - Create standout content');
         });
+
+        it('should add small-font-size-button class when CTA text is too long', async () => {
+            const cardWithShortCta = document.querySelector(
+                'merch-card[variant="simplified-pricing-express"]',
+            );
+            const cardWithLongCta = document.querySelector('#card-with-long-cta');
+            await delay(100);
+
+            expect(cardWithShortCta.classList.contains('small-font-size-button')).to.be.false;
+            expect(cardWithLongCta.classList.contains('small-font-size-button')).to.be.true;
+        });
+
+        it('should remove small-font-size-button when CTA text is short or missing', async () => {
+            const cardWithShortCta = document.querySelector(
+                'merch-card[variant="simplified-pricing-express"]',
+            );
+            await delay(100);
+            expect(cardWithShortCta.classList.contains('small-font-size-button')).to.be.false;
+        });
     });
 
     describe('Tooltip functionality in simplified-pricing-express', () => {

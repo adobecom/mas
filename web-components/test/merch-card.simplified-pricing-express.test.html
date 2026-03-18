@@ -398,6 +398,19 @@
                     <a slot="cta" href="#">Test tooltips</a>
                 </merch-card>
             </div>
+
+            <div id="cta-overflow-cards">
+                <h2 style="grid-column: 1 / -1">CTA overflow (long text)</h2>
+                <merch-card
+                    id="card-with-long-cta"
+                    variant="simplified-pricing-express"
+                    badge-text="LONG CTA"
+                >
+                    <h2 slot="heading-xs">Card with long CTA text</h2>
+                    <p slot="body-xs">Tests small-font-size-button class when CTA exceeds 34 characters.</p>
+                    <a slot="cta" href="#">Start your free trial today and get access to all premium features</a>
+                </merch-card>
+            </div>
         </main>
         <script
             type="module"

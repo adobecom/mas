@@ -4970,6 +4970,10 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
     merch-card[variant="simplified-pricing-express"] [slot="price"] {
         min-height: var(--consonant-merch-card-simplified-pricing-express-price-height);
     }
+
+    merch-card[variant="simplified-pricing-express"] [slot="callout-content"] {
+        min-height: var(--consonant-merch-card-simplified-pricing-express-callout-height);
+    }
 }
 
 merch-card[variant="simplified-pricing-express"] p {
@@ -4999,7 +5003,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] {
 
 merch-card[variant="simplified-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="simplified-pricing-express"] [slot="cta"] button,
-merch-card[variant="simplified-pricing-express"] [slot="cta"] a.button {
+merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button {
     display: block;
     width: 100%;
     box-sizing: border-box;
@@ -5015,7 +5019,6 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.button {
 merch-card[variant="simplified-pricing-express"] [slot="price"] {
   display: flex;
   flex-direction: column;
-  margin-bottom: var(--merch-card-simplified-pricing-express-padding);
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"]:first-child {
@@ -5053,6 +5056,33 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] p {
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] p:empty {
   min-height: var(--merch-card-simplified-pricing-express-price-p-line-height);
+}
+
+/* Callout content styling */
+merch-card[variant="simplified-pricing-express"] [slot="callout-content"] {
+    color: var(--spectrum-gray-800);
+    width: 100%;
+    gap: 0;
+    margin-bottom: var(--merch-card-simplified-pricing-express-padding);
+    margin-top: 0;
+}
+
+merch-card[variant="simplified-pricing-express"] [slot="callout-content"] span[is='inline-price'] {
+    font-weight: inherit;
+}
+
+merch-card[variant="simplified-pricing-express"] [slot="callout-content"] > p {
+    background: transparent;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    padding: 0;
+}
+
+merch-card[variant="simplified-pricing-express"] [slot="callout-content"] a {
+    color: var(--spectrum-indigo-900);
+    font-weight: 700;
+    text-decoration: inherit;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child .price-currency-symbol {
@@ -5210,6 +5240,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
 
   merch-card[variant="simplified-pricing-express"] [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"] [slot="price"],
+  merch-card[variant="simplified-pricing-express"] [slot="callout-content"],
   merch-card[variant="simplified-pricing-express"] [slot="cta"] {
     transition: opacity 0.5s ease-out, max-height 0.5s ease-out;
   }
@@ -5217,9 +5248,11 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
   /* Collapsed state - hide content sections with animation */
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="price"],
+  merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="callout-content"],
   merch-card[variant="simplified-pricing-express"]:not([data-expanded="true"]) [slot="cta"],
   merch-card[variant="simplified-pricing-express"][data-expanded="false"] [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"][data-expanded="false"] [slot="price"],
+  merch-card[variant="simplified-pricing-express"][data-expanded="false"] [slot="callout-content"],
   merch-card[variant="simplified-pricing-express"][data-expanded="false"] [slot="cta"] {
     opacity: 0;
     max-height: 0;
@@ -5232,6 +5265,7 @@ merch-card[variant="simplified-pricing-express"] mas-mnemonic {
   /* Expanded state - show content with animation */
   merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="body-xs"],
   merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="price"],
+  merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="callout-content"],
   merch-card[variant="simplified-pricing-express"][data-expanded="true"] [slot="cta"] {
     opacity: 1;
     pointer-events: auto;
@@ -5288,7 +5322,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] button.spectrum-Bu
 merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent .spectrum-Button-label {
     color: var(--spectrum-white, #ffffff);
 }
-`;var aa={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},tt=class extends L{getGlobalCSS(){return Ni}get aemFragmentMapping(){return aa}get headingSelector(){return'[slot="heading-xs"]'}get badge(){return this.card.querySelector('[slot="badge"]')}syncHeights(){if(this.card.getBoundingClientRect().width===0)return;let t=this.card.querySelector('[slot="body-xs"]');t&&this.updateCardElementMinHeight(t,"description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price");let a=this.card.querySelector('[slot="body-xs"] p:has(mas-mnemonic)');a&&this.updateCardElementMinHeight(a,"icons")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,this.card.prices?.length&&await Promise.all(this.card.prices.map(t=>t.onceSettled?.())),C.isDesktopOrUp)){let t=this.getContainer();if(!t)return;requestAnimationFrame(()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),this.card?.hasAttribute("data-default-card")&&!Gt()&&this.card.setAttribute("data-expanded","true"))}setupAccordion(){let t=this.card;if(!t)return;let r=()=>{if(Gt())t.removeAttribute("data-expanded");else{let i=t.hasAttribute("data-default-card");t.setAttribute("data-expanded",i?"true":"false")}};r();let a=window.matchMedia(O);this.mediaQueryListener=()=>{r()},a.addEventListener("change",this.mediaQueryListener)}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(O).removeEventListener("change",this.mediaQueryListener)}handleChevronClick(t){t.preventDefault(),t.stopPropagation(),this.toggleExpanded()}handleCardClick(t){t.target.closest('.chevron-button, mas-mnemonic, button, a, [role="button"]')||(t.preventDefault(),this.toggleExpanded())}toggleExpanded(){let t=this.card;if(!t||Gt())return;let i=t.getAttribute("data-expanded")==="true"?"false":"true";t.setAttribute("data-expanded",i)}renderLayout(){return Ms`
+`;var aa={title:{tag:"h3",slot:"heading-xs",maxCount:250,withSuffix:!0},badge:{tag:"div",slot:"badge",default:"spectrum-blue-400"},allowedBadgeColors:["spectrum-blue-400","spectrum-gray-300","spectrum-yellow-300","gradient-purple-blue","gradient-firefly-spectrum"],description:{tag:"div",slot:"body-xs",maxCount:2e3,withSuffix:!1},prices:{tag:"div",slot:"price"},callout:{tag:"div",slot:"callout-content",editorLabel:"Price description"},ctas:{slot:"cta",size:"XL"},borderColor:{attribute:"border-color",specialValues:{gray:"var(--spectrum-gray-300)",blue:"var(--spectrum-blue-400)","gradient-purple-blue":"linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)","gradient-firefly-spectrum":"linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)"}},disabledAttributes:["badgeColor","badgeBorderColor","trialBadgeColor","trialBadgeBorderColor"],supportsDefaultChild:!0},tt=class extends L{getGlobalCSS(){return Ni}get aemFragmentMapping(){return aa}get headingSelector(){return'[slot="heading-xs"]'}get badge(){return this.card.querySelector('[slot="badge"]')}syncHeights(){if(this.card.getBoundingClientRect().width===0)return;let t=this.card.querySelector('[slot="body-xs"]');t&&this.updateCardElementMinHeight(t,"description");let r=this.card.querySelector('[slot="price"]');r&&this.updateCardElementMinHeight(r,"price");let a=this.card.querySelector('[slot="callout-content"]');a&&this.updateCardElementMinHeight(a,"callout");let i=this.card.querySelector('[slot="body-xs"] p:has(mas-mnemonic)');i&&this.updateCardElementMinHeight(i,"icons")}async postCardUpdateHook(){if(this.card.isConnected&&(await this.card.updateComplete,this.card.prices?.length&&await Promise.all(this.card.prices.map(t=>t.onceSettled?.())),C.isDesktopOrUp)){let t=this.getContainer();if(!t)return;requestAnimationFrame(()=>{t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(a=>a.variantLayout?.syncHeights?.())})}}connectedCallbackHook(){!this.card||this.card.failed||(this.setupAccordion(),this.card?.hasAttribute("data-default-card")&&!Gt()&&this.card.setAttribute("data-expanded","true"))}setupAccordion(){let t=this.card;if(!t)return;let r=()=>{if(Gt())t.removeAttribute("data-expanded");else{let i=t.hasAttribute("data-default-card");t.setAttribute("data-expanded",i?"true":"false")}};r();let a=window.matchMedia(O);this.mediaQueryListener=()=>{r()},a.addEventListener("change",this.mediaQueryListener)}disconnectedCallbackHook(){this.mediaQueryListener&&window.matchMedia(O).removeEventListener("change",this.mediaQueryListener)}handleChevronClick(t){t.preventDefault(),t.stopPropagation(),this.toggleExpanded()}handleCardClick(t){t.target.closest('.chevron-button, mas-mnemonic, button, a, [role="button"]')||(t.preventDefault(),this.toggleExpanded())}toggleExpanded(){let t=this.card;if(!t||Gt())return;let i=t.getAttribute("data-expanded")==="true"?"false":"true";t.setAttribute("data-expanded",i)}renderLayout(){return Ms`
             <div
                 class="badge-wrapper"
                 style="${this.badge?"":"visibility: hidden"}"
@@ -5321,8 +5355,9 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
                 <div class="description">
                     <slot name="body-xs"></slot>
                 </div>
-                <div class="price">
+                <div class="price-container">
                     <slot name="price"></slot>
+                    <slot name="callout-content"></slot>
                 </div>
                 <div class="cta">
                     <slot name="cta"></slot>
@@ -5553,11 +5588,21 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
             flex-direction: column;
         }
 
-        :host([variant='simplified-pricing-express']) .price {
+        :host([variant='simplified-pricing-express']) .price-container {
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             margin-top: auto;
+        }
+
+        :host([variant='simplified-pricing-express']) [slot='callout-content'] {
+            font-size: 12px;
+            font-weight: 400;
+            font-style: normal;
+            line-height: 18px;
+            color: var(--spectrum-gray-800);
+            background: transparent;
+            margin-top: 2px;
         }
 
         /* Desktop only - Fixed heights for alignment */
@@ -6135,7 +6180,7 @@ merch-card[variant="full-pricing-express"] [slot="cta"] {
 
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button,
 merch-card[variant="full-pricing-express"] [slot="cta"] button,
-merch-card[variant="full-pricing-express"] [slot="cta"] a.button,
+merch-card[variant="full-pricing-express"] [slot="cta"] a.con-button,
 merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button {
     --mod-button-height: 40px;
     --mod-button-top-to-text: 9px;

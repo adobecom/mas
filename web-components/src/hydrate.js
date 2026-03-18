@@ -663,7 +663,7 @@ function createConsonantButton(
         }
     }
     if (!isLinkStyle) {
-        button.classList.add('con-button');
+        button.classList.add('button', 'con-button');
         if (size && size !== 'm') {
             button.classList.add(`button-${size}`);
         }

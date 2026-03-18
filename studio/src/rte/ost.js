@@ -199,6 +199,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             document.body.appendChild(ostRoot);
         }
         let searchOfferSelectorId;
+        let initialReferenceOsi;
         const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
         const searchParameters = new URLSearchParams();
 
@@ -208,7 +209,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }
-            searchOfferSelectorId = offerElement.getAttribute('data-wcs-osi');
+            const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',');
+            searchOfferSelectorId = osiParts[0];
+            initialReferenceOsi = osiParts[1];
 
             // Set search parameters
             offerElement.getAttributeNames().forEach((key) => {
@@ -271,6 +274,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             landscape,
             searchParameters,
             searchOfferSelectorId,
+            initialReferenceOsi,
             country: masCommerceService.settings.country,
             language: masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),

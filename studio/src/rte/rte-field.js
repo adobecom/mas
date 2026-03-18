@@ -1738,11 +1738,13 @@ class RteField extends LitElement {
     render() {
         const lengthExceeded = this.length > this.maxLength;
         return html`
-            <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
-                ${this.#unlinkEditorButton} ${this.hideFormatButtons ? nothing : this.#toolbarOfferSelectorButton}
-                ${this.#iconsButton} ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton}
-            </sp-action-group>
+            ${this.hideFormatButtons
+                ? nothing
+                : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
+                      ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
+                      ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton}
+                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton}
+                  </sp-action-group>`}
             <div id="editor-row">
                 <div id="editor"></div>
                 ${this.hideFormatButtons ? this.#offerSelectorToolButton : nothing}

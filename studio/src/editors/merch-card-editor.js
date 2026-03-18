@@ -840,6 +840,7 @@ class MerchCardEditor extends LitElement {
                             hide-format-buttons
                             data-field="badge"
                             data-field-state="${this.getBadgeComponentState('badge', 'text')}"
+                            .osi="${form.osi.values[0]}"
                             .value="${this.badge.text}"
                             @change="${this.#updateBadgeText}"
                         ></rte-field>

@@ -29,9 +29,6 @@ button.promo-tag-button {
 .placeholders-list {
   overflow: auto;
 }
-span[is="inline-price"] {
-  font-weight: bold;
-}
 
 ._t8qIa_i18nFontFamily {
   font-synthesis: weight;
@@ -2816,7 +2813,7 @@ span[is="inline-price"] {
   min-height: var(--spectrum-alias-single-line-height, var(--spectrum-global-dimension-size-400));
   outline: none;
   grid-area: Ecg7PG_content;
-  overflow-y: auto;
+  overflow-y: inherit;
 }
 
 .Ecg7PG_spectrum-Dialog-footer {

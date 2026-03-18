@@ -16,6 +16,10 @@ export const CHECKOUT_CTA_TEXTS = {
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
     'get-for-free': 'Get for free',
+    'seven-day-trial': 'Start 7-day free trial',
+    'fourteen-day-trial': 'Start 14-day free trial',
+    'thirty-day-trial': 'Start 30-day free trial',
+    'save-today': 'Save today',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
 export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
@@ -39,6 +43,10 @@ export const ANALYTICS_LINK_IDS = [
     'upgrade-now',
     'what-is-included',
     'get-for-free',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
+    'save-today',
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {
@@ -105,6 +113,8 @@ export const STATUS_MODIFIED = 'MODIFIED';
 export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
+    SETTINGS: 'settings',
+    SETTINGS_EDITOR: 'settings-editor',
     CONTENT: 'content',
     VERSION: 'version',
     FRAGMENT_EDITOR: 'fragment-editor',
@@ -163,7 +173,10 @@ export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedL
 
 export const VARIATION_TYPES = {
     LOCALE: 'Locale',
+    GROUPED: 'Grouped variation',
 };
+
+export const PZN_FOLDER = 'pzn';
 
 export const SURFACES = {
     ACOM: {
@@ -200,6 +213,7 @@ export const QUICK_ACTION = {
     SAVE: 'save',
     DUPLICATE: 'duplicate',
     PUBLISH: 'publish',
+    UNPUBLISH: 'unpublish',
     CANCEL: 'cancel',
     COPY: 'copy',
     LOCK: 'lock',
@@ -226,3 +240,5 @@ export const TABLE_TYPE = {
     COLLECTIONS: 'collections',
     PLACEHOLDERS: 'placeholders',
 };
+
+export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];

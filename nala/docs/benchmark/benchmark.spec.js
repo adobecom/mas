@@ -1,5 +1,3 @@
-/* eslint-disable max-len */
-
 export const FeatureName = 'Merch Card Benchmark';
 export const features = [
     {

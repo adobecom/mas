@@ -1,11 +1,13 @@
 import { expect } from 'chai';
 import {
     getLocaleCode,
+    getLocaleByCode,
     getCountryName,
     getCountryFlag,
     getDefaultLocale,
     getDefaultLocaleCode,
     getDefaultLocales,
+    getSurfaceLocales,
     getRegionLocales,
     getLanguageName,
 } from '../../src/fragment/locales.js';
@@ -20,6 +22,30 @@ describe('locales', function () {
         it('should return null when locale is null or undefined', function () {
             expect(getLocaleCode(null)).to.be.null;
             expect(getLocaleCode(undefined)).to.be.null;
+        });
+    });
+
+    describe('getLocaleByCode', function () {
+        it('should return locale object from locale code', function () {
+            const result = getLocaleByCode('en_US');
+            expect(result).to.deep.equal({ lang: 'en', country: 'US' });
+        });
+
+        it('should handle different locale codes', function () {
+            expect(getLocaleByCode('fr_FR')).to.deep.equal({ lang: 'fr', country: 'FR' });
+            expect(getLocaleByCode('ja_JP')).to.deep.equal({ lang: 'ja', country: 'JP' });
+            expect(getLocaleByCode('pt_BR')).to.deep.equal({ lang: 'pt', country: 'BR' });
+        });
+
+        it('should return null when code is null or undefined', function () {
+            expect(getLocaleByCode(null)).to.be.null;
+            expect(getLocaleByCode(undefined)).to.be.null;
+        });
+
+        it('should return null for invalid locale code format', function () {
+            expect(getLocaleByCode('')).to.be.null;
+            expect(getLocaleByCode('en')).to.be.null;
+            expect(getLocaleByCode('invalid')).to.be.null;
         });
     });
 
@@ -83,6 +109,8 @@ describe('locales', function () {
             expect(getDefaultLocaleCode('ccd', 'en_AU'), 'return en_US for en_AU for ccd').to.equal('en_US');
             expect(getDefaultLocaleCode('ccd', 'en_IN'), 'return en_US for en_IN for ccd').to.equal('en_US');
 
+            expect(getDefaultLocaleCode('express', 'en_IN'), 'return en_GB for en_IN for express').to.equal('en_GB');
+
             expect(getDefaultLocaleCode(null, 'pt_BR'), 'return null if no surface').to.be.null;
             expect(getDefaultLocaleCode('acom', null), 'return null if no locale code').to.be.null;
             expect(getDefaultLocaleCode('acom', undefined), 'return null if no locale code').to.be.null;
@@ -138,6 +166,29 @@ describe('locales', function () {
 
         it('should return empty array for invalid surface', function () {
             const result = getRegionLocales('invalid_surface', 'en_US', false);
+            expect(result).to.be.an('array');
+            expect(result.length).to.equal(0);
+        });
+    });
+
+    describe('getSurfaceLocales', function () {
+        it('should return default and region locales for a surface', function () {
+            const result = getSurfaceLocales('acom');
+            expect(result).to.be.an('array');
+            expect(result.length).to.be.greaterThan(0);
+            expect(result.some((locale) => locale.lang === 'en' && locale.country === 'US')).to.equal(true);
+            expect(result.some((locale) => locale.lang === 'en' && locale.country === 'AE')).to.equal(true);
+            expect(result.some((locale) => locale.lang === 'en' && locale.country === 'AU')).to.equal(true);
+        });
+
+        it('should not return duplicate locales', function () {
+            const result = getSurfaceLocales('acom');
+            const uniqueCodes = new Set(result.map((locale) => getLocaleCode(locale)));
+            expect(result.length).to.equal(uniqueCodes.size);
+        });
+
+        it('should return empty array for invalid surface', function () {
+            const result = getSurfaceLocales('invalid_surface');
             expect(result).to.be.an('array');
             expect(result.length).to.equal(0);
         });

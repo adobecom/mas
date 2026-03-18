@@ -15,8 +15,12 @@ const ACTION_CONFIG = {
         icon: 'sp-icon-publish',
         title: 'Publish',
     },
-    [QUICK_ACTION.CANCEL]: {
+    [QUICK_ACTION.UNPUBLISH]: {
         icon: 'sp-icon-publish-remove',
+        title: 'Unpublish',
+    },
+    [QUICK_ACTION.CANCEL]: {
+        icon: 'sp-icon-undo',
         title: 'Cancel',
     },
     [QUICK_ACTION.COPY]: {

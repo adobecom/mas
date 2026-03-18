@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { previewFragment } from '../../../../studio/libs/fragment-client.js';
+import { clearCaches, previewFragment } from '../../../../studio/libs/fragment-client.js';
 import sinon from 'sinon';
 import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
@@ -16,25 +16,28 @@ function createResponse(status, data, statusText = 'OK') {
     });
 }
 
+// Create a mock localStorage
+const storage = {};
+const localStorageStub = {
+    getItem: sinon.stub().callsFake((key) => storage[key] || null),
+    removeItem: sinon.stub().callsFake((key) => delete storage[key]),
+    setItem: sinon.stub().callsFake((key, value) => {
+        storage[key] = value.toString();
+    }),
+};
+let objectKeysStub;
+
 describe('FragmentClient', () => {
     const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
     let fetchStub;
-    let localStorageStub;
 
     before(() => {
-        // Create a mock localStorage
-        const storage = {};
-        localStorageStub = {
-            getItem: sinon.stub().callsFake((key) => storage[key] || null),
-            setItem: sinon.stub().callsFake((key, value) => {
-                storage[key] = value.toString();
-            }),
-        };
-
         // Stub window.localStorage
         globalThis.window = globalThis.window || { localStorage: {} };
         sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
-
+        globalThis.localStorage = localStorageStub;
+        objectKeysStub = sinon.stub(Object, 'keys').callThrough();
+        objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
         fetchStub = sinon.stub(globalThis, 'fetch');
         fetchStub
             .withArgs(`${baseUrl}/${mockCardFragment.id}?references=all-hydrated`)
@@ -55,10 +58,41 @@ describe('FragmentClient', () => {
                 ],
             }),
         );
+        // Settings fetch (preview pipeline now loads settings)
+        const settingsIndexUrl = `${baseUrl}?path=/content/dam/mas/sandbox/settings/index`;
+        const settingsId = 'preview-settings-id';
+        const settingsContentUrl = `${baseUrl}/${settingsId}?references=all-hydrated`;
+        const settingsBody = {
+            references: {
+                ref1: {
+                    value: {
+                        fields: {
+                            name: 'displayPlanType',
+                            valuetype: 'boolean',
+                            booleanValue: true,
+                        },
+                    },
+                },
+                ref2: {
+                    value: {
+                        fields: {
+                            name: 'secureLabel',
+                            valuetype: 'optional-text',
+                            booleanValue: true,
+                            textValue: 'Secure transaction',
+                        },
+                    },
+                },
+            },
+        };
+        fetchStub.withArgs(settingsIndexUrl).returns(createResponse(200, { items: [{ id: settingsId }] }));
+        fetchStub.withArgs(settingsContentUrl).returns(createResponse(200, settingsBody));
     });
 
     after(() => {
         fetchStub.restore();
+        objectKeysStub.restore();
+        delete globalThis.localStorage;
         if (globalThis.window?.localStorage) {
             sinon.restore();
         }
@@ -96,6 +130,9 @@ describe('FragmentClient', () => {
         });
         expect(output.references).deep.equal(expectedOutput.references);
         expect(output.referencesTree).deep.equal(expectedOutput.referencesTree);
+        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.exist;
+        clearCaches();
+        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
     });
 
     it('should handle fetch errors', async () => {

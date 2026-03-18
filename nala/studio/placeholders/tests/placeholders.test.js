@@ -1,16 +1,9 @@
-import { test, expect, studio, miloLibs, setTestPage } from '../../../libs/mas-test.js';
-import PlaceholdersPage from '../placeholders.page.js';
+import { test, expect, studio, placeholders, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import PlaceholdersSpec from '../specs/placeholders.spec.js';
 
 const { features } = PlaceholdersSpec;
 
 test.describe('M@S Studio Placeholders Test Suite', () => {
-    let placeholders;
-
-    test.beforeEach(async ({ page }) => {
-        placeholders = new PlaceholdersPage(page);
-    });
-
     // Test 0: @studio-placeholders-page-load - Validate placeholders page loads correctly
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
         const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}`;

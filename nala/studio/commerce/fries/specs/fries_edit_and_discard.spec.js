@@ -3,96 +3,52 @@ export default {
     features: [
         {
             tcid: '0',
-            name: '@studio-fries-edit-discard-title',
+            name: '@studio-fries-edit-discard-trial-badge',
             path: '/studio.html',
             data: {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
-                title: {
-                    original: 'Automation Test Card',
-                    updated: 'Change title',
+                trialBadge: {
+                    original: '7-day free trial',
+                    updated: 'Change trial badge',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
         {
             tcid: '1',
-            name: '@studio-fries-edit-discard-description',
+            name: '@studio-fries-edit-discard-trial-badge-color',
             path: '/studio.html',
             data: {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
-                description: {
-                    original: 'MAS repo validation card for Nala tests',
-                    updated: 'New Test Description',
+                color: {
+                    original: 'Green 800',
+                    updated: 'Yellow 300',
+                },
+                colorCSS: {
+                    original: 'rgb(7, 147, 85)',
+                    updated: 'rgb(255, 222, 44)',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
         {
             tcid: '2',
-            name: '@studio-fries-edit-discard-mnemonic',
+            name: '@studio-fries-edit-discard-trial-badge-border-color',
             path: '/studio.html',
             data: {
                 cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
-                iconURL: {
-                    original: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-                    updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
+                color: {
+                    original: 'Green 800',
+                    updated: 'Yellow 300',
+                },
+                colorCSS: {
+                    original: 'rgb(7, 147, 85)',
+                    updated: 'rgb(255, 222, 44)',
                 },
             },
-            browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
-        },
-        {
-            tcid: '3',
-            name: '@studio-fries-edit-discard-price',
-            path: '/studio.html',
-            data: {
-                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
-                price: {
-                    original: 'US$17.24/mo',
-                    updated: 'US$17.24/moper license',
-                },
-                strikethroughPrice: {
-                    original: 'US$34.49/mo',
-                    updated: 'US$34.49/moper license',
-                },
-            },
-            browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
-        },
-        {
-            tcid: '4',
-            name: '@studio-fries-edit-discard-cta-label',
-            path: '/studio.html',
-            data: {
-                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
-                osi: 'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
-                ctaText: {
-                    original: 'Select',
-                    updated: 'Buy now',
-                },
-            },
-            browserParams: '#page=content&path=nala&query=',
-            tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
-        },
-        {
-            tcid: '5',
-            name: '@studio-fries-edit-discard-product-icon-picker',
-            path: '/studio.html',
-            data: {
-                cardid: '9620f75c-96cd-4ec3-a431-275a53d8860c',
-                productIcon: {
-                    name: 'Illustrator',
-                    original: {
-                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-                    },
-                    updated: {
-                        src: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg',
-                    },
-                },
-            },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @commerce @commerce-fries @commerce-fries-edit',
         },
     ],

@@ -1,0 +1,233 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>tree-picker-field unit tests</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script src="../../../src/swc.js" type="module"></script>
+        <style>
+            main {
+                display: flex;
+                flex-direction: column;
+                gap: 32px;
+            }
+
+            sp-theme {
+                display: contents;
+            }
+
+            tree-picker-field {
+                max-width: 320px;
+                position: relative;
+            }
+        </style>
+    </head>
+
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { delay, initElementFromTemplate, oneEvent } from '../../utils.js';
+            import '../../../src/common/fields/tree-picker-field.js';
+
+            const TREE_MODEL = [
+                {
+                    name: 'global',
+                    label: 'Global',
+                    children: [
+                        {
+                            name: 'merch',
+                            label: 'Merch card',
+                            children: [
+                                { name: 'marquee', label: 'Marquee' },
+                                { name: 'modal', label: 'Modal' },
+                            ],
+                        },
+                        { name: 'plans', label: 'Plans' },
+                    ],
+                },
+                { name: 'blade', label: 'Blade' },
+            ];
+
+            async function initPicker(templateId, testTitle) {
+                const picker = initElementFromTemplate(templateId, testTitle);
+                picker.tree = TREE_MODEL;
+                picker.value = [];
+                await picker.updateComplete;
+                return picker;
+            }
+
+            runTests(async () => {
+                describe('tree-picker-field', async () => {
+                    it('renders label and placeholder text in trigger when no templates are selected', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const label = picker.shadowRoot.querySelector('.field-label');
+                        const triggerText = picker.shadowRoot.querySelector('.trigger-text');
+
+                        expect(label).to.not.be.null;
+                        expect(label.textContent.trim()).to.equal('Template');
+                        expect(triggerText.textContent.trim()).to.equal('Select template');
+                        expect(triggerText.classList.contains('is-placeholder')).to.be.true;
+                    });
+
+                    it('renders "All templates" placeholder when no explicit placeholder is provided', async function () {
+                        const picker = await initPicker('treePickerDefault', this.test.title);
+                        const triggerText = picker.shadowRoot.querySelector('.trigger-text');
+
+                        expect(triggerText.textContent.trim()).to.equal('All templates');
+                        expect(triggerText.classList.contains('is-placeholder')).to.be.true;
+                    });
+
+                    it('treats empty selection as value when empty-value-is-selection is enabled', async function () {
+                        const picker = await initPicker('treePickerEdit', this.test.title);
+                        const triggerText = picker.shadowRoot.querySelector('.trigger-text');
+
+                        expect(triggerText.textContent.trim()).to.equal('All templates');
+                        expect(triggerText.classList.contains('is-placeholder')).to.be.false;
+                    });
+
+                    it('supports expand and collapse', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const overlayTrigger = picker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.dispatchEvent(new Event('sp-opened'));
+                        await picker.updateComplete;
+                        await delay(20);
+
+                        const globalToggle = picker.shadowRoot.querySelector('button[data-tree-toggle="global"]');
+                        expect(globalToggle).to.not.be.null;
+                        expect(picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="merch"]')).to.be.null;
+
+                        globalToggle.click();
+                        await picker.updateComplete;
+
+                        expect(picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="merch"]')).to.not.be.null;
+                    });
+
+                    it('sets parent checkbox to indeterminate when only one descendant is selected', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const overlayTrigger = picker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.dispatchEvent(new Event('sp-opened'));
+                        await picker.updateComplete;
+
+                        picker.shadowRoot.querySelector('button[data-tree-toggle="global"]').click();
+                        await picker.updateComplete;
+                        picker.shadowRoot.querySelector('button[data-tree-toggle="merch"]').click();
+                        await picker.updateComplete;
+
+                        const modalCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="modal"]');
+                        modalCheckbox.checked = true;
+                        modalCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+
+                        const merchCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="merch"]');
+                        expect(merchCheckbox.indeterminate).to.be.true;
+                        expect(merchCheckbox.checked).to.be.false;
+                    });
+
+                    it('commits selected leaf ids and emits change when popover closes', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const overlayTrigger = picker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.dispatchEvent(new Event('sp-opened'));
+                        await picker.updateComplete;
+
+                        picker.shadowRoot.querySelector('button[data-tree-toggle="global"]').click();
+                        await picker.updateComplete;
+
+                        const merchCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="merch"]');
+                        merchCheckbox.checked = true;
+                        merchCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.deep.equal([]);
+
+                        const listener = oneEvent(picker, 'change');
+                        overlayTrigger.dispatchEvent(new Event('sp-closed'));
+                        await listener;
+
+                        expect(picker.value).to.have.members(['marquee', 'modal']);
+                        expect(picker.value).to.not.include('merch');
+                    });
+
+                    it('filters rows using search text', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const overlayTrigger = picker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.dispatchEvent(new Event('sp-opened'));
+                        await picker.updateComplete;
+
+                        const search = picker.shadowRoot.querySelector('sp-search');
+                        search.value = 'modal';
+                        search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+
+                        expect(picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="modal"]')).to.not.be.null;
+                        expect(picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="marquee"]')).to.be.null;
+                    });
+
+                    it('shows branch summary in trigger text when all descendants of a node are selected', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const overlayTrigger = picker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.dispatchEvent(new Event('sp-opened'));
+                        await picker.updateComplete;
+
+                        picker.shadowRoot.querySelector('button[data-tree-toggle="global"]').click();
+                        await picker.updateComplete;
+
+                        const merchCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="merch"]');
+                        merchCheckbox.checked = true;
+                        merchCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
+                            'Merch card (2 selected)',
+                        );
+
+                        const listener = oneEvent(picker, 'change');
+                        overlayTrigger.dispatchEvent(new Event('sp-closed'));
+                        await listener;
+
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
+                            'Merch card (2 selected)',
+                        );
+                    });
+
+                    it('shows count summary when selected templates span branches', async function () {
+                        const picker = await initPicker('treePicker1', this.test.title);
+                        const overlayTrigger = picker.shadowRoot.querySelector('overlay-trigger');
+                        overlayTrigger.dispatchEvent(new Event('sp-opened'));
+                        await picker.updateComplete;
+
+                        picker.shadowRoot.querySelector('button[data-tree-toggle="global"]').click();
+                        await picker.updateComplete;
+
+                        const bladeCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="blade"]');
+                        bladeCheckbox.checked = true;
+                        bladeCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        const plansCheckbox = picker.shadowRoot.querySelector('sp-checkbox[data-tree-checkbox="plans"]');
+                        plansCheckbox.checked = true;
+                        plansCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+
+                        expect(picker.shadowRoot.querySelector('.trigger-text').textContent.trim()).to.equal(
+                            '2 templates selected',
+                        );
+                    });
+                });
+            });
+        </script>
+        <main>
+            <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
+        </main>
+        <template id="treePicker1">
+            <tree-picker-field label="Template" placeholder="Select template"></tree-picker-field>
+        </template>
+        <template id="treePickerDefault">
+            <tree-picker-field label="Template"></tree-picker-field>
+        </template>
+        <template id="treePickerEdit">
+            <tree-picker-field label="Template" placeholder="All templates" empty-value-is-selection></tree-picker-field>
+        </template>
+    </body>
+</html>

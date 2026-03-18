@@ -9,6 +9,9 @@ export class SourceFragmentStore extends FragmentStore {
     /** @type {Fragment | null} */
     parentFragment = null;
 
+    /** @type {boolean} Flag to skip variation detection on next editor init (set after copy) */
+    skipVariationDetection = false;
+
     /**
      * @param {Fragment} sourceFragment - The raw fragment data (for editing)
      * @param {PreviewFragmentStore} previewStore - The preview store (with merged parent values)
@@ -22,7 +25,12 @@ export class SourceFragmentStore extends FragmentStore {
 
     set(value) {
         super.set(value);
-        this.previewStore.set(value);
+        if (this.parentFragment) {
+            const previewData = createPreviewDataWithParent(value, this.parentFragment);
+            this.previewStore.set(previewData);
+        } else {
+            this.previewStore.set(value);
+        }
     }
 
     updateField(name, value) {

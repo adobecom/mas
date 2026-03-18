@@ -89,7 +89,7 @@
             import { Fragment } from '../../src/aem/fragment.js';
             import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
             import Store from '../../src/store.js';
-            import { PAGE_NAMES } from '../../src/constants.js';
+            import { PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
             import { delay } from '../utils.js';
 
             // Load the existing mock data for a merch card
@@ -125,7 +125,13 @@
                                 return { ...field, values: ['https://parent.com'], multiple: true };
                             if (field.name === 'backgroundImage') return { ...field, values: ['/parent-bg.jpg'] };
                             if (field.name === 'backgroundImageAltText') return { ...field, values: ['Parent BG Alt'] };
-                            if (field.name === 'badge') return { ...field, values: ['{"text":"Parent Badge"}'] };
+                            if (field.name === 'badge')
+                                return {
+                                    ...field,
+                                    values: [
+                                        '<merch-badge background-color=\"color-yellow-300-variation\" border-color=\"color-yellow-300-variation\" icon=\"sp-icon-star\" variant=\"ccd-slice\">badge text</merch-badge>',
+                                    ],
+                                };
                             if (field.name === 'osi') return { ...field, values: ['parent-osi'] };
                             return field;
                         }),
@@ -134,9 +140,12 @@
                     let layoutContainer, sideNav, fragmentEditor, editor, saveNavItem, fragmentStore;
 
                     async function setupTestEnvironment(overrides = {}, testId = 'default') {
+                        const isVariation = overrides.isVariation !== undefined ? overrides.isVariation : true;
+                        const variationPath = overrides.path || `/content/dam/mas/nala/en_AU/test-variation-${testId}`;
+                        const variationLocale = variationPath.match(/^\/content\/dam\/mas\/[^/]+\/([^/]+)\//)?.[1] || 'en_US';
                         const variationData = {
                             ...baseMockData,
-                            path: `/content/dam/mas/nala/en_AU/test-variation-${testId}`,
+                            path: variationPath,
                             title: `Test Variation ${testId}`,
                             id: `test-variation-${testId}`,
                             tags: overrides.tags || [],
@@ -158,7 +167,7 @@
                         Store.fragments.inEdit.set(fragmentStore);
                         Store.fragments.list.data.set([fragmentStore]);
                         Store.placeholders.preview.set({});
-                        Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala' }));
+                        Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
                         Store.viewMode.set('editing');
 
                         layoutContainer = document.createElement('div');
@@ -174,11 +183,16 @@
                         repository.loadPreviewPlaceholders = async () => {};
 
                         fragmentEditor.editorContextStore = {
+                            localeDefaultFragment: null,
                             loadFragmentContext: async () => {},
-                            isVariation: () => true,
+                            isVariation: () => isVariation,
                             getLocaleDefaultFragmentAsync: async () => structuredClone(parentWithAllFields),
                             getDefaultLocaleId: () => 'test-parent-id',
                             getLocaleDefaultFragment: () => structuredClone(parentWithAllFields),
+                            setParent(parentData) {
+                                if (!parentData) return;
+                                this.localeDefaultFragment = parentData;
+                            },
                         };
                         fragmentEditor.localeDefaultFragment = parentFragment;
                         fragmentEditor.initState = 'ready';
@@ -215,6 +229,63 @@
                         return { fragmentStore, editor, sideNav, saveNavItem };
                     }
 
+                    function setSourceVariationCounts({
+                        locale = 0,
+                        promo = 0,
+                        grouped = 0,
+                        includeReferences = true,
+                        includeCurrentGroupedPath = false,
+                    }) {
+                        const sourceFragment = fragmentEditor.localeDefaultFragment;
+                        const [, rootPath, sourceLocale, fragmentPath] =
+                            sourceFragment.path.match(/^(\/content\/dam\/mas\/[^/]+)\/([^/]+)\/(.+)$/) || [];
+
+                        const localeCodes = ['en_AU', 'fr_FR', 'de_DE', 'es_ES', 'it_IT'];
+                        const variationPaths = [];
+                        const references = [];
+
+                        for (let i = 0; i < locale; i += 1) {
+                            const localeCode = localeCodes[i] || `x${i}_XX`;
+                            const path = `${rootPath}/${localeCode}/${fragmentPath}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [] });
+                            }
+                        }
+
+                        for (let i = 0; i < promo; i += 1) {
+                            const path = `${rootPath}/${sourceLocale}/promo-${i}-${fragmentPath}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [{ id: `${TAG_PROMOTION_PREFIX}test-${i}` }] });
+                            }
+                        }
+
+                        if (includeCurrentGroupedPath && grouped > 0) {
+                            const currentPath = fragmentEditor.fragment.path;
+                            variationPaths.push(currentPath);
+                            if (includeReferences) {
+                                references.push({ path: currentPath, tags: [] });
+                            }
+                        }
+
+                        for (let i = includeCurrentGroupedPath ? 1 : 0; i < grouped; i += 1) {
+                            const path = `${rootPath}/${sourceLocale}/pzn/${fragmentPath}-${i}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [] });
+                            }
+                        }
+
+                        sourceFragment.references = includeReferences ? references : [];
+                        const variationsField = sourceFragment.fields.find((f) => f.name === 'variations');
+                        if (variationsField) {
+                            variationsField.values = variationPaths;
+                        } else {
+                            sourceFragment.fields.push({ name: 'variations', values: variationPaths, multiple: true });
+                        }
+                    }
+
                     afterEach(() => {
                         if (layoutContainer) {
                             layoutContainer.remove();
@@ -242,6 +313,65 @@
                         await editor.updateComplete;
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
                         expect(editor.mnemonics).to.have.length(1);
+                    });
+
+                    it('removes inherited badge values and restores it via override indicator', async () => {
+                        await setupTestEnvironment();
+                        expect(editor.getFieldState('badge')).to.equal('inherited');
+                        expect(editor.getFieldState('badgeColor')).to.equal('inherited');
+                        expect(editor.getFieldState('badgeBorderColor')).to.equal('inherited');
+                        expect(editor.getFieldState('borderColor')).to.equal('inherited');
+
+                        const badgeTextEl = editor.querySelector('sp-textfield#card-badge');
+                        expect(badgeTextEl).to.exist;
+                        badgeTextEl.value = 'updated badge text';
+                        badgeTextEl.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+
+                        const badgeColorPicker = editor.querySelector('sp-picker#badgeColor');
+                        expect(badgeColorPicker).to.exist;
+                        badgeColorPicker.value = 'color-green-900-variation';
+                        badgeColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const badgeBorderColorPicker = editor.querySelector('sp-picker#badgeBorderColor');
+                        expect(badgeBorderColorPicker).to.exist;
+                        badgeBorderColorPicker.value = 'color-green-900-variation';
+                        badgeBorderColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const borderColorPicker = editor.querySelector('sp-picker#border-color');
+                        expect(borderColorPicker).to.exist;
+                        borderColorPicker.value = 'color-green-900-variation';
+                        borderColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+
+                        expect(editor.getBadgeComponentState('badge', 'text')).to.equal('overridden');
+                        expect(editor.querySelector('sp-picker#badgeColor').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+                        expect(editor.querySelector('sp-picker#badgeBorderColor').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+                        expect(editor.querySelector('sp-picker#border-color').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+
+                        editor.querySelector('sp-field-group#badge .field-status-indicator a').click();
+                        editor.querySelector('sp-field-group#badgeColor .field-status-indicator a').click();
+                        editor.querySelector('sp-field-group#badgeBorderColor .field-status-indicator a').click();
+                        editor.querySelector('sp-field-group#border-color .field-status-indicator a').click();
+
+                        await editor.updateComplete;
+
+                        expect(editor.getBadgeComponentState('badge', 'text')).to.equal('inherited');
+                        expect(editor.querySelector('sp-picker#badgeColor').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
+                        expect(editor.querySelector('sp-picker#badgeBorderColor').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
+                        expect(editor.querySelector('sp-picker#border-color').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
                     });
 
                     it('maintains inherited state after add visual then cancel', async () => {
@@ -321,6 +451,330 @@
 
                         expect(Store.editor.hasChanges).to.be.true;
                         expect(saveNavItem.disabled).to.be.false;
+                    });
+
+                    it('renders grouped-variation-tags as readonly in non en_US locales', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-readonly' },
+                            'grouped-variation-readonly',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+                        expect(groupedTagsPicker.readonly).to.be.true;
+                    });
+
+                    it('renders grouped-variation-tags as editable in en_US locale', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-editable' },
+                            'grouped-variation-editable',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+                        expect(groupedTagsPicker.readonly).to.be.false;
+                    });
+
+                    it('updates grouped locale tags without splitting values into characters', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-tags-array' },
+                            'grouped-variation-tags-array',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+
+                        groupedTagsPicker.value = ['mas:locale/AR/es_AR', 'mas:locale/es_CL'];
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('pznTags')).to.deep.equal([
+                            'mas:locale/AR/es_AR',
+                            'mas:locale/es_CL',
+                        ]);
+
+                        groupedTagsPicker.value = ['mas:locale/es_CL'];
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        const pznTags = fragmentStore.get().getFieldValues('pznTags');
+                        expect(pznTags).to.deep.equal(['mas:locale/es_CL']);
+                        expect(pznTags.every((tag) => tag.startsWith('mas:'))).to.be.true;
+                    });
+
+                    it('normalizes comma-delimited grouped locale tags payloads', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-tags-string' },
+                            'grouped-variation-tags-string',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+
+                        groupedTagsPicker.value = 'mas:locale/AR/es_AR,mas:locale/es_CL';
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('pznTags')).to.deep.equal([
+                            'mas:locale/AR/es_AR',
+                            'mas:locale/es_CL',
+                        ]);
+                    });
+
+                    it('displays grouped sibling variation count for grouped variations', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-counts',
+                            },
+                            'grouped-variation-counts',
+                        );
+                        setSourceVariationCounts({ locale: 0, promo: 0, grouped: 3 });
+                        expect(fragmentEditor.localeDefaultFragment.references).to.have.length(3);
+                        expect(fragmentEditor.localeDefaultFragment.getGroupedVariationCount()).to.equal(3);
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['2 grouped sibling variations']);
+                    });
+
+                    it('displays regional sibling variation count for locale variations', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/test-locale-variation-counts',
+                            },
+                            'locale-variation-counts',
+                        );
+                        setSourceVariationCounts({ locale: 4, promo: 0, grouped: 0 });
+                        expect(fragmentEditor.localeDefaultFragment.references).to.have.length(4);
+                        expect(fragmentEditor.localeDefaultFragment.getLocaleVariationCount()).to.equal(4);
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['3 Regional sibling variations']);
+                    });
+
+                    it('does not display sibling counts when source has variations but no references', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-no-references',
+                            },
+                            'grouped-variation-no-references',
+                        );
+                        setSourceVariationCounts({
+                            locale: 2,
+                            promo: 0,
+                            grouped: 5,
+                            includeReferences: false,
+                            includeCurrentGroupedPath: true,
+                        });
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.not.exist;
+                    });
+
+                    it('shows 5 regional + 1 grouped sibling counts when variations contains stale paths not present in references', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-stale-paths',
+                            },
+                            'grouped-variation-stale-paths',
+                        );
+
+                        setSourceVariationCounts({
+                            locale: 5,
+                            promo: 0,
+                            grouped: 2,
+                            includeReferences: true,
+                            includeCurrentGroupedPath: true,
+                        });
+
+                        const source = fragmentEditor.localeDefaultFragment;
+                        const variationsField = source.fields.find((f) => f.name === 'variations');
+                        variationsField.values.push(
+                            '/content/dam/mas/nala/en_IE/test-grouped-variation-stale-paths',
+                            '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-stale-paths-stale',
+                        );
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['5 Regional sibling variations', '1 grouped sibling variation']);
+                    });
+
+                    it('does not render related variations container for source fragments when references are empty', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_US/test-source-variation-container',
+                                isVariation: false,
+                            },
+                            'source-variation-container',
+                        );
+
+                        const sourceFragment = fragmentEditor.fragment;
+                        sourceFragment.references = [];
+                        const sourceVariationsField = sourceFragment.fields.find((f) => f.name === 'variations');
+                        const variationPath = '/content/dam/mas/nala/fr_FR/test-source-variation-container';
+                        if (sourceVariationsField) {
+                            sourceVariationsField.values = [variationPath];
+                        } else {
+                            sourceFragment.fields.push({ name: 'variations', values: [variationPath], multiple: true });
+                        }
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.not.exist;
+                    });
+
+                    describe('getWhatsIncludedProps', () => {
+                        it('extracts icon, alt, and description from a merch-icon element', async () => {
+                            await setupTestEnvironment({}, 'gwip-merch-icon');
+
+                            const el = document.createElement('div');
+                            const iconEl = document.createElement('merch-icon');
+                            iconEl.setAttribute('src', 'https://example.com/icon.svg');
+                            iconEl.setAttribute('alt', 'Test alt');
+                            const descEl = document.createElement('span');
+                            descEl.setAttribute('slot', 'description');
+                            descEl.textContent = 'Test description';
+                            el.append(iconEl, descEl);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.icon).to.equal('https://example.com/icon.svg');
+                            expect(result.alt).to.equal('Test alt');
+                            expect(result.description).to.equal('Test description');
+                            expect(result.link).to.equal('');
+                        });
+
+                        it('extracts href from [slot="icon"] a when merch-icon is present', async () => {
+                            await setupTestEnvironment({}, 'gwip-merch-icon-link');
+
+                            const el = document.createElement('div');
+                            const iconEl = document.createElement('merch-icon');
+                            iconEl.setAttribute('src', 'https://example.com/icon.svg');
+                            iconEl.setAttribute('alt', '');
+                            const iconSlot = document.createElement('span');
+                            iconSlot.setAttribute('slot', 'icon');
+                            const linkEl = document.createElement('a');
+                            linkEl.setAttribute('href', 'https://example.com/link');
+                            iconSlot.append(linkEl);
+                            el.append(iconEl, iconSlot);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.link).to.equal('https://example.com/link');
+                        });
+
+                        it('falls back to sp-icon tagName when no merch-icon is present', async () => {
+                            await setupTestEnvironment({}, 'gwip-sp-icon');
+
+                            const el = document.createElement('div');
+                            const spIcon = document.createElement('span');
+                            spIcon.className = 'sp-icon';
+                            spIcon.id = 'sp-icon-star';
+                            el.append(spIcon);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.icon).to.equal('span');
+                            expect(result.alt).to.equal('');
+                            expect(result.link).to.equal('');
+                        });
+
+                        it('returns empty values when no icon elements are found', async () => {
+                            await setupTestEnvironment({}, 'gwip-no-icon');
+
+                            const el = document.createElement('div');
+                            const descEl = document.createElement('span');
+                            descEl.setAttribute('slot', 'description');
+                            descEl.textContent = 'No icon here';
+                            el.append(descEl);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            // The no-icon fallback returns empty strings for all fields
+                            expect(result.icon).to.equal('');
+                            expect(result.description).to.equal('');
+                            expect(result.alt).to.equal('');
+                            expect(result.link).to.equal('');
+                        });
+                    });
+
+                    describe('whatsIncluded getter contentBullets', () => {
+                        it('parses contentBullets with merch-icon and includes bullets with icon', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-icon');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <merch-icon src="https://example.com/icon.svg" alt="Icon alt"></merch-icon>
+                                        <span slot="description">Bullet with icon</span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].icon).to.equal('https://example.com/icon.svg');
+                            expect(result.bullets[0].alt).to.equal('Icon alt');
+                        });
+
+                        it('parses contentBullets with no merch-icon, desc innerHTML equals text', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-desc-text');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <span slot="description"><span>Plain text bullet</span></span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].description).to.be.a('string');
+                        });
+
+                        it('parses contentBullets with no merch-icon, desc innerHTML differs from text', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-desc-html');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <span slot="description"><span><b>Bold</b> text</span></span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].description).to.include('<p>');
+                        });
                     });
 
                     describe('description field inheritance logic', () => {

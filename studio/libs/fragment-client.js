@@ -8,8 +8,8 @@ import { logError } from '../../io/www/src/fragment/utils/log.js';
 import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
-import { getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
-import { transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
+import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
+import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 
@@ -46,12 +46,24 @@ const DEFAULT_CONTEXT = {
         fetchTimeout: 10000,
         retries: 3,
     },
-    api_key: 'n/a',
     locale: 'en_US',
 };
 
+if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    DEFAULT_CONTEXT.debugLogs = params.has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
+    if (params.has('clearCaches.io')) {
+        clearCaches();
+    }
+}
+
+function clearCaches() {
+    clearDictionaryCache(true);
+    clearSettingsCache(true);
+}
+
 async function previewFragment(id, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, id };
+    let context = { ...DEFAULT_CONTEXT, ...options, id, api_key: 'fragment-client' };
     const initPromises = {};    
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
@@ -87,7 +99,7 @@ async function previewFragment(id, options) {
 }
 
 async function previewFragmentForEditor(id, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, id };
+    let context = { ...DEFAULT_CONTEXT, ...options, id, api_key: 'fragment-client-editor' };
     const initPromises = {};
     context.fragmentsIds = context.fragmentsIds || {};
     for (const transformer of PIPELINE) {
@@ -118,8 +130,30 @@ async function previewFragmentForEditor(id, options) {
 
 /* c8 ignore next 38 */
 async function previewStudioFragment(body, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, body };
+    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
+    const { locale, surface } = options;
+    const initPromises = {
+        fetchFragment: Promise.resolve({
+            status: 200,
+            body: context.body,
+            locale,
+            surface,
+        }),
+    };
+    context.fragmentsIds = context.fragmentsIds || {};
     context.hasExternalDictionary = Boolean(context.dictionary);
+    for (const transformer of [settings, replace, corrector]) {
+        if (transformer.init) {
+            const initContext = {
+                ...structuredClone(context),
+                promises: initPromises,
+                fragmentsIds: context.fragmentsIds,
+            };
+            initContext.loggedTransformer = `${transformer.name}-init`;
+            initPromises[transformer.name] = transformer.init(initContext);
+        }
+    }
+    context.promises = initPromises;
     for (const transformer of [settings, replace, corrector]) {
         if (context.status != 200) {
             logError(context.message, context);
@@ -134,4 +168,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { previewFragment, previewFragmentForEditor, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export { clearCaches, previewFragment, previewFragmentForEditor, previewStudioFragment, customize, settings, replace, getDictionary, corrector };

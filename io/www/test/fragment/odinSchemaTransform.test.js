@@ -5,9 +5,7 @@ describe('odinSchemaTransform', () => {
     describe('transformBody', () => {
         it('returns body unchanged when body has no references', () => {
             const body = {
-                fields: [
-                    { name: 'title', values: ['Hello'], multiple: false },
-                ],
+                fields: [{ name: 'title', values: ['Hello'], multiple: false }],
                 // no references property
             };
             const result = transformBody(body);

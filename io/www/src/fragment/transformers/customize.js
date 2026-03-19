@@ -201,7 +201,7 @@ async function customize(context) {
     const baseFragment = skimFragmentFromReferences(body);
     //todo check
     const isRegionLocale = country ? defaultLocale.indexOf(`_${country}`) == -1 : defaultLocale !== locale;
-    logDebug(() => `isRegionLocale: ${isRegionLocale}`, { context });
+    logDebug(() => `isRegionLocale: ${isRegionLocale}`, context);
     const regionLocale = country ? `${defaultLocale.split('_')[0]}_${country.toUpperCase()}` : locale;
     const { references, referencesTree } = body;
     const customizeContext = {

@@ -8,6 +8,7 @@ import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' wi
 
 const FAKE_CONTEXT = {
     status: 200,
+    debugLogs: true,
     state: new MockState(),
     surface: 'sandbox',
     parsedLocale: 'en_US',

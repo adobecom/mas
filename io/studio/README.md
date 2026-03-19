@@ -116,4 +116,3 @@ You can generate this file using the command `aio app use`. Be aware that it wou
 
 Main configuration file that defines an application's implementation.
 
-

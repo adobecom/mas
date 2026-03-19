@@ -253,7 +253,7 @@ export class MasRepository extends LitElement {
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
 
-        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
+        if (currentData && currentPath === path && currentQuery === query && currentLocale === locale) {
             const filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
@@ -268,6 +268,7 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
+        dataStore.set([]);
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -294,10 +295,11 @@ export class MasRepository extends LitElement {
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
         const damPath = getDamPath(path);
+        const localizedPath = `${damPath}/${locale}`;
         const localSearch = {
             ...this.search.value,
             modelIds,
-            path: `${damPath}/${this.filters.value.locale}`,
+            path: localizedPath,
             tags,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
@@ -328,7 +330,7 @@ export class MasRepository extends LitElement {
                 );
                 if (
                     fragmentData &&
-                    fragmentData.path.indexOf(ROOT_PATH) === 0 &&
+                    fragmentData.path.indexOf(`${localizedPath}/`) === 0 &&
                     !Fragment.isGroupedVariationPath(fragmentData.path)
                 ) {
                     const fragmentFolderPath = fragmentData.path.substring(ROOT_PATH.length + 1);
@@ -362,7 +364,6 @@ export class MasRepository extends LitElement {
                         fragmentStores.push(sourceStore);
                     }
                     dataStore.set([...fragmentStores]);
-                    Store.fragments.list.firstPageLoaded.set(true);
                 }
             }
 
@@ -370,6 +371,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('query', query);
             dataStore.setMeta('locale', locale);
             dataStore.setMeta('tags', tags);
+            Store.fragments.list.firstPageLoaded.set(true);
 
             this.#abortControllers.search = null;
         } catch (error) {

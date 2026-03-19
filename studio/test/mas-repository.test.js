@@ -889,6 +889,47 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('clears the list when a UUID resolves outside the selected locale', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '12345678-1234-1234-1234-123456789012' } };
+            repository.filters = { value: { locale: 'da_DK', tags: '' } };
+            const mockFragment = createFragment({
+                id: '12345678-1234-1234-1234-123456789012',
+                path: `${ROOT_PATH}/acom/en_US/test-fragment`,
+                fields: [],
+            });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: getByIdStub,
+                    search: sandbox.stub(),
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ value: { id: 'stale-fragment' } }]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(mockDataStore.set.calledOnce).to.be.true;
+                expect(mockDataStore.set.firstCall.args[0]).to.deep.equal([]);
+                expect(mockDataStore.setMeta.calledWith('locale', 'da_DK')).to.be.true;
+                expect(mockDataStore.setMeta.calledWith('query', '12345678-1234-1234-1234-123456789012')).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('performs regular search when query is not a UUID', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -930,6 +971,43 @@ describe('MasRepository dictionary helpers', () => {
                 const searchOptions = searchStub.firstCall.args[0];
                 expect(searchOptions.path).to.equal(`${ROOT_PATH}/acom/en_US`);
                 expect(searchOptions.modelIds).to.deep.equal(EDITABLE_FRAGMENT_MODEL_IDS);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('clears stale fragments before running a regular search', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'missing-fragment' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const mockCursor = {
+                [Symbol.asyncIterator]: async function* () {},
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ value: { id: 'stale-fragment' } }]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                expect(mockDataStore.set.calledOnce).to.be.true;
+                expect(mockDataStore.set.firstCall.args[0]).to.deep.equal([]);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;

@@ -886,6 +886,7 @@ export default class MasFragmentEditor extends LitElement {
             if (this.#translatedLocalesRequest?.fragmentId === fragmentId) {
                 return;
             }
+            this.#translatedLocalesRequest = { fragmentId, requestPromise: null };
 
             const currentLocale = fragmentPath ? extractLocaleFromPath(fragmentPath) : null;
             const filPhLocale = 'fil_PH';
@@ -902,7 +903,7 @@ export default class MasFragmentEditor extends LitElement {
                         const enUsFragmentId = data['jcr:uuid'];
                         if (enUsFragmentId) {
                             const requestPromise = this.repository.aem.sites.cf.fragments.getTranslations(enUsFragmentId);
-                            this.#translatedLocalesRequest = { fragmentId, requestPromise };
+                            this.#translatedLocalesRequest.requestPromise = requestPromise;
                             const result = await requestPromise;
                             languageCopies = result.languageCopies ?? [];
                         }
@@ -911,7 +912,7 @@ export default class MasFragmentEditor extends LitElement {
             }
             if (languageCopies.length === 0) {
                 const requestPromise = this.repository.aem.sites.cf.fragments.getTranslations(fragmentId);
-                this.#translatedLocalesRequest = { fragmentId, requestPromise };
+                this.#translatedLocalesRequest.requestPromise = requestPromise;
                 const result = await requestPromise;
                 languageCopies = result.languageCopies ?? [];
             }

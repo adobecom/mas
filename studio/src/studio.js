@@ -26,6 +26,7 @@ import './placeholders/mas-placeholders.js';
 import './settings/mas-settings.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
+import './mas-chat.js';
 import './version-page.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
@@ -188,6 +189,11 @@ class MasStudio extends LitElement {
         return html`<mas-translation-editor></mas-translation-editor>`;
     }
 
+    get aiAssistant() {
+        if (this.page.value !== PAGE_NAMES.AI_ASSISTANT) return nothing;
+        return html`<mas-chat></mas-chat>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -239,7 +245,7 @@ class MasStudio extends LitElement {
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
-                          ${this.editorPanel} ${this.settings}
+                          ${this.aiAssistant} ${this.editorPanel} ${this.settings}
                       </div>`
                     : nothing}
             </div>

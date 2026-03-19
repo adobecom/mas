@@ -48,7 +48,7 @@ jobs:
     if: ${{ github.event.pull_request.state == 'open' }}
     runs-on: ubuntu-latest
     outputs:
-      changed_path: ${{ steps.set-instance-id.outputs.changed_path }}
+      changed_path: ${{ steps['set-instance-id'].outputs.changed_path }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -92,26 +92,41 @@ jobs:
             exit 1
           fi
 
+  # matrix.* is not available in job-level `if`. Use step `cmr_row` once, then
+  # `steps.cmr_row.outcome == 'success'` on steps that should run for this row.
   create-cmr:
     needs: detect-changes
     strategy:
       matrix:
         path: [io, studio]
-    if: ${{ always() && ((github.event.pull_request.state == 'open' && (needs.detect-changes.outputs.changed_path == matrix.path || needs.detect-changes.outputs.changed_path == 'both')) || github.event.pull_request.merged == true) }}
+    if: ${{ always() && ((github.event.pull_request.state == 'open' && needs.detect-changes.result == 'success') || github.event.pull_request.merged == true) }}
     runs-on: ubuntu-latest
 
     steps:
+    - name: Matrix row active (merged PR, or open PR and path matches)
+      id: cmr_row
+      if: >-
+        ${{ github.event.pull_request.merged == true
+        || (github.event.pull_request.state == 'open'
+        && (needs.detect-changes.outputs.changed_path == matrix.path
+        || needs.detect-changes.outputs.changed_path == 'both')) }}
+      run: echo "Running CMR steps for matrix.path=${{ matrix.path }}"
+
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      if: steps.cmr_row.outcome == 'success'
     - name: Set up Python 3.x, latest minor release
       uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+      if: steps.cmr_row.outcome == 'success'
       with:
         python-version: "3.x"
     - name: Install dependencies
+      if: steps.cmr_row.outcome == 'success'
       run: |
         python -m pip install --upgrade pip requests timedelta
 
     - name: Retrieve transaction ID from PR Comments (${{ matrix.path }})
       id: retrieve-transactionId-step
+      if: steps.cmr_row.outcome == 'success'
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       with:
         script: |
@@ -124,8 +139,9 @@ jobs:
 
     - name: Execute script for creating and closing CMR (${{ matrix.path }})
       id: create-close-cmr-step
+      if: steps.cmr_row.outcome == 'success'
       env:
-        RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
+        RETRIEVED_TRANSACTION_ID: ${{ steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id }}
         SNOW_INSTANCE_ID: ${{ github.event.pull_request.state == 'open' && (matrix.path == 'io' && secrets.SNOW_INSTANCE_ID_IO || secrets.SNOW_INSTANCE_ID_STUDIO) || '' }}
         CMR_PATH: ${{ matrix.path }}
       run: |
@@ -133,9 +149,10 @@ jobs:
 
     - name: Save transaction ID in PR Comments (${{ matrix.path }})
       id: pr-comment-snow-cr-step
+      if: steps.cmr_row.outcome == 'success'
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       env:
-        TRANSACTION_ID: ${{ steps.create-close-cmr-step.outputs.transaction_id }}
+        TRANSACTION_ID: ${{ steps['create-close-cmr-step'].outputs.transaction_id }}
       with:
         script: |
           const main = (await import('${{ github.workspace }}/.github/workflows/snow-pr-comment.js')).default
@@ -147,14 +164,17 @@ jobs:
 
     - name: Execute script for notifying Slack of CMR state (${{ matrix.path }})
       id: slack-snow-cr-step
-      if: ${{ (github.event.pull_request.state == 'open' && steps.create-close-cmr-step.outputs.transaction_id) || (github.event.pull_request.state == 'closed' && steps.retrieve-transactionId-step.outputs.retrieved_transaction_id) }}
+      if: >-
+        ${{ steps.cmr_row.outcome == 'success'
+        && ((github.event.pull_request.state == 'open' && steps['create-close-cmr-step'].outputs.transaction_id)
+        || (github.event.pull_request.state == 'closed' && steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id)) }}
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       env:
-        RETRIEVED_TRANSACTION_ID: ${{ steps.retrieve-transactionId-step.outputs.retrieved_transaction_id }}
-        TRANSACTION_ID: ${{ steps.create-close-cmr-step.outputs.transaction_id }}
-        CHANGE_ID: ${{ steps.create-close-cmr-step.outputs.change_id }}
-        PLANNED_START_TIME: ${{ steps.create-close-cmr-step.outputs.planned_start_time }}
-        PLANNED_END_TIME: ${{ steps.create-close-cmr-step.outputs.planned_end_time }}
+        RETRIEVED_TRANSACTION_ID: ${{ steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id }}
+        TRANSACTION_ID: ${{ steps['create-close-cmr-step'].outputs.transaction_id }}
+        CHANGE_ID: ${{ steps['create-close-cmr-step'].outputs.change_id }}
+        PLANNED_START_TIME: ${{ steps['create-close-cmr-step'].outputs.planned_start_time }}
+        PLANNED_END_TIME: ${{ steps['create-close-cmr-step'].outputs.planned_end_time }}
       with:
         script: |
           const main = (await import('${{ github.workspace }}/.github/workflows/snow-cr-notification.js')).default;

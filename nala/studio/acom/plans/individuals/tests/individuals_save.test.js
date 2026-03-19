@@ -214,7 +214,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 }),
 
                 test.step('Validation-2: Verify badge saved', async () => {
-                    await expect(await editor.badge).toHaveValue(data.badge);
+                    await expect(await editor.badge).toHaveText(data.badge);
                     await expect(await clonedCard.locator(plans.cardBadge)).toHaveText(data.badge);
                 }),
 

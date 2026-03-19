@@ -287,6 +287,8 @@ async function main(params) {
         logger.info(`Starting translation project ${itemsToTranslate} for locales ${locales} and surface ${surface}`);
 
         const locPayload = {
+            includeNestedCFs: false,
+            syncNestedCFs: false,
             taskName: translationData.title,
             cfPaths: itemsToTranslate,
             targetLocales: locales,

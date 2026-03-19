@@ -137,7 +137,7 @@ async function main(params) {
         };
     }
 
-    function getVariations(projectCF) {
+    function getPznVariations(projectCF) {
         return getValues(projectCF, 'fragments')?.values?.filter((path) => path?.includes('/pzn/')) || [];
     }
 
@@ -160,7 +160,7 @@ async function main(params) {
         }
 
         // for each grouped variation, add the parent fragments in target locales to the sync list
-        const variations = getVariations(projectCF);
+        const variations = getPznVariations(projectCF);
         if (variations.length === 0) {
             return { items, success: true };
         }

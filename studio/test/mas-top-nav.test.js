@@ -406,7 +406,7 @@ describe('MasTopNav', () => {
             expect(localePicker.getAttribute('locale')).to.equal('en_US');
         });
 
-        it('should reflect region override in locale picker via Store.localeOrRegion()', async () => {
+        it('should reflect region override in locale picker when no variation is loaded', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.search.set((prev) => ({ ...prev, region: 'en_GB' }));
 
@@ -414,6 +414,25 @@ describe('MasTopNav', () => {
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
             expect(localePicker.getAttribute('locale')).to.equal('en_GB');
+        });
+
+        it('should show parent locale when viewing a variation fragment', async () => {
+            const variationFragment = { id: 'variation-id' };
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.search.set((prev) => ({ ...prev, region: 'en_IN' }));
+            Store.fragments.inEdit.value = { get: () => variationFragment };
+
+            const editorContext = Store.fragmentEditor.editorContext;
+            editorContext.isVariationByPath = true;
+            editorContext.localeDefaultFragment = { path: '/content/dam/mas/sandbox/en_GB/card' };
+
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const localePicker = el.querySelector('mas-locale-picker');
+            expect(localePicker.getAttribute('locale')).to.equal('en_GB');
+
+            editorContext.isVariationByPath = false;
+            editorContext.localeDefaultFragment = null;
         });
     });
 

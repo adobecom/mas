@@ -5,6 +5,7 @@ import { until } from 'lit/directives/until.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
+import { extractLocaleFromPath } from './utils.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
@@ -164,6 +165,16 @@ class MasTopNav extends LitElement {
 
     get isSettingsEditorPage() {
         return this.page.value === PAGE_NAMES.SETTINGS_EDITOR;
+    }
+
+    get topNavLocale() {
+        if (this.isFragmentEditorPage) {
+            const fragmentId = this.inEdit.get()?.get()?.id;
+            if (this.editorContext.isVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
+                return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
+            }
+        }
+        return Store.localeOrRegion();
     }
 
     get isLocalePickerDisabled() {
@@ -362,7 +373,7 @@ class MasTopNav extends LitElement {
                                   @locale-changed=${this.onLocaleChanged}
                                   ?disabled=${this.isLocalePickerDisabled}
                                   surface=${Store.surface()}
-                                  locale=${Store.localeOrRegion()}
+                                  locale=${this.topNavLocale}
                               ></mas-locale-picker>
                               <sp-switch
                                   class="landscape-switch"

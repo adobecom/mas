@@ -5,13 +5,21 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    COMPARE_CHART_MODEL_PATH,
+    ODIN_PREVIEW_ORIGIN,
+    PAGE_NAMES,
+    TAG_PROMOTION_PREFIX,
+} from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
+import './editors/compare-chart-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import { branch2Icon } from './icons.js';
@@ -19,6 +27,7 @@ import { branch2Icon } from './icons.js';
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
+    [COMPARE_CHART_MODEL_PATH]: 'compare-chart',
 };
 
 export default class MasFragmentEditor extends LitElement {
@@ -64,6 +73,14 @@ export default class MasFragmentEditor extends LitElement {
                 grid-template-columns: 1fr;
                 overflow: auto;
             }
+        }
+
+        #editor-content:has(compare-chart-editor) {
+            grid-template-columns: 1fr;
+        }
+
+        #editor-content:has(compare-chart-editor) #form-column {
+            padding-right: 0;
         }
 
         #form-column {
@@ -1513,6 +1530,16 @@ export default class MasFragmentEditor extends LitElement {
                         .localeDefaultFragment=${this.localeDefaultFragment}
                         .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
                     ></merch-card-collection-editor>
+                `;
+                break;
+            case COMPARE_CHART_MODEL_PATH:
+                editorContent = html`
+                    <compare-chart-editor
+                        .fragmentStore=${this.fragmentStore}
+                        .updateFragment=${this.updateFragment}
+                        .localeDefaultFragment=${this.localeDefaultFragment}
+                        .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                    ></compare-chart-editor>
                 `;
                 break;
         }

@@ -66,7 +66,9 @@ export default class MerchBadge extends LitElement {
             '--merch-badge-font-size',
             'var(--consonant-merch-card-body-xs-font-size)',
         );
-        this.textContent = '';
+        if (!this.querySelector('span[is="inline-price"]')) {
+            this.textContent = '';
+        }
 
         const card = this.closest('merch-card');
         const size = card?.getAttribute('size');
@@ -81,7 +83,7 @@ export default class MerchBadge extends LitElement {
 
     render() {
         return html`<div class="badge">
-            ${renderIcon(this.icon)}${this.text}
+            ${renderIcon(this.icon)}<slot>${this.text}</slot>
         </div>`;
     }
 

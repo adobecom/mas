@@ -623,6 +623,8 @@ describe('Translation project-start', () => {
 
             const requestBody = JSON.parse(locRequestCall.args[1].body);
             expect(requestBody).to.deep.equal({
+                includeNestedCFs: false,
+                syncNestedCFs: false,
                 targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
                 transcreation: true,
                 cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],

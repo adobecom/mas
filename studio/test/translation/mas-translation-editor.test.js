@@ -79,6 +79,7 @@ describe('MasTranslationEditor', () => {
         Store.translationProjects.selectedPlaceholders.value = [];
         Store.translationProjects.targetLocales.value = [];
         Store.translationProjects.showSelected.value = false;
+        Store.translationProjects.projectType.set('translation');
         Store.search.set({ path: SURFACES.ACOM.name });
     };
 
@@ -416,6 +417,26 @@ describe('MasTranslationEditor', () => {
             titleField.value = 'New Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
+            expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
+            expect(el.disabledActions.has(QUICK_ACTION.DISCARD)).to.be.false;
+        });
+    });
+
+    describe('project type input handling', () => {
+        it('should update project type when project type changes', async () => {
+            const mockFragment = new Fragment(createMockFragment());
+            const fragmentStore = new FragmentStore(mockFragment);
+            Store.translationProjects.inEdit.set(fragmentStore);
+            Store.translationProjects.projectType.set('translation');
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const projectTypeGroup = el.shadowRoot.querySelector('#projectType');
+            expect(projectTypeGroup).to.exist;
+            const rolloutRadio = projectTypeGroup.querySelector('sp-radio[value="rollout"]');
+            expect(rolloutRadio).to.exist;
+            rolloutRadio.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.projectType.value).to.equal('rollout');
             expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
             expect(el.disabledActions.has(QUICK_ACTION.DISCARD)).to.be.false;
         });

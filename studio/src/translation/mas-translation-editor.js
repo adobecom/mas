@@ -496,8 +496,8 @@ class MasTranslationEditor extends LitElement {
         target.dispatchEvent(closeEvent);
     };
 
-    #handleProjectTypeChange = ({ target }) => {
-        const projectType = target?.selected === 'rollout' ? 'rollout' : 'translation';
+    #handleProjectTypeChange = ({ currentTarget }) => {
+        const projectType = currentTarget?.selected === 'rollout' ? 'rollout' : 'translation';
         Store.translationProjects.projectType.set(projectType);
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
     };

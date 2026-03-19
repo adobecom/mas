@@ -194,4 +194,20 @@ export const features = [
         },
         tags: '@mas-docs @ccd-mini @commerce @smoke @regression @milo',
     },
+    {
+        tcid: '7',
+        name: '@MAS-CCD-mini-card-au-team',
+        path: DOCS_GALLERY_PATH.CCD_MINI.AU,
+        data: {
+            fragment: '52b30904-c8b1-44d2-ada4-cbbdf87b7603',
+            title: 'CCD Apps Teams',
+            regularPrice: 'A$157.99/mo',
+            annualPrice: 'A$1,895.88/yr',
+            unitText: 'per license',
+            promotionCode: undefined,
+            planTypeText: 'Annual, billed monthly',
+            recurrenceText: '/mo',
+        },
+        tags: '@mas-docs @ccd-mini @commerce @smoke @regression @milo',
+    },
 ];

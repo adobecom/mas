@@ -23,7 +23,6 @@ test.describe('ACOM MAS cards feature test suite', () => {
     });
 
     test.afterEach(async ({}, testInfo) => {
-        // eslint-disable-line no-empty-pattern
         workerSetup.attachWorkerErrorsToFailure(testInfo);
     });
 
@@ -51,6 +50,8 @@ test.describe('ACOM MAS cards feature test suite', () => {
             await expect(description).toBeVisible();
             await expect(description).toContainText(data.description);
             await expect(description).toContainText(data.description);
+            await expect(await acomPage.getCardPlanType(data.id)).toBeVisible();
+            await expect(await acomPage.getCardPlanType(data.id)).toContainText(data.planTypeText);
             await expect(await acomPage.getSeeAllPlansLink(data.id)).toHaveText(data.seeAllPlansText);
             // await expect(await acomPage.getCardStockCheckbox(data.id)).toContainText(data.stockCheckboxLabel);
             await expect(await acomPage.getCardPrice(data.id)).toBeVisible();

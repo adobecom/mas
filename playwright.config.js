@@ -12,8 +12,6 @@ const config = {
     testDir: './nala',
     outputDir: './test-results',
     globalSetup: './nala/utils/global.setup.js',
-    /* On GitHub Actions, teardown runs as separate workflow step; otherwise runs automatically */
-    globalTeardown: process.env.GITHUB_ACTIONS === 'true' ? undefined : './nala/utils/global.teardown.js',
     /* Maximum time one test can run for. */
     timeout: 45 * 1000,
     expect: {
@@ -48,14 +46,25 @@ const config = {
 
     /* Configure projects for major browsers */
     projects: [
-        // Setup project for authentication (only runs for studio tests)
+        // Setup project for authentication (only runs for studio tests). Teardown runs after all projects that depend on setup.
         {
             name: 'setup',
             use: {
                 ...devices['Desktop Chrome'],
                 userAgent: USER_AGENT_DESKTOP,
             },
-            testMatch: /.*\.setup\.cjs/,
+            testMatch: /libs\/auth\.setup\.cjs/,
+            teardown: 'nala-teardown',
+        },
+
+        // Teardown project: runs after all projects that depend on setup (same rule as auth).
+        {
+            name: 'nala-teardown',
+            use: {
+                ...devices['Desktop Chrome'],
+                userAgent: USER_AGENT_DESKTOP,
+            },
+            testMatch: /libs\/teardown\.setup\.cjs/,
         },
 
         // Project for @mas-studio tests (requires authentication)

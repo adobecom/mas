@@ -1126,7 +1126,9 @@ class MerchCardEditor extends LitElement {
                     ${this.renderFieldStatusIndicator('shortDescription')}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="callout">
-                    <sp-field-label for="callout"> Callout text </sp-field-label>
+                    <sp-field-label for="callout">
+                        ${this.currentVariantMapping?.callout?.editorLabel ?? 'Callout text'}
+                    </sp-field-label>
                     <rte-field
                         id="callout"
                         link

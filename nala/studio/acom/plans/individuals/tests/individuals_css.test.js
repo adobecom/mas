@@ -1,4 +1,4 @@
-import { test, expect, studio, individuals, webUtil, miloLibs, setTestPage } from '../../../../../libs/mas-test.js';
+import { test, expect, studio, plans, webUtil, miloLibs, setTestPage } from '../../../../../libs/mas-test.js';
 import ACOMPlansIndividualsSpec from '../specs/individuals_css.spec.js';
 
 const { features } = ACOMPlansIndividualsSpec;
@@ -38,27 +38,27 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
             const results = await Promise.allSettled([
                 // Card container CSS
                 test.step('Validation-1: Validate card container CSS', async () => {
-                    expect(await webUtil.verifyCSS(individualsCard, individuals.cssProp.card)).toBeTruthy();
+                    expect(await webUtil.verifyCSS(individualsCard, plans.individualsCSSProp.card)).toBeTruthy();
                 }),
 
                 // Card icon CSS
                 test.step('Validation-2: Validate card icon CSS', async () => {
                     expect(
-                        await webUtil.verifyCSS(individualsCard.locator(individuals.cardIcon), individuals.cssProp.icon),
+                        await webUtil.verifyCSS(individualsCard.locator(plans.cardIcon), plans.individualsCSSProp.icon),
                     ).toBeTruthy();
                 }),
 
                 // Card title CSS
                 test.step('Validation-3: Validate card title CSS', async () => {
                     expect(
-                        await webUtil.verifyCSS(individualsCard.locator(individuals.cardTitle), individuals.cssProp.title),
+                        await webUtil.verifyCSS(individualsCard.locator(plans.cardTitle), plans.individualsCSSProp.title),
                     ).toBeTruthy();
                 }),
 
                 // Card badge CSS
                 test.step('Validation-4: Validate card badge CSS', async () => {
                     expect(
-                        await webUtil.verifyCSS(individualsCard.locator(individuals.cardBadge), individuals.cssProp.badge),
+                        await webUtil.verifyCSS(individualsCard.locator(plans.cardBadge), plans.individualsCSSProp.badge),
                     ).toBeTruthy();
                 }),
 
@@ -66,8 +66,8 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 test.step('Validation-5: Validate card description CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(
-                            individualsCard.locator(individuals.cardDescription).first(),
-                            individuals.cssProp.description,
+                            individualsCard.locator(plans.cardDescription).first(),
+                            plans.individualsCSSProp.description,
                         ),
                     ).toBeTruthy();
                 }),
@@ -76,8 +76,8 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 test.step('Validation-6: Validate card legal link CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(
-                            individualsCard.locator(individuals.cardDescription).locator(individuals.cardLegalLink),
-                            individuals.cssProp.legalLink,
+                            individualsCard.locator(plans.cardDescription).locator(plans.cardLegalLink),
+                            plans.individualsCSSProp.legalLink,
                         ),
                     ).toBeTruthy();
                 }),
@@ -85,7 +85,10 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 // Card price CSS
                 test.step('Validation-7: Validate card price CSS', async () => {
                     expect(
-                        await webUtil.verifyCSS(individualsCard.locator(individuals.cardPrice), individuals.cssProp.price),
+                        await webUtil.verifyCSS(
+                            individualsCard.locator(plans.cardPriceAlternative),
+                            plans.individualsCSSProp.price,
+                        ),
                     ).toBeTruthy();
                 }),
 
@@ -93,8 +96,8 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 test.step('Validation-8: Validate card strikethrough price CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(
-                            individualsCard.locator(individuals.cardPriceStrikethrough),
-                            individuals.cssProp.strikethroughPrice,
+                            individualsCard.locator(plans.cardPriceStrikethrough),
+                            plans.individualsCSSProp.strikethroughPrice,
                         ),
                     ).toBeTruthy();
                 }),
@@ -103,8 +106,8 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 test.step('Validation-9: Validate card promo text CSS', async () => {
                     expect(
                         await webUtil.verifyCSS(
-                            individualsCard.locator(individuals.cardPromoText),
-                            individuals.cssProp.promoText,
+                            individualsCard.locator(plans.cardPromoText),
+                            plans.individualsCSSProp.promoText,
                         ),
                     ).toBeTruthy();
                 }),
@@ -112,7 +115,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 // Card callout CSS
                 test.step('Validation-10: Validate card callout CSS', async () => {
                     expect(
-                        await webUtil.verifyCSS(individualsCard.locator(individuals.cardCallout), individuals.cssProp.callout),
+                        await webUtil.verifyCSS(individualsCard.locator(plans.cardCallout), plans.individualsCSSProp.callout),
                     ).toBeTruthy();
                 }),
 
@@ -120,14 +123,14 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 // test.step.skip('Validate card stock checkbox CSS', async () => {
                 //     expect(
                 //         await webUtil.verifyCSS(
-                //             individualsCard.locator(individuals.cardStockCheckbox),
-                //             individuals.cssProp.stockCheckbox.text,
+                //             individualsCard.locator(plans.cardStockCheckbox),
+                //             plans.individualsCSSProp.stockCheckbox.text,
                 //         ),
                 //     ).toBeTruthy();
                 //     expect(
                 //         await webUtil.verifyCSS(
-                //             individualsCard.locator(individuals.cardStockCheckboxIcon),
-                //             individuals.cssProp.stockCheckbox.checkbox,
+                //             individualsCard.locator(plans.cardStockCheckboxIcon),
+                //             plans.individualsCSSProp.stockCheckbox.checkbox,
                 //         ),
                 //     ).toBeTruthy();
                 // }),
@@ -135,8 +138,8 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
                 // test.step.skip('Validate card secure transaction CSS', async () => {
                 //     expect(
                 //         await webUtil.verifyCSS(
-                //             individualsCard.locator(individuals.cardSecureTransaction),
-                //             individuals.cssProp.secureTransaction,
+                //             individualsCard.locator(plans.cardSecureTransaction),
+                //             plans.individualsCSSProp.secureTransaction,
                 //         ),
                 //     ).toBeTruthy();
                 // }),

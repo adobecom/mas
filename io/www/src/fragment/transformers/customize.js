@@ -96,7 +96,7 @@ function findPersonalizationVariation(variations, customizeContext) {
     const { references, regionLocale } = customizeContext;
     const personalizationVariations = extractVariationBasedOnPath(variations, references, PZN_FOLDER);
     if (personalizationVariations.length === 0) {
-        log(`No personalization variation found for region locale ${regionLocale}`, customizeContext);
+        logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
         return null;
     }
     logDebug(
@@ -205,12 +205,12 @@ async function customize(context) {
     const regionLocale = country ? `${defaultLocale.split('_')[0]}_${country.toUpperCase()}` : locale;
     const { references, referencesTree } = body;
     const customizeContext = {
+        ...context,
         isRegionLocale,
         promos,
         regionLocale,
         prefix: `${surface}/${regionLocale}`,
         references,
-        ...context,
     };
     const {
         fragment: customizedFragment,

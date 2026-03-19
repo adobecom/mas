@@ -97,7 +97,7 @@ async function previewFragment(id, options) {
             context = await transformer.process(context);
         }
     } catch (error) {
-        logError(error.message, { ...context, error }, context);
+        logError(error.message, context);
         context = { ...context, status: 500, message: error.message };
         return context;
     }

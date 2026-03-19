@@ -947,6 +947,7 @@ export class MasRepository extends LitElement {
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
+            await initFragmentCache();
             fragmentCache.remove(savedFragment.id);
             fragmentCache.add(new Fragment(savedFragment));
             if (parentFragment) {

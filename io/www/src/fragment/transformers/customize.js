@@ -2,6 +2,7 @@ import { odinReferences, odinUrl } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 import { getDefaultLocaleCode } from '../locales.js';
+import { CF_REFERENCE_FIELDS } from '../utils/odinSchemaTransform.js';
 
 const PZN_FOLDER = '/pzn/';
 const PZN_FIELD = 'pznTags';
@@ -127,7 +128,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     //now we look into referenced fragments to customize them as well
     for (const reference of referencesTree) {
         //customize each card/collection
-        if (reference.fieldName === 'cards' || reference.fieldName === 'collections') {
+        if (CF_REFERENCE_FIELDS.includes(reference.fieldName) && reference.fieldName !== 'entries') {
             const child = customizeContext.references[reference.identifier]?.value;
             if (child) {
                 //start customization of the child fragment

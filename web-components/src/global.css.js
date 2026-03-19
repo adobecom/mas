@@ -810,12 +810,22 @@ merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
 }
 
+@media (max-width: 600px) {
+    merch-card [slot='callout-content'] .icon-button.tooltip-left::before {
+        left: -30px;
+    }
+
+    merch-card [slot='callout-content'] .icon-button.tooltip-right::before {
+        left: unset;
+        right: -20px;
+    }    
+}
+
 @media screen and ${TABLET_DOWN} {
     merch-card [slot='callout-content'] .icon-button::before {
         top: unset;
         left: unset;
         margin-bottom: 34px;
-        max-width: 120px;
     }
 
     merch-card [slot='callout-content'] .icon-button::after {

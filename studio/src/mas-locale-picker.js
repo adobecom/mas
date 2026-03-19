@@ -273,10 +273,12 @@ export class MasLocalePicker extends LitElement {
         }
         this.searchSubscriptions = Store.filters.subscribe(() => {
             if (this.selection === 'checkbox') return;
+            if (this.disabled) return;
             this.locale = Store.localeOrRegion();
         });
         this.regionSubscription = Store.search.subscribe(() => {
             if (this.selection === 'checkbox') return;
+            if (this.disabled) return;
             this.locale = Store.localeOrRegion();
         });
     }

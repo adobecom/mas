@@ -688,6 +688,53 @@ describe('MasFragmentEditor', () => {
                 Store.fragmentEditor.fragmentId.value = null;
             }
         });
+
+        it('when current locale is fil_PH, fetches en_US path from Odin and getTranslations(enUsFragmentId) for languageCopies then adds fil_PH', async () => {
+            const el = document.createElement('mas-fragment-editor');
+            const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
+            const filPhPath = '/content/dam/mas/acom/fil_PH/my-fragment';
+            const filPhFragmentId = 'fil-ph-frag-id';
+            const enUsFragmentId = 'en-us-frag-id';
+            try {
+                Store.fragmentEditor.translatedLocales.value = null;
+                Store.fragmentEditor.fragmentId.value = filPhFragmentId;
+                const getTranslations = sandbox.stub().resolves({
+                    languageCopies: [
+                        { path: '/content/dam/mas/acom/en_US/my-fragment', id: enUsFragmentId },
+                        { path: '/content/dam/mas/acom/fr_FR/my-fragment', id: 'fr-frag-id' },
+                    ],
+                });
+                const mockRepo = {
+                    aem: { sites: { cf: { fragments: { getTranslations } } } },
+                };
+                sandbox.stub(el, 'repository').get(() => mockRepo);
+                el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
+                const fetchStub = sandbox.stub(window, 'fetch').resolves({
+                    ok: true,
+                    json: () => Promise.resolve({ 'jcr:uuid': enUsFragmentId }),
+                });
+
+                await el.updateTranslatedLocalesStore(false, filPhPath);
+
+                const locales = Store.fragmentEditor.translatedLocales.get();
+                expect(locales).to.have.lengthOf(3);
+                expect(getTranslations.calledOnceWith(enUsFragmentId)).to.be.true;
+                expect(fetchStub.firstCall.args[0]).to.equal(
+                    `${ODIN_PREVIEW_ORIGIN}/content/dam/mas/acom/en_US/my-fragment.json`,
+                );
+                const enUs = locales.find((l) => l.locale === 'en_US');
+                expect(enUs).to.deep.include({
+                    locale: 'en_US',
+                    id: enUsFragmentId,
+                    path: '/content/dam/mas/acom/en_US/my-fragment',
+                });
+                const filPh = locales.find((l) => l.locale === 'fil_PH');
+                expect(filPh).to.deep.include({ locale: 'fil_PH', id: filPhFragmentId, path: filPhPath });
+            } finally {
+                Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
+                Store.fragmentEditor.fragmentId.value = null;
+            }
+        });
     });
 
     describe('discard changes', () => {

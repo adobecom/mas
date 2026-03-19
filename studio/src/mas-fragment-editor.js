@@ -887,10 +887,35 @@ export default class MasFragmentEditor extends LitElement {
                 return;
             }
 
-            const requestPromise = this.repository.aem.sites.cf.fragments.getTranslations(fragmentId);
-            this.#translatedLocalesRequest = { fragmentId, requestPromise };
+            const currentLocale = fragmentPath ? extractLocaleFromPath(fragmentPath) : null;
+            const filPhLocale = 'fil_PH';
+            const isFilPh = currentLocale === filPhLocale;
 
-            const { languageCopies = [] } = await requestPromise;
+            let languageCopies = [];
+            if (isFilPh && fragmentPath) {
+                const enUsPath = replaceLocaleInPath(fragmentPath, 'en_US');
+                if (enUsPath) {
+                    const enUsUrl = `${ODIN_PREVIEW_ORIGIN}${enUsPath}.json`;
+                    const res = await fetch(enUsUrl);
+                    if (res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        const enUsFragmentId = data['jcr:uuid'];
+                        if (enUsFragmentId) {
+                            const requestPromise = this.repository.aem.sites.cf.fragments.getTranslations(enUsFragmentId);
+                            this.#translatedLocalesRequest = { fragmentId, requestPromise };
+                            const result = await requestPromise;
+                            languageCopies = result.languageCopies ?? [];
+                        }
+                    }
+                }
+            }
+            if (languageCopies.length === 0) {
+                const requestPromise = this.repository.aem.sites.cf.fragments.getTranslations(fragmentId);
+                this.#translatedLocalesRequest = { fragmentId, requestPromise };
+                const result = await requestPromise;
+                languageCopies = result.languageCopies ?? [];
+            }
+
             let locales = languageCopies
                 .map((copy) => ({
                     locale: extractLocaleFromPath(copy.path),
@@ -899,20 +924,26 @@ export default class MasFragmentEditor extends LitElement {
                 }))
                 .filter((item) => item.locale);
 
-            // AEM getTranslations omits 3-letter locales (e.g. fil_PH). Check Odin preview by path.
-            const hasFilPh = locales.some((item) => item.locale === 'fil_PH');
-            if (fragmentPath && !hasFilPh) {
-                const filPhPath = replaceLocaleInPath(fragmentPath, 'fil_PH');
-                if (filPhPath) {
-                    try {
-                        const filPhUrl = `${ODIN_PREVIEW_ORIGIN}${filPhPath}.json`;
-                        const res = await fetch(filPhUrl);
-                        if (res.ok) {
-                            const data = await res.json().catch(() => ({}));
-                            locales = [...locales, { locale: 'fil_PH', id: data['jcr:uuid'] ?? null, path: filPhPath }];
+            if (isFilPh && fragmentPath) {
+                const existing = locales.find((item) => item.locale === filPhLocale);
+                if (!existing) {
+                    locales = [...locales, { locale: filPhLocale, id: fragmentId, path: fragmentPath }];
+                }
+            } else {
+                const hasFilPh = locales.some((item) => item.locale === filPhLocale);
+                if (fragmentPath && !hasFilPh) {
+                    const filPhPath = replaceLocaleInPath(fragmentPath, filPhLocale);
+                    if (filPhPath) {
+                        try {
+                            const filPhUrl = `${ODIN_PREVIEW_ORIGIN}${filPhPath}.json`;
+                            const res = await fetch(filPhUrl);
+                            if (res.ok) {
+                                const data = await res.json().catch(() => ({}));
+                                locales = [...locales, { locale: filPhLocale, id: data['jcr:uuid'] ?? null, path: filPhPath }];
+                            }
+                        } catch {
+                            // No fil_PH for this fragment.
                         }
-                    } catch {
-                        // No fil_PH for this fragment.
                     }
                 }
             }

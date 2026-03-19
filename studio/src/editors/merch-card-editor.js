@@ -275,11 +275,20 @@ class MerchCardEditor extends LitElement {
         return fragment;
     }
 
+    get globalSettingsDefaults() {
+        if (!this.#cachedGlobalDefaults) {
+            this.#cachedGlobalDefaults = getGlobalSettingsDefaults(
+                this.getSettingsContextFragment(),
+                Store.settings.rows.get(),
+            );
+        }
+        return this.#cachedGlobalDefaults;
+    }
+
     getEffectiveSettingValue(fieldName) {
-        const globalDefaults = getGlobalSettingsDefaults(this.getSettingsContextFragment(), Store.settings.rows.get());
         const value = this.getEffectiveFieldValue(fieldName, 0);
         if (value === undefined || value === null || value === '') {
-            return globalDefaults[fieldName] ?? '';
+            return this.globalSettingsDefaults[fieldName] ?? '';
         }
         return value;
     }
@@ -390,7 +399,10 @@ class MerchCardEditor extends LitElement {
         this.lastMnemonicState = null;
     }
 
+    #cachedGlobalDefaults = null;
+
     willUpdate(changedProperties) {
+        this.#cachedGlobalDefaults = null;
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
             this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows, Store.search]);
@@ -398,12 +410,21 @@ class MerchCardEditor extends LitElement {
             this.#updateAvailableSizes();
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
+            this.#ensureSettingsLoaded();
         }
         if (changedProperties.has('localeDefaultFragment')) {
             this.fieldsReady = false;
             this.#updateCurrentVariantMapping();
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
+        }
+    }
+
+    #ensureSettingsLoaded() {
+        if (this.effectiveIsVariation) return;
+        const surface = Store.surface();
+        if (surface) {
+            Store.settings.ensureSurfaceLoaded(surface);
         }
     }
 
@@ -546,12 +567,6 @@ class MerchCardEditor extends LitElement {
 
     async updated(changedProperties) {
         super.updated(changedProperties);
-        if (!this.effectiveIsVariation) {
-            const surface = Store.surface();
-            if (surface) {
-                Store.settings.ensureSurfaceLoaded(surface);
-            }
-        }
         if (!this.fieldsReady && this.fragment) {
             await this.updateComplete;
             await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));

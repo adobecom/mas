@@ -288,7 +288,9 @@ class MasSettings extends LitElement {
     #loadSettings() {
         const surface = this.surface;
         if (surface === this.loadedSurface) return;
-
+        if (!Store.settings.aem) {
+            Store.settings.initAem(this.bucket, this.baseUrl);
+        }
         this.loadedSurface = surface;
         Store.settings.ensureSurfaceLoaded(surface).then(() => {
             if (this.surface !== surface) {

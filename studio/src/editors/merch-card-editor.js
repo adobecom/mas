@@ -23,6 +23,7 @@ import { toAttribute } from '../aem/aem-tag-picker-field.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
+const QUANTITY_EMPTY = '</merch-quantity-select>';
 
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
@@ -71,6 +72,7 @@ class MerchCardEditor extends LitElement {
         this.fieldsReady = false;
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
+        this.renderQuantityComponentOverrideIndicator = this.renderQuantityComponentOverrideIndicator.bind(this);
     }
 
     createRenderRoot() {
@@ -403,7 +405,9 @@ class MerchCardEditor extends LitElement {
     }
 
     get fragmentQuantityValue() {
-        return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] || '';
+        const value = this.getEffectiveFieldValue(QUANTITY_MODEL, 0) || '';
+        if (value === QUANTITY_EMPTY) return '';
+        return value;
     }
 
     get quantitySelectorDisplayed() {
@@ -424,10 +428,11 @@ class MerchCardEditor extends LitElement {
         if (e.target.checked) {
             html = this.quantityValue || createQuantitySelectValue({ title: '', min: '1', step: '1' });
         } else {
-            const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
-            this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
+            this.quantitySelectorValues = this.fragmentQuantityValue;
+            if (this.effectiveIsVariation) html = QUANTITY_EMPTY;
         }
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
+        if (!e.target.checked) this.requestUpdate();
     };
 
     showQuantityFields(show) {
@@ -959,18 +964,15 @@ class MerchCardEditor extends LitElement {
                         ?disabled=${this.disabled}
                         >Show quantity selector</sp-checkbox
                     >
-                    ${this.renderFieldStatusIndicator('quantitySelect')}
+                    ${this.renderQuantityComponentOverrideIndicator()}
                     <div id="quantitySelector" style="display: ${this.quantitySelectorDisplayed ? 'block' : 'none'};">
                         <quantity-select-field
-                            data-field-state="${this.getFieldState('quantitySelect')}"
                             .value=${this.quantityValue}
                             ?disabled=${this.disabled}
                             @change=${this.#handleQuantityFieldChange}
+                            .renderQuantityComponentOverrideIndicator=${this.renderQuantityComponentOverrideIndicator}
                         ></quantity-select-field>
                         <div class="quantity-component-restores">
-                            ${this.renderQuantityComponentOverrideIndicator('title')}
-                            ${this.renderQuantityComponentOverrideIndicator('min')}
-                            ${this.renderQuantityComponentOverrideIndicator('step')}
                         </div>
                     </div>
                 </sp-field-group>
@@ -1708,18 +1710,31 @@ class MerchCardEditor extends LitElement {
 
     renderQuantityComponentOverrideIndicator(component) {
         if (!this.effectiveIsVariation) return nothing;
-        if (this.getQuantityComponentState(component) !== 'overridden') return nothing;
+        if (component && this.getQuantityComponentState(component) !== 'overridden') return nothing;
+        if (!component) {
+            const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
+            const ownHtml = this.fragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
+            if (!ownHtml) return nothing;
+            if (ownHtml.startsWith('<merch-quantity-select ') && parentHtml.startsWith('<merch-quantity-select ')) return nothing;
+        }
+
         return this.#renderOverrideIndicatorLink(() => this.resetQuantityComponentToParent(component));
     }
 
     async resetQuantityComponentToParent(component) {
         const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
+        if (!component && !parentHtml) {
+            this.fragmentStore.updateField(QUANTITY_MODEL, [parentHtml]);
+            this.quantitySelectorValues = parentHtml;
+            showToast('Field restored to parent value', 'positive');
+            return;
+        }
         const parentValues = parseQuantitySelectValue(parentHtml);
         const currentValues = parseQuantitySelectValue(this.quantityValue);
         const html = createQuantitySelectValue({
-            title: component === 'title' ? parentValues.title : currentValues.title,
-            min: component === 'min' ? parentValues.min : currentValues.min,
-            step: component === 'step' ? parentValues.step : currentValues.step,
+            title: !component || component === 'title' ? parentValues.title : currentValues.title,
+            min: !component || component === 'min' ? parentValues.min : currentValues.min,
+            step: !component || component === 'step' ? parentValues.step : currentValues.step,
         });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;

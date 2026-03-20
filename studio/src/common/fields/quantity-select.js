@@ -42,6 +42,7 @@ export class QuantitySelectField extends LitElement {
         step: { type: String, state: true },
         layout: { type: String, reflect: true },
         disabled: { type: Boolean, reflect: true },
+        renderQuantityComponentOverrideIndicator: { type: Function, attribute: false },
     };
 
     static styles = css`
@@ -63,6 +64,28 @@ export class QuantitySelectField extends LitElement {
         sp-field-group {
             width: 100%;
         }
+
+        .field-status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--spectrum-blue-700);
+        }        
+
+        .field-status-indicator a {
+            color: var(--spectrum-blue-700);
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .field-status-indicator a:hover {
+            text-decoration: underline;
+        }        
     `;
 
     constructor() {
@@ -73,6 +96,7 @@ export class QuantitySelectField extends LitElement {
         this.step = '1';
         this.layout = 'grid';
         this.disabled = false;
+        this.renderQuantityComponentOverrideIndicator = null;
     }
 
     willUpdate(changedProperties) {
@@ -130,6 +154,7 @@ export class QuantitySelectField extends LitElement {
                         @change=${this.#suppressNativeChange}
                         @input=${this.#handleTitleChange}
                     ></sp-textfield>
+                    ${this.renderQuantityComponentOverrideIndicator('title')}
                 </sp-field-group>
                 <sp-field-group>
                     <sp-field-label>Start quantity</sp-field-label>
@@ -142,6 +167,7 @@ export class QuantitySelectField extends LitElement {
                         @change=${this.#suppressNativeChange}
                         @input=${this.#handleMinChange}
                     ></sp-textfield>
+                    ${this.renderQuantityComponentOverrideIndicator('min')}
                 </sp-field-group>
             </div>
             <sp-field-group>
@@ -155,6 +181,7 @@ export class QuantitySelectField extends LitElement {
                     @change=${this.#suppressNativeChange}
                     @input=${this.#handleStepChange}
                 ></sp-textfield>
+                ${this.renderQuantityComponentOverrideIndicator('step')}
             </sp-field-group>
         `;
     }

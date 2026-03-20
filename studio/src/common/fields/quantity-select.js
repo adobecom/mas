@@ -72,7 +72,7 @@ export class QuantitySelectField extends LitElement {
             margin-top: 6px;
             font-size: 12px;
             color: var(--spectrum-blue-700);
-        }        
+        }
 
         .field-status-indicator a {
             color: var(--spectrum-blue-700);
@@ -85,7 +85,7 @@ export class QuantitySelectField extends LitElement {
 
         .field-status-indicator a:hover {
             text-decoration: underline;
-        }        
+        }
     `;
 
     constructor() {

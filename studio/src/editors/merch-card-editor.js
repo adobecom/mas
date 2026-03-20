@@ -658,10 +658,6 @@ class MerchCardEditor extends LitElement {
                     width: 100%;
                 }
 
-                .quantity-component-restores {
-                    margin-top: 8px;
-                }
-
                 sp-field-group sp-textfield {
                     width: 100%;
                 }
@@ -972,8 +968,6 @@ class MerchCardEditor extends LitElement {
                             @change=${this.#handleQuantityFieldChange}
                             .renderQuantityComponentOverrideIndicator=${this.renderQuantityComponentOverrideIndicator}
                         ></quantity-select-field>
-                        <div class="quantity-component-restores">
-                        </div>
                     </div>
                 </sp-field-group>
                 <div class="two-column-grid">
@@ -1715,7 +1709,8 @@ class MerchCardEditor extends LitElement {
             const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
             const ownHtml = this.fragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
             if (!ownHtml) return nothing;
-            if (ownHtml.startsWith('<merch-quantity-select ') && parentHtml.startsWith('<merch-quantity-select ')) return nothing;
+            if (ownHtml.startsWith('<merch-quantity-select ') && parentHtml.startsWith('<merch-quantity-select '))
+                return nothing;
         }
 
         return this.#renderOverrideIndicatorLink(() => this.resetQuantityComponentToParent(component));

@@ -19,6 +19,7 @@ export const CHECKOUT_CTA_TEXTS = {
     'seven-day-trial': 'Start 7-day free trial',
     'fourteen-day-trial': 'Start 14-day free trial',
     'thirty-day-trial': 'Start 30-day free trial',
+    'six-month-free': 'Start 6-month free trial',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
 export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
@@ -45,6 +46,7 @@ export const ANALYTICS_LINK_IDS = [
     'seven-day-trial',
     'fourteen-day-trial',
     'thirty-day-trial',
+    'six-month-free',
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {

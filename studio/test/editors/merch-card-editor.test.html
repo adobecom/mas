@@ -648,6 +648,61 @@
                         expect(relatedVariations).to.not.exist;
                     });
 
+                    it('adds quantity to variation and removes it via override indicator', async () => {
+                        await setupTestEnvironment();
+
+                        const qsDiv = editor.querySelector('sp-field-group#quantitySelect div#quantitySelector');
+                        expect(qsDiv.style.display).to.equal('none');
+
+                        const qsCheckboxEl = editor.querySelector('sp-field-group#quantitySelect sp-checkbox');
+                        expect(qsCheckboxEl.closest('sp-field-group').querySelector('.field-status-indicator a')).to.not.exist;
+                        qsCheckboxEl.checked = true;
+                        qsCheckboxEl.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                        expect(qsDiv.style.display).to.equal('block');
+
+                        const qsTitleEl = qsDiv.querySelector('quantity-select-field').shadowRoot.querySelector('sp-textfield#quantity-selector-title');
+                        const qsStartEl = qsDiv.querySelector('quantity-select-field').shadowRoot.querySelector('sp-textfield#quantity-selector-start');
+                        const qsStepEl = qsDiv.querySelector('quantity-select-field').shadowRoot.querySelector('sp-textfield#quantity-selector-step');
+
+                        qsTitleEl.value = 'QS';
+                        qsTitleEl.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+                        qsStartEl.value = '3';
+                        qsStartEl.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+                        qsStepEl.value = '2';
+                        qsStepEl.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+
+                        let titleOverrideEl = qsTitleEl.closest('sp-field-group').querySelector('.field-status-indicator a');
+                        expect(titleOverrideEl).to.exist;
+                        let startOverrideEl = qsStartEl.closest('sp-field-group').querySelector('.field-status-indicator a');
+                        expect(startOverrideEl).to.exist;
+                        let stepOverrideEl = qsStepEl.closest('sp-field-group').querySelector('.field-status-indicator a');
+                        expect(stepOverrideEl).to.exist;
+                        let qsOverrideEl = qsCheckboxEl.closest('sp-field-group').querySelector('.field-status-indicator a');
+                        expect(qsOverrideEl).to.exist;
+
+                        titleOverrideEl.click();
+                        startOverrideEl.click();
+                        stepOverrideEl.click();
+
+                        await editor.updateComplete;
+
+                        titleOverrideEl = qsTitleEl.closest('sp-field-group').querySelector('.field-status-indicator a');
+                        expect(titleOverrideEl).to.not.exist;
+                        startOverrideEl = qsStartEl.closest('sp-field-group').querySelector('.field-status-indicator a');
+                        expect(startOverrideEl).to.not.exist;
+                        stepOverrideEl = qsStepEl.closest('sp-field-group').querySelector('.field-status-indicator a');
+                        expect(stepOverrideEl).to.not.exist;
+
+                        qsOverrideEl.click();
+                        await editor.updateComplete;
+
+                        qsOverrideEl = qsCheckboxEl.closest('sp-field-group').querySelector('.field-status-indicator a');
+                        expect(qsOverrideEl).to.not.exist;
+                        expect(qsDiv.style.display).to.equal('none');
+                    });                    
+
                     describe('getWhatsIncludedProps', () => {
                         it('extracts icon, alt, and description from a merch-icon element', async () => {
                             await setupTestEnvironment({}, 'gwip-merch-icon');

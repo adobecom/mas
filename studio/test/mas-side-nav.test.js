@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { render } from 'lit';
 import Store from '../src/store.js';
 import Events from '../src/events.js';
-import { CARD_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
 import '../src/mas-side-nav.js';
 
 function mockFragment(fields = [], overrides = {}) {
@@ -495,6 +495,16 @@ describe('MasSideNav – Copy Field', () => {
     });
 
     describe('copyFieldButton', () => {
+        it('should not render copy field for compare chart editor', () => {
+            const fragment = mockFragment([], { model: { path: COLLECTION_MODEL_PATH } });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            expect(container.textContent.trim()).to.equal('');
+        });
+
         it('should disable the trigger while variation data is loading', () => {
             el.variationDataLoading = true;
             const container = document.createElement('div');
@@ -701,6 +711,22 @@ describe('MasSideNav – Copy Field', () => {
             );
             expect(overriddenSection).to.not.exist;
             expect(container.querySelectorAll('.field-entry-overridden').length).to.equal(0);
+        });
+    });
+
+    describe('editNavigation', () => {
+        it('should hide compare chart variation, duplicate, and copy field actions', () => {
+            const fragment = mockFragment([], { model: { path: COLLECTION_MODEL_PATH } });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            sandbox.stub(Store.fragmentEditor.loading, 'get').returns(false);
+            sandbox.stub(Store.editor, 'hasChanges').value(false);
+
+            const container = document.createElement('div');
+            render(el.editNavigation, container);
+
+            expect(container.querySelector('mas-side-nav-item[label="Create Variation"]')).to.not.exist;
+            expect(container.querySelector('mas-side-nav-item[label="Duplicate"]')).to.not.exist;
+            expect(container.querySelector('mas-side-nav-item[label="Copy Field"]')).to.not.exist;
         });
     });
 

@@ -1,0 +1,14 @@
+{
+    "path": "/content/dam/mas/tables/fragment-table-invalid",
+    "name": "fragment-table-invalid",
+    "title": "Invalid Table",
+    "id": "fragment-table-invalid",
+    "description": "",
+    "model": {
+        "id": "table"
+    },
+    "fields": {
+        "blockName": "Table",
+        "selectedVariantNames": ["highlight"]
+    }
+}

@@ -1,4 +1,4 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
 import { isPowerUser } from './groups.js';
@@ -223,27 +223,8 @@ export class Router extends EventTarget {
                 Store.search.set((prev) => ({ ...prev, region: locale }));
             }
 
-            // Check if this is a collection to use editor-panel instead
-            const fragmentList = Store.fragments.list.data.get();
-            const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);
-
-            if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
-                // Use editor-panel for collections
-                const editorPanel = document.querySelector('editor-panel');
-                if (editorPanel) {
-                    if (Store.editor.hasChanges) {
-                        const confirmed = await editorPanel.promptDiscardChanges();
-                        if (!confirmed) return;
-                    }
-                    await editorPanel.editFragment(fragmentStore);
-                    Store.viewMode.set('editing');
-                    return;
-                }
-            }
-
-            // Default: use full-page fragment editor for regular cards
             if (Store.editor.hasChanges) {
-                const fragmentEditor = document.querySelector('mas-fragment-editor');
+                const fragmentEditor = document.querySelector('mas-fragment-editor') || document.querySelector('editor-panel');
                 const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
                 if (!confirmed) return;
             }

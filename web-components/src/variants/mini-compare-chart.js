@@ -26,20 +26,20 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
     secureLabel: true,
     planType: true,
     badgeIcon: true,
-    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
+    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300' },
     allowedBadgeColors: [
-        'spectrum-yellow-300-plans',
-        'spectrum-gray-300-plans',
-        'spectrum-gray-700-plans',
-        'spectrum-green-900-plans',
-        'spectrum-red-700-plans',
+        'spectrum-yellow-300',
+        'spectrum-gray-300',
+        'spectrum-gray-700',
+        'spectrum-green-900',
+        'spectrum-red-700',
         'gradient-purple-blue',
     ],
     allowedBorderColors: [
-        'spectrum-yellow-300-plans',
-        'spectrum-gray-300-plans',
-        'spectrum-green-900-plans',
-        'spectrum-red-700-plans',
+        'spectrum-yellow-300',
+        'spectrum-gray-300',
+        'spectrum-green-900',
+        'spectrum-red-700',
         'gradient-purple-blue',
     ],
     borderColor: { attribute: 'border-color' },
@@ -118,7 +118,7 @@ export class MiniCompareChart extends VariantLayout {
         if (!this.isNewVariant) return;
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType =
-                this.card?.settings?.displayPlanType ?? false;
+                this.card?.settings?.displayPlanType ?? true;
             return;
         }
         // For main price display (strikethrough and regular price)
@@ -843,26 +843,24 @@ export class MiniCompareChart extends VariantLayout {
 
         /* Border color styles */
         :host(
-            [variant='mini-compare-chart'][border-color='spectrum-yellow-300-plans']
+            [variant='mini-compare-chart'][border-color='spectrum-yellow-300']
         ) {
             --consonant-merch-card-border-color: #ffd947;
         }
 
         :host(
-            [variant='mini-compare-chart'][border-color='spectrum-gray-300-plans']
+            [variant='mini-compare-chart'][border-color='spectrum-gray-300']
         ) {
             --consonant-merch-card-border-color: #dadada;
         }
 
         :host(
-            [variant='mini-compare-chart'][border-color='spectrum-green-900-plans']
+            [variant='mini-compare-chart'][border-color='spectrum-green-900']
         ) {
             --consonant-merch-card-border-color: #05834e;
         }
 
-        :host(
-            [variant='mini-compare-chart'][border-color='spectrum-red-700-plans']
-        ) {
+        :host([variant='mini-compare-chart'][border-color='spectrum-red-700']) {
             --consonant-merch-card-border-color: #eb1000;
             filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
         }
@@ -879,41 +877,41 @@ export class MiniCompareChart extends VariantLayout {
 
         /* Badge color styles */
         :host([variant='mini-compare-chart'])
-            ::slotted([slot='badge'].spectrum-red-700-plans) {
+            ::slotted([slot='badge'].spectrum-red-700) {
             filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
         }
 
         :host([variant='mini-compare-chart'])
-            ::slotted([slot='badge'].spectrum-yellow-300-plans),
-        :host([variant='mini-compare-chart']) #badge.spectrum-yellow-300-plans {
+            ::slotted([slot='badge'].spectrum-yellow-300),
+        :host([variant='mini-compare-chart']) #badge.spectrum-yellow-300 {
             background-color: #ffd947;
             color: #2c2c2c;
         }
 
         :host([variant='mini-compare-chart'])
-            ::slotted([slot='badge'].spectrum-gray-300-plans),
-        :host([variant='mini-compare-chart']) #badge.spectrum-gray-300-plans {
+            ::slotted([slot='badge'].spectrum-gray-300),
+        :host([variant='mini-compare-chart']) #badge.spectrum-gray-300 {
             background-color: #dadada;
             color: #2c2c2c;
         }
 
         :host([variant='mini-compare-chart'])
-            ::slotted([slot='badge'].spectrum-gray-700-plans),
-        :host([variant='mini-compare-chart']) #badge.spectrum-gray-700-plans {
+            ::slotted([slot='badge'].spectrum-gray-700),
+        :host([variant='mini-compare-chart']) #badge.spectrum-gray-700 {
             background-color: #4b4b4b;
             color: #ffffff;
         }
 
         :host([variant='mini-compare-chart'])
-            ::slotted([slot='badge'].spectrum-green-900-plans),
-        :host([variant='mini-compare-chart']) #badge.spectrum-green-900-plans {
+            ::slotted([slot='badge'].spectrum-green-900),
+        :host([variant='mini-compare-chart']) #badge.spectrum-green-900 {
             background-color: #05834e;
             color: #ffffff;
         }
 
         :host([variant='mini-compare-chart'])
-            ::slotted([slot='badge'].spectrum-red-700-plans),
-        :host([variant='mini-compare-chart']) #badge.spectrum-red-700-plans {
+            ::slotted([slot='badge'].spectrum-red-700),
+        :host([variant='mini-compare-chart']) #badge.spectrum-red-700 {
             background-color: #eb1000;
             color: #ffffff;
         }

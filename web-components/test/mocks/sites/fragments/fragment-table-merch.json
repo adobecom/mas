@@ -1,0 +1,52 @@
+{
+    "path": "/content/dam/mas/tables/fragment-table-merch",
+    "name": "fragment-table-merch",
+    "title": "Merch Table",
+    "id": "fragment-table-merch",
+    "description": "",
+    "model": {
+        "id": "table"
+    },
+    "fields": {
+        "blockName": "Table",
+        "selectedVariantNames": ["merch", "highlight"],
+        "cards": ["table-card-starter", "table-card-missing"],
+        "compareChart": {
+            "value": "<div class=\"table\"><div><div>Most popular</div><div>Best for power users</div></div><div><div><p>Fallback Starter</p><p>US$9.99/mo</p><p>Fallback starter description</p><p><strong><a href=\"/fallback-starter\">Fallback Starter CTA</a></strong></p></div><div><p>Fallback Pro</p><p>US$29.99/mo</p><p>Fallback pro description</p><p><strong><a href=\"/fallback-pro\">Fallback Pro CTA</a></strong></p></div></div><div><div><hr></div><div><hr></div></div><div><div>Included</div><div>Included</div></div><div><div>Generative credits</div><div>Unlimited</div></div></div>",
+            "mimeType": "text/html"
+        }
+    },
+    "references": {
+        "table-card-starter": {
+            "type": "content-fragment",
+            "value": {
+                "id": "table-card-starter",
+                "title": "Starter from fragment",
+                "fields": {
+                    "mnemonicIcon": ["/test/mocks/img/creative-cloud.svg"],
+                    "mnemonicAlt": ["Starter icon"],
+                    "badge": {
+                        "value": "<merch-badge background-color=\"#1473e6\" color=\"#ffffff\">Save 65%</merch-badge>",
+                        "mimeType": "text/html"
+                    },
+                    "cardTitle": {
+                        "value": "<p>Starter from fragment</p>",
+                        "mimeType": "text/html"
+                    },
+                    "prices": {
+                        "value": "<p>US$9.99/mo</p>",
+                        "mimeType": "text/html"
+                    },
+                    "description": {
+                        "value": "<p>Built from the card reference</p>",
+                        "mimeType": "text/html"
+                    },
+                    "ctas": {
+                        "value": "<p><strong><a href=\"/buy-starter\">Buy starter</a></strong></p>",
+                        "mimeType": "text/html"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -87,7 +87,7 @@ export function processMnemonics(fields, merchCard, mnemonicsConfig) {
     }
 }
 
-function processBadge(fields, merchCard, mapping) {
+export function processBadge(fields, merchCard, mapping) {
     if (mapping.badge?.slot) {
         if (fields.badge?.length && !fields.badge?.startsWith('<merch-badge')) {
             let badgeDefaultBgColor = DEFAULT_BADGE_BACKGROUND_COLOR;

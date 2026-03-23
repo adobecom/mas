@@ -54,6 +54,9 @@
                     if (/querybuilder.json\?path=\/content\/dam\/mas/.test(href)) {
                         return originalFetch('/test/mocks/folders.json');
                     }
+                    if (/querybuilder.json\?path=\/content\/cq:tags\/mas/.test(href)) {
+                        return originalFetch('/test/mocks/tags.json');
+                    }
                     return originalFetch(...arguments);
                 };
                 describe('merch-card-collection-editor custom element', async () => {

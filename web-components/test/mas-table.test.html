@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="mas-io-url" content="http://localhost:2023/mas/io" />
+        <title>mas-table test page</title>
+        <script>
+            window.process = {
+                env: {},
+            };
+        </script>
+        <style>
+            main {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                flex-direction: column;
+                padding: 80px 24px;
+            }
+
+            mas-table {
+                width: 100%;
+                max-width: 1200px;
+            }
+        </style>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import chai, { expect } from '@esm-bundle/chai';
+            import chaiAsPromised from '@esm-bundle/chai-as-promised';
+
+            import { mockFetch } from './mocks/fetch.js';
+            import { withWcs } from './mocks/wcs.js';
+            import { withAem } from './mocks/aem.js';
+            import {
+                delay,
+                getTemplateContent,
+                oneEvent,
+                toggleDesktop,
+                toggleMobile,
+            } from './utils.js';
+            import '../src/mas.js';
+            import {
+                EVENT_MAS_ERROR,
+                EVENT_MAS_READY,
+            } from '../src/constants.js';
+
+            chai.use(chaiAsPromised);
+
+            runTests(async () => {
+                const [merchFixture] = await Promise.all([
+                    fetch(
+                        'mocks/sites/fragments/fragment-table-merch.json',
+                    ).then((res) => res.json()),
+                ]);
+                const standardFixture = {
+                    path: '/content/dam/mas/tables/fragment-table-standard',
+                    name: 'fragment-table-standard',
+                    title: 'Standard Table',
+                    id: 'fragment-table-standard',
+                    description: '',
+                    model: {
+                        id: 'table',
+                    },
+                    fields: {
+                        blockName: 'Table',
+                        compareChart: {
+                            value: document
+                                .getElementById('standard-table-compare-chart')
+                                .innerHTML.trim(),
+                            mimeType: 'text/html',
+                        },
+                    },
+                };
+                const withStandardTableTemplate = async () => {
+                    return async ({ pathname }) => {
+                        if (
+                            pathname !==
+                            '/test/mocks/sites/fragments/fragment-table-standard.json'
+                        ) {
+                            return false;
+                        }
+                        return new Response(JSON.stringify(standardFixture), {
+                            status: 200,
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                        });
+                    };
+                };
+
+                const { cache } = customElements.get('aem-fragment');
+
+                describe('mas-table', () => {
+                    let aemMock;
+                    let testCaseId = 0;
+                    const spTheme = document.querySelector('sp-theme');
+
+                    const appendTestCase = (templateId) => {
+                        testCaseId += 1;
+                        const wrapper = document.createElement('section');
+                        wrapper.dataset.testCase = String(testCaseId);
+                        const [tableHost] = getTemplateContent(templateId);
+                        wrapper.append(tableHost);
+                        spTheme.append(wrapper);
+                        return tableHost;
+                    };
+
+                    beforeEach(async () => {
+                        await toggleDesktop();
+                        [, aemMock] = await mockFetch(
+                            withWcs,
+                            withAem,
+                            withStandardTableTemplate,
+                        );
+                        cache.clear();
+                    });
+
+                    it('renders a fragment-backed table from cache', async () => {
+                        cache.add(standardFixture);
+                        const tableHost = appendTestCase('standard-table');
+
+                        await tableHost.checkReady();
+
+                        expect(aemMock.count).to.equal(0);
+                        expect(tableHost.aemFragment).to.exist;
+                        expect(tableHost.aemFragment.hasAttribute('hidden')).to
+                            .be.true;
+
+                        const table =
+                            tableHost.shadowRoot.querySelector('.table');
+                        expect(table).to.exist;
+                        expect(table.classList.contains('highlight')).to.be
+                            .true;
+                        expect(table.classList.contains('sticky')).to.be.true;
+                        expect(table.classList.contains('pricing-bottom')).to.be
+                            .true;
+                        expect(table.classList.contains('header-left')).to.be
+                            .true;
+                        expect(table.classList.contains('has-addon')).to.be
+                            .true;
+                        expect(table.querySelector('.row-highlight')).to.exist;
+                        expect(table.querySelector('.row-heading')).to.exist;
+                        expect(
+                            table.querySelector(
+                                '.row-heading .col-2 .content-before.addon-label',
+                            ),
+                        ).to.exist;
+                        expect(
+                            table.querySelector('.section-head'),
+                        ).to.exist;
+                        expect(
+                            table.querySelector('.row-heading .col-2 .body')
+                                ?.textContent,
+                        ).to.include('Spare 50 % auf die Vollversion');
+                        expect(
+                            table.querySelector('.row-heading .col-2 .pricing')
+                                ?.textContent,
+                        ).to.include('25,99');
+                        const highlightStyles = getComputedStyle(
+                            table.querySelector('.row-highlight .col-2'),
+                        );
+                        expect(highlightStyles.borderTopLeftRadius).to.equal(
+                            '16px',
+                        );
+                        expect(highlightStyles.borderTopRightRadius).to.equal(
+                            '16px',
+                        );
+                    });
+
+                    it('dispatches mas:ready for a rendered table', async () => {
+                        const tableHost = appendTestCase('standard-table');
+                        const masReady = oneEvent(tableHost, EVENT_MAS_READY);
+
+                        const readyEvent = await masReady;
+                        await tableHost.checkReady();
+
+                        expect(readyEvent.detail.measure).to.exist;
+                        expect(
+                            tableHost.shadowRoot.querySelector('.row-heading'),
+                        ).to.exist;
+                    });
+
+                    it('re-renders cleanly after fragment refresh', async () => {
+                        const tableHost = appendTestCase('standard-table');
+
+                        await tableHost.checkReady();
+
+                        const heading = tableHost.shadowRoot.querySelector(
+                            '.row-heading .col-2 .tracking-header',
+                        );
+                        heading.setAttribute('data-test', 'stale');
+
+                        const aemFragment =
+                            tableHost.querySelector('aem-fragment');
+                        await aemFragment.refresh();
+                        await tableHost.checkReady();
+
+                        const refreshedHeading =
+                            tableHost.shadowRoot.querySelector(
+                                '.row-heading .col-2 .tracking-header',
+                            );
+                        expect(refreshedHeading.getAttribute('data-test')).to.be
+                            .null;
+                        expect(aemMock.count).to.equal(2);
+                    });
+
+                    it('renders mobile comparison filters', async () => {
+                        await toggleMobile();
+                        const tableHost = appendTestCase('standard-table');
+
+                        await tableHost.checkReady();
+                        await delay(150);
+
+                        const filters =
+                            tableHost.shadowRoot.querySelector('.filters');
+                        expect(filters).to.exist;
+                        expect(
+                            filters.querySelectorAll('select.filter'),
+                        ).to.have.length(2);
+                    });
+
+                    it('hydrates merch heading columns from referenced cards and falls back to authored HTML', async () => {
+                        cache.add(merchFixture);
+                        const tableHost = appendTestCase('merch-table');
+
+                        await tableHost.checkReady();
+
+                        const table =
+                            tableHost.shadowRoot.querySelector('.table');
+                        const highlightOne = table.querySelector(
+                            '.row-highlight .col-1',
+                        );
+                        const highlightTwo = table.querySelector(
+                            '.row-highlight .col-2',
+                        );
+                        const headingOne = table.querySelector(
+                            '.row-heading .col-1',
+                        );
+                        const headingTwo = table.querySelector(
+                            '.row-heading .col-2',
+                        );
+
+                        expect(table.classList.contains('merch')).to.be.true;
+                        expect(highlightOne.textContent.trim()).to.equal(
+                            'Save 65%',
+                        );
+                        expect(highlightOne.style.backgroundColor).to.equal(
+                            'rgb(20, 115, 230)',
+                        );
+                        expect(highlightOne.style.color).to.equal(
+                            'rgb(255, 255, 255)',
+                        );
+                        expect(highlightTwo.textContent.trim()).to.equal(
+                            'Best for power users',
+                        );
+                        expect(headingOne.textContent).to.include(
+                            'Starter from fragment',
+                        );
+                        expect(headingOne.textContent).to.include('US$9.99/mo');
+                        expect(headingOne.textContent).to.include(
+                            'Buy starter',
+                        );
+                        expect(headingOne.querySelector('mas-mnemonic')).to
+                            .exist;
+                        expect(
+                            headingOne.querySelector(
+                                '.buttons-wrapper .action-area',
+                            ),
+                        ).to.exist;
+
+                        expect(headingTwo.textContent).to.include(
+                            'Fallback Pro',
+                        );
+                        expect(headingTwo.textContent).to.include(
+                            'Fallback Pro CTA',
+                        );
+                    });
+
+                    it('fails when compareChart is missing', async () => {
+                        const tableHost = appendTestCase('invalid-table');
+                        const masError = oneEvent(tableHost, EVENT_MAS_ERROR);
+
+                        const errorEvent = await masError;
+                        await expect(tableHost.checkReady()).to.be.rejected;
+
+                        expect(tableHost.hasAttribute('failed')).to.be.true;
+                        expect(errorEvent.detail.message).to.equal(
+                            'compareChart field is missing',
+                        );
+                    });
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <mas-commerce-service
+            env="stage"
+            mas-io-url="https://www.stage.adobe.com/mas/io"
+        ></mas-commerce-service>
+        <main>
+            <sp-theme color="light" scale="medium"></sp-theme>
+        </main>
+
+        <template id="standard-table">
+            <mas-table id="table-standard">
+                <aem-fragment fragment="fragment-table-standard"></aem-fragment>
+            </mas-table>
+        </template>
+
+        <template id="standard-table-compare-chart">
+            <div
+                class="table highlight sticky pricing-bottom header-left"
+                daa-lh="b2|t1Ein--table"
+            >
+                <div>
+                    <div></div>
+                    <div>50 % Rabatt für 3 Monate</div>
+                    <div></div>
+                    <div></div>
+                    <div>50 % Rabatt für 3 Monate</div>
+                </div>
+                <div>
+                    <div></div>
+                    <div>
+                        <p class="header-product-tile">
+                            <mas-mnemonic
+                                src="/test/mocks/img/photoshop.svg"
+                                size="l"
+                                aria-label="Photoshop-Icon"
+                                role="img"
+                            ></mas-mnemonic>
+                        </p>
+                        <p>Photoshop</p>
+                        <p>
+                            Spare 50 % auf die Vollversion von Photoshop auf dem
+                            Desktop, Smartphone und Tablet sowie im Web.
+                        </p>
+                        <p>
+                            <span>25,99 € /Monat</span><br />
+                            <span>12,99 € /Monat inkl. MwSt.</span>
+                        </p>
+                        <p>
+                            <em
+                                ><a href="/de/photoshop/free-trial"
+                                    >Kostenlos testen</a
+                                ></em
+                            >
+                            <strong
+                                ><a href="/de/photoshop/buy"
+                                    >Jetzt kaufen</a
+                                ></strong
+                            >
+                        </p>
+                    </div>
+                    <div>
+                        <p class="header-product-tile">
+                            <mas-mnemonic
+                                src="/test/mocks/img/firefly.svg"
+                                size="l"
+                                aria-label="Adobe Firefly-Icon"
+                                role="img"
+                            ></mas-mnemonic>
+                        </p>
+                        <p>Firefly Pro</p>
+                        <p>
+                            4000 Credits für kreative KI plus Photoshop für Web,
+                            Smartphone und Tablet.
+                        </p>
+                        <p>21,99 € /Monat inkl. MwSt.</p>
+                        <p>
+                            <em
+                                ><a href="/de/firefly/free-trial"
+                                    >Kostenlos testen</a
+                                ></em
+                            >
+                            <strong
+                                ><a href="/de/firefly/buy"
+                                    >Jetzt kaufen</a
+                                ></strong
+                            >
+                        </p>
+                    </div>
+                    <div>
+                        <p class="header-product-tile">
+                            <mas-mnemonic
+                                src="/test/mocks/img/photoshop.svg"
+                                size="l"
+                                aria-label="Photoshop-Icon"
+                                role="img"
+                            ></mas-mnemonic>
+                            <mas-mnemonic
+                                src="/test/img/lightroom.svg"
+                                size="l"
+                                aria-label="Lightroom-Icon"
+                                role="img"
+                            ></mas-mnemonic>
+                        </p>
+                        <p>Foto-Abo</p>
+                        <p>
+                            Photoshop auf dem Desktop, Smartphone und Tablet
+                            sowie im Web plus Lightroom.
+                        </p>
+                        <p>23,79 € /Monat inkl. MwSt.</p>
+                        <p>
+                            <em
+                                ><a href="/de/photography/free-trial"
+                                    >Kostenlos testen</a
+                                ></em
+                            >
+                            <strong
+                                ><a href="/de/photography/buy"
+                                    >Jetzt kaufen</a
+                                ></strong
+                            >
+                        </p>
+                    </div>
+                    <div>
+                        <p class="header-product-tile">
+                            <mas-mnemonic
+                                src="/test/mocks/img/creative-cloud.svg"
+                                size="l"
+                                aria-label="Creative Cloud-Icon"
+                                role="img"
+                            ></mas-mnemonic>
+                        </p>
+                        <p>Creative Cloud Pro</p>
+                        <p>
+                            Spare 50 % auf die Vollversion von Photoshop und
+                            mehr als 20 weitere Programme.
+                        </p>
+                        <p>
+                            <span>77,99 € /Monat</span><br />
+                            <span>38,98 € /Monat inkl. MwSt.</span>
+                        </p>
+                        <p>
+                            <em
+                                ><a href="/de/creativecloud/free-trial"
+                                    >Kostenlos testen</a
+                                ></em
+                            >
+                            <strong
+                                ><a href="/de/creativecloud/buy"
+                                    >Jetzt kaufen</a
+                                ></strong
+                            >
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <div>ADDON-content-before-label</div>
+                    <div><em>Jahres-Abo mit monatlicher Zahlung</em></div>
+                    <div><em>Monatliche Zahlung</em></div>
+                    <div><em>Jahres-Abo mit monatlicher Zahlung</em></div>
+                    <div><em>Jahres-Abo mit monatlicher Zahlung</em></div>
+                </div>
+                <div>
+                    <div><hr /></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+                <div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+                <div>
+                    <div>Adobe Photoshop auf dem Desktop</div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                    <div></div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                </div>
+                <div>
+                    <div>Adobe Photoshop für Web, Smartphone und Tablet</div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                </div>
+                <div>
+                    <div>Empfohlen für</div>
+                    <div>Einzelpersonen</div>
+                    <div>Einzelpersonen</div>
+                    <div>Einzelpersonen</div>
+                    <div>Einzelanwender</div>
+                </div>
+                <div>
+                    <div>
+                        Kostenlose 7-Tage-Testversion
+                        <span
+                            class="icon icon-info milo-tooltip right margin-inline-start"
+                        >
+                            <img src="/test/img/info-icon.svg" alt="Info" />
+                        </span>
+                    </div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                    <div>
+                        <span class="icon icon-checkmark"
+                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
+                        /></span>
+                    </div>
+                </div>
+                <div>
+                    <div>Preis</div>
+                    <div>12,99 € /Monat inkl. MwSt. für 3 Monate</div>
+                    <div>21,99 € /Monat inkl. MwSt.</div>
+                    <div>23,79 € /Monat inkl. MwSt.</div>
+                    <div>38,98 € /Monat inkl. MwSt. für 3 Monate</div>
+                </div>
+                <div>
+                    <div>Cloud-Speicherplatz</div>
+                    <div>100 GB</div>
+                    <div>100 GB</div>
+                    <div>1 TB</div>
+                    <div>100 GB</div>
+                </div>
+                <div>
+                    <div>
+                        <a href="/go/acomfirefly_generativecredits_de"
+                            >Generative Credits</a
+                        >
+                    </div>
+                    <div>25 pro Monat</div>
+                    <div>4000 pro Monat</div>
+                    <div>1000 pro Monat</div>
+                    <div>4000 pro Monat</div>
+                </div>
+            </div>
+        </template>
+
+        <template id="merch-table">
+            <mas-table id="table-merch">
+                <aem-fragment fragment="fragment-table-merch"></aem-fragment>
+            </mas-table>
+        </template>
+
+        <template id="invalid-table">
+            <mas-table id="table-invalid">
+                <aem-fragment fragment="fragment-table-invalid"></aem-fragment>
+            </mas-table>
+        </template>
+    </body>
+</html>

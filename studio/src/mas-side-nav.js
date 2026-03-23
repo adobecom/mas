@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import Store from './store.js';
-import { PAGE_NAMES, SURFACES } from './constants.js';
+import { COLLECTION_MODEL_PATH, PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
 import { generateFieldLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
@@ -274,6 +274,10 @@ class MasSideNav extends LitElement {
 
     get fragmentEditor() {
         return document.querySelector('mas-fragment-editor');
+    }
+
+    get isCompareChartEditor() {
+        return this.fragmentEditor?.fragment?.model?.path === COLLECTION_MODEL_PATH;
     }
 
     get isTranslationEnabled() {
@@ -550,6 +554,7 @@ class MasSideNav extends LitElement {
 
     /** Copy Field popover listing fragment fields with preview values. */
     get copyFieldButton() {
+        if (this.isCompareChartEditor) return nothing;
         const loading = this.variationDataLoading || Store.fragmentEditor.loading.get();
         const isVariation = this.#isVariationFragment(this.fragmentEditor?.fragment?.id);
         const currentFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.CURRENT);
@@ -732,11 +737,12 @@ class MasSideNav extends LitElement {
         const fragmentId = this.fragmentEditor?.fragment?.id;
         const isVariation = fragmentId && this.fragmentEditor?.editorContextStore?.isVariation(fragmentId);
         const loading = Store.fragmentEditor.loading.get();
+        const showVariationActions = !isVariation && !this.isCompareChartEditor;
         return html`
             <mas-side-nav-item label="Save" ?disabled=${!Store.editor.hasChanges || loading} @nav-click="${this.saveFragment}">
                 <sp-icon-save-floppy slot="icon"></sp-icon-save-floppy>
             </mas-side-nav-item>
-            ${!isVariation
+            ${showVariationActions
                 ? html`
                       <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
                           <sp-icon-add slot="icon"></sp-icon-add>

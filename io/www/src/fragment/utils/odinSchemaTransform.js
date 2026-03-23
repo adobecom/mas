@@ -1,17 +1,6 @@
 //utitilies to transform payload from old schema to new schema
 
-const CF_REFERENCE_FIELDS = [
-    'cards',
-    'collections',
-    'entries',
-    'variations',
-    'fragment',
-    'fragments',
-    'sections',
-    'rows',
-    'rowValues',
-    'values',
-];
+const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries', 'variations'];
 const REFERENCE_FIELDS = [...CF_REFERENCE_FIELDS, 'tags'];
 
 function transformFields(body) {
@@ -135,4 +124,4 @@ function transformBody(body) {
     return body;
 }
 
-export { transformBody, CF_REFERENCE_FIELDS };
+export { transformBody };

@@ -521,6 +521,28 @@ describe('Router', () => {
             await router.navigateToFragmentEditor('test-id', { locale: 'fr_FR' });
             expect(Store.search.get().region).to.equal('fr_FR');
         });
+
+        it('routes collection fragments through the full-page fragment editor', async () => {
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'collection-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [],
+                }),
+            );
+            Store.fragments.list.data.set([collectionStore]);
+            const editorPanel = {
+                editFragment: sandbox.stub(),
+                promptDiscardChanges: sandbox.stub().resolves(true),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(editorPanel);
+
+            await router.navigateToFragmentEditor('collection-id');
+
+            expect(Store.fragmentEditor.fragmentId.get()).to.equal('collection-id');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+            expect(editorPanel.editFragment.called).to.equal(false);
+        });
     });
 
     describe('navigateToTranslationEditor', () => {

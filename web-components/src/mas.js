@@ -11,6 +11,7 @@ import './merch-quantity-select.js';
 import './merch-badge.js';
 import './merch-whats-included.js';
 import './mas-mnemonic.js';
+import './mas-table.js';
 
 import { registerVariant } from './variants/variants.js';
 

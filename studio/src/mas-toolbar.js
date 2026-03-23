@@ -26,6 +26,10 @@ const contentTypes = [
         label: 'Merch Card',
     },
     {
+        value: 'compare-chart',
+        label: 'Compare Chart',
+    },
+    {
         value: 'merch-card-collection',
         label: 'Merch Card Collection',
     },

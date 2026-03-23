@@ -903,6 +903,7 @@ export class MasRepository extends LitElement {
                 throw error;
             } else {
                 this.processError(error, 'Failed to create fragment.');
+                throw error;
             }
         } finally {
             this.operation.set(null);

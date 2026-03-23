@@ -75,6 +75,29 @@ export const lastNestedRowIcon = html`<svg
 </svg>`;
 
 /**
+ * Drag handle icon used for reordering compare chart cards.
+ */
+export const dragHandleIcon = html`<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 36 36"
+    role="img"
+    fill="currentColor"
+    width="24"
+    height="24"
+    aria-hidden="true"
+    aria-label=""
+>
+    <circle cx="14" cy="26" r="2"></circle>
+    <circle cx="14" cy="20" r="2"></circle>
+    <circle cx="14" cy="14" r="2"></circle>
+    <circle cx="14" cy="8" r="2"></circle>
+    <circle cx="20" cy="26" r="2"></circle>
+    <circle cx="20" cy="20" r="2"></circle>
+    <circle cx="20" cy="14" r="2"></circle>
+    <circle cx="20" cy="8" r="2"></circle>
+</svg>`;
+
+/**
  * Cloud illustration used in settings empty-state content.
  */
 export const settingsEmptyStateIcon = html`<svg

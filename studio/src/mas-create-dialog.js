@@ -6,6 +6,21 @@ import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 
+const CREATE_FRAGMENT_CONFIG = {
+    'merch-card': {
+        label: 'Merch Card',
+        modelId: TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'],
+    },
+    'compare-chart': {
+        label: 'Compare Chart',
+        modelId: TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'],
+    },
+    'merch-card-collection': {
+        label: 'Merch Card Collection',
+        modelId: TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'],
+    },
+};
+
 export class MasCreateDialog extends LitElement {
     static properties = {
         type: { type: String, reflect: true },
@@ -210,8 +225,7 @@ export class MasCreateDialog extends LitElement {
 
         this.loading = true;
 
-        const modelId = TAG_MODEL_ID_MAPPING[`mas:studio/content-type/${this.type}`];
-        if (!modelId) return;
+        const { modelId } = CREATE_FRAGMENT_CONFIG[this.type];
 
         const fragmentData = {
             modelId,
@@ -242,12 +256,7 @@ export class MasCreateDialog extends LitElement {
     }
 
     get dialogTitle() {
-        const typeLabels = {
-            'merch-card': 'Merch Card',
-            'merch-card-collection': 'Merch Card Collection',
-            'compare-chart': 'Compare Chart',
-        };
-        return `Create New ${typeLabels[this.type] || this.type}`;
+        return `Create New ${CREATE_FRAGMENT_CONFIG[this.type].label}`;
     }
 
     render() {

@@ -1,34 +1,142 @@
-var n=Object.defineProperty;var p=(s,t,i)=>t in s?n(s,t,{enumerable:!0,configurable:!0,writable:!0,value:i}):s[t]=i;var l=(s,t,i)=>p(s,typeof t!="symbol"?t+"":t,i);import{LitElement as c,html as a,css as d}from"./lit-all.min.js";function h(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var e=class e extends c{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let i=t.composedPath();e.activeTooltip===this&&!i.includes(this)&&this.hideTooltip()}showTooltip(){e.activeTooltip&&e.activeTooltip!==this&&(e.activeTooltip.closeOverlay(),e.activeTooltip.tooltipVisible=!1,e.activeTooltip.requestUpdate()),e.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){e.activeTooltip===this&&(e.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?a`<merch-icon
+var __defProp = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+// src/mas-mnemonic.js
+import { LitElement, html, css } from "./lit-all.min.js";
+function hasSpectrumTooltip() {
+  return customElements.get("sp-tooltip") !== void 0 && customElements.get("overlay-trigger") !== void 0 && document.querySelector("sp-theme") !== null;
+}
+var _MasMnemonic = class _MasMnemonic extends LitElement {
+  constructor() {
+    super();
+    this.content = "";
+    this.placement = "top";
+    this.variant = "info";
+    this.size = "xs";
+    this.tooltipVisible = false;
+    this.lastPointerType = null;
+    this.handleClickOutside = this.handleClickOutside.bind(this);
+  }
+  connectedCallback() {
+    super.connectedCallback();
+    window.addEventListener("mousedown", this.handleClickOutside);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("mousedown", this.handleClickOutside);
+  }
+  handleClickOutside(event) {
+    const path = event.composedPath();
+    if (_MasMnemonic.activeTooltip === this && !path.includes(this)) {
+      this.hideTooltip();
+    }
+  }
+  showTooltip() {
+    if (_MasMnemonic.activeTooltip && _MasMnemonic.activeTooltip !== this) {
+      _MasMnemonic.activeTooltip.closeOverlay();
+      _MasMnemonic.activeTooltip.tooltipVisible = false;
+      _MasMnemonic.activeTooltip.requestUpdate();
+    }
+    _MasMnemonic.activeTooltip = this;
+    this.tooltipVisible = true;
+  }
+  hideTooltip() {
+    if (_MasMnemonic.activeTooltip === this) {
+      _MasMnemonic.activeTooltip = null;
+    }
+    this.tooltipVisible = false;
+  }
+  handleTap(e) {
+    e.preventDefault();
+    if (this.tooltipVisible) {
+      this.hideTooltip();
+    } else {
+      this.showTooltip();
+    }
+  }
+  closeOverlay() {
+    const trigger = this.shadowRoot?.querySelector("overlay-trigger");
+    if (trigger?.open !== void 0) {
+      trigger.open = false;
+    }
+  }
+  get effectiveContent() {
+    return this.tooltipText || this.mnemonicText || this.content || "";
+  }
+  get effectivePlacement() {
+    return this.tooltipPlacement || this.mnemonicPlacement || this.placement || "top";
+  }
+  renderIcon() {
+    if (!this.src) return html`<slot></slot>`;
+    return html`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:a`<slot></slot>`}render(){let t=this.effectiveContent,i=this.effectivePlacement;return t?h()?a`
+        ></merch-icon>`;
+  }
+  render() {
+    const content = this.effectiveContent;
+    const placement = this.effectivePlacement;
+    if (!content) {
+      return this.renderIcon();
+    }
+    const useSpectrum = hasSpectrumTooltip();
+    if (useSpectrum) {
+      return html`
                 <overlay-trigger
-                    placement="${i}"
-                    @sp-opened=${()=>this.showTooltip()}
+                    placement="${placement}"
+                    @sp-opened=${() => this.showTooltip()}
                 >
                     <span slot="trigger">${this.renderIcon()}</span>
                     <sp-tooltip
-                        placement="${i}"
+                        placement="${placement}"
                         variant="${this.variant}"
                     >
-                        ${t}
+                        ${content}
                     </sp-tooltip>
                 </overlay-trigger>
-            `:a`
+            `;
+    } else {
+      return html`
                 <span
-                    class="css-tooltip ${i} ${this.tooltipVisible?"tooltip-visible":""}"
-                    data-tooltip="${t}"
+                    class="css-tooltip ${placement} ${this.tooltipVisible ? "tooltip-visible" : ""}"
+                    data-tooltip="${content}"
                     tabindex="0"
                     role="img"
-                    aria-label="${t}"
-                    @pointerdown=${o=>{this.lastPointerType=o.pointerType}}
-                    @pointerenter=${o=>o.pointerType!=="touch"&&this.showTooltip()}
-                    @pointerleave=${o=>o.pointerType!=="touch"&&this.hideTooltip()}
-                    @click=${o=>{this.lastPointerType==="touch"&&this.handleTap(o),this.lastPointerType=null}}
+                    aria-label="${content}"
+                    @pointerdown=${(e) => {
+        this.lastPointerType = e.pointerType;
+      }}
+                    @pointerenter=${(e) => e.pointerType !== "touch" && this.showTooltip()}
+                    @pointerleave=${(e) => e.pointerType !== "touch" && this.hideTooltip()}
+                    @click=${(e) => {
+        if (this.lastPointerType === "touch") this.handleTap(e);
+        this.lastPointerType = null;
+      }}
                 >
                     ${this.renderIcon()}
                 </span>
-            `:this.renderIcon()}};l(e,"activeTooltip",null),l(e,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),l(e,"styles",d`
+            `;
+    }
+  }
+};
+__publicField(_MasMnemonic, "activeTooltip", null);
+__publicField(_MasMnemonic, "properties", {
+  content: { type: String },
+  placement: { type: String },
+  variant: { type: String },
+  // Icon-based tooltip properties
+  src: { type: String },
+  size: { type: String },
+  tooltipText: { type: String, attribute: "tooltip-text" },
+  tooltipPlacement: { type: String, attribute: "tooltip-placement" },
+  // Support studio's mnemonic attribute names
+  mnemonicText: { type: String, attribute: "mnemonic-text" },
+  mnemonicPlacement: { type: String, attribute: "mnemonic-placement" },
+  // Tooltip visibility state
+  tooltipVisible: { type: Boolean, state: true }
+});
+__publicField(_MasMnemonic, "styles", css`
         :host {
             display: contents;
             overflow: visible;
@@ -147,4 +255,10 @@ var n=Object.defineProperty;var p=(s,t,i)=>t in s?n(s,t,{enumerable:!0,configura
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);var r=e;customElements.define("mas-mnemonic",r);export{r as default};
+    `);
+var MasMnemonic = _MasMnemonic;
+customElements.define("mas-mnemonic", MasMnemonic);
+export {
+  MasMnemonic as default
+};
+//# sourceMappingURL=mas-mnemonic.js.map

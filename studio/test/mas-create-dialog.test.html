@@ -105,6 +105,24 @@
                         expect(requestBody).to.have.property('modelId');
                     });
 
+                    it('should create compare charts with the collection model', async () => {
+                        dialog.loading = false;
+                        dialog.type = 'compare-chart';
+                        dialog.title = 'Test Compare Chart';
+                        await dialog.updateComplete;
+
+                        const tryToCreateFragmentStub = stub(dialog, 'tryToCreateFragment').resolves(true);
+                        await dialog.handleSubmit();
+
+                        expect(tryToCreateFragmentStub.calledOnce).to.be.true;
+                        const [, fragmentData] = tryToCreateFragmentStub.getCall(0).args;
+                        expect(fragmentData).to.include({
+                            title: 'Test Compare Chart',
+                            modelId: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+                        });
+                        tryToCreateFragmentStub.restore();
+                    });
+
                     it('should display the correct dialog title based on type', async () => {
                         // Reset dialog state from previous tests
                         dialog.loading = false;
@@ -124,6 +142,13 @@
                         heading = dialog.shadowRoot.querySelector('.dialog-header');
                         expect(heading).to.exist;
                         expect(heading.textContent.trim()).to.equal('Create New Merch Card Collection');
+
+                        dialog.type = 'compare-chart';
+                        await dialog.updateComplete;
+
+                        heading = dialog.shadowRoot.querySelector('.dialog-header');
+                        expect(heading).to.exist;
+                        expect(heading.textContent.trim()).to.equal('Create New Compare Chart');
                     });
                 });
             });

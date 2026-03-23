@@ -96,7 +96,7 @@ export class QuantitySelectField extends LitElement {
         this.step = '1';
         this.layout = 'grid';
         this.disabled = false;
-        this.renderQuantityComponentOverrideIndicator = null;
+        this.renderQuantityComponentOverrideIndicator = () => {};
     }
 
     willUpdate(changedProperties) {

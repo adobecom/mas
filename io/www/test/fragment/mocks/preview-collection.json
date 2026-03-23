@@ -39,6 +39,13 @@
             ]
         },
         {
+            "name": "variations",
+            "type": "content-fragment",
+            "multiple": true,
+            "locked": false,
+            "values": []
+        },
+        {
             "name": "locReady",
             "type": "boolean",
             "multiple": false,

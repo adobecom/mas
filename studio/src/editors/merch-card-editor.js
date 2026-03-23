@@ -1663,7 +1663,7 @@ class MerchCardEditor extends LitElement {
         const hasInlinePrice = this.trialBadgeElement?.querySelector?.('span[is="inline-price"]');
         const text = hasInlinePrice ? this.trialBadgeElement.innerHTML : this.trialBadgeElement?.textContent || '';
         const bgColorAttr = this.trialBadgeElement?.getAttribute?.('background-color');
-        const bgColor = bgColorAttr?.toLowerCase() || 'spectrum-yellow-300';
+        const bgColor = bgColorAttr?.toLowerCase();
 
         const borderColorAttr = this.trialBadgeElement?.getAttribute?.('border-color');
         const borderColor = borderColorAttr?.toLowerCase();

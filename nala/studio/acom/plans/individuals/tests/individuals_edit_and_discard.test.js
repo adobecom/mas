@@ -248,12 +248,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-2: Remove badge field', async () => {
             await expect(await editor.badge).toBeVisible();
-            await expect(await editor.badge).toHaveValue(data.badge.original);
+            await expect(await editor.badge).toHaveText(data.badge.original);
             await editor.badge.fill('');
         });
 
         await test.step('step-3: Validate badge field is removed', async () => {
-            await expect(await editor.badge).toHaveValue('');
+            await expect(await editor.badge).toHaveText('');
             await expect(await individualsCard.locator(plans.cardBadge)).not.toBeVisible();
         });
 
@@ -262,7 +262,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-5: Validate badge field updated', async () => {
-            await expect(await editor.badge).toHaveValue(data.badge.updated);
+            await expect(await editor.badge).toHaveText(data.badge.updated);
             await expect(await individualsCard.locator(plans.cardBadge)).toHaveText(data.badge.updated);
         });
 

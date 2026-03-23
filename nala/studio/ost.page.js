@@ -39,7 +39,7 @@ export default class OSTPage {
         this.checkoutLink = this.page.locator('//a[@is="checkout-link"]');
         this.workflowMenu = this.page.locator('button:near(:text("Workflow"))').first();
         this.ctaTextMenu = this.page.locator('button:near(:text("Cta text"))').first();
-        this.promoField = this.page.locator('//input[contains(@class, "spectrum-Textfield-input")]');
+        this.promoField = this.page.locator('input[class*="spectrum-Textfield-input"]:near(:text("Override"))');
         this.promoLabel = this.page.locator('//span[contains(@class, "spectrum-Badge-label")]');
         this.checkoutLinkUse = this.page.locator('button:near(h4:text("Checkout URL"))').first();
         this.cancelPromo = this.page.locator('button:right-of(span:text("Promotion:"))').first();

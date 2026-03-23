@@ -12,7 +12,7 @@ export default class EditorPage {
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.backgroundImage = this.panel.locator('#background-image input');
 
-        this.badge = this.panel.locator('#card-badge input');
+        this.badge = this.panel.locator('sp-field-group#badge rte-field#card-badge div.ProseMirror');
         this.badgeFieldGroup = this.panel.locator('sp-field-group#badge');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.badgeBorderColorFieldGroup = this.panel.locator('sp-field-group#badgeBorderColor');

@@ -834,14 +834,16 @@ class MerchCardEditor extends LitElement {
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="badge">
                         <sp-field-label for="card-badge">Badge</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter badge text"
+                        <rte-field
                             id="card-badge"
+                            inline
+                            hide-format-buttons
                             data-field="badge"
                             data-field-state="${this.getBadgeComponentState('badge', 'text')}"
-                            value="${this.badge.text}"
-                            @input="${this.#updateBadgeText}"
-                        ></sp-textfield>
+                            .osi="${form.osi.values[0]}"
+                            .value="${this.badge.text}"
+                            @change="${this.#updateBadgeText}"
+                        ></rte-field>
                         ${this.renderBadgeComponentOverrideIndicator('badge', 'text')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="trialBadge">
@@ -1611,7 +1613,9 @@ class MerchCardEditor extends LitElement {
             };
         }
 
-        const text = this.badgeElement?.textContent || '';
+        const badgeEl = this.badgeElement;
+        const hasInlinePrice = badgeEl?.querySelector?.('span[is="inline-price"]');
+        const text = hasInlinePrice ? badgeEl.innerHTML : badgeEl?.textContent || '';
         const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
         const bgColor = bgColorAttr?.toLowerCase();
 
@@ -1791,12 +1795,12 @@ class MerchCardEditor extends LitElement {
             element.setAttribute('icon', icon);
         }
         element.setAttribute('variant', this.getEffectiveFieldValue('variant'));
-        element.textContent = text;
+        element.innerHTML = text;
         return element;
     }
 
     #updateBadgeText(event) {
-        const text = event.target.value?.trim() || '';
+        const text = event.target.value || '';
         const icon = this.badge.icon;
         this.#updateBadgeTextAndIcon(text, icon);
     }

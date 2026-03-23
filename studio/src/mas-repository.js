@@ -135,6 +135,7 @@ export class MasRepository extends LitElement {
         });
         Store.search.subscribe(() => {
             this.dictionaryCache.clear();
+            this.#searchCursor = null;
             if (this.page.value === PAGE_NAMES.CONTENT) {
                 Store.fragments.list.firstPageLoaded.set(false);
                 Store.fragments.list.data.set([]);
@@ -387,7 +388,11 @@ export class MasRepository extends LitElement {
 
             this.#abortControllers.search = null;
         } catch (error) {
+            if (error.name !== 'AbortError') {
+                Store.fragments.list.loading.set(false);
+            }
             this.processError(error, 'Could not load fragments.');
+            return;
         }
 
         Store.fragments.list.loading.set(false);
@@ -417,6 +422,7 @@ export class MasRepository extends LitElement {
         const { cursor, variants, surface, fragmentStores } = this.#searchCursor;
         try {
             const done = await this.#fillPage(cursor, variants, surface, fragmentStores);
+            if (!this.#searchCursor) return;
             Store.fragments.list.data.set([...fragmentStores]);
             if (done) {
                 this.#searchCursor = null;

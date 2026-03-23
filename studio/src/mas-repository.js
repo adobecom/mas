@@ -919,6 +919,8 @@ export class MasRepository extends LitElement {
         if (!fragment) {
             fragment = new Fragment(fragmentData);
             fragmentCache.add(fragment);
+        } else {
+            fragment.refreshFrom(fragmentData);
         }
         return fragment;
     }

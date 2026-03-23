@@ -95,6 +95,7 @@ class MasTranslationEditor extends LitElement {
             Store.translationProjects.selectedCollections,
             Store.translationProjects.selectedPlaceholders,
             Store.translationProjects.targetLocales,
+            Store.translationProjects.projectType,
         ]);
         this.isProjectReadonly = !!this.translationProject?.getFieldValue('submissionDate');
         if (this.isProjectReadonly) {
@@ -157,6 +158,7 @@ class MasTranslationEditor extends LitElement {
                 Store.translationProjects.selectedPlaceholders.set(translationProject.getFieldValues('placeholders'));
                 Store.translationProjects.selectedCollections.set(translationProject.getFieldValues('collections'));
                 Store.translationProjects.targetLocales.set(translationProject.getFieldValues('targetLocales'));
+                Store.translationProjects.projectType.set(translationProject.getFieldValue('projectType') ?? 'translation');
                 this.showSelectedEmptyState = this.selectedCount === 0;
                 this.showLangSelectedEmptyState = Store.translationProjects.targetLocales.value.length === 0;
             }
@@ -180,6 +182,7 @@ class MasTranslationEditor extends LitElement {
                 { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'targetLocales', type: 'text', multiple: true, values: targetLocale ? [targetLocale] : [] },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
+                { name: 'projectType', type: 'enumeration', multiple: false, values: ['translation'] },
             ],
         });
         this.isNewTranslationProject = true;
@@ -191,6 +194,7 @@ class MasTranslationEditor extends LitElement {
         if (targetLocale) {
             Store.translationProjects.targetLocales.set([targetLocale]);
         }
+        Store.translationProjects.projectType.set('translation');
 
         this.showSelectedEmptyState = this.selectedCount === 0;
         this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
@@ -239,6 +243,8 @@ class MasTranslationEditor extends LitElement {
                 return Store.translationProjects.selectedCollections.value;
             case 'targetLocales':
                 return Store.translationProjects.targetLocales.value;
+            case 'projectType':
+                return [Store.translationProjects.projectType.value];
             default:
                 return field.values;
         }
@@ -258,6 +264,7 @@ class MasTranslationEditor extends LitElement {
             collections: { type: 'content-fragment', multiple: true },
             targetLocales: { type: 'text', multiple: true },
             submissionDate: { type: 'date-time', multiple: false },
+            projectType: { type: 'enumeration', multiple: false },
         };
 
         const fragmentPayload = {
@@ -306,6 +313,7 @@ class MasTranslationEditor extends LitElement {
         this.translationProject.updateField('placeholders', Store.translationProjects.selectedPlaceholders.value);
         this.translationProject.updateField('collections', Store.translationProjects.selectedCollections.value);
         this.translationProject.updateField('targetLocales', Store.translationProjects.targetLocales.value);
+        this.translationProject.updateField('projectType', [Store.translationProjects.projectType.value]);
         showToast('Updating the project...');
         try {
             await this.repository.saveFragment(this.translationProjectStore, false);
@@ -488,6 +496,12 @@ class MasTranslationEditor extends LitElement {
         target.dispatchEvent(closeEvent);
     };
 
+    #handleProjectTypeChange = ({ currentTarget }) => {
+        const projectType = currentTarget?.selected === 'rollout' ? 'rollout' : 'translation';
+        Store.translationProjects.projectType.set(projectType);
+        this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
+    };
+
     renderAddItemsDialog() {
         return html`
             <sp-dialog-wrapper
@@ -558,10 +572,12 @@ class MasTranslationEditor extends LitElement {
     render() {
         let metadataInfo = '';
         if (this.isProjectReadonly) {
+            const isRollout = Store.translationProjects.projectType.value === 'rollout';
             const submissionDate = this.translationProject?.getFieldValue('submissionDate');
             const formattedDate = submissionDate ? new Date(submissionDate).toLocaleDateString() : '';
             const submitter = this.translationProject?.modified?.fullName;
-            metadataInfo = `Sent to translation on ${formattedDate} by ${submitter}`;
+            const operation = isRollout ? 'synchronization' : 'translation';
+            metadataInfo = `This project was sent for ${operation} on ${formattedDate} by ${submitter} and can no longer be edited.`;
         }
         let createEditLabel = '';
         if (this.isNewTranslationProject) {
@@ -575,6 +591,13 @@ class MasTranslationEditor extends LitElement {
             ${this.renderConfirmDialog()}
 
             <div class="translation-editor-form">
+                ${this.isProjectReadonly
+                    ? html`<div class="metadata-info">
+                          <sp-icon-alert></sp-icon-alert>
+                          <h2>Read-only mode</h2>
+                          <span>${metadataInfo}</span>
+                      </div>`
+                    : nothing}
                 <div class="header">
                     <h1>${createEditLabel}</h1>
                 </div>
@@ -589,23 +612,42 @@ class MasTranslationEditor extends LitElement {
                           </div>
                       `
                     : html`<div class="form-field general-info">
-                    ${
-                        this.isProjectReadonly
-                            ? html`<div class="metadata-info">
-                                  <h2>Metadata</h2>
-                                  <sp-textfield readonly value="${metadataInfo}"></sp-textfield>
-                              </div>`
-                            : nothing
-                    }
                     <h2>General info</h2>
-                    <sp-field-label for="title" required>Title</sp-field-label>
-                    <sp-textfield
-                        id="title"
-                        data-field="title"
-                        value="${this.translationProject?.getFieldValue('title') || ''}"
-                        ?readonly=${this.isProjectReadonly}
-                        @input=${this.#handleFragmentUpdate}
-                    ></sp-textfield>
+                    <div class="general-info-columns">
+                        <div class="general-info-col">
+                            <sp-field-label for="title" required>Title</sp-field-label>
+                            ${
+                                this.isProjectReadonly
+                                    ? html`<span id="title">${this.translationProject?.getFieldValue('title') || ''}</span>`
+                                    : html`<sp-textfield
+                                          id="title"
+                                          data-field="title"
+                                          value="${this.translationProject?.getFieldValue('title') || ''}"
+                                          @input=${this.#handleFragmentUpdate}
+                                      ></sp-textfield>`
+                            }
+                        </div>
+                        <div class="general-info-col">
+                            <sp-field-label for="projectType" required>Project Type</sp-field-label>
+                            ${
+                                this.isProjectReadonly
+                                    ? html`<span id="projectType"
+                                          >${Store.translationProjects.projectType.value === 'rollout'
+                                              ? 'Rollout'
+                                              : 'Translation'}</span
+                                      >`
+                                    : html`<sp-radio-group
+                                          id="projectType"
+                                          name="projectType"
+                                          .selected=${Store.translationProjects.projectType.value}
+                                          @change=${this.#handleProjectTypeChange}
+                                      >
+                                          <sp-radio value="translation">Translation</sp-radio>
+                                          <sp-radio value="rollout">Rollout</sp-radio>
+                                      </sp-radio-group>`
+                            }
+                        </div>
+                    </div>
                 </div>
                 ${
                     this.showLangSelectedEmptyState

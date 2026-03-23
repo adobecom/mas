@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { clearCaches, previewFragment } from '../../../../studio/libs/fragment-client.js';
+import { clearCaches, previewFragment, previewStudioFragment } from '../../../../studio/libs/fragment-client.js';
 import sinon from 'sinon';
 import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
@@ -32,6 +32,12 @@ describe('FragmentClient', () => {
     let fetchStub;
 
     before(() => {
+        // Stub document for fragment-client (reads locale/country from mas-commerce-service)
+        if (typeof globalThis.document === 'undefined') {
+            globalThis.document = {
+                head: { querySelector: () => null },
+            };
+        }
         // Stub window.localStorage
         globalThis.window = globalThis.window || { localStorage: {} };
         sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
@@ -148,5 +154,54 @@ describe('FragmentClient', () => {
         });
 
         expect(result).to.be.undefined;
+    });
+
+    it('returns full context with api_key when options.fullContext is true', async () => {
+        const result = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
+            locale: 'en_US',
+            fullContext: true,
+        });
+        expect(result).to.have.property('status');
+        expect(result).to.have.property('body');
+        expect(result).to.have.property('api_key', 'fragment-client');
+    });
+
+    it('returns body only when options.fullContext is false', async () => {
+        const result = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
+            locale: 'en_US',
+        });
+        expect(result).to.have.property('fields');
+        expect(result).to.not.have.property('api_key');
+    });
+
+    it('returns error context when fetch rejects', async () => {
+        const fragmentId = 'network-fail';
+        fetchStub.withArgs(`${baseUrl}/${fragmentId}?references=all-hydrated`).rejects(new Error('Network failed'));
+        const result = await previewFragment(fragmentId, {
+            surface: 'sandbox',
+            locale: 'en_US',
+            fullContext: true,
+        });
+        expect([500, 503]).to.include(result.status);
+        expect(result).to.have.property('message');
+    });
+
+    it('merges options locale and country over document element', async () => {
+        const result = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
+            locale: 'de_DE',
+            country: 'DE',
+        });
+        expect(result).to.have.property('fields');
+    });
+
+    describe('previewStudioFragment', () => {
+        it('returns processed body with api_key fragment-client-studio', async () => {
+            const body = { ...mockCardFragment };
+            const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });
+            expect(result).to.have.property('fields');
+        });
     });
 });

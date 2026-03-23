@@ -242,3 +242,6 @@ export const TABLE_TYPE = {
 };
 
 export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];
+
+/** Base URL for Odin preview fragment-by-path checks (e.g. fil_PH .json endpoint). */
+export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';

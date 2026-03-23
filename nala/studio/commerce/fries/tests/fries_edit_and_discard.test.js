@@ -18,12 +18,12 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-2: Remove badge field', async () => {
             await expect(await editor.trialBadge).toBeVisible();
-            await expect(await editor.trialBadge).toHaveValue(data.trialBadge.original);
+            await expect(await editor.trialBadge).toHaveText(data.trialBadge.original);
             await editor.trialBadge.fill('');
         });
 
         await test.step('step-3: Validate badge field is removed', async () => {
-            await expect(await editor.trialBadge).toHaveValue('');
+            await expect(await editor.trialBadge).toHaveText('');
             await expect(await fries.trialBadge).not.toBeVisible();
         });
 
@@ -32,7 +32,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-5: Validate badge field updated', async () => {
-            await expect(await editor.trialBadge).toHaveValue(data.trialBadge.updated);
+            await expect(await editor.trialBadge).toHaveText(data.trialBadge.updated);
             await expect(await fries.trialBadge).toHaveText(data.trialBadge.updated);
         });
 

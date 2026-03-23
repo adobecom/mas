@@ -1619,7 +1619,7 @@ class MerchCardEditor extends LitElement {
         const hasInlinePrice = badgeEl?.querySelector?.('span[is="inline-price"]');
         const text = hasInlinePrice ? badgeEl.innerHTML : badgeEl?.textContent || '';
         const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
-        const bgColor = bgColorAttr?.toLowerCase();
+        const bgColor = bgColorAttr?.toLowerCase() || 'spectrum-yellow-300';
 
         const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
         const borderColor = borderColorAttr?.toLowerCase();
@@ -1663,7 +1663,7 @@ class MerchCardEditor extends LitElement {
         const hasInlinePrice = this.trialBadgeElement?.querySelector?.('span[is="inline-price"]');
         const text = hasInlinePrice ? this.trialBadgeElement.innerHTML : this.trialBadgeElement?.textContent || '';
         const bgColorAttr = this.trialBadgeElement?.getAttribute?.('background-color');
-        const bgColor = bgColorAttr?.toLowerCase();
+        const bgColor = bgColorAttr?.toLowerCase() || 'spectrum-yellow-300';
 
         const borderColorAttr = this.trialBadgeElement?.getAttribute?.('border-color');
         const borderColor = borderColorAttr?.toLowerCase();

@@ -660,9 +660,15 @@
                         qsCheckboxEl.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
                         expect(qsDiv.style.display).to.equal('block');
 
-                        const qsTitleEl = qsDiv.querySelector('quantity-select-field').shadowRoot.querySelector('sp-textfield#quantity-selector-title');
-                        const qsStartEl = qsDiv.querySelector('quantity-select-field').shadowRoot.querySelector('sp-textfield#quantity-selector-start');
-                        const qsStepEl = qsDiv.querySelector('quantity-select-field').shadowRoot.querySelector('sp-textfield#quantity-selector-step');
+                        const qsTitleEl = qsDiv
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('sp-textfield#quantity-selector-title');
+                        const qsStartEl = qsDiv
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('sp-textfield#quantity-selector-start');
+                        const qsStepEl = qsDiv
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('sp-textfield#quantity-selector-step');
 
                         qsTitleEl.value = 'QS';
                         qsTitleEl.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
@@ -701,7 +707,7 @@
                         qsOverrideEl = qsCheckboxEl.closest('sp-field-group').querySelector('.field-status-indicator a');
                         expect(qsOverrideEl).to.not.exist;
                         expect(qsDiv.style.display).to.equal('none');
-                    });                    
+                    });
 
                     describe('getWhatsIncludedProps', () => {
                         it('extracts icon, alt, and description from a merch-icon element', async () => {

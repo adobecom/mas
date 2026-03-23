@@ -74,7 +74,7 @@ export default class EditorPage {
         this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
         this.titleFieldGroup = this.panel.locator('sp-field-group#title');
 
-        this.trialBadge = this.panel.locator('#card-trial-badge input');
+        this.trialBadge = this.panel.locator('sp-field-group#trialBadge rte-field#card-trial-badge div.ProseMirror');
         this.trialBadgeFieldGroup = this.panel.locator('sp-field-group#trialBadge');
         this.trialBadgeBorderColor = this.panel.locator('sp-picker#trialBadgeBorderColor');
         this.trialBadgeBorderColorFieldGroup = this.panel.locator('sp-field-group#trialBadgeBorderColor');

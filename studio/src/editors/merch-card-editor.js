@@ -848,14 +848,16 @@ class MerchCardEditor extends LitElement {
                     </sp-field-group>
                     <sp-field-group class="toggle" id="trialBadge">
                         <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter badge text"
+                        <rte-field
                             id="card-trial-badge"
+                            inline
+                            hide-format-buttons
                             data-field="trialBadge"
                             data-field-state="${this.getBadgeComponentState('trialBadge', 'text')}"
-                            value="${this.trialBadge.text}"
-                            @input="${this.#updateTrialBadgeText}"
-                        ></sp-textfield>
+                            .osi="${form.osi.values[0]}"
+                            .value="${this.trialBadge.text}"
+                            @change="${this.#updateTrialBadgeText}"
+                        ></rte-field>
                         ${this.renderBadgeComponentOverrideIndicator('trialBadge', 'text')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="badgeIcon">
@@ -1658,14 +1660,13 @@ class MerchCardEditor extends LitElement {
             };
         }
 
-        const text = this.trialBadgeElement?.textContent || '';
+        const hasInlinePrice = this.trialBadgeElement?.querySelector?.('span[is="inline-price"]');
+        const text = hasInlinePrice ? this.trialBadgeElement.innerHTML : this.trialBadgeElement?.textContent || '';
         const bgColorAttr = this.trialBadgeElement?.getAttribute?.('background-color');
-        const bgColorSelected = document.querySelector('sp-picker[data-field="trialBadgeColor"]')?.value;
-        const bgColor = bgColorAttr?.toLowerCase() || bgColorSelected || 'spectrum-yellow-300';
+        const bgColor = bgColorAttr?.toLowerCase();
 
         const borderColorAttr = this.trialBadgeElement?.getAttribute?.('border-color');
-        const borderColorSelected = document.querySelector('sp-picker[data-field="trialBadgeBorderColor"]')?.value;
-        const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
+        const borderColor = borderColorAttr?.toLowerCase();
 
         return {
             text,
@@ -1821,7 +1822,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateTrialBadgeText(event) {
-        const text = event.target.value?.trim() || '';
+        const text = event.target.value || '';
         if (this.supportsBadgeColors) {
             this.#displayTrialBadgeColorFields(text);
             this.#updateTrialBadge(text, this.trialBadge.bgColor, this.trialBadge.borderColor);

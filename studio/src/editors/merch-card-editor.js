@@ -1619,7 +1619,7 @@ class MerchCardEditor extends LitElement {
         const hasInlinePrice = badgeEl?.querySelector?.('span[is="inline-price"]');
         const text = hasInlinePrice ? badgeEl.innerHTML : badgeEl?.textContent || '';
         const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
-        const bgColor = bgColorAttr?.toLowerCase() || 'spectrum-yellow-300';
+        const bgColor = bgColorAttr?.toLowerCase();
 
         const borderColorAttr = this.badgeElement?.getAttribute?.('border-color');
         const borderColor = borderColorAttr?.toLowerCase();

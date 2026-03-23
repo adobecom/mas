@@ -136,6 +136,7 @@ const Store = {
 
         targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
+        projectType: new ReactiveStore(null),
     },
 };
 

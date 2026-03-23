@@ -201,7 +201,9 @@ class MasContent extends LitElement {
             default:
                 view = this.renderView;
         }
-        return html`<div id="content">${this.hasEmptySearchResult ? this.emptyState : view} ${this.firstPageLoadingSpinner}</div>
+        return html`<div id="content">
+                ${this.hasEmptySearchResult ? this.emptyState : view} ${this.firstPageLoadingSpinner}
+            </div>
             ${this.pageLoadingSpinner}`;
     }
 }

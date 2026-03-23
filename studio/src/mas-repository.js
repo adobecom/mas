@@ -7,7 +7,15 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
+import {
+    debounce,
+    looseEquals,
+    showToast,
+    UserFriendlyError,
+    extractLocaleFromPath,
+    extractSurfaceFromPath,
+    isUUID,
+} from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -71,11 +79,6 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     cacheData.fields = normalizedFields;
 
     fragmentCache.add(cacheData);
-}
-
-function isUUID(str) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(str);
 }
 
 export class MasRepository extends LitElement {

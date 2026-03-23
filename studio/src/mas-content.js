@@ -3,12 +3,12 @@ import { repeat } from 'lit/directives/repeat.js';
 import StoreController from './reactivity/store-controller.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Store from './store.js';
+import { isUUID } from './utils.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
-const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 class MasContent extends LitElement {
     createRenderRoot() {
@@ -168,13 +168,13 @@ class MasContent extends LitElement {
     }
 
     get emptyStateTitle() {
-        return uuidRegex.test(this.search.value.query) ? 'No fragment found' : 'No fragments found';
+        return isUUID(this.search.value.query) ? 'No fragment found' : 'No fragments found';
     }
 
     get emptyStateDescription() {
         const locale = this.filters.value.locale;
         const query = this.search.value.query;
-        if (uuidRegex.test(query)) {
+        if (isUUID(query)) {
             return `No fragment with ID "${query}" exists in the ${locale} locale.`;
         }
         return `No fragments match "${query}" in the ${locale} locale.`;

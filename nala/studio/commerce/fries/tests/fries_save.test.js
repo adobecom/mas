@@ -67,7 +67,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
             const results = await Promise.allSettled([
                 test.step('Validation-1: Verify trial badge saved', async () => {
-                    await expect(await editor.trialBadge).toHaveValue(data.trialBadge);
+                    await expect(await editor.trialBadge).toHaveText(data.trialBadge);
                     await expect(await fries.trialBadge).toHaveText(data.trialBadge);
                 }),
 

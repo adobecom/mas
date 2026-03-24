@@ -4,6 +4,10 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="mas-io-url" content="http://localhost:2023/mas/io" />
+        <link
+            rel="stylesheet"
+            href="https://www.adobe.com/libs/styles/styles.css"
+        />
         <title>mas-table test page</title>
         <script>
             window.process = {
@@ -11,127 +15,345 @@
             };
         </script>
         <style>
+            html,
+            body {
+                min-width: 1440px;
+                margin: 0;
+            }
+
             main {
                 display: flex;
                 align-items: center;
                 gap: 20px;
                 flex-direction: column;
                 padding: 80px 24px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            sp-theme {
+                display: block;
+                width: 100%;
             }
 
             mas-table {
+                display: block;
                 width: 100%;
                 max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .table > .row {
+                display: grid;
+                grid-template-columns: repeat(5, 240px);
+            }
+
+            .table .row-heading .col.col-heading .heading-button {
+                display: flex;
+                flex: 1 1 auto;
+                flex-direction: column;
+                justify-content: flex-end;
+            }
+
+            .table .row-heading .col.col-heading .buttons-wrapper {
+                margin-top: auto;
             }
         </style>
+        <link
+            rel="stylesheet"
+            href="https://www.adobe.com/libs/styles/styles.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://www.adobe.com/libs/blocks/table/table.css"
+        />
         <script type="module">
+            import './spectrum.js';
             import { runTests } from '@web/test-runner-mocha';
             import chai, { expect } from '@esm-bundle/chai';
             import chaiAsPromised from '@esm-bundle/chai-as-promised';
 
-            import { mockFetch } from './mocks/fetch.js';
-            import { withWcs } from './mocks/wcs.js';
-            import { withAem } from './mocks/aem.js';
-            import {
-                delay,
-                getTemplateContent,
-                oneEvent,
-                toggleDesktop,
-                toggleMobile,
-            } from './utils.js';
+            import { toggleDesktop } from './utils.js';
             import '../src/mas.js';
-            import {
-                EVENT_MAS_ERROR,
-                EVENT_MAS_READY,
-            } from '../src/constants.js';
 
             chai.use(chaiAsPromised);
 
             runTests(async () => {
-                const [merchFixture] = await Promise.all([
-                    fetch(
-                        'mocks/sites/fragments/fragment-table-merch.json',
-                    ).then((res) => res.json()),
-                ]);
-                const standardFixture = {
-                    path: '/content/dam/mas/tables/fragment-table-standard',
-                    name: 'fragment-table-standard',
-                    title: 'Standard Table',
-                    id: 'fragment-table-standard',
-                    description: '',
-                    model: {
-                        id: 'table',
-                    },
-                    fields: {
-                        blockName: 'Table',
-                        compareChart: {
-                            value: document
-                                .getElementById('standard-table-compare-chart')
-                                .innerHTML.trim(),
-                            mimeType: 'text/html',
-                        },
-                    },
+                const spTheme = document.querySelector('sp-theme');
+                const nextFrame = () =>
+                    new Promise((resolve) => requestAnimationFrame(resolve));
+                const settleMasElements = async (root) => {
+                    const elements = [
+                        ...root.querySelectorAll(
+                            'span[is="inline-price"][data-wcs-osi], a[is="checkout-link"][data-wcs-osi]',
+                        ),
+                    ];
+                    await Promise.all(
+                        elements.map((element) => {
+                            if (typeof element.onceSettled !== 'function') {
+                                return Promise.resolve();
+                            }
+                            return element.onceSettled().catch(() => {});
+                        }),
+                    );
                 };
-                const withStandardTableTemplate = async () => {
-                    return async ({ pathname }) => {
-                        if (
-                            pathname !==
-                            '/test/mocks/sites/fragments/fragment-table-standard.json'
-                        ) {
-                            return false;
-                        }
-                        return new Response(JSON.stringify(standardFixture), {
-                            status: 200,
-                            headers: {
-                                'Content-Type': 'application/json',
+                const waitForTableLayout = async (tableHost) => {
+                    await settleMasElements(tableHost);
+                    if (document.fonts?.ready) {
+                        await document.fonts.ready.catch(() => {});
+                    }
+                    await nextFrame();
+                    await nextFrame();
+                    await new Promise((resolve) => setTimeout(resolve, 150));
+                };
+
+                const appendStandardTable = () => {
+                    const wrapper = document.createElement('section');
+                    const TableCtor = customElements.get('mas-table');
+                    const tableHost = new TableCtor();
+                    tableHost.id = 'table-standard';
+                    wrapper.append(tableHost);
+                    spTheme.append(wrapper);
+
+                    return tableHost;
+                };
+
+                const buildHydratedCompareChartFragment = () => {
+                    const compareChart = `
+                        <div class="table compare-chart-features">
+                            <div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                            </div>
+                            <div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                            </div>
+                            <div>
+                                <div></div>
+                                <div><hr /></div>
+                                <div><hr /></div>
+                                <div><hr /></div>
+                                <div><hr /></div>
+                            </div>
+                            <div>
+                                <div>Cloud storage</div>
+                                <div>100GB</div>
+                                <div>100GB</div>
+                                <div>1TB</div>
+                                <div>100GB</div>
+                            </div>
+                        </div>
+                    `.trim();
+
+                    const card = ({
+                        id,
+                        title,
+                        description,
+                        priceHtml,
+                        ctasHtml,
+                        icon,
+                        iconAlt,
+                        badge = '',
+                    }) => ({
+                        type: 'content-fragment',
+                        value: {
+                            id,
+                            title,
+                            fields: {
+                                cardTitle: title,
+                                description: `<p>${description}</p>`,
+                                prices: priceHtml,
+                                ctas: ctasHtml,
+                                mnemonicIcon: [icon],
+                                mnemonicAlt: [iconAlt],
+                                badge,
                             },
-                        });
-                    };
-                };
-
-                const { cache } = customElements.get('aem-fragment');
-
-                describe('mas-table', () => {
-                    let aemMock;
-                    let testCaseId = 0;
-                    const spTheme = document.querySelector('sp-theme');
-
-                    const appendTestCase = (templateId) => {
-                        testCaseId += 1;
-                        const wrapper = document.createElement('section');
-                        wrapper.dataset.testCase = String(testCaseId);
-                        const [tableHost] = getTemplateContent(templateId);
-                        wrapper.append(tableHost);
-                        spTheme.append(wrapper);
-                        return tableHost;
-                    };
-
-                    beforeEach(async () => {
-                        await toggleDesktop();
-                        [, aemMock] = await mockFetch(
-                            withWcs,
-                            withAem,
-                            withStandardTableTemplate,
-                        );
-                        cache.clear();
+                        },
                     });
 
-                    it('renders a fragment-backed table from cache', async () => {
-                        cache.add(standardFixture);
-                        const tableHost = appendTestCase('standard-table');
+                    return {
+                        fields: {
+                            blockName: 'Table',
+                            selectedVariantNames: [
+                                'header-left',
+                                'sticky',
+                                'pricing-bottom',
+                                'highlight',
+                            ],
+                            cards: ['ps', 'ff', 'photo', 'cc'],
+                            compareChart: {
+                                value: compareChart,
+                                mimeType: 'text/html',
+                            },
+                        },
+                        references: [
+                            card({
+                                id: 'ps',
+                                title: 'Photoshop',
+                                description:
+                                    'Photoshop on desktop, web, and mobile, plus Adobe Express Premium plan.',
+                                priceHtml: `<span is="inline-price" data-display-per-unit="false" data-display-recurrence="true" data-display-tax="false" data-force-tax-exclusive="false" data-quantity="1" data-template="price" data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"></span>`,
+                                ctasHtml: `
+                                    <a
+                                        is="checkout-link"
+                                        data-checkout-workflow-step="commitment"
+                                        data-quantity="1"
+                                        data-wcs-osi="ZQwlmahh5YRWh8mRGxo-cr3eu91ShbpRv6vkbcsi3eQ"
+                                        data-extra-options="{}"
+                                        class="con-button outline button-l"
+                                        aria-label="Free trial Photoshop"
+                                        href="https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=E27CB5D79014ACAB6953B091CEA72228"
+                                    >Free trial</a>
+                                    <a
+                                        is="checkout-link"
+                                        data-checkout-workflow-step="commitment"
+                                        data-quantity="1"
+                                        data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                                        data-extra-options="{}"
+                                        class="con-button blue button-l"
+                                        aria-label="Buy now Photoshop"
+                                        href="https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=30404A88D89A328584307175B8B27616"
+                                    >Buy now</a>
+                                `,
+                                icon: '/test/mocks/img/photoshop.svg',
+                                iconAlt: 'Photoshop Product Icon',
+                            }),
+                            card({
+                                id: 'ff',
+                                title: 'Firefly Pro',
+                                description:
+                                    'Get 4,000 credits for creative AI, plus Photoshop on web and mobile.',
+                                priceHtml: `<span is="inline-price" data-display-per-unit="false" data-quantity="1" data-template="price" data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"></span>`,
+                                ctasHtml: `
+                                    <a
+                                        is="checkout-link"
+                                        data-checkout-workflow-step="commitment"
+                                        data-quantity="1"
+                                        data-wcs-osi="eK8no6JfQYYW5nF5e4Txie6Orvqa0uqY1i_KB1f6fRs"
+                                        data-extra-options="{}"
+                                        class="con-button outline button-l"
+                                        aria-label="Free trial Firefly Pro"
+                                        href="https://commerce.adobe.com/store/commitment"
+                                    >Free trial</a>
+                                    <a
+                                        is="checkout-link"
+                                        data-checkout-workflow-step="commitment"
+                                        data-quantity="1"
+                                        data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"
+                                        data-extra-options="{}"
+                                        class="con-button blue button-l"
+                                        aria-label="Buy now Firefly Pro"
+                                        href="https://commerce.adobe.com/store/commitment"
+                                    >Buy now</a>
+                                `,
+                                icon: '/test/mocks/img/firefly.svg',
+                                iconAlt: 'Firefly Product Icon',
+                            }),
+                            card({
+                                id: 'photo',
+                                title: 'Photography',
+                                description:
+                                    'Photoshop on desktop, web and mobile, plus Lightroom and Lightroom Classic.',
+                                priceHtml: `<span is="inline-price" data-display-per-unit="false" data-display-recurrence="true" data-display-tax="false" data-force-tax-exclusive="false" data-quantity="1" data-template="price" data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"></span>`,
+                                ctasHtml: `
+                                    <a
+                                        is="checkout-link"
+                                        data-checkout-workflow-step="commitment"
+                                        data-quantity="1"
+                                        data-wcs-osi="FZcKVrKIV8OT8_qw6n1Qn0uCKxliKJ66J9W6R7B6CVQ"
+                                        data-extra-options="{}"
+                                        class="con-button outline button-l"
+                                        aria-label="Free trial Photography"
+                                        href="https://commerce.adobe.com/store/commitment"
+                                    >Free trial</a>
+                                    <a
+                                        is="checkout-link"
+                                        data-checkout-workflow-step="commitment"
+                                        data-quantity="1"
+                                        data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"
+                                        data-extra-options="{}"
+                                        class="con-button blue button-l"
+                                        aria-label="Buy now Photography"
+                                        href="https://commerce.adobe.com/store/commitment"
+                                    >Buy now</a>
+                                `,
+                                icon: '/test/mocks/img/photoshop.svg',
+                                iconAlt: 'Photography Product Icon',
+                            }),
+                            card({
+                                id: 'cc',
+                                title: 'Creative Cloud Pro',
+                                description:
+                                    'Save 50% for the first 3 months. Get Photoshop and 20+ apps.',
+                                priceHtml: `<span is="inline-price" data-display-per-unit="false" data-display-recurrence="true" data-display-tax="false" data-display-old-price="true" data-force-tax-exclusive="false" data-promotion-code="CCI_50_3_IP_US" data-quantity="1" data-template="price" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"></span>`,
+                                ctasHtml: `
+                                    <a
+                                        is="checkout-link"
+                                        data-checkout-workflow-step="segmentation"
+                                        data-modal="twp"
+                                        data-quantity="1"
+                                        data-wcs-osi="JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg"
+                                        data-extra-options="{}"
+                                        class="con-button outline button-l"
+                                        aria-label="Free trial Creative Cloud Pro"
+                                        href="https://commerce.adobe.com/store/segmentation"
+                                    >Free trial</a>
+                                    <a
+                                        is="checkout-link"
+                                        data-checkout-workflow-step="segmentation"
+                                        data-modal="crm"
+                                        data-quantity="1"
+                                        data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"
+                                        data-extra-options="{}"
+                                        class="con-button blue button-l"
+                                        aria-label="Buy now Creative Cloud Pro"
+                                        href="https://commerce.adobe.com/store/segmentation"
+                                    >Buy now</a>
+                                `,
+                                icon: '/test/mocks/img/creative-cloud.svg',
+                                iconAlt: 'Creative Cloud Product Icon',
+                                badge: 'Save 50%',
+                            }),
+                        ],
+                    };
+                };
 
-                        await tableHost.checkReady();
+                describe('mas-table', () => {
+                    beforeEach(async () => {
+                        await toggleDesktop();
+                        spTheme.replaceChildren();
+                    });
 
-                        expect(aemMock.count).to.equal(0);
-                        expect(tableHost.aemFragment).to.exist;
-                        expect(tableHost.aemFragment.hasAttribute('hidden')).to
-                            .be.true;
+                    it('renders the replicated Adobe Photoshop plans table from cache', async () => {
+                        const tableHost = appendStandardTable();
+                        await tableHost.renderFragment({
+                            fields: {
+                                blockName: 'Table',
+                                compareChart: {
+                                    value: document
+                                        .getElementById(
+                                            'standard-table-compare-chart',
+                                        )
+                                        .innerHTML.trim(),
+                                    mimeType: 'text/html',
+                                },
+                            },
+                        });
+                        await waitForTableLayout(tableHost);
 
-                        const table =
-                            tableHost.shadowRoot.querySelector('.table');
+                        const table = tableHost.querySelector('.table');
                         expect(table).to.exist;
-                        expect(table.classList.contains('highlight')).to.be
-                            .true;
+                        expect(
+                            tableHost.querySelector('.mas-table-scratch')
+                                ?.hidden,
+                        ).to.equal(true);
                         expect(table.classList.contains('sticky')).to.be.true;
                         expect(table.classList.contains('pricing-bottom')).to.be
                             .true;
@@ -139,156 +361,180 @@
                             .true;
                         expect(table.classList.contains('has-addon')).to.be
                             .true;
-                        expect(table.querySelector('.row-highlight')).to.exist;
-                        expect(table.querySelector('.row-heading')).to.exist;
+                        expect(table.classList.contains('highlight')).to.be
+                            .true;
+                        const highlightRow =
+                            table.querySelector('.row-highlight');
+                        expect(highlightRow).to.exist;
                         expect(
-                            table.querySelector(
-                                '.row-heading .col-2 .content-before.addon-label',
+                            highlightRow
+                                .querySelector('.col-1')
+                                ?.classList.contains('hidden'),
+                        ).to.equal(true);
+                        expect(
+                            highlightRow
+                                .querySelector('.col-5')
+                                ?.textContent?.trim(),
+                        ).to.equal('Save 50%');
+                        expect(table.querySelectorAll('.row')).to.have.length(
+                            19,
+                        );
+                        expect(getComputedStyle(table).width).to.equal(
+                            '1200px',
+                        );
+
+                        const headings = Array.from(
+                            table.querySelectorAll(
+                                '.row-heading .tracking-header',
+                            ),
+                        ).map((heading) => heading.textContent.trim());
+                        expect(headings).to.deep.equal([
+                            'Photoshop',
+                            'Firefly Pro',
+                            'Photography',
+                            'Creative Cloud Pro',
+                        ]);
+
+                        expect(
+                            table
+                                .querySelector('.row-heading .col-2 .body')
+                                ?.textContent?.replace(/\s+/g, ' ')
+                                .trim(),
+                        ).to.include(
+                            'Photoshop on desktop, web, and mobile, plus Adobe Express Premium plan.',
+                        );
+                        expect(
+                            table
+                                .querySelector('.row-heading .col-5 .body')
+                                ?.textContent?.replace(/\s+/g, ' ')
+                                .trim(),
+                        ).to.include(
+                            'Save 50% for the first 3 months. Get Photoshop and 20+ apps.',
+                        );
+                        const pricingAfter = Array.from(
+                            table.querySelectorAll(
+                                '.row-heading .pricing-after [data-template="legal"]',
+                            ),
+                        ).map((item) => item.getAttribute('data-wcs-osi'));
+                        expect(pricingAfter).to.deep.equal([
+                            'A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M',
+                            'msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM',
+                            'MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4',
+                            'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
+                        ]);
+
+                        expect(
+                            table.querySelectorAll('span[is="inline-price"]')
+                                .length,
+                        ).to.be.at.least(10);
+                        expect(
+                            table.querySelectorAll(
+                                '.row-heading a[is="checkout-link"]',
+                            ),
+                        ).to.have.length(8);
+                        expect(
+                            Array.from(table.querySelectorAll('.row')).find(
+                                (row) =>
+                                    row.querySelector('.col-1')?.textContent?.trim() ===
+                                    'Price',
+                            )?.querySelector('.col-5 [data-template="strikethrough"]'),
+                        ).to.exist;
+                        expect(
+                            Array.from(table.querySelectorAll('.col-1 a')).find(
+                                (link) =>
+                                    link.textContent?.trim() === 'Generative credits',
+                            )?.textContent,
+                        ).to.equal('Generative credits');
+                        expect(
+                            Array.from(table.querySelectorAll('.col-1 a')).find(
+                                (link) =>
+                                    link.textContent?.trim() ===
+                                    '20+ desktop and mobile apps',
+                            )?.textContent,
+                        ).to.equal('20+ desktop and mobile apps');
+
+                        const headingColumnWidths = Array.from(
+                            table.querySelectorAll('.row-heading > .col'),
+                        ).map((column) =>
+                            Math.round(column.getBoundingClientRect().width),
+                        );
+                        expect(headingColumnWidths).to.deep.equal([
+                            240, 240, 240, 240, 240,
+                        ]);
+                        
+                        const hydratedTableHost = appendStandardTable();
+                        await hydratedTableHost.renderFragment(
+                            buildHydratedCompareChartFragment(),
+                        );
+                        await waitForTableLayout(hydratedTableHost);
+
+                        const hydratedTable =
+                            hydratedTableHost.querySelector('.table');
+                        const photoshopHeading = hydratedTable.querySelector(
+                            '.row-heading .col-2.col-heading',
+                        );
+                        expect(photoshopHeading).to.exist;
+                        expect(
+                            photoshopHeading.querySelector(
+                                ':scope > .heading-content',
                             ),
                         ).to.exist;
                         expect(
-                            table.querySelector('.section-head'),
+                            photoshopHeading.querySelector(
+                                ':scope > .heading-button',
+                            ),
                         ).to.exist;
                         expect(
-                            table.querySelector('.row-heading .col-2 .body')
-                                ?.textContent,
-                        ).to.include('Spare 50 % auf die Vollversion');
-                        expect(
-                            table.querySelector('.row-heading .col-2 .pricing')
-                                ?.textContent,
-                        ).to.include('25,99');
-                        const highlightStyles = getComputedStyle(
-                            table.querySelector('.row-highlight .col-2'),
-                        );
-                        expect(highlightStyles.borderTopLeftRadius).to.equal(
-                            '16px',
-                        );
-                        expect(highlightStyles.borderTopRightRadius).to.equal(
-                            '16px',
-                        );
-                    });
-
-                    it('dispatches mas:ready for a rendered table', async () => {
-                        const tableHost = appendTestCase('standard-table');
-                        const masReady = oneEvent(tableHost, EVENT_MAS_READY);
-
-                        const readyEvent = await masReady;
-                        await tableHost.checkReady();
-
-                        expect(readyEvent.detail.measure).to.exist;
-                        expect(
-                            tableHost.shadowRoot.querySelector('.row-heading'),
+                            photoshopHeading.querySelector(
+                                '.header-product-tile mas-mnemonic',
+                            ),
                         ).to.exist;
-                    });
-
-                    it('re-renders cleanly after fragment refresh', async () => {
-                        const tableHost = appendTestCase('standard-table');
-
-                        await tableHost.checkReady();
-
-                        const heading = tableHost.shadowRoot.querySelector(
-                            '.row-heading .col-2 .tracking-header',
-                        );
-                        heading.setAttribute('data-test', 'stale');
-
-                        const aemFragment =
-                            tableHost.querySelector('aem-fragment');
-                        await aemFragment.refresh();
-                        await tableHost.checkReady();
-
-                        const refreshedHeading =
-                            tableHost.shadowRoot.querySelector(
-                                '.row-heading .col-2 .tracking-header',
-                            );
-                        expect(refreshedHeading.getAttribute('data-test')).to.be
-                            .null;
-                        expect(aemMock.count).to.equal(2);
-                    });
-
-                    it('renders mobile comparison filters', async () => {
-                        await toggleMobile();
-                        const tableHost = appendTestCase('standard-table');
-
-                        await tableHost.checkReady();
-                        await delay(150);
-
-                        const filters =
-                            tableHost.shadowRoot.querySelector('.filters');
-                        expect(filters).to.exist;
                         expect(
-                            filters.querySelectorAll('select.filter'),
+                            photoshopHeading.querySelector(
+                                '.tracking-header',
+                            )?.textContent?.trim(),
+                        ).to.equal('Photoshop');
+                        expect(
+                            photoshopHeading.querySelector(
+                                '.body',
+                            )?.textContent?.replace(/\s+/g, ' ').trim(),
+                        ).to.equal(
+                            'Photoshop on desktop, web, and mobile, plus Adobe Express Premium plan.',
+                        );
+                        expect(
+                            photoshopHeading.querySelector(
+                                '.heading-button > .pricing',
+                            ),
+                        ).to.exist;
+                        expect(
+                            photoshopHeading.querySelector(
+                                '.heading-button > .pricing-after [data-template="legal"]',
+                            ),
+                        ).to.exist;
+                        expect(
+                            photoshopHeading.querySelectorAll(
+                                '.buttons-wrapper > *',
+                            ),
                         ).to.have.length(2);
-                    });
-
-                    it('hydrates merch heading columns from referenced cards and falls back to authored HTML', async () => {
-                        cache.add(merchFixture);
-                        const tableHost = appendTestCase('merch-table');
-
-                        await tableHost.checkReady();
-
-                        const table =
-                            tableHost.shadowRoot.querySelector('.table');
-                        const highlightOne = table.querySelector(
-                            '.row-highlight .col-1',
-                        );
-                        const highlightTwo = table.querySelector(
-                            '.row-highlight .col-2',
-                        );
-                        const headingOne = table.querySelector(
-                            '.row-heading .col-1',
-                        );
-                        const headingTwo = table.querySelector(
-                            '.row-heading .col-2',
-                        );
-
-                        expect(table.classList.contains('merch')).to.be.true;
-                        expect(highlightOne.textContent.trim()).to.equal(
-                            'Save 65%',
-                        );
-                        expect(highlightOne.style.backgroundColor).to.equal(
-                            'rgb(20, 115, 230)',
-                        );
-                        expect(highlightOne.style.color).to.equal(
-                            'rgb(255, 255, 255)',
-                        );
-                        expect(highlightTwo.textContent.trim()).to.equal(
-                            'Best for power users',
-                        );
-                        expect(headingOne.textContent).to.include(
-                            'Starter from fragment',
-                        );
-                        expect(headingOne.textContent).to.include('US$9.99/mo');
-                        expect(headingOne.textContent).to.include(
-                            'Buy starter',
-                        );
-                        expect(headingOne.querySelector('mas-mnemonic')).to
-                            .exist;
                         expect(
-                            headingOne.querySelector(
-                                '.buttons-wrapper .action-area',
+                            photoshopHeading.querySelector(
+                                '.buttons-wrapper > div.supplemental-text.body-xl.action-area',
                             ),
                         ).to.exist;
-
-                        expect(headingTwo.textContent).to.include(
-                            'Fallback Pro',
-                        );
-                        expect(headingTwo.textContent).to.include(
-                            'Fallback Pro CTA',
-                        );
+                        expect(
+                            Array.from(
+                                hydratedTable.querySelectorAll('.table-title-text'),
+                            ).some(
+                                (node) => node.textContent?.replace(/\s+/g, ' ').trim() === '-',
+                            ),
+                        ).to.equal(false);
+                        expect(
+                            hydratedTable.querySelector(
+                                '.row-highlight .col-5.col-highlight',
+                            )?.textContent?.trim(),
+                        ).to.equal('Save 50%');
                     });
 
-                    it('fails when compareChart is missing', async () => {
-                        const tableHost = appendTestCase('invalid-table');
-                        const masError = oneEvent(tableHost, EVENT_MAS_ERROR);
-
-                        const errorEvent = await masError;
-                        await expect(tableHost.checkReady()).to.be.rejected;
-
-                        expect(tableHost.hasAttribute('failed')).to.be.true;
-                        expect(errorEvent.detail.message).to.equal(
-                            'compareChart field is missing',
-                        );
-                    });
                 });
             });
         </script>
@@ -302,157 +548,458 @@
             <sp-theme color="light" scale="medium"></sp-theme>
         </main>
 
-        <template id="standard-table">
-            <mas-table id="table-standard">
-                <aem-fragment fragment="fragment-table-standard"></aem-fragment>
-            </mas-table>
-        </template>
-
         <template id="standard-table-compare-chart">
             <div
-                class="table highlight sticky pricing-bottom header-left"
-                daa-lh="b2|t1Ein--table"
+                class="table sticky pricing-bottom header-left has-addon highlight"
+                daa-lh="b2|t1Ind--table"
             >
                 <div>
                     <div></div>
-                    <div>50 % Rabatt für 3 Monate</div>
                     <div></div>
                     <div></div>
-                    <div>50 % Rabatt für 3 Monate</div>
+                    <div></div>
+                    <div>Save 50%</div>
                 </div>
                 <div>
                     <div></div>
                     <div>
-                        <p class="header-product-tile">
-                            <mas-mnemonic
-                                src="/test/mocks/img/photoshop.svg"
-                                size="l"
-                                aria-label="Photoshop-Icon"
-                                role="img"
-                            ></mas-mnemonic>
-                        </p>
+                        <mas-mnemonic
+                            src="/test/mocks/img/photoshop.svg"
+                            size="l"
+                            aria-label="Photoshop Product Icon"
+                            role="img"
+                        ></mas-mnemonic>
                         <p>Photoshop</p>
                         <p>
-                            Spare 50 % auf die Vollversion von Photoshop auf dem
-                            Desktop, Smartphone und Tablet sowie im Web.
+                            Photoshop on desktop, web, and mobile, plus Adobe
+                            Express Premium plan.
                         </p>
                         <p>
-                            <span>25,99 € /Monat</span><br />
-                            <span>12,99 € /Monat inkl. MwSt.</span>
+                            <span
+                                is="inline-price"
+                                data-display-per-unit="false"
+                                data-display-recurrence="true"
+                                data-display-tax="false"
+                                data-force-tax-exclusive="false"
+                                data-quantity="1"
+                                data-template="price"
+                                data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                                class="placeholder-resolved"
+                                ><span class="price"
+                                    ><span class="price-currency-symbol"
+                                        >US$</span
+                                    ><span
+                                        class="price-currency-space disabled"
+                                    ></span
+                                    ><span class="price-integer">22</span
+                                    ><span class="price-decimals-delimiter"
+                                        >.</span
+                                    ><span class="price-decimals">99</span
+                                    ><span class="price-recurrence">/mo</span
+                                    ><span
+                                        class="price-unit-type disabled"
+                                    ></span
+                                    ><span
+                                        class="price-tax-inclusivity disabled"
+                                    ></span></span
+                            ></span>
                         </p>
                         <p>
-                            <em
-                                ><a href="/de/photoshop/free-trial"
-                                    >Kostenlos testen</a
-                                ></em
+                            <a
+                                is="checkout-link"
+                                data-checkout-workflow-step="commitment"
+                                data-quantity="1"
+                                data-wcs-osi="ZQwlmahh5YRWh8mRGxo-cr3eu91ShbpRv6vkbcsi3eQ"
+                                data-extra-options="{}"
+                                class="con-button outline button-l placeholder-resolved"
+                                aria-label="Free trial Photoshop"
+                                href="https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=E27CB5D79014ACAB6953B091CEA72228&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en"
+                                data-ims-country="CH"
+                                daa-ll="Free trial-6--Photoshop"
+                                ><span style="pointer-events: none"
+                                    >Free trial</span
+                                ></a
                             >
-                            <strong
-                                ><a href="/de/photoshop/buy"
-                                    >Jetzt kaufen</a
-                                ></strong
+                        </p>
+                        <p class="supplemental-text body-xl action-area">
+                            <a
+                                is="checkout-link"
+                                data-checkout-workflow-step="commitment"
+                                data-quantity="1"
+                                data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                                data-extra-options="{}"
+                                class="con-button blue button-l placeholder-resolved"
+                                aria-label="Buy now Photoshop"
+                                href="https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=30404A88D89A328584307175B8B27616&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en"
+                                data-ims-country="CH"
+                                daa-ll="Buy now-7--Photoshop"
+                                ><span style="pointer-events: none"
+                                    >Buy now</span
+                                ></a
                             >
                         </p>
                     </div>
                     <div>
-                        <p class="header-product-tile">
-                            <mas-mnemonic
-                                src="/test/mocks/img/firefly.svg"
-                                size="l"
-                                aria-label="Adobe Firefly-Icon"
-                                role="img"
-                            ></mas-mnemonic>
-                        </p>
+                        <mas-mnemonic
+                            src="/test/mocks/img/firefly.svg"
+                            size="l"
+                            aria-label="Firefly Product Icon"
+                            role="img"
+                        ></mas-mnemonic>
                         <p>Firefly Pro</p>
                         <p>
-                            4000 Credits für kreative KI plus Photoshop für Web,
-                            Smartphone und Tablet.
+                            Get 4,000 credits for creative AI, plus Photoshop on
+                            web and mobile.
                         </p>
-                        <p>21,99 € /Monat inkl. MwSt.</p>
                         <p>
-                            <em
-                                ><a href="/de/firefly/free-trial"
-                                    >Kostenlos testen</a
-                                ></em
+                            <span
+                                is="inline-price"
+                                data-display-per-unit="false"
+                                data-quantity="1"
+                                data-template="price"
+                                data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"
+                                class="placeholder-resolved"
+                                ><span class="price"
+                                    ><span class="price-currency-symbol"
+                                        >US$</span
+                                    ><span
+                                        class="price-currency-space disabled"
+                                    ></span
+                                    ><span class="price-integer">19</span
+                                    ><span class="price-decimals-delimiter"
+                                        >.</span
+                                    ><span class="price-decimals">99</span
+                                    ><span class="price-recurrence">/mo</span
+                                    ><span
+                                        class="price-unit-type disabled"
+                                    ></span
+                                    ><span
+                                        class="price-tax-inclusivity disabled"
+                                    ></span></span
+                            ></span>
+                        </p>
+                        <p>
+                            <a
+                                is="checkout-link"
+                                data-checkout-workflow-step="commitment"
+                                data-quantity="1"
+                                data-wcs-osi="F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY"
+                                data-extra-options="{}"
+                                class="con-button outline button-l placeholder-resolved"
+                                aria-label="Free trial Firefly Pro"
+                                href="https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=68C33F4BD35E1D1CD843BBD90D526D2A&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en"
+                                data-ims-country="CH"
+                                daa-ll="Free trial-8--Firefly Pro"
+                                ><span style="pointer-events: none"
+                                    >Free trial</span
+                                ></a
                             >
-                            <strong
-                                ><a href="/de/firefly/buy"
-                                    >Jetzt kaufen</a
-                                ></strong
+                        </p>
+                        <p class="supplemental-text body-xl action-area">
+                            <a
+                                is="checkout-link"
+                                data-checkout-workflow-step="commitment"
+                                data-quantity="1"
+                                data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"
+                                data-extra-options="{}"
+                                class="con-button blue button-l placeholder-resolved"
+                                aria-label="Buy now Firefly Pro"
+                                href="https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=5FEBA265B427FE3C8AD6FB1DFD078402&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en"
+                                data-ims-country="CH"
+                                daa-ll="Buy now-9--Firefly Pro"
+                                ><span style="pointer-events: none"
+                                    >Buy now</span
+                                ></a
                             >
                         </p>
                     </div>
                     <div>
-                        <p class="header-product-tile">
-                            <mas-mnemonic
-                                src="/test/mocks/img/photoshop.svg"
-                                size="l"
-                                aria-label="Photoshop-Icon"
-                                role="img"
-                            ></mas-mnemonic>
-                            <mas-mnemonic
-                                src="/test/img/lightroom.svg"
-                                size="l"
-                                aria-label="Lightroom-Icon"
-                                role="img"
-                            ></mas-mnemonic>
-                        </p>
-                        <p>Foto-Abo</p>
+                        <mas-mnemonic
+                            src="/test/mocks/img/photoshop.svg"
+                            size="l"
+                            aria-label="Photoshop Product Icon"
+                            role="img"
+                        ></mas-mnemonic>
+                        <mas-mnemonic
+                            src="/test/img/lightroom.svg"
+                            size="l"
+                            aria-label="Lightroom Product Icon"
+                            role="img"
+                        ></mas-mnemonic>
+                        <p>Photography</p>
                         <p>
-                            Photoshop auf dem Desktop, Smartphone und Tablet
-                            sowie im Web plus Lightroom.
+                            Photoshop on desktop, web, and mobile, plus
+                            Lightroom.
                         </p>
-                        <p>23,79 € /Monat inkl. MwSt.</p>
                         <p>
-                            <em
-                                ><a href="/de/photography/free-trial"
-                                    >Kostenlos testen</a
-                                ></em
+                            <span
+                                is="inline-price"
+                                data-display-per-unit="false"
+                                data-display-recurrence="true"
+                                data-display-tax="false"
+                                data-force-tax-exclusive="false"
+                                data-quantity="1"
+                                data-template="price"
+                                data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"
+                                class="placeholder-resolved"
+                                ><span class="price"
+                                    ><span class="price-currency-symbol"
+                                        >US$</span
+                                    ><span
+                                        class="price-currency-space disabled"
+                                    ></span
+                                    ><span class="price-integer">19</span
+                                    ><span class="price-decimals-delimiter"
+                                        >.</span
+                                    ><span class="price-decimals">99</span
+                                    ><span class="price-recurrence">/mo</span
+                                    ><span
+                                        class="price-unit-type disabled"
+                                    ></span
+                                    ><span
+                                        class="price-tax-inclusivity disabled"
+                                    ></span></span
+                            ></span>
+                        </p>
+                        <p>
+                            <a
+                                is="checkout-link"
+                                data-checkout-workflow-step="commitment"
+                                data-quantity="1"
+                                data-wcs-osi="gJhGqZpFk_o3tjCUyFOsl1X7XOlCodSQEBmjY2E6Lqo"
+                                data-extra-options="{}"
+                                class="con-button outline button-l placeholder-resolved"
+                                aria-label="Free trial Creative Cloud Photography plan with 1TB"
+                                href="https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=BDA3989C0E537B7E7ACFCB269FDB611E&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en"
+                                data-ims-country="CH"
+                                daa-ll="Free trial-10--Photography"
+                                ><span style="pointer-events: none"
+                                    >Free trial</span
+                                ></a
                             >
-                            <strong
-                                ><a href="/de/photography/buy"
-                                    >Jetzt kaufen</a
-                                ></strong
+                        </p>
+                        <p class="supplemental-text body-xl action-area">
+                            <a
+                                is="checkout-link"
+                                data-checkout-workflow-step="commitment"
+                                data-quantity="1"
+                                data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"
+                                data-extra-options="{}"
+                                class="con-button blue button-l placeholder-resolved"
+                                aria-label="Buy now Creative Cloud Photography plan with 1TB"
+                                href="https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=81DE7D1C91A201AB690BC4741B32F0C0&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en"
+                                data-ims-country="CH"
+                                daa-ll="Buy now-11--Photography"
+                                ><span style="pointer-events: none"
+                                    >Buy now</span
+                                ></a
                             >
                         </p>
                     </div>
                     <div>
-                        <p class="header-product-tile">
-                            <mas-mnemonic
-                                src="/test/mocks/img/creative-cloud.svg"
-                                size="l"
-                                aria-label="Creative Cloud-Icon"
-                                role="img"
-                            ></mas-mnemonic>
-                        </p>
+                        <mas-mnemonic
+                            src="/test/mocks/img/creative-cloud.svg"
+                            size="l"
+                            aria-label="Creative Cloud Product Icon"
+                            role="img"
+                        ></mas-mnemonic>
                         <p>Creative Cloud Pro</p>
                         <p>
-                            Spare 50 % auf die Vollversion von Photoshop und
-                            mehr als 20 weitere Programme.
+                            Save 50% for the first 3 months. Get Photoshop and
+                            20+ apps. New subscribers only.
+                            <a
+                                href="https://www.adobe.com/offer-terms/cc-full-special-offer.html"
+                                target="_blank"
+                                aria-label="See terms - Creative Cloud Pro - Individuals"
+                                daa-ll="See terms-12--Creative Cloud Pro"
+                                >See terms</a
+                            >.
                         </p>
                         <p>
-                            <span>77,99 € /Monat</span><br />
-                            <span>38,98 € /Monat inkl. MwSt.</span>
+                            <span
+                                is="inline-price"
+                                data-force-tax-exclusive="true"
+                                data-quantity="1"
+                                data-template="strikethrough"
+                                data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"
+                                class="placeholder-resolved"
+                                ><span class="price price-strikethrough"
+                                    ><sr-only class="strikethrough-aria-label"
+                                        >Regularly at </sr-only
+                                    ><span class="price-currency-symbol"
+                                        >US$</span
+                                    ><span
+                                        class="price-currency-space disabled"
+                                    ></span
+                                    ><span class="price-integer">69</span
+                                    ><span class="price-decimals-delimiter"
+                                        >.</span
+                                    ><span class="price-decimals">99</span
+                                    ><span class="price-recurrence">/mo</span
+                                    ><span
+                                        class="price-unit-type disabled"
+                                    ></span
+                                    ><span
+                                        class="price-tax-inclusivity disabled"
+                                    ></span></span
+                            ></span>
+                            <span
+                                is="inline-price"
+                                data-display-old-price="false"
+                                data-force-tax-exclusive="true"
+                                data-promotion-code="CCI_50_3_IP_US"
+                                data-quantity="1"
+                                data-template="price"
+                                data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"
+                                class="placeholder-resolved"
+                                ><span class="price price-alternative"
+                                    ><sr-only class="alt-aria-label"
+                                        >Alternatively at </sr-only
+                                    ><span class="price-currency-symbol"
+                                        >US$</span
+                                    ><span
+                                        class="price-currency-space disabled"
+                                    ></span
+                                    ><span class="price-integer">34</span
+                                    ><span class="price-decimals-delimiter"
+                                        >.</span
+                                    ><span class="price-decimals">99</span
+                                    ><span class="price-recurrence">/mo</span
+                                    ><span
+                                        class="price-unit-type disabled"
+                                    ></span
+                                    ><span
+                                        class="price-tax-inclusivity disabled"
+                                    ></span></span
+                            ></span>
                         </p>
                         <p>
-                            <em
-                                ><a href="/de/creativecloud/free-trial"
-                                    >Kostenlos testen</a
-                                ></em
+                            <a
+                                is="checkout-link"
+                                data-checkout-workflow-step="segmentation"
+                                data-modal="twp"
+                                data-quantity="1"
+                                data-wcs-osi="JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg"
+                                data-extra-options="{}"
+                                class="con-button outline button-l placeholder-resolved"
+                                aria-label="Free trial - Creative Cloud Pro"
+                                href="https://commerce.adobe.com/store/segmentation?cli=mini_plans&amp;ctx=if&amp;co=CH&amp;lang=en&amp;ms=COM&amp;ot=TRIAL&amp;cs=INDIVIDUAL&amp;pa=ccsn_direct_individual&amp;rtc=t&amp;lo=sl&amp;af=uc_new_user_iframe%2Cuc_new_system_close"
+                                data-ims-country="CH"
+                                data-modal-id="mini-plans-web-cta-creative-cloud-card"
+                                daa-ll="Free trial-13--Creative Cloud Pro"
+                                ><span style="pointer-events: none"
+                                    >Free trial</span
+                                ></a
                             >
-                            <strong
-                                ><a href="/de/creativecloud/buy"
-                                    >Jetzt kaufen</a
-                                ></strong
+                        </p>
+                        <p class="supplemental-text body-xl action-area">
+                            <a
+                                is="checkout-link"
+                                data-checkout-workflow-step="segmentation"
+                                data-modal="crm"
+                                data-quantity="1"
+                                data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"
+                                data-extra-options="{}"
+                                class="con-button blue button-l placeholder-resolved"
+                                aria-label="Buy Creative Cloud Pro"
+                                href="https://commerce.adobe.com/store/segmentation?cli=creative&amp;ctx=if&amp;co=CH&amp;lang=en&amp;ms=COM&amp;ot=BASE&amp;cs=INDIVIDUAL&amp;pa=ccsn_direct_individual&amp;rtc=t&amp;lo=sl&amp;af=uc_new_user_iframe%2Cuc_new_system_close"
+                                data-ims-country="CH"
+                                data-modal-id="miniplans-buy-all-apps"
+                                daa-ll="Buy now-14--Creative Cloud Pro"
+                                ><span style="pointer-events: none"
+                                    >Buy now</span
+                                ></a
                             >
                         </p>
                     </div>
                 </div>
                 <div>
-                    <div>ADDON-content-before-label</div>
-                    <div><em>Jahres-Abo mit monatlicher Zahlung</em></div>
-                    <div><em>Monatliche Zahlung</em></div>
-                    <div><em>Jahres-Abo mit monatlicher Zahlung</em></div>
-                    <div><em>Jahres-Abo mit monatlicher Zahlung</em></div>
+                    <div>ADDON-pricing-after</div>
+                    <div>
+                        <span
+                            is="inline-price"
+                            data-display-old-price="false"
+                            data-display-plan-type="true"
+                            data-force-tax-exclusive="true"
+                            data-quantity="1"
+                            data-template="legal"
+                            data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                            class="placeholder-resolved"
+                            ><span class="price price-legal"
+                                ><span class="price-unit-type disabled"></span
+                                ><span
+                                    class="price-tax-inclusivity disabled"
+                                ></span
+                                ><span class="price-plan-type"
+                                    >Annual, billed monthly</span
+                                ></span
+                            ></span
+                        >
+                    </div>
+                    <div>
+                        <span
+                            is="inline-price"
+                            data-display-old-price="false"
+                            data-display-plan-type="true"
+                            data-force-tax-exclusive="true"
+                            data-quantity="1"
+                            data-template="legal"
+                            data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"
+                            class="placeholder-resolved"
+                            ><span class="price price-legal"
+                                ><span class="price-unit-type disabled"></span
+                                ><span
+                                    class="price-tax-inclusivity disabled"
+                                ></span
+                                ><span class="price-plan-type"
+                                    >Billed monthly</span
+                                ></span
+                            ></span
+                        >
+                    </div>
+                    <div>
+                        <span
+                            is="inline-price"
+                            data-display-old-price="false"
+                            data-display-plan-type="true"
+                            data-force-tax-exclusive="true"
+                            data-quantity="1"
+                            data-template="legal"
+                            data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"
+                            class="placeholder-resolved"
+                            ><span class="price price-legal"
+                                ><span class="price-unit-type disabled"></span
+                                ><span
+                                    class="price-tax-inclusivity disabled"
+                                ></span
+                                ><span class="price-plan-type"
+                                    >Annual, billed monthly</span
+                                ></span
+                            ></span
+                        >
+                    </div>
+                    <div>
+                        <span
+                            is="inline-price"
+                            data-display-old-price="false"
+                            data-display-plan-type="true"
+                            data-force-tax-exclusive="true"
+                            data-promotion-code="CCI_50_3_IP_US"
+                            data-quantity="1"
+                            data-template="legal"
+                            data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"
+                            class="placeholder-resolved"
+                            ><span class="price price-legal"
+                                ><span class="price-unit-type disabled"></span
+                                ><span
+                                    class="price-tax-inclusivity disabled"
+                                ></span
+                                ><span class="price-plan-type"
+                                    >Annual, billed monthly</span
+                                ></span
+                            ></span
+                        >
+                    </div>
                 </div>
                 <div>
                     <div><hr /></div>
@@ -469,122 +1016,220 @@
                     <div></div>
                 </div>
                 <div>
-                    <div>Adobe Photoshop auf dem Desktop</div>
-                    <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
-                    </div>
+                    <div>Adobe Photoshop on desktop</div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
                     <div></div>
-                    <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
-                    </div>
-                    <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
-                    </div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
                 </div>
                 <div>
-                    <div>Adobe Photoshop für Web, Smartphone und Tablet</div>
-                    <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
-                    </div>
-                    <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
-                    </div>
-                    <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
-                    </div>
-                    <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
-                    </div>
+                    <div>Adobe Photoshop on web and mobile</div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
                 </div>
                 <div>
-                    <div>Empfohlen für</div>
-                    <div>Einzelpersonen</div>
-                    <div>Einzelpersonen</div>
-                    <div>Einzelpersonen</div>
-                    <div>Einzelanwender</div>
+                    <div>Best for</div>
+                    <div>Individuals</div>
+                    <div>Individuals</div>
+                    <div>Individuals</div>
+                    <div>Individuals</div>
                 </div>
                 <div>
                     <div>
-                        Kostenlose 7-Tage-Testversion
+                        7-day free trial
                         <span
                             class="icon icon-info milo-tooltip right margin-inline-start"
+                            data-tooltip="Try the full version of Photoshop for desktop, web and mobile"
+                            tabindex="0"
+                            aria-label="Try the full version of Photoshop for desktop, web and mobile"
+                            role="button"
                         >
-                            <img src="/test/img/info-icon.svg" alt="Info" />
+                            <sp-icon-info-outline
+                                size="s"
+                            ></sp-icon-info-outline>
                         </span>
                     </div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                </div>
+                <div>
+                    <div>Price</div>
                     <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
+                        <span
+                            is="inline-price"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-force-tax-exclusive="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"
+                            class="placeholder-resolved"
+                        ></span>
                     </div>
                     <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
+                        <span
+                            is="inline-price"
+                            data-display-per-unit="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"
+                            class="placeholder-resolved"
+                        ></span>
                     </div>
                     <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
+                        <span
+                            is="inline-price"
+                            data-display-per-unit="false"
+                            data-display-recurrence="true"
+                            data-display-tax="false"
+                            data-force-tax-exclusive="false"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"
+                            class="placeholder-resolved"
+                        ></span>
                     </div>
                     <div>
-                        <span class="icon icon-checkmark"
-                            ><img src="/test/img/checkmark.svg" alt="Checkmark"
-                        /></span>
+                        <span
+                            is="inline-price"
+                            data-force-tax-exclusive="true"
+                            data-quantity="1"
+                            data-template="strikethrough"
+                            data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"
+                            class="placeholder-resolved"
+                        ></span>
+                        <span
+                            is="inline-price"
+                            data-display-old-price="false"
+                            data-force-tax-exclusive="true"
+                            data-promotion-code="CCI_50_3_IP_US"
+                            data-quantity="1"
+                            data-template="price"
+                            data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"
+                            class="placeholder-resolved"
+                        ></span>
+                        for the first 3 months. Annual, billed monthly.
                     </div>
                 </div>
                 <div>
-                    <div>Preis</div>
-                    <div>12,99 € /Monat inkl. MwSt. für 3 Monate</div>
-                    <div>21,99 € /Monat inkl. MwSt.</div>
-                    <div>23,79 € /Monat inkl. MwSt.</div>
-                    <div>38,98 € /Monat inkl. MwSt. für 3 Monate</div>
-                </div>
-                <div>
-                    <div>Cloud-Speicherplatz</div>
-                    <div>100 GB</div>
-                    <div>100 GB</div>
-                    <div>1 TB</div>
-                    <div>100 GB</div>
+                    <div>Cloud storage</div>
+                    <div>100GB</div>
+                    <div>100GB</div>
+                    <div>1TB</div>
+                    <div>100GB</div>
                 </div>
                 <div>
                     <div>
-                        <a href="/go/acomfirefly_generativecredits_de"
-                            >Generative Credits</a
+                        <a href="/go/acomfirefly_generativecredits"
+                            >Generative credits</a
                         >
                     </div>
-                    <div>25 pro Monat</div>
-                    <div>4000 pro Monat</div>
-                    <div>1000 pro Monat</div>
-                    <div>4000 pro Monat</div>
+                    <div>25 monthly</div>
+                    <div>4,000 monthly</div>
+                    <div>1,000 monthly</div>
+                    <div>4,000 monthly</div>
+                </div>
+                <div>
+                    <div>Standard creative AI image and vector features</div>
+                    <div>Access using generative credits</div>
+                    <div>Unlimited</div>
+                    <div>Access using generative credits</div>
+                    <div>Unlimited</div>
+                </div>
+                <div>
+                    <div>Premium creative AI video and audio features</div>
+                    <div></div>
+                    <div>Access using generative credits</div>
+                    <div></div>
+                    <div>Access using generative credits</div>
+                </div>
+                <div>
+                    <div>
+                        Adobe Express Premium plan
+                        <span
+                            class="icon icon-info milo-tooltip right margin-inline-start"
+                            data-tooltip="1000s of free templates on web and mobile"
+                            tabindex="0"
+                            aria-label="1000s of free templates on web and mobile"
+                            role="button"
+                        >
+                            <sp-icon-info-outline
+                                size="s"
+                            ></sp-icon-info-outline>
+                        </span>
+                    </div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                </div>
+                <div>
+                    <div>
+                        Lightroom
+                        <span
+                            class="icon icon-info milo-tooltip right margin-inline-start"
+                            data-tooltip="Edit photos on any device with sliders, presets, and more"
+                            tabindex="0"
+                            aria-label="Edit photos on any device with sliders, presets, and more"
+                            role="button"
+                        >
+                            <sp-icon-info-outline
+                                size="s"
+                            ></sp-icon-info-outline>
+                        </span>
+                    </div>
+                    <div></div>
+                    <div></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                </div>
+                <div>
+                    <div>
+                        <a
+                            href="#modal-cc-all-apps-see-whats-included"
+                            data-modal-path="/cc-shared/fragments/modals/see-whats-included/cc-all-apps-see-whats-included"
+                            data-modal-hash="#modal-cc-all-apps-see-whats-included"
+                            class="modal link-block"
+                            data-block-status="loaded"
+                            daa-ll="20 desktop and mobil-16--Creative Cloud Pro"
+                            >20+ desktop and mobile apps</a
+                        >
+                    </div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                </div>
+                <div>
+                    <div>20,000+ fonts</div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                </div>
+                <div>
+                    <div>
+                        1 million+ free photos, drawings, video clips, audio
+                        clips, and templates
+                    </div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                </div>
+                <div>
+                    <div>Tutorials</div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
+                    <div><sp-icon-checkmark size="m"></sp-icon-checkmark></div>
                 </div>
             </div>
-        </template>
-
-        <template id="merch-table">
-            <mas-table id="table-merch">
-                <aem-fragment fragment="fragment-table-merch"></aem-fragment>
-            </mas-table>
-        </template>
-
-        <template id="invalid-table">
-            <mas-table id="table-invalid">
-                <aem-fragment fragment="fragment-table-invalid"></aem-fragment>
-            </mas-table>
         </template>
     </body>
 </html>

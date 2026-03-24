@@ -32,6 +32,7 @@ __export(mas_mnemonic_exports, {
   default: () => MasMnemonic
 });
 import { LitElement, html, css as css2 } from "./lit-all.min.js";
+import { unsafeHTML } from "./lit-all.min.js";
 function hasSpectrumTooltip() {
   return customElements.get("sp-tooltip") !== void 0 && customElements.get("overlay-trigger") !== void 0 && document.querySelector("sp-theme") !== null;
 }
@@ -100,6 +101,9 @@ var init_mas_mnemonic = __esm({
       }
       renderIcon() {
         if (!this.src) return html`<slot></slot>`;
+        if (this.src.startsWith("sp-icon-")) {
+          return html`${unsafeHTML(`<${this.src} size="${this.size || "m"}"></${this.src}>`)}`;
+        }
         return html`<merch-icon
             src="${this.src}"
             size="${this.size}"
@@ -12310,11 +12314,11 @@ customElements.define(AEM_FRAGMENT_TAG_NAME, AemFragment);
 
 // src/merch-badge.js
 import { LitElement as LitElement4, html as html20, css as css19, nothing as nothing6 } from "./lit-all.min.js";
-import { unsafeHTML } from "./lit-all.min.js";
+import { unsafeHTML as unsafeHTML2 } from "./lit-all.min.js";
 var renderIcon = (iconName) => {
   if (!iconName) return nothing6;
   if (iconName.startsWith("sp-icon-"))
-    return html20`${unsafeHTML(
+    return html20`${unsafeHTML2(
       `<${iconName} class="badge-icon"></${iconName}>`
     )}`;
   return html20`<img src="${iconName}" class="badge-icon" />`;

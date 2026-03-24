@@ -1,7 +1,7 @@
 import { css, html, LitElement, nothing } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { CARD_MODEL_PATH, TAG_MODEL_ID_MAPPING } from '../constants.js';
 import '../fields/multifield.js';
-import '../fields/icon-picker-field.js';
 import { getFromFragmentCache, prepopulateFragmentCache } from '../mas-repository.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -9,21 +9,17 @@ import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import { getSpectrumVersion } from '../constants/icon-library.js';
 import { dragHandleIcon } from '../icons.js';
 import { VARIANT_NAMES } from './variant-picker.js';
+import { showToast } from '../utils.js';
 import './merch-card-editor.js';
+import '../rte/rte-field.js';
 
 const COMPARE_CHART_FIELD = 'compareChart';
 const CARD_SELECT_EVENT = 'compare-chart-select-card';
 const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
 const NEW_CARD_TITLE = 'New Compare Card';
 const DRAFT_CARD_PREFIX = '__compare-chart-draft__';
-
-const cloneValues = (values = []) =>
-    values.map(({ icon = '', description = '', alt = '', link = '' }) => ({
-        icon,
-        description,
-        alt,
-        link,
-    }));
+const FEATURE_ROW_PREFIX = 'compare-feature-row';
+const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
 const extractPlainText = (value = '') => {
     if (!value) return '';
@@ -54,154 +50,143 @@ const getCardLabel = ({ path, fragmentStore }) => {
     return path?.split('/').pop()?.replace(/-/g, ' ') || 'Card';
 };
 
-const createEmptyEntry = () => ({
+const normalizeRichText = (value = '') => value.trim();
+
+const createRichTextParagraph = (text = '') => {
+    if (!text) return '';
+    const paragraph = document.createElement('p');
+    paragraph.textContent = text;
+    return paragraph.outerHTML;
+};
+
+const createFeatureRowId = () => `${FEATURE_ROW_PREFIX}-${createNameSlug(8)}`;
+
+const createEmptyFeatureRow = (id = createFeatureRowId()) => ({
+    id,
     label: '',
-    values: [],
+    cellsByPath: {},
 });
 
-const getFeatureValue = (element) => {
+const cloneFeatureRows = (rows = []) =>
+    rows.map((row) => ({
+        id: row.id,
+        label: row.label || '',
+        cellsByPath: { ...(row.cellsByPath || {}) },
+    }));
+
+const getElementInnerHtml = (element) => normalizeRichText(element?.innerHTML || '');
+
+const getLegacyFeatureValue = (element) => {
     const description = element.querySelector('[slot="description"]')?.textContent?.trim() || '';
     const merchIcon = element.querySelector('merch-icon');
     if (merchIcon) {
-        const anchor = element.querySelector('[slot="icon"] a');
-        return {
-            icon: merchIcon.getAttribute('src') || '',
-            description,
-            alt: merchIcon.getAttribute('alt') || '',
-            link: anchor?.getAttribute('href') || '',
-        };
+        const wrapper = document.createElement('div');
+        const mnemonic = document.createElement('mas-mnemonic');
+        mnemonic.setAttribute('src', merchIcon.getAttribute('src') || '');
+        if (merchIcon.getAttribute('alt')) {
+            mnemonic.setAttribute('alt', merchIcon.getAttribute('alt'));
+        }
+        wrapper.append(mnemonic);
+        if (description) {
+            wrapper.append(document.createTextNode(' '));
+            wrapper.append(description);
+        }
+        return normalizeRichText(wrapper.innerHTML);
     }
 
     const spectrumIcon = element.querySelector('[slot="icon"] .sp-icon');
     if (spectrumIcon) {
-        return {
-            icon: spectrumIcon.tagName.toLowerCase(),
-            description,
-            alt: '',
-            link: '',
-        };
+        const wrapper = document.createElement('div');
+        wrapper.append(spectrumIcon.cloneNode(true));
+        if (description) {
+            wrapper.append(document.createTextNode(' '));
+            wrapper.append(description);
+        }
+        return normalizeRichText(wrapper.innerHTML);
     }
 
-    return {
-        icon: '',
-        description,
-        alt: '',
-        link: '',
-    };
+    return createRichTextParagraph(description);
 };
 
-const parseCompareChart = (compareChartHtml = '') => {
-    if (!compareChartHtml) return {};
+const parseLegacyCompareChart = (compareChartHtml = '') => {
+    if (!compareChartHtml) return [];
 
     const doc = new DOMParser().parseFromString(compareChartHtml, 'text/html');
-    const entries = {};
+    const entriesByPath = {};
 
     doc.querySelectorAll('.compare-chart-card[data-card-path]').forEach((cardElement) => {
         const cardPath = cardElement.getAttribute('data-card-path');
         if (!cardPath) return;
 
         const whatsIncluded = cardElement.querySelector('merch-whats-included');
-        if (!whatsIncluded) {
-            entries[cardPath] = createEmptyEntry();
-            return;
-        }
-
-        const label = whatsIncluded.querySelector('[slot="heading"]')?.textContent?.trim() || '';
         const values = [];
-        whatsIncluded.querySelectorAll('[slot="content"] merch-mnemonic-list').forEach((listElement) => {
-            values.push(getFeatureValue(listElement));
+        whatsIncluded?.querySelectorAll('[slot="content"] merch-mnemonic-list').forEach((listElement) => {
+            values.push(getLegacyFeatureValue(listElement));
         });
-
-        entries[cardPath] = {
-            label,
-            values,
-        };
+        entriesByPath[cardPath] = values;
     });
 
-    return entries;
-};
-
-const createMnemonicList = (value) => {
-    const list = document.createElement('merch-mnemonic-list');
-    const iconSlot = document.createElement('div');
-    iconSlot.setAttribute('slot', 'icon');
-
-    if (value.icon?.startsWith('sp-icon-')) {
-        const icon = document.createElement(value.icon);
-        icon.setAttribute('class', 'sp-icon');
-        iconSlot.append(icon);
-    } else if (value.icon) {
-        const merchIcon = document.createElement('merch-icon');
-        merchIcon.setAttribute('size', 's');
-        merchIcon.setAttribute('src', value.icon);
-        merchIcon.setAttribute('alt', value.alt || '');
-
-        if (value.link) {
-            const anchor = document.createElement('a');
-            anchor.setAttribute('href', value.link);
-            anchor.append(merchIcon);
-            iconSlot.append(anchor);
-        } else {
-            iconSlot.append(merchIcon);
-        }
+    const maxRowCount = Math.max(0, ...Object.values(entriesByPath).map((values) => values.length));
+    const rows = [];
+    for (let index = 0; index < maxRowCount; index += 1) {
+        const row = createEmptyFeatureRow();
+        Object.entries(entriesByPath).forEach(([cardPath, values]) => {
+            row.cellsByPath[cardPath] = values[index] || '';
+        });
+        rows.push(row);
     }
 
-    const description = document.createElement('p');
-    description.setAttribute('slot', 'description');
-    const span = document.createElement('span');
-    span.textContent = value.description || value.alt || '';
-    description.append(span);
-
-    list.append(iconSlot);
-    list.append(description);
-    return list;
+    return rows;
 };
 
-const createWhatsIncludedElement = (label, values) => {
-    if (!label && !values?.length) return undefined;
+const parseCompareChart = (compareChartHtml = '') => {
+    if (!compareChartHtml) return [];
 
-    const element = document.createElement('merch-whats-included');
-    const heading = document.createElement('div');
-    heading.setAttribute('slot', 'heading');
-    heading.textContent = label || '';
-    element.append(heading);
-
-    const contentBullets = document.createElement('div');
-    contentBullets.setAttribute('slot', 'contentBullets');
-    element.append(contentBullets);
-
-    const content = document.createElement('div');
-    content.setAttribute('slot', 'content');
-    element.append(content);
-    values.forEach((value) => {
-        content.append(createMnemonicList(value));
+    const doc = new DOMParser().parseFromString(compareChartHtml, 'text/html');
+    const rows = [...doc.querySelectorAll('.compare-chart-row[data-row-id]')].map((rowElement) => {
+        const row = createEmptyFeatureRow(rowElement.getAttribute('data-row-id') || createFeatureRowId());
+        row.label = getElementInnerHtml(rowElement.querySelector('.compare-chart-label'));
+        rowElement.querySelectorAll('.compare-chart-cell[data-card-path]').forEach((cellElement) => {
+            const cardPath = cellElement.getAttribute('data-card-path');
+            if (!cardPath) return;
+            row.cellsByPath[cardPath] = getElementInnerHtml(cellElement);
+        });
+        return row;
     });
 
-    return element;
+    if (rows.length) return rows;
+    return parseLegacyCompareChart(compareChartHtml);
 };
 
-const serializeCompareChart = (entriesByPath, cardPaths) => {
+const serializeCompareChart = (rows, cardPaths) => {
+    if (!rows.length) return '';
+
     const wrapper = document.createElement('div');
     wrapper.className = 'compare-chart';
     wrapper.setAttribute('data-editor', 'mini-compare-chart');
 
-    let hasContent = false;
-    for (const cardPath of cardPaths) {
-        const entry = entriesByPath[cardPath];
-        if (!entry) continue;
+    rows.forEach((row) => {
+        const rowElement = document.createElement('div');
+        rowElement.className = 'compare-chart-row';
+        rowElement.setAttribute('data-row-id', row.id || createFeatureRowId());
 
-        const element = createWhatsIncludedElement(entry.label, entry.values);
-        if (!element) continue;
+        const label = document.createElement('div');
+        label.className = 'compare-chart-label';
+        label.innerHTML = row.label || '';
+        rowElement.append(label);
 
-        hasContent = true;
-        const card = document.createElement('div');
-        card.className = 'compare-chart-card';
-        card.setAttribute('data-card-path', cardPath);
-        card.append(element);
-        wrapper.append(card);
-    }
+        cardPaths.forEach((cardPath) => {
+            const cell = document.createElement('div');
+            cell.className = 'compare-chart-cell';
+            cell.setAttribute('data-card-path', cardPath);
+            cell.innerHTML = row.cellsByPath?.[cardPath] || '';
+            rowElement.append(cell);
+        });
 
-    return hasContent ? wrapper.outerHTML : '';
+        wrapper.append(rowElement);
+    });
+
+    return wrapper.outerHTML;
 };
 
 const normalizeFragmentName = (value = '') =>
@@ -248,8 +233,11 @@ const buildFallbackHeadingCell = (cardItem) => {
     return cell;
 };
 
-const buildPlaceholderCell = (value = '') => {
+const buildPlaceholderCell = (value = '', attributes = {}) => {
     const cell = document.createElement('div');
+    Object.entries(attributes).forEach(([name, attributeValue]) => {
+        cell.setAttribute(name, attributeValue);
+    });
     if (!value) return cell;
     const text = document.createElement('div');
     text.textContent = value;
@@ -259,39 +247,56 @@ const buildPlaceholderCell = (value = '') => {
 
 const buildFeatureCell = (value) => {
     const cell = document.createElement('div');
-    if (!value) {
-        const empty = document.createElement('p');
-        empty.textContent = '-';
-        cell.append(empty);
-        return cell;
-    }
+    if (!value) return cell;
 
-    cell.append(createMnemonicList(value));
+    cell.innerHTML = value;
     return cell;
+};
+
+const getCardPreviewFragment = (cardItem) => cardItem.fragmentStore?.previewStore?.get() || cardItem.fragmentStore?.get() || cardItem.reference;
+
+const cardHasBadge = (cardItem) => {
+    const fragment = getCardPreviewFragment(cardItem);
+    const badgeValue = getFieldValue(fragment, 'badge');
+    if (typeof badgeValue === 'string') return badgeValue.trim().length > 0;
+    if (badgeValue == null) return false;
+    return String(badgeValue).trim().length > 0;
+};
+
+const getCompareTableVariantNames = (cardItems) => {
+    const variants = ['header-left', 'sticky', 'pricing-bottom'];
+    if (cardItems.some((cardItem) => cardHasBadge(cardItem))) {
+        variants.splice(1, 0, 'highlight');
+    }
+    return variants;
 };
 
 const buildTableMarkup = (fragmentStore) => {
     const table = document.createElement('div');
-    table.className = 'table';
+    table.className = 'table compare-chart-features';
     const fragment = fragmentStore?.get();
-    const compareEntriesByPath = parseCompareChart(getFieldValue(fragment, COMPARE_CHART_FIELD));
+    const compareRows = parseCompareChart(getFieldValue(fragment, COMPARE_CHART_FIELD));
     const cardItems = getCompareChartCardItems(fragmentStore);
-    const labelValues = cardItems.map(({ path }) => compareEntriesByPath[path]?.label || '');
-    const hasLabelRow = labelValues.some(Boolean);
+    const hasBadgeRow = cardItems.some((cardItem) => cardHasBadge(cardItem));
 
-    const highlightRow = document.createElement('div');
-    cardItems.forEach(() => {
-        highlightRow.append(buildPlaceholderCell());
-    });
-    table.append(highlightRow);
+    if (hasBadgeRow) {
+        const highlightRow = document.createElement('div');
+        highlightRow.append(buildPlaceholderCell('', { 'data-valign': 'middle' }));
+        cardItems.forEach(() => {
+            highlightRow.append(buildPlaceholderCell('', { 'data-valign': 'middle' }));
+        });
+        table.append(highlightRow);
+    }
 
     const headingRow = document.createElement('div');
+    headingRow.append(buildPlaceholderCell());
     cardItems.forEach((cardItem) => {
         headingRow.append(buildFallbackHeadingCell(cardItem));
     });
     table.append(headingRow);
 
     const dividerRow = document.createElement('div');
+    dividerRow.append(buildPlaceholderCell());
     cardItems.forEach(() => {
         const cell = document.createElement('div');
         cell.append(document.createElement('hr'));
@@ -299,24 +304,11 @@ const buildTableMarkup = (fragmentStore) => {
     });
     table.append(dividerRow);
 
-    if (hasLabelRow) {
-        const labelRow = document.createElement('div');
-        labelValues.forEach((label) => {
-            labelRow.append(buildPlaceholderCell(label));
-        });
-        table.append(labelRow);
-    }
-
-    const maxFeatureCount = Math.max(
-        0,
-        ...cardItems.map(({ path }) => (compareEntriesByPath[path] || createEmptyEntry()).values.length),
-    );
-
-    for (let index = 0; index < maxFeatureCount; index += 1) {
+    for (const rowData of compareRows) {
         const row = document.createElement('div');
+        row.append(buildFeatureCell(rowData.label));
         cardItems.forEach(({ path }) => {
-            const entry = compareEntriesByPath[path] || createEmptyEntry();
-            row.append(buildFeatureCell(entry.values[index]));
+            row.append(buildFeatureCell(rowData.cellsByPath?.[path] || ''));
         });
         table.append(row);
     }
@@ -356,7 +348,7 @@ export const buildCompareChartPreviewFragment = (fragmentStore) => {
         model: { id: 'table' },
         fields: [
             createField('blockName', ['Table']),
-            createField('selectedVariantNames', ['merch', 'highlight'], 'text', true),
+            createField('selectedVariantNames', getCompareTableVariantNames(cardItems), 'text', true),
             createField(
                 'cards',
                 cardItems.map(
@@ -381,6 +373,8 @@ class CompareChartEditor extends LitElement {
         selectedCardPath: { type: String, state: true },
         draggedCardPath: { type: String, state: true },
         dropIndicatorIndex: { type: Number, state: true },
+        activeEditorKey: { type: String, state: true },
+        showRemoveCardDialog: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -391,6 +385,15 @@ class CompareChartEditor extends LitElement {
         .editor-stack {
             display: grid;
             gap: 24px;
+        }
+
+        .compare-authoring-container {
+            display: grid;
+            gap: 20px;
+            padding: 20px;
+            border: 1px solid var(--spectrum-gray-300);
+            border-radius: 20px;
+            background: var(--spectrum-gray-75);
         }
 
         .panel-card {
@@ -435,6 +438,18 @@ class CompareChartEditor extends LitElement {
         .field-grid {
             display: grid;
             gap: 16px;
+        }
+
+        .two-column-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .two-column-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         sp-field-group sp-picker,
@@ -570,18 +585,149 @@ class CompareChartEditor extends LitElement {
 
         .cards-actions {
             display: flex;
-            gap: 8px;
+            align-items: center;
+        }
+
+        .cards-actions sp-action-group {
             flex-wrap: wrap;
         }
 
-        .selection-title {
-            font-size: 14px;
+        .features-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .features-toolbar sp-action-group {
+            flex-wrap: wrap;
+        }
+
+        .features-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            table-layout: fixed;
+            border: 1px solid var(--spectrum-gray-300);
+            border-radius: 14px;
+            overflow: hidden;
+            background: var(--spectrum-white);
+        }
+
+        .features-table thead th {
+            text-align: left;
+            padding: 12px 14px;
+            font-size: 12px;
             font-weight: 700;
+            color: var(--spectrum-gray-700);
+            background: var(--spectrum-gray-75);
+            border-bottom: 1px solid var(--spectrum-gray-300);
+        }
+
+        .features-table thead .feature-label-column,
+        .feature-label-cell {
+            background: var(--spectrum-background-layer-1-color);
+        }
+
+        .features-table thead th + th,
+        .features-table tbody td + td {
+            border-inline-start: 1px solid var(--spectrum-gray-300);
+        }
+
+        .features-table tbody td {
+            vertical-align: top;
+            border-bottom: 1px solid var(--spectrum-gray-300);
+            background: var(--spectrum-white);
+        }
+
+        .features-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .features-table .feature-label-column {
+            width: 220px;
+        }
+
+        .features-table .feature-card-column {
+            width: calc((100% - 220px) / max(1, var(--compare-card-count, 1)));
+        }
+
+        .feature-label-cell,
+        .feature-value-cell {
+            padding: 12px;
             color: var(--spectrum-gray-900);
         }
 
-        .feature-editor mas-multifield {
-            margin-top: 8px;
+        .feature-label-cell {
+            position: relative;
+            min-height: 92px;
+            background: var(--spectrum-background-layer-1-color);
+        }
+
+        .feature-value-cell {
+            min-height: 48px;
+            background: var(--spectrum-white);
+        }
+
+        .feature-label-cell.is-editable,
+        .feature-value-cell.is-editable {
+            cursor: text;
+        }
+
+        .feature-value-cell.is-editable:hover {
+            background: var(--spectrum-gray-50);
+        }
+
+        .feature-label-cell.is-active,
+        .feature-value-cell.is-active {
+            background: var(--spectrum-blue-75);
+            box-shadow: inset 0 0 0 2px var(--spectrum-blue-500);
+        }
+
+        .feature-label-cell.is-active {
+            background: var(--spectrum-background-layer-1-color);
+            box-shadow: none;
+        }
+
+        .feature-cell-display {
+            min-height: 44px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .feature-cell-display :first-child {
+            margin-top: 0;
+        }
+
+        .feature-cell-display :last-child {
+            margin-bottom: 0;
+        }
+
+        .feature-cell-placeholder {
+            color: var(--spectrum-gray-500);
+        }
+
+        .feature-row-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: inline-flex;
+            gap: 4px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 120ms ease;
+        }
+
+        .features-table tbody tr:hover .feature-row-actions,
+        .features-table tbody tr:focus-within .feature-row-actions {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .feature-cell-editor rte-field {
+            width: 100%;
         }
 
         .preview-shell {
@@ -617,14 +763,31 @@ class CompareChartEditor extends LitElement {
             margin-bottom: 6px;
             color: var(--spectrum-gray-900);
         }
+
+        sp-underlay:not([open]) + sp-dialog {
+            display: none;
+        }
+
+        sp-underlay + sp-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: var(--spectrum-white);
+            border-radius: 16px;
+            width: min(520px, calc(100vw - 32px));
+        }
     `;
 
     reactiveController = new ReactiveController(this, []);
     #fragmentReferencesMap = new Map();
     #cachedCompareChartHtml = null;
-    #cachedCompareEntries = {};
+    #cachedCompareRows = [];
     #lastCardPathsSignature = '';
     #previewRefreshFrame = 0;
+    #lastPreviewSignature = '';
+    #activeEditorInitialValue = '';
 
     constructor() {
         super();
@@ -633,11 +796,14 @@ class CompareChartEditor extends LitElement {
         this.selectedCardPath = '';
         this.draggedCardPath = '';
         this.dropIndicatorIndex = -1;
+        this.activeEditorKey = '';
+        this.showRemoveCardDialog = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         document.addEventListener(CARD_SELECT_EVENT, this.#handleExternalCardSelect);
+        document.addEventListener('pointerdown', this.#handleDocumentPointerDown, true);
         if (this.fragmentStore) {
             void this.initFragmentReferencesMap();
         }
@@ -646,6 +812,7 @@ class CompareChartEditor extends LitElement {
     disconnectedCallback() {
         cancelAnimationFrame(this.#previewRefreshFrame);
         document.removeEventListener(CARD_SELECT_EVENT, this.#handleExternalCardSelect);
+        document.removeEventListener('pointerdown', this.#handleDocumentPointerDown, true);
         super.disconnectedCallback();
     }
 
@@ -687,8 +854,8 @@ class CompareChartEditor extends LitElement {
 
     willUpdate() {
         const cardPaths = this.cardItems.map(({ path }) => path);
-        if (!cardPaths.includes(this.selectedCardPath)) {
-            this.selectedCardPath = cardPaths[0] || '';
+        if (this.selectedCardPath && !cardPaths.includes(this.selectedCardPath)) {
+            this.selectedCardPath = '';
         }
     }
 
@@ -726,14 +893,14 @@ class CompareChartEditor extends LitElement {
         return getFieldValue(this.fragment, COMPARE_CHART_FIELD);
     }
 
-    get compareEntriesByPath() {
+    get compareRows() {
         if (this.compareChartHtml === this.#cachedCompareChartHtml) {
-            return this.#cachedCompareEntries;
+            return this.#cachedCompareRows;
         }
 
         this.#cachedCompareChartHtml = this.compareChartHtml;
-        this.#cachedCompareEntries = parseCompareChart(this.compareChartHtml);
-        return this.#cachedCompareEntries;
+        this.#cachedCompareRows = parseCompareChart(this.compareChartHtml);
+        return this.#cachedCompareRows;
     }
 
     get selectedCard() {
@@ -742,10 +909,6 @@ class CompareChartEditor extends LitElement {
 
     get selectedCardStore() {
         return this.selectedCard?.fragmentStore || null;
-    }
-
-    get selectedEntry() {
-        return this.compareEntriesByPath[this.selectedCardPath] || createEmptyEntry();
     }
 
     get canRenderPreview() {
@@ -777,6 +940,34 @@ class CompareChartEditor extends LitElement {
         `;
     }
 
+    get generalInfoTemplate() {
+        return html`
+            <div class="panel-card">
+                <h2 class="section-title">General info</h2>
+                <div class="two-column-grid">
+                    <sp-field-group id="fragment-title-group">
+                        <sp-field-label for="fragment-title">Fragment title</sp-field-label>
+                        <sp-textfield
+                            id="fragment-title"
+                            placeholder="Enter fragment title"
+                            .value=${this.fragment?.title || ''}
+                            @input=${this.#handleFragmentTitleUpdate}
+                        ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group id="fragment-description-group">
+                        <sp-field-label for="fragment-description">Fragment description</sp-field-label>
+                        <sp-textfield
+                            id="fragment-description"
+                            placeholder="Enter fragment description"
+                            .value=${this.fragment?.description || ''}
+                            @input=${this.#handleFragmentDescriptionUpdate}
+                        ></sp-textfield>
+                    </sp-field-group>
+                </div>
+            </div>
+        `;
+    }
+
     get cardsManagerTemplate() {
         return html`
             <div class="panel-card">
@@ -784,15 +975,21 @@ class CompareChartEditor extends LitElement {
                 <div class="cards-toolbar">
                     <div class="cards-count">${this.cardItems.length} card${this.cardItems.length === 1 ? '' : 's'}</div>
                     <div class="cards-actions">
-                        <sp-button variant="accent" size="s" @click=${this.#createNewCard}>New Card</sp-button>
-                        <sp-button
-                            variant="secondary"
-                            size="s"
-                            ?disabled=${!this.selectedCardPath}
-                            @click=${this.#removeSelectedCard}
-                        >
-                            Remove Selected Card
-                        </sp-button>
+                        <sp-action-group aria-label="Card actions" compact>
+                            <sp-action-button id="new-card-action" @click=${this.#createNewCard}>
+                                <sp-icon-add slot="icon"></sp-icon-add>
+                            </sp-action-button>
+                            <sp-action-button id="paste-card-action" @click=${this.#pasteCardFromClipboard}>
+                                <sp-icon-copy slot="icon"></sp-icon-copy>
+                            </sp-action-button>
+                            <sp-action-button
+                                id="remove-card-action"
+                                ?disabled=${!this.selectedCardPath}
+                                @click=${this.#removeSelectedCard}
+                            >
+                                <sp-icon-delete slot="icon"></sp-icon-delete>
+                            </sp-action-button>
+                        </sp-action-group>
                     </div>
                 </div>
                 ${this.cardItems.length
@@ -843,48 +1040,83 @@ class CompareChartEditor extends LitElement {
     }
 
     get compareFeaturesTemplate() {
-        if (!this.selectedCard) return nothing;
-
         return html`
             <div class="panel-card">
-                <h3 class="section-title">Mini Compare Content</h3>
-                <p class="section-description">
-                    These fields stay on the collection. Card references stay in <code>cards</code>. Compare feature content is
-                    serialized into <code>compareChart</code> as HTML.
-                </p>
-                <div class="field-grid">
-                    <div class="selection-meta">
-                        <div class="selection-title">${getCardLabel(this.selectedCard)}</div>
-                    </div>
-                    <sp-field-group>
-                        <sp-field-label for="compare-chart-heading">Feature list heading</sp-field-label>
-                        <sp-textfield
-                            id="compare-chart-heading"
-                            placeholder="What's included"
-                            .value=${this.selectedEntry.label}
-                            @input=${this.#handleLabelInput}
-                        ></sp-textfield>
-                    </sp-field-group>
-                    <sp-field-group class="feature-editor">
-                        <sp-field-label>Features</sp-field-label>
-                        <mas-multifield
-                            button-label="Add feature"
-                            .value=${cloneValues(this.selectedEntry.values)}
-                            @change=${this.#handleFeatureValuesChange}
-                            @input=${this.#handleFeatureValuesChange}
-                        >
-                            <template>
-                                <mas-icon-picker-field></mas-icon-picker-field>
-                            </template>
-                        </mas-multifield>
-                    </sp-field-group>
+                <h3 class="section-title">Features</h3>
+                <div class="features-toolbar">
+                    <div class="cards-count">${this.compareRows.length} row${this.compareRows.length === 1 ? '' : 's'}</div>
+                    <sp-action-group aria-label="Feature actions" compact>
+                        <sp-action-button id="add-feature-row-action" @click=${this.#addFeatureRow}>
+                            <sp-icon-add slot="icon"></sp-icon-add>
+                        </sp-action-button>
+                    </sp-action-group>
                 </div>
+                ${this.featuresTableTemplate}
             </div>
         `;
     }
 
+    get removeCardDialogTemplate() {
+        if (!this.showRemoveCardDialog || !this.selectedCardPath) return nothing;
+
+        const selectedCardLabel = getCardLabel(this.selectedCard || { path: this.selectedCardPath });
+        return html`
+            <sp-underlay ?open=${this.showRemoveCardDialog}></sp-underlay>
+            <sp-dialog>
+                <h2 slot="heading">Remove card</h2>
+                <p>Remove ${selectedCardLabel} from this compare chart? Its feature column will be deleted.</p>
+                <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.#closeRemoveCardDialog}>
+                    Cancel
+                </sp-button>
+                <sp-button slot="button" variant="negative" @click=${this.#confirmRemoveSelectedCard}>Remove</sp-button>
+            </sp-dialog>
+        `;
+    }
+
+    get featuresTableTemplate() {
+        return html`
+            <table class="features-table" style=${`--compare-card-count: ${Math.max(this.cardItems.length, 1)};`}>
+                <thead>
+                    <tr>
+                        <th class="feature-label-column">Feature</th>
+                        ${this.cardItems.map(
+                            (cardItem) => html`<th class="feature-card-column">${getCardLabel(cardItem)}</th>`,
+                        )}
+                    </tr>
+                </thead>
+                <tbody>
+                    ${this.compareRows.length
+                        ? this.compareRows.map((row) => this.#renderFeatureRow(row))
+                        : html`
+                              <tr>
+                                  <td class="feature-label-cell">
+                                      <div class="feature-cell-display feature-cell-placeholder">No feature rows yet.</div>
+                                  </td>
+                                  ${this.cardItems.map(
+                                      () => html`
+                                          <td class="feature-value-cell">
+                                              <div class="feature-cell-display feature-cell-placeholder">
+                                                  Add a row to start editing.
+                                              </div>
+                                          </td>
+                                      `,
+                                  )}
+                              </tr>
+                          `}
+                </tbody>
+            </table>
+        `;
+    }
+
     get selectedCardEditorTemplate() {
-        if (!this.selectedCardStore) return nothing;
+        if (!this.cardItems.length || !this.selectedCardStore) {
+            return html`
+                <div class="panel-card">
+                    <h3 class="panel-title">Card editor</h3>
+                    <p class="panel-copy">Select a card to edit its content.</p>
+                </div>
+            `;
+        }
 
         return html`
             <merch-card-editor
@@ -897,13 +1129,20 @@ class CompareChartEditor extends LitElement {
     }
 
     get editorTemplate() {
+        const compareAuthoringTemplate = html`
+            <div class="compare-authoring-container">
+                ${this.cardsManagerTemplate} ${this.cardItems.length ? this.compareFeaturesTemplate : this.emptyEditorTemplate}
+            </div>
+        `;
+
         if (!this.cardItems.length) {
-            return html`<div class="editor-stack">${this.cardsManagerTemplate} ${this.emptyEditorTemplate}</div>`;
+            return html` <div class="editor-stack">${this.generalInfoTemplate} ${compareAuthoringTemplate}</div> `;
         }
 
         return html`
             <div class="editor-stack">
-                ${this.cardsManagerTemplate} ${this.compareFeaturesTemplate} ${this.selectedCardEditorTemplate}
+                ${this.generalInfoTemplate} ${compareAuthoringTemplate} ${this.selectedCardEditorTemplate}
+                ${this.removeCardDialogTemplate}
             </div>
         `;
     }
@@ -925,8 +1164,10 @@ class CompareChartEditor extends LitElement {
             `;
         }
 
-        const previewFragment = this.#buildTablePreviewFragment();
-        prepopulateFragmentCache(previewFragment.id, previewFragment);
+        const { previewFragment, changed } = this.#createPreviewSnapshot();
+        if (changed) {
+            void prepopulateFragmentCache(previewFragment.id, previewFragment);
+        }
 
         return html`
             <div class="panel-card">
@@ -953,6 +1194,7 @@ class CompareChartEditor extends LitElement {
     }
 
     async savePendingChanges(repository = this.repository) {
+        this.#closeActiveEditor();
         const createdCardStores = await this.#persistNewCards(repository);
 
         for (const store of createdCardStores) {
@@ -973,6 +1215,7 @@ class CompareChartEditor extends LitElement {
     }
 
     discardPendingChanges() {
+        this.#closeActiveEditor();
         const draftContext = this.#getDraftContext();
         for (const [path, draftStore] of draftContext.cardStoresByPath.entries()) {
             if (draftStore.new) {
@@ -1133,25 +1376,36 @@ class CompareChartEditor extends LitElement {
         this.#ensureFragmentReference(nextFragment);
 
         const nextCardPaths = this.cardItems.map(({ path }) => (path === previousPath ? nextPath : path));
-        const nextEntries = { ...this.compareEntriesByPath };
-        if (nextEntries[previousPath]) {
-            nextEntries[nextPath] = nextEntries[previousPath];
-            delete nextEntries[previousPath];
-        }
+        const nextRows = cloneFeatureRows(this.compareRows).map((row) => {
+            if (!Object.hasOwn(row.cellsByPath, previousPath)) return row;
+            row.cellsByPath[nextPath] = row.cellsByPath[previousPath] || '';
+            delete row.cellsByPath[previousPath];
+            return row;
+        });
 
         this.fragmentStore.updateField('cards', nextCardPaths);
-        this.#writeCompareChart(nextEntries, nextCardPaths);
+        this.#writeCompareChart(nextRows, nextCardPaths);
+        if (this.activeEditorKey?.startsWith(`cell:`) && this.activeEditorKey.endsWith(`:${previousPath}`)) {
+            const rowId = this.activeEditorKey.split(':')[1];
+            this.activeEditorKey = this.#getCellEditorKey(rowId, nextPath);
+        }
         if (this.selectedCardPath === previousPath) {
             this.selectedCardPath = nextPath;
         }
     }
 
     #broadcastCardSelection(cardPath) {
+        const nextCardPath = this.selectedCardPath === cardPath ? '' : cardPath;
+        if (!nextCardPath) {
+            this.selectedCardPath = '';
+            return;
+        }
+
         document.dispatchEvent(
             new CustomEvent(CARD_SELECT_EVENT, {
                 detail: {
                     collectionId: this.fragment?.id,
-                    cardPath,
+                    cardPath: nextCardPath,
                 },
             }),
         );
@@ -1164,16 +1418,100 @@ class CompareChartEditor extends LitElement {
 
     #createNewCard = () => {
         const currentPaths = this.cardItems.map(({ path }) => path);
+        const nextCardPaths = [...currentPaths];
         const draftFragment = this.#createDraftCardFragment(currentPaths.length + 1);
         const draftStore = this.#ensureDraftStore(draftFragment.path, draftFragment);
         draftStore.new = true;
         draftStore.tempPath = draftFragment.path;
 
         this.#ensureFragmentReference(draftFragment);
-        this.fragmentStore.updateField('cards', [...currentPaths, draftFragment.path]);
+        nextCardPaths.push(draftFragment.path);
+        this.fragmentStore.updateField('cards', nextCardPaths);
+        this.#writeCompareChart(this.compareRows, nextCardPaths);
         this.selectedCardPath = draftFragment.path;
         this.requestUpdate();
     };
+
+    async #pasteCardFromClipboard() {
+        try {
+            const clipboardText = await navigator.clipboard?.readText?.();
+            const fragmentId = this.#extractFragmentIdFromClipboard(clipboardText);
+            if (!fragmentId) {
+                showToast('Clipboard does not contain a card link or fragment id.', 'negative');
+                return;
+            }
+
+            const fragmentData = await this.#resolveCardFragmentById(fragmentId);
+            if (!fragmentData?.path) {
+                showToast('Unable to resolve card from clipboard.', 'negative');
+                return;
+            }
+
+            this.#addResolvedCard(fragmentData);
+        } catch (error) {
+            console.error('Failed to paste card from clipboard:', error);
+            showToast('Unable to paste card from clipboard.', 'negative');
+        }
+    }
+
+    #extractFragmentIdFromClipboard(clipboardText = '') {
+        const trimmed = clipboardText.trim();
+        if (!trimmed) return '';
+
+        if (UUID_PATTERN.test(trimmed) && trimmed === trimmed.match(UUID_PATTERN)?.[0]) {
+            return trimmed;
+        }
+
+        try {
+            const url = new URL(trimmed);
+            const hash = url.hash.startsWith('#') ? url.hash.slice(1) : url.hash;
+            const hashParams = new URLSearchParams(hash);
+            const directId = hashParams.get('query') || hashParams.get('fragmentId') || url.searchParams.get('query');
+            if (directId) return directId;
+        } catch {
+            // ignore URL parsing failures and fall back to UUID extraction
+        }
+
+        return trimmed.match(UUID_PATTERN)?.[0] || '';
+    }
+
+    async #resolveCardFragmentById(fragmentId) {
+        if (!fragmentId) return null;
+
+        const knownCard =
+            this.cardItems.find(({ fragmentStore }) => fragmentStore?.get()?.id === fragmentId)?.fragmentStore?.get() ||
+            this.fragment?.references?.find((reference) => reference.id === fragmentId) ||
+            Store.fragments.list.data
+                .get()
+                .find((store) => store.get()?.id === fragmentId)
+                ?.get() ||
+            (await getFromFragmentCache(fragmentId));
+
+        if (knownCard) {
+            return structuredClone(knownCard);
+        }
+
+        const fragmentData = await this.repository?.aem?.sites?.cf?.fragments?.getById?.(fragmentId);
+        return fragmentData ? structuredClone(fragmentData) : null;
+    }
+
+    #addResolvedCard(fragmentData) {
+        const cardPath = fragmentData?.path;
+        if (!cardPath) return;
+
+        if (this.cardItems.some(({ path }) => path === cardPath)) {
+            this.selectedCardPath = cardPath;
+            return;
+        }
+
+        this.#ensureDraftStore(cardPath, fragmentData);
+        this.#ensureFragmentReference(fragmentData);
+
+        const nextCardPaths = [...this.cardItems.map(({ path }) => path), cardPath];
+        this.fragmentStore.updateField('cards', nextCardPaths);
+        this.#writeCompareChart(this.compareRows, nextCardPaths);
+        this.selectedCardPath = cardPath;
+    }
 
     #moveCardToIndex(cardPath, targetIndex) {
         const currentPaths = this.cardItems.map(({ path }) => path);
@@ -1189,7 +1527,8 @@ class CompareChartEditor extends LitElement {
         if (nextCardPaths.every((path, index) => path === currentPaths[index])) return;
 
         this.fragmentStore.updateField('cards', nextCardPaths);
-        this.#writeCompareChart(this.compareEntriesByPath, nextCardPaths);
+        this.#writeCompareChart(this.compareRows, nextCardPaths);
+        this.#refreshPreviewFragments(true);
     }
 
     #handleCardDragStart(cardPath, event) {
@@ -1230,15 +1569,30 @@ class CompareChartEditor extends LitElement {
 
     #removeSelectedCard = () => {
         if (!this.selectedCardPath) return;
+        this.showRemoveCardDialog = true;
+    };
+
+    #closeRemoveCardDialog = () => {
+        this.showRemoveCardDialog = false;
+    };
+
+    #confirmRemoveSelectedCard = () => {
+        if (!this.selectedCardPath) return;
+        this.showRemoveCardDialog = false;
 
         const nextCardPaths = this.cardItems.map(({ path }) => path).filter((path) => path !== this.selectedCardPath);
-        const nextEntries = { ...this.compareEntriesByPath };
-        delete nextEntries[this.selectedCardPath];
+        const nextRows = cloneFeatureRows(this.compareRows).map((row) => {
+            delete row.cellsByPath[this.selectedCardPath];
+            return row;
+        });
+        if (this.activeEditorKey?.startsWith(`cell:`) && this.activeEditorKey.endsWith(`:${this.selectedCardPath}`)) {
+            this.activeEditorKey = '';
+        }
 
         this.#removeDraftStore(this.selectedCardPath);
         this.#removeFragmentReference(this.selectedCardPath);
         this.fragmentStore.updateField('cards', nextCardPaths);
-        this.#writeCompareChart(nextEntries, nextCardPaths);
+        this.#writeCompareChart(nextRows, nextCardPaths);
         this.selectedCardPath = nextCardPaths[0] || '';
     };
 
@@ -1408,20 +1762,6 @@ class CompareChartEditor extends LitElement {
         );
     }
 
-    #handleLabelInput = (event) => {
-        this.#updateEntry(this.selectedCardPath, {
-            label: event.target.value,
-            values: this.selectedEntry.values,
-        });
-    };
-
-    #handleFeatureValuesChange = (event) => {
-        this.#updateEntry(this.selectedCardPath, {
-            label: this.selectedEntry.label,
-            values: cloneValues(event.target.value),
-        });
-    };
-
     #updateSelectedCardFragment = ({ target, detail, values }) => {
         if (!this.selectedCardStore) return;
 
@@ -1435,36 +1775,166 @@ class CompareChartEditor extends LitElement {
         this.selectedCardStore.updateField(fieldName, value);
     };
 
-    updateCompareEntry(cardPath, nextEntry) {
-        this.#updateEntry(cardPath, nextEntry);
+    #handleFragmentTitleUpdate = (event) => {
+        this.fragmentStore?.updateFieldInternal('title', event.target.value);
+    };
+
+    #handleFragmentDescriptionUpdate = (event) => {
+        this.fragmentStore?.updateFieldInternal('description', event.target.value);
+    };
+
+    #getLabelEditorKey(rowId) {
+        return `label:${rowId}`;
     }
 
-    #updateEntry(cardPath, nextEntry) {
-        if (!cardPath) return;
-
-        const nextEntries = {
-            ...this.compareEntriesByPath,
-            [cardPath]: {
-                label: nextEntry.label || '',
-                values: cloneValues(nextEntry.values),
-            },
-        };
-
-        this.#writeCompareChart(nextEntries);
+    #getCellEditorKey(rowId, cardPath) {
+        return `cell:${rowId}:${cardPath}`;
     }
+
+    #findRowById(rowId) {
+        return this.compareRows.find((row) => row.id === rowId) || null;
+    }
+
+    #getCardOsi(cardPath) {
+        const cardStore = this.cardItems.find(({ path }) => path === cardPath)?.fragmentStore;
+        return cardStore?.get()?.getFieldValue?.('osi') || '';
+    }
+
+    #buildFieldSelector(key) {
+        return `[data-editor-key="${window.CSS?.escape?.(key) || key}"]`;
+    }
+
+    #getEditorKeys() {
+        return this.compareRows.flatMap((row) => [
+            this.#getLabelEditorKey(row.id),
+            ...this.cardItems.map(({ path }) => this.#getCellEditorKey(row.id, path)),
+        ]);
+    }
+
+    async #focusActiveEditor() {
+        await this.updateComplete;
+        const editor = this.renderRoot?.querySelector(`rte-field${this.#buildFieldSelector(this.activeEditorKey)}`);
+        editor?.editorView?.focus?.();
+        editor?.shadowRoot?.getElementById('editor')?.focus?.();
+    }
+
+    #handleDocumentPointerDown = (event) => {
+        if (!this.activeEditorKey || !this.renderRoot) return;
+        const activeContainer = this.renderRoot.querySelector(this.#buildFieldSelector(this.activeEditorKey));
+        if (activeContainer && event.composedPath().includes(activeContainer)) {
+            return;
+        }
+        this.#closeActiveEditor();
+    };
+
+    #activateEditor(key) {
+        if (this.activeEditorKey === key) return;
+        this.#closeActiveEditor();
+        this.#activeEditorInitialValue = this.#getEditorValue(key);
+        this.activeEditorKey = key;
+        void this.#focusActiveEditor();
+    }
+
+    #closeActiveEditor() {
+        if (!this.activeEditorKey) return;
+        this.#commitActiveEditor();
+        this.activeEditorKey = '';
+        this.#activeEditorInitialValue = '';
+    }
+
+    #discardActiveEditor() {
+        if (!this.activeEditorKey) return;
+        this.#applyEditorValue(this.activeEditorKey, this.#activeEditorInitialValue);
+        this.activeEditorKey = '';
+        this.#activeEditorInitialValue = '';
+    }
+
+    #commitActiveEditor() {
+        if (!this.activeEditorKey || !this.renderRoot) return;
+        const editor = this.renderRoot.querySelector(`rte-field${this.#buildFieldSelector(this.activeEditorKey)}`);
+        if (!editor) return;
+        this.#applyEditorValue(this.activeEditorKey, editor.value || '');
+    }
+
+    #applyEditorValue(editorKey, value) {
+        if (!editorKey) return;
+        const normalizedValue = normalizeRichText(value || '');
+        if (editorKey.startsWith('label:')) {
+            const rowId = editorKey.slice('label:'.length);
+            this.#updateRow(rowId, (row) => {
+                row.label = normalizedValue;
+            });
+            return;
+        }
+
+        if (!editorKey.startsWith('cell:')) return;
+        const [, rowId, ...cardPathParts] = editorKey.split(':');
+        const cardPath = cardPathParts.join(':');
+        this.#updateRow(rowId, (row) => {
+            row.cellsByPath[cardPath] = normalizedValue;
+        });
+    }
+
+    #getEditorValue(editorKey) {
+        if (!editorKey) return '';
+        if (editorKey.startsWith('label:')) {
+            const rowId = editorKey.slice('label:'.length);
+            return this.#findRowById(rowId)?.label || '';
+        }
+
+        if (!editorKey.startsWith('cell:')) return '';
+        const [, rowId, ...cardPathParts] = editorKey.split(':');
+        const cardPath = cardPathParts.join(':');
+        return this.#findRowById(rowId)?.cellsByPath?.[cardPath] || '';
+    }
+
+    #updateRow(rowId, updateFn) {
+        const nextRows = cloneFeatureRows(this.compareRows).map((row) => {
+            if (row.id !== rowId) return row;
+            updateFn(row);
+            return row;
+        });
+        this.#writeCompareChart(nextRows);
+    }
+
+    #addFeatureRow = () => {
+        this.#closeActiveEditor();
+        const nextRows = [...cloneFeatureRows(this.compareRows), createEmptyFeatureRow()];
+        this.#writeCompareChart(nextRows);
+    };
+
+    #removeFeatureRow = (rowId) => {
+        this.#closeActiveEditor();
+        const nextRows = cloneFeatureRows(this.compareRows).filter((row) => row.id !== rowId);
+        this.#writeCompareChart(nextRows);
+    };
+
+    #moveFeatureRow = (rowId, direction) => {
+        this.#closeActiveEditor();
+        const nextRows = cloneFeatureRows(this.compareRows);
+        const currentIndex = nextRows.findIndex((row) => row.id === rowId);
+        if (currentIndex === -1) return;
+
+        const targetIndex = currentIndex + direction;
+        if (targetIndex < 0 || targetIndex >= nextRows.length) return;
+
+        const [row] = nextRows.splice(currentIndex, 1);
+        nextRows.splice(targetIndex, 0, row);
+        this.#writeCompareChart(nextRows);
+    };
 
     #normalizeCompareChart() {
         const cardPaths = this.cardItems.map(({ path }) => path);
-        const normalizedHtml = serializeCompareChart(this.compareEntriesByPath, cardPaths);
+        const normalizedHtml = serializeCompareChart(this.compareRows, cardPaths);
         if (normalizedHtml === this.compareChartHtml) return;
 
-        this.#writeCompareChart(this.compareEntriesByPath, cardPaths);
+        this.#writeCompareChart(this.compareRows, cardPaths);
     }
 
-    #writeCompareChart(entriesByPath, cardPaths = this.cardItems.map(({ path }) => path)) {
-        const compareChartHtml = serializeCompareChart(entriesByPath, cardPaths);
+    #writeCompareChart(rows, cardPaths = this.cardItems.map(({ path }) => path)) {
+        const compareChartHtml = serializeCompareChart(rows, cardPaths);
         this.#cachedCompareChartHtml = compareChartHtml;
-        this.#cachedCompareEntries = entriesByPath;
+        this.#cachedCompareRows = cloneFeatureRows(rows);
 
         this.fragmentStore.updateField(COMPARE_CHART_FIELD, [compareChartHtml]);
         this.#ensureCompareChartFieldMetadata();
@@ -1485,86 +1955,158 @@ class CompareChartEditor extends LitElement {
         return `compare-table-preview-${this.fragment?.id || 'collection'}`;
     }
 
-    #buildFallbackHeadingCell(cardItem) {
-        const cell = document.createElement('div');
-        const title = document.createElement('p');
-        title.textContent = getCardLabel(cardItem);
-        cell.append(title);
-        return cell;
+    #renderFeatureRow(row) {
+        const labelEditorKey = this.#getLabelEditorKey(row.id);
+        const rowIndex = this.compareRows.findIndex(({ id }) => id === row.id);
+        const canMoveUp = rowIndex > 0;
+        const canMoveDown = rowIndex > -1 && rowIndex < this.compareRows.length - 1;
+        return html`
+            <tr>
+                <td
+                    class=${`feature-label-cell ${this.activeEditorKey === labelEditorKey ? 'is-active' : 'is-editable'}`}
+                    data-editor-key=${labelEditorKey}
+                    tabindex=${this.activeEditorKey === labelEditorKey ? '-1' : '0'}
+                    @click=${() => this.#activateEditor(labelEditorKey)}
+                    @keydown=${(event) => this.#handleFeatureCellActivationKeydown(event, labelEditorKey)}
+                >
+                    <sp-action-group class="feature-row-actions" compact quiet>
+                        <sp-action-button
+                            class="feature-row-move-up"
+                            ?disabled=${!canMoveUp}
+                            quiet
+                            label="Move row up"
+                            @click=${(event) => {
+                                event.stopPropagation();
+                                this.#moveFeatureRow(row.id, -1);
+                            }}
+                        >
+                            <sp-icon-chevron-up slot="icon"></sp-icon-chevron-up>
+                        </sp-action-button>
+                        <sp-action-button
+                            class="feature-row-move-down"
+                            ?disabled=${!canMoveDown}
+                            quiet
+                            label="Move row down"
+                            @click=${(event) => {
+                                event.stopPropagation();
+                                this.#moveFeatureRow(row.id, 1);
+                            }}
+                        >
+                            <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                        </sp-action-button>
+                        <sp-action-button
+                            class="feature-row-remove"
+                            quiet
+                            label="Remove row"
+                            @click=${(event) => {
+                                event.stopPropagation();
+                                this.#removeFeatureRow(row.id);
+                            }}
+                        >
+                            <sp-icon-delete slot="icon"></sp-icon-delete>
+                        </sp-action-button>
+                    </sp-action-group>
+                    ${this.#renderEditableField({
+                        editorKey: labelEditorKey,
+                        value: row.label,
+                        placeholder: 'Click to add feature name',
+                    })}
+                </td>
+                ${this.cardItems.map(({ path }) => {
+                    const editorKey = this.#getCellEditorKey(row.id, path);
+                    return html`
+                        <td
+                            class=${`feature-value-cell ${this.activeEditorKey === editorKey ? 'is-active' : 'is-editable'}`}
+                            data-editor-key=${editorKey}
+                            tabindex=${this.activeEditorKey === editorKey ? '-1' : '0'}
+                            @click=${() => this.#activateEditor(editorKey)}
+                            @keydown=${(event) => this.#handleFeatureCellActivationKeydown(event, editorKey)}
+                        >
+                            ${this.#renderEditableField({
+                                editorKey,
+                                value: row.cellsByPath?.[path] || '',
+                                placeholder: 'Click to edit',
+                                osi: this.#getCardOsi(path),
+                            })}
+                        </td>
+                    `;
+                })}
+            </tr>
+        `;
     }
 
-    #buildPlaceholderCell(value = '') {
-        const cell = document.createElement('div');
-        if (!value) return cell;
-        const text = document.createElement('div');
-        text.textContent = value;
-        cell.append(text);
-        return cell;
-    }
-
-    #buildFeatureCell(value) {
-        const cell = document.createElement('div');
-        if (!value) {
-            const empty = document.createElement('p');
-            empty.textContent = '-';
-            cell.append(empty);
-            return cell;
+    #renderEditableField({ editorKey, value, placeholder, osi = '' }) {
+        const isActive = this.activeEditorKey === editorKey;
+        if (isActive) {
+            return html`
+                <div class="feature-cell-editor" data-editor-key=${editorKey}>
+                    <rte-field
+                        float
+                        inline
+                        icon
+                        icon-picker
+                        mnemonic
+                        .osi=${osi}
+                        .value=${value || ''}
+                        data-editor-key=${editorKey}
+                        @change=${this.#handleFeatureEditorChange}
+                        @keydown=${this.#handleFeatureEditorKeydown}
+                    ></rte-field>
+                </div>
+            `;
         }
 
-        cell.append(createMnemonicList(value));
-        return cell;
+        return html`
+            <div class="feature-cell-display">
+                ${value ? unsafeHTML(value) : html`<span class="feature-cell-placeholder">${placeholder}</span>`}
+            </div>
+        `;
     }
 
-    #buildTableMarkup() {
-        const table = document.createElement('div');
-        table.className = 'table';
-        const labelValues = this.cardItems.map(({ path }) => this.compareEntriesByPath[path]?.label || '');
-        const hasLabelRow = labelValues.some(Boolean);
-
-        const highlightRow = document.createElement('div');
-        this.cardItems.forEach(() => {
-            highlightRow.append(this.#buildPlaceholderCell());
-        });
-        table.append(highlightRow);
-
-        const headingRow = document.createElement('div');
-        this.cardItems.forEach((cardItem) => {
-            headingRow.append(this.#buildFallbackHeadingCell(cardItem));
-        });
-        table.append(headingRow);
-
-        const dividerRow = document.createElement('div');
-        this.cardItems.forEach(() => {
-            const cell = document.createElement('div');
-            cell.append(document.createElement('hr'));
-            dividerRow.append(cell);
-        });
-        table.append(dividerRow);
-
-        if (hasLabelRow) {
-            const labelRow = document.createElement('div');
-            labelValues.forEach((label) => {
-                labelRow.append(this.#buildPlaceholderCell(label));
-            });
-            table.append(labelRow);
-        }
-
-        const maxFeatureCount = Math.max(
-            0,
-            ...this.cardItems.map(({ path }) => (this.compareEntriesByPath[path] || createEmptyEntry()).values.length),
-        );
-
-        for (let index = 0; index < maxFeatureCount; index += 1) {
-            const row = document.createElement('div');
-            this.cardItems.forEach(({ path }) => {
-                const entry = this.compareEntriesByPath[path] || createEmptyEntry();
-                row.append(this.#buildFeatureCell(entry.values[index]));
-            });
-            table.append(row);
-        }
-
-        return table.outerHTML;
+    #handleFeatureCellActivationKeydown(event, editorKey) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.#activateEditor(editorKey);
     }
+
+    #handleFeatureEditorChange = (event) => {
+        const editorKey = event.currentTarget.dataset.editorKey;
+        this.#applyEditorValue(editorKey, event.currentTarget.value || '');
+    };
+
+    #handleFeatureEditorKeydown = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            this.#discardActiveEditor();
+            return;
+        }
+
+        if (event.key !== 'Tab') return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const currentKey = event.currentTarget.dataset.editorKey;
+        const editorKeys = this.#getEditorKeys();
+        const currentIndex = editorKeys.indexOf(currentKey);
+        if (currentIndex === -1) {
+            this.#closeActiveEditor();
+            return;
+        }
+
+        this.#applyEditorValue(currentKey, event.currentTarget.value || '');
+        const nextIndex = currentIndex + (event.shiftKey ? -1 : 1);
+        const nextKey = editorKeys[nextIndex];
+
+        if (!nextKey) {
+            this.activeEditorKey = '';
+            return;
+        }
+
+        this.activeEditorKey = nextKey;
+        void this.#focusActiveEditor();
+    };
 
     #buildTablePreviewReference(cardItem) {
         const fragment = structuredClone(cardItem.fragmentStore.previewStore.get() || cardItem.fragmentStore.get());
@@ -1586,14 +2128,14 @@ class CompareChartEditor extends LitElement {
             model: { id: 'table' },
             fields: [
                 createField('blockName', ['Table']),
-                createField('selectedVariantNames', ['merch', 'highlight'], 'text', true),
+                createField('selectedVariantNames', getCompareTableVariantNames(this.cardItems), 'text', true),
                 createField(
                     'cards',
                     this.cardItems.map(({ fragmentStore, path }) => fragmentStore?.get()?.id || path.split('/').pop()),
                     'content-fragment',
                     true,
                 ),
-                createField('compareChart', [this.#buildTableMarkup()], 'long-text', false, 'text/html'),
+                createField('compareChart', [buildTableMarkup(this.fragmentStore)], 'long-text', false, 'text/html'),
             ],
             references: this.cardItems
                 .filter(({ fragmentStore }) => fragmentStore)
@@ -1601,17 +2143,35 @@ class CompareChartEditor extends LitElement {
         };
     }
 
-    #refreshPreviewFragments() {
+    #createPreviewSnapshot() {
+        const previewFragment = buildCompareChartPreviewFragment(this.fragmentStore);
+        const signature = JSON.stringify(previewFragment);
+        const changed = signature !== this.#lastPreviewSignature;
+        if (changed) {
+            this.#lastPreviewSignature = signature;
+        }
+
+        return { previewFragment, changed };
+    }
+
+    #refreshPreviewFragments(force = false) {
         cancelAnimationFrame(this.#previewRefreshFrame);
         this.#previewRefreshFrame = requestAnimationFrame(async () => {
             if (!this.fragmentStore) return;
 
-            const previewFragment = buildCompareChartPreviewFragment(this.fragmentStore);
-            await prepopulateFragmentCache(previewFragment.id, previewFragment);
+            const { previewFragment, changed } = this.#createPreviewSnapshot();
+            if (!changed && !force) return;
+
+            if (changed) {
+                await prepopulateFragmentCache(previewFragment.id, previewFragment);
+            }
 
             document.querySelectorAll(`aem-fragment[fragment="${previewFragment.id}"]`).forEach((fragment) => {
                 fragment.refresh(false);
             });
+            document
+                .querySelectorAll(`acom-content-preview[fragment="${previewFragment.id}"]`)
+                .forEach((preview) => preview.refresh?.());
         });
     }
 

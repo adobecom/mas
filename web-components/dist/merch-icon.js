@@ -16,6 +16,7 @@ __export(mas_mnemonic_exports, {
   default: () => MasMnemonic
 });
 import { LitElement, html, css } from "./lit-all.min.js";
+import { unsafeHTML } from "./lit-all.min.js";
 function hasSpectrumTooltip() {
   return customElements.get("sp-tooltip") !== void 0 && customElements.get("overlay-trigger") !== void 0 && document.querySelector("sp-theme") !== null;
 }
@@ -84,6 +85,9 @@ var init_mas_mnemonic = __esm({
       }
       renderIcon() {
         if (!this.src) return html`<slot></slot>`;
+        if (this.src.startsWith("sp-icon-")) {
+          return html`${unsafeHTML(`<${this.src} size="${this.size || "m"}"></${this.src}>`)}`;
+        }
         return html`<merch-icon
             src="${this.src}"
             size="${this.size}"

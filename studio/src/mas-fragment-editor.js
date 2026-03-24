@@ -12,6 +12,7 @@ import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, showToast
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import { buildCompareChartPreviewFragment } from './editors/compare-chart-editor.js';
+import './editors/acom-content-preview.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import { branch2Icon } from './icons.js';
@@ -22,6 +23,8 @@ const MODEL_WEB_COMPONENT_MAPPING = {
 };
 
 export default class MasFragmentEditor extends LitElement {
+    #lastComparePreviewSignature = '';
+
     static styles = css`
         #fragment-editor {
             display: flex;
@@ -99,8 +102,9 @@ export default class MasFragmentEditor extends LitElement {
             overflow: visible;
         }
 
-        #preview-wrapper.compare-chart-preview mas-table {
+        #preview-wrapper.compare-chart-preview acom-content-preview {
             width: 100%;
+            display: block;
         }
 
         @media (max-width: 1200px) {
@@ -1514,14 +1518,16 @@ export default class MasFragmentEditor extends LitElement {
 
         if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
             const previewFragment = buildCompareChartPreviewFragment(this.fragmentStore);
-            prepopulateFragmentCache(previewFragment.id, previewFragment);
+            const previewSignature = JSON.stringify(previewFragment);
+            if (previewSignature !== this.#lastComparePreviewSignature) {
+                this.#lastComparePreviewSignature = previewSignature;
+                void prepopulateFragmentCache(previewFragment.id, previewFragment);
+            }
 
             return html`
                 <div id="preview-column">
                     <div id="preview-wrapper" class="compare-chart-preview">
-                        <mas-table>
-                            <aem-fragment ?author=${true} loading="cache" fragment="${previewFragment.id}"></aem-fragment>
-                        </mas-table>
+                        <acom-content-preview ?author=${true} fragment="${previewFragment.id}"></acom-content-preview>
                     </div>
                 </div>
             `;

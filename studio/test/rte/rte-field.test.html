@@ -103,6 +103,86 @@
                         const rte = await createFromTemplate('rte', this.test.title);
                         expect(rte.shadowRoot).exist;
                     });
+
+                    it('should use mas-icon-picker-modal when icon-picker is enabled', async function () {
+                        const rte = await createFromTemplate('rte-icon-picker', this.test.title);
+
+                        await rte.openMnemonicEditor();
+                        await rte.updateComplete;
+
+                        expect(rte.shadowRoot.querySelector('mas-icon-picker-modal')).to.exist;
+                        expect(rte.shadowRoot.querySelector('rte-mnemonic-editor')).to.not.exist;
+                    });
+
+                    it('should float the toolbar centered above the parent container when focused', async function () {
+                        const wrapper = await createFromTemplate('rte-float', this.test.title);
+                        const rte = wrapper.querySelector('rte-field');
+                        const anchor = rte.parentElement;
+                        const toolbar = rte.shadowRoot.getElementById('floating-toolbar');
+
+                        anchor.getBoundingClientRect = () => ({
+                            left: 100,
+                            top: 200,
+                            width: 320,
+                            height: 80,
+                            right: 420,
+                            bottom: 280,
+                        });
+                        toolbar.getBoundingClientRect = () => ({
+                            left: 0,
+                            top: 0,
+                            width: 180,
+                            height: 44,
+                            right: 180,
+                            bottom: 44,
+                        });
+
+                        rte.hasFocus = true;
+                        rte.requestUpdate();
+                        await rte.updateComplete;
+                        await delay(50);
+                        await rte.updateComplete;
+
+                        expect(toolbar.classList.contains('visible')).to.be.true;
+                        expect(toolbar.classList.contains('below')).to.be.false;
+                        expect(toolbar.style.left).to.equal('260px');
+                        expect(toolbar.style.top).to.equal('144px');
+                    });
+
+                    it('should flip the floating toolbar below when there is not enough room above', async function () {
+                        const wrapper = await createFromTemplate('rte-float', this.test.title);
+                        const rte = wrapper.querySelector('rte-field');
+                        const anchor = rte.parentElement;
+                        const toolbar = rte.shadowRoot.getElementById('floating-toolbar');
+
+                        anchor.getBoundingClientRect = () => ({
+                            left: 100,
+                            top: 20,
+                            width: 320,
+                            height: 80,
+                            right: 420,
+                            bottom: 100,
+                        });
+                        toolbar.getBoundingClientRect = () => ({
+                            left: 0,
+                            top: 0,
+                            width: 180,
+                            height: 44,
+                            right: 180,
+                            bottom: 44,
+                        });
+
+                        rte.hasFocus = true;
+                        rte.requestUpdate();
+                        await rte.updateComplete;
+                        await delay(50);
+                        await rte.updateComplete;
+
+                        expect(toolbar.classList.contains('visible')).to.be.true;
+                        expect(toolbar.classList.contains('below')).to.be.true;
+                        expect(toolbar.style.left).to.equal('260px');
+                        expect(toolbar.style.top).to.equal('112px');
+                    });
                 });
 
                 describe('RTE Field: styling features', () => {
@@ -347,6 +427,18 @@
         <template id="rte-styling">
             <rte-field styling>
                 <p>Styling</p>
+            </rte-field>
+        </template>
+        <template id="rte-float">
+            <div class="float-anchor">
+                <rte-field float link styling>
+                    <p>Floating toolbar</p>
+                </rte-field>
+            </div>
+        </template>
+        <template id="rte-icon-picker">
+            <rte-field mnemonic icon-picker>
+                <p>Feature icon</p>
             </rte-field>
         </template>
         <template id="rte-link">

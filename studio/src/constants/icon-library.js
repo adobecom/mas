@@ -16,6 +16,7 @@ export const ICON_LIBRARY = [
     { id: 'sp-icon-video-filled', name: 'Video' },
     { id: 'sp-icon-brush', name: 'Brush' },
     { id: 'sp-icon-social-network', name: 'Social network' },
+    { id: 'sp-icon-checkmark', name: 'Checkmark' },
 ];
 
 const VARIANT_SPECTRUM = {

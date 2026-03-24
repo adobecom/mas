@@ -1129,6 +1129,63 @@ var init_lit = __esm({
   }
 });
 
+// node_modules/lit-html/directive.js
+var t3, e4, i3;
+var init_directive = __esm({
+  "node_modules/lit-html/directive.js"() {
+    t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
+    e4 = (t4) => (...e6) => ({ _$litDirective$: t4, values: e6 });
+    i3 = class {
+      constructor(t4) {
+      }
+      get _$AU() {
+        return this._$AM._$AU;
+      }
+      _$AT(t4, e6, i4) {
+        this._$Ct = t4, this._$AM = e6, this._$Ci = i4;
+      }
+      _$AS(t4, e6) {
+        return this.update(t4, e6);
+      }
+      update(t4, e6) {
+        return this.render(...e6);
+      }
+    };
+  }
+});
+
+// node_modules/lit-html/directives/unsafe-html.js
+var e5, o5;
+var init_unsafe_html = __esm({
+  "node_modules/lit-html/directives/unsafe-html.js"() {
+    init_lit_html();
+    init_directive();
+    e5 = class extends i3 {
+      constructor(i4) {
+        if (super(i4), this.et = A, i4.type !== t3.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
+      }
+      render(r4) {
+        if (r4 === A || null == r4) return this.ft = void 0, this.et = r4;
+        if (r4 === T) return r4;
+        if ("string" != typeof r4) throw Error(this.constructor.directiveName + "() called with a non-string value");
+        if (r4 === this.et) return this.ft;
+        this.et = r4;
+        const s5 = [r4];
+        return s5.raw = s5, this.ft = { _$litType$: this.constructor.resultType, strings: s5, values: [] };
+      }
+    };
+    e5.directiveName = "unsafeHTML", e5.resultType = 1;
+    o5 = e4(e5);
+  }
+});
+
+// node_modules/lit/directives/unsafe-html.js
+var init_unsafe_html2 = __esm({
+  "node_modules/lit/directives/unsafe-html.js"() {
+    init_unsafe_html();
+  }
+});
+
 // src/mas-mnemonic.js
 var mas_mnemonic_exports = {};
 __export(mas_mnemonic_exports, {
@@ -1141,6 +1198,7 @@ var _MasMnemonic, MasMnemonic;
 var init_mas_mnemonic = __esm({
   "src/mas-mnemonic.js"() {
     init_lit();
+    init_unsafe_html2();
     _MasMnemonic = class _MasMnemonic extends s4 {
       constructor() {
         super();
@@ -1203,6 +1261,9 @@ var init_mas_mnemonic = __esm({
       }
       renderIcon() {
         if (!this.src) return x`<slot></slot>`;
+        if (this.src.startsWith("sp-icon-")) {
+          return x`${o5(`<${this.src} size="${this.size || "m"}"></${this.src}>`)}`;
+        }
         return x`<merch-icon
             src="${this.src}"
             size="${this.size}"
@@ -20127,49 +20188,7 @@ customElements.define(AEM_FRAGMENT_TAG_NAME, AemFragment);
 
 // src/merch-badge.js
 init_lit();
-
-// node_modules/lit-html/directives/unsafe-html.js
-init_lit_html();
-
-// node_modules/lit-html/directive.js
-var t3 = { ATTRIBUTE: 1, CHILD: 2, PROPERTY: 3, BOOLEAN_ATTRIBUTE: 4, EVENT: 5, ELEMENT: 6 };
-var e4 = (t4) => (...e6) => ({ _$litDirective$: t4, values: e6 });
-var i3 = class {
-  constructor(t4) {
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  _$AT(t4, e6, i4) {
-    this._$Ct = t4, this._$AM = e6, this._$Ci = i4;
-  }
-  _$AS(t4, e6) {
-    return this.update(t4, e6);
-  }
-  update(t4, e6) {
-    return this.render(...e6);
-  }
-};
-
-// node_modules/lit-html/directives/unsafe-html.js
-var e5 = class extends i3 {
-  constructor(i4) {
-    if (super(i4), this.et = A, i4.type !== t3.CHILD) throw Error(this.constructor.directiveName + "() can only be used in child bindings");
-  }
-  render(r4) {
-    if (r4 === A || null == r4) return this.ft = void 0, this.et = r4;
-    if (r4 === T) return r4;
-    if ("string" != typeof r4) throw Error(this.constructor.directiveName + "() called with a non-string value");
-    if (r4 === this.et) return this.ft;
-    this.et = r4;
-    const s5 = [r4];
-    return s5.raw = s5, this.ft = { _$litType$: this.constructor.resultType, strings: s5, values: [] };
-  }
-};
-e5.directiveName = "unsafeHTML", e5.resultType = 1;
-var o5 = e4(e5);
-
-// src/merch-badge.js
+init_unsafe_html2();
 var renderIcon = (iconName) => {
   if (!iconName) return A;
   if (iconName.startsWith("sp-icon-"))
@@ -22837,871 +22856,6 @@ customElements.define("merch-quantity-select", MerchQuantitySelect);
 // src/mas.js
 init_mas_mnemonic();
 
-// src/mas-table.css.js
-var TABLE_CSS = String.raw`
-.table,
-.table.merch {
-  --border-color: #DADADA;
-  --highlight-background: #F3D949;
-  --hover-border-color: #357BEB;
-  --checkmark-color: #2C2C2C;
-  --border-radius: 16px;
-
-  max-width: 1200px;
-  margin: auto;
-  padding: 20px 0;
-  border-color: var(--border-color);
-}
-
-.section[class *= "grid-width-"] .table {
-  width: 100%;
-}
-
-.table a:not([class*="button"]) {
-  display: inline-block;
-}
-
-.table > .row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(50%, 1fr));
-}
-
-.table .col {
-  display: flex;
-  flex-wrap: wrap;
-  min-height: 27px;
-  border-left: 1px var(--border-color) solid;
-  border-right: 1px solid transparent;
-  border-top: 1px var(--border-color) solid;
-  background-color: var(--color-white);
-}
-
-.table .col.section-row-title {
-  flex-wrap: nowrap;
-}
-
-.table .section-row .col {
-  align-items: center;
-}
-
-.table:not(.left, .header-left) .col{
-  justify-content: center;
-}
-
-.table.top .section-row .col {
-  flex-direction: column;
-  justify-content: start;
-}
-
-.table.top.left .section-row .col {
-  align-items: start;
-}
-
-.table:not(.merch) .col-1:not(:only-child) {
-  background-color: var(--color-gray-100);
-}
-
-.table .col:last-child {
-  border-right: 1px var(--border-color) solid;
-}
-
-.table .row:last-child .col {
-  border-bottom: 1px var(--border-color) solid;
-}
-
-.table .col,
-.table .col p {
-  font-size: var(--type-body-s-size);
-  line-height: var(--type-body-s-lh);
-}
-
-.table .col p {
-  margin: 0;
-}
-
-.table .col p picture {
-  margin-right: 8px;
-}
-
-.table .col picture {
-  display: flex;
-}
-
-.section.table-section,
-.section.table-merch-section {
-  background: var(--color-white);
-}
-
-.table.sticky,
-.table.sticky .row-1,
-.table.sticky .row-heading {
-  background: inherit;
-}
-
-.table.merch .col {
-  border-top: 1px var(--border-color) solid;
-  border-left: 1px var(--border-color) solid;
-}
-
-.table.merch .col.border-bottom {
-  border-bottom: 1px var(--border-color) solid;
-}
-
-.table .row-highlight .col.col-highlight {
-  border-color: transparent;
-}
-
-.table.collapse .section-head-collaped .col {
-  border-bottom: 1px var(--border-color) solid;
-}
-
-.table .row-highlight .col-highlight {
-  font-size: var(--type-body-s-size);
-  line-height: var(--type-body-s-lh);
-  background-color: var(--highlight-background);
-  border: 1px solid var(--highlight-background);
-  padding: 10px 30px;
-  text-transform: capitalize;
-  border-radius: 0;
-  text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.table .row-highlight .col-highlight:first-child:not(.hidden),
-.table .row-highlight .col-highlight.hidden + .col-highlight:not(.hidden),
-.table .row-highlight .col-highlight:only-child:not(.hidden) {
-  border-top-left-radius: var(--border-radius);
-}
-
-.table .row-highlight .col-highlight:last-child:not(.hidden),
-.table .row-highlight .col-highlight:not(.hidden):has(+ .col-highlight.hidden),
-.table .row-highlight .col-highlight:only-child:not(.hidden) {
-  border-top-right-radius: var(--border-radius);
-}
-
-.table .row-highlight .col-highlight.hidden {
-  visibility: hidden;
-}
-
-.table .highlight-text {
-  overflow: hidden;
-  width: 0;
-  height: 0;
-}
-
-.table .col-heading.hidden {
-  border-top: none !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-radius: 0 !important;
-}
-
-[dir="rtl"] .table .row-heading .col-heading.col.no-rounded,
-.table .row-heading .col-heading.col.no-rounded {
-  border-radius: 0;
-}
-
-.table.merch .row-heading .col-heading:not(.no-rounded):first-child {
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: 0;
-}
-
-.table.merch .row-heading .col-heading:not(.no-rounded):last-child {
-  border-top-left-radius: 0;
-  border-top-right-radius: var(--border-radius);
-}
-
-[dir="rtl"] .table.merch .row-heading .col-heading:not(.no-rounded):first-child {
-  border-top-left-radius: 0;
-  border-top-right-radius: var(--border-radius);
-}
-
-[dir="rtl"] .table.merch .row-heading .col-heading:not(.no-rounded):last-child {
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: 0;
-}
-
-.table.m-heading-icon .row-heading .col-heading img {
-  height: var(--icon-size-m);
-  width: auto;
-}
-
-.table .section-row .col.section-row-title,
-.table .section-row .col.section-row-title p {
-  font-size: var(--type-body-s-size);
-  line-height: var(--type-body-s-lh);
-}
-
-.table:not(.merch):not(.left, .header-left) .section-row .col:not(.section-row-title),
-.table .row-heading .col.col-heading {
-  text-align: center;
-}
-
-.table .row-heading .col.col-heading {
-  padding: 16px 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.table .col-heading * {
-  max-width: 100%;
-}
-
-.table .row-heading .col.col-heading .buttons-wrapper {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.table.header-left .row-heading .col.col-heading {
-  text-align: start;
-  padding: 24px;
-}
-
-.table .row-heading .col.col-heading .action-area {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.table.header-left .row-heading .col.col-heading .buttons-wrapper {
-  justify-content: flex-start;
-}
-
-.table.button-right.merch .row-heading .col.col-heading .buttons-wrapper {
-  justify-content: flex-end;
-}
-
-.table.merch.button-right .row-heading .col.col-heading .buttons-wrapper > * {
-  margin: 12px 0 12px 12px;
-}
-
-.table .row-heading .col.col-heading .buttons-wrapper > * {
-  margin: 10px 6px;
-}
-
-.table.header-left .row-heading .col.col-heading .buttons-wrapper > * {
-  margin-inline-start: 0;
-}
-
-.table .row-heading .col-heading .header-product-tile {
-  display: inline-flex;
-  gap: 8px;
-  justify-content: center;
-}
-
-.table.header-left .row-heading .col-heading .header-product-tile {
-  justify-content: flex-start;
-}
-
-.table .row-heading .col-heading .header-product-tile picture {
-  display: flex;
-  margin: 0;
-}
-
-.table .row-heading .col-heading .tracking-header {
-  font-size: var(--type-heading-s-size);
-  line-height: var(--type-heading-s-lh);
-  font-weight: bold;
-  padding: var(--spacing-xxs) 0;
-}
-
-.table .row-heading .col-heading .pricing {
-  font-size: var(--type-heading-m-size);
-  line-height: var(--type-heading-m-lh);
-  font-weight: bold;
-  padding: var(--spacing-xxs) 0;
-}
-
-.table .row-heading .col-heading .pricing [is='inline-price'],
-.table .row-heading .col-heading .pricing .placeholder-resolved {
-  display: inline-block;
-  min-height: 30px;
-  min-width: 1px;
-  line-height: 30px;
-}
-
-.table .row-heading .col-heading .pricing .price:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal) {
-  font-size: var(--type-heading-m-size);
-  line-height: var(--type-heading-m-lh);
-  font-weight: 700;
-}
-
-.table .row-heading .col-heading .pricing [data-template='strikethrough'],
-.table .row-heading .col-heading .pricing .price-strikethrough {
-  display: inline-block;
-  font-size: var(--type-body-s-size);
-  line-height: var(--type-heading-m-lh);
-  font-weight: 700;
-}
-
-.table .divider {
-  display: none;
-}
-
-.table .section-head .col {
-  background-color: var(--color-gray-100);
-  padding: 24px;
-}
-
-.table .section-row .col {
-  padding: 16px 24px;
-  column-gap: 0.5ch;
-}
-
-.table .section-row .col:has(> p:nth-child(2)) {
-  flex-direction: column;
-}
-
-.table.header-left .section-row .col:has(> p:nth-child(2)),
-.table.left .section-row .col:has(> p:nth-child(2)) {
-  align-items: flex-start;
-}
-
-.table .section-head-title.point-cursor {
-  cursor: pointer;
-}
-
-.table .section-head .section-head-title > :not(.icon) {
-  font-size: var(--type-body-m-size);
-  line-height: var(--type-heading-s-lh);
-  width: calc(100% - 25px);
-}
-
-.table .section-head .section-head-title,
-.table .section-row .section-row-title,
-.table .section-row .section-row-title .table-title-row,
-.table.merch .section-head .col-merch,
-.table.merch .section-row .col-merch {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.table.collapse .section-row.hidden {
-  display: none;
-}
-
-.table:not(.merch) .section-head > :not(:first-child) {
-  border-left-color: transparent;
-}
-
-.table:not(.merch) .section-head > :not(:last-child) {
-  border-right-color: transparent;
-}
-
-.table .light {
-  color: var(--color-white);
-}
-
-.table:not(.merch) .row .col span.milo-tooltip {
-  margin-right: -4px;
-}
-
-[dir='rtl'] .table:not(.merch) .row .col span.milo-tooltip {
-  margin-right: 0;
-  margin-left: -4px;
-}
-
-.table span[data-tooltip] .icon-milo {
-  height: 16px;
-}
-
-.table span[data-tooltip] .icon-milo:hover {
-  cursor: pointer;
-}
-
-.table span[data-tooltip] .active .icon-milo path,
-.table span[data-tooltip] .icon-milo:hover path {
-  color: var(--hover-border-color);
-}
-
-.table .icon-milo-checkmark {
-  color: var(--checkmark-color);
-  width: 21px;
-  height: 100%;
-}
-
-.table .icon.expand {
-  background-color: transparent;
-  border: 0;
-  background-image: url('../../ui/img/chevron-wide-black.svg');
-  background-repeat: no-repeat;
-  background-position: center;
-  width: 12px;
-  aspect-ratio: 1.7;
-  cursor: pointer;
-  rotate: -90deg;
-  background-size: contain;
-}
-
-[dir="rtl"] .table .icon.expand {
-  rotate: 90deg;
-}
-
-.table .section-head-title:hover .icon.expand {
-  filter: invert(41%) sepia(22%) saturate(100) hue-rotate(203deg) brightness(96%) contrast(93%);
-}
-
-.table .icon.expand[aria-expanded=true] {
-  rotate: unset;
-}
-
-.table .row-highlight .col-highlight.transparent-border {
-  border-color: transparent;
-}
-
-[dir="rtl"] .table .col {
-  border-right: 1px var(--border-color) solid;
-  border-left: 1px var(--border-color) solid;
-}
-
-[dir="rtl"] .table.merch .col {
-  border-left: 1px var(--border-color) solid;
-}
-
-[dir="rtl"] .table .col:first-child {
-  border-right: 1px var(--border-color) solid;
-}
-
-[dir="rtl"] .table .col:last-child:not(.hover) {
-  border-left: 1px var(--border-color) solid;
-}
-
-[dir="rtl"] .table.merch .col-merch .col-merch-content picture {
-  margin-right: 0;
-  margin-left: 16px;
-}
-
-@media (min-width: 900px) {
-  .table .col.hover {
-    border-left: 1px solid var(--hover-border-color);
-    border-right: 1px solid var(--hover-border-color);
-  }
-
-  .table .row-highlight .col-highlight {
-    border-top-color: transparent;
-    border-left-color: transparent;
-    border-right-color: transparent;
-  }
-
-  .table .row-highlight .col-highlight.hover {
-    border-top: 1px solid var(--hover-border-color);
-    border-left: 1px solid var(--hover-border-color);
-    border-right: 1px solid var(--hover-border-color);
-  }
-
-  [dir="rtl"] .table .col-heading:first-child {
-    border-top-left-radius: 0;
-    border-top-right-radius: var(--border-radius);
-  }
-
-  [dir="rtl"] .table .col-heading:last-child {
-    border-top-right-radius: 0;
-    border-top-left-radius: var(--border-radius);
-  }
-
-  .table .row-heading .col-heading.hover {
-    border-top: 1px solid var(--hover-border-color);
-  }
-
-  .table .row:last-child .col.hover,
-  .table .col.hover.hover-border-bottom {
-    border-bottom: 1px solid var(--hover-border-color);
-  }
-
-  .table .col.no-top-border.hover {
-    border-top-color: var(--border-color);
-  }
-
-  .table .section-head .col.hover {
-    border-right: 1px solid var(--hover-border-color);
-    border-left: 1px solid var(--hover-border-color);
-  }
-
-  .table .row:not(.section-head) .col:not(.col-highlight):not(.hidden).hover {
-    background-color: var(--color-gray-100);
-  }
-
-  .table.merch .col.hover {
-    border-left: 1px solid var(--hover-border-color);
-    border-right: 1px solid var(--hover-border-color);
-  }
-
-  .table.merch .col.border-bottom.hover {
-    border-bottom: 1px solid var(--hover-border-color);
-  }
-}
-
-.table.has-addon .row-heading .col.col-heading:not(.col-1) {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--spacing-xxs);
-  padding: var(--spacing-xs);
-}
-
-.table.has-addon .row-heading .col.col-heading:not(.col-1) .buttons-wrapper {
-  align-items: flex-end;
-}
-
-.table.has-addon p.body {
-  font-size: var(--type-body-xxs-size);
-  line-height: var(--type-body-xxs-lh);
-  margin-bottom: var(--spacing-xxs);
-}
-
-.table.has-addon .addon-label {
-  font-size: var(--type-body-xs-size);
-  line-height: var(--type-body-xs-lh);
-  border-radius: 4px;
-  display: flex;
-  align-items: start;
-  flex-direction: row;
-  text-align: start;
-  font-style: normal;
-  font-weight: 400;
-  color: black;
-  padding: 5px 10px;
-  box-sizing: border-box;
-}
-
-.table.has-addon .addon-label:not(:empty) {
-  background-color: var(--color-gray-300);
-}
-
-.table.has-addon .addon-label .icon {
-  display: flex;
-  align-self: center;
-}
-
-.table.has-addon .addon-label .icon,
-.table.has-addon span[data-tooltip] .active .icon-milo path {
-  color: black;
-}
-
-.table.has-addon .pricing-before,
-.table.has-addon .pricing-after {
-  min-height: 21px;
-  font-size: var(--type-body-xs-size);
-  line-height: var(--type-body-xs-lh);
-}
-
-.table.has-addon .pricing-after {
-  margin-bottom: var(--spacing-xxs);
-}
-
-.table.has-addon .pricing.has-pricing-before {
-  padding-top: 0;
-}
-
-.table.has-addon .pricing.has-pricing-after {
-  padding-bottom: 0;
-}
-
-.table.has-addon .table-title-text .blockquote,
-.table.has-addon .table-title-text code {
-  font-family: var(--body-font-family);
-  background-color: var(--color-gray-300);
-  padding: 2px 10px;
-  border-radius: 4px;
-  margin: 0;
-  margin-bottom: var(--spacing-xxs);
-  display: inline-block;
-  font-size: var(--type-body-xs-size);
-  line-height: var(--type-body-xs-lh);
-  color: black;
-}
-
-.table.has-addon .col.section-row-title .blockquote p {
-  font-size: var(--type-body-xs-size);
-  line-height: var(--type-body-xs-lh);
-}
-
-.table.has-addon .addon-promo {
-  color: #05834E;
-  font-size: var(--type-body-xs-size);
-  line-height: var(--type-body-xs-lh);
-  margin-bottom: var(--spacing-xxs);
-}
-
-.table.has-addon .addon-promo a {
-  font-weight: 700;
-  text-decoration: underline;
-}
-
-.table .row-highlight,
-.table .row-heading {
-  position: sticky;
-  z-index: 1;
-  transition: box-shadow 200ms cubic-bezier(0.33, 1, 0.68, 1);
-}
-
-.table.cancel-sticky .row-heading,
-.table.cancel-sticky .row-highlight {
-  position: static;
-}
-
-.table:not(.merch) .row-heading.active,
-.table.merch .row-heading.active .col-heading {
-  transition-duration: 400ms;
-  box-shadow: 0 6px 3px -3px rgb(0 0 0 / 15%);
-}
-
-.table[class*="sticky"] .row-heading.active {
-  z-index: 3;
-}
-
-.top-border-transparent {
-  border-top: 1px solid transparent;
-}
-
-.table .col-heading:not(.left-round):last-child {
-  border-top-right-radius: var(--border-radius);
-}
-
-[dir="rtl"] .table .col-heading:not(.left-round):last-child {
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: 0;
-}
-
-@media (min-width: 769px) {
-  .table .col-heading:first-child {
-    border-top-left-radius: var(--border-radius);
-  }
-
-  .table-section .filters {
-    display: none;
-  }
-
-  .table.merch .filters {
-    display: grid;
-  }
-
-  .table > .row {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  }
-
-  .table.merch > .row {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--spacing-m);
-  }
-}
-
-@media (min-width: 900px) {
-  .table-merch-section .filters {
-    display: none;
-  }
-}
-
-.table.merch > .row {
-  grid-template-columns: repeat(auto-fit, minmax(100px, 2fr));
-  gap: var(--spacing-xs);
-}
-
-.table.merch .section-head .col.section-head-title ,
-.table.merch .row-heading .col.col-heading {
-  text-align: left;
-}
-
-.table.merch .col,
-.table.merch .row-heading .col.col-heading {
-  padding-left: 24px;
-  padding-right: 24px;
-}
-
-.table.merch .row-heading .col.col-heading .buttons-wrapper {
-  justify-content: flex-start;
-}
-
-.table.merch .row-heading .col.col-heading .buttons-wrapper > * {
-  margin: 12px 12px 12px 0;
-}
-
-.table.merch .col.no-borders {
-  visibility: hidden;
-}
-
-.table.merch .section-head .col {
-  padding: 24px;
-}
-
-.table.merch .col-merch .col-merch-content {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  border: none;
-}
-
-.table.merch .col-merch .col-merch-content picture {
-  display: flex;
-  width: 30px;
-  margin-right: 16px;
-}
-
-.table .col-heading:only-child {
-  border-top-right-radius: var(--border-radius);
-  border-top-left-radius: var(--border-radius);
-}
-
-@media (max-width: 899px) {
-  .table,
-  .table.merch {
-    margin: 0 30px;
-  }
-  
-  [dir="rtl"] .table .left-round,
-  .table .right-round {
-    border-top-right-radius: var(--border-radius);
-    border-top-left-radius: 0;
-  }
-  
-  [dir="rtl"] .table .right-round,
-  .table .left-round {
-    border-top-left-radius: var(--border-radius);
-    border-top-right-radius: 0;
-  }
-
-  .section[class *= "grid-width-"] .table {
-    margin: 0;
-  }
-
-  .table:not(.merch) .row .section-head-title,
-  .table:not(.merch) .row .section-row-title {
-    border-right: 1px solid var(--border-color);
-  }
-
-  .table:not(.merch) .section-head {
-    display: block;
-  }
-
-  .table .section-head .col:not(.section-head-title),
-  .table:not(.merch) .col-heading.col-1,
-  .table:not(.merch) .row-highlight .col-highlight.col-1:not(:only-child) {
-    display: none;
-  }
-
-  .table:not(.merch) .row-highlight:has(> :only-child) {
-    grid-template-columns: repeat(auto-fit, 100%);
-  }
-
-  .table:not(.merch) .section-row-title {
-    grid-row: 1;
-    grid-column: 1 / x;
-    background-color: var(--color-gray-100);
-  }
-
-  .table .row-heading .col-heading .pricing {
-    overflow-wrap: anywhere;
-  }
-
-  .table .row-heading .col-heading span[is='inline-price'] {
-    display: inline;
-  }
-
-  .table .row-heading .col:nth-child(n+1) {
-    padding: 20px;
-  }
-
-  .table:not(.merch) .row-heading .col-heading.col-1.hidden + .col-heading:not(.hidden) {
-    border-top-left-radius: var(--border-radius);
-  }
-
-  [dir="rtl"] .table:not(.merch) .row-heading .col-heading.col-1.hidden + .col-heading:not(.hidden) {
-    border-top-left-radius: 0;
-    border-top-right-radius: var(--border-radius);
-  }
-
-  .table .hide-mobile {
-    display: none !important;
-  }
-}
-
-.filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  padding: 20px 30px 0;
-  gap: 30px;
-}
-
-.filter-wrapper {
-  text-align: center;
-}
-
-.filter {
-  border: none;
-  font-size: 1rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 146px;
-  appearance: none;
-  position: relative;
-  padding-right: 30px;
-  background: url("../../ui/img/chevron-wide-black.svg") no-repeat 100%;
-}
-
-@media (max-width: 768px) {
-  .table .col {
-    border: 1px var(--border-color) solid;
-  }
-
-  .table .col.force-last {
-    order: 1;
-  }
-
-  .table .col-heading.force-last {
-    border-top-right-radius: var(--border-radius);
-    border-top-left-radius: 0;
-  }
-
-  [dir="rtl"] .table .col-heading.force-last {
-    border-top-left-radius: var(--border-radius);
-    border-top-right-radius: 0;
-  }
-
-  .table .col-heading.force-last + .col-heading {
-    border-top-right-radius: 0;
-    border-top-left-radius: var(--border-radius);
-  }
-
-  [dir="rtl"] .table .col-heading.force-last + .col-heading {
-    border-top-left-radius: 0;
-    border-top-right-radius: var(--border-radius);
-  }
-
-  .table:not(.merch) .section-row-title {
-    grid-column: 1 / span 2;
-  }
-}
-
-@media (max-width: 600px) {
-  .table.header-left .row-heading .col.col-heading {
-    padding: var(--spacing-xs);
-  }
-}
-
-@media (max-width: 480px) {
-  .table,
-  .table.merch {
-    min-width: 100%;
-    margin: 0;
-  }
-
-  .table.merch .col-merch .col-merch-content {
-    flex-direction: column;
-    align-items: initial;
-  }
-
-  .table :is(.heading-button,.action-area) {
-    max-width: 100%;
-  }
-}
-`;
-
 // src/mas-table.js
 var TAG_NAME2 = "mas-table";
 var MARK_PREFIX = "mas-table:";
@@ -23722,120 +22876,102 @@ var MINI_COMPARE_CHART_SLOTS = {
   description: "body-m",
   ctas: "footer"
 };
+var MERCH_HEADER_SECTIONS = [
+  {
+    className: "header-section-icon",
+    cssVar: "--mas-table-header-icon-height"
+  },
+  {
+    className: "header-section-title",
+    cssVar: "--mas-table-header-title-height"
+  },
+  {
+    className: "header-section-description",
+    cssVar: "--mas-table-header-description-height"
+  },
+  {
+    className: "header-section-price-strikethrough",
+    cssVar: "--mas-table-header-strikethrough-height"
+  },
+  {
+    className: "header-section-price",
+    cssVar: "--mas-table-header-price-height"
+  },
+  {
+    className: "header-section-legal",
+    cssVar: "--mas-table-header-legal-height"
+  },
+  {
+    className: "header-section-buttons",
+    cssVar: "--mas-table-header-buttons-height"
+  }
+];
+var HEADING_HEIGHT_VAR_PREFIX = "--mas-table-row-heading-child-";
+var TABLE_HEIGHT_RULE_ATTR = "data-mas-table-height-rules";
+var TABLE_HEIGHT_SCOPE_ATTR = "data-mas-table-height-scope";
+var tableHeightScopeCounter = 0;
+var LOCAL_TABLE_CSS = `
+    .row-heading > .col > :nth-child(1) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}1-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(2) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}2-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(3) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}3-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(4) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}4-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(5) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}5-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(6) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}6-height, auto);
+    }
+`;
 var tableIndex = 0;
-var styleText;
-function getStyleText() {
-  if (styleText) return styleText;
-  styleText = [
-    `
-            :host {
-                display: block;
-            }
-
-            :host([hidden]) {
-                display: none;
-            }
-
-            :host([dir="rtl"]) .table .row-heading .col-heading.col.no-rounded,
-            :host([dir="rtl"]) .table.merch .col-heading:not(.no-rounded) {
-                border-radius: inherit;
-            }
-
-            :host([dir="rtl"]) .table:not(.merch) .row .col span.milo-tooltip {
-                margin-right: 0;
-                margin-left: -4px;
-            }
-
-            :host([dir="rtl"]) .table .icon.expand {
-                rotate: 90deg;
-            }
-
-            :host([dir="rtl"]) .table .col,
-            :host([dir="rtl"]) .table.merch .col,
-            :host([dir="rtl"]) .table .col:first-child,
-            :host([dir="rtl"]) .table .col:last-child:not(.hover),
-            :host([dir="rtl"]) .table.merch .col-merch .col-merch-content picture,
-            :host([dir="rtl"]) .table .col-heading:not(.left-round):last-child,
-            :host([dir="rtl"]) .table .col-heading:nth-child(2):last-child,
-            :host([dir="rtl"]) .table .col-heading:nth-child(2),
-            :host([dir="rtl"]) .table .col-heading.force-last,
-            :host([dir="rtl"]) .table .col-heading.force-last + .col-heading,
-            :host([dir="rtl"]) .table .left-round,
-            :host([dir="rtl"]) .table .right-round {
-                direction: rtl;
-            }
-
-            .con-button {
-                box-sizing: border-box;
-                min-height: 40px;
-                padding: 10px 16px;
-                border-radius: 999px;
-                border: 2px solid transparent;
-                font-size: 14px;
-                font-weight: 700;
-                line-height: 1.2;
-                text-decoration: none;
-                transition:
-                    background-color 140ms ease,
-                    border-color 140ms ease,
-                    color 140ms ease,
-                    transform 140ms ease;
-            }
-
-            .con-button:hover {
-                transform: translateY(-1px);
-            }
-
-            .con-button.blue {
-                background: #1473e6;
-                color: #fff;
-            }
-
-            .con-button.outline {
-                border-color: #1473e6;
-                color: #1473e6;
-                background: transparent;
-            }
-
-            .con-button.primary,
-            .con-button.secondary {
-                background: #2c2c2c;
-                color: #fff;
-            }
-
-            .filter {
-                background-color: transparent;
-                background-image: url("${CHEVRON_ICON}");
-                color: inherit;
-            }
-
-            .filter:focus-visible,
-            .point-cursor:focus-visible {
-                outline: 2px solid #1473e6;
-                outline-offset: 2px;
-            }
-
-            .mas-table-empty {
-                padding: 20px 0;
-            }
-
-            .mas-table-scratch {
-                display: none;
-            }
-
-            .table .row-highlight .badge-icon {
-                width: 18px;
-                height: 18px;
-                margin-inline-end: 6px;
-                vertical-align: text-bottom;
-            }
-        `,
-    TABLE_CSS.replaceAll(
-      "../../ui/img/chevron-wide-black.svg",
-      CHEVRON_ICON
-    )
-  ].join("\n");
-  return styleText;
+function getHeadingHeightVarName(index) {
+  return `${HEADING_HEIGHT_VAR_PREFIX}${index + 1}-height`;
+}
+function ensureTableHeightScope(table) {
+  if (!table?.hasAttribute(TABLE_HEIGHT_SCOPE_ATTR)) {
+    tableHeightScopeCounter += 1;
+    table.setAttribute(TABLE_HEIGHT_SCOPE_ATTR, `${tableHeightScopeCounter}`);
+  }
+  return table.getAttribute(TABLE_HEIGHT_SCOPE_ATTR);
+}
+function getTableHeightRuleStyle(table) {
+  const host = table?.closest(TAG_NAME2);
+  const style = host?.querySelector(`style[${TABLE_HEIGHT_RULE_ATTR}]`);
+  if (!style) return null;
+  if (!style._tableHeightRules) {
+    style._tableHeightRules = /* @__PURE__ */ new Map();
+  }
+  return style;
+}
+function setTableHeightRule(table, ruleText = "") {
+  const style = getTableHeightRuleStyle(table);
+  const scope = ensureTableHeightScope(table);
+  if (!style || !scope) return;
+  if (ruleText) {
+    style._tableHeightRules.set(scope, ruleText);
+  } else {
+    style._tableHeightRules.delete(scope);
+  }
+  style.textContent = Array.from(style._tableHeightRules.values()).join("\n");
+}
+function createTableHeightRule(table, declarations = []) {
+  const scope = ensureTableHeightScope(table);
+  if (!scope || !declarations.length) return "";
+  return `[${TABLE_HEIGHT_SCOPE_ATTR}="${scope}"] .row-heading { ${declarations.join(
+    " "
+  )} }`;
 }
 function createElement(tag, attributes = {}, content = null) {
   const element = document.createElement(tag);
@@ -23994,17 +23130,31 @@ function handleHeading(table, headingCols) {
   headingCols.forEach((col, i4) => {
     col.classList.add("col-heading");
     if (!col.innerHTML) return;
+    const hasCanonicalHeadingWrappers = col.querySelector(":scope > .heading-content") && col.querySelector(":scope > .heading-button");
     const elements = col.children;
-    if (!elements.length) {
+    if (hasCanonicalHeadingWrappers) {
+    } else if (!elements.length) {
       col.innerHTML = `<div class="heading-content"><p class="tracking-header">${col.innerHTML}</p></div>`;
     } else {
       let textStartIndex = col.querySelector(".highlight-text") ? 1 : 0;
       let isTrackingSet = false;
-      const iconRow = elements[textStartIndex];
-      const hasIconTile = iconRow?.classList?.contains("header-product-tile") || iconRow?.querySelector(
+      const isIconElement = (element) => element?.matches?.("img, picture, mas-mnemonic, merch-icon");
+      let iconRow = elements[textStartIndex];
+      const hasIconTile = iconRow?.classList?.contains("header-product-tile") || isIconElement(iconRow) || iconRow?.querySelector(
         "img, picture, mas-mnemonic, merch-icon"
       );
       if (hasIconTile) {
+        if (isIconElement(iconRow)) {
+          const iconWrapper = createElement("p");
+          let current = iconRow;
+          while (isIconElement(current)) {
+            const next = current.nextElementSibling;
+            iconWrapper.append(current);
+            current = next;
+          }
+          col.insertBefore(iconWrapper, current || null);
+          iconRow = iconWrapper;
+        }
         textStartIndex += 1;
         if (!table.classList.contains("merch")) {
           iconRow?.classList.add("header-product-tile");
@@ -24105,27 +23255,253 @@ function handleHeading(table, headingCols) {
     });
   });
 }
+function createHeaderSection(className, content = []) {
+  return createElement(
+    "div",
+    { class: `header-section ${className}` },
+    Array.isArray(content) ? content.filter(Boolean) : content
+  );
+}
+function replaceElementTag(element, tagName) {
+  if (!element || element.tagName.toLowerCase() === tagName) return element;
+  const replacement = document.createElement(tagName);
+  Array.from(element.attributes).forEach(({ name, value }) => {
+    replacement.setAttribute(name, value);
+  });
+  replacement.append(...Array.from(element.childNodes));
+  element.replaceWith(replacement);
+  return replacement;
+}
+function normalizeHeadingWrappers(table) {
+  table.querySelectorAll(
+    ".row-heading p.pricing, .row-heading p.supplemental-text, .row-heading p.pricing-after"
+  ).forEach((wrapper) => {
+    replaceElementTag(wrapper, "div");
+  });
+}
+function nodeMatchesOrContains(node, selector) {
+  if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+  return node.matches(selector) || Boolean(node.querySelector(selector));
+}
+function classifyPricingNode(node) {
+  if (!node) return "";
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent?.trim() ? "price" : "";
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  if (nodeMatchesOrContains(
+    node,
+    `${SELECTOR_MAS_INLINE_PRICE}[data-template="${TEMPLATE_PRICE_LEGAL}"], [data-template="${TEMPLATE_PRICE_LEGAL}"], .price-legal`
+  )) {
+    return "legal";
+  }
+  if (nodeMatchesOrContains(
+    node,
+    `${SELECTOR_MAS_INLINE_PRICE}[data-template="strikethrough"], [data-template="strikethrough"], .price-strikethrough, .price-promo-strikethrough`
+  )) {
+    return "strikethrough";
+  }
+  if (nodeMatchesOrContains(
+    node,
+    `${SELECTOR_MAS_INLINE_PRICE}, [data-template], .price, .price-alternative`
+  )) {
+    return "price";
+  }
+  return "";
+}
+function createPricingGroupElement(pricingElement, className, nodes = []) {
+  const content = nodes.filter(
+    (node) => node && (node.nodeType !== Node.TEXT_NODE || node.textContent.trim())
+  );
+  if (!content.length) return null;
+  return createElement(
+    pricingElement.tagName.toLowerCase(),
+    {
+      class: className
+    },
+    content
+  );
+}
+function splitPricingElement(pricingElement) {
+  if (!pricingElement) {
+    return { strikethrough: null, price: null, legal: null };
+  }
+  const groups = {
+    strikethrough: [],
+    price: [],
+    legal: []
+  };
+  let lastGroup = "";
+  Array.from(pricingElement.childNodes).forEach((node) => {
+    let group = classifyPricingNode(node);
+    if (!group && node.nodeType === Node.TEXT_NODE) {
+      group = lastGroup || "price";
+    }
+    if (!group) {
+      group = node.textContent?.trim() ? "price" : lastGroup;
+    }
+    if (!group) return;
+    groups[group].push(node);
+    lastGroup = group;
+  });
+  if (!groups.strikethrough.length && !groups.price.length && !groups.legal.length) {
+    groups.price = Array.from(pricingElement.childNodes);
+  }
+  const pricingClasses = Array.from(pricingElement.classList).filter(
+    (className) => !["has-pricing-before", "has-pricing-after"].includes(className)
+  );
+  const basePricingClassName = pricingClasses.join(" ");
+  return {
+    strikethrough: createPricingGroupElement(
+      pricingElement,
+      [basePricingClassName, "pricing-strikethrough-group"].filter(Boolean).join(" "),
+      groups.strikethrough
+    ),
+    price: createPricingGroupElement(
+      pricingElement,
+      [basePricingClassName, "pricing-main-group"].filter(Boolean).join(" "),
+      groups.price
+    ),
+    legal: createElement(
+      "div",
+      { class: "pricing-legal-group" },
+      groups.legal.filter(
+        (node) => node && (node.nodeType !== Node.TEXT_NODE || node.textContent.trim())
+      )
+    )
+  };
+}
+function normalizeMerchHeadingColumn(col) {
+  const directChildren = Array.from(col.children);
+  if (!directChildren.length) return;
+  const headingContent = directChildren.find(
+    (child) => child.classList.contains("heading-content")
+  ) || null;
+  const headingButton = directChildren.find(
+    (child) => child.classList.contains("heading-button")
+  ) || null;
+  const contentChildren = Array.from(headingContent?.children || []);
+  const contentExtras = directChildren.filter(
+    (child) => child !== headingContent && child !== headingButton && (child.classList.contains("content-before") || child.classList.contains("content-after"))
+  );
+  const iconElement = contentChildren.find(
+    (child) => child.classList.contains("header-product-tile")
+  ) || null;
+  const titleElement = contentChildren.find(
+    (child) => child.classList.contains("tracking-header")
+  ) || null;
+  const bodyElement = contentChildren.find((child) => child.classList.contains("body")) || null;
+  const contentRemainder = contentChildren.filter(
+    (child) => child !== iconElement && child !== titleElement && child !== bodyElement
+  );
+  const headingButtonChildren = Array.from(headingButton?.children || []);
+  const pricingElement = headingButtonChildren.find(
+    (child) => child.classList.contains("pricing")
+  ) || null;
+  const pricingAdjacentElements = headingButtonChildren.filter(
+    (child) => child !== pricingElement && !child.classList.contains("buttons-wrapper") && (child.classList.contains("pricing-before") || child.classList.contains("pricing-after") || child.classList.contains("supplemental-text"))
+  );
+  const buttonsWrapper = headingButtonChildren.find(
+    (child) => child.classList.contains("buttons-wrapper")
+  ) || null;
+  const { strikethrough, price: price2, legal: legal2 } = splitPricingElement(pricingElement);
+  const legalContent = [
+    ...pricingAdjacentElements,
+    ...legal2?.childNodes ? Array.from(legal2.childNodes) : []
+  ];
+  const sections = [
+    createHeaderSection(
+      "header-section-icon",
+      iconElement ? [iconElement] : []
+    ),
+    createHeaderSection(
+      "header-section-title",
+      titleElement ? [titleElement] : []
+    ),
+    createHeaderSection(
+      "header-section-description",
+      [...contentExtras, bodyElement, ...contentRemainder].filter(
+        Boolean
+      )
+    ),
+    createHeaderSection(
+      "header-section-price-strikethrough",
+      strikethrough ? [strikethrough] : []
+    ),
+    createHeaderSection("header-section-price", price2 ? [price2] : []),
+    createHeaderSection("header-section-legal", legalContent),
+    createHeaderSection(
+      "header-section-buttons",
+      buttonsWrapper ? [buttonsWrapper] : []
+    )
+  ];
+  col.replaceChildren(...sections);
+}
+function normalizeMerchHeadingSections(table) {
+  if (!table.classList.contains("merch")) return;
+  const headingColumns = table.querySelectorAll(".row-heading .col-heading");
+  headingColumns.forEach((col) => normalizeMerchHeadingColumn(col));
+}
 function handleEqualHeight(table, tag) {
   const element = table.querySelector(tag);
-  if (!element) return;
+  if (!element) {
+    setTableHeightRule(table, "");
+    return;
+  }
   const height = [];
   const columns = [...element.children];
   columns.forEach(({ children }) => {
     [...children].forEach((row, i4) => {
-      row.style.height = "auto";
       const style = window.getComputedStyle(row);
       const actualHeight = row.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
       if (!height[i4] || actualHeight > height[i4])
         height[i4] = actualHeight;
     });
   });
-  columns.forEach(({ children }) => {
-    [...children].forEach((row, i4) => {
-      if (row.clientHeight > 0) {
-        row.style.minHeight = height[i4] > 0 ? `${height[i4]}px` : "unset";
-      }
+  const declarations = height.map(
+    (value, index) => value > 0 ? `${getHeadingHeightVarName(index)}: ${value}px;` : ""
+  ).filter(Boolean);
+  setTableHeightRule(table, createTableHeightRule(table, declarations));
+}
+function syncMerchHeadingSectionHeights(table) {
+  const headingRow = table.querySelector(".row-heading");
+  if (!headingRow) {
+    setTableHeightRule(table, "");
+    return;
+  }
+  const headingColumns = Array.from(
+    headingRow.querySelectorAll(":scope > .col-heading")
+  ).filter(
+    (col) => !col.classList.contains("col-1") && !col.classList.contains("hidden") && getComputedStyle(col).display !== "none"
+  );
+  if (!headingColumns.length) {
+    setTableHeightRule(table, "");
+    return;
+  }
+  const declarations = [];
+  MERCH_HEADER_SECTIONS.forEach(({ className, cssVar }) => {
+    let maxHeight = 0;
+    headingColumns.forEach((col) => {
+      const section = col.querySelector(`:scope > .${className}`);
+      if (!section) return;
+      maxHeight = Math.max(
+        maxHeight,
+        Math.ceil(section.getBoundingClientRect().height)
+      );
     });
+    if (maxHeight > 0) {
+      declarations.push(`${cssVar}: ${maxHeight}px;`);
+    }
   });
+  setTableHeightRule(table, createTableHeightRule(table, declarations));
+}
+function syncHeadingHeights(table) {
+  setTableHeightRule(table, "");
+  if (table.classList.contains("merch")) {
+    syncMerchHeadingSectionHeights(table);
+    return;
+  }
+  handleEqualHeight(table, ".row-heading");
 }
 function handleAddOnContent(table) {
   const addOns = [...table.querySelectorAll(".section-row-title")].filter(
@@ -24162,18 +23538,20 @@ function handleAddOnContent(table) {
         content.map((node) => node.cloneNode(true))
       );
       const anchor = headCol.querySelector(`.${position}`);
-      anchor?.classList.add(`has-${tagName}`);
+      if (!(position === "pricing" && order === "after")) {
+        anchor?.classList.add(`has-${tagName}`);
+      }
       anchor?.insertAdjacentElement(
         order === "before" ? "beforebegin" : "afterend",
         tag
       );
     });
   });
-  setTimeout(() => handleEqualHeight(table, ".row-heading"), 0);
+  setTimeout(() => syncHeadingHeights(table), 0);
   table.addEventListener(
     "mas:resolved",
     debounce(() => {
-      handleEqualHeight(table, ".row-heading");
+      syncHeadingHeights(table);
     }, 100)
   );
 }
@@ -24189,6 +23567,12 @@ function setAriaLabelForIcons(el, labels) {
 function dispatchTableHighlightLoaded(table) {
   table.dispatchEvent(new Event(TABLE_HIGHLIGHT_LOADED_EVENT));
 }
+function applyCompareChartHeadingRounding(headingCols) {
+  headingCols.forEach((col, index) => {
+    const isOuterColumn = index === 0 || index === headingCols.length - 1;
+    col.classList.toggle("no-rounded", !isOuterColumn);
+  });
+}
 function handleHighlight(table) {
   const isHighlightTable = table.classList.contains("highlight");
   const firstRow = table.querySelector(".row-1");
@@ -24202,10 +23586,15 @@ function handleHighlight(table) {
     secondRow.classList.add("row-heading");
     secondRowCols.forEach((col) => col.classList.add("col-heading"));
     headingCols = secondRowCols;
+    if (table.classList.contains("compare-chart-features")) {
+      applyCompareChartHeadingRounding(headingCols);
+    }
     firstRowCols.forEach((col, i4) => {
       col.classList.add("col-highlight");
-      if (col.innerText) {
-        headingCols[i4]?.classList.add("no-rounded");
+      if (col.innerText || col.dataset.hasBadge === "true") {
+        if (!table.classList.contains("compare-chart-features")) {
+          headingCols[i4]?.classList.add("no-rounded");
+        }
         const highlightText = createElement(
           "div",
           { class: "highlight-text" },
@@ -24222,9 +23611,14 @@ function handleHighlight(table) {
   } else {
     headingCols = firstRowCols;
     firstRow.classList.add("row-heading");
+    if (table.classList.contains("compare-chart-features")) {
+      applyCompareChartHeadingRounding(headingCols);
+    }
   }
   handleHeading(table, headingCols);
   handleAddOnContent(table);
+  normalizeHeadingWrappers(table);
+  normalizeMerchHeadingSections(table);
   dispatchTableHighlightLoaded(table);
 }
 function handleExpand(icon) {
@@ -24261,6 +23655,14 @@ function handleTitleText(cell) {
   if (!cell || cell.querySelector(".table-title-text")) return;
   const textSpan = createElement("span", { class: "table-title-text" });
   while (cell.firstChild) textSpan.append(cell.firstChild);
+  const meaningfulText = textSpan.textContent?.replace(/\u00a0/g, " ").trim();
+  const hasMeaningfulElement = textSpan.querySelector(
+    'a, em, strong, b, i, picture, img, mas-mnemonic, merch-icon, [is="inline-price"], .icon, .icon-info, .icon-tooltip, .milo-tooltip, blockquote'
+  );
+  if (!hasMeaningfulElement && (!meaningfulText || meaningfulText === "-")) {
+    cell.replaceChildren();
+    return;
+  }
   const iconTooltip = textSpan.querySelector(
     ".icon-info, .icon-tooltip, .milo-tooltip"
   );
@@ -24355,26 +23757,14 @@ function handleSection(sectionParams) {
     if (isMerch && !row.classList.contains("divider")) {
       rowCols.forEach((merchCol) => {
         merchCol.classList.add("col-merch");
-        const children = Array.from(merchCol.children);
-        const merchContent = createElement("div", {
-          class: "col-merch-content"
-        });
-        if (children.length) {
-          children.forEach((child) => {
-            if (!child.querySelector(".icon")) {
-              merchContent.append(child);
-            }
-          });
-          merchCol.insertBefore(merchContent, merchCol.firstChild);
-        } else if (merchCol.innerText) {
+        if (!merchCol.children.length && merchCol.innerText) {
           const pTag = createElement(
             "p",
             { class: "merch-col-text" },
             merchCol.innerText
           );
           merchCol.innerText = "";
-          merchContent.append(pTag);
-          merchCol.append(merchContent);
+          merchCol.append(pTag);
         }
       });
     } else {
@@ -24423,7 +23813,7 @@ function handleHovering(table) {
   if (!row1) return;
   const colsInRowNum = row1.childElementCount;
   const isMerch = table.classList.contains("merch");
-  const startValue = isMerch ? 1 : 2;
+  const startValue = isMerch && !table.classList.contains("compare-chart-features") ? 1 : 2;
   const isCollapseTable = table.classList.contains("collapse");
   const sectionHeads = table.querySelectorAll(".section-head");
   const lastSectionHead = sectionHeads[sectionHeads.length - 1];
@@ -24596,7 +23986,7 @@ function applyStylesBasedOnScreenSize(table, originTable, labels, getStickyTop) 
       if (isStickyHeader(table)) {
         handleScrollEffect(table, getStickyTop);
       }
-      if (event) handleEqualHeight(table, ".row-heading");
+      if (event) syncHeadingHeights(table);
       setAriaLabelForIcons(table, labels);
     };
     const shouldShowFilter = headingsLength > 2;
@@ -24733,6 +24123,7 @@ function decorateTable(el, options) {
       options.labels,
       options.getStickyTop
     );
+    syncHeadingHeights(el);
     if (isStickyHeader(el)) {
       handleScrollEffect(el, options.getStickyTop);
     }
@@ -24745,7 +24136,7 @@ function decorateTable(el, options) {
     el._originTable = el;
   }
   const onResize = debounce(() => {
-    handleEqualHeight(el, ".row-heading");
+    syncHeadingHeights(el);
     handleStickyHeader(el);
     const nextDevice = defineDeviceByScreenSize();
     if (currentDevice === nextDevice) return;
@@ -24816,25 +24207,142 @@ function cloneSlotNodes(card, slotName) {
     (node) => node.cloneNode(true)
   );
 }
-function normalizeFooterSlotNode(node) {
-  if (!node) return node;
-  node.removeAttribute?.("slot");
-  const buttons = node.matches?.(".con-button, button, a.con-button") ? [node] : Array.from(
-    node.querySelectorAll(".con-button, button, a.con-button")
+function cloneNodeChildren(node) {
+  if (!node) return [];
+  return Array.from(node.childNodes).map((child) => child.cloneNode(true));
+}
+function flattenSlotNodeContent(node) {
+  if (!node) return [];
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    return [node.cloneNode(true)];
+  }
+  const cleanNode = stripSlotAttributes(node.cloneNode(true));
+  const hasMeaningfulDirectText = Array.from(cleanNode.childNodes).some(
+    (child) => child.nodeType === Node.TEXT_NODE && child.textContent.trim()
   );
-  if (!buttons.length) return node;
-  const actionArea = createElement("p", { class: "action-area" });
-  buttons.forEach((button) => {
-    actionArea.append(button);
-    const spacer = button.nextSibling;
-    if (spacer?.nodeType === Node.TEXT_NODE && !spacer.textContent.trim()) {
-      spacer.remove();
+  const singleElementChild = cleanNode.childElementCount === 1 && cleanNode.firstElementChild && !hasMeaningfulDirectText;
+  if (singleElementChild && cleanNode.firstElementChild.matches?.(
+    `${SELECTOR_MAS_INLINE_PRICE}, ${SELECTOR_MAS_ELEMENT}, merch-icon, merch-badge, mas-mnemonic`
+  )) {
+    return [cleanNode.firstElementChild.cloneNode(true)];
+  }
+  if (singleElementChild) {
+    return cloneNodeChildren(cleanNode.firstElementChild);
+  }
+  if (["P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6"].includes(
+    cleanNode.tagName
+  )) {
+    return cloneNodeChildren(cleanNode);
+  }
+  return [cleanNode];
+}
+function stripSlotAttributes(node) {
+  if (!node) return node;
+  if (node.nodeType !== Node.ELEMENT_NODE) return node;
+  node.removeAttribute("slot");
+  node.querySelectorAll?.("[slot]").forEach(
+    (child) => child.removeAttribute("slot")
+  );
+  return node;
+}
+function getFirstSlotNode(card, slotName) {
+  return cloneSlotNodes(card, slotName).map(stripSlotAttributes).find(Boolean);
+}
+function normalizeHeadingTextNode(sourceNode, className) {
+  if (!sourceNode) return null;
+  const heading = createElement("p", { class: className });
+  const content = flattenSlotNodeContent(sourceNode);
+  if (content.length) {
+    heading.append(...content);
+  } else {
+    heading.textContent = sourceNode.textContent?.trim() || "";
+  }
+  return heading.textContent?.trim() || heading.childNodes.length ? heading : null;
+}
+function normalizeBodyNode(sourceNode) {
+  if (!sourceNode) return null;
+  const body = createElement("p", { class: "body" });
+  const content = flattenSlotNodeContent(sourceNode);
+  if (content.length) {
+    body.append(...content);
+  } else {
+    body.textContent = sourceNode.textContent?.trim() || "";
+  }
+  return body.textContent?.trim() || body.childNodes.length ? body : null;
+}
+function collectPricingNodes(sourceNodes = []) {
+  const groups = {
+    strikethrough: [],
+    price: [],
+    legal: []
+  };
+  let lastGroup = "";
+  sourceNodes.forEach((sourceNode) => {
+    const node = stripSlotAttributes(sourceNode.cloneNode(true));
+    let group = classifyPricingNode(node);
+    if (!group && node.nodeType === Node.TEXT_NODE) {
+      group = node.textContent?.trim() ? lastGroup || "price" : "";
     }
+    if (!group && node.textContent?.trim()) {
+      group = "price";
+    }
+    if (!group) return;
+    groups[group].push(node);
+    lastGroup = group;
   });
-  return actionArea;
+  return groups;
+}
+function createPricingWrapper(className, nodes = []) {
+  const content = nodes.filter(
+    (node) => node && (node.nodeType !== Node.TEXT_NODE || node.textContent.trim())
+  );
+  if (!content.length) return null;
+  return createElement("div", { class: className }, content);
+}
+function createSyntheticLegalPrice(pricingNodes = []) {
+  for (const pricingNode of pricingNodes) {
+    if (pricingNode?.nodeType !== Node.ELEMENT_NODE) continue;
+    const inlinePrice = pricingNode.matches?.(SELECTOR_MAS_INLINE_PRICE) ? pricingNode.cloneNode(true) : pricingNode.querySelector?.(SELECTOR_MAS_INLINE_PRICE)?.cloneNode(true);
+    if (!inlinePrice) continue;
+    inlinePrice.setAttribute("data-template", TEMPLATE_PRICE_LEGAL);
+    inlinePrice.setAttribute("data-display-plan-type", "true");
+    inlinePrice.setAttribute("data-display-per-unit", "false");
+    inlinePrice.setAttribute("data-display-tax", "false");
+    inlinePrice.setAttribute("data-display-old-price", "false");
+    if (!inlinePrice.hasAttribute("data-force-tax-exclusive")) {
+      inlinePrice.setAttribute("data-force-tax-exclusive", "true");
+    }
+    return inlinePrice;
+  }
+  return null;
+}
+function buildCanonicalButtonsWrapper(card) {
+  const footerNodes = cloneSlotNodes(card, MINI_COMPARE_CHART_SLOTS.ctas).map(
+    stripSlotAttributes
+  );
+  const buttons = footerNodes.flatMap((node) => {
+    if (node.matches?.(".con-button, button, a.con-button")) return [node];
+    return Array.from(
+      node.querySelectorAll?.(".con-button, button, a.con-button") || []
+    ).map((button) => button.cloneNode(true));
+  });
+  if (!buttons.length) return null;
+  const wrapper = createElement("div", { class: "buttons-wrapper" });
+  buttons.forEach((button, index) => {
+    const container = index === 0 ? createElement("p") : createElement("div", {
+      class: "supplemental-text body-xl action-area"
+    });
+    container.append(button);
+    wrapper.append(container);
+  });
+  return wrapper;
 }
 function buildMerchHeadingContent(card) {
   const fragment = document.createDocumentFragment();
+  const headingContent = createElement("div", {
+    class: "heading-content content"
+  });
+  const headingButton = createElement("div", { class: "heading-button" });
   const iconNodes = cloneSlotNodes(card, "icons");
   if (iconNodes.length) {
     const iconRow = createElement("p", { class: "header-product-tile" });
@@ -24851,38 +24359,55 @@ function buildMerchHeadingContent(card) {
       node.removeAttribute?.("slot");
       iconRow.append(node);
     });
-    fragment.append(iconRow);
+    headingContent.append(iconRow);
   }
-  [
-    MINI_COMPARE_CHART_SLOTS.title,
-    MINI_COMPARE_CHART_SLOTS.prices,
-    MINI_COMPARE_CHART_SLOTS.description,
-    MINI_COMPARE_CHART_SLOTS.ctas
-  ].forEach((slotName) => {
-    cloneSlotNodes(card, slotName).forEach((node) => {
-      if (slotName === MINI_COMPARE_CHART_SLOTS.ctas) {
-        fragment.append(normalizeFooterSlotNode(node));
-        return;
-      }
-      fragment.append(node);
-    });
-  });
+  const titleNode = normalizeHeadingTextNode(
+    getFirstSlotNode(card, MINI_COMPARE_CHART_SLOTS.title),
+    "tracking-header"
+  );
+  if (titleNode) headingContent.append(titleNode);
+  const descriptionNode = normalizeBodyNode(
+    getFirstSlotNode(card, MINI_COMPARE_CHART_SLOTS.description)
+  );
+  if (descriptionNode) headingContent.append(descriptionNode);
+  const priceSourceNodes = cloneSlotNodes(
+    card,
+    MINI_COMPARE_CHART_SLOTS.prices
+  ).flatMap((node) => flattenSlotNodeContent(node));
+  const pricingGroups = collectPricingNodes(priceSourceNodes);
+  const strikethroughWrapper = createPricingWrapper(
+    "pricing-before",
+    pricingGroups.strikethrough
+  );
+  if (strikethroughWrapper) headingButton.append(strikethroughWrapper);
+  const priceWrapper = createPricingWrapper("pricing", pricingGroups.price);
+  if (priceWrapper) headingButton.append(priceWrapper);
+  const legalNodes = pricingGroups.legal.length ? pricingGroups.legal : [createSyntheticLegalPrice(pricingGroups.price)].filter(Boolean);
+  const legalWrapper = createPricingWrapper("pricing-after", legalNodes);
+  if (legalWrapper) headingButton.append(legalWrapper);
+  const buttonsWrapper = buildCanonicalButtonsWrapper(card);
+  if (buttonsWrapper) headingButton.append(buttonsWrapper);
+  fragment.append(headingContent, headingButton);
   return fragment;
 }
 function getBadgeData(card) {
   if (!card) return null;
-  if (card._masTableBadgeData?.text) return card._masTableBadgeData;
+  if (card._masTableBadgeData?.contentHtml || card._masTableBadgeData?.text) {
+    return card._masTableBadgeData;
+  }
   const badgeSlot = card.querySelector('[slot="badge"]');
   const shadowBadge = card.shadowRoot?.getElementById("badge");
   const badgeElement = badgeSlot?.matches("merch-badge") ? badgeSlot : badgeSlot?.querySelector("merch-badge");
+  const contentHtml = badgeElement?.innerHTML?.trim() || badgeSlot?.innerHTML?.trim() || shadowBadge?.innerHTML?.trim() || "";
   const text = badgeElement?.textContent?.trim() || badgeSlot?.textContent?.trim() || shadowBadge?.textContent?.trim() || card.getAttribute("badge-text") || "";
-  if (!text) return null;
+  if (!contentHtml && !text) return null;
   const computedBadgeStyles = shadowBadge ? getComputedStyle(shadowBadge) : null;
   const backgroundColor = resolveColorValue(
     badgeElement?.getAttribute("background-color") || ""
   ) || resolveColorValue(card.getAttribute("badge-background-color") || "") || computedBadgeStyles?.backgroundColor || "";
   const textColor = resolveColorValue(badgeElement?.getAttribute("color") || "") || resolveColorValue(card.getAttribute("badge-color") || "") || computedBadgeStyles?.color || "";
   return {
+    contentHtml,
     text,
     icon: badgeElement?.getAttribute("icon") || "",
     backgroundColor,
@@ -24901,11 +24426,17 @@ function createBadgeIcon(icon) {
   });
 }
 function createBadgePreviewContent(badgeData) {
-  const fragment = document.createDocumentFragment();
+  const content = document.createDocumentFragment();
   const icon = createBadgeIcon(badgeData.icon);
-  if (icon) fragment.append(icon);
-  fragment.append(document.createTextNode(badgeData.text));
-  return fragment;
+  if (icon) content.append(icon);
+  if (badgeData.contentHtml) {
+    const template = document.createElement("template");
+    template.innerHTML = badgeData.contentHtml;
+    content.append(template.content.cloneNode(true));
+  } else if (badgeData.text) {
+    content.append(document.createTextNode(badgeData.text));
+  }
+  return content;
 }
 function parseBadgeDataFromFields(fields = {}) {
   const badgeValue = fields.badge;
@@ -24914,6 +24445,7 @@ function parseBadgeDataFromFields(fields = {}) {
     const text2 = String(badgeValue).trim();
     if (!text2) return null;
     return {
+      contentHtml: "",
       text: text2,
       icon: "",
       backgroundColor: resolveColorValue(
@@ -24925,9 +24457,11 @@ function parseBadgeDataFromFields(fields = {}) {
   const template = document.createElement("template");
   template.innerHTML = badgeValue;
   const badgeElement = template.content.querySelector("merch-badge") || template.content.firstElementChild;
+  const contentHtml = badgeElement?.innerHTML?.trim() || "";
   const text = badgeElement?.textContent?.trim() || badgeValue.trim();
-  if (!text) return null;
+  if (!contentHtml && !text) return null;
   return {
+    contentHtml,
     text,
     icon: badgeElement?.getAttribute?.("icon") || "",
     backgroundColor: resolveColorValue(
@@ -24972,16 +24506,23 @@ async function hydrateMerchCards(cardIds, referenceMap, container) {
   return new Map(entries.filter(([, merchCard]) => merchCard));
 }
 function hydrateMerchHighlightRow(table, cardIds, merchCardMap) {
-  if (!table.classList.contains("merch") || !table.classList.contains("highlight")) {
+  if (!table.classList.contains("merch") && !table.classList.contains("compare-chart-features") || !table.classList.contains("highlight")) {
     return;
   }
   const highlightRow = table.firstElementChild;
   if (!highlightRow) return;
   const cells = Array.from(highlightRow.children);
+  const columnOffset = table.classList.contains("compare-chart-features") ? 1 : 0;
   cardIds.forEach((cardId, index) => {
-    const cell = cells[index];
+    const cell = cells[index + columnOffset];
     const badgeData = getBadgeData(merchCardMap.get(cardId));
-    if (!cell || !badgeData?.text) return;
+    if (!cell) return;
+    if (!badgeData?.contentHtml && !badgeData?.text) {
+      cell.removeAttribute("data-has-badge");
+      cell.replaceChildren();
+      return;
+    }
+    cell.dataset.hasBadge = "true";
     cell.replaceChildren(createBadgePreviewContent(badgeData));
     if (badgeData.backgroundColor) {
       cell.style.backgroundColor = badgeData.backgroundColor;
@@ -24993,15 +24534,18 @@ function hydrateMerchHighlightRow(table, cardIds, merchCardMap) {
   });
 }
 function hydrateMerchHeadings(table, cardIds, merchCardMap) {
-  if (!table.classList.contains("merch") || !cardIds?.length) return;
+  if (!table.classList.contains("merch") && !table.classList.contains("compare-chart-features") || !cardIds?.length) {
+    return;
+  }
   const rows = Array.from(table.children);
   if (!rows.length) return;
   const headingRowIndex = table.classList.contains("highlight") && rows.length > 1 ? 1 : 0;
   const headingRow = rows[headingRowIndex];
   if (!headingRow) return;
   const cells = Array.from(headingRow.children);
+  const columnOffset = table.classList.contains("compare-chart-features") ? 1 : 0;
   cardIds.forEach((cardId, index) => {
-    const cell = cells[index];
+    const cell = cells[index + columnOffset];
     const merchCard = merchCardMap.get(cardId);
     if (!cell || !merchCard) return;
     cell.replaceChildren(buildMerchHeadingContent(merchCard));
@@ -25025,7 +24569,7 @@ async function settleMasElements(root) {
     })
   );
 }
-var _cleanup, _currentRenderId, _log3, _service5, _resolveUpdate, _rejectUpdate, _startMarkName2, _durationMarkName2, _updateComplete, _content, _scratch;
+var _cleanup, _currentRenderId, _log3, _service5, _resolveUpdate, _rejectUpdate, _startMarkName2, _durationMarkName2, _updateComplete, _localStyle, _heightRuleStyle, _content, _scratch;
 var MasTable = class extends HTMLElement {
   constructor() {
     super();
@@ -25038,15 +24582,25 @@ var MasTable = class extends HTMLElement {
     __privateAdd(this, _startMarkName2);
     __privateAdd(this, _durationMarkName2);
     __privateAdd(this, _updateComplete, Promise.resolve(this));
+    __privateAdd(this, _localStyle);
+    __privateAdd(this, _heightRuleStyle);
     __privateAdd(this, _content);
     __privateAdd(this, _scratch);
-    this.attachShadow({ mode: "open" });
-    const style = document.createElement("style");
-    style.textContent = getStyleText();
+    __privateSet(this, _localStyle, document.createElement("style"));
+    __privateGet(this, _localStyle).textContent = LOCAL_TABLE_CSS;
+    __privateSet(this, _heightRuleStyle, document.createElement("style"));
+    __privateGet(this, _heightRuleStyle).setAttribute(TABLE_HEIGHT_RULE_ATTR, "");
     __privateSet(this, _content, document.createElement("div"));
     __privateSet(this, _scratch, document.createElement("div"));
     __privateGet(this, _scratch).className = "mas-table-scratch";
-    this.shadowRoot.append(style, __privateGet(this, _content), __privateGet(this, _scratch));
+    __privateGet(this, _scratch).hidden = true;
+    __privateGet(this, _scratch).setAttribute("aria-hidden", "true");
+    this.append(
+      __privateGet(this, _localStyle),
+      __privateGet(this, _heightRuleStyle),
+      __privateGet(this, _content),
+      __privateGet(this, _scratch)
+    );
     this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
   }
   connectedCallback() {
@@ -25100,7 +24654,8 @@ var MasTable = class extends HTMLElement {
     try {
       await this.renderFragment(event.detail);
       if (renderId !== __privateGet(this, _currentRenderId)) return;
-      await settleMasElements(this.shadowRoot);
+      await settleMasElements(this);
+      __privateGet(this, _content).querySelectorAll(".table").forEach((table) => syncHeadingHeights(table));
       const measure = performance.measure(
         __privateGet(this, _durationMarkName2),
         __privateGet(this, _startMarkName2)
@@ -25222,6 +24777,8 @@ _rejectUpdate = new WeakMap();
 _startMarkName2 = new WeakMap();
 _durationMarkName2 = new WeakMap();
 _updateComplete = new WeakMap();
+_localStyle = new WeakMap();
+_heightRuleStyle = new WeakMap();
 _content = new WeakMap();
 _scratch = new WeakMap();
 customElements.define(TAG_NAME2, MasTable);

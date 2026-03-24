@@ -5,10 +5,11 @@ import {
     EVENT_MAS_READY,
     MARK_DURATION_SUFFIX,
     MARK_START_SUFFIX,
+    SELECTOR_MAS_INLINE_PRICE,
     SELECTOR_MAS_ELEMENT,
+    TEMPLATE_PRICE_LEGAL,
 } from './constants.js';
 import { hydrate } from './hydrate.js';
-import { TABLE_CSS } from './mas-table.css.js';
 import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from './variants/mini-compare-chart.js';
 import { debounce, getService, printMeasure } from './utils.js';
 
@@ -32,122 +33,109 @@ const MINI_COMPARE_CHART_SLOTS = {
     description: 'body-m',
     ctas: 'footer',
 };
+const MERCH_HEADER_SECTIONS = [
+    {
+        className: 'header-section-icon',
+        cssVar: '--mas-table-header-icon-height',
+    },
+    {
+        className: 'header-section-title',
+        cssVar: '--mas-table-header-title-height',
+    },
+    {
+        className: 'header-section-description',
+        cssVar: '--mas-table-header-description-height',
+    },
+    {
+        className: 'header-section-price-strikethrough',
+        cssVar: '--mas-table-header-strikethrough-height',
+    },
+    {
+        className: 'header-section-price',
+        cssVar: '--mas-table-header-price-height',
+    },
+    {
+        className: 'header-section-legal',
+        cssVar: '--mas-table-header-legal-height',
+    },
+    {
+        className: 'header-section-buttons',
+        cssVar: '--mas-table-header-buttons-height',
+    },
+];
+const HEADING_HEIGHT_VAR_PREFIX = '--mas-table-row-heading-child-';
+const MAX_HEADING_CHILDREN = 6;
+const TABLE_HEIGHT_RULE_ATTR = 'data-mas-table-height-rules';
+const TABLE_HEIGHT_SCOPE_ATTR = 'data-mas-table-height-scope';
+let tableHeightScopeCounter = 0;
+const LOCAL_TABLE_CSS = `
+    .row-heading > .col > :nth-child(1) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}1-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(2) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}2-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(3) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}3-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(4) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}4-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(5) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}5-height, auto);
+    }
+
+    .row-heading > .col > :nth-child(6) {
+        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}6-height, auto);
+    }
+`;
 
 let tableIndex = 0;
-let styleText;
 
-function getStyleText() {
-    if (styleText) return styleText;
-    styleText = [
-        `
-            :host {
-                display: block;
-            }
+function getHeadingHeightVarName(index) {
+    return `${HEADING_HEIGHT_VAR_PREFIX}${index + 1}-height`;
+}
 
-            :host([hidden]) {
-                display: none;
-            }
+function ensureTableHeightScope(table) {
+    if (!table?.hasAttribute(TABLE_HEIGHT_SCOPE_ATTR)) {
+        tableHeightScopeCounter += 1;
+        table.setAttribute(TABLE_HEIGHT_SCOPE_ATTR, `${tableHeightScopeCounter}`);
+    }
+    return table.getAttribute(TABLE_HEIGHT_SCOPE_ATTR);
+}
 
-            :host([dir="rtl"]) .table .row-heading .col-heading.col.no-rounded,
-            :host([dir="rtl"]) .table.merch .col-heading:not(.no-rounded) {
-                border-radius: inherit;
-            }
+function getTableHeightRuleStyle(table) {
+    const host = table?.closest(TAG_NAME);
+    const style = host?.querySelector(`style[${TABLE_HEIGHT_RULE_ATTR}]`);
+    if (!style) return null;
+    if (!style._tableHeightRules) {
+        style._tableHeightRules = new Map();
+    }
+    return style;
+}
 
-            :host([dir="rtl"]) .table:not(.merch) .row .col span.milo-tooltip {
-                margin-right: 0;
-                margin-left: -4px;
-            }
+function setTableHeightRule(table, ruleText = '') {
+    const style = getTableHeightRuleStyle(table);
+    const scope = ensureTableHeightScope(table);
+    if (!style || !scope) return;
+    if (ruleText) {
+        style._tableHeightRules.set(scope, ruleText);
+    } else {
+        style._tableHeightRules.delete(scope);
+    }
+    style.textContent = Array.from(style._tableHeightRules.values()).join('\n');
+}
 
-            :host([dir="rtl"]) .table .icon.expand {
-                rotate: 90deg;
-            }
-
-            :host([dir="rtl"]) .table .col,
-            :host([dir="rtl"]) .table.merch .col,
-            :host([dir="rtl"]) .table .col:first-child,
-            :host([dir="rtl"]) .table .col:last-child:not(.hover),
-            :host([dir="rtl"]) .table.merch .col-merch .col-merch-content picture,
-            :host([dir="rtl"]) .table .col-heading:not(.left-round):last-child,
-            :host([dir="rtl"]) .table .col-heading:nth-child(2):last-child,
-            :host([dir="rtl"]) .table .col-heading:nth-child(2),
-            :host([dir="rtl"]) .table .col-heading.force-last,
-            :host([dir="rtl"]) .table .col-heading.force-last + .col-heading,
-            :host([dir="rtl"]) .table .left-round,
-            :host([dir="rtl"]) .table .right-round {
-                direction: rtl;
-            }
-
-            .con-button {
-                box-sizing: border-box;
-                min-height: 40px;
-                padding: 10px 16px;
-                border-radius: 999px;
-                border: 2px solid transparent;
-                font-size: 14px;
-                font-weight: 700;
-                line-height: 1.2;
-                text-decoration: none;
-                transition:
-                    background-color 140ms ease,
-                    border-color 140ms ease,
-                    color 140ms ease,
-                    transform 140ms ease;
-            }
-
-            .con-button:hover {
-                transform: translateY(-1px);
-            }
-
-            .con-button.blue {
-                background: #1473e6;
-                color: #fff;
-            }
-
-            .con-button.outline {
-                border-color: #1473e6;
-                color: #1473e6;
-                background: transparent;
-            }
-
-            .con-button.primary,
-            .con-button.secondary {
-                background: #2c2c2c;
-                color: #fff;
-            }
-
-            .filter {
-                background-color: transparent;
-                background-image: url("${CHEVRON_ICON}");
-                color: inherit;
-            }
-
-            .filter:focus-visible,
-            .point-cursor:focus-visible {
-                outline: 2px solid #1473e6;
-                outline-offset: 2px;
-            }
-
-            .mas-table-empty {
-                padding: 20px 0;
-            }
-
-            .mas-table-scratch {
-                display: none;
-            }
-
-            .table .row-highlight .badge-icon {
-                width: 18px;
-                height: 18px;
-                margin-inline-end: 6px;
-                vertical-align: text-bottom;
-            }
-        `,
-        TABLE_CSS.replaceAll(
-            '../../ui/img/chevron-wide-black.svg',
-            CHEVRON_ICON,
-        ),
-    ].join('\n');
-    return styleText;
+function createTableHeightRule(table, declarations = []) {
+    const scope = ensureTableHeightScope(table);
+    if (!scope || !declarations.length) return '';
+    return `[${TABLE_HEIGHT_SCOPE_ATTR}="${scope}"] .row-heading { ${declarations.join(
+        ' ',
+    )} }`;
 }
 
 function createElement(tag, attributes = {}, content = null) {
@@ -340,19 +328,40 @@ function handleHeading(table, headingCols) {
         col.classList.add('col-heading');
         if (!col.innerHTML) return;
 
+        const hasCanonicalHeadingWrappers =
+            col.querySelector(':scope > .heading-content') &&
+            col.querySelector(':scope > .heading-button');
+
         const elements = col.children;
-        if (!elements.length) {
+        if (hasCanonicalHeadingWrappers) {
+            // Hydrated compare-card headers already match the canonical
+            // heading-content / heading-button contract used by table markup.
+        } else if (!elements.length) {
             col.innerHTML = `<div class="heading-content"><p class="tracking-header">${col.innerHTML}</p></div>`;
         } else {
             let textStartIndex = col.querySelector('.highlight-text') ? 1 : 0;
             let isTrackingSet = false;
-            const iconRow = elements[textStartIndex];
+            const isIconElement = (element) =>
+                element?.matches?.('img, picture, mas-mnemonic, merch-icon');
+            let iconRow = elements[textStartIndex];
             const hasIconTile =
                 iconRow?.classList?.contains('header-product-tile') ||
+                isIconElement(iconRow) ||
                 iconRow?.querySelector(
                     'img, picture, mas-mnemonic, merch-icon',
                 );
             if (hasIconTile) {
+                if (isIconElement(iconRow)) {
+                    const iconWrapper = createElement('p');
+                    let current = iconRow;
+                    while (isIconElement(current)) {
+                        const next = current.nextElementSibling;
+                        iconWrapper.append(current);
+                        current = next;
+                    }
+                    col.insertBefore(iconWrapper, current || null);
+                    iconRow = iconWrapper;
+                }
                 textStartIndex += 1;
                 if (!table.classList.contains('merch')) {
                     iconRow?.classList.add('header-product-tile');
@@ -470,14 +479,263 @@ function handleHeading(table, headingCols) {
     });
 }
 
+function createHeaderSection(className, content = []) {
+    return createElement(
+        'div',
+        { class: `header-section ${className}` },
+        Array.isArray(content) ? content.filter(Boolean) : content,
+    );
+}
+
+function replaceElementTag(element, tagName) {
+    if (!element || element.tagName.toLowerCase() === tagName) return element;
+    const replacement = document.createElement(tagName);
+    Array.from(element.attributes).forEach(({ name, value }) => {
+        replacement.setAttribute(name, value);
+    });
+    replacement.append(...Array.from(element.childNodes));
+    element.replaceWith(replacement);
+    return replacement;
+}
+
+function normalizeHeadingWrappers(table) {
+    table
+        .querySelectorAll(
+            '.row-heading p.pricing, .row-heading p.supplemental-text, .row-heading p.pricing-after',
+        )
+        .forEach((wrapper) => {
+            replaceElementTag(wrapper, 'div');
+        });
+}
+
+function nodeMatchesOrContains(node, selector) {
+    if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+    return node.matches(selector) || Boolean(node.querySelector(selector));
+}
+
+function classifyPricingNode(node) {
+    if (!node) return '';
+    if (node.nodeType === Node.TEXT_NODE) {
+        return node.textContent?.trim() ? 'price' : '';
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    if (
+        nodeMatchesOrContains(
+            node,
+            `${SELECTOR_MAS_INLINE_PRICE}[data-template="${TEMPLATE_PRICE_LEGAL}"], [data-template="${TEMPLATE_PRICE_LEGAL}"], .price-legal`,
+        )
+    ) {
+        return 'legal';
+    }
+    if (
+        nodeMatchesOrContains(
+            node,
+            `${SELECTOR_MAS_INLINE_PRICE}[data-template="strikethrough"], [data-template="strikethrough"], .price-strikethrough, .price-promo-strikethrough`,
+        )
+    ) {
+        return 'strikethrough';
+    }
+    if (
+        nodeMatchesOrContains(
+            node,
+            `${SELECTOR_MAS_INLINE_PRICE}, [data-template], .price, .price-alternative`,
+        )
+    ) {
+        return 'price';
+    }
+    return '';
+}
+
+function createPricingGroupElement(pricingElement, className, nodes = []) {
+    const content = nodes.filter(
+        (node) =>
+            node &&
+            (node.nodeType !== Node.TEXT_NODE || node.textContent.trim()),
+    );
+    if (!content.length) return null;
+    return createElement(
+        pricingElement.tagName.toLowerCase(),
+        {
+            class: className,
+        },
+        content,
+    );
+}
+
+function splitPricingElement(pricingElement) {
+    if (!pricingElement) {
+        return { strikethrough: null, price: null, legal: null };
+    }
+
+    const groups = {
+        strikethrough: [],
+        price: [],
+        legal: [],
+    };
+    let lastGroup = '';
+    Array.from(pricingElement.childNodes).forEach((node) => {
+        let group = classifyPricingNode(node);
+        if (!group && node.nodeType === Node.TEXT_NODE) {
+            group = lastGroup || 'price';
+        }
+        if (!group) {
+            group = node.textContent?.trim() ? 'price' : lastGroup;
+        }
+        if (!group) return;
+        groups[group].push(node);
+        lastGroup = group;
+    });
+
+    if (
+        !groups.strikethrough.length &&
+        !groups.price.length &&
+        !groups.legal.length
+    ) {
+        groups.price = Array.from(pricingElement.childNodes);
+    }
+
+    const pricingClasses = Array.from(pricingElement.classList).filter(
+        (className) =>
+            !['has-pricing-before', 'has-pricing-after'].includes(className),
+    );
+    const basePricingClassName = pricingClasses.join(' ');
+
+    return {
+        strikethrough: createPricingGroupElement(
+            pricingElement,
+            [basePricingClassName, 'pricing-strikethrough-group']
+                .filter(Boolean)
+                .join(' '),
+            groups.strikethrough,
+        ),
+        price: createPricingGroupElement(
+            pricingElement,
+            [basePricingClassName, 'pricing-main-group']
+                .filter(Boolean)
+                .join(' '),
+            groups.price,
+        ),
+        legal: createElement(
+            'div',
+            { class: 'pricing-legal-group' },
+            groups.legal.filter(
+                (node) =>
+                    node &&
+                    (node.nodeType !== Node.TEXT_NODE ||
+                        node.textContent.trim()),
+            ),
+        ),
+    };
+}
+
+function normalizeMerchHeadingColumn(col) {
+    const directChildren = Array.from(col.children);
+    if (!directChildren.length) return;
+
+    const headingContent =
+        directChildren.find((child) =>
+            child.classList.contains('heading-content'),
+        ) || null;
+    const headingButton =
+        directChildren.find((child) =>
+            child.classList.contains('heading-button'),
+        ) || null;
+    const contentChildren = Array.from(headingContent?.children || []);
+    const contentExtras = directChildren.filter(
+        (child) =>
+            child !== headingContent &&
+            child !== headingButton &&
+            (child.classList.contains('content-before') ||
+                child.classList.contains('content-after')),
+    );
+    const iconElement =
+        contentChildren.find((child) =>
+            child.classList.contains('header-product-tile'),
+        ) || null;
+    const titleElement =
+        contentChildren.find((child) =>
+            child.classList.contains('tracking-header'),
+        ) || null;
+    const bodyElement =
+        contentChildren.find((child) => child.classList.contains('body')) ||
+        null;
+    const contentRemainder = contentChildren.filter(
+        (child) =>
+            child !== iconElement &&
+            child !== titleElement &&
+            child !== bodyElement,
+    );
+
+    const headingButtonChildren = Array.from(headingButton?.children || []);
+    const pricingElement =
+        headingButtonChildren.find((child) =>
+            child.classList.contains('pricing'),
+        ) || null;
+    const pricingAdjacentElements = headingButtonChildren.filter(
+        (child) =>
+            child !== pricingElement &&
+            !child.classList.contains('buttons-wrapper') &&
+            (child.classList.contains('pricing-before') ||
+                child.classList.contains('pricing-after') ||
+                child.classList.contains('supplemental-text')),
+    );
+    const buttonsWrapper =
+        headingButtonChildren.find((child) =>
+            child.classList.contains('buttons-wrapper'),
+        ) || null;
+    const { strikethrough, price, legal } = splitPricingElement(pricingElement);
+    const legalContent = [
+        ...pricingAdjacentElements,
+        ...(legal?.childNodes ? Array.from(legal.childNodes) : []),
+    ];
+
+    const sections = [
+        createHeaderSection(
+            'header-section-icon',
+            iconElement ? [iconElement] : [],
+        ),
+        createHeaderSection(
+            'header-section-title',
+            titleElement ? [titleElement] : [],
+        ),
+        createHeaderSection(
+            'header-section-description',
+            [...contentExtras, bodyElement, ...contentRemainder].filter(
+                Boolean,
+            ),
+        ),
+        createHeaderSection(
+            'header-section-price-strikethrough',
+            strikethrough ? [strikethrough] : [],
+        ),
+        createHeaderSection('header-section-price', price ? [price] : []),
+        createHeaderSection('header-section-legal', legalContent),
+        createHeaderSection(
+            'header-section-buttons',
+            buttonsWrapper ? [buttonsWrapper] : [],
+        ),
+    ];
+
+    col.replaceChildren(...sections);
+}
+
+function normalizeMerchHeadingSections(table) {
+    if (!table.classList.contains('merch')) return;
+    const headingColumns = table.querySelectorAll('.row-heading .col-heading');
+    headingColumns.forEach((col) => normalizeMerchHeadingColumn(col));
+}
+
 function handleEqualHeight(table, tag) {
     const element = table.querySelector(tag);
-    if (!element) return;
+    if (!element) {
+        setTableHeightRule(table, '');
+        return;
+    }
+
     const height = [];
     const columns = [...element.children];
     columns.forEach(({ children }) => {
         [...children].forEach((row, i) => {
-            row.style.height = 'auto';
             const style = window.getComputedStyle(row);
             const actualHeight =
                 row.clientHeight -
@@ -488,14 +746,59 @@ function handleEqualHeight(table, tag) {
                 height[i] = actualHeight;
         });
     });
-    columns.forEach(({ children }) => {
-        [...children].forEach((row, i) => {
-            if (row.clientHeight > 0) {
-                row.style.minHeight =
-                    height[i] > 0 ? `${height[i]}px` : 'unset';
-            }
+    const declarations = height
+        .map((value, index) =>
+            value > 0 ? `${getHeadingHeightVarName(index)}: ${value}px;` : '',
+        )
+        .filter(Boolean);
+    setTableHeightRule(table, createTableHeightRule(table, declarations));
+}
+
+function syncMerchHeadingSectionHeights(table) {
+    const headingRow = table.querySelector('.row-heading');
+    if (!headingRow) {
+        setTableHeightRule(table, '');
+        return;
+    }
+
+    const headingColumns = Array.from(
+        headingRow.querySelectorAll(':scope > .col-heading'),
+    ).filter(
+        (col) =>
+            !col.classList.contains('col-1') &&
+            !col.classList.contains('hidden') &&
+            getComputedStyle(col).display !== 'none',
+    );
+    if (!headingColumns.length) {
+        setTableHeightRule(table, '');
+        return;
+    }
+
+    const declarations = [];
+    MERCH_HEADER_SECTIONS.forEach(({ className, cssVar }) => {
+        let maxHeight = 0;
+        headingColumns.forEach((col) => {
+            const section = col.querySelector(`:scope > .${className}`);
+            if (!section) return;
+            maxHeight = Math.max(
+                maxHeight,
+                Math.ceil(section.getBoundingClientRect().height),
+            );
         });
+        if (maxHeight > 0) {
+            declarations.push(`${cssVar}: ${maxHeight}px;`);
+        }
     });
+    setTableHeightRule(table, createTableHeightRule(table, declarations));
+}
+
+function syncHeadingHeights(table) {
+    setTableHeightRule(table, '');
+    if (table.classList.contains('merch')) {
+        syncMerchHeadingSectionHeights(table);
+        return;
+    }
+    handleEqualHeight(table, '.row-heading');
 }
 
 function handleAddOnContent(table) {
@@ -536,18 +839,20 @@ function handleAddOnContent(table) {
                 content.map((node) => node.cloneNode(true)),
             );
             const anchor = headCol.querySelector(`.${position}`);
-            anchor?.classList.add(`has-${tagName}`);
+            if (!(position === 'pricing' && order === 'after')) {
+                anchor?.classList.add(`has-${tagName}`);
+            }
             anchor?.insertAdjacentElement(
                 order === 'before' ? 'beforebegin' : 'afterend',
                 tag,
             );
         });
     });
-    setTimeout(() => handleEqualHeight(table, '.row-heading'), 0);
+    setTimeout(() => syncHeadingHeights(table), 0);
     table.addEventListener(
         'mas:resolved',
         debounce(() => {
-            handleEqualHeight(table, '.row-heading');
+            syncHeadingHeights(table);
         }, 100),
     );
 }
@@ -568,6 +873,13 @@ function dispatchTableHighlightLoaded(table) {
     table.dispatchEvent(new Event(TABLE_HIGHLIGHT_LOADED_EVENT));
 }
 
+function applyCompareChartHeadingRounding(headingCols) {
+    headingCols.forEach((col, index) => {
+        const isOuterColumn = index === 0 || index === headingCols.length - 1;
+        col.classList.toggle('no-rounded', !isOuterColumn);
+    });
+}
+
 function handleHighlight(table) {
     const isHighlightTable = table.classList.contains('highlight');
     const firstRow = table.querySelector('.row-1');
@@ -583,10 +895,16 @@ function handleHighlight(table) {
         secondRowCols.forEach((col) => col.classList.add('col-heading'));
         headingCols = secondRowCols;
 
+        if (table.classList.contains('compare-chart-features')) {
+            applyCompareChartHeadingRounding(headingCols);
+        }
+
         firstRowCols.forEach((col, i) => {
             col.classList.add('col-highlight');
-            if (col.innerText) {
-                headingCols[i]?.classList.add('no-rounded');
+            if (col.innerText || col.dataset.hasBadge === 'true') {
+                if (!table.classList.contains('compare-chart-features')) {
+                    headingCols[i]?.classList.add('no-rounded');
+                }
                 const highlightText = createElement(
                     'div',
                     { class: 'highlight-text' },
@@ -603,10 +921,15 @@ function handleHighlight(table) {
     } else {
         headingCols = firstRowCols;
         firstRow.classList.add('row-heading');
+        if (table.classList.contains('compare-chart-features')) {
+            applyCompareChartHeadingRounding(headingCols);
+        }
     }
 
     handleHeading(table, headingCols);
     handleAddOnContent(table);
+    normalizeHeadingWrappers(table);
+    normalizeMerchHeadingSections(table);
     dispatchTableHighlightLoaded(table);
 }
 
@@ -646,6 +969,17 @@ function handleTitleText(cell) {
     if (!cell || cell.querySelector('.table-title-text')) return;
     const textSpan = createElement('span', { class: 'table-title-text' });
     while (cell.firstChild) textSpan.append(cell.firstChild);
+
+    const meaningfulText = textSpan.textContent
+        ?.replace(/\u00a0/g, ' ')
+        .trim();
+    const hasMeaningfulElement = textSpan.querySelector(
+        'a, em, strong, b, i, picture, img, mas-mnemonic, merch-icon, [is="inline-price"], .icon, .icon-info, .icon-tooltip, .milo-tooltip, blockquote',
+    );
+    if (!hasMeaningfulElement && (!meaningfulText || meaningfulText === '-')) {
+        cell.replaceChildren();
+        return;
+    }
 
     const iconTooltip = textSpan.querySelector(
         '.icon-info, .icon-tooltip, .milo-tooltip',
@@ -757,26 +1091,14 @@ function handleSection(sectionParams) {
         if (isMerch && !row.classList.contains('divider')) {
             rowCols.forEach((merchCol) => {
                 merchCol.classList.add('col-merch');
-                const children = Array.from(merchCol.children);
-                const merchContent = createElement('div', {
-                    class: 'col-merch-content',
-                });
-                if (children.length) {
-                    children.forEach((child) => {
-                        if (!child.querySelector('.icon')) {
-                            merchContent.append(child);
-                        }
-                    });
-                    merchCol.insertBefore(merchContent, merchCol.firstChild);
-                } else if (merchCol.innerText) {
+                if (!merchCol.children.length && merchCol.innerText) {
                     const pTag = createElement(
                         'p',
                         { class: 'merch-col-text' },
                         merchCol.innerText,
                     );
                     merchCol.innerText = '';
-                    merchContent.append(pTag);
-                    merchCol.append(merchContent);
+                    merchCol.append(pTag);
                 }
             });
         } else {
@@ -835,7 +1157,8 @@ function handleHovering(table) {
     if (!row1) return;
     const colsInRowNum = row1.childElementCount;
     const isMerch = table.classList.contains('merch');
-    const startValue = isMerch ? 1 : 2;
+    const startValue =
+        isMerch && !table.classList.contains('compare-chart-features') ? 1 : 2;
     const isCollapseTable = table.classList.contains('collapse');
     const sectionHeads = table.querySelectorAll('.section-head');
     const lastSectionHead = sectionHeads[sectionHeads.length - 1];
@@ -1061,7 +1384,7 @@ function applyStylesBasedOnScreenSize(
             if (isStickyHeader(table)) {
                 handleScrollEffect(table, getStickyTop);
             }
-            if (event) handleEqualHeight(table, '.row-heading');
+            if (event) syncHeadingHeights(table);
             setAriaLabelForIcons(table, labels);
         };
 
@@ -1231,6 +1554,7 @@ function decorateTable(el, options) {
             options.labels,
             options.getStickyTop,
         );
+        syncHeadingHeights(el);
         if (isStickyHeader(el)) {
             handleScrollEffect(el, options.getStickyTop);
         }
@@ -1249,7 +1573,7 @@ function decorateTable(el, options) {
     }
 
     const onResize = debounce(() => {
-        handleEqualHeight(el, '.row-heading');
+        syncHeadingHeights(el);
         handleStickyHeader(el);
         const nextDevice = defineDeviceByScreenSize();
         if (currentDevice === nextDevice) return;
@@ -1334,9 +1658,64 @@ function cloneSlotNodes(card, slotName) {
     );
 }
 
+function cloneNodeChildren(node) {
+    if (!node) return [];
+    return Array.from(node.childNodes).map((child) => child.cloneNode(true));
+}
+
+function flattenSlotNodeContent(node) {
+    if (!node) return [];
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+        return [node.cloneNode(true)];
+    }
+
+    const cleanNode = stripSlotAttributes(node.cloneNode(true));
+    const hasMeaningfulDirectText = Array.from(cleanNode.childNodes).some(
+        (child) =>
+            child.nodeType === Node.TEXT_NODE && child.textContent.trim(),
+    );
+    const singleElementChild =
+        cleanNode.childElementCount === 1 &&
+        cleanNode.firstElementChild &&
+        !hasMeaningfulDirectText;
+
+    if (
+        singleElementChild &&
+        cleanNode.firstElementChild.matches?.(
+            `${SELECTOR_MAS_INLINE_PRICE}, ${SELECTOR_MAS_ELEMENT}, merch-icon, merch-badge, mas-mnemonic`,
+        )
+    ) {
+        return [cleanNode.firstElementChild.cloneNode(true)];
+    }
+
+    if (singleElementChild) {
+        return cloneNodeChildren(cleanNode.firstElementChild);
+    }
+
+    if (
+        ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(
+            cleanNode.tagName,
+        )
+    ) {
+        return cloneNodeChildren(cleanNode);
+    }
+
+    return [cleanNode];
+}
+
+function stripSlotAttributes(node) {
+    if (!node) return node;
+    if (node.nodeType !== Node.ELEMENT_NODE) return node;
+    node.removeAttribute('slot');
+    node.querySelectorAll?.('[slot]').forEach((child) =>
+        child.removeAttribute('slot'),
+    );
+    return node;
+}
+
 function normalizeFooterSlotNode(node) {
     if (!node) return node;
-    node.removeAttribute?.('slot');
+    stripSlotAttributes(node);
     const buttons = node.matches?.('.con-button, button, a.con-button')
         ? [node]
         : Array.from(
@@ -1355,8 +1734,127 @@ function normalizeFooterSlotNode(node) {
     return actionArea;
 }
 
+function getFirstSlotNode(card, slotName) {
+    return cloneSlotNodes(card, slotName)
+        .map(stripSlotAttributes)
+        .find(Boolean);
+}
+
+function normalizeHeadingTextNode(sourceNode, className) {
+    if (!sourceNode) return null;
+    const heading = createElement('p', { class: className });
+    const content = flattenSlotNodeContent(sourceNode);
+    if (content.length) {
+        heading.append(...content);
+    } else {
+        heading.textContent = sourceNode.textContent?.trim() || '';
+    }
+    return heading.textContent?.trim() || heading.childNodes.length
+        ? heading
+        : null;
+}
+
+function normalizeBodyNode(sourceNode) {
+    if (!sourceNode) return null;
+    const body = createElement('p', { class: 'body' });
+    const content = flattenSlotNodeContent(sourceNode);
+    if (content.length) {
+        body.append(...content);
+    } else {
+        body.textContent = sourceNode.textContent?.trim() || '';
+    }
+    return body.textContent?.trim() || body.childNodes.length ? body : null;
+}
+
+function collectPricingNodes(sourceNodes = []) {
+    const groups = {
+        strikethrough: [],
+        price: [],
+        legal: [],
+    };
+    let lastGroup = '';
+
+    sourceNodes.forEach((sourceNode) => {
+        const node = stripSlotAttributes(sourceNode.cloneNode(true));
+        let group = classifyPricingNode(node);
+        if (!group && node.nodeType === Node.TEXT_NODE) {
+            group = node.textContent?.trim() ? lastGroup || 'price' : '';
+        }
+        if (!group && node.textContent?.trim()) {
+            group = 'price';
+        }
+        if (!group) return;
+        groups[group].push(node);
+        lastGroup = group;
+    });
+
+    return groups;
+}
+
+function createPricingWrapper(className, nodes = []) {
+    const content = nodes.filter(
+        (node) =>
+            node &&
+            (node.nodeType !== Node.TEXT_NODE || node.textContent.trim()),
+    );
+    if (!content.length) return null;
+    return createElement('div', { class: className }, content);
+}
+
+function createSyntheticLegalPrice(pricingNodes = []) {
+    for (const pricingNode of pricingNodes) {
+        if (pricingNode?.nodeType !== Node.ELEMENT_NODE) continue;
+        const inlinePrice = pricingNode.matches?.(SELECTOR_MAS_INLINE_PRICE)
+            ? pricingNode.cloneNode(true)
+            : pricingNode
+                  .querySelector?.(SELECTOR_MAS_INLINE_PRICE)
+                  ?.cloneNode(true);
+        if (!inlinePrice) continue;
+        inlinePrice.setAttribute('data-template', TEMPLATE_PRICE_LEGAL);
+        inlinePrice.setAttribute('data-display-plan-type', 'true');
+        inlinePrice.setAttribute('data-display-per-unit', 'false');
+        inlinePrice.setAttribute('data-display-tax', 'false');
+        inlinePrice.setAttribute('data-display-old-price', 'false');
+        if (!inlinePrice.hasAttribute('data-force-tax-exclusive')) {
+            inlinePrice.setAttribute('data-force-tax-exclusive', 'true');
+        }
+        return inlinePrice;
+    }
+    return null;
+}
+
+function buildCanonicalButtonsWrapper(card) {
+    const footerNodes = cloneSlotNodes(card, MINI_COMPARE_CHART_SLOTS.ctas).map(
+        stripSlotAttributes,
+    );
+    const buttons = footerNodes.flatMap((node) => {
+        if (node.matches?.('.con-button, button, a.con-button')) return [node];
+        return Array.from(
+            node.querySelectorAll?.('.con-button, button, a.con-button') || [],
+        ).map((button) => button.cloneNode(true));
+    });
+    if (!buttons.length) return null;
+
+    const wrapper = createElement('div', { class: 'buttons-wrapper' });
+    buttons.forEach((button, index) => {
+        const container =
+            index === 0
+                ? createElement('p')
+                : createElement('div', {
+                      class: 'supplemental-text body-xl action-area',
+                  });
+        container.append(button);
+        wrapper.append(container);
+    });
+    return wrapper;
+}
+
 function buildMerchHeadingContent(card) {
     const fragment = document.createDocumentFragment();
+    const headingContent = createElement('div', {
+        class: 'heading-content content',
+    });
+    const headingButton = createElement('div', { class: 'heading-button' });
     const iconNodes = cloneSlotNodes(card, 'icons');
     if (iconNodes.length) {
         const iconRow = createElement('p', { class: 'header-product-tile' });
@@ -1373,34 +1871,63 @@ function buildMerchHeadingContent(card) {
             node.removeAttribute?.('slot');
             iconRow.append(node);
         });
-        fragment.append(iconRow);
+        headingContent.append(iconRow);
     }
-    [
-        MINI_COMPARE_CHART_SLOTS.title,
+
+    const titleNode = normalizeHeadingTextNode(
+        getFirstSlotNode(card, MINI_COMPARE_CHART_SLOTS.title),
+        'tracking-header',
+    );
+    if (titleNode) headingContent.append(titleNode);
+
+    const descriptionNode = normalizeBodyNode(
+        getFirstSlotNode(card, MINI_COMPARE_CHART_SLOTS.description),
+    );
+    if (descriptionNode) headingContent.append(descriptionNode);
+
+    const priceSourceNodes = cloneSlotNodes(
+        card,
         MINI_COMPARE_CHART_SLOTS.prices,
-        MINI_COMPARE_CHART_SLOTS.description,
-        MINI_COMPARE_CHART_SLOTS.ctas,
-    ].forEach((slotName) => {
-        cloneSlotNodes(card, slotName).forEach((node) => {
-            if (slotName === MINI_COMPARE_CHART_SLOTS.ctas) {
-                fragment.append(normalizeFooterSlotNode(node));
-                return;
-            }
-            fragment.append(node);
-        });
-    });
+    ).flatMap((node) => flattenSlotNodeContent(node));
+    const pricingGroups = collectPricingNodes(priceSourceNodes);
+    const strikethroughWrapper = createPricingWrapper(
+        'pricing-before',
+        pricingGroups.strikethrough,
+    );
+    if (strikethroughWrapper) headingButton.append(strikethroughWrapper);
+
+    const priceWrapper = createPricingWrapper('pricing', pricingGroups.price);
+    if (priceWrapper) headingButton.append(priceWrapper);
+
+    const legalNodes = pricingGroups.legal.length
+        ? pricingGroups.legal
+        : [createSyntheticLegalPrice(pricingGroups.price)].filter(Boolean);
+    const legalWrapper = createPricingWrapper('pricing-after', legalNodes);
+    if (legalWrapper) headingButton.append(legalWrapper);
+
+    const buttonsWrapper = buildCanonicalButtonsWrapper(card);
+    if (buttonsWrapper) headingButton.append(buttonsWrapper);
+
+    fragment.append(headingContent, headingButton);
     return fragment;
 }
 
 function getBadgeData(card) {
     if (!card) return null;
-    if (card._masTableBadgeData?.text) return card._masTableBadgeData;
+    if (card._masTableBadgeData?.contentHtml || card._masTableBadgeData?.text) {
+        return card._masTableBadgeData;
+    }
 
     const badgeSlot = card.querySelector('[slot="badge"]');
     const shadowBadge = card.shadowRoot?.getElementById('badge');
     const badgeElement = badgeSlot?.matches('merch-badge')
         ? badgeSlot
         : badgeSlot?.querySelector('merch-badge');
+    const contentHtml =
+        badgeElement?.innerHTML?.trim() ||
+        badgeSlot?.innerHTML?.trim() ||
+        shadowBadge?.innerHTML?.trim() ||
+        '';
     const text =
         badgeElement?.textContent?.trim() ||
         badgeSlot?.textContent?.trim() ||
@@ -1408,7 +1935,7 @@ function getBadgeData(card) {
         card.getAttribute('badge-text') ||
         '';
 
-    if (!text) return null;
+    if (!contentHtml && !text) return null;
 
     const computedBadgeStyles = shadowBadge
         ? getComputedStyle(shadowBadge)
@@ -1427,6 +1954,7 @@ function getBadgeData(card) {
         '';
 
     return {
+        contentHtml,
         text,
         icon: badgeElement?.getAttribute('icon') || '',
         backgroundColor,
@@ -1447,11 +1975,17 @@ function createBadgeIcon(icon) {
 }
 
 function createBadgePreviewContent(badgeData) {
-    const fragment = document.createDocumentFragment();
+    const content = document.createDocumentFragment();
     const icon = createBadgeIcon(badgeData.icon);
-    if (icon) fragment.append(icon);
-    fragment.append(document.createTextNode(badgeData.text));
-    return fragment;
+    if (icon) content.append(icon);
+    if (badgeData.contentHtml) {
+        const template = document.createElement('template');
+        template.innerHTML = badgeData.contentHtml;
+        content.append(template.content.cloneNode(true));
+    } else if (badgeData.text) {
+        content.append(document.createTextNode(badgeData.text));
+    }
+    return content;
 }
 
 function parseBadgeDataFromFields(fields = {}) {
@@ -1462,6 +1996,7 @@ function parseBadgeDataFromFields(fields = {}) {
         const text = String(badgeValue).trim();
         if (!text) return null;
         return {
+            contentHtml: '',
             text,
             icon: '',
             backgroundColor: resolveColorValue(
@@ -1476,10 +2011,12 @@ function parseBadgeDataFromFields(fields = {}) {
     const badgeElement =
         template.content.querySelector('merch-badge') ||
         template.content.firstElementChild;
+    const contentHtml = badgeElement?.innerHTML?.trim() || '';
     const text = badgeElement?.textContent?.trim() || badgeValue.trim();
-    if (!text) return null;
+    if (!contentHtml && !text) return null;
 
     return {
+        contentHtml,
         text,
         icon: badgeElement?.getAttribute?.('icon') || '',
         backgroundColor: resolveColorValue(
@@ -1532,7 +2069,8 @@ async function hydrateMerchCards(cardIds, referenceMap, container) {
 
 function hydrateMerchHighlightRow(table, cardIds, merchCardMap) {
     if (
-        !table.classList.contains('merch') ||
+        (!table.classList.contains('merch') &&
+            !table.classList.contains('compare-chart-features')) ||
         !table.classList.contains('highlight')
     ) {
         return;
@@ -1541,12 +2079,22 @@ function hydrateMerchHighlightRow(table, cardIds, merchCardMap) {
     const highlightRow = table.firstElementChild;
     if (!highlightRow) return;
     const cells = Array.from(highlightRow.children);
+    const columnOffset = table.classList.contains('compare-chart-features')
+        ? 1
+        : 0;
 
     cardIds.forEach((cardId, index) => {
-        const cell = cells[index];
+        const cell = cells[index + columnOffset];
         const badgeData = getBadgeData(merchCardMap.get(cardId));
-        if (!cell || !badgeData?.text) return;
+        if (!cell) return;
 
+        if (!badgeData?.contentHtml && !badgeData?.text) {
+            cell.removeAttribute('data-has-badge');
+            cell.replaceChildren();
+            return;
+        }
+
+        cell.dataset.hasBadge = 'true';
         cell.replaceChildren(createBadgePreviewContent(badgeData));
 
         if (badgeData.backgroundColor) {
@@ -1561,7 +2109,13 @@ function hydrateMerchHighlightRow(table, cardIds, merchCardMap) {
 }
 
 function hydrateMerchHeadings(table, cardIds, merchCardMap) {
-    if (!table.classList.contains('merch') || !cardIds?.length) return;
+    if (
+        (!table.classList.contains('merch') &&
+            !table.classList.contains('compare-chart-features')) ||
+        !cardIds?.length
+    ) {
+        return;
+    }
     const rows = Array.from(table.children);
     if (!rows.length) return;
     const headingRowIndex =
@@ -1569,9 +2123,12 @@ function hydrateMerchHeadings(table, cardIds, merchCardMap) {
     const headingRow = rows[headingRowIndex];
     if (!headingRow) return;
     const cells = Array.from(headingRow.children);
+    const columnOffset = table.classList.contains('compare-chart-features')
+        ? 1
+        : 0;
 
     cardIds.forEach((cardId, index) => {
-        const cell = cells[index];
+        const cell = cells[index + columnOffset];
         const merchCard = merchCardMap.get(cardId);
         if (!cell || !merchCard) return;
         cell.replaceChildren(buildMerchHeadingContent(merchCard));
@@ -1611,16 +2168,26 @@ export class MasTable extends HTMLElement {
 
     constructor() {
         super();
-        this.attachShadow({ mode: 'open' });
-        const style = document.createElement('style');
-        style.textContent = getStyleText();
+        this.#localStyle = document.createElement('style');
+        this.#localStyle.textContent = LOCAL_TABLE_CSS;
+        this.#heightRuleStyle = document.createElement('style');
+        this.#heightRuleStyle.setAttribute(TABLE_HEIGHT_RULE_ATTR, '');
         this.#content = document.createElement('div');
         this.#scratch = document.createElement('div');
         this.#scratch.className = 'mas-table-scratch';
-        this.shadowRoot.append(style, this.#content, this.#scratch);
+        this.#scratch.hidden = true;
+        this.#scratch.setAttribute('aria-hidden', 'true');
+        this.append(
+            this.#localStyle,
+            this.#heightRuleStyle,
+            this.#content,
+            this.#scratch,
+        );
         this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
     }
 
+    #localStyle;
+    #heightRuleStyle;
     #content;
     #scratch;
 
@@ -1694,7 +2261,10 @@ export class MasTable extends HTMLElement {
         try {
             await this.renderFragment(event.detail);
             if (renderId !== this.#currentRenderId) return;
-            await settleMasElements(this.shadowRoot);
+            await settleMasElements(this);
+            this.#content
+                .querySelectorAll('.table')
+                .forEach((table) => syncHeadingHeights(table));
             const measure = performance.measure(
                 this.#durationMarkName,
                 this.#startMarkName,

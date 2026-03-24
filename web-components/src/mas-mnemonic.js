@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 function hasSpectrumTooltip() {
     // Only use Spectrum if ALL required components are available
@@ -229,6 +230,9 @@ export default class MasMnemonic extends LitElement {
 
     renderIcon() {
         if (!this.src) return html`<slot></slot>`;
+        if (this.src.startsWith('sp-icon-')) {
+            return html`${unsafeHTML(`<${this.src} size="${this.size || 'm'}"></${this.src}>`)}`;
+        }
         return html`<merch-icon
             src="${this.src}"
             size="${this.size}"

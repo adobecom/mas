@@ -10,11 +10,14 @@ import { history, undo, redo } from 'prosemirror-history';
 import { openOfferSelectorTool, attributeFilter, closeOfferSelectorTool } from './ost.js';
 import prosemirrorStyles from './prosemirror.css.js';
 import { EVENT_OST_SELECT } from '../constants.js';
+import { ICON_LIBRARY } from '../constants/icon-library.js';
 import throttle from '../utils/throttle.js';
+import '../mas-icon-picker-modal.js';
 import './rte-mnemonic-editor.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
+const SPECTRUM_ICON_IDS = ICON_LIBRARY.map(({ id }) => id);
 
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
@@ -100,39 +103,33 @@ class MnemonicNodeView {
         this.view = view;
         this.getPos = getPos;
 
-        // In the editor, we only render the icon part for better editing experience
-        this.dom = document.createElement('merch-icon');
-        this.dom.setAttribute('contenteditable', 'false');
-        this.dom.classList.add('mnemonic-icon');
-        if (node.attrs.src) {
-            this.dom.setAttribute('src', node.attrs.src);
-            this.dom.setAttribute('size', node.attrs.size || 'xs');
-            if (node.attrs.alt) {
-                this.dom.setAttribute('alt', node.attrs.alt);
-            }
-            // Store mnemonic data as data attributes for reference
-            if (node.attrs.mnemonicText) {
-                this.dom.setAttribute('data-mnemonic-text', node.attrs.mnemonicText);
-            }
-            if (node.attrs.mnemonicPlacement) {
-                this.dom.setAttribute('data-mnemonic-placement', node.attrs.mnemonicPlacement);
-            }
-        }
+        this.dom = this.#createIconElement(node);
     }
 
     update(node) {
         if (node.type !== this.node.type) return false;
+        const nextElementTag = node.attrs.src?.startsWith?.('sp-icon-') ? node.attrs.src : 'merch-icon';
+        if (this.dom.tagName.toLowerCase() !== nextElementTag) {
+            const replacement = this.#createIconElement(node);
+            this.dom.replaceWith(replacement);
+            this.dom = replacement;
+            this.node = node;
+            return true;
+        }
         this.node = node;
 
         if (node.attrs.src) {
-            this.dom.setAttribute('src', node.attrs.src || '');
-            this.dom.setAttribute('size', node.attrs.size || 'xs');
-            if (node.attrs.alt) {
-                this.dom.setAttribute('alt', node.attrs.alt);
+            if (node.attrs.src.startsWith('sp-icon-')) {
+                this.dom.setAttribute('size', node.attrs.size || 'm');
             } else {
-                this.dom.removeAttribute('alt');
+                this.dom.setAttribute('src', node.attrs.src || '');
+                this.dom.setAttribute('size', node.attrs.size || 'xs');
+                if (node.attrs.alt) {
+                    this.dom.setAttribute('alt', node.attrs.alt);
+                } else {
+                    this.dom.removeAttribute('alt');
+                }
             }
-            // Update data attributes for mnemonic info
             if (node.attrs.mnemonicText) {
                 this.dom.setAttribute('data-mnemonic-text', node.attrs.mnemonicText);
             } else {
@@ -162,6 +159,31 @@ class MnemonicNodeView {
     ignoreMutation() {
         return true;
     }
+
+    #createIconElement(node) {
+        const isSpectrumIcon = node.attrs.src?.startsWith?.('sp-icon-');
+        const element = document.createElement(isSpectrumIcon ? node.attrs.src : 'merch-icon');
+        element.setAttribute('contenteditable', 'false');
+        element.classList.add('mnemonic-icon');
+        if (node.attrs.src) {
+            if (isSpectrumIcon) {
+                element.setAttribute('size', node.attrs.size || 'm');
+            } else {
+                element.setAttribute('src', node.attrs.src);
+                element.setAttribute('size', node.attrs.size || 'xs');
+                if (node.attrs.alt) {
+                    element.setAttribute('alt', node.attrs.alt);
+                }
+            }
+            if (node.attrs.mnemonicText) {
+                element.setAttribute('data-mnemonic-text', node.attrs.mnemonicText);
+            }
+            if (node.attrs.mnemonicPlacement) {
+                element.setAttribute('data-mnemonic-placement', node.attrs.mnemonicPlacement);
+            }
+        }
+        return element;
+    }
 }
 
 let ostRteFieldSource;
@@ -175,6 +197,7 @@ class RteField extends LitElement {
         link: { type: Boolean, attribute: 'link' },
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
+        iconPicker: { type: Boolean, attribute: 'icon-picker' },
         divider: { type: Boolean, attribute: 'divider' },
         marks: {
             type: Array,
@@ -187,6 +210,7 @@ class RteField extends LitElement {
         isLinkSelected: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
+        float: { type: Boolean, attribute: 'float', reflect: true },
         showLinkEditor: { type: Boolean, state: true },
         showIconEditor: { type: Boolean, state: true },
         showMnemonicEditor: { type: Boolean, state: true },
@@ -197,6 +221,8 @@ class RteField extends LitElement {
         hideFormatButtons: { type: Boolean, attribute: 'hide-format-buttons' },
         osi: { type: String },
         value: { type: String },
+        floatingToolbarStyle: { type: String, state: true },
+        floatingToolbarBelow: { type: Boolean, state: true },
     };
 
     static get styles() {
@@ -221,6 +247,10 @@ class RteField extends LitElement {
                     gap: 8px;
                     flex-direction: column;
                     font-size: var(--spectrum-font-size-200);
+                }
+
+                :host([float]) {
+                    gap: 0;
                 }
 
                 :host([hide-format-buttons]) {
@@ -255,6 +285,40 @@ class RteField extends LitElement {
                     display: flex;
                     align-items: center;
                     gap: 8px;
+                }
+
+                #floating-toolbar {
+                    position: fixed;
+                    top: -9999px;
+                    left: 50%;
+                    opacity: 0;
+                    pointer-events: none;
+                    transform: translate(-50%, calc(-100% - 12px));
+                    transition:
+                        opacity 120ms ease,
+                        transform 120ms ease;
+                }
+
+                #floating-toolbar.visible {
+                    opacity: 1;
+                    pointer-events: auto;
+                }
+
+                #floating-toolbar.below {
+                    transform: translate(-50%, 12px);
+                }
+
+                .floating-toolbar-surface {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 6px;
+                    border-radius: 14px;
+                    border: 1px solid var(--spectrum-gray-300);
+                    background: var(--spectrum-background-layer-2-color, var(--spectrum-gray-50));
+                    box-shadow:
+                        0 8px 24px rgba(0, 0, 0, 0.16),
+                        0 1px 3px rgba(0, 0, 0, 0.12);
                 }
 
                 #editor-row #editor {
@@ -635,10 +699,14 @@ class RteField extends LitElement {
     #isInternalUpdate = false;
     #serializer;
     #stylingMarksData;
+    #toolbarFrame = 0;
+    #toolbarResizeObserver;
+    #viewportRepositionHandler;
 
     constructor() {
         super();
         this.readOnly = false;
+        this.float = false;
         this.isLinkSelected = false;
         this.priceSelected = false;
         this.showLinkEditor = false;
@@ -650,11 +718,14 @@ class RteField extends LitElement {
         this.link = false;
         this.uptLink = false;
         this.mnemonic = false;
+        this.iconPicker = false;
         this.divider = false;
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
         this.osi = '';
+        this.floatingToolbarStyle = '';
+        this.floatingToolbarBelow = false;
         this.marks = ['heading-xxxs', 'heading-xxs', 'heading-xs', 'heading-s', 'heading-m', 'promo-text', 'mnemonic-text'];
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
@@ -668,11 +739,13 @@ class RteField extends LitElement {
             doubleClickOn: this.#handleDoubleClickOn.bind(this),
             updateLength: throttle(this.#updateLength.bind(this), 100),
         };
+        this.#viewportRepositionHandler = this.#scheduleFloatingToolbarPosition.bind(this);
     }
 
     firstUpdated() {
         this.#initEditorSchema();
         this.#initializeEditor();
+        this.#observeFloatingToolbar();
     }
 
     get value() {
@@ -694,6 +767,8 @@ class RteField extends LitElement {
             capture: true,
         });
         document.addEventListener(EVENT_OST_SELECT, this.#boundHandlers.ostEvent);
+        window.addEventListener('resize', this.#viewportRepositionHandler);
+        document.addEventListener('scroll', this.#viewportRepositionHandler, true);
         this.updateLengthInterval = setInterval(this.#boundHandlers.updateLength, 1000);
     }
 
@@ -703,8 +778,25 @@ class RteField extends LitElement {
             capture: true,
         });
         document.removeEventListener(EVENT_OST_SELECT, this.#boundHandlers.ostEvent);
+        window.removeEventListener('resize', this.#viewportRepositionHandler);
+        document.removeEventListener('scroll', this.#viewportRepositionHandler, true);
+        this.#toolbarResizeObserver?.disconnect();
+        cancelAnimationFrame(this.#toolbarFrame);
         this.editorView?.destroy();
         clearInterval(this.updateLengthInterval);
+    }
+
+    updated(changedProperties) {
+        if (
+            changedProperties.has('float') ||
+            changedProperties.has('hasFocus') ||
+            changedProperties.has('showLinkEditor') ||
+            changedProperties.has('showIconEditor') ||
+            changedProperties.has('showMnemonicEditor')
+        ) {
+            this.#observeFloatingToolbar();
+            this.#scheduleFloatingToolbarPosition();
+        }
     }
 
     getStylingMark(stylingType, ariaLevel) {
@@ -817,6 +909,17 @@ class RteField extends LitElement {
                             };
                         },
                     },
+                    ...SPECTRUM_ICON_IDS.map((iconId) => ({
+                        tag: iconId,
+                        getAttrs: (domNode) => ({
+                            src: domNode.tagName.toLowerCase(),
+                            alt: domNode.getAttribute('alt'),
+                            size: domNode.getAttribute('size') || 'm',
+                            class: 'mnemonic',
+                            mnemonicText: domNode.getAttribute('data-mnemonic'),
+                            mnemonicPlacement: domNode.getAttribute('data-mnemonic-placement'),
+                        }),
+                    })),
                     {
                         tag: 'overlay-trigger',
                         getAttrs: (domNode) => {
@@ -908,6 +1011,16 @@ class RteField extends LitElement {
                 ],
                 toDOM: (node) => {
                     const { src, alt, size, mnemonicText, mnemonicPlacement } = node.attrs;
+                    if (src?.startsWith?.('sp-icon-')) {
+                        const attrs = {
+                            size: size || 'm',
+                        };
+                        if (mnemonicText && mnemonicText.trim() !== '') {
+                            attrs['data-mnemonic'] = mnemonicText.trim();
+                            attrs['data-mnemonic-placement'] = mnemonicPlacement || 'top';
+                        }
+                        return [src, attrs];
+                    }
                     const attrs = {
                         src: src || '',
                         size: size || 'xs',
@@ -1639,13 +1752,85 @@ class RteField extends LitElement {
     }
 
     #handleFocusout(view, event) {
+        const nextTarget = event.relatedTarget;
+        if (nextTarget && this.shadowRoot?.contains(nextTarget)) {
+            return false;
+        }
         this.hasFocus = false;
         this.isLinkSelected = false;
+        return false;
     }
 
     #handleFocus() {
         this.hasFocus = true;
+        this.#scheduleFloatingToolbarPosition();
         return false;
+    }
+
+    get #showFloatingToolbar() {
+        return (
+            this.float &&
+            !this.hideFormatButtons &&
+            (this.hasFocus || this.showLinkEditor || this.showIconEditor || this.showMnemonicEditor)
+        );
+    }
+
+    get #toolbarElement() {
+        return this.shadowRoot?.getElementById('floating-toolbar');
+    }
+
+    #observeFloatingToolbar() {
+        if (!window.ResizeObserver || !this.float) return;
+        this.#toolbarResizeObserver?.disconnect();
+        this.#toolbarResizeObserver = new ResizeObserver(() => {
+            this.#scheduleFloatingToolbarPosition();
+        });
+
+        const anchor = this.parentElement;
+        const toolbar = this.#toolbarElement;
+        if (anchor) {
+            this.#toolbarResizeObserver.observe(anchor);
+        }
+        if (toolbar) {
+            this.#toolbarResizeObserver.observe(toolbar);
+        }
+    }
+
+    #scheduleFloatingToolbarPosition() {
+        if (!this.float) return;
+        cancelAnimationFrame(this.#toolbarFrame);
+        this.#toolbarFrame = requestAnimationFrame(() => {
+            this.#updateFloatingToolbarPosition();
+        });
+    }
+
+    #updateFloatingToolbarPosition() {
+        if (!this.#showFloatingToolbar) return;
+        const anchor = this.parentElement;
+        const toolbar = this.#toolbarElement;
+        if (!anchor || !toolbar) return;
+
+        const anchorRect = anchor.getBoundingClientRect();
+        const toolbarRect = toolbar.getBoundingClientRect();
+        if (!anchorRect.width || !toolbarRect.width) return;
+
+        const viewportPadding = 12;
+        const gap = 12;
+        const halfWidth = toolbarRect.width / 2;
+        const centeredLeft = anchorRect.left + anchorRect.width / 2;
+        const minLeft = viewportPadding + halfWidth;
+        const maxLeft = window.innerWidth - viewportPadding - halfWidth;
+        const left = Math.min(maxLeft, Math.max(minLeft, centeredLeft));
+
+        let top = anchorRect.top - toolbarRect.height - gap;
+        let below = false;
+        if (top < viewportPadding) {
+            below = true;
+            top = Math.min(window.innerHeight - viewportPadding - toolbarRect.height, anchorRect.bottom + gap);
+        }
+
+        this.floatingToolbarBelow = below;
+        this.floatingToolbarStyle = `left:${left}px;top:${Math.max(viewportPadding, top)}px;`;
     }
 
     #handleDoubleClickOn(view, pos, node, nodePos, event, direct) {
@@ -1686,7 +1871,16 @@ class RteField extends LitElement {
         this.showMnemonicEditor = true;
         await this.updateComplete;
 
-        // Populate the editor with the existing mnemonic's properties
+        if (this.iconPicker) {
+            Object.assign(this.mnemonicEditorElement, {
+                open: true,
+                icon: node.attrs.src || '',
+                alt: node.attrs.alt || '',
+                description: node.attrs.mnemonicText || '',
+            });
+            return;
+        }
+
         Object.assign(this.mnemonicEditorElement, {
             open: true,
             imageUrl: node.attrs.src || '',
@@ -1714,6 +1908,15 @@ class RteField extends LitElement {
 
     get mnemonicEditor() {
         if (!this.showMnemonicEditor) return nothing;
+        if (this.iconPicker) {
+            return html`<mas-icon-picker-modal
+                .open=${true}
+                @save="${this.#boundHandlers.mnemonicSave}"
+                @modal-close="${() => {
+                    this.showMnemonicEditor = false;
+                }}"
+            ></mas-icon-picker-modal>`;
+        }
         return html`<rte-mnemonic-editor
             dialog
             @save="${this.#boundHandlers.mnemonicSave}"
@@ -1732,19 +1935,34 @@ class RteField extends LitElement {
     }
 
     get mnemonicEditorElement() {
-        return this.shadowRoot.querySelector('rte-mnemonic-editor');
+        return this.shadowRoot.querySelector('rte-mnemonic-editor, mas-icon-picker-modal');
+    }
+
+    get #toolbarActions() {
+        return html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
+            ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
+            ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton} ${this.#uptLinkButton}
+            ${this.#mnemonicButton} ${this.#dividerButton}
+        </sp-action-group>`;
+    }
+
+    get #floatingToolbar() {
+        if (this.hideFormatButtons || !this.float) return nothing;
+        return html`
+            <div
+                id="floating-toolbar"
+                class=${`${this.#showFloatingToolbar ? 'visible' : ''} ${this.floatingToolbarBelow ? 'below' : ''}`.trim()}
+                style=${this.floatingToolbarStyle}
+            >
+                <div class="floating-toolbar-surface">${this.#toolbarActions}</div>
+            </div>
+        `;
     }
 
     render() {
         const lengthExceeded = this.length > this.maxLength;
         return html`
-            ${this.hideFormatButtons
-                ? nothing
-                : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                      ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
-                      ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton}
-                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton}
-                  </sp-action-group>`}
+            ${this.float ? this.#floatingToolbar : this.hideFormatButtons ? nothing : this.#toolbarActions}
             <div id="editor-row">
                 <div id="editor"></div>
                 ${this.hideFormatButtons ? this.#offerSelectorToolButton : nothing}
@@ -1770,7 +1988,12 @@ class RteField extends LitElement {
     get #mnemonicButton() {
         if (!this.mnemonic) return nothing;
         return html`
-            <sp-action-button emphasized id="addMnemonicButton" @click=${this.openMnemonicEditor} title="Add Inline Mnemonic">
+            <sp-action-button
+                emphasized
+                id="addMnemonicButton"
+                @click=${this.openMnemonicEditor}
+                title=${this.iconPicker ? 'Add Feature Icon' : 'Add Inline Mnemonic'}
+            >
                 <sp-icon-image slot="icon"></sp-icon-image>
             </sp-action-button>
         `;
@@ -1901,15 +2124,35 @@ class RteField extends LitElement {
     }
 
     #handleMnemonicSave(event) {
-        const { imageUrl, altText, size, mnemonicText, mnemonicPlacement } = event.detail;
+        const { icon, description, alt, imageUrl, altText, size, mnemonicText, mnemonicPlacement } = event.detail;
         const { state } = this.editorView;
+        const resolvedIcon = icon || imageUrl || null;
+        const resolvedSize = size || (resolvedIcon?.startsWith?.('sp-icon-') ? 'm' : 'xs');
+
+        if (this.iconPicker && resolvedIcon?.startsWith?.('sp-icon-')) {
+            const wrapper = document.createElement('div');
+            const iconElement = document.createElement(resolvedIcon);
+            iconElement.setAttribute('size', resolvedSize);
+            wrapper.append(iconElement);
+            if (description?.trim()) {
+                wrapper.append(document.createTextNode(` ${description.trim()}`));
+            }
+
+            const parser = DOMParser.fromSchema(state.schema);
+            const slice = parser.parseSlice(wrapper);
+            const tr = state.tr.replaceSelection(slice);
+            this.editorView.dispatch(tr);
+            this.editorView.focus();
+            this.showMnemonicEditor = false;
+            return;
+        }
 
         const attributesToSet = {
-            src: imageUrl || null,
-            alt: altText || null,
-            size: size || 'xs',
-            mnemonicText: mnemonicText || null,
-            mnemonicPlacement: mnemonicPlacement || (mnemonicText ? 'top' : null),
+            src: resolvedIcon,
+            alt: alt || altText || null,
+            size: resolvedSize,
+            mnemonicText: description || mnemonicText || null,
+            mnemonicPlacement: mnemonicPlacement || (description || mnemonicText ? 'top' : null),
             class: 'mnemonic',
         };
 
@@ -1929,13 +2172,22 @@ class RteField extends LitElement {
     async openMnemonicEditor() {
         this.showMnemonicEditor = true;
         await this.updateComplete;
-        // Reset the editor values for a new mnemonic
+        if (this.iconPicker) {
+            Object.assign(this.mnemonicEditorElement, {
+                open: true,
+                icon: '',
+                alt: '',
+                description: '',
+            });
+            return;
+        }
+
         Object.assign(this.mnemonicEditorElement, {
             open: true,
             imageUrl: '',
             altText: '',
             size: 'xs',
-            mnemonicText: '', // Ensure mnemonic fields are reset too
+            mnemonicText: '',
             mnemonicPlacement: 'top',
         });
     }

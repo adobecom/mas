@@ -11,8 +11,8 @@ export default class VersionPage {
         this.breadcrumbItems = page.locator('version-page sp-breadcrumb-item');
         this.breadcrumbHome = page.locator('version-page sp-breadcrumb-item').first();
         this.breadcrumbCurrent = page.locator('version-page sp-breadcrumb-item').last();
-        this.layoutBreadcrumbs = page.locator('.breadcrumbs-container sp-breadcrumbs');
-        this.layoutBreadcrumbItems = page.locator('.breadcrumbs-container sp-breadcrumb-item');
+        this.layoutBreadcrumbs = page.locator('.nav-breadcrumbs sp-breadcrumbs');
+        this.layoutBreadcrumbItems = page.locator('.nav-breadcrumbs sp-breadcrumb-item');
 
         // Version list panel
         this.versionListPanel = page.locator('version-page .version-list-panel');

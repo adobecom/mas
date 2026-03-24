@@ -207,7 +207,6 @@ const EXPRESS = [
             'ID',
             'IE',
             'IL',
-            'IN',
             'KW',
             'LU',
             'MY',
@@ -461,6 +460,24 @@ export function getDefaultLocaleCode(surface, localeCode) {
 
 export function getDefaultLocales(surface) {
     return DEFAULT_LOCALES[surface] || [];
+}
+
+/**
+ * Get all locales for a given surface, including default locales and region variants.
+ * @param {string} surface e.g. 'acom'
+ * @returns {{ lang: string, country: string }[]}
+ */
+export function getSurfaceLocales(surface) {
+    const map = new Map();
+    getDefaultLocales(surface)
+        .flatMap(({ lang, country, regions = [] }) => [
+            { lang, country },
+            ...regions.map((region) => ({ lang, country: region })),
+        ])
+        .forEach((locale) => {
+            map.set(getLocaleCode(locale), locale);
+        });
+    return [...map.values()];
 }
 
 /**

@@ -1,4 +1,0 @@
-{
-    "web-components/**/*.{js,mjs,css}": "prettier --write",
-    "studio/**/*.{js,mjs,css}": "prettier --write"
-}

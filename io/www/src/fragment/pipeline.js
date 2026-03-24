@@ -62,8 +62,10 @@ async function main(params) {
         if (!cachedConfiguration) {
             const result = await getJsonFromState('configuration', context);
             configuration = result.json;
-            cachedConfiguration = configuration;
-            configurationTimestamp = now;
+            if (configuration) {
+                cachedConfiguration = configuration;
+                configurationTimestamp = now;
+            }
             logDebug(() => 'Configuration cache empty, fetched from state', context);
         } else if (cacheExpired) {
             try {
@@ -73,9 +75,14 @@ async function main(params) {
                     createTimeoutPromise(configTimeout, () => {}),
                 ]);
                 configuration = result.json;
-                cachedConfiguration = configuration;
-                configurationTimestamp = now;
-                logDebug(() => 'Configuration cache expired, refreshed from state', context);
+                if (configuration) {
+                    cachedConfiguration = configuration;
+                    configurationTimestamp = now;
+                    logDebug(() => 'Configuration cache expired, refreshed from state', context);
+                } else {
+                    configuration = cachedConfiguration;
+                    logDebug(() => 'Configuration refresh returned null, using stale cache', context);
+                }
             } catch (error) {
                 if (error.isTimeout) {
                     configuration = cachedConfiguration;

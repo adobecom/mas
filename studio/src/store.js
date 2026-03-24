@@ -1,6 +1,7 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
+import { SettingsStore } from './settings/settings-store.js';
 
 let editorContextInstance = null;
 
@@ -71,7 +72,8 @@ const Store = {
         },
         preview: new ReactiveStore(null),
     },
-    profile: new ReactiveStore(),
+    settings: new SettingsStore(),
+    profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
     confirmDialogOptions: new ReactiveStore(null),
@@ -121,6 +123,8 @@ const Store = {
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
         offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()), // should not be modified directly, use setCardVariationsByPaths to modify
+        groupedVariationsData: new ReactiveStore(new Map()),
 
         allCollections: new ReactiveStore([]),
         collectionsByPaths: new ReactiveStore(new Map()),
@@ -134,6 +138,7 @@ const Store = {
 
         targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
+        projectType: new ReactiveStore(null),
     },
 };
 
@@ -167,6 +172,8 @@ function pageValidator(value) {
         PAGE_NAMES.WELCOME,
         PAGE_NAMES.CONTENT,
         PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.SETTINGS,
+        PAGE_NAMES.SETTINGS_EDITOR,
         PAGE_NAMES.VERSION,
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,

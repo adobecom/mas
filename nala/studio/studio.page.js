@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { getFragmentTitle } from '../utils/fragment-tracker.js';
+import { getTitle } from '../utils/fragment-tracker.js';
 import OSTPage from './ost.page';
 import EditorPage from './editor.page';
 
@@ -60,7 +60,7 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.breadcrumbs-container sp-breadcrumb-item:has-text("Fragments")');
+        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
@@ -229,7 +229,7 @@ export default class StudioPage {
 
                 // Enter fragment title with run ID
                 const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
-                await titleInput.fill(getFragmentTitle());
+                await titleInput.fill(getTitle());
 
                 await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
 
@@ -519,7 +519,10 @@ export default class StudioPage {
     async discardEditorChanges(editor) {
         // Close the editor and verify discard is triggered
         // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
-        await this.page.goBack();
+        await expect(this.fragmentsTable).toBeVisible();
+        await this.fragmentsTable.scrollIntoViewIfNeeded();
+        await this.fragmentsTable.click();
+        // await this.page.goBack();
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
@@ -573,7 +576,7 @@ export default class StudioPage {
         await this.page.waitForTimeout(500);
 
         await expect(this.createDialogTitleInput).toBeVisible({ timeout: 10000 });
-        const titleWithRunId = getFragmentTitle();
+        const titleWithRunId = getTitle();
         await this.createDialogTitleInput.fill(titleWithRunId);
 
         await expect(this.createDialogOSIButton).toBeVisible({ timeout: 10000 });
@@ -717,12 +720,19 @@ export default class StudioPage {
         await this.page.waitForTimeout(500);
 
         await expect(this.variationDialogLocalePicker).toBeVisible();
-        await this.variationDialogLocalePicker.click();
-        await this.page.waitForTimeout(500);
+        await expect(this.variationDialogLocalePicker).toBeEnabled();
+        await this.variationDialogLocalePicker.scrollIntoViewIfNeeded();
+        await this.page.waitForTimeout(200);
+        await this.variationDialogLocalePicker.click({ timeout: 5000 });
+        await this.page.waitForTimeout(300);
 
-        const localeOption = this.variationDialogLocalePicker.locator(`sp-menu-item[value="${locale}"]`).first();
+        const localeOption = this.page.locator(`sp-menu-item[value="${locale}"]:visible`).first();
         await expect(localeOption).toBeVisible();
-        await localeOption.click();
+        try {
+            await localeOption.click({ timeout: 5000 });
+        } catch (localeOptionClickError) {
+            await localeOption.click({ force: true });
+        }
         await this.page.waitForTimeout(500);
 
         await expect(this.variationDialogCreateButton).toBeEnabled();

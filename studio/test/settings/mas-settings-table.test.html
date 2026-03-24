@@ -1,0 +1,397 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>mas-settings-table visual fixture</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../../style.css" />
+        <style>
+            body {
+                margin: 24px;
+            }
+
+            sp-theme {
+                display: block;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { fixture, html } from '@open-wc/testing';
+            import '../../src/swc.js';
+            import '../../src/settings/mas-settings-table.js';
+            import Store from '../../src/store.js';
+            import {
+                createDefaultSettingsReferences,
+                createSettingReference,
+                createSettingsIndexAemMock,
+            } from './settings-test-helpers.js';
+            const theme = document.querySelector('sp-theme');
+            const fixtureInTheme = (template) => fixture(template, { parentNode: theme });
+            const getTopLevelRows = (el) => [...el.shadowRoot.querySelectorAll('.mas-setting-row')];
+            const getTopLevelLabels = (el) =>
+                getTopLevelRows(el).map((row) => row.querySelector('.setting-label-text')?.textContent.trim());
+            const getRowByLabel = (el, label) =>
+                getTopLevelRows(el).find((row) => row.querySelector('.setting-label-text')?.textContent.trim() === label);
+            const getOverrideRows = (el) => [...el.shadowRoot.querySelectorAll('.override-row')];
+
+            runTests(async () => {
+                describe('MasSettingsTable', () => {
+                    const references = createDefaultSettingsReferences().slice(0, 4);
+                    const { aem, state } = createSettingsIndexAemMock({ references });
+
+                    beforeEach(async () => {
+                        Store.settings.destroy();
+                        state.references = [...references];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+                    });
+
+                    afterEach(() => {
+                        Store.settings.destroy();
+                        Store.settings.setAem(null);
+                    });
+
+                    it('renders setting items from fragment references', async () => {
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const rows = getTopLevelRows(el);
+                        expect(rows.length).to.equal(3);
+                        const templateCells = rows.map((row) => row.querySelector('.template-column').textContent.trim());
+                        expect(templateCells.length).to.equal(3);
+                        expect(templateCells.every((summary) => summary.length > 0)).to.equal(true);
+                    });
+
+                    it('expands row and renders override panel only when expanded', async () => {
+                        Store.settings.destroy();
+                        state.references = [
+                            createSettingReference({
+                                id: 'setting-show-addon',
+                                title: 'Show Addon',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: [],
+                                fieldName: 'entries',
+                            }),
+                            createSettingReference({
+                                id: 'setting-show-addon-fr',
+                                title: 'Show Addon FR',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: ['fr_FR'],
+                                fieldName: 'entries',
+                                path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
+                            }),
+                        ];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const beforeExpand = getTopLevelRows(el);
+                        expect(beforeExpand.length).to.equal(1);
+
+                        const expandButton = el.shadowRoot.querySelector('.mas-setting-row .expand-button');
+                        expandButton.click();
+                        await el.updateComplete;
+
+                        const afterExpand = getTopLevelRows(el);
+                        expect(afterExpand.length).to.equal(1);
+                        expect(el.shadowRoot.querySelector('.override-rows')).to.exist;
+                        expect(getOverrideRows(el).length).to.equal(1);
+                        const overrideLocaleCell = el.shadowRoot.querySelector('.override-row .locale-column');
+                        expect(overrideLocaleCell.textContent.trim()).to.equal('fr_FR');
+                        const overrideTemplateCell = el.shadowRoot.querySelector('.override-row .template-column');
+                        expect(overrideTemplateCell.textContent.trim()).to.equal('All');
+
+                        expandButton.click();
+                        await el.updateComplete;
+                        const afterCollapse = getTopLevelRows(el);
+                        expect(afterCollapse.length).to.equal(1);
+                        expect(el.shadowRoot.querySelector('.override-rows')).to.equal(null);
+                    });
+
+                    it('dispatches setting-edit for override rows with override and parent ids', async () => {
+                        Store.settings.destroy();
+                        state.references = [
+                            createSettingReference({
+                                id: 'setting-show-addon',
+                                title: 'Show Addon',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: [],
+                                fieldName: 'entries',
+                            }),
+                            createSettingReference({
+                                id: 'setting-show-addon-fr',
+                                title: 'Show Addon FR',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: ['fr_FR'],
+                                fieldName: 'entries',
+                                path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
+                            }),
+                        ];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const expandButton = el.shadowRoot.querySelector('.mas-setting-row .expand-button');
+                        expandButton.click();
+                        await el.updateComplete;
+
+                        const eventPromise = new Promise((resolve) => {
+                            el.addEventListener('setting-edit', resolve, { once: true });
+                        });
+
+                        const overrideEditAction = el.shadowRoot.querySelector(
+                            '.override-row .actions-cell sp-menu-item[data-action="setting-edit"]',
+                        );
+                        overrideEditAction.click();
+                        const event = await eventPromise;
+
+                        expect(event.detail).to.deep.equal({
+                            id: 'setting-show-addon-fr',
+                            parentId: 'setting-show-addon',
+                            isOverride: true,
+                        });
+                    });
+
+                    it('sorts rows by label when label header emits sorted event', async () => {
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        expect(getTopLevelLabels(el)).to.deep.equal(['Display Plan type', 'Show Addon', 'Show secure label']);
+
+                        const labelHeader = el.shadowRoot.querySelector('#label-header-cell');
+                        labelHeader.dispatchEvent(
+                            new CustomEvent('sorted', {
+                                detail: { sortKey: 'label', sortDirection: 'desc' },
+                            }),
+                        );
+                        await el.updateComplete;
+
+                        expect(getTopLevelLabels(el)).to.deep.equal(['Show secure label', 'Show Addon', 'Display Plan type']);
+                    });
+
+                    it('uses id as tie-breaker when labels are identical', async () => {
+                        Store.settings.destroy();
+                        state.references = [
+                            createSettingReference({
+                                id: 'setting-zeta',
+                                title: 'Same Label',
+                                label: 'Same Label',
+                                name: 'settingZeta',
+                                locales: [],
+                            }),
+                            createSettingReference({
+                                id: 'setting-alpha',
+                                title: 'Same Label',
+                                label: 'Same Label',
+                                name: 'settingAlpha',
+                                locales: [],
+                            }),
+                        ];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const rowIds = getTopLevelRows(el).map((row) => row.getAttribute('value'));
+                        expect(rowIds).to.deep.equal(['setting-alpha', 'setting-zeta']);
+                    });
+
+                    it('calls toggleSetting when a top-level switch changes', async () => {
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+                        const originalToggleSetting = Store.settings.toggleSetting;
+                        const calls = [];
+                        Store.settings.toggleSetting = async (...args) => {
+                            calls.push(args);
+                            return true;
+                        };
+
+                        const row = getRowByLabel(el, 'Show Addon');
+                        const topLevelSwitch = row.querySelector('sp-switch');
+                        topLevelSwitch.checked = false;
+                        topLevelSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await el.updateComplete;
+
+                        expect(calls).to.deep.equal([['setting-show-addon', false]]);
+                        Store.settings.toggleSetting = originalToggleSetting;
+                    });
+
+                    it('dispatches add-override and toggles override values from expanded panel', async () => {
+                        Store.settings.destroy();
+                        state.references = [
+                            createSettingReference({
+                                id: 'setting-show-addon',
+                                title: 'Show Addon',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: [],
+                                fieldName: 'entries',
+                            }),
+                            createSettingReference({
+                                id: 'setting-show-addon-fr',
+                                title: 'Show Addon FR',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: ['fr_FR'],
+                                fieldName: 'entries',
+                                path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
+                                fields: [{ name: 'tags', values: ['mas:keyword/legal'] }],
+                            }),
+                        ];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const expandButton = el.shadowRoot.querySelector('.mas-setting-row .expand-button');
+                        expandButton.click();
+                        await el.updateComplete;
+
+                        const addOverrideEvent = new Promise((resolve) => {
+                            el.addEventListener('setting-add-override', resolve, { once: true });
+                        });
+                        el.shadowRoot.querySelector('.override-panel-toolbar sp-action-button').click();
+                        const event = await addOverrideEvent;
+                        expect(event.detail).to.deep.equal({ id: 'setting-show-addon' });
+
+                        const originalToggleOverride = Store.settings.toggleOverride;
+                        const calls = [];
+                        Store.settings.toggleOverride = async (...args) => {
+                            calls.push(args);
+                            return true;
+                        };
+
+                        const overrideSwitch = el.shadowRoot.querySelector('.override-row sp-switch');
+                        overrideSwitch.checked = false;
+                        overrideSwitch.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await el.updateComplete;
+
+                        expect(calls).to.deep.equal([['setting-show-addon', 'setting-show-addon-fr', false]]);
+                        expect(el.shadowRoot.querySelector('.override-row .tags-column sp-tag').textContent.trim()).to.equal(
+                            'mas:keyword/legal',
+                        );
+                        Store.settings.toggleOverride = originalToggleOverride;
+                    });
+
+                    it('renders override row actions by status and dispatches unpublish', async () => {
+                        Store.settings.destroy();
+                        state.references = [
+                            createSettingReference({
+                                id: 'setting-show-addon',
+                                title: 'Show Addon',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: [],
+                                fieldName: 'entries',
+                            }),
+                            createSettingReference({
+                                id: 'setting-show-addon-fr',
+                                title: 'Show Addon FR',
+                                name: 'addon',
+                                label: 'Show Addon',
+                                locales: ['fr_FR'],
+                                fieldName: 'entries',
+                                status: 'PUBLISHED',
+                                path: '/content/dam/mas/acom/settings/setting-show-addon-fr',
+                            }),
+                        ];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        el.shadowRoot.querySelector('.mas-setting-row .expand-button').click();
+                        await el.updateComplete;
+
+                        const overrideActions = [
+                            ...el.shadowRoot.querySelectorAll('.override-row .actions-cell sp-menu-item'),
+                        ].map((item) => item.textContent.trim());
+                        expect(overrideActions).to.deep.equal(['Edit setting', 'Unpublish']);
+
+                        const eventPromise = new Promise((resolve) => {
+                            el.addEventListener('setting-unpublish', resolve, { once: true });
+                        });
+                        el.shadowRoot
+                            .querySelector('.override-row .actions-cell sp-menu-item[data-action="setting-unpublish"]')
+                            .click();
+                        const event = await eventPromise;
+
+                        expect(event.detail).to.deep.equal({
+                            id: 'setting-show-addon-fr',
+                            parentId: 'setting-show-addon',
+                            isOverride: true,
+                        });
+                    });
+
+                    it('keeps table visible and shows spinner while loading updates', async () => {
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        Store.settings.loading.set(true);
+                        await el.updateComplete;
+
+                        expect(el.shadowRoot.querySelector('#settings-table')).to.exist;
+                        expect(el.shadowRoot.querySelector('#loading-state')).to.exist;
+
+                        Store.settings.loading.set(false);
+                        await el.updateComplete;
+                    });
+
+                    it('renders top-level row actions by status', async () => {
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const publishedRow = getRowByLabel(el, 'Show Addon');
+                        const publishedActions = [...publishedRow.querySelectorAll('.actions-cell sp-menu-item')].map((item) =>
+                            item.textContent.trim(),
+                        );
+                        const draftRow = getRowByLabel(el, 'Display Plan type');
+                        const draftActions = [...draftRow.querySelectorAll('.actions-cell sp-menu-item')].map((item) =>
+                            item.textContent.trim(),
+                        );
+
+                        expect(publishedActions).to.deep.equal(['Edit setting']);
+                        expect(draftActions).to.deep.equal(['Edit setting', 'Delete']);
+                    });
+
+                    it('renders illustrated empty state when there are no settings', async () => {
+                        Store.settings.destroy();
+                        state.references = [];
+                        Store.settings.setAem(aem);
+                        await Store.settings.loadSurface('acom');
+
+                        const el = await fixtureInTheme(html`<mas-settings-table></mas-settings-table>`);
+                        await el.updateComplete;
+
+                        const emptyState = el.shadowRoot.querySelector('#empty-state');
+                        expect(emptyState).to.exist;
+                        expect(emptyState.textContent).to.include('No settings created yet');
+                        expect(emptyState.textContent).to.include('Click the button above to begin creating a setting list.');
+                        expect(el.shadowRoot.querySelector('#settings-table')).to.exist;
+                        expect(el.shadowRoot.querySelector('.empty-state-row')).to.exist;
+                        expect(el.shadowRoot.querySelector('.mas-setting-row')).to.not.exist;
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

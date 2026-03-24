@@ -279,5 +279,45 @@
                 </div>
             </merch-card>
         </template>
+        <template id="mwebCard">
+            <merch-card
+                variant="mini-compare-chart-mweb"
+                secure-label="Secured"
+            >
+                <h3 slot="heading-xs">Acrobat Pro</h3>
+                <div slot="body-xs">
+                    <p slot="description">Access advanced PDF.</p>
+                    <h4>
+                        <span slot="price"></span>
+                    </h4>
+                    <merch-offer-select container="merch-card">
+                        <merch-offer text="Annual, monthly payment">
+                            <span
+                                slot="price"
+                                is="inline-price"
+                                data-display-per-unit="false"
+                                data-display-recurrence="true"
+                                data-display-tax="false"
+                                data-template="priceOptical"
+                                data-wcs-osi="abm"
+                            ></span>
+                            <a
+                                slot="cta"
+                                is="checkout-link"
+                                data-checkout-workflow="UCv3"
+                                data-checkout-workflow-step="email"
+                                data-quantity="1"
+                                data-wcs-osi="abm"
+                                class="con-button blue"
+                                >Buy now</a
+                            >
+                        </merch-offer>
+                    </merch-offer-select>
+                </div>
+                <div slot="footer">
+                    <a slot="cta"></a>
+                </div>
+            </merch-card>
+        </template>
     </body>
 </html>

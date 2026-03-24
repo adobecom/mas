@@ -1,7 +1,14 @@
 import { Catalog, CATALOG_AEM_FRAGMENT_MAPPING } from './catalog.js';
 import { Image, IMAGE_AEM_FRAGMENT_MAPPING } from './image.js';
 import { InlineHeading } from './inline-heading.js';
-import { MiniCompareChart } from './mini-compare-chart.js';
+import {
+    MiniCompareChart,
+    MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+} from './mini-compare-chart.js';
+import {
+    MiniCompareChartMweb,
+    MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING,
+} from './mini-compare-chart-mweb.js';
 import {
     Plans,
     PLANS_AEM_FRAGMENT_MAPPING,
@@ -11,6 +18,7 @@ import {
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
 import { Product, PRODUCT_AEM_FRAGMENT_MAPPING } from './product.js';
 import { Segment, SEGMENT_AEM_FRAGMENT_MAPPING } from './segment.js';
+import { Media, MEDIA_AEM_FRAGMENT_MAPPING } from './media.js';
 import {
     SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
     SpecialOffer,
@@ -62,8 +70,14 @@ registerVariant('inline-heading', InlineHeading);
 registerVariant(
     'mini-compare-chart',
     MiniCompareChart,
-    null,
+    MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
     MiniCompareChart.variantStyle,
+);
+registerVariant(
+    'mini-compare-chart-mweb',
+    MiniCompareChartMweb,
+    MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING,
+    MiniCompareChartMweb.variantStyle,
 );
 registerVariant(
     'plans',
@@ -105,6 +119,7 @@ registerVariant(
     SEGMENT_AEM_FRAGMENT_MAPPING,
     Segment.variantStyle,
 );
+registerVariant('media', Media, MEDIA_AEM_FRAGMENT_MAPPING, Media.variantStyle);
 registerVariant(
     'headless',
     Headless,

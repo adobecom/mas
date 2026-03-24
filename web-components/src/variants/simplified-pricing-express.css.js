@@ -438,9 +438,11 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
 
 /* Small font size button styles for desktop when button text is too long */
 @media screen and ${DESKTOP_UP} {
-  merch-card[variant="simplified-pricing-express"].small-font-size-button [slot="cta"] sp-button,
-  merch-card[variant="simplified-pricing-express"].small-font-size-button [slot="cta"] button,
-  merch-card[variant="simplified-pricing-express"].small-font-size-button [slot="cta"] a.con-button {
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] sp-button.small-font-size-button,
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] button.small-font-size-button,
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button.small-font-size-button,
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.small-font-size-button,
+  merch-card[variant="simplified-pricing-express"] a[slot="cta"].small-font-size-button {
       font-size: var(--merch-card-simplified-pricing-express-body-xs-font-size, 14px);
   }
 }

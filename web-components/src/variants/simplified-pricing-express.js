@@ -124,12 +124,16 @@ export class SimplifiedPricingExpress extends VariantLayout {
         /* Set small font size button class if button text is too long */
         const CTA_LONG_TEXT_CHAR_THRESHOLD = 34;
         cards.forEach((card) => {
-            const cta = card.querySelector(
-                '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button',
+            card.classList.remove('small-font-size-button');
+            const ctas = card.querySelectorAll(
+                '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]',
             );
-            const isLong =
-                cta && cta.textContent.length > CTA_LONG_TEXT_CHAR_THRESHOLD;
-            card.classList.toggle('small-font-size-button', !!isLong);
+            ctas.forEach((cta) => {
+                const isLong =
+                    cta.textContent.trim().length >
+                    CTA_LONG_TEXT_CHAR_THRESHOLD;
+                cta.classList.toggle('small-font-size-button', isLong);
+            });
         });
 
         if (Media.isDesktopOrUp) {

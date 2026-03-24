@@ -187,10 +187,22 @@ runTests(async () => {
             await cardWithLongCta?.updateComplete;
             await delay(300);
 
+            const shortCardCtas = cardWithShortCta.querySelectorAll(
+                '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+            );
+            const longCardCtas = cardWithLongCta.querySelectorAll(
+                '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+            );
+
             expect(
-                cardWithShortCta.classList.contains('small-font-size-button'),
-            ).to.be.false;
-            expect(cardWithLongCta.classList.contains('small-font-size-button'))
+                [...shortCardCtas].every(
+                    (cta) => !cta.classList.contains('small-font-size-button'),
+                ),
+            ).to.be.true;
+            expect(longCardCtas.length).to.equal(2);
+            expect(longCardCtas[0].classList.contains('small-font-size-button'))
+                .to.be.false;
+            expect(longCardCtas[1].classList.contains('small-font-size-button'))
                 .to.be.true;
         });
 
@@ -199,9 +211,14 @@ runTests(async () => {
                 'merch-card[variant="simplified-pricing-express"]',
             );
             await delay(100);
+            const shortCardCtas = cardWithShortCta.querySelectorAll(
+                '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+            );
             expect(
-                cardWithShortCta.classList.contains('small-font-size-button'),
-            ).to.be.false;
+                [...shortCardCtas].every(
+                    (cta) => !cta.classList.contains('small-font-size-button'),
+                ),
+            ).to.be.true;
         });
     });
 

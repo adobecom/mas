@@ -310,7 +310,7 @@ class MerchCardEditor extends LitElement {
         return doc.querySelector('merch-whats-included');
     }
 
-    getWhatsIncludedProps(el) {
+    getWhatsIncludedProps(el, fallback = true) {
         const desc = el.querySelector('[slot="description"]');
         const description = desc?.textContent?.trim() || '';
         const iconEl = el.querySelector('merch-icon');
@@ -323,7 +323,7 @@ class MerchCardEditor extends LitElement {
         }
         // Fallback for spectrum icons (sp-icon-* elements)
         const spIcon = el.querySelector('.sp-icon');
-        if (spIcon) {
+        if (spIcon && fallback) {
             const icon = spIcon.tagName.toLowerCase();
             const alt = '';
             return { icon, description, alt, link: '' };
@@ -340,7 +340,7 @@ class MerchCardEditor extends LitElement {
 
         const bullets = [];
         this.whatsIncludedElement?.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').forEach((listEl) => {
-            const props = this.getWhatsIncludedProps(listEl);
+            const props = this.getWhatsIncludedProps(listEl, false);
             if (props.icon) {
                 bullets.push(props);
             } else {
@@ -353,7 +353,7 @@ class MerchCardEditor extends LitElement {
                 } else {
                     description = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
                 }
-                bullets.push({ icon, description, alt: '', link: '' });
+                bullets.push({ icon, description, alt: description, link: '' });
             }
         });
 
@@ -1266,7 +1266,8 @@ class MerchCardEditor extends LitElement {
         }
         const descriptionEl = document.createElement('p');
         descriptionEl.setAttribute('slot', 'description');
-        const text = value.description || value.alt || '';
+        const variantValue = this.getEffectiveFieldValue('variant');
+        const text = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART ? value.description || value.alt || '' : value.alt || '';
         if (isBullet) {
             const span = document.createElement('span');
             if (text.startsWith('<p>')) {

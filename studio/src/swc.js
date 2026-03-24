@@ -41,6 +41,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-close.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-code.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-collection.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-copy.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-paste.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-cover-image.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-data-correlated.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-delete.js';

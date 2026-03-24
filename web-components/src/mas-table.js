@@ -63,42 +63,54 @@ const MERCH_HEADER_SECTIONS = [
         cssVar: '--mas-table-header-buttons-height',
     },
 ];
-const HEADING_HEIGHT_VAR_PREFIX = '--mas-table-row-heading-child-';
-const MAX_HEADING_CHILDREN = 6;
 const TABLE_HEIGHT_RULE_ATTR = 'data-mas-table-height-rules';
 const TABLE_HEIGHT_SCOPE_ATTR = 'data-mas-table-height-scope';
 let tableHeightScopeCounter = 0;
 const LOCAL_TABLE_CSS = `
-    .row-heading > .col > :nth-child(1) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}1-height, auto);
+    .table.sticky .row-heading,
+    .table.sticky .row-highlight {
+        background: var(--color-white, #fff);
     }
 
-    .row-heading > .col > :nth-child(2) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}2-height, auto);
+    .filters.sticky-mobile-compare {
+        position: sticky;
+        top: var(--mas-table-sticky-top, 0px);
+        z-index: 5;
+        background: var(--color-white, #fff);
     }
 
-    .row-heading > .col > :nth-child(3) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}3-height, auto);
+    .filters.sticky-mobile-compare.active {
+        box-shadow: 0 6px 3px -3px rgb(0 0 0 / 15%);
     }
 
-    .row-heading > .col > :nth-child(4) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}4-height, auto);
+    .table .row-heading .col.col-heading {
+        position: relative;
     }
 
-    .row-heading > .col > :nth-child(5) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}5-height, auto);
+    .table .row-highlight .col-highlight {
+        display: block;
+        text-align: center;
     }
 
-    .row-heading > .col > :nth-child(6) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}6-height, auto);
+    .table .row-highlight .col-highlight .badge-inline-content {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375em;
+        vertical-align: middle;
+    }
+
+    .table.sticky .row-heading > .col {
+        background: var(--color-white, #fff);
+        background-clip: padding-box;
+    }
+
+    .table.sticky .row-highlight > .col.hidden {
+        background: var(--color-white, #fff);
     }
 `;
 
 let tableIndex = 0;
-
-function getHeadingHeightVarName(index) {
-    return `${HEADING_HEIGHT_VAR_PREFIX}${index + 1}-height`;
-}
 
 function ensureTableHeightScope(table) {
     if (!table?.hasAttribute(TABLE_HEIGHT_SCOPE_ATTR)) {
@@ -281,6 +293,19 @@ function isStickyHeader(el) {
     );
 }
 
+function isCompareStyleMobileTable(table) {
+    if (!table || table.classList.contains('merch')) return false;
+    const headingRow = table.querySelector('.row-heading');
+    const firstHeadingCol = headingRow?.querySelector('.col-1');
+    const secondHeadingCol = headingRow?.querySelector('.col-2');
+    return Boolean(
+        headingRow &&
+            secondHeadingCol &&
+            firstHeadingCol &&
+            !firstHeadingCol.textContent?.trim(),
+    );
+}
+
 function decorateButtons(el, size) {
     const buttons = el.querySelectorAll('em a, strong a, p > a strong');
     if (!buttons.length) return;
@@ -339,7 +364,7 @@ function handleHeading(table, headingCols) {
         } else if (!elements.length) {
             col.innerHTML = `<div class="heading-content"><p class="tracking-header">${col.innerHTML}</p></div>`;
         } else {
-            let textStartIndex = col.querySelector('.highlight-text') ? 1 : 0;
+            let textStartIndex = 0;
             let isTrackingSet = false;
             const isIconElement = (element) =>
                 element?.matches?.('img, picture, mas-mnemonic, merch-icon');
@@ -725,35 +750,6 @@ function normalizeMerchHeadingSections(table) {
     headingColumns.forEach((col) => normalizeMerchHeadingColumn(col));
 }
 
-function handleEqualHeight(table, tag) {
-    const element = table.querySelector(tag);
-    if (!element) {
-        setTableHeightRule(table, '');
-        return;
-    }
-
-    const height = [];
-    const columns = [...element.children];
-    columns.forEach(({ children }) => {
-        [...children].forEach((row, i) => {
-            const style = window.getComputedStyle(row);
-            const actualHeight =
-                row.clientHeight -
-                parseFloat(style.paddingTop) -
-                parseFloat(style.paddingBottom);
-
-            if (!height[i] || actualHeight > height[i])
-                height[i] = actualHeight;
-        });
-    });
-    const declarations = height
-        .map((value, index) =>
-            value > 0 ? `${getHeadingHeightVarName(index)}: ${value}px;` : '',
-        )
-        .filter(Boolean);
-    setTableHeightRule(table, createTableHeightRule(table, declarations));
-}
-
 function syncMerchHeadingSectionHeights(table) {
     const headingRow = table.querySelector('.row-heading');
     if (!headingRow) {
@@ -796,9 +792,7 @@ function syncHeadingHeights(table) {
     setTableHeightRule(table, '');
     if (table.classList.contains('merch')) {
         syncMerchHeadingSectionHeights(table);
-        return;
     }
-    handleEqualHeight(table, '.row-heading');
 }
 
 function handleAddOnContent(table) {
@@ -873,10 +867,15 @@ function dispatchTableHighlightLoaded(table) {
     table.dispatchEvent(new Event(TABLE_HIGHLIGHT_LOADED_EVENT));
 }
 
-function applyCompareChartHeadingRounding(headingCols) {
+function applyCompareChartHeadingRounding(headingCols, highlightCols = []) {
     headingCols.forEach((col, index) => {
         const isOuterColumn = index === 0 || index === headingCols.length - 1;
-        col.classList.toggle('no-rounded', !isOuterColumn);
+        const matchingHighlightCol = highlightCols[index];
+        const hasHighlight =
+            !!matchingHighlightCol &&
+            (matchingHighlightCol.innerText ||
+                matchingHighlightCol.dataset.hasBadge === 'true');
+        col.classList.toggle('no-rounded', !isOuterColumn || hasHighlight);
     });
 }
 
@@ -895,29 +894,20 @@ function handleHighlight(table) {
         secondRowCols.forEach((col) => col.classList.add('col-heading'));
         headingCols = secondRowCols;
 
-        if (table.classList.contains('compare-chart-features')) {
-            applyCompareChartHeadingRounding(headingCols);
-        }
-
         firstRowCols.forEach((col, i) => {
             col.classList.add('col-highlight');
             if (col.innerText || col.dataset.hasBadge === 'true') {
                 if (!table.classList.contains('compare-chart-features')) {
                     headingCols[i]?.classList.add('no-rounded');
                 }
-                const highlightText = createElement(
-                    'div',
-                    { class: 'highlight-text' },
-                    col.innerText,
-                );
-                headingCols[i]?.insertBefore(
-                    highlightText,
-                    headingCols[i].firstChild,
-                );
             } else {
                 col.classList.add('hidden');
             }
         });
+
+        if (table.classList.contains('compare-chart-features')) {
+            applyCompareChartHeadingRounding(headingCols, firstRowCols);
+        }
     } else {
         headingCols = firstRowCols;
         firstRow.classList.add('row-heading');
@@ -1234,6 +1224,43 @@ function handleScrollEffect(table, getStickyTop) {
     table._stickyObserver = observer;
 }
 
+function handleMobileFilterSticky(table, getStickyTop) {
+    table._filterObserver?.disconnect();
+    const filters = table.parentElement?.querySelector('.filters');
+    if (!filters) return;
+
+    const shouldStick =
+        isStickyHeader(table) &&
+        defineDeviceByScreenSize() === 'MOBILE' &&
+        isCompareStyleMobileTable(table);
+
+    filters.classList.toggle('sticky-mobile-compare', shouldStick);
+    filters.classList.remove('active');
+
+    if (!shouldStick) {
+        filters.style.removeProperty('top');
+        return;
+    }
+
+    const stickyTop = getStickyTop();
+    filters.style.top = `${stickyTop}px`;
+
+    const intercept =
+        filters.parentElement?.querySelector('.filters-intercept') ||
+        createElement('div', { class: 'filters-intercept' });
+    intercept.setAttribute('data-observer-intercept', '');
+    filters.insertAdjacentElement('beforebegin', intercept);
+
+    const observer = new IntersectionObserver(
+        ([entry]) => {
+            filters.classList.toggle('active', !entry.isIntersecting);
+        },
+        { rootMargin: `-${stickyTop}px` },
+    );
+    observer.observe(intercept);
+    table._filterObserver = observer;
+}
+
 function applyStylesBasedOnScreenSize(
     table,
     originTable,
@@ -1241,6 +1268,7 @@ function applyStylesBasedOnScreenSize(
     getStickyTop,
 ) {
     const isMerch = table.classList.contains('merch');
+    const isCompareChart = isCompareStyleMobileTable(table);
     const deviceBySize = defineDeviceByScreenSize();
 
     const setRowStyle = () => {
@@ -1298,6 +1326,15 @@ function applyStylesBasedOnScreenSize(
             return;
         }
 
+        if (isCompareChart) {
+            table
+                .querySelectorAll('.row-heading .col-1, .row-highlight .col-1')
+                .forEach((col) => {
+                    col.classList.add('hide-mobile');
+                    col.style.display = 'none';
+                });
+        }
+
         const filterChangeEvent = (event) => {
             const filters = Array.from(
                 table.parentElement.querySelectorAll('.filter'),
@@ -1333,6 +1370,17 @@ function applyStylesBasedOnScreenSize(
                     )
                     .forEach((col) => {
                         col.classList.add('hide-mobile');
+                    });
+            }
+
+            if (isCompareChart) {
+                table
+                    .querySelectorAll(
+                        '.row-heading .col-1, .row-highlight .col-1',
+                    )
+                    .forEach((col) => {
+                        col.classList.add('hide-mobile');
+                        col.style.display = 'none';
                     });
             }
 
@@ -1384,6 +1432,7 @@ function applyStylesBasedOnScreenSize(
             if (isStickyHeader(table)) {
                 handleScrollEffect(table, getStickyTop);
             }
+            handleMobileFilterSticky(table, getStickyTop);
             if (event) syncHeadingHeights(table);
             setAriaLabelForIcons(table, labels);
         };
@@ -1441,6 +1490,7 @@ function applyStylesBasedOnScreenSize(
             }
             filterChangeEvent();
         }
+        handleMobileFilterSticky(table, getStickyTop);
     };
 
     const removeClones = () => {
@@ -1469,6 +1519,14 @@ function applyStylesBasedOnScreenSize(
                     'right-round',
                 );
             });
+        if (isCompareChart) {
+            table
+                .querySelectorAll('.row-heading .col-1, .row-highlight .col-1')
+                .forEach((col) => {
+                    col.style.removeProperty('display');
+                });
+        }
+        handleMobileFilterSticky(table, getStickyTop);
         [...(table.querySelector('.row-heading')?.children || [])].forEach(
             (column) =>
                 [...column.children].forEach((row) =>
@@ -1619,7 +1677,9 @@ function decorateTable(el, options) {
         intersectionObserver.disconnect();
         resizeObserver.disconnect();
         el._stickyObserver?.disconnect();
+        el._filterObserver?.disconnect();
         delete el._stickyObserver;
+        delete el._filterObserver;
         delete el._originTable;
         window.removeEventListener('resize', onResize);
         window.removeEventListener(TAB_CHANGE_EVENT, onTabChange);
@@ -1975,9 +2035,13 @@ function createBadgeIcon(icon) {
 }
 
 function createBadgePreviewContent(badgeData) {
-    const content = document.createDocumentFragment();
+    const content = createElement('span', { class: 'badge-inline-content' });
     const icon = createBadgeIcon(badgeData.icon);
+    const hasLabelContent = Boolean(badgeData.contentHtml || badgeData.text);
     if (icon) content.append(icon);
+    if (icon && hasLabelContent) {
+        content.append(document.createTextNode(' '));
+    }
     if (badgeData.contentHtml) {
         const template = document.createElement('template');
         template.innerHTML = badgeData.contentHtml;
@@ -2168,8 +2232,6 @@ export class MasTable extends HTMLElement {
 
     constructor() {
         super();
-        this.#localStyle = document.createElement('style');
-        this.#localStyle.textContent = LOCAL_TABLE_CSS;
         this.#heightRuleStyle = document.createElement('style');
         this.#heightRuleStyle.setAttribute(TABLE_HEIGHT_RULE_ATTR, '');
         this.#content = document.createElement('div');
@@ -2178,7 +2240,6 @@ export class MasTable extends HTMLElement {
         this.#scratch.hidden = true;
         this.#scratch.setAttribute('aria-hidden', 'true');
         this.append(
-            this.#localStyle,
             this.#heightRuleStyle,
             this.#content,
             this.#scratch,
@@ -2186,7 +2247,6 @@ export class MasTable extends HTMLElement {
         this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
     }
 
-    #localStyle;
     #heightRuleStyle;
     #content;
     #scratch;

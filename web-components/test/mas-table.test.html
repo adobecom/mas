@@ -17,8 +17,14 @@
         <style>
             html,
             body {
-                min-width: 1440px;
                 margin: 0;
+            }
+
+            @media (min-width: 900px) {
+                html,
+                body {
+                    min-width: 1440px;
+                }
             }
 
             main {
@@ -73,7 +79,7 @@
             import chai, { expect } from '@esm-bundle/chai';
             import chaiAsPromised from '@esm-bundle/chai-as-promised';
 
-            import { toggleDesktop } from './utils.js';
+            import { toggleDesktop, toggleMobile } from './utils.js';
             import '../src/mas.js';
 
             chai.use(chaiAsPromised);
@@ -141,6 +147,13 @@
                                 <div><hr /></div>
                                 <div><hr /></div>
                                 <div><hr /></div>
+                            </div>
+                            <div>
+                                <div>Subscription details</div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
+                                <div></div>
                             </div>
                             <div>
                                 <div>Cloud storage</div>
@@ -521,6 +534,15 @@
                                 '.buttons-wrapper > div.supplemental-text.body-xl.action-area',
                             ),
                         ).to.exist;
+                        const sectionHead = hydratedTable.querySelector(
+                            '.section-head.row-4',
+                        );
+                        expect(sectionHead).to.exist;
+                        expect(
+                            Array.from(sectionHead.querySelectorAll('.col'))
+                                .slice(1)
+                                .every((col) => !col.textContent.trim()),
+                        ).to.equal(true);
                         expect(
                             Array.from(
                                 hydratedTable.querySelectorAll('.table-title-text'),
@@ -533,6 +555,86 @@
                                 '.row-highlight .col-5.col-highlight',
                             )?.textContent?.trim(),
                         ).to.equal('Save 50%');
+                        expect(
+                            hydratedTable
+                                .querySelector('.row-heading .col-5.col-heading')
+                                ?.classList.contains('no-rounded'),
+                        ).to.equal(true);
+                    });
+
+                    it('renders the compare-chart fixture as a dynamic two-column table on mobile', async () => {
+                        await toggleMobile();
+                        spTheme.replaceChildren();
+
+                        const tableHost = appendStandardTable();
+                        await tableHost.renderFragment({
+                            fields: {
+                                blockName: 'Table',
+                                compareChart: {
+                                    value: document
+                                        .getElementById(
+                                            'standard-table-compare-chart',
+                                        )
+                                        .innerHTML.trim(),
+                                    mimeType: 'text/html',
+                                },
+                            },
+                        });
+                        await waitForTableLayout(tableHost);
+
+                        const table = tableHost.querySelector('.table');
+                        const filters = table.parentElement.querySelectorAll(
+                            '.filters .filter',
+                        );
+                        expect(filters).to.have.length(2);
+                        expect(
+                            table.parentElement
+                                .querySelector('.filters')
+                                ?.classList.contains('sticky-mobile-compare'),
+                        ).to.equal(true);
+
+                        const visibleHeadingColumns = Array.from(
+                            table.querySelectorAll('.row-heading .col-heading'),
+                        ).filter(
+                            (col) =>
+                                !col.classList.contains('hide-mobile') &&
+                                !col.classList.contains('hidden') &&
+                                getComputedStyle(col).display !== 'none',
+                        );
+                        expect(visibleHeadingColumns).to.have.length(2);
+                        expect(
+                            visibleHeadingColumns[0]
+                                ?.querySelector('.tracking-header')
+                                ?.textContent?.trim(),
+                        ).to.equal('Photoshop');
+                        expect(
+                            visibleHeadingColumns[1]
+                                ?.querySelector('.tracking-header')
+                                ?.textContent?.trim(),
+                        ).to.equal('Firefly Pro');
+
+                        expect(
+                            Array.from(table.querySelectorAll('.row .col')).some(
+                                (col) => col.classList.contains('force-last'),
+                            ),
+                        ).to.equal(true);
+                        const cloudStorageRow = Array.from(
+                            table.querySelectorAll('.row.section-row'),
+                        ).find(
+                            (row) =>
+                                row.querySelector('.col-1')?.textContent?.trim() ===
+                                'Cloud storage',
+                        );
+                        const visibleCloudStorageCols = Array.from(
+                            cloudStorageRow?.querySelectorAll('.col') || [],
+                        ).filter(
+                            (col) =>
+                                !col.classList.contains('hide-mobile') &&
+                                getComputedStyle(col).display !== 'none',
+                        );
+                        expect(visibleCloudStorageCols).to.have.length(3);
+
+                        await toggleDesktop();
                     });
 
                 });

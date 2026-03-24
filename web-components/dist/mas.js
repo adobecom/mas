@@ -22906,39 +22906,10 @@ var MERCH_HEADER_SECTIONS = [
     cssVar: "--mas-table-header-buttons-height"
   }
 ];
-var HEADING_HEIGHT_VAR_PREFIX = "--mas-table-row-heading-child-";
 var TABLE_HEIGHT_RULE_ATTR = "data-mas-table-height-rules";
 var TABLE_HEIGHT_SCOPE_ATTR = "data-mas-table-height-scope";
 var tableHeightScopeCounter = 0;
-var LOCAL_TABLE_CSS = `
-    .row-heading > .col > :nth-child(1) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}1-height, auto);
-    }
-
-    .row-heading > .col > :nth-child(2) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}2-height, auto);
-    }
-
-    .row-heading > .col > :nth-child(3) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}3-height, auto);
-    }
-
-    .row-heading > .col > :nth-child(4) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}4-height, auto);
-    }
-
-    .row-heading > .col > :nth-child(5) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}5-height, auto);
-    }
-
-    .row-heading > .col > :nth-child(6) {
-        min-height: var(${HEADING_HEIGHT_VAR_PREFIX}6-height, auto);
-    }
-`;
 var tableIndex = 0;
-function getHeadingHeightVarName(index) {
-  return `${HEADING_HEIGHT_VAR_PREFIX}${index + 1}-height`;
-}
 function ensureTableHeightScope(table) {
   if (!table?.hasAttribute(TABLE_HEIGHT_SCOPE_ATTR)) {
     tableHeightScopeCounter += 1;
@@ -23086,6 +23057,15 @@ function defineDeviceByScreenSize() {
 function isStickyHeader(el) {
   return el.classList.contains("sticky") || el.classList.contains("sticky-desktop-up") && defineDeviceByScreenSize() === "DESKTOP" || el.classList.contains("sticky-tablet-up") && defineDeviceByScreenSize() !== "MOBILE" && !isMobileLandscape();
 }
+function isCompareStyleMobileTable(table) {
+  if (!table || table.classList.contains("merch")) return false;
+  const headingRow = table.querySelector(".row-heading");
+  const firstHeadingCol = headingRow?.querySelector(".col-1");
+  const secondHeadingCol = headingRow?.querySelector(".col-2");
+  return Boolean(
+    headingRow && secondHeadingCol && firstHeadingCol && !firstHeadingCol.textContent?.trim()
+  );
+}
 function decorateButtons(el, size) {
   const buttons = el.querySelectorAll("em a, strong a, p > a strong");
   if (!buttons.length) return;
@@ -23136,7 +23116,7 @@ function handleHeading(table, headingCols) {
     } else if (!elements.length) {
       col.innerHTML = `<div class="heading-content"><p class="tracking-header">${col.innerHTML}</p></div>`;
     } else {
-      let textStartIndex = col.querySelector(".highlight-text") ? 1 : 0;
+      let textStartIndex = 0;
       let isTrackingSet = false;
       const isIconElement = (element) => element?.matches?.("img, picture, mas-mnemonic, merch-icon");
       let iconRow = elements[textStartIndex];
@@ -23442,27 +23422,6 @@ function normalizeMerchHeadingSections(table) {
   const headingColumns = table.querySelectorAll(".row-heading .col-heading");
   headingColumns.forEach((col) => normalizeMerchHeadingColumn(col));
 }
-function handleEqualHeight(table, tag) {
-  const element = table.querySelector(tag);
-  if (!element) {
-    setTableHeightRule(table, "");
-    return;
-  }
-  const height = [];
-  const columns = [...element.children];
-  columns.forEach(({ children }) => {
-    [...children].forEach((row, i4) => {
-      const style = window.getComputedStyle(row);
-      const actualHeight = row.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
-      if (!height[i4] || actualHeight > height[i4])
-        height[i4] = actualHeight;
-    });
-  });
-  const declarations = height.map(
-    (value, index) => value > 0 ? `${getHeadingHeightVarName(index)}: ${value}px;` : ""
-  ).filter(Boolean);
-  setTableHeightRule(table, createTableHeightRule(table, declarations));
-}
 function syncMerchHeadingSectionHeights(table) {
   const headingRow = table.querySelector(".row-heading");
   if (!headingRow) {
@@ -23499,9 +23458,7 @@ function syncHeadingHeights(table) {
   setTableHeightRule(table, "");
   if (table.classList.contains("merch")) {
     syncMerchHeadingSectionHeights(table);
-    return;
   }
-  handleEqualHeight(table, ".row-heading");
 }
 function handleAddOnContent(table) {
   const addOns = [...table.querySelectorAll(".section-row-title")].filter(
@@ -23567,10 +23524,12 @@ function setAriaLabelForIcons(el, labels) {
 function dispatchTableHighlightLoaded(table) {
   table.dispatchEvent(new Event(TABLE_HIGHLIGHT_LOADED_EVENT));
 }
-function applyCompareChartHeadingRounding(headingCols) {
+function applyCompareChartHeadingRounding(headingCols, highlightCols = []) {
   headingCols.forEach((col, index) => {
     const isOuterColumn = index === 0 || index === headingCols.length - 1;
-    col.classList.toggle("no-rounded", !isOuterColumn);
+    const matchingHighlightCol = highlightCols[index];
+    const hasHighlight = !!matchingHighlightCol && (matchingHighlightCol.innerText || matchingHighlightCol.dataset.hasBadge === "true");
+    col.classList.toggle("no-rounded", !isOuterColumn || hasHighlight);
   });
 }
 function handleHighlight(table) {
@@ -23586,28 +23545,19 @@ function handleHighlight(table) {
     secondRow.classList.add("row-heading");
     secondRowCols.forEach((col) => col.classList.add("col-heading"));
     headingCols = secondRowCols;
-    if (table.classList.contains("compare-chart-features")) {
-      applyCompareChartHeadingRounding(headingCols);
-    }
     firstRowCols.forEach((col, i4) => {
       col.classList.add("col-highlight");
       if (col.innerText || col.dataset.hasBadge === "true") {
         if (!table.classList.contains("compare-chart-features")) {
           headingCols[i4]?.classList.add("no-rounded");
         }
-        const highlightText = createElement(
-          "div",
-          { class: "highlight-text" },
-          col.innerText
-        );
-        headingCols[i4]?.insertBefore(
-          highlightText,
-          headingCols[i4].firstChild
-        );
       } else {
         col.classList.add("hidden");
       }
     });
+    if (table.classList.contains("compare-chart-features")) {
+      applyCompareChartHeadingRounding(headingCols, firstRowCols);
+    }
   } else {
     headingCols = firstRowCols;
     firstRow.classList.add("row-heading");
@@ -23875,8 +23825,34 @@ function handleScrollEffect(table, getStickyTop) {
   observer.observe(intercept);
   table._stickyObserver = observer;
 }
+function handleMobileFilterSticky(table, getStickyTop) {
+  table._filterObserver?.disconnect();
+  const filters2 = table.parentElement?.querySelector(".filters");
+  if (!filters2) return;
+  const shouldStick = isStickyHeader(table) && defineDeviceByScreenSize() === "MOBILE" && isCompareStyleMobileTable(table);
+  filters2.classList.toggle("sticky-mobile-compare", shouldStick);
+  filters2.classList.remove("active");
+  if (!shouldStick) {
+    filters2.style.removeProperty("top");
+    return;
+  }
+  const stickyTop = getStickyTop();
+  filters2.style.top = `${stickyTop}px`;
+  const intercept = filters2.parentElement?.querySelector(".filters-intercept") || createElement("div", { class: "filters-intercept" });
+  intercept.setAttribute("data-observer-intercept", "");
+  filters2.insertAdjacentElement("beforebegin", intercept);
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      filters2.classList.toggle("active", !entry.isIntersecting);
+    },
+    { rootMargin: `-${stickyTop}px` }
+  );
+  observer.observe(intercept);
+  table._filterObserver = observer;
+}
 function applyStylesBasedOnScreenSize(table, originTable, labels, getStickyTop) {
   const isMerch = table.classList.contains("merch");
+  const isCompareChart = isCompareStyleMobileTable(table);
   const deviceBySize = defineDeviceByScreenSize();
   const setRowStyle = () => {
     if (isMerch) return;
@@ -23919,6 +23895,12 @@ function applyStylesBasedOnScreenSize(table, originTable, labels, getStickyTop) 
     if (!isMerch && !table.querySelector(".col-3") || isMerch && !table.querySelector(".col-2")) {
       return;
     }
+    if (isCompareChart) {
+      table.querySelectorAll(".row-heading .col-1, .row-highlight .col-1").forEach((col) => {
+        col.classList.add("hide-mobile");
+        col.style.display = "none";
+      });
+    }
     const filterChangeEvent = (event) => {
       const filters2 = Array.from(
         table.parentElement.querySelectorAll(".filter")
@@ -23943,6 +23925,14 @@ function applyStylesBasedOnScreenSize(table, originTable, labels, getStickyTop) 
           `.col:not(.col-1, .col-${filters2[0] + 1}, .col-${filters2[1] + 1}), .col.no-borders`
         ).forEach((col) => {
           col.classList.add("hide-mobile");
+        });
+      }
+      if (isCompareChart) {
+        table.querySelectorAll(
+          ".row-heading .col-1, .row-highlight .col-1"
+        ).forEach((col) => {
+          col.classList.add("hide-mobile");
+          col.style.display = "none";
         });
       }
       rows.forEach((row) => {
@@ -23986,6 +23976,7 @@ function applyStylesBasedOnScreenSize(table, originTable, labels, getStickyTop) 
       if (isStickyHeader(table)) {
         handleScrollEffect(table, getStickyTop);
       }
+      handleMobileFilterSticky(table, getStickyTop);
       if (event) syncHeadingHeights(table);
       setAriaLabelForIcons(table, labels);
     };
@@ -24031,6 +24022,7 @@ function applyStylesBasedOnScreenSize(table, originTable, labels, getStickyTop) 
       }
       filterChangeEvent();
     }
+    handleMobileFilterSticky(table, getStickyTop);
   };
   const removeClones = () => {
     table.querySelectorAll(".row .col[data-cloned]").forEach((clonedCol) => {
@@ -24052,6 +24044,12 @@ function applyStylesBasedOnScreenSize(table, originTable, labels, getStickyTop) 
         "right-round"
       );
     });
+    if (isCompareChart) {
+      table.querySelectorAll(".row-heading .col-1, .row-highlight .col-1").forEach((col) => {
+        col.style.removeProperty("display");
+      });
+    }
+    handleMobileFilterSticky(table, getStickyTop);
     [...table.querySelector(".row-heading")?.children || []].forEach(
       (column) => [...column.children].forEach(
         (row) => row.style.removeProperty("height")
@@ -24176,7 +24174,9 @@ function decorateTable(el, options) {
     intersectionObserver2.disconnect();
     resizeObserver.disconnect();
     el._stickyObserver?.disconnect();
+    el._filterObserver?.disconnect();
     delete el._stickyObserver;
+    delete el._filterObserver;
     delete el._originTable;
     window.removeEventListener("resize", onResize);
     window.removeEventListener(TAB_CHANGE_EVENT, onTabChange);
@@ -24426,9 +24426,13 @@ function createBadgeIcon(icon) {
   });
 }
 function createBadgePreviewContent(badgeData) {
-  const content = document.createDocumentFragment();
+  const content = createElement("span", { class: "badge-inline-content" });
   const icon = createBadgeIcon(badgeData.icon);
+  const hasLabelContent = Boolean(badgeData.contentHtml || badgeData.text);
   if (icon) content.append(icon);
+  if (icon && hasLabelContent) {
+    content.append(document.createTextNode(" "));
+  }
   if (badgeData.contentHtml) {
     const template = document.createElement("template");
     template.innerHTML = badgeData.contentHtml;
@@ -24569,7 +24573,7 @@ async function settleMasElements(root) {
     })
   );
 }
-var _cleanup, _currentRenderId, _log3, _service5, _resolveUpdate, _rejectUpdate, _startMarkName2, _durationMarkName2, _updateComplete, _localStyle, _heightRuleStyle, _content, _scratch;
+var _cleanup, _currentRenderId, _log3, _service5, _resolveUpdate, _rejectUpdate, _startMarkName2, _durationMarkName2, _updateComplete, _heightRuleStyle, _content, _scratch;
 var MasTable = class extends HTMLElement {
   constructor() {
     super();
@@ -24582,12 +24586,9 @@ var MasTable = class extends HTMLElement {
     __privateAdd(this, _startMarkName2);
     __privateAdd(this, _durationMarkName2);
     __privateAdd(this, _updateComplete, Promise.resolve(this));
-    __privateAdd(this, _localStyle);
     __privateAdd(this, _heightRuleStyle);
     __privateAdd(this, _content);
     __privateAdd(this, _scratch);
-    __privateSet(this, _localStyle, document.createElement("style"));
-    __privateGet(this, _localStyle).textContent = LOCAL_TABLE_CSS;
     __privateSet(this, _heightRuleStyle, document.createElement("style"));
     __privateGet(this, _heightRuleStyle).setAttribute(TABLE_HEIGHT_RULE_ATTR, "");
     __privateSet(this, _content, document.createElement("div"));
@@ -24596,7 +24597,6 @@ var MasTable = class extends HTMLElement {
     __privateGet(this, _scratch).hidden = true;
     __privateGet(this, _scratch).setAttribute("aria-hidden", "true");
     this.append(
-      __privateGet(this, _localStyle),
       __privateGet(this, _heightRuleStyle),
       __privateGet(this, _content),
       __privateGet(this, _scratch)
@@ -24777,7 +24777,6 @@ _rejectUpdate = new WeakMap();
 _startMarkName2 = new WeakMap();
 _durationMarkName2 = new WeakMap();
 _updateComplete = new WeakMap();
-_localStyle = new WeakMap();
 _heightRuleStyle = new WeakMap();
 _content = new WeakMap();
 _scratch = new WeakMap();

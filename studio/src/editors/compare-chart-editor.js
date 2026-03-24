@@ -253,7 +253,8 @@ const buildFeatureCell = (value) => {
     return cell;
 };
 
-const getCardPreviewFragment = (cardItem) => cardItem.fragmentStore?.previewStore?.get() || cardItem.fragmentStore?.get() || cardItem.reference;
+const getCardPreviewFragment = (cardItem) =>
+    cardItem.fragmentStore?.previewStore?.get() || cardItem.fragmentStore?.get() || cardItem.reference;
 
 const cardHasBadge = (cardItem) => {
     const fragment = getCardPreviewFragment(cardItem);
@@ -273,7 +274,7 @@ const getCompareTableVariantNames = (cardItems) => {
 
 const buildTableMarkup = (fragmentStore) => {
     const table = document.createElement('div');
-    table.className = 'table compare-chart-features';
+    table.className = 'table compare-chart-features has-addon';
     const fragment = fragmentStore?.get();
     const compareRows = parseCompareChart(getFieldValue(fragment, COMPARE_CHART_FIELD));
     const cardItems = getCompareChartCardItems(fragmentStore);
@@ -942,7 +943,7 @@ class CompareChartEditor extends LitElement {
 
     get generalInfoTemplate() {
         return html`
-            <div class="panel-card">
+            <div class="panel-card" data-general-info-panel>
                 <h2 class="section-title">General info</h2>
                 <div class="two-column-grid">
                     <sp-field-group id="fragment-title-group">
@@ -980,7 +981,7 @@ class CompareChartEditor extends LitElement {
                                 <sp-icon-add slot="icon"></sp-icon-add>
                             </sp-action-button>
                             <sp-action-button id="paste-card-action" @click=${this.#pasteCardFromClipboard}>
-                                <sp-icon-copy slot="icon"></sp-icon-copy>
+                                <sp-icon-paste slot="icon"></sp-icon-paste>
                             </sp-action-button>
                             <sp-action-button
                                 id="remove-card-action"
@@ -1414,7 +1415,13 @@ class CompareChartEditor extends LitElement {
     #handleExternalCardSelect = ({ detail }) => {
         if (detail?.collectionId !== this.fragment?.id || !detail?.cardPath) return;
         this.selectedCardPath = detail.cardPath;
+        void this.#scrollGeneralInfoIntoView();
     };
+
+    async #scrollGeneralInfoIntoView() {
+        await this.updateComplete;
+        this.renderRoot?.querySelector('[data-general-info-panel]')?.scrollIntoView({ block: 'start', inline: 'nearest' });
+    }
 
     #createNewCard = () => {
         const currentPaths = this.cardItems.map(({ path }) => path);

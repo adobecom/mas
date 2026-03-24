@@ -1,7 +1,9 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../../src/swc.js';
-import '../../src/editors/compare-chart-editor.js';
+import {
+    buildCompareChartPreviewFragment,
+} from '../../src/editors/compare-chart-editor.js';
 import '../../src/editors/acom-content-preview.js';
 import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
@@ -122,6 +124,32 @@ describe('compare-chart-editor', () => {
         expect(element.shadowRoot.textContent).to.not.include(draftPath);
     });
 
+    it('scrolls General info to the top when selecting a card', async () => {
+        const fragmentStore = createCollectionStore();
+        const element = await fixture(html`<compare-chart-editor .fragmentStore=${fragmentStore}></compare-chart-editor>`);
+
+        await waitForUpdates(element);
+
+        getControl(element.shadowRoot, '#new-card-action').click();
+        await waitForUpdates(element);
+        getControl(element.shadowRoot, '#new-card-action').click();
+        await waitForUpdates(element);
+
+        const generalInfoPanel = element.shadowRoot.querySelector('[data-general-info-panel]');
+        const scrollSpy = sandbox.spy(generalInfoPanel, 'scrollIntoView');
+        const [firstCardChip] = element.shadowRoot.querySelectorAll('.card-chip');
+
+        firstCardChip.click();
+        await waitForUpdates(element);
+
+        expect(element.selectedCardPath).to.include('__compare-chart-draft__-collection-id-1-');
+        expect(scrollSpy.calledOnce).to.equal(true);
+        expect(scrollSpy.firstCall.args[0]).to.deep.equal({
+            block: 'start',
+            inline: 'nearest',
+        });
+    });
+
     it('renders a row-based Features table and adds rows to compareChart', async () => {
         const fragmentStore = createCollectionStore();
         const element = await fixture(html`<compare-chart-editor .fragmentStore=${fragmentStore}></compare-chart-editor>`);
@@ -158,10 +186,16 @@ describe('compare-chart-editor', () => {
         getControl(element.shadowRoot, '#add-feature-row-action').click();
         await waitForUpdates(element);
 
-        const previewHtml = element.previewFragment?.getFieldValue?.('compareChart') || '';
+        const previewFragment = buildCompareChartPreviewFragment(fragmentStore);
+        const previewHtml =
+            previewFragment.fields.find((field) => field.name === 'compareChart')
+                ?.values?.[0] || '';
+        const previewDoc = new DOMParser().parseFromString(previewHtml, 'text/html');
+        const previewTable = previewDoc.querySelector('.table.compare-chart-features');
 
         expect(previewHtml).to.not.include('<p>-</p>');
         expect(previewHtml).to.not.include('>-<');
+        expect(previewTable?.classList.contains('has-addon')).to.equal(true);
     });
 
     it('groups cards and features inside a compare authoring container', async () => {

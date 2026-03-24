@@ -1673,6 +1673,7 @@
                     badge-text="Best value"
                     checkbox-label="Add a 30-day free trial of Adobe Stock.*"
                     stock-offer-osis="stock-puf,stock-abm,stock-m2m"
+                    id="card-width-tooltip"
                 >
                     <merch-icon
                         slot="icons"
@@ -1708,44 +1709,17 @@
                         </p>
                     </div>
                     <div slot="callout-content">
-                        <div>
-                            <div>
-                                <div>AI Assistant add-on available</div>
-                                <img
-                                    src="./img/info-icon.svg"
-                                    title="this is a dummy tooltip text"
-                                    class="callout-icon"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <div>
-                                <div>
-                                    For a limited time pay
-                                    <span
-                                        is="inline-price"
-                                        data-display-old-price="true"
-                                        data-display-per-unit="false"
-                                        data-quantity="1"
-                                        data-template="price"
-                                        data-wcs-osi="Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ"
-                                        class="placeholder-failed"
-                                    ></span>
-                                    when you add AI assistant to Acrobat Reader,
-                                    Standard, or Pro. Ends 6/4.<a
-                                        href="https://www.adobe.com/creativecloud/all-apps.html"
-                                        daa-ll="Learn More-1--H4 Subtext H5 Promo Text"
-                                        target="_blank"
-                                        >Learn More</a
-                                    >
-                                </div>
-                                <img
-                                    src="./img/info-icon.svg"
-                                    title="this is a dummy tooltip text"
-                                    class="callout-icon"
-                                />
-                            </div>
-                        </div>
+                        <p>
+                            Callout text callout text callout text callout text
+                            callout text text one two
+                            <span
+                                class="icon-button"
+                                tabindex="0"
+                                role="button"
+                                getBoundingClientRect="() => { x:60 }"
+                                data-tooltip="Info tooltip abc text info tooltip abc text the end"
+                            ></span>
+                        </p>
                     </div>
                     <div slot="footer">
                         <a

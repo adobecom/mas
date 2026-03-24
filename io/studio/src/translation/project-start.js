@@ -51,9 +51,20 @@ async function main(params) {
             return errorResponse(500, 'Failed to sync target fragments', logger);
         }
 
-        const translationProject = await startTranslationProject(translationData, authToken);
-        if (!translationProject) {
-            return errorResponse(500, 'Failed to start translation project', logger);
+        let responseMessage = 'Translation project started';
+        const projectType = getValue(projectCF, 'projectType')?.value;
+        logger.info(`Project type: ${projectType}`);
+        if (projectType === 'rollout') {
+            responseMessage = 'Rollout project started';
+            const rolloutOnlyProject = await startRolloutOnlyProject(translationData, authToken);
+            if (!rolloutOnlyProject) {
+                return errorResponse(500, 'Failed to start rollout only project', logger);
+            }
+        } else {
+            const translationProject = await startTranslationProject(translationData, authToken);
+            if (!translationProject) {
+                return errorResponse(500, 'Failed to start translation project', logger);
+            }
         }
 
         const updatedProjectCF = await updateTranslationDate(projectCF, etag, authToken);
@@ -64,7 +75,7 @@ async function main(params) {
         return {
             statusCode: 200,
             body: {
-                message: 'Translation project started',
+                message: responseMessage,
                 submissionDate: updatedProjectCF.submissionDate,
             },
         };
@@ -312,6 +323,52 @@ async function main(params) {
 
         logger.info(`Successfully sent loc request`);
         return true;
+    }
+
+    async function startRolloutOnlyProject(translationData, authToken) {
+        const { itemsToTranslate, locales, surface } = translationData;
+        logger.info(`Starting rollout only project ${itemsToTranslate} for locales ${locales} and surface ${surface}`);
+
+        const items = itemsToTranslate.map((item) => ({
+            contentPath: item,
+            targetLocales: locales,
+            syncNestedCFs: false,
+        }));
+
+        const locPayload = {
+            items,
+        };
+
+        logger.info(`locPayload: ${JSON.stringify(locPayload)}`);
+
+        const config = {
+            authToken,
+            odinEndpoint: params.odinEndpoint,
+            locPayload,
+            maxRetries: 3,
+        };
+
+        const result = await sendRolloutRequestWithRetry(config);
+        if (!result.success) {
+            logger.error(`Failed to send rollout request: ${result.error}`);
+            return false;
+        }
+
+        logger.info(`Successfully sent rollout request`);
+        return true;
+    }
+
+    async function sendRolloutRequestWithRetry(config) {
+        try {
+            const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
+            logger.info('Sending rollout request');
+            const success = await postToOdinWithRetry(odinEndpoint, '/bin/localeSync', authToken, locPayload, maxRetries);
+            return { success };
+        } catch (error) {
+            const lastError = error.message || error.toString();
+            logger.error(`Failed to send rollout request after retries: ${lastError}`);
+            return { success: false, error: lastError };
+        }
     }
 
     async function updateTranslationDate(projectCF, etag, authToken) {

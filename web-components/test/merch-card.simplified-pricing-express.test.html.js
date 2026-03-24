@@ -47,7 +47,7 @@ runTests(async () => {
             const description = shadowRoot.querySelector('.description');
             expect(description).to.exist;
 
-            const price = shadowRoot.querySelector('.price');
+            const price = shadowRoot.querySelector('.price-container');
             expect(price).to.exist;
 
             const cta = shadowRoot.querySelector('.cta');

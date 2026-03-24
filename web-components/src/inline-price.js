@@ -414,6 +414,20 @@ export class InlinePrice extends HTMLSpanElement {
                 options.displayAnnual = true;
             }
 
+            // Dual-OSI discount: use individual prices for cross-offer percentage
+            if (options.template === 'discount' && offers.length === 2) {
+                const [discountedOffer, referenceOffer] = offers;
+                const crossOffer = {
+                    ...discountedOffer,
+                    priceDetails: {
+                        ...discountedOffer.priceDetails,
+                        priceWithoutDiscount:
+                            referenceOffer.priceDetails?.price,
+                    },
+                };
+                return this.renderOffers([crossOffer], options, version);
+            }
+
             // Sum the final offers for rendering
             const finalOffer = sumOffers(offers);
             return this.renderOffers([finalOffer], options, version);

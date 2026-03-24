@@ -384,7 +384,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                     await expect(await card.locator(plans.cardBadge)).toHaveText(data.badge);
                     await editor.overrideRestoreIn(editor.badgeFieldGroup).first().click();
                     await page.waitForTimeout(300);
-                    await expect(await editor.badge).toHaveValue(original.badge);
+                    await expect(await editor.badge).toHaveText(original.badge);
                     await expect((await studio.getCard(data.cardid)).locator(plans.cardBadge)).toHaveText(original.badge);
                 }),
             () =>

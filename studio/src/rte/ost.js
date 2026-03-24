@@ -5,10 +5,29 @@ import Store from '../store.js';
 let ostRoot = document.getElementById('ost');
 let closeFunction;
 
+function handleEscape(e) {
+    if (e.key === 'Escape') closeOfferSelectorTool();
+}
+
+function handleBackdropClick(e) {
+    if (e.target === ostRoot) {
+        closeOfferSelectorTool();
+    }
+}
+
+function resetOstRoot() {
+    document.removeEventListener('keydown', handleEscape);
+    document.removeEventListener('click', handleBackdropClick, true);
+}
+
 if (!ostRoot) {
     ostRoot = document.createElement('div');
     document.body.appendChild(ostRoot);
 }
+ostRoot.dataset.ostRoot = '';
+const ostStyle = document.createElement('style');
+ostStyle.textContent = '[data-ost-root]:has(> *) { position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.5) }';
+document.head.appendChild(ostStyle);
 
 const ostDefaultSettings = () => {
     const masCommerceService = document.querySelector('mas-commerce-service');
@@ -56,6 +75,7 @@ const OST_TYPE_MAPPING = {
     priceStrikethrough: 'strikethrough',
     priceAnnual: 'annual',
     priceOptical: 'optical',
+    discount: 'discount',
     checkoutUrl: null,
 };
 
@@ -64,6 +84,7 @@ const OST_IS_MAPPING = {
     strikethrough: 'inline-price',
     annual: 'inline-price',
     optical: 'inline-price',
+    discount: 'inline-price',
     checkoutUrl: 'checkout-link',
     legal: 'inline-price',
     'promo-strikethrough': 'inline-price',
@@ -178,6 +199,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             document.body.appendChild(ostRoot);
         }
         let searchOfferSelectorId;
+        let initialReferenceOsi;
         const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
         const searchParameters = new URLSearchParams();
 
@@ -187,7 +209,9 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }
-            searchOfferSelectorId = offerElement.getAttribute('data-wcs-osi');
+            const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',');
+            searchOfferSelectorId = osiParts[0];
+            initialReferenceOsi = osiParts[1];
 
             // Set search parameters
             offerElement.getAttributeNames().forEach((key) => {
@@ -213,9 +237,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 if (value) searchParameters.append(key, value);
             });
         }
-        ostRoot.style.display = 'block';
-
-        closeFunction = window.ost.openOfferSelectorTool({
+        const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
             environment: 'PROD',
@@ -252,14 +274,29 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             landscape,
             searchParameters,
             searchOfferSelectorId,
+            initialReferenceOsi,
             country: masCommerceService.settings.country,
             language: masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
-            onSelect: triggerElement.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
+            onCancel: () => closeOfferSelectorTool(),
+            onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });
+
+        const spectrumProvider = ostRoot.firstElementChild;
+        if (spectrumProvider) {
+            spectrumProvider.style.background = 'transparent';
+        }
+
+        closeFunction = () => {
+            ostCloseFunction?.();
+            resetOstRoot();
+        };
+
+        document.addEventListener('keydown', handleEscape);
+        document.addEventListener('click', handleBackdropClick, true);
     } catch (error) {
         console.error('Error opening offer selector tool:', error);
     }
@@ -267,4 +304,5 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
 
 export function closeOfferSelectorTool() {
     closeFunction?.();
+    closeFunction = null;
 }

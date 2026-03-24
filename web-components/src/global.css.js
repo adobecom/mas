@@ -1,4 +1,4 @@
-import { DESKTOP_UP, LARGE_DESKTOP, TABLET_UP } from './media.js';
+import { DESKTOP_UP, LARGE_DESKTOP, TABLET_UP, TABLET_DOWN } from './media.js';
 
 const styles = document.createElement('style');
 
@@ -811,9 +811,29 @@ merch-card[border-color="spectrum-red-700-plans"] {
 }
 
 @media (max-width: 600px) {
-merch-card [slot='callout-content'] .icon-button::before {
-    max-width: 180px;
-  }
+    merch-card [slot='callout-content'] .icon-button.tooltip-left::before {
+        left: -30px;
+    }
+
+    merch-card [slot='callout-content'] .icon-button.tooltip-right::before {
+        left: unset;
+        right: -20px;
+    }    
+}
+
+@media screen and ${TABLET_DOWN} {
+    merch-card [slot='callout-content'] .icon-button::before {
+        top: unset;
+        left: unset;
+        margin-bottom: 34px;
+    }
+
+    merch-card [slot='callout-content'] .icon-button::after {
+        top: 0px;
+        left: unset;
+        margin-left: unset;
+        border-color: #0469E3 transparent transparent transparent;
+    }  
 }
 
 /* RTL support for collection header - Mobile */

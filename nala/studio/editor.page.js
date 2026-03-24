@@ -12,7 +12,7 @@ export default class EditorPage {
         this.backgroundColor = this.panel.locator('sp-picker#backgroundColor');
         this.backgroundImage = this.panel.locator('#background-image input');
 
-        this.badge = this.panel.locator('#card-badge input');
+        this.badge = this.panel.locator('sp-field-group#badge rte-field#card-badge div.ProseMirror');
         this.badgeFieldGroup = this.panel.locator('sp-field-group#badge');
         this.badgeBorderColor = this.panel.locator('sp-picker#badgeBorderColor');
         this.badgeBorderColorFieldGroup = this.panel.locator('sp-field-group#badgeBorderColor');
@@ -74,7 +74,7 @@ export default class EditorPage {
         this.title = this.panel.locator('rte-field#card-title div[contenteditable="true"]');
         this.titleFieldGroup = this.panel.locator('sp-field-group#title');
 
-        this.trialBadge = this.panel.locator('#card-trial-badge input');
+        this.trialBadge = this.panel.locator('sp-field-group#trialBadge rte-field#card-trial-badge div.ProseMirror');
         this.trialBadgeFieldGroup = this.panel.locator('sp-field-group#trialBadge');
         this.trialBadgeBorderColor = this.panel.locator('sp-picker#trialBadgeBorderColor');
         this.trialBadgeBorderColorFieldGroup = this.panel.locator('sp-field-group#trialBadgeBorderColor');

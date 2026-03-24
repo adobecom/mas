@@ -775,6 +775,18 @@
                             expect(result.bullets).to.have.length(1);
                             expect(result.bullets[0].description).to.include('<p>');
                         });
+
+                        it('generates whats-included element', async () => {
+                            const label = 'what is included label';
+                            const values = [{icon: 'https://www.adobe.com/icon.svg', alt: 'alt text 1', link: 'https://www.adobe.com/1.html', description: 'desc 1'}];
+                            const bullets = [{icon: 'sp-icon-all', alt: '<p>alt text 2</p>', link: 'https://www.adobe.com/2.html', description: 'desc 2'}, {icon: 'sp-icon-web', alt: 'alt text 3', link: 'https://www.adobe.com/3.html', description: 'desc 3'}];
+                            const element = editor.createIncludedElement(label, values, bullets);
+                            expect(element.getAttribute('has-bullets')).to.equal('true');
+                            expect(element.querySelector('[slot="heading"]').textContent).to.equal(label);
+                            expect(element.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').length).to.equal(2);
+                            expect(element.querySelectorAll('[slot="content"] merch-mnemonic-list').length).to.equal(1);
+                            expect(element.querySelector('[slot="content"] merch-mnemonic-list a merch-icon').getAttribute('alt')).to.equal('alt text 1');
+                        });
                     });
 
                     describe('description field inheritance logic', () => {

@@ -286,7 +286,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
-                    namespace="/content/cq:tags/mas"
+                    namespace="/content/cq:tags/mas/pzn"
                     top="personalization"
                     label="Personalization"
                     multiple

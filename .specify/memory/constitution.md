@@ -26,6 +26,7 @@ For area-specific patterns, see: `studio/AGENTS.md`, `io/CLAUDE.md`, `.claude/ru
 - No TypeScript. No inline styles. No inline comments unless asked.
 
 Type checks and `try/catch` are justified at API boundaries (AEM, WCS, Odin responses), user input, `JSON.parse`, and browser/Node compatibility guards. Within internal code:
+
 - No redundant type checks on values already validated upstream
 - Use `callback?.()` instead of `callback && callback()`
 - No empty `catch` blocks without a comment explaining why
@@ -37,6 +38,7 @@ Type checks and `try/catch` are justified at API boundaries (AEM, WCS, Odin resp
 1. Getter/method in the component → 2. Conditional rendering → 3. CSS → 4. Shared utility (last resort)
 
 STOP before modifying shared files:
+
 - `hydrate.js` → Can a component getter solve this?
 - `merch-card.js` → Can conditional rendering solve this?
 - Any root `/src/*.js` → Is this truly shared, not component-specific?
@@ -68,6 +70,7 @@ STOP before modifying shared files:
 - Comment "why" not "what" — JSDoc on exports, no inline noise
 
 Coverage thresholds:
+
 - **IO Runtime**: 99% lines/functions/branches/statements
 - **Web Components**: 85% lines/statements/branches, 65% functions
 - **Studio**: coverage tracked, not gated

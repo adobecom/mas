@@ -9,18 +9,18 @@
 
 ## Summary
 
-| Phase | Story | Tasks | Independent Test |
-|-------|-------|-------|-----------------|
-| 1 — Setup | — | 1 | IO workspace configured |
-| 2 — Foundational | — | 5 | All unit tests pass; settings.js modified |
-| 3 — US1 Admin configures | US1 | 3 | Setting creates, dual-CTA card hides trial CTA on stage |
-| 4 — US2 End user experience | US2 | 1 | Trial CTA absent from rendered DOM in targeted locale |
-| 5 — US3 Card-level override | US3 | 1 | Card with override retains trial CTA |
-| 6 — US4 Admin reverts | US4 | 1 | Trial CTAs return after toggle-off |
-| 7 — US5 QA validates | US5 | 1 | All T1 locales verified on stage |
-| 8 — FR11 Agent validation | US1 | 2 | Agent reports affected locales, card count, edge cases |
-| 9 — FR12 Monitor updates | — | 3 | Monitors skip CTA assertion when setting active |
-| 10 — Polish | — | 1 | Linter clean, coverage ≥99% |
+| Phase                       | Story | Tasks | Independent Test                                        |
+| --------------------------- | ----- | ----- | ------------------------------------------------------- |
+| 1 — Setup                   | —     | 1     | IO workspace configured                                 |
+| 2 — Foundational            | —     | 5     | All unit tests pass; settings.js modified               |
+| 3 — US1 Admin configures    | US1   | 3     | Setting creates, dual-CTA card hides trial CTA on stage |
+| 4 — US2 End user experience | US2   | 1     | Trial CTA absent from rendered DOM in targeted locale   |
+| 5 — US3 Card-level override | US3   | 1     | Card with override retains trial CTA                    |
+| 6 — US4 Admin reverts       | US4   | 1     | Trial CTAs return after toggle-off                      |
+| 7 — US5 QA validates        | US5   | 1     | All T1 locales verified on stage                        |
+| 8 — FR11 Agent validation   | US1   | 2     | Agent reports affected locales, card count, edge cases  |
+| 9 — FR12 Monitor updates    | —     | 3     | Monitors skip CTA assertion when setting active         |
+| 10 — Polish                 | —     | 1     | Linter clean, coverage ≥99%                             |
 
 **Total tasks: 19**
 **Parallel opportunities: T005/T006, T008/T009**

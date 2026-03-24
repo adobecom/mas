@@ -10,6 +10,7 @@
 ```
 
 **Behavior:**
+
 - Registers `hideTrialCTAs` as a known setting name
 - Setting is discoverable by the Studio Settings UI automatically
 - Accepts `booleanValue` in the AEM content fragment
@@ -23,6 +24,7 @@
 **File:** `web-components/src/hydrate.js`
 
 **Signature:**
+
 ```js
 export function processCTAs(fields, merchCard, aemFragmentMapping, variant, settings)
 ```
@@ -30,11 +32,13 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant, sett
 **New parameter:** `settings` — the fragment's resolved settings object (from `fragment.settings`)
 
 **Behavior:**
+
 - If `settings?.hideTrialCTAs` is falsy, all CTAs are processed as before (no-op)
 - If `settings?.hideTrialCTAs` is true, `<a>` elements with `data-analytics-id="free-trial"` or `"start-free-trial"` are filtered out before `transformLinkToButton()` is called
 - Filter runs before button creation — the button element is never created for filtered CTAs
 
 **Filter logic:**
+
 ```js
 .filter((cta) => {
     if (!settings?.hideTrialCTAs) return true;
@@ -49,12 +53,12 @@ export function processCTAs(fields, merchCard, aemFragmentMapping, variant, sett
 
 ```ts
 interface FragmentSettings {
-  secureLabel?: string;
-  displayAnnual?: boolean;
-  displayPlanType?: boolean;
-  quantitySelect?: string;
-  addon?: string;
-  hideTrialCTAs?: boolean;
+    secureLabel?: string;
+    displayAnnual?: boolean;
+    displayPlanType?: boolean;
+    quantitySelect?: string;
+    addon?: string;
+    hideTrialCTAs?: boolean;
 }
 ```
 
@@ -68,21 +72,21 @@ The `hideTrialCTAs` boolean is delivered in `fragment.settings` from the IO pipe
 
 Tests for `hideTrialCTAs` setting **resolution only** (not strip behavior):
 
-| Test case | Setting value | Card field | Expected `fragment.settings` |
-|-----------|--------------|------------|-------------------------------|
-| Surface setting true | true | not set | `{ hideTrialCTAs: true }` |
-| Surface setting false | false | not set | `{ hideTrialCTAs: false }` |
-| Surface true, card override false | true | false | `{ hideTrialCTAs: false }` |
-| Surface setting not set | undefined | not set | `hideTrialCTAs` not set |
+| Test case                         | Setting value | Card field | Expected `fragment.settings` |
+| --------------------------------- | ------------- | ---------- | ---------------------------- |
+| Surface setting true              | true          | not set    | `{ hideTrialCTAs: true }`    |
+| Surface setting false             | false         | not set    | `{ hideTrialCTAs: false }`   |
+| Surface true, card override false | true          | false      | `{ hideTrialCTAs: false }`   |
+| Surface setting not set           | undefined     | not set    | `hideTrialCTAs` not set      |
 
 **Web-components tests** (`web-components/test/`):
 
 Tests for `processCTAs` with `hideTrialCTAs` setting:
 
-| Test case | `settings.hideTrialCTAs` | Input CTAs | Expected rendered CTAs |
-|-----------|--------------------------|------------|------------------------|
-| Setting enabled — dual CTA | true | buy-now + free-trial | buy-now only |
-| Setting enabled — start-free-trial | true | buy-now + start-free-trial | buy-now only |
-| Setting disabled | false | buy-now + free-trial | both CTAs |
-| Setting not set | undefined | buy-now + free-trial | both CTAs |
-| Single trial CTA only | true | free-trial | no CTAs rendered |
+| Test case                          | `settings.hideTrialCTAs` | Input CTAs                 | Expected rendered CTAs |
+| ---------------------------------- | ------------------------ | -------------------------- | ---------------------- |
+| Setting enabled — dual CTA         | true                     | buy-now + free-trial       | buy-now only           |
+| Setting enabled — start-free-trial | true                     | buy-now + start-free-trial | buy-now only           |
+| Setting disabled                   | false                    | buy-now + free-trial       | both CTAs              |
+| Setting not set                    | undefined                | buy-now + free-trial       | both CTAs              |
+| Single trial CTA only              | true                     | free-trial                 | no CTAs rendered       |

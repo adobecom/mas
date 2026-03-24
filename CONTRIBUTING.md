@@ -81,13 +81,13 @@ MAS uses **spec-kit** — a structured, AI-assisted workflow for feature specifi
 
 ## Workflow Stages
 
-| Stage | Purpose | Artifact |
-|-------|---------|----------|
-| **Specify** | Write the feature spec from a description | `spec.md` |
-| **Clarify** | Resolve ambiguities via structured Q&A | updates `spec.md` |
-| **Plan** | Generate implementation design | `research.md`, `data-model.md`, `contracts/` |
-| **Tasks** | Break the plan into ordered, checkboxed tasks | `tasks.md` |
-| **Implement** | Execute tasks phase by phase | code changes |
+| Stage         | Purpose                                       | Artifact                                     |
+| ------------- | --------------------------------------------- | -------------------------------------------- |
+| **Specify**   | Write the feature spec from a description     | `spec.md`                                    |
+| **Clarify**   | Resolve ambiguities via structured Q&A        | updates `spec.md`                            |
+| **Plan**      | Generate implementation design                | `research.md`, `data-model.md`, `contracts/` |
+| **Tasks**     | Break the plan into ordered, checkboxed tasks | `tasks.md`                                   |
+| **Implement** | Execute tasks phase by phase                  | code changes                                 |
 
 Optional: **Checklist** (spec quality validation), **Analyze** (cross-artifact consistency check), **Tasks-to-Issues** (create GitHub issues from tasks).
 

@@ -120,6 +120,7 @@ describe('Translation project-start', () => {
             { name: 'targetLocales', values: ['de_DE'] },
             { name: 'submissionDate', values: [] },
             { name: 'title', values: ['Test Project'] },
+            { name: 'projectType', values: ['translation'] },
         ],
         ...overrides,
     });
@@ -347,6 +348,92 @@ describe('Translation project-start', () => {
             expect(result.error.statusCode).to.equal(500);
             expect(result.error.body.error).to.equal('Internal server error - Unexpected IMS error');
             expect(mockLogger.error).to.have.been.called;
+        });
+    });
+
+    describe('Rollout project type', () => {
+        it('should start rollout project and return "Rollout project started" when projectType is rollout', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                projectType: ['rollout'],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+                targetLocales: ['de_DE', 'fr_FR'],
+            });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+
+            const { stub, callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(updatedFragment, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/localeSync': { ok: true },
+            });
+
+            const result = await projectStart.main(baseParams);
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.message).to.equal('Rollout project started');
+            expect(result.body.submissionDate).to.equal('2026-02-04T11:00:00Z');
+            expect(callCounts['/bin/localeSync']).to.equal(1);
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.be.undefined;
+            const localeSyncCall = stub.getCalls().find((call) => call.args[0].includes('/bin/localeSync'));
+            expect(localeSyncCall).to.exist;
+            const requestBody = JSON.parse(localeSyncCall.args[1].body);
+            expect(requestBody.items).to.be.an('array').with.lengthOf(1);
+            expect(requestBody.items[0]).to.deep.include({
+                contentPath: '/content/dam/mas/foo/en_US/fragment1',
+                targetLocales: ['de_DE', 'fr_FR'],
+                syncNestedCFs: false,
+            });
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Project type: rollout/));
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Successfully sent rollout request/));
+        });
+
+        it('should return 500 when projectType is rollout and rollout request fails', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                projectType: ['rollout'],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+            });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/localeSync': [
+                    responses.error(500, 'Internal Server Error'),
+                    responses.error(500, 'Internal Server Error'),
+                    responses.error(500, 'Internal Server Error'),
+                ],
+            });
+
+            const result = await projectStart.main(baseParams);
+
+            expect(result).to.have.property('error');
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.equal('Failed to start rollout only project');
+            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Failed to send rollout request/));
+        });
+
+        it('should use translation flow when projectType is translation', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                projectType: ['translation'],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+            });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+
+            const { callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(updatedFragment, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const result = await projectStart.main(baseParams);
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.message).to.equal('Translation project started');
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
         });
     });
 

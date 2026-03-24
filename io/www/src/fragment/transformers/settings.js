@@ -23,8 +23,7 @@ export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((defin
 let settingsCache;
 
 export function clearSettingsCache(preview = false) {
-    if (preview && typeof localStorage !== 'undefined') {
-        /* c8 ignore next 6 */
+    if (preview) {
         console.log('Clearing settings preview cache');
         Object.keys(localStorage).forEach((key) => {
             if (key.startsWith('settings-')) {
@@ -43,8 +42,7 @@ async function cacheKey(context) {
 
 async function getCachedSettings(context) {
     const key = await cacheKey(context);
-    const cacheEntry =
-        context.preview && typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem(key)) : settingsCache?.[key];
+    const cacheEntry = context.preview ? JSON.parse(localStorage.getItem(key)) : settingsCache?.[key];
     if (cacheEntry) {
         cacheEntry.isExpired = Date.now() - cacheEntry.timestamp > CONFIG_CACHE_TTL;
         return cacheEntry;
@@ -58,7 +56,7 @@ async function cache(context, settings) {
         settings,
         timestamp: Date.now(),
     };
-    if (context.preview && typeof localStorage !== 'undefined') {
+    if (context.preview) {
         localStorage.setItem(key, JSON.stringify(cacheEntry));
     } else {
         settingsCache = settingsCache || {};
@@ -193,18 +191,6 @@ function resolveSettingEntry(fragment, locale, setting) {
     return { ...defaultEntry, ...bestMatch };
 }
 
-const TRIAL_CTA_PATTERN = /<a\b[^>]*\bdata-analytics-id="(?:free-trial|start-free-trial)"[^>]*>.*?<\/a>/gis;
-
-function stripTrialCTAs(fragment) {
-    const ctas = fragment.fields?.ctas;
-    if (!ctas) return;
-    if (typeof ctas === 'string') {
-        fragment.fields.ctas = ctas.replace(TRIAL_CTA_PATTERN, '').trim();
-    } else if (ctas.value) {
-        ctas.value = ctas.value.replace(TRIAL_CTA_PATTERN, '').trim();
-    }
-}
-
 function applySettings(context, fragment, locale, settings) {
     for (const key of Object.keys(settings)) {
         const entry = resolveSettingEntry(fragment, locale, settings[key]);
@@ -213,9 +199,6 @@ function applySettings(context, fragment, locale, settings) {
             ...fragment.settings,
             [entry.name]: extractValue(entry, fragment),
         };
-    }
-    if (fragment?.settings?.hideTrialCTAs) {
-        stripTrialCTAs(fragment);
     }
     //temporary fix waiting for MWPW-189860 to be implemented
     if (fragment?.fields?.perUnitLabel) {

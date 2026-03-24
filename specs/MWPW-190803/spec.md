@@ -28,7 +28,7 @@ Quarterly, Adobe's GTM team switches Adobe.com and partner surfaces to a "buy-on
 
 ## Proposed Solution
 
-Add a `hideTrialCTAs` boolean setting to the MAS Settings system. When enabled for a surface and locale, the MAS IO pipeline strips trial CTA links from card payloads before they are delivered to the page. No card fragments are modified. No new UI is needed — the existing Studio Settings page already supports creating, scoping, and previewing settings. Once the configuration is validated on stage, publishing to production is handled manually.
+Add a `hideTrialCTAs` boolean setting to the MAS Settings system. When enabled for a surface and locale, the MAS IO pipeline resolves the setting and includes it in the fragment payload's `settings` object. The web-components layer (`hydrate.js`) reads this setting during card hydration and filters out trial CTA links before rendering. No card fragments are modified. No new UI is needed — the existing Studio Settings page already supports creating, scoping, and previewing settings. Once the configuration is validated on stage, publishing to production is handled manually.
 
 The MAS Agent provides read-only validation of the configured state — reporting which cards and locales are affected, and flagging any edge cases — before the admin hands off to the publish step.
 
@@ -61,7 +61,7 @@ The MAS Agent provides read-only validation of the configured state — reportin
 
 1. User in a T1 geo loads an Adobe.com page with a product card
 2. Card normally shows two CTAs: "Buy now" and "Free trial"
-3. Because `hideTrialCTAs` is active for this locale, the IO pipeline strips the trial CTA from the payload
+3. Because `hideTrialCTAs` is active for this locale, the IO pipeline resolves the setting and includes it in the fragment payload; `hydrate.js` filters the trial CTA during card rendering
 4. Card renders with only the "Buy now" CTA — no empty gap, no hidden element
 
 ### Scenario 3 — Content Author exempts a specific card
@@ -92,7 +92,7 @@ The MAS Agent provides read-only validation of the configured state — reportin
 
 **FR1.** The system must support a new setting named `hideTrialCTAs` of type boolean.
 
-**FR2.** When `hideTrialCTAs` resolves to `true` for a card, the IO pipeline must remove all trial CTA `<a>` links from that card's `fields.ctas` payload before delivery. Stripping the `<a>` at IO level is sufficient to prevent the corresponding `sp-button`/`checkout-button` from rendering, because all CTA buttons in standard MAS merch cards are derived exclusively from `<a>` tags in `fields.ctas` during hydration. CCD surfaces that render host-managed CTAs independently of `fields.ctas` are out of scope for Phase 1.
+**FR2.** When `hideTrialCTAs` resolves to `true` for a card, `hydrate.js` must filter out trial CTA `<a>` links during card hydration, before the corresponding `sp-button`/`checkout-button` elements are created. The `fields.ctas` HTML passes through the IO pipeline unmodified; filtering happens client-side in `processCTAs()`. CCD surfaces that render host-managed CTAs independently of `fields.ctas` are out of scope for Phase 1.
 
 **FR3.** Trial CTAs are identified by their `data-analytics-id` attribute matching either `free-trial` or `start-free-trial`. This attribute is the canonical semantic identifier for trial CTAs in MAS — set at authoring time via OST and consistent across all CTA types including 3-in-1 modals, direct checkout links, and business trial flows. The `ot=TRIAL` URL parameter is explicitly not used as the identifier, as it is absent from some trial flows and has been incorrectly applied to non-trial CTAs.
 

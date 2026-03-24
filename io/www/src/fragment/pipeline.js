@@ -12,6 +12,7 @@ import { transformer as promotions } from './transformers/promotions.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
+
 let cachedConfiguration = null;
 let configurationTimestamp = null;
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
@@ -152,10 +153,8 @@ async function mainProcess(context) {
     for (const transformer of PIPELINE) {
         if (transformer.init) {
             //we fork context to avoid init to override any context property
-            const { state, ...clonableContext } = context;
             const initContext = {
-                ...structuredClone(clonableContext),
-                state,
+                ...structuredClone(context),
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,
             };

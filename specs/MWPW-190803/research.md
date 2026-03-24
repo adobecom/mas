@@ -2,18 +2,16 @@
 
 ## Decision 1: Implementation layer — where to filter trial CTAs
 
-**Decision:** Strip trial CTAs in the MAS IO pipeline, inside the `settings` transformer, after settings are resolved for a fragment.
+**Decision:** Filter trial CTAs in `hydrate.js` (web-components layer), inside `processCTAs()`, reading `settings.hideTrialCTAs` from the fragment payload.
 
 **Rationale:**
-- The `settings` transformer already runs per-fragment during pipeline execution (`io/www/src/fragment/transformers/settings.js`)
-- Settings are resolved before hydration — CTAs never reach the browser DOM, which is the correct outcome
-- The `fields.ctas` HTML string is accessible in the transformer at the point settings are applied
-- Filtering at IO level means no change to web-components, no hydration logic, no client-side conditionals
-- Consistent with how other settings side-effects work (e.g., `secureLabel` uses settings to control what gets delivered)
+- The `settings` object is already delivered in the IO fragment payload and assigned to `merchCard.settings` and destructured into `hydrate()` at render time
+- `processCTAs()` already queries all `<a>` elements from the CTA HTML — adding a `.filter()` step is minimal and colocated with the CTA processing logic
+- Filtering at the DOM level (before `transformLinkToButton`) means the button is never created, not just hidden
+- This approach is consistent with how other settings (e.g., `displayAnnual`, `displayPlanType`) are consumed by the web-components layer
 
 **Alternatives considered:**
-- **hydrate.js (web-components layer):** Would still deliver trial CTAs in the IO payload; filtering at the client is fragile and could be bypassed. Rejected.
-- **Separate transformer step:** Possible but unnecessary — the settings transformer already has access to both `fragment.settings` and `fragment.fields`. Adding the strip logic inside `applySettings()` keeps it co-located with the setting that drives it.
+- **IO pipeline (`settings` transformer):** Originally implemented here. Moved to hydrate.js to keep the IO pipeline as a pure data transformer — settings resolution and delivery, not content manipulation. The IO layer still resolves the `hideTrialCTAs` value onto `fragment.settings`; it no longer acts on it.
 - **corrector transformer:** Runs last in the pipeline; would work but is semantically wrong (corrector is for data normalization, not feature logic). Rejected.
 
 ---
@@ -35,24 +33,19 @@
 
 ---
 
-## Decision 3: String manipulation strategy for stripping CTAs in Node.js IO pipeline
+## Decision 3: How to filter CTAs in hydrate.js
 
-**Decision:** Use regex to remove trial `<a>` elements from the `fields.ctas` HTML string.
+**Decision:** In `processCTAs()`, use a `.filter()` on the queried `<a>` elements, checking `cta.dataset.analyticsId` against the trial CTA identifiers before passing to `transformLinkToButton()`.
 
 **Rationale:**
-- The IO pipeline runs in Node.js (Adobe I/O Runtime); no DOM APIs are available
-- The `fields.ctas` value is a well-formed HTML string with one or more `<a>` tags — no deeply nested structure
-- A targeted regex matching `<a ... data-analytics-id="free-trial|start-free-trial" ...>...</a>` is safe for this constrained input
-- The regex uses the dotall (`s`) flag to handle multi-line `<a>` content, supported in Node.js 10+
-
-**Pattern:**
-```
-/<a\b[^>]*\bdata-analytics-id="(?:free-trial|start-free-trial)"[^>]*>.*?<\/a>/gis
-```
+- `hydrate.js` runs in the browser with full DOM access — no need for regex on raw HTML strings
+- The existing `[...footer.querySelectorAll('a')]` pattern already selects all CTA links; adding a `.filter()` is the minimal, idiomatic extension
+- `cta.dataset.analyticsId` is a direct property read — no string parsing required
+- The filter runs before `transformLinkToButton()`, so the button element is never created (not just hidden)
 
 **Alternatives considered:**
-- **Parse5 / JSDOM:** Full HTML parsing would be more robust but adds a dependency and significant overhead for a simple attribute-based filter on a short string. Rejected for Phase 1.
-- **Cheerio:** Same concern — dependency overhead not justified for this use case. Revisit if the pattern needs to handle nested HTML inside CTAs.
+- **Regex on `fields.ctas` string in hydrate.js:** Would work but is fragile and unnecessary when DOM APIs are available. Rejected.
+- **Removing rendered buttons after creation:** Creates and immediately discards DOM nodes. Less efficient and less clear than filtering before creation. Rejected.
 
 ---
 
@@ -89,15 +82,14 @@
 
 ---
 
-## Decision 6: Where in `applySettings()` to place the strip logic
+## Decision 6: Where in `processCTAs()` to apply the filter
 
-**Decision:** Call `stripTrialCTAs(fragment)` at the end of `applySettings()`, after the settings loop, conditional on `fragment.settings.hideTrialCTAs === true`.
+**Decision:** Apply the filter as a `.filter()` step on the queried `<a>` elements, before the `.map()` that calls `transformLinkToButton()`.
 
 **Rationale:**
-- `applySettings()` already has access to both `fragment.settings` and `fragment.fields`
-- Placing the call at the end of `applySettings()` ensures the setting is fully resolved before it drives the CTA filtering
-- Keeping the strip logic as a named helper function (`stripTrialCTAs`) follows MAS coding convention (named functions > inline logic)
-- Collections: `applyCollectionSettings()` calls `applySettings()` per-child fragment, so the strip logic runs automatically for all items in a collection
+- Colocated with the existing CTA processing logic — no separate helper needed
+- The filter runs before button creation, so no button element is ever instantiated for filtered CTAs
+- Collections: each card in a collection has its own fragment with resolved settings; `processCTAs()` is called per-card during hydration, so the filter runs automatically per-card
 
 ---
 
@@ -106,8 +98,8 @@
 | Area | File | Change needed |
 |------|------|---------------|
 | Setting definition | `io/www/src/fragment/transformers/settings.js` | Add `{ name: 'hideTrialCTAs', valueType: 'boolean' }` to `SETTING_NAME_DEFINITIONS` |
-| Strip logic | `io/www/src/fragment/transformers/settings.js` | Add `stripTrialCTAs(fragment)` helper + call in `applySettings()` |
+| CTA filter logic | `web-components/src/hydrate.js` | Add `.filter()` in `processCTAs()` based on `settings.hideTrialCTAs` |
 | UI | `studio/src/settings/` | No changes — existing Settings UI auto-discovers new setting names |
-| Web components | `web-components/src/hydrate.js` | No changes |
 | Constants | `studio/src/constants.js` | No changes — `ANALYTICS_LINK_IDS` already includes `free-trial`, `start-free-trial` |
-| Tests | `io/www/test/` | New unit tests for `stripTrialCTAs` helper |
+| Tests (web-components) | `web-components/test/` | Unit tests for `processCTAs` with `hideTrialCTAs` setting |
+| Tests (IO) | `io/www/test/` | Tests for `hideTrialCTAs` setting resolution only (no strip behavior tests) |

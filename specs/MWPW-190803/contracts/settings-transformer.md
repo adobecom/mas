@@ -1,11 +1,11 @@
-# Contract: Settings Transformer Changes (MWPW-190803)
+# Contract: hideTrialCTAs Implementation (MWPW-190803)
 
-## `SETTING_NAME_DEFINITIONS` — New Entry
+## `SETTING_NAME_DEFINITIONS` — Entry (IO pipeline)
 
 **File:** `io/www/src/fragment/transformers/settings.js`
 
 ```js
-// Add to SETTING_NAME_DEFINITIONS array:
+// Already in SETTING_NAME_DEFINITIONS array:
 { name: 'hideTrialCTAs', valueType: 'boolean' }
 ```
 
@@ -14,79 +14,38 @@
 - Setting is discoverable by the Studio Settings UI automatically
 - Accepts `booleanValue` in the AEM content fragment
 - Card-level override: if a fragment has a field named `hideTrialCTAs`, that value takes precedence
+- The IO pipeline resolves the value onto `fragment.settings.hideTrialCTAs` but does NOT strip CTAs from `fields.ctas`
 
 ---
 
-## `stripTrialCTAs(fragment)` — New Helper Function
+## `processCTAs()` — Modified (web-components)
 
-**File:** `io/www/src/fragment/transformers/settings.js`
+**File:** `web-components/src/hydrate.js`
 
 **Signature:**
 ```js
-function stripTrialCTAs(fragment)
+export function processCTAs(fields, merchCard, aemFragmentMapping, variant, settings)
 ```
 
-**Input:**
-- `fragment.fields.ctas` — HTML string containing one or more `<a>` elements
+**New parameter:** `settings` — the fragment's resolved settings object (from `fragment.settings`)
 
 **Behavior:**
-- If `fragment.fields?.ctas` is falsy, no-op
-- Removes all `<a>` elements whose `data-analytics-id` attribute is `free-trial` or `start-free-trial`
-- Trims whitespace from the resulting string
-- Modifies `fragment.fields.ctas` in place
+- If `settings?.hideTrialCTAs` is falsy, all CTAs are processed as before (no-op)
+- If `settings?.hideTrialCTAs` is true, `<a>` elements with `data-analytics-id="free-trial"` or `"start-free-trial"` are filtered out before `transformLinkToButton()` is called
+- Filter runs before button creation — the button element is never created for filtered CTAs
 
-**Output:**
-- `fragment.fields.ctas` with trial CTA links removed
-
-**Pattern used:**
+**Filter logic:**
 ```js
-const TRIAL_CTA_PATTERN = /<a\b[^>]*\bdata-analytics-id="(?:free-trial|start-free-trial)"[^>]*>.*?<\/a>/gis;
-```
-
-**Example:**
-
-Input `fragment.fields.ctas`:
-```html
-<a href="https://..." data-analytics-id="buy-now" class="accent">Buy now</a>
-<a href="https://..." data-analytics-id="free-trial" class="primary-outline">Free trial</a>
-```
-
-Output `fragment.fields.ctas`:
-```html
-<a href="https://..." data-analytics-id="buy-now" class="accent">Buy now</a>
+.filter((cta) => {
+    if (!settings?.hideTrialCTAs) return true;
+    const id = cta.dataset.analyticsId;
+    return id !== 'free-trial' && id !== 'start-free-trial';
+})
 ```
 
 ---
 
-## `applySettings(fragment, settings, locale)` — Modified
-
-**File:** `io/www/src/fragment/transformers/settings.js`
-
-**Change:** Add a call to `stripTrialCTAs(fragment)` at the end of the function body, after the settings loop.
-
-```js
-export function applySettings(fragment, settings, locale) {
-    for (const definition of SETTING_NAME_DEFINITIONS) {
-        const entry = resolveSettingEntry(fragment, settings, definition, locale);
-        if (entry === null) continue;
-        const value = extractValue(fragment, definition, entry);
-        fragment.settings[definition.name] = value;
-    }
-    // NEW: strip trial CTAs if setting is active for this fragment
-    if (fragment.settings.hideTrialCTAs) {
-        stripTrialCTAs(fragment);
-    }
-}
-```
-
-**Invariants:**
-- If `fragment.settings.hideTrialCTAs` is falsy (false, undefined, null), `stripTrialCTAs` is NOT called — no change to existing behavior
-- `stripTrialCTAs` is called after all settings are resolved, so card-level overrides are already factored in
-- Collections: `applyCollectionSettings()` calls `applySettings()` per child fragment — the strip logic runs per-fragment automatically
-
----
-
-## `fragment.settings` — Shape After Change
+## `fragment.settings` — Shape
 
 ```ts
 interface FragmentSettings {
@@ -95,36 +54,35 @@ interface FragmentSettings {
   displayPlanType?: boolean;
   quantitySelect?: string;
   addon?: string;
-  hideTrialCTAs?: boolean;  // NEW
+  hideTrialCTAs?: boolean;
 }
 ```
 
-The `hideTrialCTAs` boolean is available on `fragment.settings` in the IO response, but consumers (hydrate.js, web-components) do not need to read it — the CTAs are already stripped from `fields.ctas` before delivery.
+The `hideTrialCTAs` boolean is delivered in `fragment.settings` from the IO pipeline. `hydrate.js` reads it in `processCTAs()` to filter CTAs during card rendering.
 
 ---
 
 ## Unit Test Contract
 
-**File:** `io/www/test/fragment/transformers/settings.test.js` (or equivalent test path)
+**IO tests** (`io/www/test/fragment/settings.test.js`):
 
-Tests to add for `stripTrialCTAs`:
+Tests for `hideTrialCTAs` setting **resolution only** (not strip behavior):
 
-| Test case | Input `fields.ctas` | Expected output |
-|-----------|---------------------|-----------------|
-| Dual CTA — strip trial | buy-now + free-trial links | buy-now link only |
-| Dual CTA — strip start-free-trial | buy-now + start-free-trial links | buy-now link only |
-| Single buy CTA only | buy-now link | buy-now link (unchanged) |
-| Single trial CTA only | free-trial link | empty string (Phase 1 edge case — no replacement) |
-| No CTAs | empty string / undefined | no-op |
-| Multiple buy CTAs | two buy-now links | both buy-now links (unchanged) |
-| Mixed: buy + two trial types | buy-now + free-trial + start-free-trial | buy-now only |
-| Card-level override false | free-trial link + `fragment.fields.hideTrialCTAs = false` | free-trial link preserved |
+| Test case | Setting value | Card field | Expected `fragment.settings` |
+|-----------|--------------|------------|-------------------------------|
+| Surface setting true | true | not set | `{ hideTrialCTAs: true }` |
+| Surface setting false | false | not set | `{ hideTrialCTAs: false }` |
+| Surface true, card override false | true | false | `{ hideTrialCTAs: false }` |
+| Surface setting not set | undefined | not set | `hideTrialCTAs` not set |
 
-Tests to add for `applySettings` with `hideTrialCTAs`:
+**Web-components tests** (`web-components/test/`):
 
-| Test case | Setting value | Card field | Expected |
-|-----------|--------------|------------|----------|
-| Surface setting true | true | not set | trial CTAs stripped |
-| Surface setting false | false | not set | no change |
-| Surface setting true, card override false | true | false | trial CTAs preserved (override wins) |
-| Surface setting not set | undefined | not set | no change |
+Tests for `processCTAs` with `hideTrialCTAs` setting:
+
+| Test case | `settings.hideTrialCTAs` | Input CTAs | Expected rendered CTAs |
+|-----------|--------------------------|------------|------------------------|
+| Setting enabled — dual CTA | true | buy-now + free-trial | buy-now only |
+| Setting enabled — start-free-trial | true | buy-now + start-free-trial | buy-now only |
+| Setting disabled | false | buy-now + free-trial | both CTAs |
+| Setting not set | undefined | buy-now + free-trial | both CTAs |
+| Single trial CTA only | true | free-trial | no CTAs rendered |

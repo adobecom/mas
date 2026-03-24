@@ -126,13 +126,19 @@ jobs:
               with:
                   fetch-depth: 2
 
+            - name: Fetch base branch for diff
+              run: git fetch origin ${{ github.event.pull_request.base.ref }}
+
             - name: Detect io/www changes
               id: filter
               run: |
-                  if git diff --quiet origin/${{ github.event.pull_request.base.ref }}...HEAD -- io/www/ 2>/dev/null; then
+                  git diff --quiet origin/${{ github.event.pull_request.base.ref }}...HEAD -- io/www/ 2>/dev/null; rc=$?
+                  if [ "$rc" -eq 0 ]; then
                       echo "io-www=false" >> $GITHUB_OUTPUT
-                  else
+                  elif [ "$rc" -eq 1 ]; then
                       echo "io-www=true" >> $GITHUB_OUTPUT
+                  else
+                      echo "io-www=false" >> $GITHUB_OUTPUT
                   fi
 
             - name: Set up Node.js ${{ matrix.node-version }}

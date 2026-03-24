@@ -60,9 +60,15 @@ export default class TranslationEditorPage {
                 return list;
             }
             const tables = findAllInShadow(document.body, 'mas-select-items-table');
-            const tableEl = tables.find((el) => el.shadowRoot?.querySelector('sp-table.fragments-table sp-table-row'));
-            const row = tableEl?.shadowRoot?.querySelector('sp-table.fragments-table sp-table-row');
-            if (row) row.click();
+            // When MWPW-190616 is fixed, change back to clicking the row instead of the checkbox
+            // const tableEl = tables.find((el) => el.shadowRoot?.querySelector('sp-table.fragments-table sp-table-row'));
+            // const row = tableEl?.shadowRoot?.querySelector('sp-table.fragments-table sp-table-row');
+            // if (row) row.click();
+            const tableEl = tables.find((el) => el.shadowRoot?.querySelector('sp-table.fragments-table'));
+            if (!tableEl?.shadowRoot) return;
+            const checkboxes = findAllInShadow(tableEl.shadowRoot, 'sp-checkbox');
+            const checkbox = checkboxes[0];
+            if (checkbox) checkbox.click();
         });
         await this.page.waitForTimeout(500);
         await this.selectItemsDialog.getByRole('button', { name: 'Add selected items' }).click();

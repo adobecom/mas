@@ -28,7 +28,6 @@ nala/.auth/
 .CLAUDE.md
 **/CLAUDE.md
 .claude/
-.specify/
 /agents/
 reports/
 

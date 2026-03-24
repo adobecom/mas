@@ -1,6 +1,22 @@
 const { Core } = require('@adobe/aio-sdk');
 const logger = Core.Logger('common', { level: 'info' });
 
+const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+
+/**
+ * Returns the target path for the given path and locale.
+ * Replaces the locale segment in the path with the given locale.
+ * @param {string} path - Full fragment path (e.g. /content/dam/mas/surface/locale/fragmentPath)
+ * @param {string} locale - Target locale
+ * @returns {string|null} Target path or null if path does not match
+ */
+function getTargetPath(path, locale) {
+    const match = path.match(PATH_TOKENS);
+    if (!match?.groups) return null;
+    const { surface, fragmentPath } = match.groups;
+    return `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
+}
+
 async function postToOdinWithRetry(odinEndpoint, URI, authToken, payload, maxRetries = 3) {
     let lastError = null;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -86,6 +102,82 @@ async function fetchFragmentByPath(odinEndpoint, fragmentPath, authToken) {
 }
 
 /**
+ * Get referencedBy information for given fragment paths
+ * @param {string} odinEndpoint - The Odin endpoint URL
+ * @param {string[]} paths - Array of fragment paths to check
+ * @param {string} authToken - Authentication token
+ * @returns {Promise<{parentReferences: Array, status: number}>} Parent references and status
+ */
+async function getReferencedBy(odinEndpoint, paths, authToken) {
+    try {
+        const response = await fetchOdin(odinEndpoint, '/adobe/sites/cf/fragments/referencedBy', authToken, {
+            method: 'POST',
+            contentType: 'application/json',
+            body: JSON.stringify({ paths }),
+            ignoreErrors: [400, 404, 500],
+        });
+
+        if (!response.ok) {
+            logger.error(`Error getting referencedBy for paths ${paths.join(', ')}: ${response.status} ${response.statusText}`);
+            return { parentReferences: [], status: response.status };
+        }
+
+        const data = await response.json();
+        logger.info(`referencedBy response: ${JSON.stringify(data)}`);
+        const item = data.items?.[0];
+        const parentReferences = item?.parentReferences || [];
+        return { parentReferences, status: response.status };
+    } catch (error) {
+        logger.error(`Error getting referencedBy for paths ${paths.join(', ')}: ${error.message}`);
+        return { parentReferences: [], status: 500 };
+    }
+}
+
+/**
+ * Get the parent fragment for a variation path
+ * Finds the parent fragment whose variations field contains the given variation path
+ * @param {string} odinEndpoint - The Odin endpoint URL
+ * @param {string} variationPath - The variation fragment path
+ * @param {string} authToken - Authentication token
+ * @returns {Promise<{parentFragment: Object|null, status: number}>} Parent fragment and status
+ */
+async function getVariationParent(odinEndpoint, variationPath, authToken) {
+    try {
+        const { parentReferences: allParentReferences, status } = await getReferencedBy(
+            odinEndpoint,
+            [variationPath],
+            authToken,
+        );
+
+        if (status !== 200) {
+            logger.warn(`Failed to get referencedBy for ${variationPath}: ${status}`);
+            return { parentFragment: null, status };
+        }
+
+        const parentReferences = allParentReferences.filter((ref) => ref.type === 'content-fragment');
+
+        // Find the parent whose variations field contains this grouped variation path
+        for (const parentRef of parentReferences) {
+            const { fragment, status: parentStatus } = await fetchFragmentByPath(odinEndpoint, parentRef.path, authToken);
+
+            if (parentStatus === 200 && fragment) {
+                const { values: variations = [] } = getValues(fragment, 'variations') || {};
+                if (variations.includes(variationPath)) {
+                    return { parentFragment: fragment, status: 200 };
+                }
+            } else {
+                logger.warn(`Failed to fetch parent fragment ${parentRef.path}: ${parentStatus}`);
+            }
+        }
+
+        return { parentFragment: null, status: 404 };
+    } catch (error) {
+        logger.error(`Error finding parent for variation ${variationPath}: ${error.message}`);
+        return { parentFragment: null, status: 500 };
+    }
+}
+
+/**
  * common function to fetch from Odin with error handling
  *
  * @param {*} odinEndpoint
@@ -139,6 +231,62 @@ async function fetchOdin(
     return response;
 }
 
+/**
+ * Update a content fragment with a full PUT (title, description, fields).
+ * @param {string} odinEndpoint - Odin API base URL
+ * @param {string} fragmentId - Fragment ID
+ * @param {string} authToken - Bearer token
+ * @param {Object} payload - { title, description, fields, etag }
+ * @returns {Promise<{ success: boolean, error?: string }>}
+ */
+async function putToOdin(odinEndpoint, fragmentId, authToken, { title, description, fields, etag }) {
+    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
+        method: 'PUT',
+        contentType: 'application/json',
+        etag,
+        body: JSON.stringify({
+            title: title ?? '',
+            description: description ?? '',
+            fields,
+        }),
+    });
+
+    if (!response.ok) {
+        const message = `PUT request failed for fragment ${fragmentId}: ${response.status}: ${response.statusText}`;
+        logger.error(message);
+        return { success: false, error: message };
+    }
+
+    await response.json();
+    return { success: true };
+}
+
+/**
+ * Patch a content fragment with JSON Patch (e.g. replace a field).
+ * @param {string} odinEndpoint - Odin API base URL
+ * @param {string} fragmentId - Fragment ID
+ * @param {string} authToken - Bearer token
+ * @param {Array<{ op: string, path: string, value?: unknown }>} patchBody - JSON Patch operations
+ * @param {string|null} [etag] - Optional etag for conditional update
+ * @returns {Promise<{ success: boolean, error?: string }>}
+ */
+async function patchToOdin(odinEndpoint, fragmentId, authToken, patchBody, etag) {
+    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
+        method: 'PATCH',
+        contentType: 'application/json-patch+json',
+        etag,
+        body: JSON.stringify(patchBody),
+    });
+
+    if (!response.ok) {
+        const message = `PATCH request failed for fragment ${fragmentId}: ${response.status}: ${response.statusText}`;
+        logger.error(message);
+        return { success: false, error: message };
+    }
+
+    return { success: true };
+}
+
 // Helper function to process items in batches with concurrency limit
 async function processBatchWithConcurrency(items, batchSize, processor) {
     const allResults = [];
@@ -157,8 +305,13 @@ async function processBatchWithConcurrency(items, batchSize, processor) {
 module.exports = {
     fetchFragmentByPath,
     fetchOdin,
+    getReferencedBy,
+    getTargetPath,
     getValue,
     getValues,
+    getVariationParent,
+    patchToOdin,
     postToOdinWithRetry,
     processBatchWithConcurrency,
+    putToOdin,
 };

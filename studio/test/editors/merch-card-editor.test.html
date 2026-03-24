@@ -322,10 +322,10 @@
                         expect(editor.getFieldState('badgeBorderColor')).to.equal('inherited');
                         expect(editor.getFieldState('borderColor')).to.equal('inherited');
 
-                        const badgeTextEl = editor.querySelector('sp-textfield#card-badge');
+                        const badgeTextEl = editor.querySelector('rte-field#card-badge');
                         expect(badgeTextEl).to.exist;
                         badgeTextEl.value = 'updated badge text';
-                        badgeTextEl.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        badgeTextEl.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
 
                         const badgeColorPicker = editor.querySelector('sp-picker#badgeColor');
                         expect(badgeColorPicker).to.exist;

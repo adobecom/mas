@@ -54,8 +54,16 @@
             "values": [
                 "<a class=\"accent\" data-wcs-osi=\"BNTtrDS9wbigrk5Hjeyn6BO62hcRZ-X5fJM9nLqJL6c\" data-template=\"checkoutUrl\" target=\"_self\" data-analytics-id=\"buy-now\">{{buy-now}}</a>"
             ]
+        },
+        {
+            "name": "variations",
+            "type": "content-fragment",
+            "multiple": true,
+            "locked": false,
+            "values": []
         }
     ],
+    "references": [],
     "tags": [
         {
             "id": "mas:offer_type/base",

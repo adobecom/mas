@@ -184,7 +184,8 @@ runTests(async () => {
             expect(card.iconButton.className).to.equal(
                 'icon-button tooltip-right',
             );
-            card.iconButton.getBoundingClientRect = originalGetBoundingClientRect;
+            card.iconButton.getBoundingClientRect =
+                originalGetBoundingClientRect;
         });
 
         it('should dispplay callout info tooltip in the central position', async () => {
@@ -216,7 +217,8 @@ runTests(async () => {
             );
             await delay(100);
             expect(card.iconButton.className).to.equal('icon-button');
-            card.iconButton.getBoundingClientRect = originalGetBoundingClientRect;
+            card.iconButton.getBoundingClientRect =
+                originalGetBoundingClientRect;
         });
     });
 });

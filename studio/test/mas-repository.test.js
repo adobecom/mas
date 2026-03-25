@@ -889,14 +889,14 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('clears the list when a UUID resolves outside the selected locale', async () => {
+        it('infers the surface for a UUID deep link when the path is missing', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
-            repository.search = { value: { path: 'acom', query: '12345678-1234-1234-1234-123456789012' } };
-            repository.filters = { value: { locale: 'da_DK', tags: '' } };
+            repository.search = { value: { query: '12345678-1234-1234-1234-123456789012' } };
+            repository.filters = { value: { locale: 'fr_FR', tags: '' } };
             const mockFragment = createFragment({
                 id: '12345678-1234-1234-1234-123456789012',
-                path: `${ROOT_PATH}/acom/en_US/test-fragment`,
+                path: `${ROOT_PATH}/nala/fr_FR/test-fragment`,
                 fields: [],
             });
             const getByIdStub = sandbox.stub().resolves(mockFragment);
@@ -908,7 +908,71 @@ describe('MasRepository dictionary helpers', () => {
             });
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            const originalUuidQuery = Store.filters.getMeta('uuid-query');
+            const originalUuidLocale = Store.filters.getMeta('uuid-locale');
             Store.profile.set({ name: 'test-user' });
+            Store.search.set({});
+            Store.filters.set({ locale: 'fr_FR', tags: '' });
+            Store.filters.removeMeta('uuid-query');
+            Store.filters.removeMeta('uuid-locale');
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(Store.filters.get().locale).to.equal('fr_FR');
+                expect(mockDataStore.set.secondCall.args[0]).to.have.lengthOf(1);
+                expect(mockDataStore.set.secondCall.args[0][0].get().path).to.equal(mockFragment.path);
+                expect(mockDataStore.setMeta.calledWith('path', 'nala')).to.be.true;
+                expect(mockDataStore.setMeta.calledWith('locale', 'fr_FR')).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                if (originalUuidQuery === null) Store.filters.removeMeta('uuid-query');
+                else Store.filters.setMeta('uuid-query', originalUuidQuery);
+                if (originalUuidLocale === null) Store.filters.removeMeta('uuid-locale');
+                else Store.filters.setMeta('uuid-locale', originalUuidLocale);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('infers the locale for a UUID deep link when the selected locale differs', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { query: '12345678-1234-1234-1234-123456789012' } };
+            repository.filters = { value: { locale: 'da_DK', tags: '' } };
+            const mockFragment = createFragment({
+                id: '12345678-1234-1234-1234-123456789012',
+                path: `${ROOT_PATH}/nala/fr_FR/test-fragment`,
+                fields: [],
+            });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: getByIdStub,
+                    search: sandbox.stub(),
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            const originalUuidQuery = Store.filters.getMeta('uuid-query');
+            const originalUuidLocale = Store.filters.getMeta('uuid-locale');
+            Store.profile.set({ name: 'test-user' });
+            Store.search.set({});
+            Store.filters.set({ locale: 'da_DK', tags: '' });
+            Store.filters.removeMeta('uuid-query');
+            Store.filters.removeMeta('uuid-locale');
             const mockDataStore = {
                 get: sandbox.stub().returns([{ value: { id: 'stale-fragment' } }]),
                 getMeta: sandbox.stub().returns(null),
@@ -920,12 +984,77 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 expect(getByIdStub.calledOnce).to.be.true;
-                expect(mockDataStore.set.calledOnce).to.be.true;
-                expect(mockDataStore.set.firstCall.args[0]).to.deep.equal([]);
-                expect(mockDataStore.setMeta.calledWith('locale', 'da_DK')).to.be.true;
+                expect(Store.filters.get().locale).to.equal('fr_FR');
+                expect(mockDataStore.set.secondCall.args[0]).to.have.lengthOf(1);
+                expect(mockDataStore.set.secondCall.args[0][0].get().path).to.equal(mockFragment.path);
+                expect(mockDataStore.setMeta.calledWith('path', 'nala')).to.be.true;
+                expect(mockDataStore.setMeta.calledWith('locale', 'fr_FR')).to.be.true;
                 expect(mockDataStore.setMeta.calledWith('query', '12345678-1234-1234-1234-123456789012')).to.be.true;
             } finally {
                 Store.profile.set(originalProfile);
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                if (originalUuidQuery === null) Store.filters.removeMeta('uuid-query');
+                else Store.filters.setMeta('uuid-query', originalUuidQuery);
+                if (originalUuidLocale === null) Store.filters.removeMeta('uuid-locale');
+                else Store.filters.setMeta('uuid-locale', originalUuidLocale);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('does not reset the locale after the user changes it for the same UUID query', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'nala', query: '12345678-1234-1234-1234-123456789012' } };
+            repository.filters = { value: { locale: 'da_DK', tags: '' } };
+            const mockFragment = createFragment({
+                id: '12345678-1234-1234-1234-123456789012',
+                path: `${ROOT_PATH}/nala/fr_FR/test-fragment`,
+                fields: [],
+            });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: getByIdStub,
+                    search: sandbox.stub(),
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            const originalUuidQuery = Store.filters.getMeta('uuid-query');
+            const originalUuidLocale = Store.filters.getMeta('uuid-locale');
+            Store.profile.set({ name: 'test-user' });
+            Store.search.set({ path: 'nala', query: '12345678-1234-1234-1234-123456789012' });
+            Store.filters.set({ locale: 'da_DK', tags: '' });
+            Store.filters.setMeta('uuid-query', '12345678-1234-1234-1234-123456789012');
+            Store.filters.setMeta('uuid-locale', 'fr_FR');
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ value: { id: 'stale-fragment' } }]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(Store.search.get().path).to.equal('nala');
+                expect(Store.filters.get().locale).to.equal('da_DK');
+                expect(mockDataStore.set.calledOnce).to.be.true;
+                expect(mockDataStore.set.firstCall.args[0]).to.deep.equal([]);
+                expect(mockDataStore.setMeta.calledWith('path', 'nala')).to.be.true;
+                expect(mockDataStore.setMeta.calledWith('locale', 'da_DK')).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                if (originalUuidQuery === null) Store.filters.removeMeta('uuid-query');
+                else Store.filters.setMeta('uuid-query', originalUuidQuery);
+                if (originalUuidLocale === null) Store.filters.removeMeta('uuid-locale');
+                else Store.filters.setMeta('uuid-locale', originalUuidLocale);
                 Store.fragments.list.data = originalData;
             }
         });

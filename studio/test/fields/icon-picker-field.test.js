@@ -9,7 +9,6 @@ describe('Icon picker field', () => {
     it('should render without default properties', async () => {
         const el = await fixture(html`<mas-icon-picker-field></mas-icon-picker-field>`, { parentNode: spTheme() });
         expect(el.icon).to.equal('');
-        expect(el.description).to.equal('');
         expect(el.alt).to.equal('');
         expect(el.link).to.equal('');
         expect(el.modalOpen).to.be.false;
@@ -25,16 +24,14 @@ describe('Icon picker field', () => {
             html`
                 <mas-icon-picker-field
                     icon="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg"
-                    description="Adobe Photoshop"
-                    alt="Photoshop icon"
+                    alt="Adobe Photoshop"
                     link="https://www.adobe.com/photoshop"
                 ></mas-icon-picker-field>
             `,
             { parentNode: spTheme() },
         );
         expect(el.icon).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg');
-        expect(el.description).to.equal('Adobe Photoshop');
-        expect(el.alt).to.equal('Photoshop icon');
+        expect(el.alt).to.equal('Adobe Photoshop');
         expect(el.link).to.equal('https://www.adobe.com/photoshop');
 
         const iconImg = el.shadowRoot.querySelector('.icon-preview img');
@@ -127,8 +124,7 @@ describe('Icon picker field', () => {
             new CustomEvent('save', {
                 detail: {
                     icon: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-                    description: 'Photoshop',
-                    alt: 'Photoshop icon',
+                    alt: 'Photoshop',
                     link: '',
                 },
             }),
@@ -137,8 +133,7 @@ describe('Icon picker field', () => {
         await listener;
 
         expect(el.icon).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg');
-        expect(el.description).to.equal('Photoshop');
-        expect(el.alt).to.equal('Photoshop icon');
+        expect(el.alt).to.equal('Photoshop');
         expect(el.link).to.equal('');
         expect(el.modalOpen).to.be.false;
     });
@@ -148,7 +143,6 @@ describe('Icon picker field', () => {
             html`
                 <mas-icon-picker-field
                     icon="https://example.com/icon.svg"
-                    description="Test icon"
                     alt="Test alt"
                     link="https://example.com"
                 ></mas-icon-picker-field>
@@ -159,7 +153,6 @@ describe('Icon picker field', () => {
         const value = el.value;
         expect(value).to.deep.equal({
             icon: 'https://example.com/icon.svg',
-            description: 'Test icon',
             alt: 'Test alt',
             link: 'https://example.com',
         });

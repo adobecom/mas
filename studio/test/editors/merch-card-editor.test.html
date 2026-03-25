@@ -655,7 +655,7 @@
                             const el = document.createElement('div');
                             const iconEl = document.createElement('merch-icon');
                             iconEl.setAttribute('src', 'https://example.com/icon.svg');
-                            iconEl.setAttribute('alt', 'Test alt');
+                            iconEl.setAttribute('alt', 'Test description');
                             const descEl = document.createElement('span');
                             descEl.setAttribute('slot', 'description');
                             descEl.textContent = 'Test description';
@@ -663,8 +663,7 @@
 
                             const result = editor.getWhatsIncludedProps(el);
                             expect(result.icon).to.equal('https://example.com/icon.svg');
-                            expect(result.alt).to.equal('Test alt');
-                            expect(result.description).to.equal('Test description');
+                            expect(result.alt).to.equal('Test description');
                             expect(result.link).to.equal('');
                         });
 
@@ -713,7 +712,6 @@
                             const result = editor.getWhatsIncludedProps(el);
                             // The no-icon fallback returns empty strings for all fields
                             expect(result.icon).to.equal('');
-                            expect(result.description).to.equal('');
                             expect(result.alt).to.equal('');
                             expect(result.link).to.equal('');
                         });
@@ -755,7 +753,7 @@
 
                             const result = editor.whatsIncluded;
                             expect(result.bullets).to.have.length(1);
-                            expect(result.bullets[0].description).to.be.a('string');
+                            expect(result.bullets[0].alt).to.be.a('string');
                         });
 
                         it('parses contentBullets with no merch-icon, desc innerHTML differs from text', async () => {
@@ -773,7 +771,7 @@
 
                             const result = editor.whatsIncluded;
                             expect(result.bullets).to.have.length(1);
-                            expect(result.bullets[0].description).to.include('<p>');
+                            expect(result.bullets[0].alt).to.include('<p>');
                         });
 
                         it('generates whats-included element', async () => {

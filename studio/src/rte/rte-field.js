@@ -219,6 +219,8 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         hideFormatButtons: { type: Boolean, attribute: 'hide-format-buttons' },
+        hideCounter: { type: Boolean, attribute: 'hide-counter' },
+        borderless: { type: Boolean, attribute: 'borderless', reflect: true },
         osi: { type: String },
         value: { type: String },
         floatingToolbarStyle: { type: String, state: true },
@@ -263,6 +265,18 @@ class RteField extends LitElement {
                     padding: 0;
                     display: flex;
                     align-items: center;
+                }
+
+                :host([borderless]) #editor {
+                    border: none;
+                    background: transparent;
+                    border-radius: 0;
+                    padding: 0;
+                    min-height: 44px;
+                }
+
+                :host([borderless][focused]) #editor {
+                    outline: none;
                 }
 
                 :host([focused]) #editor {
@@ -1967,7 +1981,7 @@ class RteField extends LitElement {
                 <div id="editor"></div>
                 ${this.hideFormatButtons ? this.#offerSelectorToolButton : nothing}
             </div>
-            ${this.hideFormatButtons
+            ${this.hideFormatButtons || this.hideCounter
                 ? nothing
                 : html`<p id="counter">
                       <span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}

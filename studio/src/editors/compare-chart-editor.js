@@ -323,9 +323,7 @@ const buildTableMarkup = (fragmentStore) => {
 };
 
 const buildTablePreviewReference = (cardItem) => {
-    const fragment = structuredClone(
-        cardItem.fragmentStore?.get() || cardItem.reference,
-    );
+    const fragment = structuredClone(cardItem.fragmentStore?.get() || cardItem.reference);
     return {
         type: 'content-fragment',
         path: fragment.path || cardItem.path,
@@ -2160,6 +2158,8 @@ class CompareChartEditor extends LitElement {
                     <rte-field
                         float
                         inline
+                        borderless
+                        hide-counter
                         icon
                         icon-picker
                         mnemonic

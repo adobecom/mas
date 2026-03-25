@@ -426,6 +426,7 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button {
     margin: 0;
     padding: 0 24px;
     border-radius: 26px;
+    min-height: 40px;
 }
 
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button[variant="accent"],
@@ -451,6 +452,7 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.spectr
     merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.small-font-size-button,
     merch-card[variant="full-pricing-express"] a[slot="cta"].small-font-size-button {
         font-size: 14px;
+        padding: 2px 24px;
     }
 }
 

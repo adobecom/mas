@@ -30,7 +30,7 @@ function getUpdatedFragment(projectCF) {
  * - Function: called with (url, options, callCount) and returns response
  * - Array: sequential responses (pops from array, uses last item when empty)
  */
-function createFetchStub(routes = {}, defaultResponse = { ok: true }) {
+function createFetchStub(routes = {}, defaultResponse = { ok: true, status: 200, json: () => Promise.resolve({}) }) {
     const callCounts = {};
     const lastCallOptions = {};
     const routeResponses = {};
@@ -816,26 +816,20 @@ describe('Translation project-start', () => {
         it('should send correct synchronization request if a placeholder is in the payload', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
+            // if no dictionary in target locale - fail translation project
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
                 placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
-                targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
+                targetLocales: ['de_DE'],
             });
 
             const { lastCallOptions, callCounts } = setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/fragment1': responses.notFound(),
-                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/fr_FR.+': responses.notFound(),
-                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/it_IT.+': responses.notFound(),
-                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/dictionary/placeholder1': responses.notFound(),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index': responses.ok({
                     items: [{ id: 'dict-de-id', etag: 'test-de-ph-etag', fields: [{ name: 'entries', values: [] }] }],
                 }),
-                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/fr_FR/dictionary/index': responses.notFound(),
-                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/it_IT/dictionary/index': responses.notFound(),
-                '/adobe/sites/cf/fragments/dict-de-id/versions': responses.ok(),
                 '/adobe/sites/cf/fragments/dict-de-id': responses.ok(),
-                '/bin/sendToLocalisationAsync': { ok: true },
+                '/bin/sendToLocalisationAsync': responses.ok(),
             });
 
             const params = {
@@ -887,6 +881,89 @@ describe('Translation project-start', () => {
             const result = await projectStart.main(params);
 
             expect(result.error.statusCode).to.equal(500);
+        });
+    });
+
+    describe('Sync variations if a grouped variation is synced', () => {
+        it('should send correct synchronization request if a grouped variation is in the payload', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const groupedVariationPath = '/content/dam/mas/foo/en_US/productCode/pzn/grouped-variation';
+            const parentFragmentPath = '/content/dam/mas/foo/en_US/default-fragment';
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: [groupedVariationPath],
+                targetLocales: ['de_DE'],
+            });
+            const updatedProjectCF = getUpdatedFragment(mockProjectCF);
+
+            const { lastCallOptions, callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': [
+                    responses.ok(mockProjectCF, '"test-etag"'),
+                    responses.ok(updatedProjectCF, '"test-etag"'),
+                ],
+                '/adobe/sites/cf/fragments/referencedBy': responses.ok({
+                    items: [
+                        {
+                            path: groupedVariationPath,
+                            parentReferences: [
+                                {
+                                    type: 'content-fragment',
+                                    path: parentFragmentPath,
+                                    title: 'Parent Fragment',
+                                },
+                            ],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/default-fragment': responses.ok({
+                    items: [
+                        {
+                            id: 'parent-en-id',
+                            path: parentFragmentPath,
+                            etag: 'parent-en-etag',
+                            fields: [{ name: 'variations', values: [groupedVariationPath] }],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment': responses.ok({
+                    items: [
+                        {
+                            id: 'parent-de-id',
+                            path: '/content/dam/mas/foo/de_DE/default-fragment',
+                            etag: 'parent-de-etag',
+                            fields: [{ name: 'variations', values: [] }],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments/parent-de-id': responses.ok(),
+                '/bin/sendToLocalisationAsync': responses.ok(),
+            });
+
+            const params = {
+                ...baseParams,
+                surface: 'foo',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.statusCode).to.equal(200);
+            expect(callCounts['/adobe/sites/cf/fragments/referencedBy']).to.equal(1);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/default-fragment']).to.equal(1);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment']).to.equal(1);
+            expect(callCounts['/adobe/sites/cf/fragments/parent-de-id']).to.equal(1);
+
+            // Verify sync request for de_DE locale (variations use PUT, not PATCH)
+            const deSyncOptions = lastCallOptions['/adobe/sites/cf/fragments/parent-de-id'];
+            expect(deSyncOptions.method).to.equal('PUT');
+            expect(deSyncOptions.headers).to.deep.include({
+                'If-Match': 'parent-de-etag',
+            });
+            const deSyncBody = JSON.parse(deSyncOptions.body);
+            expect(deSyncBody).to.have.property('fields');
+            const variationsField = deSyncBody.fields.find((f) => f.name === 'variations');
+            expect(variationsField).to.exist;
+            expect(variationsField.values).to.be.an('array').with.lengthOf(1);
+            expect(variationsField.values[0]).to.equal('/content/dam/mas/foo/de_DE/productCode/pzn/grouped-variation');
         });
     });
 

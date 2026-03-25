@@ -1,5 +1,4 @@
 import { html, nothing } from 'lit';
-import { getFragmentMapping } from './variants';
 
 export class VariantLayout {
     static styleMap = {};
@@ -142,6 +141,6 @@ export class VariantLayout {
     }
 
     get aemFragmentMapping() {
-        return getFragmentMapping(this.card.variant);
+        return this.constructor.fragmentMapping ?? null;
     }
 }

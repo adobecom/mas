@@ -11,7 +11,10 @@ import { VARIANTS } from './editors/variant-picker.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
-import { buildCompareChartPreviewFragment } from './editors/compare-chart-editor.js';
+import {
+    buildCompareChartConsonantPreviewFragment,
+    buildCompareChartPreviewFragment,
+} from './editors/compare-chart-editor.js';
 import './editors/acom-content-preview.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
@@ -99,7 +102,9 @@ export default class MasFragmentEditor extends LitElement {
             max-width: 900px;
             border-radius: 0;
             box-shadow: none;
-            overflow: visible;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            overscroll-behavior: contain;
         }
 
         #preview-wrapper.compare-chart-preview acom-content-preview {
@@ -1517,7 +1522,12 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.fragment) return nothing;
 
         if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
-            const previewFragment = buildCompareChartPreviewFragment(this.fragmentStore);
+            const previewRenderer =
+                this.fragmentStore?.compareChartDraftContext?.previewRenderer || 'consonant';
+            const previewFragment =
+                previewRenderer === 'consonant'
+                    ? buildCompareChartConsonantPreviewFragment(this.fragmentStore)
+                    : buildCompareChartPreviewFragment(this.fragmentStore);
             const previewSignature = JSON.stringify(previewFragment);
             if (previewSignature !== this.#lastComparePreviewSignature) {
                 this.#lastComparePreviewSignature = previewSignature;
@@ -1527,7 +1537,12 @@ export default class MasFragmentEditor extends LitElement {
             return html`
                 <div id="preview-column">
                     <div id="preview-wrapper" class="compare-chart-preview">
-                        <acom-content-preview ?author=${true} fragment="${previewFragment.id}"></acom-content-preview>
+                        <acom-content-preview
+                            ?author=${true}
+                            data-source-fragment-id="${this.fragment.id}"
+                            renderer="${previewRenderer}"
+                            fragment="${previewFragment.id}"
+                        ></acom-content-preview>
                     </div>
                 </div>
             `;

@@ -721,9 +721,15 @@ describe('MasFragmentEditor', () => {
             return collectionEditor.updateComplete.then(() => {
                 const preview = collectionEditor.querySelector('#preview-column acom-content-preview');
                 expect(preview).to.exist;
+                expect(preview.getAttribute('renderer')).to.equal('legacy');
                 expect(preview.shadowRoot.querySelector('link[href="https://www.adobe.com/libs/styles/styles.css"]')).to.exist;
                 expect(preview.shadowRoot.querySelector('link[href="https://www.adobe.com/libs/blocks/table/table.css"]')).to.exist;
                 expect(preview.shadowRoot.querySelector('link[href="https://www.adobe.com/libs/blocks/merch/merch.css"]')).to.exist;
+                expect(
+                    preview.shadowRoot.querySelector(
+                        'link[href="https://main--milo--adobecom.aem.live/libs/blocks/comparison-table/comparison-table.css"]',
+                    ),
+                ).to.exist;
                 expect(preview.shadowRoot.querySelector('#adobe-token-bridge')).to.exist;
                 expect(preview.shadowRoot.querySelector('mas-table')).to.exist;
                 expect(preview.shadowRoot.querySelector('aem-fragment')).to.exist;

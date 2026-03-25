@@ -1,6 +1,8 @@
 const ADOBE_GLOBAL_STYLES = 'https://www.adobe.com/libs/styles/styles.css';
 const ADOBE_MERCH_STYLES = 'https://www.adobe.com/libs/blocks/merch/merch.css';
 const ADOBE_TABLE_STYLES = 'https://www.adobe.com/libs/blocks/table/table.css';
+const ADOBE_COMPARISON_TABLE_STYLES =
+    'https://main--milo--adobecom.aem.live/libs/blocks/comparison-table/comparison-table.css';
 const ADOBE_TOKEN_BRIDGE_ID = 'adobe-token-bridge';
 
 const getCustomPropertyDeclarations = (style) => {
@@ -66,7 +68,7 @@ class AcomContentPreview extends HTMLElement {
     static tokenBridgeCssPromise;
 
     static get observedAttributes() {
-        return ['author', 'fragment'];
+        return ['author', 'fragment', 'renderer'];
     }
 
     constructor() {
@@ -129,6 +131,8 @@ class AcomContentPreview extends HTMLElement {
 
         const fragmentId = this.getAttribute('fragment');
         const author = this.hasAttribute('author');
+        const renderer = this.getAttribute('renderer') === 'consonant' ? 'consonant' : 'legacy';
+        const previewTag = renderer === 'consonant' ? 'mas-comparison-table' : 'mas-table';
 
         this.shadowRoot.replaceChildren();
 
@@ -144,6 +148,10 @@ class AcomContentPreview extends HTMLElement {
         merchStyles.setAttribute('rel', 'stylesheet');
         merchStyles.setAttribute('href', ADOBE_MERCH_STYLES);
 
+        const comparisonTableStyles = document.createElement('link');
+        comparisonTableStyles.setAttribute('rel', 'stylesheet');
+        comparisonTableStyles.setAttribute('href', ADOBE_COMPARISON_TABLE_STYLES);
+
         const style = document.createElement('style');
         style.textContent = `
             :host {
@@ -154,21 +162,32 @@ class AcomContentPreview extends HTMLElement {
                 --font-size-multiplier: 1;
             }
 
-            mas-table {
+            mas-table,
+            mas-comparison-table {
                 display: block;
                 width: 100%;
             }
+
+            .row-highlight {
+                background-color: var(--color-white, #fff) !important;
+            }
         `;
 
-        this.shadowRoot.append(globalStyles, tableStyles, merchStyles, style);
+        this.shadowRoot.append(
+            globalStyles,
+            tableStyles,
+            merchStyles,
+            comparisonTableStyles,
+            style,
+        );
 
         if (!fragmentId) return;
 
         const previewTemplate = document.createElement('template');
         previewTemplate.innerHTML = `
-            <mas-table>
+            <${previewTag}>
                 <aem-fragment ${author ? 'author' : ''} loading="cache" fragment="${fragmentId}"></aem-fragment>
-            </mas-table>
+            </${previewTag}>
         `;
         this.shadowRoot.append(previewTemplate.content.cloneNode(true));
         this.ensureTokenBridge();

@@ -223,7 +223,11 @@ export function getFragmentPartsToUse(fragment, path) {
 
 export function generateCodeToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
-    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    const modelPath = fragment?.model?.path;
+    const isCompareChartCollection = modelPath === COLLECTION_MODEL_PATH;
+    const webComponentName = isCompareChartCollection
+        ? 'compare-chart'
+        : MODEL_WEB_COMPONENT_MAPPING[modelPath];
     if (!webComponentName) {
         if (failMessage)
             Events.toast.emit({
@@ -240,18 +244,27 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
         fragmentId: fragment?.id,
         page,
         path,
+        consonant: isCompareChartCollection ? 'true' : null,
     });
     const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
     return { authorPath, code, richText, href };
 }
 
-function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
+function buildStudioFragmentHref({
+    webComponentName,
+    fragmentId,
+    page,
+    path,
+    fieldName,
+    consonant,
+}) {
     const params = new URLSearchParams();
     params.set('content-type', webComponentName);
     if (page) params.set('page', page);
     if (path) params.set('path', path);
     if (fragmentId) params.set('query', fragmentId);
     if (fieldName) params.set('field', fieldName);
+    if (consonant) params.set('consonant', consonant);
     return `https://mas.adobe.com/studio.html#${params.toString()}`;
 }
 

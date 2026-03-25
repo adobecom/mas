@@ -14,6 +14,7 @@ import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from './variants/mini-compare
 import { debounce, getService, printMeasure } from './utils.js';
 
 const TAG_NAME = 'mas-table';
+const TABLE_HOST_SELECTOR = 'mas-table, mas-comparison-table';
 const MARK_PREFIX = 'mas-table:';
 const LOAD_TIMEOUT = 20000;
 const TAB_CHANGE_EVENT = 'milo:tab:changed';
@@ -68,8 +69,12 @@ const TABLE_HEIGHT_SCOPE_ATTR = 'data-mas-table-height-scope';
 let tableHeightScopeCounter = 0;
 const LOCAL_TABLE_CSS = `
     .table.sticky .row-heading,
-    .table.sticky .row-highlight {
+    .table.sticky .row.row-highlight {
         background: var(--color-white, #fff);
+    }
+
+    .table.sticky .row.row-highlight {
+        background-color: var(--color-white, #fff) !important;
     }
 
     .filters.sticky-mobile-compare {
@@ -121,7 +126,7 @@ function ensureTableHeightScope(table) {
 }
 
 function getTableHeightRuleStyle(table) {
-    const host = table?.closest(TAG_NAME);
+    const host = table?.closest(TABLE_HOST_SELECTOR);
     const style = host?.querySelector(`style[${TABLE_HEIGHT_RULE_ATTR}]`);
     if (!style) return null;
     if (!style._tableHeightRules) {
@@ -1267,6 +1272,12 @@ function applyStylesBasedOnScreenSize(
     labels,
     getStickyTop,
 ) {
+    const headingRow = table.querySelector('.row-heading');
+    if (!headingRow) {
+        dispatchTableHighlightLoaded(table);
+        return;
+    }
+
     const isMerch = table.classList.contains('merch');
     const isCompareChart = isCompareStyleMobileTable(table);
     const deviceBySize = defineDeviceByScreenSize();
@@ -1502,8 +1513,8 @@ function applyStylesBasedOnScreenSize(
     };
 
     if (!isMerch && !table.querySelector('.row-heading .col-2')) {
-        table.querySelector('.row-heading').style.display = 'block';
-        table.querySelector('.row-heading .col-1').style.display = 'flex';
+        headingRow.style.display = 'block';
+        headingRow.querySelector('.col-1')?.style.setProperty('display', 'flex');
     }
 
     removeClones();
@@ -1527,7 +1538,7 @@ function applyStylesBasedOnScreenSize(
                 });
         }
         handleMobileFilterSticky(table, getStickyTop);
-        [...(table.querySelector('.row-heading')?.children || [])].forEach(
+        [...headingRow.children].forEach(
             (column) =>
                 [...column.children].forEach((row) =>
                     row.style.removeProperty('height'),
@@ -2252,10 +2263,11 @@ export class MasTable extends HTMLElement {
     #scratch;
 
     connectedCallback() {
+        const tagName = this.localName || TAG_NAME;
         this.#service = getService();
         this.#log ??=
-            this.#service?.Log?.module?.(TAG_NAME) ??
-            this.#service?.log?.module?.(TAG_NAME) ??
+            this.#service?.Log?.module?.(tagName) ??
+            this.#service?.log?.module?.(tagName) ??
             console;
         this.syncDirection();
         const logId =
@@ -2401,13 +2413,14 @@ export class MasTable extends HTMLElement {
     fail(message, details = {}) {
         if (!this.isConnected) return;
         this.setAttribute('failed', '');
+        const tagName = this.localName || TAG_NAME;
         const detail = {
             ...this.aemFragment?.fetchInfo,
             ...this.#service?.duration,
             ...details,
             message,
         };
-        this.#log?.error?.(`mas-table: ${message}`, detail);
+        this.#log?.error?.(`${tagName}: ${message}`, detail);
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_ERROR, {
                 bubbles: true,

@@ -50,6 +50,9 @@ export const registerVariant = (
     style = null,
     collectionOptions,
 ) => {
+    if (fragmentMapping !== null) {
+        variantClass.fragmentMapping = fragmentMapping;
+    }
     variantRegistry.set(name, {
         class: variantClass,
         fragmentMapping,

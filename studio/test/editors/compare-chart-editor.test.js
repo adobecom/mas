@@ -102,6 +102,24 @@ describe('compare-chart-editor', () => {
         expect(element.shadowRoot.textContent).not.to.include('save action runs');
     });
 
+    it('renders the preview renderer switch in General info and toggles to consonant', async () => {
+        const fragmentStore = createCollectionStore();
+        const element = await fixture(html`<compare-chart-editor .fragmentStore=${fragmentStore}></compare-chart-editor>`);
+
+        await waitForUpdates(element);
+
+        const previewSwitch = getControl(element.shadowRoot, '#preview-renderer-switch');
+        expect(previewSwitch).to.exist;
+        expect(element.previewRenderer).to.equal('legacy');
+
+        previewSwitch.checked = true;
+        previewSwitch.dispatchEvent(new Event('change'));
+        await waitForUpdates(element);
+
+        expect(element.previewRenderer).to.equal('consonant');
+        expect(fragmentStore.compareChartDraftContext.previewRenderer).to.equal('consonant');
+    });
+
     it('creates a new in-memory mini compare card draft', async () => {
         const fragmentStore = createCollectionStore();
         const element = await fixture(html`<compare-chart-editor .fragmentStore=${fragmentStore}></compare-chart-editor>`);

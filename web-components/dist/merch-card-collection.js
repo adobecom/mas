@@ -538,7 +538,7 @@ var _VariantLayout = class _VariantLayout {
   renderLayout() {
   }
   get aemFragmentMapping() {
-    return getFragmentMapping(this.card.variant);
+    return this.constructor.fragmentMapping ?? null;
   }
 };
 _container = new WeakMap();
@@ -9936,6 +9936,9 @@ __publicField(Mini, "variantStyle", css14`
 // src/variants/variants.js
 var variantRegistry = /* @__PURE__ */ new Map();
 var registerVariant = (name, variantClass, fragmentMapping = null, style = null, collectionOptions) => {
+  if (fragmentMapping !== null) {
+    variantClass.fragmentMapping = fragmentMapping;
+  }
   variantRegistry.set(name, {
     class: variantClass,
     fragmentMapping,

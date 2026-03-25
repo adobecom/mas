@@ -1,0 +1,2916 @@
+{
+    "path": "/content/dam/mas/sandbox/en_US/ilyas-test-compare-chart",
+    "title": "Ilyas Test Compare Chart",
+    "description": "Compare chart description",
+    "id": "9fcc906c-fc60-4652-a2c8-1af12c8fbed9",
+    "created": {
+        "at": "2026-03-23T13:14:07.444Z",
+        "by": "ilyas@adobe.com",
+        "fullName": "Ilyas Stephane Turkben"
+    },
+    "modified": {
+        "at": "2026-03-24T19:55:14.166Z",
+        "by": "ilyas@adobe.com",
+        "fullName": "Ilyas Stephane Turkben"
+    },
+    "published": {
+        "at": "2026-03-24T21:47:24.339Z",
+        "by": "ilyas@adobe.com",
+        "fullName": "Ilyas Stephane Turkben"
+    },
+    "status": "PUBLISHED",
+    "previewReplicationStatus": "NEVER_PUBLISHED",
+    "fields": [
+        {
+            "name": "label",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "navigationLabel",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "queryLabel",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "icon",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "iconLight",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "cards",
+            "type": "content-fragment",
+            "multiple": true,
+            "locked": false,
+            "values": [
+                "/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w",
+                "/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh",
+                "/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp",
+                "/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i"
+            ]
+        },
+        {
+            "name": "collections",
+            "type": "content-fragment",
+            "multiple": true,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "originalId",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "defaultchild",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "variations",
+            "type": "content-fragment",
+            "multiple": true,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "searchText",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "tagFiltersTitle",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "tagFilters",
+            "type": "tag",
+            "multiple": true,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "linksTitle",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "link",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "linkText",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "linkIcon",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
+            "name": "compareChart",
+            "type": "long-text",
+            "multiple": false,
+            "locked": false,
+            "mimeType": "text/plain",
+            "values": [
+                "<div class=\"compare-chart\" data-editor=\"mini-compare-chart\"><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-pd6ec8kl\"><div class=\"compare-chart-label\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-01\"><div class=\"compare-chart-label\">Adobe Photoshop on desktop</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-02\"><div class=\"compare-chart-label\">Adobe Photoshop on web and mobile</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-03\"><div class=\"compare-chart-label\">Best for</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\">Individuals</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\">Individuals</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\">Individuals</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\">Individuals</div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-04\"><div class=\"compare-chart-label\">7-day free trial</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-09\"><div class=\"compare-chart-label\">Premium creative AI video and audio features</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\">Access using generative credits</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\">Access using generative credits</div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-05\"><div class=\"compare-chart-label\">Price</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"><span is=\"inline-price\" data-display-per-unit=\"false\" data-display-recurrence=\"true\" data-display-tax=\"false\" data-force-tax-exclusive=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\"></span></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"><span is=\"inline-price\" data-display-per-unit=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM\"></span></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"><span is=\"inline-price\" data-display-per-unit=\"false\" data-display-recurrence=\"true\" data-display-tax=\"false\" data-force-tax-exclusive=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\">Regularly at <span is=\"inline-price\" data-force-tax-exclusive=\"true\" data-quantity=\"1\" data-template=\"strikethrough\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\"></span> Alternatively at <span is=\"inline-price\" data-display-old-price=\"false\" data-force-tax-exclusive=\"true\" data-promotion-code=\"CCI_50_3_IP_US\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\"></span> for the first 3 months. Annual, billed monthly.</div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-06\"><div class=\"compare-chart-label\">Cloud storage</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\">100GB</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\">100GB</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\">1TB</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\">100GB</div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-07\"><div class=\"compare-chart-label\"><a href=\"https://www.adobe.com/go/acomfirefly_generativecredits\">Generative credits</a></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\">25 monthly</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\">4,000 monthly</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\">1,000 monthly</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\">4,000 monthly</div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-08\"><div class=\"compare-chart-label\">Standard creative AI image and vector features</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\">Access using generative credits</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\">Unlimited</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\">Access using generative credits</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\">Unlimited</div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-10\"><div class=\"compare-chart-label\">Adobe Express Premium plan</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-11\"><div class=\"compare-chart-label\">Lightroom</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-12\"><div class=\"compare-chart-label\">20+ desktop and mobile apps</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-13\"><div class=\"compare-chart-label\">20,000+ fonts</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-14\"><div class=\"compare-chart-label\">1 million+ free photos, drawings, video clips, audio clips, and templates</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div><div class=\"compare-chart-row\" data-row-id=\"compare-feature-row-prod-15\"><div class=\"compare-chart-label\">Tutorials</div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div><div class=\"compare-chart-cell\" data-card-path=\"/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i\"><sp-icon-checkmark size=\"m\"></sp-icon-checkmark></div></div></div>"
+            ]
+        },
+        {
+            "name": "locReady",
+            "type": "boolean",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        }
+    ],
+    "variations": [],
+    "tags": [],
+    "references": [
+        {
+            "name": "new-compare-card-1-dp3i",
+            "fieldName": "cards",
+            "type": "content-fragment",
+            "title": "Creative Cloud Pro",
+            "path": "/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i",
+            "created": {
+                "at": "2026-03-23T16:01:48.763Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "modified": {
+                "at": "2026-03-24T20:16:09.713Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "published": {
+                "at": "2026-03-24T21:47:24.339Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "2c91c10d-f869-4dbf-9f8c-723ff259b737",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card",
+                "description": "universal m@s card model"
+            },
+            "description": "Creative Cloud Pro compare plan card",
+            "fields": [
+                {
+                    "name": "variant",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mini-compare-chart"]
+                },
+                {
+                    "name": "osi",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"]
+                },
+                {
+                    "name": "size",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "mnemonicIcon",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"]
+                },
+                {
+                    "name": "mnemonicAlt",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["Creative Cloud Product Icon"]
+                },
+                {
+                    "name": "mnemonicLink",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [""]
+                },
+                {
+                    "name": "badge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<merch-badge variant=\"mini-compare-chart\">Save <span is=\"inline-price\" data-display-old-price=\"false\" data-promotion-code=\"CCI_50_3_IP_US\" data-template=\"discount\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\"></span></merch-badge>"
+                    ]
+                },
+                {
+                    "name": "trialBadge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "backgroundColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "borderColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImage",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImageAltText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "cardTitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Creative Cloud Pro"]
+                },
+                {
+                    "name": "cardName",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Creative Cloud Pro"]
+                },
+                {
+                    "name": "cardTitleLink",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "prices",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><span is=\"inline-price\" data-force-tax-exclusive=\"true\" data-template=\"strikethrough\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\"></span></p><p><span is=\"inline-price\" data-display-old-price=\"false\" data-promotion-code=\"CCI_50_3_IP_US\" data-force-tax-exclusive=\"true\" data-template=\"price\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "shortDescription",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "promoText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "promoCode",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "description",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p>Save 50% for the first 3 months. Get Photoshop and 20+ apps. New subscribers only. <a href=\"https://www.adobe.com/offer-terms/cc-full-special-offer.html\" target=\"_blank\">See terms</a>.</p>"
+                    ]
+                },
+                {
+                    "name": "callout",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "showSecureLabel",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "showPlanType",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "quantitySelect",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addon",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addonConfirmation",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "ctas",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><a class=\"primary-outline\" data-checkout-workflow-step=\"segmentation\" data-wcs-osi=\"JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg\" target=\"_self\" data-modal=\"twp\">Free trial</a></p><p><a class=\"accent\" data-checkout-workflow-step=\"segmentation\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\" target=\"_self\" data-modal=\"crm\">Buy now</a></p>"
+                    ]
+                },
+                {
+                    "name": "variations",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "product",
+                    "type": "content-reference",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "whatsIncluded",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "tags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/cces",
+                        "mas:market_segments/com"
+                    ]
+                },
+                {
+                    "name": "pznTags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "perUnitLabel",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "originalId",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:offer_type/base",
+                    "title": "Base",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Offer type / Base",
+                    "name": "base",
+                    "path": "/content/cq:tags/mas/offer_type/base"
+                },
+                {
+                    "id": "mas:product_code/cces",
+                    "title": "Creative Cloud Individual Extra Storage",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Product code / Creative Cloud Individual Extra Storage",
+                    "name": "cces",
+                    "path": "/content/cq:tags/mas/product_code/cces",
+                    "description": ""
+                },
+                {
+                    "id": "mas:market_segments/com",
+                    "title": "COM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Market segments / COM",
+                    "name": "com",
+                    "path": "/content/cq:tags/mas/market_segments/com",
+                    "description": ""
+                },
+                {
+                    "id": "mas:plan_type/abm",
+                    "title": "ABM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Plan type / ABM",
+                    "name": "abm",
+                    "path": "/content/cq:tags/mas/plan_type/abm",
+                    "description": ""
+                },
+                {
+                    "id": "mas:customer_segment/individual",
+                    "title": "Individual",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Customer segment / Individual",
+                    "name": "individual",
+                    "path": "/content/cq:tags/mas/customer_segment/individual"
+                }
+            ]
+        },
+        {
+            "name": "new-compare-card-1-dp3i",
+            "fieldName": "compareChart",
+            "type": "content-fragment",
+            "title": "Creative Cloud Pro",
+            "path": "/content/dam/mas/sandbox/en_US/new-compare-card-1-dp3i",
+            "created": {
+                "at": "2026-03-23T16:01:48.763Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "modified": {
+                "at": "2026-03-24T20:16:09.713Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "published": {
+                "at": "2026-03-24T21:47:24.339Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "2c91c10d-f869-4dbf-9f8c-723ff259b737",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card",
+                "description": "universal m@s card model"
+            },
+            "description": "Creative Cloud Pro compare plan card",
+            "fields": [
+                {
+                    "name": "variant",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mini-compare-chart"]
+                },
+                {
+                    "name": "osi",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"]
+                },
+                {
+                    "name": "size",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "mnemonicIcon",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/creative-cloud.svg"]
+                },
+                {
+                    "name": "mnemonicAlt",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["Creative Cloud Product Icon"]
+                },
+                {
+                    "name": "mnemonicLink",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [""]
+                },
+                {
+                    "name": "badge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<merch-badge variant=\"mini-compare-chart\">Save <span is=\"inline-price\" data-display-old-price=\"false\" data-promotion-code=\"CCI_50_3_IP_US\" data-template=\"discount\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\"></span></merch-badge>"
+                    ]
+                },
+                {
+                    "name": "trialBadge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "backgroundColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "borderColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImage",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImageAltText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "cardTitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Creative Cloud Pro"]
+                },
+                {
+                    "name": "cardName",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Creative Cloud Pro"]
+                },
+                {
+                    "name": "cardTitleLink",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "prices",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><span is=\"inline-price\" data-force-tax-exclusive=\"true\" data-template=\"strikethrough\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\"></span></p><p><span is=\"inline-price\" data-display-old-price=\"false\" data-promotion-code=\"CCI_50_3_IP_US\" data-force-tax-exclusive=\"true\" data-template=\"price\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "shortDescription",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "promoText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "promoCode",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "description",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p>Save 50% for the first 3 months. Get Photoshop and 20+ apps. New subscribers only. <a href=\"https://www.adobe.com/offer-terms/cc-full-special-offer.html\" target=\"_blank\">See terms</a>.</p>"
+                    ]
+                },
+                {
+                    "name": "callout",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "showSecureLabel",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "showPlanType",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "quantitySelect",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addon",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addonConfirmation",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "ctas",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><a class=\"primary-outline\" data-checkout-workflow-step=\"segmentation\" data-wcs-osi=\"JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg\" target=\"_self\" data-modal=\"twp\">Free trial</a></p><p><a class=\"accent\" data-checkout-workflow-step=\"segmentation\" data-wcs-osi=\"r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8\" target=\"_self\" data-modal=\"crm\">Buy now</a></p>"
+                    ]
+                },
+                {
+                    "name": "variations",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "product",
+                    "type": "content-reference",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "whatsIncluded",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "tags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/cces",
+                        "mas:market_segments/com"
+                    ]
+                },
+                {
+                    "name": "pznTags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "perUnitLabel",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "originalId",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:offer_type/base",
+                    "title": "Base",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Offer type / Base",
+                    "name": "base",
+                    "path": "/content/cq:tags/mas/offer_type/base"
+                },
+                {
+                    "id": "mas:product_code/cces",
+                    "title": "Creative Cloud Individual Extra Storage",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Product code / Creative Cloud Individual Extra Storage",
+                    "name": "cces",
+                    "path": "/content/cq:tags/mas/product_code/cces",
+                    "description": ""
+                },
+                {
+                    "id": "mas:market_segments/com",
+                    "title": "COM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Market segments / COM",
+                    "name": "com",
+                    "path": "/content/cq:tags/mas/market_segments/com",
+                    "description": ""
+                },
+                {
+                    "id": "mas:plan_type/abm",
+                    "title": "ABM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Plan type / ABM",
+                    "name": "abm",
+                    "path": "/content/cq:tags/mas/plan_type/abm",
+                    "description": ""
+                },
+                {
+                    "id": "mas:customer_segment/individual",
+                    "title": "Individual",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Customer segment / Individual",
+                    "name": "individual",
+                    "path": "/content/cq:tags/mas/customer_segment/individual"
+                }
+            ]
+        },
+        {
+            "name": "new-compare-card-2-t4gp",
+            "fieldName": "cards",
+            "type": "content-fragment",
+            "title": "Photography",
+            "path": "/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp",
+            "created": {
+                "at": "2026-03-23T16:08:30.877Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "modified": {
+                "at": "2026-03-24T20:16:06.928Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "published": {
+                "at": "2026-03-24T21:47:24.339Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "22515abd-bb64-4756-a2f8-1f8d0ba0ff83",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card",
+                "description": "universal m@s card model"
+            },
+            "description": "Photography compare plan card",
+            "fields": [
+                {
+                    "name": "variant",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mini-compare-chart"]
+                },
+                {
+                    "name": "osi",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"]
+                },
+                {
+                    "name": "size",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "mnemonicIcon",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg",
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/lightroom.svg"
+                    ]
+                },
+                {
+                    "name": "mnemonicAlt",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["Photoshop Product Icon", "Lightroom Product Icon"]
+                },
+                {
+                    "name": "mnemonicLink",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["", ""]
+                },
+                {
+                    "name": "badge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "trialBadge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "backgroundColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "borderColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Default"]
+                },
+                {
+                    "name": "backgroundImage",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImageAltText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "cardTitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Photography"]
+                },
+                {
+                    "name": "cardName",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Photography"]
+                },
+                {
+                    "name": "cardTitleLink",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "prices",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><span is=\"inline-price\" data-display-per-unit=\"false\" data-display-recurrence=\"true\" data-display-tax=\"false\" data-force-tax-exclusive=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span></p><p><span is=\"inline-price\" data-display-old-price=\"false\" data-display-plan-type=\"true\" data-force-tax-exclusive=\"true\" data-quantity=\"1\" data-template=\"legal\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "shortDescription",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "promoText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "promoCode",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "description",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": ["<p>Photoshop on desktop, web, and mobile, plus Lightroom.</p>"]
+                },
+                {
+                    "name": "callout",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "showSecureLabel",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "showPlanType",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "quantitySelect",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addon",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addonConfirmation",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "ctas",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><a class=\"primary-outline\" data-checkout-workflow-step=\"commitment\" data-wcs-osi=\"gJhGqZpFk_o3tjCUyFOsl1X7XOlCodSQEBmjY2E6Lqo\" target=\"_self\">Free trial</a></p><p><a class=\"accent\" data-checkout-workflow-step=\"commitment\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\" target=\"_self\">Buy now</a></p>"
+                    ]
+                },
+                {
+                    "name": "variations",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "product",
+                    "type": "content-reference",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "whatsIncluded",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "tags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/ples",
+                        "mas:market_segments/com"
+                    ]
+                },
+                {
+                    "name": "pznTags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "perUnitLabel",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "originalId",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:offer_type/base",
+                    "title": "Base",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Offer type / Base",
+                    "name": "base",
+                    "path": "/content/cq:tags/mas/offer_type/base"
+                },
+                {
+                    "id": "mas:product_code/ples",
+                    "title": "Photoshop Lightrm Bundle (1TB)",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Product code / Photoshop Lightrm Bundle (1TB)",
+                    "name": "ples",
+                    "path": "/content/cq:tags/mas/product_code/ples",
+                    "description": ""
+                },
+                {
+                    "id": "mas:market_segments/com",
+                    "title": "COM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Market segments / COM",
+                    "name": "com",
+                    "path": "/content/cq:tags/mas/market_segments/com",
+                    "description": ""
+                },
+                {
+                    "id": "mas:plan_type/abm",
+                    "title": "ABM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Plan type / ABM",
+                    "name": "abm",
+                    "path": "/content/cq:tags/mas/plan_type/abm",
+                    "description": ""
+                },
+                {
+                    "id": "mas:customer_segment/individual",
+                    "title": "Individual",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Customer segment / Individual",
+                    "name": "individual",
+                    "path": "/content/cq:tags/mas/customer_segment/individual"
+                }
+            ]
+        },
+        {
+            "name": "new-compare-card-2-t4gp",
+            "fieldName": "compareChart",
+            "type": "content-fragment",
+            "title": "Photography",
+            "path": "/content/dam/mas/sandbox/en_US/new-compare-card-2-t4gp",
+            "created": {
+                "at": "2026-03-23T16:08:30.877Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "modified": {
+                "at": "2026-03-24T20:16:06.928Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "published": {
+                "at": "2026-03-24T21:47:24.339Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "22515abd-bb64-4756-a2f8-1f8d0ba0ff83",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card",
+                "description": "universal m@s card model"
+            },
+            "description": "Photography compare plan card",
+            "fields": [
+                {
+                    "name": "variant",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mini-compare-chart"]
+                },
+                {
+                    "name": "osi",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"]
+                },
+                {
+                    "name": "size",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "mnemonicIcon",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg",
+                        "https://www.adobe.com/cc-shared/assets/img/product-icons/svg/lightroom.svg"
+                    ]
+                },
+                {
+                    "name": "mnemonicAlt",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["Photoshop Product Icon", "Lightroom Product Icon"]
+                },
+                {
+                    "name": "mnemonicLink",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["", ""]
+                },
+                {
+                    "name": "badge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "trialBadge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "backgroundColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "borderColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Default"]
+                },
+                {
+                    "name": "backgroundImage",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImageAltText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "cardTitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Photography"]
+                },
+                {
+                    "name": "cardName",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Photography"]
+                },
+                {
+                    "name": "cardTitleLink",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "prices",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><span is=\"inline-price\" data-display-per-unit=\"false\" data-display-recurrence=\"true\" data-display-tax=\"false\" data-force-tax-exclusive=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span></p><p><span is=\"inline-price\" data-display-old-price=\"false\" data-display-plan-type=\"true\" data-force-tax-exclusive=\"true\" data-quantity=\"1\" data-template=\"legal\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "shortDescription",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "promoText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "promoCode",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "description",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": ["<p>Photoshop on desktop, web, and mobile, plus Lightroom.</p>"]
+                },
+                {
+                    "name": "callout",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "showSecureLabel",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "showPlanType",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "quantitySelect",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addon",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addonConfirmation",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "ctas",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><a class=\"primary-outline\" data-checkout-workflow-step=\"commitment\" data-wcs-osi=\"gJhGqZpFk_o3tjCUyFOsl1X7XOlCodSQEBmjY2E6Lqo\" target=\"_self\">Free trial</a></p><p><a class=\"accent\" data-checkout-workflow-step=\"commitment\" data-wcs-osi=\"MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\" target=\"_self\">Buy now</a></p>"
+                    ]
+                },
+                {
+                    "name": "variations",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "product",
+                    "type": "content-reference",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "whatsIncluded",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "tags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/ples",
+                        "mas:market_segments/com"
+                    ]
+                },
+                {
+                    "name": "pznTags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "perUnitLabel",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "originalId",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:offer_type/base",
+                    "title": "Base",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Offer type / Base",
+                    "name": "base",
+                    "path": "/content/cq:tags/mas/offer_type/base"
+                },
+                {
+                    "id": "mas:product_code/ples",
+                    "title": "Photoshop Lightrm Bundle (1TB)",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Product code / Photoshop Lightrm Bundle (1TB)",
+                    "name": "ples",
+                    "path": "/content/cq:tags/mas/product_code/ples",
+                    "description": ""
+                },
+                {
+                    "id": "mas:market_segments/com",
+                    "title": "COM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Market segments / COM",
+                    "name": "com",
+                    "path": "/content/cq:tags/mas/market_segments/com",
+                    "description": ""
+                },
+                {
+                    "id": "mas:plan_type/abm",
+                    "title": "ABM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Plan type / ABM",
+                    "name": "abm",
+                    "path": "/content/cq:tags/mas/plan_type/abm",
+                    "description": ""
+                },
+                {
+                    "id": "mas:customer_segment/individual",
+                    "title": "Individual",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Customer segment / Individual",
+                    "name": "individual",
+                    "path": "/content/cq:tags/mas/customer_segment/individual"
+                }
+            ]
+        },
+        {
+            "name": "new-compare-card-3-gbqh",
+            "fieldName": "cards",
+            "type": "content-fragment",
+            "title": "Firefly Pro",
+            "path": "/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh",
+            "created": {
+                "at": "2026-03-23T16:24:39.216Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "modified": {
+                "at": "2026-03-24T19:57:15.974Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "published": {
+                "at": "2026-03-24T21:47:24.339Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "8a5cf2fe-67e4-47ab-8864-38c0fe58ede7",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card",
+                "description": "universal m@s card model"
+            },
+            "description": "Firefly Pro compare plan card",
+            "fields": [
+                {
+                    "name": "variant",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mini-compare-chart"]
+                },
+                {
+                    "name": "osi",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"]
+                },
+                {
+                    "name": "size",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "mnemonicIcon",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/firefly.svg"]
+                },
+                {
+                    "name": "mnemonicAlt",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["Firefly Product Icon"]
+                },
+                {
+                    "name": "mnemonicLink",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [""]
+                },
+                {
+                    "name": "badge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "trialBadge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "backgroundColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "borderColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImage",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImageAltText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "cardTitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Firefly Pro"]
+                },
+                {
+                    "name": "cardName",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Firefly Pro"]
+                },
+                {
+                    "name": "cardTitleLink",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "prices",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><span is=\"inline-price\" data-display-per-unit=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM\"></span></p><p><span is=\"inline-price\" data-display-old-price=\"false\" data-display-plan-type=\"true\" data-force-tax-exclusive=\"true\" data-quantity=\"1\" data-template=\"legal\" data-wcs-osi=\"msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "shortDescription",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "promoText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "promoCode",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "description",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": ["<p>Get 4,000 credits for creative AI, plus Photoshop on web and mobile.</p>"]
+                },
+                {
+                    "name": "callout",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "showSecureLabel",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "showPlanType",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "quantitySelect",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addon",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addonConfirmation",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "ctas",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><a class=\"primary-outline\" data-checkout-workflow-step=\"commitment\" data-wcs-osi=\"F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY\" target=\"_self\">Free trial</a></p><p><a class=\"con-button blue button-l\" href=\"https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=5FEBA265B427FE3C8AD6FB1DFD078402&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en\" data-checkout-workflow-step=\"commitment\" data-extra-options=\"{}\" data-wcs-osi=\"msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM\">Buy now</a></p>"
+                    ]
+                },
+                {
+                    "name": "variations",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "product",
+                    "type": "content-reference",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "whatsIncluded",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "tags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/ffpo",
+                        "mas:market_segments/com"
+                    ]
+                },
+                {
+                    "name": "pznTags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "perUnitLabel",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "originalId",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "new-compare-card-3-gbqh",
+            "fieldName": "compareChart",
+            "type": "content-fragment",
+            "title": "Firefly Pro",
+            "path": "/content/dam/mas/sandbox/en_US/new-compare-card-3-gbqh",
+            "created": {
+                "at": "2026-03-23T16:24:39.216Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "modified": {
+                "at": "2026-03-24T19:57:15.974Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "published": {
+                "at": "2026-03-24T21:47:24.339Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "8a5cf2fe-67e4-47ab-8864-38c0fe58ede7",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card",
+                "description": "universal m@s card model"
+            },
+            "description": "Firefly Pro compare plan card",
+            "fields": [
+                {
+                    "name": "variant",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mini-compare-chart"]
+                },
+                {
+                    "name": "osi",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"]
+                },
+                {
+                    "name": "size",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "mnemonicIcon",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/firefly.svg"]
+                },
+                {
+                    "name": "mnemonicAlt",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["Firefly Product Icon"]
+                },
+                {
+                    "name": "mnemonicLink",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [""]
+                },
+                {
+                    "name": "badge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "trialBadge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "backgroundColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "borderColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImage",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImageAltText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "cardTitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Firefly Pro"]
+                },
+                {
+                    "name": "cardName",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Firefly Pro"]
+                },
+                {
+                    "name": "cardTitleLink",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "prices",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><span is=\"inline-price\" data-display-per-unit=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM\"></span></p><p><span is=\"inline-price\" data-display-old-price=\"false\" data-display-plan-type=\"true\" data-force-tax-exclusive=\"true\" data-quantity=\"1\" data-template=\"legal\" data-wcs-osi=\"msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "shortDescription",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "promoText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "promoCode",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "description",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": ["<p>Get 4,000 credits for creative AI, plus Photoshop on web and mobile.</p>"]
+                },
+                {
+                    "name": "callout",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "showSecureLabel",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "showPlanType",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "quantitySelect",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addon",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addonConfirmation",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "ctas",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><a class=\"primary-outline\" data-checkout-workflow-step=\"commitment\" data-wcs-osi=\"F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY\" target=\"_self\">Free trial</a></p><p><a class=\"con-button blue button-l\" href=\"https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=5FEBA265B427FE3C8AD6FB1DFD078402&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en\" data-checkout-workflow-step=\"commitment\" data-extra-options=\"{}\" data-wcs-osi=\"msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM\">Buy now</a></p>"
+                    ]
+                },
+                {
+                    "name": "variations",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "product",
+                    "type": "content-reference",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "whatsIncluded",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "tags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/ffpo",
+                        "mas:market_segments/com"
+                    ]
+                },
+                {
+                    "name": "pznTags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "perUnitLabel",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "originalId",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                }
+            ],
+            "variations": [],
+            "tags": []
+        },
+        {
+            "name": "new-compare-card-4-9x1w",
+            "fieldName": "cards",
+            "type": "content-fragment",
+            "title": "Photoshop",
+            "path": "/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w",
+            "created": {
+                "at": "2026-03-23T16:34:12.397Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "modified": {
+                "at": "2026-03-24T19:57:02.3Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "published": {
+                "at": "2026-03-24T21:47:24.339Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "4cd11201-c0fb-4fce-83f9-8aa09d2c6dc0",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card",
+                "description": "universal m@s card model"
+            },
+            "description": "Photoshop compare plan card",
+            "fields": [
+                {
+                    "name": "variant",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mini-compare-chart"]
+                },
+                {
+                    "name": "osi",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"]
+                },
+                {
+                    "name": "size",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "mnemonicIcon",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg"]
+                },
+                {
+                    "name": "mnemonicAlt",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["Photoshop Product Icon"]
+                },
+                {
+                    "name": "mnemonicLink",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [""]
+                },
+                {
+                    "name": "badge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "trialBadge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "backgroundColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "borderColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Default"]
+                },
+                {
+                    "name": "backgroundImage",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImageAltText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "cardTitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Photoshop"]
+                },
+                {
+                    "name": "cardName",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Photoshop"]
+                },
+                {
+                    "name": "cardTitleLink",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "prices",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><span is=\"inline-price\" data-display-per-unit=\"false\" data-display-recurrence=\"true\" data-display-tax=\"false\" data-force-tax-exclusive=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\"></span></p><p><span is=\"inline-price\" data-display-old-price=\"false\" data-display-plan-type=\"true\" data-force-tax-exclusive=\"true\" data-quantity=\"1\" data-template=\"legal\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "shortDescription",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "promoText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "promoCode",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "description",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": ["<p>Photoshop on desktop, web, and mobile, plus Adobe Express Premium plan.</p>"]
+                },
+                {
+                    "name": "callout",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "showSecureLabel",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "showPlanType",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "quantitySelect",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addon",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addonConfirmation",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "ctas",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><a class=\"primary-outline\" data-checkout-workflow-step=\"commitment\" data-wcs-osi=\"ZQwlmahh5YRWh8mRGxo-cr3eu91ShbpRv6vkbcsi3eQ\" target=\"_self\">Free trial</a></p><p><a class=\"con-button blue button-l\" href=\"https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=30404A88D89A328584307175B8B27616&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en\" data-checkout-workflow-step=\"commitment\" data-extra-options=\"{}\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\">Buy now</a></p>"
+                    ]
+                },
+                {
+                    "name": "variations",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "product",
+                    "type": "content-reference",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "whatsIncluded",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "tags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/phsp",
+                        "mas:market_segments/com"
+                    ]
+                },
+                {
+                    "name": "pznTags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "perUnitLabel",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "originalId",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:offer_type/base",
+                    "title": "Base",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Offer type / Base",
+                    "name": "base",
+                    "path": "/content/cq:tags/mas/offer_type/base"
+                },
+                {
+                    "id": "mas:product_code/phsp",
+                    "title": "Photoshop",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Product code / Photoshop",
+                    "name": "phsp",
+                    "path": "/content/cq:tags/mas/product_code/phsp"
+                },
+                {
+                    "id": "mas:market_segments/com",
+                    "title": "COM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Market segments / COM",
+                    "name": "com",
+                    "path": "/content/cq:tags/mas/market_segments/com",
+                    "description": ""
+                },
+                {
+                    "id": "mas:plan_type/abm",
+                    "title": "ABM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Plan type / ABM",
+                    "name": "abm",
+                    "path": "/content/cq:tags/mas/plan_type/abm",
+                    "description": ""
+                },
+                {
+                    "id": "mas:customer_segment/individual",
+                    "title": "Individual",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Customer segment / Individual",
+                    "name": "individual",
+                    "path": "/content/cq:tags/mas/customer_segment/individual"
+                }
+            ]
+        },
+        {
+            "name": "new-compare-card-4-9x1w",
+            "fieldName": "compareChart",
+            "type": "content-fragment",
+            "title": "Photoshop",
+            "path": "/content/dam/mas/sandbox/en_US/new-compare-card-4-9x1w",
+            "created": {
+                "at": "2026-03-23T16:34:12.397Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "modified": {
+                "at": "2026-03-24T19:57:02.3Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "published": {
+                "at": "2026-03-24T21:47:24.339Z",
+                "by": "ilyas@adobe.com",
+                "fullName": "Ilyas Stephane Turkben"
+            },
+            "status": "PUBLISHED",
+            "previewReplicationStatus": "NEVER_PUBLISHED",
+            "id": "4cd11201-c0fb-4fce-83f9-8aa09d2c6dc0",
+            "references": [],
+            "model": {
+                "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ",
+                "path": "/conf/mas/settings/dam/cfm/models/card",
+                "name": "Card",
+                "title": "Card",
+                "description": "universal m@s card model"
+            },
+            "description": "Photoshop compare plan card",
+            "fields": [
+                {
+                    "name": "variant",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["mini-compare-chart"]
+                },
+                {
+                    "name": "osi",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"]
+                },
+                {
+                    "name": "size",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "mnemonicIcon",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg"]
+                },
+                {
+                    "name": "mnemonicAlt",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": ["Photoshop Product Icon"]
+                },
+                {
+                    "name": "mnemonicLink",
+                    "type": "text",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [""]
+                },
+                {
+                    "name": "badge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "trialBadge",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "backgroundColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "borderColor",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Default"]
+                },
+                {
+                    "name": "backgroundImage",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "backgroundImageAltText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "cardTitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Photoshop"]
+                },
+                {
+                    "name": "cardName",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": ["Photoshop"]
+                },
+                {
+                    "name": "cardTitleLink",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "prices",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><span is=\"inline-price\" data-display-per-unit=\"false\" data-display-recurrence=\"true\" data-display-tax=\"false\" data-force-tax-exclusive=\"false\" data-quantity=\"1\" data-template=\"price\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\"></span></p><p><span is=\"inline-price\" data-display-old-price=\"false\" data-display-plan-type=\"true\" data-force-tax-exclusive=\"true\" data-quantity=\"1\" data-template=\"legal\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\"></span></p>"
+                    ]
+                },
+                {
+                    "name": "shortDescription",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "promoText",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "promoCode",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "description",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": ["<p>Photoshop on desktop, web, and mobile, plus Adobe Express Premium plan.</p>"]
+                },
+                {
+                    "name": "callout",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": []
+                },
+                {
+                    "name": "showSecureLabel",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "showPlanType",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "quantitySelect",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addon",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "addonConfirmation",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "ctas",
+                    "type": "long-text",
+                    "multiple": false,
+                    "locked": false,
+                    "mimeType": "text/html",
+                    "values": [
+                        "<p><a class=\"primary-outline\" data-checkout-workflow-step=\"commitment\" data-wcs-osi=\"ZQwlmahh5YRWh8mRGxo-cr3eu91ShbpRv6vkbcsi3eQ\" target=\"_self\">Free trial</a></p><p><a class=\"con-button blue button-l\" href=\"https://commerce.adobe.com/store/commitment?items%5B0%5D%5Bid%5D=30404A88D89A328584307175B8B27616&amp;cli=adobe_com&amp;ctx=fp&amp;co=CH&amp;lang=en\" data-checkout-workflow-step=\"commitment\" data-extra-options=\"{}\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\">Buy now</a></p>"
+                    ]
+                },
+                {
+                    "name": "variations",
+                    "type": "content-fragment",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "product",
+                    "type": "content-reference",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "whatsIncluded",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "tags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": [
+                        "mas:offer_type/base",
+                        "mas:plan_type/abm",
+                        "mas:customer_segment/individual",
+                        "mas:product_code/phsp",
+                        "mas:market_segments/com"
+                    ]
+                },
+                {
+                    "name": "pznTags",
+                    "type": "tag",
+                    "multiple": true,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "perUnitLabel",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "originalId",
+                    "type": "text",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                },
+                {
+                    "name": "locReady",
+                    "type": "boolean",
+                    "multiple": false,
+                    "locked": false,
+                    "values": []
+                }
+            ],
+            "variations": [],
+            "tags": [
+                {
+                    "id": "mas:offer_type/base",
+                    "title": "Base",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Offer type / Base",
+                    "name": "base",
+                    "path": "/content/cq:tags/mas/offer_type/base"
+                },
+                {
+                    "id": "mas:product_code/phsp",
+                    "title": "Photoshop",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Product code / Photoshop",
+                    "name": "phsp",
+                    "path": "/content/cq:tags/mas/product_code/phsp"
+                },
+                {
+                    "id": "mas:market_segments/com",
+                    "title": "COM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Market segments / COM",
+                    "name": "com",
+                    "path": "/content/cq:tags/mas/market_segments/com",
+                    "description": ""
+                },
+                {
+                    "id": "mas:plan_type/abm",
+                    "title": "ABM",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Plan type / ABM",
+                    "name": "abm",
+                    "path": "/content/cq:tags/mas/plan_type/abm",
+                    "description": ""
+                },
+                {
+                    "id": "mas:customer_segment/individual",
+                    "title": "Individual",
+                    "i18n": [],
+                    "titlePath": "Merch at Scale : Customer segment / Individual",
+                    "name": "individual",
+                    "path": "/content/cq:tags/mas/customer_segment/individual"
+                }
+            ]
+        }
+    ],
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24",
+        "path": "/conf/mas/settings/dam/cfm/models/collection",
+        "name": "Collection",
+        "title": "Collection",
+        "tagIds": ["properties:fullyhydrated"]
+    },
+    "validationStatus": [
+        {
+            "property": "fields.label.values",
+            "message": "size must be between 1 and 1"
+        }
+    ],
+    "fieldTags": []
+}

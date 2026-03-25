@@ -1,5 +1,5 @@
 import { expect } from '@open-wc/testing';
-import { generateFieldLink, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
+import { generateCodeToUse, generateFieldLink, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../src/constants.js';
 
 describe('generateFieldLink', () => {
@@ -66,6 +66,35 @@ describe('generateFieldLink', () => {
 
     it('returns null when fragment is null', () => {
         expect(generateFieldLink(null, '/acom', 'prices')).to.be.null;
+    });
+});
+
+describe('generateCodeToUse', () => {
+    function mockFragment(modelPath, id = 'frag-123') {
+        return {
+            id,
+            model: { path: modelPath },
+            title: 'Test Collection',
+            getField: (name) => {
+                const fields = {
+                    name: { values: ['card-name'] },
+                    cardTitle: { values: ['Creative Cloud'] },
+                    variant: { values: ['plans'] },
+                };
+                return fields[name] || null;
+            },
+            getTagTitle: () => null,
+        };
+    }
+
+    it('uses compare-chart merch links for compare-chart collections', () => {
+        const fragment = mockFragment(COLLECTION_MODEL_PATH);
+        const result = generateCodeToUse(fragment, '/sandbox', 'content');
+        expect(result).to.not.be.null;
+        expect(result.href).to.include('content-type=compare-chart');
+        expect(result.href).to.include('consonant=true');
+        expect(result.href).to.not.include('content-type=merch-card-collection');
+        expect(result.richText).to.include('compare-chart:');
     });
 });
 

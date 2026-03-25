@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="mas-io-url" content="http://localhost:2023/mas/io" />
+        <link
+            rel="stylesheet"
+            href="https://www.adobe.com/libs/styles/styles.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://main--milo--adobecom.aem.live/libs/blocks/comparison-table/comparison-table.css"
+        />
+        <title>mas-comparison-table test page</title>
+        <script>
+            window.process = { env: {} };
+        </script>
+        <style>
+            html,
+            body {
+                margin: 0;
+            }
+
+            main {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                flex-direction: column;
+                padding: 80px 24px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            sp-theme,
+            mas-comparison-table {
+                display: block;
+                width: 100%;
+            }
+
+            mas-comparison-table {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+        </style>
+        <script type="module">
+            import './spectrum.js';
+            import { runTests } from '@web/test-runner-mocha';
+            import chai, { expect } from '@esm-bundle/chai';
+            import chaiAsPromised from '@esm-bundle/chai-as-promised';
+            import { toggleDesktop, toggleMobile } from './utils.js';
+            import '../src/mas.js';
+
+            chai.use(chaiAsPromised);
+
+            const serializeCompareChart = () => `
+                <div class="compare-chart" data-editor="mini-compare-chart">
+                    <div class="compare-chart-row" data-row-id="subscription-details">
+                        <div class="compare-chart-label">Subscription details</div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photoshop"></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/firefly"></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photography"></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/creative-cloud"></div>
+                    </div>
+                    <div class="compare-chart-row" data-row-id="desktop">
+                        <div class="compare-chart-label">Adobe Photoshop on desktop</div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photoshop"><span class="icon icon-checkmark"></span></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/firefly"></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photography"><span class="icon icon-checkmark"></span></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/creative-cloud"></div>
+                    </div>
+                    <div class="compare-chart-row" data-row-id="ai-features">
+                        <div class="compare-chart-label">AI features</div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photoshop"></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/firefly"></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photography"></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/creative-cloud"></div>
+                    </div>
+                    <div class="compare-chart-row" data-row-id="credits">
+                        <div class="compare-chart-label"><a href="https://www.adobe.com/go/acomfirefly_generativecredits">Generative credits</a></div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photoshop">500/month</div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/firefly">4,000/month</div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photography">500/month</div>
+                        <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/creative-cloud">4,000/month</div>
+                    </div>
+                </div>
+            `.trim();
+
+            const buildFragment = () => {
+                const card = ({
+                    id,
+                    path,
+                    title,
+                    description,
+                    priceHtml,
+                    ctasHtml,
+                    icon,
+                    iconAlt,
+                }) => ({
+                    type: 'content-fragment',
+                    path,
+                    value: {
+                        id,
+                        path,
+                        title,
+                        fields: {
+                            cardTitle: title,
+                            description: `<p>${description}</p>`,
+                            prices: priceHtml,
+                            ctas: ctasHtml,
+                            mnemonicIcon: [icon],
+                            mnemonicAlt: [iconAlt],
+                        },
+                    },
+                });
+
+                return {
+                    fields: {
+                        cards: [
+                            '/content/dam/mas/cards/photoshop',
+                            '/content/dam/mas/cards/firefly',
+                            '/content/dam/mas/cards/photography',
+                            '/content/dam/mas/cards/creative-cloud',
+                        ],
+                        compareChart: {
+                            value: serializeCompareChart(),
+                            mimeType: 'text/html',
+                        },
+                    },
+                    references: [
+                        card({
+                            id: 'ps',
+                            path: '/content/dam/mas/cards/photoshop',
+                            title: 'Photoshop',
+                            description:
+                                'Photoshop on desktop, web, and mobile, plus Adobe Express Premium plan.',
+                            priceHtml:
+                                '<span is="inline-price" data-template="price" data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"></span>',
+                            ctasHtml:
+                                '<a is="checkout-link" data-wcs-osi="ZQwlmahh5YRWh8mRGxo-cr3eu91ShbpRv6vkbcsi3eQ" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
+                            icon: '/test/mocks/img/photoshop.svg',
+                            iconAlt: 'Photoshop Product Icon',
+                        }),
+                        card({
+                            id: 'ff',
+                            path: '/content/dam/mas/cards/firefly',
+                            title: 'Firefly Pro',
+                            description:
+                                'Get 4,000 credits for creative AI, plus Photoshop on web and mobile.',
+                            priceHtml:
+                                '<span is="inline-price" data-template="price" data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"></span>',
+                            ctasHtml:
+                                '<a is="checkout-link" data-wcs-osi="eK8no6JfQYYW5nF5e4Txie6Orvqa0uqY1i_KB1f6fRs" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
+                            icon: '/test/mocks/img/firefly.svg',
+                            iconAlt: 'Firefly Product Icon',
+                        }),
+                        card({
+                            id: 'photo',
+                            path: '/content/dam/mas/cards/photography',
+                            title: 'Photography',
+                            description:
+                                'Photoshop on desktop, web and mobile, plus Lightroom and Lightroom Classic.',
+                            priceHtml:
+                                '<span is="inline-price" data-template="price" data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"></span>',
+                            ctasHtml:
+                                '<a is="checkout-link" data-wcs-osi="FZcKVrKIV8OT8_qw6n1Qn0uCKxliKJ66J9W6R7B6CVQ" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
+                            icon: '/test/mocks/img/photoshop.svg',
+                            iconAlt: 'Photography Product Icon',
+                        }),
+                        card({
+                            id: 'cc',
+                            path: '/content/dam/mas/cards/creative-cloud',
+                            title: 'Creative Cloud Pro',
+                            description:
+                                'Save 50% for the first 3 months. Get Photoshop and 20+ apps.',
+                            priceHtml:
+                                '<span is="inline-price" data-template="price" data-display-old-price="true" data-promotion-code="CCI_50_3_IP_US" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"></span>',
+                            ctasHtml:
+                                '<a is="checkout-link" data-wcs-osi="JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg" class="con-button outline button-l" href="https://commerce.adobe.com/store/segmentation">Free trial</a><a is="checkout-link" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8" class="con-button blue button-l" href="https://commerce.adobe.com/store/segmentation">Buy now</a>',
+                            icon: '/test/mocks/img/creative-cloud.svg',
+                            iconAlt: 'Creative Cloud Product Icon',
+                        }),
+                    ],
+                };
+            };
+
+            runTests(async () => {
+                const spTheme = document.querySelector('sp-theme');
+                const nextFrame = () =>
+                    new Promise((resolve) => requestAnimationFrame(resolve));
+                const settle = async () => {
+                    await nextFrame();
+                    await nextFrame();
+                    await new Promise((resolve) => setTimeout(resolve, 150));
+                };
+
+                const appendComparisonTable = () => {
+                    const ctor = customElements.get('mas-comparison-table');
+                    const host = new ctor();
+                    host.id = 'comparison-table';
+                    spTheme.append(host);
+                    return host;
+                };
+
+                describe('mas-comparison-table', () => {
+                    beforeEach(async () => {
+                        await toggleDesktop();
+                        spTheme.replaceChildren();
+                    });
+
+                    it('renders a comparison-table block from compare-chart rows', async () => {
+                        const host = appendComparisonTable();
+                        await host.renderFragment(buildFragment());
+                        await settle();
+
+                        const block = host.querySelector('.comparison-table');
+                        expect(block).to.exist;
+                        expect(block.querySelector('.header-content')).to.exist;
+                        expect(
+                            block.querySelectorAll('.header-item[data-column-index]'),
+                        ).to.have.length(4);
+                        expect(block.querySelectorAll('.table-container')).to.have.length(2);
+                        expect(
+                            Array.from(
+                                block.querySelectorAll('.table-column-header button'),
+                            ).map((button) => button.textContent.trim()),
+                        ).to.deep.equal(['Subscription details', 'AI features']);
+                        expect(
+                            Array.from(
+                                block.querySelectorAll('.header-item h3'),
+                            ).map((heading) => heading.textContent.trim()),
+                        ).to.deep.equal([
+                            'Photoshop',
+                            'Firefly Pro',
+                            'Photography',
+                            'Creative Cloud Pro',
+                        ]);
+                        expect(
+                            block.querySelector('.table-column-header button')
+                                ?.textContent,
+                        ).to.include('Subscription details');
+                        expect(
+                            Array.from(
+                                block.querySelectorAll('.table-row-header'),
+                            ).map((row) => row.textContent.trim()),
+                        ).to.include.members([
+                            'Adobe Photoshop on desktop',
+                            'Generative credits',
+                        ]);
+                        expect(
+                            Array.from(
+                                block.querySelectorAll('.table-row-header'),
+                            ).map((row) => row.textContent.trim()),
+                        ).to.not.include('Subscription details');
+                    });
+
+                    it('switches to a two-product mobile comparison with selectors', async () => {
+                        await toggleMobile();
+                        spTheme.replaceChildren();
+
+                        const host = appendComparisonTable();
+                        await host.renderFragment(buildFragment());
+                        await settle();
+
+                        const block = host.querySelector('.comparison-table');
+                        const visibleSelects = Array.from(
+                            block.querySelectorAll('.mobile-filter-select'),
+                        ).filter(
+                            (select) =>
+                                !select.closest('.header-item')?.classList.contains(
+                                    'hidden',
+                                ),
+                        );
+                        expect(visibleSelects).to.have.length(2);
+
+                        const visibleHeaders = Array.from(
+                            block.querySelectorAll(
+                                '.header-item[data-column-index]:not(.hidden)',
+                            ),
+                        ).map((item) =>
+                            item.querySelector('h3')?.textContent.trim(),
+                        );
+                        expect(visibleHeaders).to.deep.equal([
+                            'Photoshop',
+                            'Firefly Pro',
+                        ]);
+
+                        const generativeCreditsRow = Array.from(
+                            block.querySelectorAll('.table-row'),
+                        ).find(
+                            (row) =>
+                                row.querySelector('.table-row-header')
+                                    ?.textContent?.trim() ===
+                                'Generative credits',
+                        );
+                        const visibleCells = Array.from(
+                            generativeCreditsRow.querySelectorAll(
+                                '.table-cell:not(.hidden)',
+                            ),
+                        ).map((cell) => cell.textContent.trim());
+                        expect(visibleCells).to.deep.equal([
+                            '500/month',
+                            '4,000/month',
+                        ]);
+                    });
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <sp-theme color="light" scale="medium">
+            <main></main>
+        </sp-theme>
+    </body>
+</html>

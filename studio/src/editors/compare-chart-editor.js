@@ -14,6 +14,8 @@ import './merch-card-editor.js';
 import '../rte/rte-field.js';
 
 const COMPARE_CHART_FIELD = 'compareChart';
+const LEGACY_PREVIEW_RENDERER = 'legacy';
+const CONSONANT_PREVIEW_RENDERER = 'consonant';
 const CARD_SELECT_EVENT = 'compare-chart-select-card';
 const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
 const NEW_CARD_TITLE = 'New Compare Card';
@@ -213,6 +215,9 @@ const createField = (name, values, type = 'text', multiple = false, mimeType = n
     return field;
 };
 
+const getPreviewRenderer = (fragmentStore) =>
+    fragmentStore?.compareChartDraftContext?.previewRenderer || CONSONANT_PREVIEW_RENDERER;
+
 const getCompareChartCardItems = (fragmentStore) => {
     const fragment = fragmentStore?.get();
     const referencesByPath = new Map((fragment?.references || []).map((reference) => [reference.path, reference]));
@@ -323,8 +328,10 @@ const buildTablePreviewReference = (cardItem) => {
     );
     return {
         type: 'content-fragment',
+        path: fragment.path || cardItem.path,
         value: {
             id: fragment.id,
+            path: fragment.path || cardItem.path,
             title: fragment.title || fragment.name || getCardLabel(cardItem),
             fields: fragment.fields,
         },
@@ -367,10 +374,39 @@ export const buildCompareChartPreviewFragment = (fragmentStore) => {
     };
 };
 
+export const buildCompareChartConsonantPreviewFragment = (fragmentStore) => {
+    const fragment = fragmentStore?.get();
+    const cardItems = getCompareChartCardItems(fragmentStore);
+    const cardsParentPath = fragment?.path?.split('/').slice(0, -1).join('/') || '';
+
+    return {
+        id: `compare-comparison-preview-${fragment?.id || 'collection'}`,
+        path: `${cardsParentPath}/compare-comparison-preview`,
+        title: fragment?.title || 'Compare Chart Preview',
+        model: { id: 'comparison-table' },
+        dictionary: structuredClone(fragment?.dictionary || {}),
+        fields: [
+            createField(
+                'cards',
+                cardItems.map(
+                    ({ fragmentStore: cardStore, reference, path }) => cardStore?.get()?.path || reference?.path || path,
+                ),
+                'content-fragment',
+                true,
+            ),
+            createField('compareChart', [getFieldValue(fragment, COMPARE_CHART_FIELD)], 'long-text', false, 'text/html'),
+        ],
+        references: cardItems
+            .filter(({ fragmentStore: cardStore, reference }) => cardStore || reference)
+            .map((cardItem) => buildTablePreviewReference(cardItem)),
+    };
+};
+
 class CompareChartEditor extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
         previewOnly: { type: Boolean, attribute: 'preview-only', reflect: true },
+        previewRenderer: { type: String, state: true },
         selectedCardPath: { type: String, state: true },
         draggedCardPath: { type: String, state: true },
         dropIndicatorIndex: { type: Number, state: true },
@@ -731,6 +767,28 @@ class CompareChartEditor extends LitElement {
             width: 100%;
         }
 
+        .preview-renderer-group {
+            grid-column: 1 / -1;
+        }
+
+        .preview-renderer-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 32px;
+        }
+
+        .preview-renderer-option {
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--spectrum-gray-700);
+        }
+
+        .preview-renderer-option.is-active {
+            color: var(--spectrum-gray-900);
+            font-weight: 700;
+        }
+
         .preview-shell {
             padding: 16px;
             border-radius: 18px;
@@ -799,6 +857,7 @@ class CompareChartEditor extends LitElement {
         this.dropIndicatorIndex = -1;
         this.activeEditorKey = '';
         this.showRemoveCardDialog = false;
+        this.previewRenderer = CONSONANT_PREVIEW_RENDERER;
     }
 
     connectedCallback() {
@@ -819,6 +878,7 @@ class CompareChartEditor extends LitElement {
 
     update(changedProperties) {
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
+            this.previewRenderer = getPreviewRenderer(this.fragmentStore);
             void this.initFragmentReferencesMap();
         }
 
@@ -914,8 +974,9 @@ class CompareChartEditor extends LitElement {
 
     get canRenderPreview() {
         const commerceService = document.querySelector('mas-commerce-service');
+        const previewTag = this.previewRenderer === CONSONANT_PREVIEW_RENDERER ? 'mas-comparison-table' : 'mas-table';
         return Boolean(
-            customElements.get('mas-table') &&
+            customElements.get(previewTag) &&
                 customElements.get('aem-fragment') &&
                 commerceService?.providers &&
                 commerceService?.settings,
@@ -963,6 +1024,26 @@ class CompareChartEditor extends LitElement {
                             .value=${this.fragment?.description || ''}
                             @input=${this.#handleFragmentDescriptionUpdate}
                         ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group class="preview-renderer-group">
+                        <sp-field-label for="preview-renderer-switch">Preview renderer</sp-field-label>
+                        <div class="preview-renderer-control">
+                            <span
+                                class="preview-renderer-option ${this.previewRenderer === LEGACY_PREVIEW_RENDERER
+                                    ? 'is-active'
+                                    : ''}"
+                            >
+                                Legacy
+                            </span>
+                            <sp-switch
+                                id="preview-renderer-switch"
+                                size="m"
+                                .checked=${this.previewRenderer === CONSONANT_PREVIEW_RENDERER}
+                                @change=${this.#handlePreviewRendererToggle}
+                            >
+                                Consonant
+                            </sp-switch>
+                        </div>
                     </sp-field-group>
                 </div>
             </div>
@@ -1158,7 +1239,7 @@ class CompareChartEditor extends LitElement {
                 <div class="panel-card">
                     <h3 class="panel-title">Live Preview</h3>
                     <p class="panel-copy">
-                        Preview is available once <code>mas-commerce-service</code>, <code>mas-table</code>, and
+                        Preview is available once <code>mas-commerce-service</code>, the selected preview renderer, and
                         <code>aem-fragment</code> are loaded in the current view.
                     </p>
                 </div>
@@ -1176,9 +1257,25 @@ class CompareChartEditor extends LitElement {
                 <p class="panel-copy">Preview updates automatically as you edit the compare chart.</p>
                 <div class="preview-shell">
                     <sp-theme color="light" scale="medium" system="${getSpectrumVersion(VARIANT_NAMES.MINI_COMPARE_CHART)}">
-                        <mas-table class="preview-table">
-                            <aem-fragment ?author=${true} loading="cache" fragment="${previewFragment.id}"></aem-fragment>
-                        </mas-table>
+                        ${this.previewRenderer === CONSONANT_PREVIEW_RENDERER
+                            ? html`
+                                  <mas-comparison-table class="preview-table">
+                                      <aem-fragment
+                                          ?author=${true}
+                                          loading="cache"
+                                          fragment="${previewFragment.id}"
+                                      ></aem-fragment>
+                                  </mas-comparison-table>
+                              `
+                            : html`
+                                  <mas-table class="preview-table">
+                                      <aem-fragment
+                                          ?author=${true}
+                                          loading="cache"
+                                          fragment="${previewFragment.id}"
+                                      ></aem-fragment>
+                                  </mas-table>
+                              `}
                     </sp-theme>
                 </div>
             </div>
@@ -1235,12 +1332,14 @@ class CompareChartEditor extends LitElement {
             return {
                 cardStoresByPath: new Map(),
                 subscriptions: new Map(),
+                previewRenderer: CONSONANT_PREVIEW_RENDERER,
             };
         }
 
         this.fragmentStore.compareChartDraftContext ??= {
             cardStoresByPath: new Map(),
             subscriptions: new Map(),
+            previewRenderer: CONSONANT_PREVIEW_RENDERER,
         };
 
         return this.fragmentStore.compareChartDraftContext;
@@ -1790,6 +1889,17 @@ class CompareChartEditor extends LitElement {
         this.fragmentStore?.updateFieldInternal('description', event.target.value);
     };
 
+    #handlePreviewRendererToggle = async (event) => {
+        const nextRenderer = event.target.checked ? CONSONANT_PREVIEW_RENDERER : LEGACY_PREVIEW_RENDERER;
+        if (nextRenderer === this.previewRenderer) return;
+
+        this.previewRenderer = nextRenderer;
+        this.#getDraftContext().previewRenderer = nextRenderer;
+        this.requestUpdate();
+        this.closest('mas-fragment-editor')?.requestUpdate();
+        await this.#refreshPreviewFragments(true);
+    };
+
     #getLabelEditorKey(rowId) {
         return `label:${rowId}`;
     }
@@ -2151,8 +2261,11 @@ class CompareChartEditor extends LitElement {
     }
 
     #createPreviewSnapshot() {
-        const previewFragment = buildCompareChartPreviewFragment(this.fragmentStore);
-        const signature = JSON.stringify(previewFragment);
+        const previewFragment =
+            this.previewRenderer === CONSONANT_PREVIEW_RENDERER
+                ? buildCompareChartConsonantPreviewFragment(this.fragmentStore)
+                : buildCompareChartPreviewFragment(this.fragmentStore);
+        const signature = `${this.previewRenderer}:${JSON.stringify(previewFragment)}`;
         const changed = signature !== this.#lastPreviewSignature;
         if (changed) {
             this.#lastPreviewSignature = signature;
@@ -2163,22 +2276,40 @@ class CompareChartEditor extends LitElement {
 
     #refreshPreviewFragments(force = false) {
         cancelAnimationFrame(this.#previewRefreshFrame);
-        this.#previewRefreshFrame = requestAnimationFrame(async () => {
-            if (!this.fragmentStore) return;
+        return new Promise((resolve) => {
+            this.#previewRefreshFrame = requestAnimationFrame(async () => {
+                if (!this.fragmentStore) {
+                    resolve();
+                    return;
+                }
 
-            const { previewFragment, changed } = this.#createPreviewSnapshot();
-            if (!changed && !force) return;
+                const { previewFragment, changed } = this.#createPreviewSnapshot();
+                if (!changed && !force) {
+                    resolve();
+                    return;
+                }
 
-            if (changed) {
-                await prepopulateFragmentCache(previewFragment.id, previewFragment);
-            }
+                if (changed || force) {
+                    await prepopulateFragmentCache(previewFragment.id, previewFragment);
+                }
 
-            document.querySelectorAll(`aem-fragment[fragment="${previewFragment.id}"]`).forEach((fragment) => {
-                fragment.refresh(false);
+                document
+                    .querySelectorAll(`acom-content-preview[data-source-fragment-id="${this.fragment?.id || ''}"]`)
+                    .forEach((preview) => {
+                        if (preview.getAttribute('renderer') !== this.previewRenderer) {
+                            preview.setAttribute('renderer', this.previewRenderer);
+                        }
+                        if (preview.getAttribute('fragment') !== previewFragment.id) {
+                            preview.setAttribute('fragment', previewFragment.id);
+                        }
+                        preview.refresh?.();
+                    });
+
+                document.querySelectorAll(`aem-fragment[fragment="${previewFragment.id}"]`).forEach((fragment) => {
+                    fragment.refresh(false);
+                });
+                resolve();
             });
-            document
-                .querySelectorAll(`acom-content-preview[fragment="${previewFragment.id}"]`)
-                .forEach((preview) => preview.refresh?.());
         });
     }
 

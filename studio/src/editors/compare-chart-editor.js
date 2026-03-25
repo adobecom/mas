@@ -324,7 +324,7 @@ const buildTableMarkup = (fragmentStore) => {
 
 const buildTablePreviewReference = (cardItem) => {
     const fragment = structuredClone(
-        cardItem.fragmentStore?.previewStore.get() || cardItem.fragmentStore?.get() || cardItem.reference,
+        cardItem.fragmentStore?.get() || cardItem.reference,
     );
     return {
         type: 'content-fragment',
@@ -800,7 +800,7 @@ class CompareChartEditor extends LitElement {
 
         .preview-table {
             display: block;
-            width: min(100%, 900px);
+            width: min(100%, 1200px);
             margin: 0 auto;
         }
 
@@ -2181,6 +2181,7 @@ class CompareChartEditor extends LitElement {
     }
 
     #handleFeatureCellActivationKeydown(event, editorKey) {
+        if (this.activeEditorKey === editorKey) return;
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
         event.stopPropagation();
@@ -2226,7 +2227,7 @@ class CompareChartEditor extends LitElement {
     };
 
     #buildTablePreviewReference(cardItem) {
-        const fragment = structuredClone(cardItem.fragmentStore.previewStore.get() || cardItem.fragmentStore.get());
+        const fragment = structuredClone(cardItem.fragmentStore.get());
         return {
             type: 'content-fragment',
             value: {

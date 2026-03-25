@@ -56,7 +56,7 @@
             const serializeCompareChart = () => `
                 <div class="compare-chart" data-editor="mini-compare-chart">
                     <div class="compare-chart-row" data-row-id="subscription-details">
-                        <div class="compare-chart-label">Subscription details</div>
+                        <div class="compare-chart-label"><a href="/plans/subscription-details">Subscription details</a></div>
                         <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photoshop"></div>
                         <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/firefly"></div>
                         <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photography"></div>
@@ -70,7 +70,7 @@
                         <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/creative-cloud"></div>
                     </div>
                     <div class="compare-chart-row" data-row-id="ai-features">
-                        <div class="compare-chart-label">AI features</div>
+                        <div class="compare-chart-label">AI <em>features</em></div>
                         <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photoshop"></div>
                         <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/firefly"></div>
                         <div class="compare-chart-cell" data-card-path="/content/dam/mas/cards/photography"></div>
@@ -86,7 +86,7 @@
                 </div>
             `.trim();
 
-            const buildFragment = () => {
+            const buildFragment = ({ asReferenceMap = false } = {}) => {
                 const card = ({
                     id,
                     path,
@@ -114,6 +114,61 @@
                     },
                 });
 
+                const references = [
+                    card({
+                        id: 'ps',
+                        path: '/content/dam/mas/cards/photoshop',
+                        title: 'Photoshop',
+                        description:
+                            'Photoshop on desktop, web, and mobile, plus Adobe Express Premium plan.',
+                        priceHtml:
+                            '<span is="inline-price" data-template="price" data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"></span>',
+                        ctasHtml:
+                            '<a is="checkout-link" data-wcs-osi="ZQwlmahh5YRWh8mRGxo-cr3eu91ShbpRv6vkbcsi3eQ" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
+                        icon: '/test/mocks/img/photoshop.svg',
+                        iconAlt: 'Photoshop Product Icon',
+                    }),
+                    card({
+                        id: 'ff',
+                        path: '/content/dam/mas/cards/firefly',
+                        title: 'Firefly Pro',
+                        description:
+                            'Get 4,000 credits for creative AI, plus Photoshop on web and mobile.',
+                        priceHtml:
+                            '<span is="inline-price" data-template="price" data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"></span>',
+                        ctasHtml:
+                            '<a is="checkout-link" data-wcs-osi="eK8no6JfQYYW5nF5e4Txie6Orvqa0uqY1i_KB1f6fRs" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
+                        icon: '/test/mocks/img/firefly.svg',
+                        iconAlt: 'Firefly Product Icon',
+                    }),
+                    card({
+                        id: 'photo',
+                        path: '/content/dam/mas/cards/photography',
+                        title: 'Photography',
+                        description:
+                            'Photoshop on desktop, web and mobile, plus Lightroom and Lightroom Classic.',
+                        priceHtml:
+                            '<span is="inline-price" data-template="price" data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"></span>',
+                        ctasHtml:
+                            '<a is="checkout-link" data-wcs-osi="FZcKVrKIV8OT8_qw6n1Qn0uCKxliKJ66J9W6R7B6CVQ" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
+                        icon: '/test/mocks/img/photoshop.svg',
+                        iconAlt: 'Photography Product Icon',
+                    }),
+                    card({
+                        id: 'cc',
+                        path: '/content/dam/mas/cards/creative-cloud',
+                        title: 'Creative Cloud Pro',
+                        description:
+                            'Save 50% for the first 3 months. Get Photoshop and 20+ apps.',
+                        priceHtml:
+                            '<span is="inline-price" data-template="price" data-display-old-price="true" data-promotion-code="CCI_50_3_IP_US" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"></span>',
+                        ctasHtml:
+                            '<a is="checkout-link" data-wcs-osi="JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg" class="con-button outline button-l" href="https://commerce.adobe.com/store/segmentation">Free trial</a><a is="checkout-link" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8" class="con-button blue button-l" href="https://commerce.adobe.com/store/segmentation">Buy now</a>',
+                        icon: '/test/mocks/img/creative-cloud.svg',
+                        iconAlt: 'Creative Cloud Product Icon',
+                    }),
+                ];
+
                 return {
                     fields: {
                         cards: [
@@ -127,60 +182,14 @@
                             mimeType: 'text/html',
                         },
                     },
-                    references: [
-                        card({
-                            id: 'ps',
-                            path: '/content/dam/mas/cards/photoshop',
-                            title: 'Photoshop',
-                            description:
-                                'Photoshop on desktop, web, and mobile, plus Adobe Express Premium plan.',
-                            priceHtml:
-                                '<span is="inline-price" data-template="price" data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"></span>',
-                            ctasHtml:
-                                '<a is="checkout-link" data-wcs-osi="ZQwlmahh5YRWh8mRGxo-cr3eu91ShbpRv6vkbcsi3eQ" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
-                            icon: '/test/mocks/img/photoshop.svg',
-                            iconAlt: 'Photoshop Product Icon',
-                        }),
-                        card({
-                            id: 'ff',
-                            path: '/content/dam/mas/cards/firefly',
-                            title: 'Firefly Pro',
-                            description:
-                                'Get 4,000 credits for creative AI, plus Photoshop on web and mobile.',
-                            priceHtml:
-                                '<span is="inline-price" data-template="price" data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM"></span>',
-                            ctasHtml:
-                                '<a is="checkout-link" data-wcs-osi="eK8no6JfQYYW5nF5e4Txie6Orvqa0uqY1i_KB1f6fRs" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="msg4m1782IVpeTz8mHd_P_0GG3OSG7XS932oW-7EGuM" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
-                            icon: '/test/mocks/img/firefly.svg',
-                            iconAlt: 'Firefly Product Icon',
-                        }),
-                        card({
-                            id: 'photo',
-                            path: '/content/dam/mas/cards/photography',
-                            title: 'Photography',
-                            description:
-                                'Photoshop on desktop, web and mobile, plus Lightroom and Lightroom Classic.',
-                            priceHtml:
-                                '<span is="inline-price" data-template="price" data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4"></span>',
-                            ctasHtml:
-                                '<a is="checkout-link" data-wcs-osi="FZcKVrKIV8OT8_qw6n1Qn0uCKxliKJ66J9W6R7B6CVQ" class="con-button outline button-l" href="https://commerce.adobe.com/store/commitment">Free trial</a><a is="checkout-link" data-wcs-osi="MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4" class="con-button blue button-l" href="https://commerce.adobe.com/store/commitment">Buy now</a>',
-                            icon: '/test/mocks/img/photoshop.svg',
-                            iconAlt: 'Photography Product Icon',
-                        }),
-                        card({
-                            id: 'cc',
-                            path: '/content/dam/mas/cards/creative-cloud',
-                            title: 'Creative Cloud Pro',
-                            description:
-                                'Save 50% for the first 3 months. Get Photoshop and 20+ apps.',
-                            priceHtml:
-                                '<span is="inline-price" data-template="price" data-display-old-price="true" data-promotion-code="CCI_50_3_IP_US" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8"></span>',
-                            ctasHtml:
-                                '<a is="checkout-link" data-wcs-osi="JzW8dgW8U1SrgbHDmTE-ABsOKPgtl5jugiW8bA5PtKg" class="con-button outline button-l" href="https://commerce.adobe.com/store/segmentation">Free trial</a><a is="checkout-link" data-wcs-osi="r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8" class="con-button blue button-l" href="https://commerce.adobe.com/store/segmentation">Buy now</a>',
-                            icon: '/test/mocks/img/creative-cloud.svg',
-                            iconAlt: 'Creative Cloud Product Icon',
-                        }),
-                    ],
+                    references: asReferenceMap
+                        ? Object.fromEntries(
+                              references.map((reference) => [
+                                  reference.path.split('/').pop(),
+                                  reference,
+                              ]),
+                          )
+                        : references,
                 };
             };
 
@@ -225,6 +234,13 @@
                                 block.querySelectorAll('.table-column-header button'),
                             ).map((button) => button.textContent.trim()),
                         ).to.deep.equal(['Subscription details', 'AI features']);
+                        expect(
+                            block.querySelector('.table-column-header button a')
+                                ?.getAttribute('href'),
+                        ).to.equal('/plans/subscription-details');
+                        expect(
+                            block.querySelectorAll('.table-column-header button em'),
+                        ).to.have.length(1);
                         expect(
                             Array.from(
                                 block.querySelectorAll('.header-item h3'),
@@ -301,6 +317,28 @@
                         expect(visibleCells).to.deep.equal([
                             '500/month',
                             '4,000/month',
+                        ]);
+                    });
+
+                    it('renders when fragment references are provided as an object map', async () => {
+                        const host = appendComparisonTable();
+                        await host.renderFragment(
+                            buildFragment({ asReferenceMap: true }),
+                        );
+                        await settle();
+
+                        expect(
+                            host.querySelectorAll('.header-item[data-column-index]'),
+                        ).to.have.length(4);
+                        expect(
+                            Array.from(
+                                host.querySelectorAll('.header-item h3'),
+                            ).map((heading) => heading.textContent.trim()),
+                        ).to.deep.equal([
+                            'Photoshop',
+                            'Firefly Pro',
+                            'Photography',
+                            'Creative Cloud Pro',
                         ]);
                     });
                 });

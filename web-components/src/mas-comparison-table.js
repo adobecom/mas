@@ -8,6 +8,7 @@ import {
     SELECTOR_MAS_ELEMENT,
     TEMPLATE_PRICE_LEGAL,
 } from './constants.js';
+import { transformLinkToButton } from './hydrate.js';
 import { getService, printMeasure } from './utils.js';
 
 const TAG_NAME = 'mas-comparison-table';
@@ -100,14 +101,20 @@ const normalizeFragmentReference = (reference) => {
     };
 };
 
+const normalizeReferences = (references = []) => {
+    if (!references || typeof references !== 'object') return [];
+    return Array.isArray(references) ? references : Object.values(references);
+};
+
 const buildReferenceLookup = (references = []) => {
     const map = new Map();
-    references.forEach((reference) => {
+    normalizeReferences(references).forEach((reference) => {
         const normalized = normalizeFragmentReference(reference);
         const keys = [
             normalized.id,
             normalized.path,
             normalized.originalId,
+            normalized.fields?.originalId,
             normalized.path?.split('/').pop(),
         ].filter(Boolean);
         keys.forEach((key) => map.set(String(key), normalized));
@@ -179,6 +186,19 @@ const createIconNodes = (fields) => {
     );
 };
 
+const COMPARISON_TABLE_CTA_MAPPING = {
+    ctas: {
+        size: 'l',
+    },
+};
+
+const hydrateComparisonTableButton = (button) =>
+    transformLinkToButton(
+        button,
+        { consonant: true },
+        COMPARISON_TABLE_CTA_MAPPING,
+    );
+
 const buildHeaderItem = (reference) => {
     const fields = reference?.fields || {};
     const headerItem = createElement('div');
@@ -228,7 +248,11 @@ const buildHeaderItem = (reference) => {
             const wrapper = createElement(index === 0 ? 'p' : 'div', {
                 class: 'action-area',
             });
-            wrapper.append(button.cloneNode(true));
+            const hydratedButton =
+                button.tagName === 'A'
+                    ? hydrateComparisonTableButton(button)
+                    : button.cloneNode(true);
+            wrapper.append(hydratedButton);
             headerItem.append(wrapper);
         });
     }
@@ -236,9 +260,11 @@ const buildHeaderItem = (reference) => {
     return headerItem;
 };
 
-const buildSectionHeaderRow = (cardCount, title = 'Features') => {
+const buildSectionHeaderRow = (cardCount, labelHtml = 'Features') => {
     const row = createElement('div');
-    row.append(createElement('div', {}, title));
+    const label = createElement('div');
+    label.append(...cloneHtmlNodes(labelHtml || 'Features'));
+    row.append(label);
     for (let index = 0; index < cardCount; index += 1) {
         row.append(createElement('div'));
     }
@@ -272,7 +298,7 @@ const isSectionRow = (rowData, cardEntries) =>
 const groupCompareRows = (compareRows, cardEntries) => {
     const sections = [];
     let currentSection = {
-        title: 'Features',
+        labelHtml: 'Features',
         rows: [],
     };
 
@@ -282,11 +308,7 @@ const groupCompareRows = (compareRows, cardEntries) => {
                 sections.push(currentSection);
             }
             currentSection = {
-                title:
-                    rowData.label
-                        .replace(/<[^>]*>/g, ' ')
-                        .replace(/\s+/g, ' ')
-                        .trim() || 'Features',
+                labelHtml: rowData.label || 'Features',
                 rows: [],
             };
             return;
@@ -1102,7 +1124,7 @@ export class MasComparisonTable extends HTMLElement {
         block.append(header);
         const sections = groupCompareRows(compareRows, cardEntries);
         const tableGroups = sections.map((section) => [
-            buildSectionHeaderRow(cardEntries.length, section.title),
+            buildSectionHeaderRow(cardEntries.length, section.labelHtml),
             ...section.rows.map((rowData) =>
                 buildFeatureRow(rowData, cardEntries),
             ),

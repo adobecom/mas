@@ -1,58 +1,9 @@
-var __defProp = Object.defineProperty;
-var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
-
-// src/merch-whats-included.js
-import { html, css, LitElement, nothing } from "./lit-all.min.js";
-var MerchWhatsIncluded = class extends LitElement {
-  updated() {
-    this.hideSeeMoreEls();
-  }
-  hideSeeMoreEls() {
-    if (this.isMobile) {
-      this.rows.forEach((node, index) => {
-        if (index >= 5) {
-          node.style.display = this.showAll ? "flex" : "none";
-        }
-      });
-    }
-  }
-  constructor() {
-    super();
-    this.showAll = false;
-    this.mobileRows = this.mobileRows === void 0 ? 5 : this.mobileRows;
-  }
-  toggle() {
-    this.showAll = !this.showAll;
-    this.dispatchEvent(
-      new CustomEvent("hide-see-more-elements", {
-        bubbles: true,
-        composed: true
-      })
-    );
-    this.requestUpdate();
-  }
-  render() {
-    return html`<slot name="heading"></slot>
+var r=Object.defineProperty;var h=(t,e,s)=>e in t?r(t,e,{enumerable:!0,configurable:!0,writable:!0,value:s}):t[e]=s;var o=(t,e,s)=>h(t,typeof e!="symbol"?e+"":e,s);import{html as l,css as d,LitElement as m,nothing as n}from"./lit-all.min.js";var i=class extends m{updated(){this.hideSeeMoreEls()}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((e,s)=>{s>=5&&(e.style.display=this.showAll?"flex":"none")})}constructor(){super(),this.showAll=!1,this.mobileRows=this.mobileRows===void 0?5:this.mobileRows}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}render(){return l`<slot name="heading"></slot>
             <slot name="contentBullets"></slot>
-            ${!this.isMobile || !this.bulletsAdded ? html`<slot name="content"></slot>` : nothing}
-            ${this.isMobile && this.rows.length > this.mobileRows && !this.bulletsAdded ? html`<div @click=${this.toggle} class="see-more">
-                      ${this.showAll ? "- See less" : "+ See more"}
-                  </div>` : nothing}`;
-  }
-  get isMobile() {
-    return window.matchMedia("(max-width: 767px)").matches;
-  }
-  get rows() {
-    return this.querySelectorAll('[slot="content"] merch-mnemonic-list');
-  }
-  get bulletsAdded() {
-    return !!this.querySelector(
-      '[slot="contentBullets"] merch-mnemonic-list'
-    );
-  }
-};
-__publicField(MerchWhatsIncluded, "styles", css`
+            ${!this.isMobile||!this.bulletsAdded?l`<slot name="content"></slot>`:n}
+            ${this.isMobile&&this.rows.length>this.mobileRows&&!this.bulletsAdded?l`<div @click=${this.toggle} class="see-more">
+                      ${this.showAll?"- See less":"+ See more"}
+                  </div>`:n}`}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}get rows(){return this.querySelectorAll('[slot="content"] merch-mnemonic-list')}get bulletsAdded(){return!!this.querySelector('[slot="contentBullets"] merch-mnemonic-list')}};o(i,"styles",d`
         :host {
             display: flex;
             flex-wrap: wrap;
@@ -93,13 +44,4 @@ __publicField(MerchWhatsIncluded, "styles", css`
             text-decoration: underline;
             color: var(--link-color-dark);
         }
-    `);
-__publicField(MerchWhatsIncluded, "properties", {
-  heading: { type: String, attribute: true },
-  mobileRows: { type: Number, attribute: true }
-});
-customElements.define("merch-whats-included", MerchWhatsIncluded);
-export {
-  MerchWhatsIncluded
-};
-//# sourceMappingURL=merch-whats-included.js.map
+    `),o(i,"properties",{heading:{type:String,attribute:!0},mobileRows:{type:Number,attribute:!0}});customElements.define("merch-whats-included",i);export{i as MerchWhatsIncluded};

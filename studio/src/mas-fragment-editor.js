@@ -65,6 +65,10 @@ export default class MasFragmentEditor extends LitElement {
             padding-bottom: 48px;
         }
 
+        #editor-content.compare-chart-layout {
+            grid-template-columns: 1fr 1fr;
+        }
+
         @media (max-width: 1200px) {
             #editor-content {
                 grid-template-columns: 1fr;
@@ -87,6 +91,10 @@ export default class MasFragmentEditor extends LitElement {
             gap: 16px;
         }
 
+        #editor-content.compare-chart-layout #preview-column {
+            align-items: stretch;
+        }
+
         #preview-wrapper {
             display: flex;
             flex-direction: column;
@@ -99,7 +107,7 @@ export default class MasFragmentEditor extends LitElement {
 
         #preview-wrapper.compare-chart-preview {
             width: 100%;
-            max-width: 900px;
+            max-width: 1200px;
             border-radius: 0;
             box-shadow: none;
             max-height: calc(100vh - 200px);
@@ -1726,7 +1734,12 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             ${this.styles}
             <div id="fragment-editor">
-                <div id="editor-content">
+                <div
+                    id="editor-content"
+                    class="${this.fragment.model.path === COLLECTION_MODEL_PATH
+                        ? 'compare-chart-layout'
+                        : ''}"
+                >
                     <div id="form-column">${this.fragmentEditor}</div>
                     ${this.previewColumn}
                 </div>

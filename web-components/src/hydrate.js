@@ -330,7 +330,11 @@ export function processPrices(fields, merchCard, mapping) {
     appendSlot('prices', fields, merchCard, mapping);
 }
 
-function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
+export function transformLinkToButton(
+    linkElement,
+    merchCard,
+    aemFragmentMapping,
+) {
     const isCheckoutLink =
         linkElement.hasAttribute('data-wcs-osi') &&
         Boolean(linkElement.getAttribute('data-wcs-osi'));

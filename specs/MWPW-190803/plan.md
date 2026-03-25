@@ -2,157 +2,97 @@
 
 ## Technical Context
 
-**Platform:** Adobe I/O Runtime (Node.js), MAS Studio (Lit + Spectrum WC), AEM content fragments
+**Implementation layer:** `web-components/src/hydrate.js` — CTA filtering at render time
+**IO pipeline change:** Single line — adds `hideTrialCTAs` to `SETTING_NAME_DEFINITIONS`
 
-**Implementation layer:** MAS IO pipeline — `settings` transformer (4th in pipeline)
-**Files changed:** 1 file (`io/www/src/fragment/transformers/settings.js`)
-**Files unchanged:** Studio UI, web-components, hydrate.js, card fragments
-
-**Pipeline position:**
+**Pipeline position (IO — unchanged except setting definition):**
 
 ```
-fetchFragment → promotions → customize → [settings ← HERE] → replace → wcs → corrector
+fetchFragment → promotions → customize → [settings ← resolves hideTrialCTAs] → replace → wcs → corrector
 ```
 
-**Settings resolution flow (existing, unchanged):**
+**Render flow (web-components):**
 
-1. `SETTING_NAME_DEFINITIONS` array declares known settings
-2. `resolveSettingEntry()` resolves per-fragment by locale → tag score → template filter
-3. `extractValue()` checks fragment field override first, then resolved entry value
-4. `applySettings()` runs all definitions and writes to `fragment.settings`
-
-**New behavior:** After step 4, if `fragment.settings.hideTrialCTAs === true`, strip trial `<a>` tags from `fragment.fields.ctas`.
+```
+hydrate() → processCTAs(fields, merchCard, mapping, variant, settings)
+              ↓
+            querySelectorAll('a') → .filter(by hideTrialCTAs) → .map(transformLinkToButton)
+```
 
 ---
 
 ## Constitution Check
 
-| Principle                       | Assessment                                                                                         |
-| ------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Delete > Modify > Add           | The change is minimal — 1 array entry + 1 helper function + 1 conditional call. No new files.      |
-| Getters over querySelector      | N/A — IO pipeline, not web-components                                                              |
-| Shared utility check            | `settings.js` is the correct shared utility for this change — CTA filtering is driven by a setting |
-| Component-level solutions first | Filtering at IO level is correct — no web-component change needed                                  |
-| Smallest possible fix           | The entire feature is ~15 lines of new code                                                        |
-| Trust your helpers              | `extractValue()` already handles card-level override — we don't need to re-implement it            |
+| Principle             | Assessment                                                                    |
+| --------------------- | ----------------------------------------------------------------------------- |
+| Delete > Modify > Add | 1 array entry in IO, 1 parameter + filter in `processCTAs()`. No new files.   |
+| Shared utility check  | `settings.js` is the correct place for the definition; `hydrate.js` for logic |
+| Smallest possible fix | ~10 lines of new code total                                                   |
+| Trust your helpers    | `extractValue()` handles card-level override automatically                    |
 
 ---
 
-## Phase 0: Research ✅
+## Implementation
 
-See `research.md` — all decisions resolved:
-
-- Implementation layer: IO settings transformer ✅
-- Trial CTA identification: `data-analytics-id` (`free-trial`, `start-free-trial`) ✅
-- String manipulation: regex with dotall flag ✅
-- Card-level override: existing `extractValue()` pattern ✅
-- Single-CTA edge case: out of scope, Adobe Target handles ✅
-
----
-
-## Phase 1: Implementation
-
-### Task 1 — Add `hideTrialCTAs` to setting definitions
+### IO — Add setting definition
 
 **File:** `io/www/src/fragment/transformers/settings.js`
-
-Add to `SETTING_NAME_DEFINITIONS`:
 
 ```js
 { name: 'hideTrialCTAs', valueType: 'boolean' }
 ```
 
-**Acceptance:** Studio Settings UI shows `hideTrialCTAs` as a creatable setting name.
+Added to `SETTING_NAME_DEFINITIONS`. No other IO changes. The pipeline resolves the value onto `fragment.settings.hideTrialCTAs` and delivers it in the payload.
 
 ---
 
-### Task 2 — Implement `stripTrialCTAs` helper
+### web-components — Filter in `processCTAs()`
 
-**File:** `io/www/src/fragment/transformers/settings.js`
-
-Add before `applySettings`:
+**File:** `web-components/src/hydrate.js`
 
 ```js
-const TRIAL_CTA_PATTERN = /<a\b[^>]*\bdata-analytics-id="(?:free-trial|start-free-trial)"[^>]*>.*?<\/a>/gis;
-
-function stripTrialCTAs(fragment) {
-    if (!fragment.fields?.ctas) return;
-    fragment.fields.ctas = fragment.fields.ctas.replace(TRIAL_CTA_PATTERN, '').trim();
+export function processCTAs(fields, merchCard, aemFragmentMapping, variant, settings) {
+    if (fields.ctas) {
+        fields.ctas = processMnemonicElements(fields.ctas);
+        const { slot } = aemFragmentMapping.ctas;
+        const footer = createTag('div', { slot }, fields.ctas);
+        const ctas = [...footer.querySelectorAll('a')]
+            .filter((cta) => {
+                if (!settings?.hideTrialCTAs) return true;
+                const id = cta.dataset.analyticsId;
+                return id !== 'free-trial' && id !== 'start-free-trial';
+            })
+            .map((cta) => transformLinkToButton(cta, merchCard, aemFragmentMapping));
+        footer.innerHTML = '';
+        footer.append(...ctas);
+        merchCard.append(footer);
+    }
 }
 ```
 
-**Acceptance:** Unit tests pass for all cases in `contracts/settings-transformer.md`.
+Call site updated: `processCTAs(fields, merchCard, mapping, variant, settings)`
 
 ---
 
-### Task 3 — Call `stripTrialCTAs` in `applySettings`
+## Files Changed
 
-**File:** `io/www/src/fragment/transformers/settings.js`
-
-At the end of `applySettings()`, after the settings loop:
-
-```js
-if (fragment.settings.hideTrialCTAs) {
-    stripTrialCTAs(fragment);
-}
-```
-
-**Acceptance:** When a fragment has `settings.hideTrialCTAs = true`, the response `fields.ctas` contains no trial CTA links.
-
----
-
-### Task 4 — Unit tests
-
-**File:** `io/www/test/fragment/transformers/settings.test.js` (or equivalent)
-
-Add tests per `contracts/settings-transformer.md`:
-
-- `stripTrialCTAs`: 8 test cases covering dual/single/empty/override scenarios
-- `applySettings` with `hideTrialCTAs`: 4 test cases
-
----
-
-### Task 5 — Deploy to personal IO workspace and validate end-to-end
-
-1. Deploy IO changes to personal workspace (requires IO secrets in GitHub)
-2. Load a page on Adobe.com with a dual-CTA card
-3. Create `hideTrialCTAs = true` setting scoped to `en_US` in Studio (sandbox)
-4. Preview on stage — confirm trial CTA absent from rendered card
-5. Confirm buy CTA renders correctly with no visual gap
-6. Toggle setting off — confirm trial CTA returns
+| File                                                | Change                                                |
+| --------------------------------------------------- | ----------------------------------------------------- |
+| `io/www/src/fragment/transformers/settings.js`      | Add `hideTrialCTAs` to `SETTING_NAME_DEFINITIONS`     |
+| `web-components/src/hydrate.js`                     | `processCTAs()` accepts `settings`; filter trial CTAs |
+| `web-components/test/hydrate.test.js`               | 3 unit tests for `processCTAs` with `hideTrialCTAs`   |
+| `nala/studio/settings/settings.{page,spec,test}.js` | NALA E2E tests for enabled/disabled scenarios         |
 
 ---
 
 ## Verification
 
-### Unit tests (offline)
-
 ```bash
-cd io/www
-npm test -- --grep "hideTrialCTAs|stripTrialCTAs"
+# Unit tests
+cd web-components && npm run build
+# → 1187 passed, 0 failed
+
+# NALA tests
+LOCAL_TEST_LIVE_URL=http://localhost:3000 npx playwright test nala/studio/settings/settings.test.js
+# → 8 passed (3 feature tests × 2 browsers + auth + teardown)
 ```
-
-### End-to-end (personal IO workspace)
-
-1. Deploy: `aio app deploy` from personal IO workspace branch
-2. Studio Settings: create `hideTrialCTAs: true` for `en_US` locale on sandbox surface
-3. Save without publish → load www.stage.adobe.com page with dual-CTA card → verify trial CTA absent
-4. Publish → load www.adobe.com → verify trial CTA absent in production
-5. Set `hideTrialCTAs: false` → publish → verify trial CTA returns
-
-### Regression
-
-- All existing settings (secureLabel, displayAnnual, displayPlanType, quantitySelect, addon) must behave identically
-- Cards in non-targeted locales must show both CTAs unchanged
-- Collections must strip per-fragment (not collection-wide unless setting scopes match)
-
----
-
-## Files Modified
-
-| File                                                 | Change                                                                                                                                     |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `io/www/src/fragment/transformers/settings.js`       | Add `hideTrialCTAs` to `SETTING_NAME_DEFINITIONS`, add `TRIAL_CTA_PATTERN` constant + `stripTrialCTAs()` helper, call in `applySettings()` |
-| `io/www/test/fragment/transformers/settings.test.js` | Add unit tests for new logic                                                                                                               |
-
-**No other files changed.**

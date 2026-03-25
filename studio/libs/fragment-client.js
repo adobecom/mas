@@ -89,7 +89,6 @@ async function previewFragment(id, options) {
         context.promises = initPromises;
         for (const transformer of PIPELINE) {
             if (context.status != 200) {
-                logError(context.message, context);
                 break;
             }
             context.loggedTransformer = transformer.name;
@@ -103,6 +102,7 @@ async function previewFragment(id, options) {
     }
     if (context.status != 200) {
         logError(context.message, context);
+        context.body = { message };
     } else {
         await storeRequestMetadata(context, cachedMetadata, 'nohash');
     }

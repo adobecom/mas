@@ -6064,7 +6064,7 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button {
     font-size: var(--merch-card-simplified-pricing-express-cta-font-size);
     margin: 0;
     border-radius: 26px;
-    padding: 10px 24px
+    padding: 10px 24px;
     min-height: 48px;
 }
 

@@ -99,7 +99,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-4: Validate edited eyebrow field on the card', async () => {
-            await expect(await suggested.cardEyebrow).toHaveText(data.subtitle.updated);
+            await expect((await studio.getCard(data.cardid)).locator(suggested.cardEyebrow)).toHaveText(data.subtitle.updated);
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -107,7 +107,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         });
 
         await test.step('step-6: Verify there is no changes of the card', async () => {
-            await expect(await suggested.cardEyebrow).toHaveText(data.subtitle.original);
+            await expect((await studio.getCard(data.cardid)).locator(suggested.cardEyebrow)).toHaveText(data.subtitle.original);
         });
     });
 

@@ -124,7 +124,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
-                  fetch-depth: 2
+                  fetch-depth: 0
 
             - name: Fetch base branch for diff
               run: git fetch origin ${{ github.event.pull_request.base.ref }}
@@ -132,13 +132,15 @@ jobs:
             - name: Detect io/www changes
               id: filter
               run: |
-                  git diff --quiet origin/${{ github.event.pull_request.base.ref }}...HEAD -- io/www/ 2>/dev/null; rc=$?
-                  if [ "$rc" -eq 0 ]; then
+                  if git diff --quiet origin/${{ github.event.pull_request.base.ref }}...HEAD -- io/www/ 2>/dev/null; then
                       echo "io-www=false" >> $GITHUB_OUTPUT
-                  elif [ "$rc" -eq 1 ]; then
-                      echo "io-www=true" >> $GITHUB_OUTPUT
                   else
-                      echo "io-www=false" >> $GITHUB_OUTPUT
+                      status=$?
+                      if [ "$status" -eq 1 ]; then
+                          echo "io-www=true" >> $GITHUB_OUTPUT
+                      else
+                          echo "io-www=false" >> $GITHUB_OUTPUT
+                      fi
                   fi
 
             - name: Set up Node.js ${{ matrix.node-version }}

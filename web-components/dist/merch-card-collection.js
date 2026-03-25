@@ -5021,6 +5021,7 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] {
   flex-direction: column;
 }
 
+merch-card[variant="simplified-pricing-express"] [slot="price"] [data-template="price"] .price-strikethrough .price-tax-inclusivity,
 merch-card[variant="simplified-pricing-express"] [slot="price"] [data-template="strikethrough"]:has(+ [data-template="price"]) .price-tax-inclusivity {
     display: none;
 }
@@ -6024,6 +6025,7 @@ merch-card[variant="full-pricing-express"] [slot="price"] {
     justify-content: center;
 }
 
+merch-card[variant="full-pricing-express"] [slot="price"] [data-template="price"] .price-strikethrough .price-tax-inclusivity,
 merch-card[variant="full-pricing-express"] [slot="price"] [data-template="strikethrough"]:has(+ [data-template="price"]) .price-tax-inclusivity {
     display: none;
 }

@@ -89,7 +89,6 @@ async function previewFragment(id, options) {
         context.promises = initPromises;
         for (const transformer of PIPELINE) {
             if (context.status != 200) {
-                logError(context.message, context);
                 break;
             }
             context.loggedTransformer = transformer.name;
@@ -102,7 +101,9 @@ async function previewFragment(id, options) {
         return context;
     }
     if (context.status != 200) {
-        logError(context.message, context);
+        const { message } = context;
+        logError(message, context);
+        context.body = { message };
     } else {
         await storeRequestMetadata(context, cachedMetadata, 'nohash');
     }
@@ -137,14 +138,15 @@ async function previewStudioFragment(body, options) {
     context.promises = initPromises;
     for (const transformer of [settings, replace, corrector]) {
         if (context.status != 200) {
-            logError(context.message, context);
             break;
         }
         context.transformer = transformer.name;
         context = await transformer.process(context);
     }
     if (context.status != 200) {
-        logError(context.message, context);
+        const { message } = context;
+        logError(message, context);
+        context.body = { message };
     }
     return context.body;
 }

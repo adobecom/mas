@@ -18,7 +18,7 @@ const EMPTY_TAGS = {
     market_segments: [],
     customer_segment: [],
     product_code: [],
-    personalization: [],
+    pzn: [], // personalization namespace from AEM
     status: [],
     'studio/content-type': [],
     variant: [],
@@ -27,6 +27,7 @@ const EMPTY_TAGS = {
 class MasFilterPanel extends LitElement {
     static properties = {
         tagsByType: { type: Object, state: true },
+        personalizationFilterEnabled: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -66,6 +67,7 @@ class MasFilterPanel extends LitElement {
         this.tagsByType = {
             ...EMPTY_TAGS,
         };
+        this.personalizationFilterEnabled = false;
     }
 
     firstUpdated() {
@@ -147,6 +149,11 @@ class MasFilterPanel extends LitElement {
             },
             { ...EMPTY_TAGS },
         );
+        this.personalizationFilterEnabled = (this.tagsByType.pzn || []).length > 0;
+    }
+
+    #onPersonalizationToggleEnabled(e) {
+        this.personalizationFilterEnabled = e.detail.enabled;
     }
 
     #updateFiltersParams() {
@@ -189,6 +196,7 @@ class MasFilterPanel extends LitElement {
         Store.createdByUsers.set([]);
 
         this.tagsByType = { ...EMPTY_TAGS };
+        this.personalizationFilterEnabled = false;
         this.shadowRoot.querySelectorAll('aem-tag-picker-field').forEach((tagPicker) => {
             tagPicker.clear();
         });
@@ -291,8 +299,11 @@ class MasFilterPanel extends LitElement {
                     label="Personalization"
                     multiple
                     selection="checkbox"
-                    value=${pathsToTagIds(this.tagsByType.personalization)}
+                    personalization-toggle
+                    .personalizationEnabled=${this.personalizationFilterEnabled}
+                    value=${pathsToTagIds(this.tagsByType.pzn)}
                     @change=${this.#handleTagChange}
+                    @personalization-toggle-change=${this.#onPersonalizationToggleEnabled}
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field

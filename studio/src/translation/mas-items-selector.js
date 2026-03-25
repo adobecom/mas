@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { TABLE_TYPE } from '../constants.js';
+import { toggleSidebarIcon } from '../icons.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
@@ -18,13 +19,11 @@ class MasItemsSelector extends LitElement {
     static styles = styles;
 
     static properties = {
-        itemToRemove: { type: String, state: true },
         viewOnly: { type: Boolean, state: true },
     };
 
     constructor() {
         super();
-        this.itemToRemove = null;
         this.viewOnly = false;
     }
 
@@ -63,10 +62,6 @@ class MasItemsSelector extends LitElement {
         return tab.label;
     }
 
-    #setItemToRemove({ detail: { path } }) {
-        this.itemToRemove = path;
-    }
-
     #showToast({ detail: { text, variant } }) {
         const toast = this.shadowRoot.querySelector('sp-toast');
         if (toast) {
@@ -101,12 +96,9 @@ class MasItemsSelector extends LitElement {
                                 <mas-select-items-table
                                     .viewOnly=${this.viewOnly}
                                     .type=${tab.value}
-                                    .itemToRemove=${this.itemToRemove}
                                     @show-toast=${this.#showToast}
                                 ></mas-select-items-table>
-                                ${this.viewOnly
-                                    ? nothing
-                                    : html`<mas-selected-items @remove=${this.#setItemToRemove}></mas-selected-items>`}
+                                ${this.viewOnly ? nothing : html`<mas-selected-items></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>
@@ -118,12 +110,19 @@ class MasItemsSelector extends LitElement {
                 ? nothing
                 : html`
                       <div class="selected-items-count">
-                          <sp-button variant="secondary" @click=${this.#toggleShowSelected} ?disabled=${!this.selectedCount}>
-                              <sp-icon-export
+                          <sp-button
+                              variant="secondary"
+                              @click=${this.#toggleShowSelected}
+                              ?disabled=${!this.selectedCount}
+                              class="ghost-button"
+                          >
+                              <sp-icon
                                   slot="icon"
                                   label=${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected items'}
                                   class=${this.showSelected && this.selectedCount ? 'flipped' : ''}
-                              ></sp-icon-export>
+                              >
+                                  ${toggleSidebarIcon}
+                              </sp-icon>
                               ${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected items'}
                               (${this.selectedCount})
                           </sp-button>

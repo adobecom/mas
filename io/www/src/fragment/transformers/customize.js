@@ -1,10 +1,9 @@
 import { odinReferences, odinUrl } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
-import { logDebug } from '../utils/log.js';
+import { log, logDebug } from '../utils/log.js';
 import { getDefaultLocaleCode } from '../locales.js';
 
 const PZN_FOLDER = '/pzn/';
-const PZN_FIELD = 'pznTags';
 
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
@@ -71,7 +70,10 @@ function deepMerge(...objects) {
                 result[key] = deepMerge(result[key] || {}, obj[key]);
             } else {
                 if (!Array.isArray(obj[key]) || obj[key].length > 0) {
-                    result[key] = obj[key];
+                    // Preserve left value when right is undefined; only overwrite for '' (explicit clear) or other defined values
+                    if (obj[key] !== undefined || result[key] === undefined) {
+                        result[key] = obj[key];
+                    }
                 }
             }
         }
@@ -90,9 +92,18 @@ function findRegionalVariation(variations, references, prefix) {
     return regionalVariations.length > 0 ? regionalVariations[0] : null;
 }
 
-function findPersonalizationVariation(variations, { references, regionLocale }) {
+function findPersonalizationVariation(variations, customizeContext) {
+    const { references, regionLocale } = customizeContext;
     const personalizationVariations = extractVariationBasedOnPath(variations, references, PZN_FOLDER);
-    if (personalizationVariations.length === 0) return null;
+    if (personalizationVariations.length === 0) {
+        logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
+        return null;
+    }
+    logDebug(
+        () =>
+            `Found personalization variations ${personalizationVariations.map((v) => v.id).join(', ')} for region locale ${regionLocale}`,
+        customizeContext,
+    );
     return personalizationVariations.find((variation) => {
         const { pznTags } = variation.fields;
         const match = pznTags?.find((tag) => tag?.includes(regionLocale));
@@ -104,12 +115,23 @@ function mergeVariations(root, customizeContext) {
     const { references, prefix, isRegionLocale } = customizeContext;
     const variations = root?.fields?.variations;
     if (!isRegionLocale || !variations || variations.length === 0) {
+        logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
         return root;
     }
+    logDebug(() => `found variations ${JSON.stringify(variations)} in ${root.id}`, customizeContext);
     const regionalVariation = findRegionalVariation(variations, references, prefix);
-    if (regionalVariation) return deepMerge(root, regionalVariation);
+    if (regionalVariation) {
+        logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
+        return deepMerge(root, regionalVariation);
+    }
     const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
-    if (personalizationVariation) return deepMerge(root, personalizationVariation);
+    if (personalizationVariation) {
+        logDebug(
+            () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,
+            customizeContext,
+        );
+        return deepMerge(root, personalizationVariation);
+    }
     return root;
 }
 
@@ -179,9 +201,11 @@ async function customize(context) {
     const baseFragment = skimFragmentFromReferences(body);
     //todo check
     const isRegionLocale = country ? defaultLocale.indexOf(`_${country}`) == -1 : defaultLocale !== locale;
+    logDebug(() => `isRegionLocale: ${isRegionLocale}`, context);
     const regionLocale = country ? `${defaultLocale.split('_')[0]}_${country.toUpperCase()}` : locale;
     const { references, referencesTree } = body;
     const customizeContext = {
+        ...context,
         isRegionLocale,
         promos,
         regionLocale,

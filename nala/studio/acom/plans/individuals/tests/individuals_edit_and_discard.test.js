@@ -249,7 +249,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Remove badge field', async () => {
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.badge).toHaveText(data.badge.original);
-            await editor.badge.fill('');
+            await editor.badge.click();
+            await page.waitForTimeout(500);
+            await page.keyboard.press('ControlOrMeta+A');
+            await page.keyboard.press('Backspace');
+            await page.waitForTimeout(1000);
+            await expect(await editor.badge).toHaveText('');
         });
 
         await test.step('step-3: Validate badge field is removed', async () => {

@@ -8,7 +8,6 @@ class IconPickerField extends LitElement {
     static get properties() {
         return {
             icon: { type: String, reflect: true },
-            description: { type: String, reflect: true },
             alt: { type: String, reflect: true },
             link: { type: String, reflect: true },
             variant: { type: String, reflect: true },
@@ -88,7 +87,6 @@ class IconPickerField extends LitElement {
     constructor() {
         super();
         this.icon = '';
-        this.description = '';
         this.alt = '';
         this.link = '';
         this.variant = VARIANT_NAMES.MINI_COMPARE_CHART;
@@ -131,9 +129,8 @@ class IconPickerField extends LitElement {
     }
 
     #handleModalSave(event) {
-        const { icon, description, alt, link } = event.detail;
+        const { icon, alt, link } = event.detail;
         this.icon = icon;
-        this.description = description;
         this.alt = alt;
         this.link = link;
         this.modalOpen = false;
@@ -150,7 +147,6 @@ class IconPickerField extends LitElement {
     get value() {
         return {
             icon: this.icon ?? '',
-            description: this.description ?? '',
             alt: this.alt ?? '',
             link: this.link ?? '',
         };
@@ -205,7 +201,7 @@ class IconPickerField extends LitElement {
 
                 <div class="included-info">
                     <div class="value">
-                        ${this.#getDisplayText(this.description || this.#getIconName(), 'No icon selected')}
+                        ${this.#getDisplayText(this.alt || this.#getIconName(), 'No icon selected')}
                     </div>
                 </div>
 
@@ -227,7 +223,6 @@ class IconPickerField extends LitElement {
             <mas-icon-picker-modal
                 ?open=${this.modalOpen}
                 .icon=${this.icon}
-                .description=${this.description}
                 .alt=${this.alt}
                 .variant=${this.variant}
                 @modal-close=${this.#handleModalClose}

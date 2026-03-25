@@ -4,13 +4,11 @@ import { ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
 
 class MasIconPickerModal extends LitElement {
     #originalIcon = '';
-    #originalDescription = '';
     #originalAlt = '';
 
     static properties = {
         open: { type: Boolean, reflect: true },
         icon: { type: String },
-        description: { type: String },
         alt: { type: String },
         variant: { type: String },
         selectedTab: { type: String, state: true },
@@ -182,7 +180,6 @@ class MasIconPickerModal extends LitElement {
         super();
         this.open = false;
         this.icon = '';
-        this.description = '';
         this.alt = '';
         this.variant = '';
         this.selectedTab = 'icons';
@@ -197,7 +194,6 @@ class MasIconPickerModal extends LitElement {
 
     #storeOriginalValues() {
         this.#originalIcon = this.icon;
-        this.#originalDescription = this.description;
         this.#originalAlt = this.alt;
     }
 
@@ -275,7 +271,6 @@ class MasIconPickerModal extends LitElement {
 
     #handleCancel() {
         this.icon = this.#originalIcon;
-        this.description = this.#originalDescription;
         this.alt = this.#originalAlt;
         this.#handleClose();
     }
@@ -309,7 +304,6 @@ class MasIconPickerModal extends LitElement {
                 composed: true,
                 detail: {
                     icon: iconValue,
-                    description: this.description || '',
                     alt: this.alt || '',
                     link: '',
                 },
@@ -352,16 +346,6 @@ class MasIconPickerModal extends LitElement {
                     <sp-textfield
                         id="icon-description"
                         placeholder="Text displayed next to the icon"
-                        value="${this.description}"
-                        @input=${(e) => (this.description = e.target.value)}
-                    ></sp-textfield>
-                </div>
-
-                <div class="form-field">
-                    <sp-field-label for="icon-alt">Alt text</sp-field-label>
-                    <sp-textfield
-                        id="icon-alt"
-                        placeholder="Accessible alt text for the icon image"
                         value="${this.alt}"
                         @input=${(e) => (this.alt = e.target.value)}
                     ></sp-textfield>
@@ -389,16 +373,6 @@ class MasIconPickerModal extends LitElement {
                     <sp-textfield
                         id="url-description"
                         placeholder="Text displayed next to the icon"
-                        value="${this.description}"
-                        @input=${(e) => (this.description = e.target.value)}
-                    ></sp-textfield>
-                </div>
-
-                <div class="form-field">
-                    <sp-field-label for="url-alt">Alt text</sp-field-label>
-                    <sp-textfield
-                        id="url-alt"
-                        placeholder="Accessible alt text for the icon image"
                         value="${this.alt}"
                         @input=${(e) => (this.alt = e.target.value)}
                     ></sp-textfield>

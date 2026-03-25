@@ -78,7 +78,9 @@ class MasTranslation extends LitElement {
 
     get translationsProjectsContent() {
         if (Store.translationProjects?.list?.loading?.get()) {
-            return html`<div class="loading-container"><sp-progress-circle indeterminate size="l"></sp-progress-circle></div>`;
+            return html`<div class="loading-container--absolute">
+                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+            </div>`;
         }
         if (this.translationProjectsData.length) {
             return html` <sp-table emphasized .scroller=${true} class="translation-table">

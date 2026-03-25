@@ -101,7 +101,8 @@ async function previewFragment(id, options) {
         return context;
     }
     if (context.status != 200) {
-        logError(context.message, context);
+        const { message } = context;
+        logError(message, context);
         context.body = { message };
     } else {
         await storeRequestMetadata(context, cachedMetadata, 'nohash');

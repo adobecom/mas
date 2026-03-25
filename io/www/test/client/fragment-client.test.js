@@ -164,9 +164,7 @@ describe('FragmentClient', () => {
             });
             expect(full.status).to.equal(404);
             expect(full.body).to.deep.equal({ message: 'Not Found' });
-            expect(
-                consoleErrorSpy.calledWithMatch(sinon.match(/Not Found/)),
-            ).to.be.true;
+            expect(consoleErrorSpy.calledWithMatch(sinon.match(/Not Found/))).to.be.true;
         } finally {
             consoleErrorSpy.restore();
         }
@@ -250,16 +248,9 @@ describe('FragmentClient', () => {
             }));
             const consoleErrorSpy = sinon.spy(console, 'error');
             try {
-                const result = await previewStudioFragment(
-                    { ...mockCardFragment },
-                    { locale: 'en_US', surface: 'sandbox' },
-                );
+                const result = await previewStudioFragment({ ...mockCardFragment }, { locale: 'en_US', surface: 'sandbox' });
                 expect(result).to.deep.equal({ message: 'Studio pipeline failed' });
-                expect(
-                    consoleErrorSpy.calledWithMatch(
-                        sinon.match(/Studio pipeline failed/),
-                    ),
-                ).to.be.true;
+                expect(consoleErrorSpy.calledWithMatch(sinon.match(/Studio pipeline failed/))).to.be.true;
             } finally {
                 stub.restore();
                 consoleErrorSpy.restore();

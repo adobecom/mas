@@ -165,7 +165,7 @@ function findPersonalizationVariation(variations, customizeContext) {
         logDebug(() => `picking ${best.id} scored ${bestScore}`, customizeContext);
         return best;
     }
-    return bestScore > 0 ? best : null;
+    return null;
 }
 
 function mergeVariations(root, customizeContext) {

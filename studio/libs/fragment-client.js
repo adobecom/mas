@@ -138,14 +138,15 @@ async function previewStudioFragment(body, options) {
     context.promises = initPromises;
     for (const transformer of [settings, replace, corrector]) {
         if (context.status != 200) {
-            logError(context.message, context);
             break;
         }
         context.transformer = transformer.name;
         context = await transformer.process(context);
     }
     if (context.status != 200) {
-        logError(context.message, context);
+        const { message } = context;
+        logError(message, context);
+        context.body = { message };
     }
     return context.body;
 }

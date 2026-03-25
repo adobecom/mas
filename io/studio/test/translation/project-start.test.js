@@ -30,7 +30,7 @@ function getUpdatedFragment(projectCF) {
  * - Function: called with (url, options, callCount) and returns response
  * - Array: sequential responses (pops from array, uses last item when empty)
  */
-function createFetchStub(routes = {}, defaultResponse = { ok: true }) {
+function createFetchStub(routes = {}, defaultResponse = { ok: true, status: 200, json: () => Promise.resolve({}) }) {
     const callCounts = {};
     const lastCallOptions = {};
     const routeResponses = {};
@@ -120,6 +120,7 @@ describe('Translation project-start', () => {
             { name: 'targetLocales', values: ['de_DE'] },
             { name: 'submissionDate', values: [] },
             { name: 'title', values: ['Test Project'] },
+            { name: 'projectType', values: ['translation'] },
         ],
         ...overrides,
     });
@@ -347,6 +348,92 @@ describe('Translation project-start', () => {
             expect(result.error.statusCode).to.equal(500);
             expect(result.error.body.error).to.equal('Internal server error - Unexpected IMS error');
             expect(mockLogger.error).to.have.been.called;
+        });
+    });
+
+    describe('Rollout project type', () => {
+        it('should start rollout project and return "Rollout project started" when projectType is rollout', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                projectType: ['rollout'],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+                targetLocales: ['de_DE', 'fr_FR'],
+            });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+
+            const { stub, callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(updatedFragment, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/localeSync': { ok: true },
+            });
+
+            const result = await projectStart.main(baseParams);
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.message).to.equal('Rollout project started');
+            expect(result.body.submissionDate).to.equal('2026-02-04T11:00:00Z');
+            expect(callCounts['/bin/localeSync']).to.equal(1);
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.be.undefined;
+            const localeSyncCall = stub.getCalls().find((call) => call.args[0].includes('/bin/localeSync'));
+            expect(localeSyncCall).to.exist;
+            const requestBody = JSON.parse(localeSyncCall.args[1].body);
+            expect(requestBody.items).to.be.an('array').with.lengthOf(1);
+            expect(requestBody.items[0]).to.deep.include({
+                contentPath: '/content/dam/mas/foo/en_US/fragment1',
+                targetLocales: ['de_DE', 'fr_FR'],
+                syncNestedCFs: false,
+            });
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Project type: rollout/));
+            expect(mockLogger.info).to.have.been.calledWith(sinon.match(/Successfully sent rollout request/));
+        });
+
+        it('should return 500 when projectType is rollout and rollout request fails', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                projectType: ['rollout'],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+            });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/localeSync': [
+                    responses.error(500, 'Internal Server Error'),
+                    responses.error(500, 'Internal Server Error'),
+                    responses.error(500, 'Internal Server Error'),
+                ],
+            });
+
+            const result = await projectStart.main(baseParams);
+
+            expect(result).to.have.property('error');
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.equal('Failed to start rollout only project');
+            expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Failed to send rollout request/));
+        });
+
+        it('should use translation flow when projectType is translation', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                projectType: ['translation'],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+            });
+            const updatedFragment = getUpdatedFragment(mockProjectCF);
+
+            const { callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(updatedFragment, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': responses.notFound(),
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const result = await projectStart.main(baseParams);
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.message).to.equal('Translation project started');
+            expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
         });
     });
 
@@ -729,26 +816,20 @@ describe('Translation project-start', () => {
         it('should send correct synchronization request if a placeholder is in the payload', async () => {
             mockIms.validateTokenAllowList.resolves({ valid: true });
 
+            // if no dictionary in target locale - fail translation project
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
                 placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
-                targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
+                targetLocales: ['de_DE'],
             });
 
             const { lastCallOptions, callCounts } = setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/fragment1': responses.notFound(),
-                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/fr_FR.+': responses.notFound(),
-                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/it_IT.+': responses.notFound(),
-                '/adobe/sites/cf/fragments?path/content/dam/mas/foo/de_DE/dictionary/placeholder1': responses.notFound(),
                 '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index': responses.ok({
                     items: [{ id: 'dict-de-id', etag: 'test-de-ph-etag', fields: [{ name: 'entries', values: [] }] }],
                 }),
-                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/fr_FR/dictionary/index': responses.notFound(),
-                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/it_IT/dictionary/index': responses.notFound(),
-                '/adobe/sites/cf/fragments/dict-de-id/versions': responses.ok(),
                 '/adobe/sites/cf/fragments/dict-de-id': responses.ok(),
-                '/bin/sendToLocalisationAsync': { ok: true },
+                '/bin/sendToLocalisationAsync': responses.ok(),
             });
 
             const params = {
@@ -800,6 +881,89 @@ describe('Translation project-start', () => {
             const result = await projectStart.main(params);
 
             expect(result.error.statusCode).to.equal(500);
+        });
+    });
+
+    describe('Sync variations if a grouped variation is synced', () => {
+        it('should send correct synchronization request if a grouped variation is in the payload', async () => {
+            mockIms.validateTokenAllowList.resolves({ valid: true });
+
+            const groupedVariationPath = '/content/dam/mas/foo/en_US/productCode/pzn/grouped-variation';
+            const parentFragmentPath = '/content/dam/mas/foo/en_US/default-fragment';
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                fragments: [groupedVariationPath],
+                targetLocales: ['de_DE'],
+            });
+            const updatedProjectCF = getUpdatedFragment(mockProjectCF);
+
+            const { lastCallOptions, callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': [
+                    responses.ok(mockProjectCF, '"test-etag"'),
+                    responses.ok(updatedProjectCF, '"test-etag"'),
+                ],
+                '/adobe/sites/cf/fragments/referencedBy': responses.ok({
+                    items: [
+                        {
+                            path: groupedVariationPath,
+                            parentReferences: [
+                                {
+                                    type: 'content-fragment',
+                                    path: parentFragmentPath,
+                                    title: 'Parent Fragment',
+                                },
+                            ],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/default-fragment': responses.ok({
+                    items: [
+                        {
+                            id: 'parent-en-id',
+                            path: parentFragmentPath,
+                            etag: 'parent-en-etag',
+                            fields: [{ name: 'variations', values: [groupedVariationPath] }],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment': responses.ok({
+                    items: [
+                        {
+                            id: 'parent-de-id',
+                            path: '/content/dam/mas/foo/de_DE/default-fragment',
+                            etag: 'parent-de-etag',
+                            fields: [{ name: 'variations', values: [] }],
+                        },
+                    ],
+                }),
+                '/adobe/sites/cf/fragments/parent-de-id': responses.ok(),
+                '/bin/sendToLocalisationAsync': responses.ok(),
+            });
+
+            const params = {
+                ...baseParams,
+                surface: 'foo',
+            };
+
+            const result = await projectStart.main(params);
+
+            expect(result.statusCode).to.equal(200);
+            expect(callCounts['/adobe/sites/cf/fragments/referencedBy']).to.equal(1);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/en_US/default-fragment']).to.equal(1);
+            expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/default-fragment']).to.equal(1);
+            expect(callCounts['/adobe/sites/cf/fragments/parent-de-id']).to.equal(1);
+
+            // Verify sync request for de_DE locale (variations use PUT, not PATCH)
+            const deSyncOptions = lastCallOptions['/adobe/sites/cf/fragments/parent-de-id'];
+            expect(deSyncOptions.method).to.equal('PUT');
+            expect(deSyncOptions.headers).to.deep.include({
+                'If-Match': 'parent-de-etag',
+            });
+            const deSyncBody = JSON.parse(deSyncOptions.body);
+            expect(deSyncBody).to.have.property('fields');
+            const variationsField = deSyncBody.fields.find((f) => f.name === 'variations');
+            expect(variationsField).to.exist;
+            expect(variationsField.values).to.be.an('array').with.lengthOf(1);
+            expect(variationsField.values[0]).to.equal('/content/dam/mas/foo/de_DE/productCode/pzn/grouped-variation');
         });
     });
 

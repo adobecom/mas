@@ -255,24 +255,29 @@ class MerchCardEditor extends LitElement {
             return this.fragment;
         }
 
-        const fragment = structuredClone(this.fragment);
+        const settingsContextFragment = structuredClone(this.fragment);
         const inheritedVariant = this.localeDefaultFragment.getFieldValue('variant');
         const ownVariant = this.fragment.getFieldValue('variant');
 
         if ((ownVariant === undefined || ownVariant === null || ownVariant === '') && inheritedVariant) {
-            const variantField = fragment.fields.find((field) => field.name === 'variant');
+            const variantField = settingsContextFragment.fields.find((field) => field.name === 'variant');
             if (variantField) {
                 variantField.values = [inheritedVariant];
             } else {
-                fragment.fields.push({ name: 'variant', type: 'text', multiple: false, values: [inheritedVariant] });
+                settingsContextFragment.fields.push({
+                    name: 'variant',
+                    type: 'text',
+                    multiple: false,
+                    values: [inheritedVariant],
+                });
             }
         }
 
-        if (!(fragment.tags || []).length && (this.localeDefaultFragment.tags || []).length) {
-            fragment.tags = structuredClone(this.localeDefaultFragment.tags);
+        if (!(settingsContextFragment.tags || []).length && (this.localeDefaultFragment.tags || []).length) {
+            settingsContextFragment.tags = structuredClone(this.localeDefaultFragment.tags);
         }
 
-        return fragment;
+        return settingsContextFragment;
     }
 
     get globalSettingsDefaults() {

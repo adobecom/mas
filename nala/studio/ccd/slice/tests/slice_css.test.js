@@ -30,7 +30,6 @@ test.describe('M@S Studio CCD Slice card CSS test suite', () => {
         });
 
         await test.step('step-2: Validate slice card is visible and has correct variant', async () => {
-            await studio.waitForCardsLoaded();
             await expect(sliceCard).toBeVisible();
             await expect(sliceCard).toHaveAttribute('variant', 'ccd-slice');
         });
@@ -132,7 +131,6 @@ test.describe('M@S Studio CCD Slice card CSS test suite', () => {
         });
 
         await test.step('step-2: Validate slice card is visible and has correct variant', async () => {
-            await studio.waitForCardsLoaded();
             await expect(sliceCard).toBeVisible();
             await expect(sliceCard).toHaveAttribute('variant', 'ccd-slice');
         });

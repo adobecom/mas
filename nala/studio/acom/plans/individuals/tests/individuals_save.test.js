@@ -29,7 +29,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.waitForCardsLoaded();
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
@@ -65,7 +64,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.waitForCardsLoaded();
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
@@ -102,7 +100,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.waitForCardsLoaded();
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
@@ -365,7 +362,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.waitForCardsLoaded();
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
@@ -405,7 +401,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.waitForCardsLoaded();
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
@@ -439,7 +434,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.waitForCardsLoaded();
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
@@ -534,7 +528,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.waitForCardsLoaded();
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));
@@ -597,7 +590,6 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-2: Clone card and open editor', async () => {
-            await studio.waitForCardsLoaded();
             await studio.cloneCard(data.cardid);
             clonedCard = await studio.getCard(data.cardid, 'cloned');
             setClonedCardID(await clonedCard.locator('aem-fragment').getAttribute('fragment'));

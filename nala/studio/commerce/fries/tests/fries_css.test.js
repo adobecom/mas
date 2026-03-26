@@ -19,7 +19,6 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-2: Validate fries card is visible', async () => {
-            await studio.waitForCardsLoaded();
             await expect(friesCard).toBeVisible();
         });
 

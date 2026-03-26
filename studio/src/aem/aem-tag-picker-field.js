@@ -185,11 +185,7 @@ class AemTagPickerField extends LitElement {
             align-items: center;
             gap: var(--spectrum-spacing-100);
             padding-block-end: var(--spectrum-spacing-100);
-        }
-
-        .toggle-label {
-            font-size: var(--spectrum-font-size-100);
-            color: var(--spectrum-neutral-content-color-default);
+            padding-inline-start: 4px;
         }
 
         .toggle-divider {
@@ -724,7 +720,6 @@ class AemTagPickerField extends LitElement {
         }
 
         const listDisabled = this.#checkboxListDisabled;
-        const toggleHeaderText = this.label || '';
         const toggleHeader = this.personalizationToggle
             ? html`
                   <div class="toggle-header">
@@ -733,8 +728,9 @@ class AemTagPickerField extends LitElement {
                           size="m"
                           .checked=${this.personalizationEnabled}
                           @change=${this.#handlePersonalizationToggleChange}
-                      ></sp-switch>
-                      <label class="toggle-label" for="aem-tag-picker-toggle">${toggleHeaderText}</label>
+                      >
+                          ${this.label}
+                      </sp-switch>
                   </div>
                   <div class="toggle-divider" role="separator"></div>
               `

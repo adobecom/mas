@@ -88,7 +88,7 @@ export const features = [
                 href: 'https://www.adobe.com/offers/promo-terms.html?locale=fr_FR&country=FR&offer_id=DDDCDEBA96799A274FA982669CA74623',
             },
             primaryCta: {
-                text: 'S’abonner',
+                text: "S'abonner",
                 analyticsId: 'buy-now',
                 href: 'https://commerce.adobe.com/store/segmentation?cli=adobe_com&ctx=fp&co=FR&lang=fr&ms=COM&ot=BASE&cs=INDIVIDUAL&pa=PA-130',
             },

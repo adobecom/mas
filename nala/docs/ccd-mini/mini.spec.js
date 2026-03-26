@@ -187,7 +187,7 @@ export const features = [
                 href: 'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=7B3FB5E4F8662A207A960BAFB6B1C21C&cli=adobe_com&ctx=fp&co=FR&lang=fr',
             },
             secondaryCta: {
-                text: 'Acheter maintenant',
+                text: 'S’abonner',
                 analyticsId: 'buy-now',
                 href: 'https://commerce.adobe.com/store/email?items%5B0%5D%5Bid%5D=7B3FB5E4F8662A207A960BAFB6B1C21C&cli=adobe_com&ctx=fp&co=FR&lang=fr',
             },

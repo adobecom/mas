@@ -28,7 +28,6 @@ const headers = {
     Accept: 'application/json',
     Authorization: `Bearer ${accessToken}`,
     'x-api-key': apiKey,
-    'X-Adobe-Accept-Experimental': '1',
 };
 
 function getParentReference(localeName) {
@@ -63,7 +62,6 @@ async function fetchIndexFragment(indexPath) {
 }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 
 async function checkFolderExists(folderPath) {
     const parentPath = folderPath.slice(0, folderPath.lastIndexOf('/'));

@@ -571,6 +571,19 @@ sp-table-head-cell {
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    gap: 5px;
+
+    &.sortable-col {
+        cursor: pointer;
+
+        .sort-indicator {
+            display: inline-flex;
+            align-items: center;
+            width: 1em;
+            flex-shrink: 0;
+            color: black;
+        }
+    }
 
     &.expand-cell {
         /* padding-left: 12px;

@@ -114,29 +114,23 @@ class MasContent extends LitElement {
     }
 
     get sortedFragments() {
-        const { sortBy, sortDirection } = Store.sort.get();
         const fragments = this.fragments.value.filter((fs) => fs.get() !== null);
-        if (!sortBy) return fragments;
+        const { sortBy, sortDirection } = this.sort.value;
+        if (sortBy !== 'path') return fragments;
         return [...fragments].sort((aStore, bStore) => {
-            const a = aStore.get();
-            const b = bStore.get();
-            if (sortBy === 'path') {
-                const cmp = (a.path || '').localeCompare(b.path || '');
-                return sortDirection === 'asc' ? cmp : -cmp;
-            }
-            if (sortBy === 'title') {
-                const cmp = (a.title || '').localeCompare(b.title || '');
-                return sortDirection === 'asc' ? cmp : -cmp;
-            }
-            if (sortBy === 'modifiedAt') {
-                const aVal = a.modified?.at ? new Date(a.modified.at).getTime() : 0;
-                const bVal = b.modified?.at ? new Date(b.modified.at).getTime() : 0;
-                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-            }
-            return 0;
+            const cmp = (aStore.get().path || '').localeCompare(bStore.get().path || '');
+            return sortDirection === 'asc' ? cmp : -cmp;
         });
     }
 
+
+    sortIndicator(field) {
+        const { sortBy, sortDirection } = this.sort.value;
+        if (sortBy === field) {
+            return html`<span class="sort-indicator">${sortDirection === 'asc' ? html`<sp-icon-chevron-up size="s"></sp-icon-chevron-up>` : html`<sp-icon-chevron-down size="s"></sp-icon-chevron-down>`}</span>`;
+        }
+        return html`<span class="sort-indicator">—</span>`;
+    }
 
     get tableView() {
         return html`<sp-table
@@ -148,27 +142,15 @@ class MasContent extends LitElement {
         >
             <sp-table-head>
                 <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                <sp-table-head-cell
-                    sortable
-                    class="name"
-                    sort-direction=${this.sort.value.sortBy === 'path' ? this.sort.value.sortDirection : undefined}
-                    @click=${() => this.updateSort('path')}
-                >Path</sp-table-head-cell>
-                <sp-table-head-cell
-                    sortable
-                    class="title"
-                    sort-direction=${this.sort.value.sortBy === 'title' ? this.sort.value.sortDirection : undefined}
-                    @click=${() => this.updateSort('title')}
-                >Fragment Title</sp-table-head-cell>
+                <sp-table-head-cell class="name sortable-col" @click=${() => this.updateSort('path')}>
+                    ${this.sortIndicator('path')}Path
+                </sp-table-head-cell>
+                <sp-table-head-cell class="title sortable-col" @click=${() => this.updateSort('title')}>
+                    ${this.sortIndicator('title')}Fragment Title
+                </sp-table-head-cell>
                 <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
                 <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
                 <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
-                <sp-table-head-cell
-                    sortable
-                    class="last-modified"
-                    sort-direction=${this.sort.value.sortBy === 'modifiedAt' ? this.sort.value.sortDirection : undefined}
-                    @click=${() => this.updateSort('modifiedAt')}
-                >Last Modified</sp-table-head-cell>
                 <sp-table-head-cell class="price">Price</sp-table-head-cell>
                 <sp-table-head-cell class="status">Status</sp-table-head-cell>
                 <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
@@ -203,7 +185,7 @@ class MasContent extends LitElement {
                 view = this.renderView;
                 break;
             case 'table':
-                view = this.tableView;
+                view = this.loading.value && !this.firstPageLoaded.value ? nothing : this.tableView;
                 break;
             default:
                 view = this.renderView;

@@ -107,6 +107,7 @@ export class MasRepository extends LitElement {
         this.search = new StoreController(this, Store.search);
         this.filters = new StoreController(this, Store.filters);
         this.page = new StoreController(this, Store.page);
+        this.sort = new StoreController(this, Store.sort);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
         this.reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers]);
         this.recentlyUpdatedLimit = new StoreController(this, Store.fragments.recentlyUpdated.limit);
@@ -250,10 +251,20 @@ export class MasRepository extends LitElement {
         const currentPath = dataStore.getMeta('path');
         const currentQuery = dataStore.getMeta('query');
         const currentLocale = dataStore.getMeta('locale');
+        const currentSort = dataStore.getMeta('sort');
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
+        const sort = Store.sort.get();
 
-        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
+        // Only API-sorted fields affect the cache — client-side sorts (e.g. path) reuse cached data
+        const apiSortFieldMap = { title: 'title' };
+        const apiSortField = apiSortFieldMap[sort.sortBy];
+        const apiSort = apiSortField
+            ? [{ on: apiSortField, order: sort.sortDirection.toUpperCase() }]
+            : [{ on: 'modifiedOrCreated', order: 'DESC' }];
+        const apiSortKey = JSON.stringify(apiSort);
+
+        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale && currentSort === apiSortKey) {
             const filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
@@ -268,6 +279,7 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
+        dataStore.set([]);
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -300,7 +312,7 @@ export class MasRepository extends LitElement {
             path: `${damPath}/${this.filters.value.locale}`,
             tags,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
-            sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+            sort: apiSort,
         };
 
         const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
@@ -370,6 +382,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('query', query);
             dataStore.setMeta('locale', locale);
             dataStore.setMeta('tags', tags);
+            dataStore.setMeta('sort', apiSortKey);
 
             this.#abortControllers.search = null;
         } catch (error) {

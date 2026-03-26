@@ -238,6 +238,7 @@
                         await pznPicker.updateComplete;
 
                         expect(pznPicker.shadowRoot.querySelector('sp-search')).to.be.null;
+                        expect(pznPicker.shadowRoot.querySelector('#footer')).to.be.null;
                         const toggle = pznPicker.shadowRoot.querySelector('#aem-tag-picker-toggle');
                         expect(toggle).to.not.be.null;
                         expect(toggle.checked).to.be.false;

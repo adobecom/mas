@@ -347,7 +347,11 @@ class AemTagPickerField extends LitElement {
             await this.#data;
         }
 
-        const allTags = [...this.#data.values()].filter((tag) => tag.path.startsWith(this.#tagsRoot));
+        let allTags = [...this.#data.values()].filter((tag) => tag.path.startsWith(this.#tagsRoot));
+        if (this.top === 'pzn') {
+            const countryRoot = `${this.#tagsRoot}country`;
+            allTags = allTags.filter((tag) => tag.path !== countryRoot && !tag.path.startsWith(`${countryRoot}/`));
+        }
 
         if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
             let tagsForCheckboxList = allTags.filter((tag) => this.#getTagTextByMode(tag));
@@ -663,6 +667,10 @@ class AemTagPickerField extends LitElement {
             currentValue.splice(index, 1);
         }
         this.tempValue = currentValue;
+        if (this.personalizationToggle) {
+            this.value = [...this.tempValue];
+            void this.#notifyChange();
+        }
     }
 
     resetSelection() {
@@ -764,7 +772,7 @@ class AemTagPickerField extends LitElement {
                         },
                     )}
                 </div>
-                ${this.isCheckboxTagsMode
+                ${this.isCheckboxTagsMode || this.personalizationToggle
                     ? nothing
                     : html`<div id="footer">
                           <span> ${this.selectedText} </span>
@@ -788,6 +796,7 @@ class AemTagPickerField extends LitElement {
      * - The list of sp-checkbox is scrollable if too large.
      * - In 'checkbox' mode, the footer shows # selected, plus Reset/Apply.
      * - In 'checkbox-tags' mode, selections apply when the popover closes and footer is hidden.
+     * - With personalization-toggle, no footer; each checkbox change updates value immediately.
      */
     get checkboxMode() {
         const currentValues = this.#asValueArray();

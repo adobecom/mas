@@ -163,6 +163,8 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-9: Verify there is no changes of the card', async () => {
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).scrollIntoViewIfNeeded();
             await expect((await studio.getCard(data.cardid)).locator(slice.cardImage)).toBeVisible();
             await expect((await studio.getCard(data.cardid)).locator(slice.cardImage)).toHaveAttribute(
                 'src',

@@ -58,7 +58,6 @@ describe('MasItemsSelector', () => {
     describe('initialization', () => {
         it('should initialize with default values', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            expect(el.itemToRemove).to.be.null;
             expect(el.viewOnly).to.be.false;
         });
 
@@ -312,7 +311,7 @@ describe('MasItemsSelector', () => {
             Store.translationProjects.selectedCards.set(['/path/card1']);
             Store.translationProjects.showSelected.set(true);
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            const icon = el.shadowRoot.querySelector('sp-icon-export');
+            const icon = el.shadowRoot.querySelector('.selected-items-count sp-icon');
             expect(icon.classList.contains('flipped')).to.be.true;
         });
 
@@ -320,34 +319,22 @@ describe('MasItemsSelector', () => {
             Store.translationProjects.selectedCards.set(['/path/card1']);
             Store.translationProjects.showSelected.set(false);
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            const icon = el.shadowRoot.querySelector('sp-icon-export');
+            const icon = el.shadowRoot.querySelector('.selected-items-count sp-icon');
             expect(icon.classList.contains('flipped')).to.be.false;
         });
     });
 
-    describe('remove event handling', () => {
-        it('should update itemToRemove when remove event is received', async () => {
+    describe('mas-selected-items integration', () => {
+        it('should render mas-selected-items when not viewOnly', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            const selectedItemsElement = el.shadowRoot.querySelector('mas-selected-items');
-            selectedItemsElement.dispatchEvent(
-                new CustomEvent('remove', {
-                    detail: { path: '/path/to/remove' },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-            await el.updateComplete;
-            expect(el.itemToRemove).to.equal('/path/to/remove');
+            const selectedItems = el.shadowRoot.querySelector('mas-selected-items');
+            expect(selectedItems).to.exist;
         });
 
-        it('should pass itemToRemove to mas-select-items-table', async () => {
-            const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            el.itemToRemove = '/path/to/remove';
-            await el.updateComplete;
-            const tables = el.shadowRoot.querySelectorAll('mas-select-items-table');
-            tables.forEach((table) => {
-                expect(table.itemToRemove).to.equal('/path/to/remove');
-            });
+        it('should not render mas-selected-items when viewOnly', async () => {
+            const el = await fixture(html`<mas-items-selector .viewOnly=${true}></mas-items-selector>`);
+            const selectedItems = el.shadowRoot.querySelector('mas-selected-items');
+            expect(selectedItems).to.be.null;
         });
     });
 

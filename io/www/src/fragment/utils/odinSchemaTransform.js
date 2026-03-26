@@ -1,6 +1,6 @@
 //utitilies to transform payload from old schema to new schema
 
-const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries'];
+const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries', 'variations'];
 const REFERENCE_FIELDS = [...CF_REFERENCE_FIELDS, 'tags'];
 
 function transformFields(body) {
@@ -35,25 +35,28 @@ function transformFields(body) {
     return transformedFields;
 }
 
-function buildReferenceTree(fields, references) {
+function buildReferenceTree(fields, references, visitedIds = new Set()) {
     const referencesTree = [];
     for (const [fieldName, fieldValue] of Object.entries(fields)) {
         // Handle array of references (like cards or collections)
         if (REFERENCE_FIELDS.includes(fieldName) && Array.isArray(fieldValue)) {
-            fieldValue.forEach((id) => {
-                if (references[id]) {
-                    const ref = {
-                        fieldName,
-                        identifier: id,
-                        referencesTree: [],
-                    };
-                    const nestedRef = references[id];
-                    if (nestedRef.type === 'content-fragment') {
-                        ref.referencesTree = buildReferenceTree(nestedRef.value.fields, references);
-                    }
-                    referencesTree.push(ref);
+            for (const id of fieldValue) {
+                if (!references[id]) {
+                    continue;
                 }
-            });
+                const ref = {
+                    fieldName,
+                    identifier: id,
+                    referencesTree: [],
+                };
+                const nestedRef = references[id];
+                if (nestedRef.type === 'content-fragment' && !visitedIds.has(id)) {
+                    visitedIds.add(id);
+                    ref.referencesTree = buildReferenceTree(nestedRef.value.fields, references, visitedIds);
+                    visitedIds.delete(id);
+                }
+                referencesTree.push(ref);
+            }
         }
     }
     return referencesTree;
@@ -62,21 +65,14 @@ function buildReferenceTree(fields, references) {
 function transformReferences(body) {
     if (!body.references) return body;
 
-    // Process references recursively
+    // Process references recursively (with cycle guard: register ref before recursing)
     const processReference = (references, ref) => {
-        const fields = transformFields(ref);
-
-        // If this reference has its own references, process them recursively
-        if (ref.references && ref.references.length > 0) {
-            ref.references.forEach((nestedRef) => {
-                // Add nested reference to main references array if not already present
-                if (!Object.keys(references).find((id) => id === nestedRef.id)) {
-                    // Process the nested reference recursively
-                    processReference(references, nestedRef);
-                }
-            });
+        // Register this ref first so cycles (e.g. variations pointing back) don't cause infinite recursion
+        if (references[ref.id]) {
+            return;
         }
 
+        const fields = transformFields(ref);
         references[ref.id] = {
             type: ref.type,
             value: {
@@ -89,6 +85,15 @@ function transformReferences(body) {
                 fields,
             },
         };
+
+        // If this reference has its own references, process them recursively
+        if (ref.references && ref.references.length > 0) {
+            ref.references.forEach((nestedRef) => {
+                if (!references[nestedRef.id]) {
+                    processReference(references, nestedRef);
+                }
+            });
+        }
 
         // If the current ref (e.g., a card) has associated tag objects, add them.
         if (ref.tags && Array.isArray(ref.tags)) {

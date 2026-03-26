@@ -152,5 +152,73 @@ runTests(async () => {
             expect(plansCard.variantLayout).to.exist;
             expect(plansCard.variantLayout.card).to.equal(plansCard);
         });
+
+        it('should dispplay callout info tooltip in the right position', async () => {
+            const card = document.querySelector(
+                'merch-card#card-width-tooltip',
+            );
+            Object.defineProperty(window, 'screen', {
+                configurable: true,
+                value: {
+                    ...window.screen,
+                    width: 330,
+                },
+            });
+            const originalGetBoundingClientRect =
+                card.iconButton.getBoundingClientRect.bind(card.iconButton);
+            card.iconButton.getBoundingClientRect = () => ({
+                ...originalGetBoundingClientRect(),
+                x: 260,
+            });
+            card.iconButton.dispatchEvent(
+                new MouseEvent('mouseenter', { bubbles: true }),
+            );
+            await delay(100);
+            expect(card.iconButton.className).to.equal(
+                'icon-button tooltip-right tooltip-visible',
+            );
+            card.iconButton.dispatchEvent(
+                new MouseEvent('mouseleave', { bubbles: true }),
+            );
+            await delay(100);
+            expect(card.iconButton.className).to.equal(
+                'icon-button tooltip-right',
+            );
+            card.iconButton.getBoundingClientRect =
+                originalGetBoundingClientRect;
+        });
+
+        it('should dispplay callout info tooltip in the central position', async () => {
+            const card = document.querySelector(
+                'merch-card#card-width-tooltip',
+            );
+            Object.defineProperty(window, 'screen', {
+                configurable: true,
+                value: {
+                    ...window.screen,
+                    width: 599,
+                },
+            });
+            const originalGetBoundingClientRect =
+                card.iconButton.getBoundingClientRect.bind(card.iconButton);
+            card.iconButton.getBoundingClientRect = () => ({
+                ...originalGetBoundingClientRect(),
+                x: 200,
+            });
+            card.iconButton.dispatchEvent(
+                new MouseEvent('mouseenter', { bubbles: true }),
+            );
+            await delay(100);
+            expect(card.iconButton.className).to.equal(
+                'icon-button tooltip-visible',
+            );
+            card.iconButton.dispatchEvent(
+                new MouseEvent('mouseleave', { bubbles: true }),
+            );
+            await delay(100);
+            expect(card.iconButton.className).to.equal('icon-button');
+            card.iconButton.getBoundingClientRect =
+                originalGetBoundingClientRect;
+        });
     });
 });

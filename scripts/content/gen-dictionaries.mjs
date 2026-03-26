@@ -12,13 +12,12 @@ const bucket = args[0];
 const surface = args[1];
 const modelId = args[2];
 const dryRun = args.includes('--dry-run');
-const force = args.includes('--force');
 
 const accessToken = process.env.MAS_ACCESS_TOKEN;
 const apiKey = process.env.MAS_API_KEY;
 
 if (!bucket || !surface || !modelId || !accessToken || !apiKey) {
-    console.error('Usage: node gen-dictionaries.mjs <bucket> <surface> <modelId> [--dry-run] [--force]');
+    console.error('Usage: node gen-dictionaries.mjs <bucket> <surface> <modelId> [--dry-run]');
     console.error('Ensure MAS_ACCESS_TOKEN and MAS_API_KEY are set as environment variables.');
     process.exit(1);
 }
@@ -65,22 +64,6 @@ async function fetchIndexFragment(indexPath) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function deleteFragment(fragment) {
-    if (dryRun) {
-        console.log(`[dry-run] would delete index at ${fragment.path}`);
-        return;
-    }
-
-    const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${fragment.id}`, {
-        method: 'DELETE',
-        headers: { ...headers, 'If-Match': fragment.etag },
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to delete fragment: ${response.status} ${response.statusText}`);
-    }
-    await wait(5000);
-}
 
 async function checkFolderExists(folderPath) {
     const parentPath = folderPath.slice(0, folderPath.lastIndexOf('/'));
@@ -233,18 +216,13 @@ async function run() {
                 const currentParent = existing.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
                 if (currentParent === parentReference) {
                     console.log(`[${folder.name}] index exists, parent is correct, skipping`);
-                    if (!force) continue;
-                } else {
-                    console.log(`[${folder.name}] current parent: ${currentParent ?? '(none)'}`);
-                    console.log(`[${folder.name}] new parent:     ${parentReference ?? '(none)'}`);
-                    if (!force) {
-                        await updateFragmentParent(existing, parentReference);
-                        console.log(`[${folder.name}] parent updated`);
-                        continue;
-                    }
+                    continue;
                 }
-                console.log(`[${folder.name}] deleting (--force)`);
-                await deleteFragment(existing);
+                console.log(`[${folder.name}] current parent: ${currentParent ?? '(none)'}`);
+                console.log(`[${folder.name}] new parent:     ${parentReference ?? '(none)'}`);
+                await updateFragmentParent(existing, parentReference);
+                if (!dryRun) console.log(`[${folder.name}] parent updated`);
+                continue;
             } else {
                 console.log(`[${folder.name}] index not found`);
             }

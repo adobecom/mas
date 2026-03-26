@@ -44,7 +44,6 @@ The `gen-dictionaries.mjs` script creates dictionary index fragments for all loc
 
 - Optional flags:
     - `--dry-run`: Lists locale folders and logs what would be created without making any POST requests.
-    - `--force`: deletes and recreates existing index fragments
 
 ### Running the Script
 
@@ -61,10 +60,3 @@ Use `--dry-run` to preview what the script would do without creating or publishi
 node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk --dry-run
 ```
 
-### Force recreate
-
-Use `--force` to delete and recreate existing index fragments:
-
-```sh
-node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk --force
-```

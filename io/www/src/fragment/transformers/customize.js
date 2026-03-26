@@ -106,7 +106,7 @@ function parsePznTokens(pzn) {
 function countMatchedPznTokens(tags, tokens) {
     let n = 0;
     for (const token of tokens) {
-        if (tags.some((tag) => Boolean(tag && token && tag.endsWith(`pzn/${token}`)))) {
+        if (tags.some((tag) => Boolean(tag && token && tag.endsWith(`${PZN_FOLDER}${token}`)))) {
             n += 1;
         }
     }

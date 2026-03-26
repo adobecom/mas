@@ -25,6 +25,7 @@ class MasContent extends LitElement {
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
+    sort = new StoreController(this, Store.sort);
 
     connectedCallback() {
         super.connectedCallback();
@@ -103,6 +104,40 @@ class MasContent extends LitElement {
         Store.selection.set(Array.from(event.target.selectedSet));
     }
 
+    updateSort(field) {
+        const current = Store.sort.get();
+        if (current.sortBy === field) {
+            Store.sort.set({ ...current, sortDirection: current.sortDirection === 'asc' ? 'desc' : 'asc' });
+        } else {
+            Store.sort.set({ sortBy: field, sortDirection: 'asc' });
+        }
+    }
+
+    get sortedFragments() {
+        const { sortBy, sortDirection } = Store.sort.get();
+        const fragments = this.fragments.value.filter((fs) => fs.get() !== null);
+        if (!sortBy) return fragments;
+        return [...fragments].sort((aStore, bStore) => {
+            const a = aStore.get();
+            const b = bStore.get();
+            if (sortBy === 'path') {
+                const cmp = (a.path || '').localeCompare(b.path || '');
+                return sortDirection === 'asc' ? cmp : -cmp;
+            }
+            if (sortBy === 'title') {
+                const cmp = (a.title || '').localeCompare(b.title || '');
+                return sortDirection === 'asc' ? cmp : -cmp;
+            }
+            if (sortBy === 'modifiedAt') {
+                const aVal = a.modified?.at ? new Date(a.modified.at).getTime() : 0;
+                const bVal = b.modified?.at ? new Date(b.modified.at).getTime() : 0;
+                return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+            return 0;
+        });
+    }
+
+
     get tableView() {
         return html`<sp-table
             emphasized
@@ -113,19 +148,35 @@ class MasContent extends LitElement {
         >
             <sp-table-head>
                 <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
-                <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
-                <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
-                <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
+                <sp-table-head-cell
+                    sortable
+                    class="name"
+                    sort-direction=${this.sort.value.sortBy === 'path' ? this.sort.value.sortDirection : undefined}
+                    @click=${() => this.updateSort('path')}
+                >Path</sp-table-head-cell>
+                <sp-table-head-cell
+                    sortable
+                    class="title"
+                    sort-direction=${this.sort.value.sortBy === 'title' ? this.sort.value.sortDirection : undefined}
+                    @click=${() => this.updateSort('title')}
+                >Fragment Title</sp-table-head-cell>
+                <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
+                <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
+                <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
+                <sp-table-head-cell
+                    sortable
+                    class="last-modified"
+                    sort-direction=${this.sort.value.sortBy === 'modifiedAt' ? this.sort.value.sortDirection : undefined}
+                    @click=${() => this.updateSort('modifiedAt')}
+                >Last Modified</sp-table-head-cell>
+                <sp-table-head-cell class="price">Price</sp-table-head-cell>
+                <sp-table-head-cell class="status">Status</sp-table-head-cell>
                 <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
                 <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
             </sp-table-head>
             <sp-table-body>
                 ${repeat(
-                    this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null),
+                    this.sortedFragments,
                     (fragmentStore) => fragmentStore.get().path,
                     (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
                 )}

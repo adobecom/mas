@@ -97,6 +97,9 @@ export default class StudioPage {
     }
 
     async waitForCardsLoaded() {
+        const fragmentRender = this.page.locator('mas-fragment-render').first();
+        await fragmentRender.waitFor({ state: 'attached', timeout: 30000 });
+        await fragmentRender.scrollIntoViewIfNeeded();
         await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 30000 });
     }
 

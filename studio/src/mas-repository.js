@@ -335,8 +335,10 @@ export class MasRepository extends LitElement {
                 );
                 const fragmentSurface = extractSurfaceFromPath(fragmentData?.path)?.toLowerCase() || null;
                 const fragmentLocale = extractLocaleFromPath(fragmentData?.path);
-                const requestedSurface = path?.split('/').filter(Boolean)[0]?.toLowerCase() || null;
-                const matchesSurface = !requestedSurface || requestedSurface === fragmentSurface;
+                const matchesSurface = !fragmentSurface || fragmentSurface === path;
+                const syncedPathQuery = Store.search.getMeta('uuid-query');
+                const syncedPath = Store.search.getMeta('uuid-path');
+                const canSyncSurface = syncedPathQuery !== query || Store.search.value.path === syncedPath;
                 const syncedLocaleQuery = Store.filters.getMeta('uuid-query');
                 const syncedLocale = Store.filters.getMeta('uuid-locale');
                 const canSyncLocale = syncedLocaleQuery !== query || Store.filters.value.locale === syncedLocale;
@@ -344,16 +346,21 @@ export class MasRepository extends LitElement {
 
                 if (
                     fragmentData &&
-                    matchesSurface &&
+                    (canSyncSurface || matchesSurface) &&
                     (canSyncLocale || matchesLocale) &&
                     !Fragment.isGroupedVariationPath(fragmentData.path)
                 ) {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
-                    resolvedPath = fragmentSurface || path;
+                    resolvedPath = canSyncSurface ? fragmentSurface || path : path;
                     applyCorrectorToFragment(fragmentData, fragmentSurface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
                     dataStore.set([sourceStore]);
+
+                    if (fragmentSurface) {
+                        Store.search.setMeta('uuid-query', query);
+                        Store.search.setMeta('uuid-path', fragmentSurface);
+                    }
 
                     if (fragmentLocale) {
                         Store.filters.setMeta('uuid-query', query);
@@ -361,7 +368,7 @@ export class MasRepository extends LitElement {
                     }
 
                     // Backfill the surface for pathless UUID deep-links so the picker and URL normalize.
-                    if (fragmentSurface && Store.search.value.path !== fragmentSurface) {
+                    if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
                         Store.search.set((prev) => ({
                             ...prev,
                             path: fragmentSurface,

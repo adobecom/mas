@@ -1,4 +1,5 @@
 import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { getCachedTagTitle } from './aem-tag-picker-field.js';
 
 export class Fragment {
     path = '';
@@ -49,6 +50,31 @@ export class Fragment {
     getTagTitle(id) {
         const tags = this.tags.filter((tag) => tag.id.includes(id));
         return tags[0]?.title;
+    }
+
+    getCurrentTagTitle(id) {
+        const tagIds = this.newTags || this.getField('tags')?.values || this.tags?.map((tag) => tag.id) || [];
+        const matchingIds = tagIds.filter((tagId) => tagId?.includes(id));
+        if (!matchingIds.length) return undefined;
+        const matchingId = [...matchingIds].sort((a, b) => b.length - a.length)[0];
+
+        const title =
+            this.tags?.find((tag) => tag.id === matchingId || tag.id?.includes(matchingId) || matchingId.includes(tag.id))
+                ?.title || getCachedTagTitle(matchingId);
+
+        if (id === 'mas:product_code/') {
+            const pac = matchingId.split('/').filter(Boolean).pop()?.toUpperCase();
+            if (title && pac) return `${title} (${pac})`;
+        }
+
+        if (title) return title;
+
+        const fallback = matchingId.split('/').filter(Boolean).pop();
+        return fallback
+            ?.split(/[-_]/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
     }
 
     get locale() {

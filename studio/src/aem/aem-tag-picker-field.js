@@ -4,6 +4,7 @@ import { AEM } from './aem.js';
 import { EVENT_OST_OFFER_SELECT } from '../constants.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
+import { getService } from '../utils.js';
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
@@ -43,6 +44,16 @@ export function toAttribute(value) {
         })
         .filter(Boolean)
         .join(',');
+}
+
+export function getCachedTagTitle(tagOrPath, namespace = '/content/cq:tags/mas') {
+    const data = namespaces[namespace];
+    if (!data || data instanceof Promise) return undefined;
+
+    const path = tagOrPath?.startsWith('/content/cq:tags/') ? tagOrPath : fromAttribute(tagOrPath)?.[0];
+    if (!path) return undefined;
+
+    return data.get(path)?.title;
 }
 
 class AemTagPickerField extends LitElement {
@@ -199,13 +210,44 @@ class AemTagPickerField extends LitElement {
         this.displayValue = false;
     }
 
-    #onOstSelect = ({ detail: { offer } }) => {
+    async #getOfferProductArrangementCode(offerSelectorId, offer) {
+        if (offer?.productArrangementCode) {
+            return offer.productArrangementCode;
+        }
+
+        if (!offerSelectorId) {
+            return undefined;
+        }
+
+        try {
+            const service = getService();
+            if (!service?.collectPriceOptions || !service?.resolveOfferSelectors) {
+                return undefined;
+            }
+
+            const priceOptions = service.collectPriceOptions({ wcsOsi: offerSelectorId });
+            const [offersPromise] = service.resolveOfferSelectors(priceOptions);
+            const [resolvedOffer] = (await offersPromise) || [];
+
+            return resolvedOffer?.productArrangementCode;
+        } catch (error) {
+            console.warn('Failed to get PAC for OST selection:', error);
+            return undefined;
+        }
+    }
+
+    #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
+        if (this.#data instanceof Promise) {
+            await this.#data;
+        }
+        const productArrangementCode = await this.#getOfferProductArrangementCode(offerSelectorId, offer);
         const extractedOffer = {
             offer_type: offer.offer_type,
             planType: offer.planType,
             customer_segment: offer.customer_segment,
             product_code: offer.product_code,
+            product_arrangement_code: productArrangementCode,
             market_segments:
                 Array.isArray(offer.market_segments) && offer.market_segments.length > 0
                     ? offer.market_segments[0]
@@ -229,11 +271,30 @@ class AemTagPickerField extends LitElement {
         });
 
         const newTagPaths = Object.entries(extractedOffer)
-            .filter(([_, value]) => value != null) // Filter out null/undefined values
-            .map(([key, value]) => {
+            .filter(([key, value]) => value != null && key !== 'product_arrangement_code')
+            .flatMap(([key, value]) => {
                 const formattedKey = convertCamelToSnake(key);
+                if (formattedKey === 'product_code') {
+                    const productCode = String(value).toLowerCase();
+                    const pac = extractedOffer.product_arrangement_code;
+                    const parentTagPath = `/content/cq:tags/mas/product_code/${productCode}`;
+
+                    if (!productCode) {
+                        return [];
+                    }
+
+                    if (!pac) {
+                        return [parentTagPath];
+                    }
+
+                    const childTagPath = `${parentTagPath}/${pac}`;
+                    if (this.#data?.has?.(childTagPath)) {
+                        return [parentTagPath, childTagPath];
+                    }
+                    return [parentTagPath];
+                }
                 const formattedValue = String(value).toLowerCase();
-                return `/content/cq:tags/mas/${formattedKey}/${formattedValue}`;
+                return [`/content/cq:tags/mas/${formattedKey}/${formattedValue}`];
             });
 
         this.value = [...existingTags, ...newTagPaths].filter(Boolean);
@@ -323,7 +384,9 @@ class AemTagPickerField extends LitElement {
         if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
             let tagsForCheckboxList = allTags.filter((tag) => this.#getTagTextByMode(tag));
 
-            if (this.isCheckboxTagsMode) {
+            if (this.top === 'product_code') {
+                tagsForCheckboxList = this.#filterToParentProductCodeTags(tagsForCheckboxList);
+            } else if (this.isCheckboxTagsMode) {
                 tagsForCheckboxList = this.#filterOutParentsWithChildren(tagsForCheckboxList);
             }
 
@@ -358,6 +421,13 @@ class AemTagPickerField extends LitElement {
         }
 
         return tags.filter((tag) => !parentPaths.has(tag.path));
+    }
+
+    #filterToParentProductCodeTags(tags) {
+        return tags.filter((tag) => {
+            const relativePath = tag.path.replace(this.#tagsRoot, '');
+            return relativePath && !relativePath.includes('/');
+        });
     }
 
     buildHierarchy(tags) {

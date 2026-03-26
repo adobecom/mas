@@ -1478,13 +1478,13 @@ export default class MasFragmentEditor extends LitElement {
 
         const variantCode = this.fragment.getField('variant')?.values[0];
         const variantLabel = VARIANTS.find((v) => v.value === variantCode)?.label || '';
-        const customerSegment = this.fragment.getTagTitle('customer_segment') || '';
-        const marketSegment = this.fragment.getTagTitle('market_segment') || '';
-        const product = this.fragment.getTagTitle('mas:product/') || '';
-        const promotion = this.fragment.getTagTitle(TAG_PROMOTION_PREFIX) || '';
+        const customerSegment = this.fragment.getCurrentTagTitle('customer_segment') || '';
+        const marketSegment = this.fragment.getCurrentTagTitle('market_segment') || '';
+        const productCode = this.fragment.getCurrentTagTitle('mas:product_code/') || '';
+        const promotion = this.fragment.getCurrentTagTitle(TAG_PROMOTION_PREFIX) || '';
 
         const buildPart = (part) => (part ? ` / ${part}` : '');
-        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(product)}${buildPart(promotion)}`;
+        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(productCode)}${buildPart(promotion)}`;
 
         return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
     }

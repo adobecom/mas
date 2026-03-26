@@ -22,6 +22,10 @@ class MasFragmentRender extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+    }
+
+    firstUpdated() {
+        const root = this.closest('.main-container') ?? document.querySelector('.main-container');
         this.#observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
@@ -32,7 +36,7 @@ class MasFragmentRender extends LitElement {
                 }
             },
             {
-                root: this.closest('.main-container'),
+                root,
                 rootMargin: '200px',
             },
         );

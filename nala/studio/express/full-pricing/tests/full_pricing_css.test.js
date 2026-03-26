@@ -19,6 +19,7 @@ test.describe('M@S Studio EXPRESS Full Pricing card CSS test suite', () => {
         });
 
         await test.step('step-2: Validate all full pricing express card CSS properties in parallel', async () => {
+            await studio.waitForCardsLoaded();
             const results = await Promise.allSettled([
                 // Original test 1: Card structure validation
                 test.step('Validation-1: Validate card element exists and has proper structure', async () => {

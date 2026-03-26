@@ -44,9 +44,10 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-2: Validate search results', async () => {
             await expect(await studio.renderView).toBeVisible();
+            await studio.waitForCardsLoaded();
 
             const cards = await studio.renderView.locator('merch-card');
-            expect(await cards.count()).toBe(1);
+            await expect(cards).toHaveCount(1);
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(page).toHaveURL(expectedUrl);
@@ -69,16 +70,15 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.searchInput).toBeVisible();
             await expect(await studio.searchIcon).toBeVisible();
             await expect(await studio.renderView).toBeVisible();
-            const cards = await studio.renderView.locator('merch-card');
-            expect(await cards.count()).toBeGreaterThan(1);
+            await studio.waitForCardsLoaded();
         });
 
         await test.step('step-3: Validate search feature', async () => {
             await studio.searchInput.fill(data.cardid);
             await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
+            await studio.waitForCardsLoaded();
             const searchResult = await studio.renderView.locator('merch-card');
-            expect(await searchResult.count()).toBe(1);
+            await expect(searchResult).toHaveCount(1);
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
         });
@@ -120,8 +120,7 @@ test.describe('M@S Studio feature test suite', () => {
 
         await test.step('step-3: Validate page view', async () => {
             await expect(await studio.renderView).toBeVisible();
-            const cards = await studio.renderView.locator('merch-card');
-            expect(await cards.count()).toBeGreaterThan(1);
+            await studio.waitForCardsLoaded();
             await expect(page).toHaveURL(`${testPage}#page=content&path=sandbox`);
             expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
         });
@@ -139,6 +138,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Validate double-click message', async () => {
+            await studio.waitForCardsLoaded();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).click();
@@ -325,6 +325,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Switch to table view and find cardid row', async () => {
+            await studio.waitForCardsLoaded();
             await studio.switchToTableView();
             await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
             expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(

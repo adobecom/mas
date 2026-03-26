@@ -96,6 +96,10 @@ export default class StudioPage {
         await this.page.waitForTimeout(2000);
     }
 
+    async waitForCardsLoaded() {
+        await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 30000 });
+    }
+
     async getCard(id, cloned, secondID) {
         const card = this.page.locator('merch-card');
         if (!card) {

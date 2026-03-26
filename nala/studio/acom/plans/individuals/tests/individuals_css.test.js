@@ -30,6 +30,7 @@ test.describe('M@S Studio ACOM Plans Individuals card CSS test suite', () => {
         });
 
         await test.step('step-2: Validate individuals card is visible and has correct variant', async () => {
+            await studio.waitForCardsLoaded();
             await expect(individualsCard).toBeVisible();
             await expect(individualsCard).toHaveAttribute('variant', 'plans');
         });

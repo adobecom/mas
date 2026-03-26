@@ -31,7 +31,10 @@ class MasFragmentRender extends LitElement {
                     this.fragmentStore?.resolvePreviewFragment?.();
                 }
             },
-            { rootMargin: '200px' },
+            {
+                root: this.closest('.main-container'),
+                rootMargin: '200px',
+            },
         );
         this.#observer.observe(this);
     }

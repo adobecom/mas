@@ -122,7 +122,7 @@ export const features = [
                 href: 'https://www.adobe.com/offers/promo-terms.html?locale=fr_FR&country=FR&offer_id=944C3B11874FCDF227A558851C2698BB&promotion_code=PCEMAP50CCDC2',
             },
             primaryCta: {
-                text: "S'abonner",
+                text: 'S’abonner',
                 analyticsId: 'buy-now',
                 href: 'https://commerce.adobe.com/store/segmentation?apc=PCEMAP50CCDC2&cli=adobe_com&ctx=fp&co=FR&lang=fr&ms=COM&ot=BASE&cs=INDIVIDUAL&pa=phsp_direct_individual',
             },

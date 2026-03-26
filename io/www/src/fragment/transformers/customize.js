@@ -92,8 +92,55 @@ function findRegionalVariation(variations, references, prefix) {
     return regionalVariations.length > 0 ? regionalVariations[0] : null;
 }
 
+function parsePznTokens(pzn) {
+    if (pzn == null || pzn === '') {
+        return [];
+    }
+    const s = typeof pzn === 'string' ? pzn : String(pzn);
+    return s
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+}
+
+function countMatchedPznTokens(tags, tokens) {
+    let n = 0;
+    for (const token of tokens) {
+        if (tags.some((tag) => Boolean(tag && token && tag.endsWith(`${PZN_FOLDER}${token}`)))) {
+            n += 1;
+        }
+    }
+    return n;
+}
+
+/**
+ * Non-zero score means this variation applies. Higher is better: each matched request pzn token
+ * dominates; region and country matches add smaller tie-break weight.
+ * @param {string[]|undefined} pznTags
+ * @param {{ regionLocale: string, country?: string, pzn?: string }} ctx
+ */
+function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
+    if (!Array.isArray(pznTags) || pznTags.length === 0) {
+        return 0;
+    }
+    const tags = pznTags.filter(Boolean);
+    if (tags.length === 0) {
+        return 0;
+    }
+    const tokens = parsePznTokens(pzn);
+    const matchedTokens = countMatchedPznTokens(tags, tokens);
+    const regionMatch = Boolean(regionLocale && tags.some((tag) => tag.includes(regionLocale)));
+    const countryMatch = Boolean(
+        country && tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(country).toLowerCase()}`)),
+    );
+    if (matchedTokens === 0 && !regionMatch && !countryMatch) {
+        return 0;
+    }
+    return matchedTokens * 100 + (regionMatch ? 20 : 0) + (countryMatch ? 10 : 0);
+}
+
 function findPersonalizationVariation(variations, customizeContext) {
-    const { references, regionLocale } = customizeContext;
+    const { country, pzn, references, regionLocale } = customizeContext;
     const personalizationVariations = extractVariationBasedOnPath(variations, references, PZN_FOLDER);
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
@@ -104,25 +151,37 @@ function findPersonalizationVariation(variations, customizeContext) {
             `Found personalization variations ${personalizationVariations.map((v) => v.id).join(', ')} for region locale ${regionLocale}`,
         customizeContext,
     );
-    return personalizationVariations.find((variation) => {
-        const { pznTags } = variation.fields;
-        const match = pznTags?.find((tag) => tag?.includes(regionLocale));
-        return !!match;
-    });
+    let best = null;
+    let bestScore = 0;
+    for (const variation of personalizationVariations) {
+        const score = personalizationMatchScore(variation.fields?.pznTags, { regionLocale, country, pzn });
+        logDebug(() => `variation ${variation.id} scored ${score}`, customizeContext);
+        if (score > bestScore) {
+            bestScore = score;
+            best = variation;
+        }
+    }
+    if (bestScore > 0) {
+        logDebug(() => `picking ${best.id} scored ${bestScore}`, customizeContext);
+        return best;
+    }
+    return null;
 }
 
 function mergeVariations(root, customizeContext) {
-    const { references, prefix, isRegionLocale } = customizeContext;
+    const { isRegionLocale, prefix, references } = customizeContext;
     const variations = root?.fields?.variations;
-    if (!isRegionLocale || !variations || variations.length === 0) {
+    if (!variations?.length) {
         logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
         return root;
     }
     logDebug(() => `found variations ${JSON.stringify(variations)} in ${root.id}`, customizeContext);
-    const regionalVariation = findRegionalVariation(variations, references, prefix);
-    if (regionalVariation) {
-        logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
-        return deepMerge(root, regionalVariation);
+    if (isRegionLocale) {
+        const regionalVariation = findRegionalVariation(variations, references, prefix);
+        if (regionalVariation) {
+            logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
+            return deepMerge(root, regionalVariation);
+        }
     }
     const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
     if (personalizationVariation) {
@@ -190,7 +249,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
 }
 
 async function customize(context) {
-    const { locale, country } = context;
+    const { locale, country, pzn } = context;
     const { surface } = await getRequestInfos(context);
     const { body, defaultLocale, status, message } = await context.promises?.customize;
     const promos = await context.promises?.promotions;
@@ -199,7 +258,6 @@ async function customize(context) {
         return { ...context, status, message };
     }
     const baseFragment = skimFragmentFromReferences(body);
-    //todo check
     const isRegionLocale = country ? defaultLocale.indexOf(`_${country}`) == -1 : defaultLocale !== locale;
     logDebug(() => `isRegionLocale: ${isRegionLocale}`, context);
     const regionLocale = country ? `${defaultLocale.split('_')[0]}_${country.toUpperCase()}` : locale;

@@ -46,6 +46,8 @@ application:
                             batchSize: $BATCH_SIZE
                             translationMapping:
                                 acom: transcreation
+                                acom-cc: transcreation
+                                acom-dc: transcreation
                                 express: transcreation
                                 sandbox: machineTranslation
                         annotations:

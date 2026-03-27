@@ -43,7 +43,9 @@ export async function executeMCPTool(toolName, params) {
             _aemBaseUrl: aemBaseUrl,
         };
 
-        const endpoint = `${MCP_SERVER_URL}/tools/${toolName}`;
+        const isLocal = MCP_SERVER_URL.includes('localhost');
+        const actionName = toolName.replace(/_/g, '-');
+        const endpoint = isLocal ? `${MCP_SERVER_URL}/tools/${toolName}` : `${MCP_SERVER_URL}/${actionName}`;
 
         console.log('[MCP Client] Endpoint:', endpoint);
 

@@ -19,7 +19,6 @@ export const CHECKOUT_CTA_TEXTS = {
     'seven-day-trial': 'Start 7-day free trial',
     'fourteen-day-trial': 'Start 14-day free trial',
     'thirty-day-trial': 'Start 30-day free trial',
-    'six-month-free': 'Get 6-months Premium free',
     'save-today': 'Save today',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
@@ -47,7 +46,6 @@ export const ANALYTICS_LINK_IDS = [
     'seven-day-trial',
     'fourteen-day-trial',
     'thirty-day-trial',
-    'six-month-free',
     'save-today',
 ];
 
@@ -124,7 +122,20 @@ export const PAGE_NAMES = {
     PROMOTIONS_EDITOR: 'promotions-editor',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
+    AI_ASSISTANT: 'ai-assistant',
+    PRODUCT_CATALOG: 'product-catalog',
+    PRODUCT_DETAIL: 'product-detail',
 };
+
+const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+const IO_NAMESPACE = isDev ? '14257-merchatscale-axel' : '14257-masstudio';
+
+export const AI_CHAT_BASE_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+export const MCP_SERVER_URL = isDev
+    ? 'http://localhost:3001'
+    : `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+export const IO_MCP_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
+export const KNOWLEDGE_SERVICE_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleKnowledge`;
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
 export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';

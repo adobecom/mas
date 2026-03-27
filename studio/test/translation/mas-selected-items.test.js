@@ -3,7 +3,6 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
-import { setCardVariationsByPaths } from '../../src/translation/translation-items-loader.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-selected-items.js';
@@ -41,7 +40,6 @@ describe('MasSelectedItems', () => {
         Store.translationProjects.cardsByPaths.value = new Map();
         Store.translationProjects.collectionsByPaths.value = new Map();
         Store.translationProjects.placeholdersByPaths.value = new Map();
-        setCardVariationsByPaths(new Map());
     };
 
     const setCardsByPaths = (map) => {
@@ -78,7 +76,7 @@ describe('MasSelectedItems', () => {
     describe('initialization', () => {
         it('should initialize with reactive controller', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.storeController).to.exist;
+            expect(el.showSelectedStoreController).to.exist;
         });
 
         it('should render nothing when showSelected is false', async () => {
@@ -251,39 +249,86 @@ describe('MasSelectedItems', () => {
         });
     });
 
+    describe('getDetails method', () => {
+        it('should return "-" for null item', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            expect(el.getDetails(null)).to.equal('-');
+        });
+
+        it('should return card studioPath', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const card = createMockCard('/path/card1', 'Card Title', '/studio/my/path');
+            expect(el.getDetails(card)).to.equal('/studio/my/path');
+        });
+
+        it('should return "-" for card with no studioPath', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const card = createMockCard('/path/card1', 'Card Title', null);
+            expect(el.getDetails(card)).to.equal('-');
+        });
+
+        it('should return collection studioPath', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const collection = createMockCollection('/path/collection1', 'Collection Title', '/studio/collection/path');
+            expect(el.getDetails(collection)).to.equal('/studio/collection/path');
+        });
+
+        it('should return "-" for collection with no studioPath', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const collection = createMockCollection('/path/collection1', 'Collection Title', null);
+            expect(el.getDetails(collection)).to.equal('-');
+        });
+
+        it('should return placeholder value', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const placeholder = createMockPlaceholder('/path/placeholder1', 'key', 'My Placeholder Value');
+            expect(el.getDetails(placeholder)).to.equal('My Placeholder Value');
+        });
+
+        it('should truncate long placeholder value to 60 characters', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const longValue = 'C'.repeat(70);
+            const placeholder = createMockPlaceholder('/path/placeholder1', 'key', longValue);
+            expect(el.getDetails(placeholder)).to.equal(`${'C'.repeat(60)}...`);
+        });
+
+        it('should return "-" for placeholder with no value', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const placeholder = createMockPlaceholder('/path/placeholder1', 'key', null);
+            expect(el.getDetails(placeholder)).to.equal('-');
+        });
+    });
+
     describe('removeItem method', () => {
-        it('should remove card from Store when called with card item', async () => {
-            const card = createMockCard('/path/to/remove', 'Card Title');
-            setCardsByPaths(new Map([['/path/to/remove', card]]));
-            Store.translationProjects.selectedCards.set(['/path/to/remove']);
+        it('should dispatch remove event with correct path', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            el.removeItem(card);
-            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([]);
+            let receivedEvent = null;
+            el.addEventListener('remove', (event) => {
+                receivedEvent = event;
+            });
+            el.removeItem('/path/to/remove');
+            expect(receivedEvent).to.not.be.null;
+            expect(receivedEvent.detail.path).to.equal('/path/to/remove');
         });
 
-        it('should remove collection from Store when called with collection item', async () => {
-            const collection = createMockCollection('/path/collection1', 'Collection Title');
-            setCollectionsByPaths(new Map([['/path/collection1', collection]]));
-            Store.translationProjects.selectedCollections.set(['/path/collection1']);
+        it('should dispatch event with bubbles true', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            el.removeItem(collection);
-            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal([]);
+            let receivedEvent = null;
+            el.addEventListener('remove', (event) => {
+                receivedEvent = event;
+            });
+            el.removeItem('/path/test');
+            expect(receivedEvent.bubbles).to.be.true;
         });
 
-        it('should remove placeholder from Store when called with placeholder item', async () => {
-            const placeholder = createMockPlaceholder('/path/placeholder1', 'key', 'value');
-            setPlaceholdersByPaths(new Map([['/path/placeholder1', placeholder]]));
-            Store.translationProjects.selectedPlaceholders.set(['/path/placeholder1']);
+        it('should dispatch event with composed true', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            el.removeItem(placeholder);
-            expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal([]);
-        });
-
-        it('should do nothing when called with null', async () => {
-            Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            el.removeItem(null);
-            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/path/card1']);
+            let receivedEvent = null;
+            el.addEventListener('remove', (event) => {
+                receivedEvent = event;
+            });
+            el.removeItem('/path/test');
+            expect(receivedEvent.composed).to.be.true;
         });
     });
 
@@ -325,15 +370,15 @@ describe('MasSelectedItems', () => {
             expect(title.textContent).to.equal('My Test Card');
         });
 
-        it('should render type for each item', async () => {
+        it('should render details for each item', async () => {
             const card = createMockCard('/path/card1', 'Card', '/studio/details/path');
             setCardsByPaths(new Map([['/path/card1', card]]));
             Store.translationProjects.selectedCards.set(['/path/card1']);
             Store.translationProjects.showSelected.set(true);
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            const typeEl = el.shadowRoot.querySelector('.type');
-            expect(typeEl).to.exist;
-            expect(typeEl.textContent.trim()).to.equal('Default card');
+            const details = el.shadowRoot.querySelector('.details');
+            expect(details).to.exist;
+            expect(details.textContent).to.equal('/studio/details/path');
         });
 
         it('should render remove button for each item', async () => {
@@ -368,7 +413,7 @@ describe('MasSelectedItems', () => {
     });
 
     describe('remove button interaction', () => {
-        it('should remove item from Store when remove button is clicked', async () => {
+        it('should call removeItem when remove button is clicked', async () => {
             const card = createMockCard('/path/card1', 'Test Card');
             setCardsByPaths(new Map([['/path/card1', card]]));
             Store.translationProjects.selectedCards.set(['/path/card1']);
@@ -376,13 +421,16 @@ describe('MasSelectedItems', () => {
             Store.fragments.list.loading.set(false);
             Store.placeholders.list.loading.set(false);
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            let removedPath = null;
+            el.addEventListener('remove', (event) => {
+                removedPath = event.detail.path;
+            });
             const removeButton = el.shadowRoot.querySelector('.remove-button');
             removeButton.click();
-            await el.updateComplete;
-            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([]);
+            expect(removedPath).to.equal('/path/card1');
         });
 
-        it('should remove correct item from Store when multiple items exist', async () => {
+        it('should dispatch remove event for correct item when multiple items exist', async () => {
             const card1 = createMockCard('/path/card1', 'Card 1');
             const card2 = createMockCard('/path/card2', 'Card 2');
             setCardsByPaths(
@@ -394,10 +442,14 @@ describe('MasSelectedItems', () => {
             Store.translationProjects.selectedCards.set(['/path/card1', '/path/card2']);
             Store.translationProjects.showSelected.set(true);
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const removedPaths = [];
+            el.addEventListener('remove', (event) => {
+                removedPaths.push(event.detail.path);
+            });
             const removeButtons = el.shadowRoot.querySelectorAll('.remove-button');
             removeButtons[1].click();
-            await el.updateComplete;
-            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/path/card1']);
+            expect(removedPaths).to.have.lengthOf(1);
+            expect(removedPaths[0]).to.equal('/path/card2');
         });
 
         it('should disable remove button when items are loading', async () => {
@@ -512,14 +564,21 @@ describe('MasSelectedItems', () => {
             expect(el.getTitle(card)).to.equal(exactTitle);
         });
 
+        it('should handle value exactly 60 characters', async () => {
+            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
+            const exactValue = 'B'.repeat(60);
+            const placeholder = createMockPlaceholder('/path/placeholder1', 'key', exactValue);
+            expect(el.getDetails(placeholder)).to.equal(exactValue);
+        });
+
         it('should handle undefined item gracefully in getTitle', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
             expect(el.getTitle(undefined)).to.equal('-');
         });
 
-        it('should handle undefined item gracefully in getType', async () => {
+        it('should handle undefined item gracefully in getDetails', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.getType(undefined)).to.equal('Unknown type');
+            expect(el.getDetails(undefined)).to.equal('-');
         });
     });
 });

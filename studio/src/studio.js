@@ -6,6 +6,8 @@ import './mas-top-nav.js';
 import './mas-side-nav.js';
 import './mas-toolbar.js';
 import './mas-content.js';
+import './mas-product-catalog.js';
+import './mas-product-detail.js';
 import './mas-promotions.js';
 import './mas-promotions-editor.js';
 import './translation/mas-translation.js';
@@ -19,6 +21,9 @@ import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
 import './mas-fragment-editor.js';
 import './editor-panel.js';
+import './mas-chat.js';
+import './mas-chat-fab.js';
+import './mas-chat-drawer.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
@@ -188,6 +193,25 @@ class MasStudio extends LitElement {
         return html`<mas-translation-editor></mas-translation-editor>`;
     }
 
+    get aiAssistant() {
+        if (this.page.value !== PAGE_NAMES.AI_ASSISTANT) return nothing;
+        return html`<mas-chat></mas-chat>`;
+    }
+
+    get productCatalog() {
+        if (this.page.value !== PAGE_NAMES.PRODUCT_CATALOG) return nothing;
+        return html`<div id="content-container">
+            <mas-product-catalog></mas-product-catalog>
+        </div>`;
+    }
+
+    get productDetail() {
+        if (this.page.value !== PAGE_NAMES.PRODUCT_DETAIL) return nothing;
+        return html`<div id="content-container">
+            <mas-product-detail></mas-product-detail>
+        </div>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -229,6 +253,14 @@ class MasStudio extends LitElement {
         return html`<editor-panel></editor-panel>`;
     }
 
+    handleChatDrawerToggle(event) {
+        const drawer = this.querySelector('mas-chat-drawer');
+        const fab = this.querySelector('mas-chat-fab');
+        const { open } = event.detail;
+        if (drawer) drawer.open = open;
+        if (fab) fab.open = open;
+    }
+
     render() {
         return html`
             ${this.topNav}
@@ -239,13 +271,15 @@ class MasStudio extends LitElement {
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
-                          ${this.editorPanel} ${this.settings}
+                          ${this.aiAssistant} ${this.productCatalog} ${this.productDetail} ${this.editorPanel} ${this.settings}
                       </div>`
                     : nothing}
             </div>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
             <mas-card-preview></mas-card-preview>
+            <mas-chat-fab @chat-drawer-toggle=${this.handleChatDrawerToggle}></mas-chat-fab>
+            <mas-chat-drawer @chat-drawer-toggle=${this.handleChatDrawerToggle}></mas-chat-drawer>
         `;
     }
 }

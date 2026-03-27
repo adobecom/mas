@@ -263,18 +263,9 @@ class AemTagPickerField extends LitElement {
         }
     };
 
-    get #tagRoots() {
-        const base = this.namespace.endsWith('/') ? this.namespace : `${this.namespace}/`;
-        if (!this.top) return [base];
-        return this.top
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean)
-            .map((segment) => `${this.namespace}/${segment}/`);
-    }
-
-    #rootForPath(path) {
-        return this.#tagRoots.find((root) => path.startsWith(root)) || '';
+    get #tagsRoot() {
+        if (this.top) return `${this.namespace}/${this.top}/`;
+        return `${this.namespace}/`;
     }
 
     // Returns the cached data for this namespace (if loaded)
@@ -327,7 +318,7 @@ class AemTagPickerField extends LitElement {
             await this.#data;
         }
 
-        const allTags = [...this.#data.values()].filter((tag) => this.#tagRoots.some((root) => tag.path.startsWith(root)));
+        const allTags = [...this.#data.values()].filter((tag) => tag.path.startsWith(this.#tagsRoot));
 
         if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
             let tagsForCheckboxList = allTags.filter((tag) => this.#getTagTextByMode(tag));
@@ -357,12 +348,10 @@ class AemTagPickerField extends LitElement {
         const parentPaths = new Set();
 
         for (const path of paths) {
-            const root = this.#rootForPath(path);
-            if (!root) continue;
             let slashIndex = path.lastIndexOf('/');
             while (slashIndex > 0) {
                 const parentPath = path.slice(0, slashIndex);
-                if (!parentPath.startsWith(root) || parentPath.length < root.length) break;
+                if (!parentPath.startsWith(this.#tagsRoot)) break;
                 if (paths.has(parentPath)) parentPaths.add(parentPath);
                 slashIndex = parentPath.lastIndexOf('/');
             }
@@ -374,10 +363,8 @@ class AemTagPickerField extends LitElement {
     buildHierarchy(tags) {
         const root = new Map();
         tags.forEach((tag) => {
-            const prefix = this.#rootForPath(tag.path);
-            if (!prefix) return;
-            const path = tag.path.slice(prefix.length);
-            const parts = path.split('/').filter(Boolean);
+            const path = tag.path.replace(this.#tagsRoot, '');
+            const parts = path.split('/');
             let currentLevel = root;
 
             parts.forEach((part, index) => {
@@ -515,9 +502,9 @@ class AemTagPickerField extends LitElement {
         });
     }
 
-    // In hierarchical mode, only keep tags that start under a configured root
+    // In hierarchical mode, only keep tags that start under #tagsRoot
     get tagsInHierarchy() {
-        return this.#selectedPaths().filter((path) => this.#tagRoots.some((root) => path.startsWith(root)));
+        return this.#selectedPaths().filter((path) => path.startsWith(this.#tagsRoot));
     }
 
     /**

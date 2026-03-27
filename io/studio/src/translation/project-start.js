@@ -6,12 +6,8 @@ const {
     fetchOdin,
     getValue,
     getValues,
-    getTargetPath,
-    getVariationParent,
-    patchToOdin,
     postToOdinWithRetry,
     processBatchWithConcurrency,
-    putToOdin,
 } = require('../common.js');
 
 const logger = Core.Logger('translation', { level: 'info' });
@@ -52,7 +48,7 @@ async function main(params) {
 
         const syncResult = await sendSyncRequests(translationData.itemsToSync, authToken);
         if (!syncResult.success) {
-            return errorResponse(500, `Failed to sync: ${syncResult.error}`, logger);
+            return errorResponse(500, 'Failed to sync target fragments', logger);
         }
 
         let responseMessage = 'Translation project started';
@@ -121,15 +117,11 @@ async function main(params) {
             return null;
         }
         const itemsToTranslate = getItemsToTranslate(projectCF, surface);
-        if (itemsToTranslate?.length === 0) {
-            logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
+        if (!itemsToTranslate) {
             return null;
         }
-        const { items: itemsToSync, success } = await getItemsToSync(authToken, projectCF, locales, surface);
-        if (!success) {
-            logger.error('Failed to get items to sync');
-            return null;
-        }
+        const itemsToSync = await getItemsToSync(authToken, projectCF, locales, surface);
+
         // set translation flow
         const translationFlow = translationMapping[surface];
         logger.info(`Translation flow: ${translationFlow}`);
@@ -148,10 +140,6 @@ async function main(params) {
         };
     }
 
-    function getPznVariations(projectCF) {
-        return getValues(projectCF, 'fragments')?.values?.filter((path) => path?.includes('/pzn/')) || [];
-    }
-
     async function getItemsToSync(authToken, projectCF, locales, surface) {
         const items = [];
         const placeholders = getValues(projectCF, 'placeholders')?.values || [];
@@ -159,62 +147,27 @@ async function main(params) {
             for (const locale of locales) {
                 const targetPlaceholders = placeholders.map((placeholder) => placeholder.replace('/en_US/', `/${locale}/`));
                 const path = ODIN_PATH(surface, locale, 'dictionary/index');
-                logger.info(`Placeholder: Adding ${path} to sync with entries=${targetPlaceholders}`);
-                items.push({
-                    path,
-                    update: {
-                        name: 'entries',
-                        value: targetPlaceholders,
-                    },
-                });
-            }
-        }
-
-        // for each grouped variation, add the parent fragments in target locales to the sync list
-        const variations = getPznVariations(projectCF);
-        if (variations.length === 0) {
-            return { items, success: true };
-        }
-        // map of parentPath -> Set of grouped variation paths
-        const newVariationsMap = new Map();
-        for (const variationPath of variations) {
-            try {
-                const { parentFragment, status } = await getVariationParent(params.odinEndpoint, variationPath, authToken);
-                if (status !== 200 || !parentFragment) {
-                    logger.error(`Grouped variation: Failed to get parent for ${variationPath}: ${status}`);
-                    return { items: [], success: false };
-                }
-                if (!newVariationsMap.has(parentFragment.path)) {
-                    newVariationsMap.set(parentFragment.path, new Set());
-                }
-                newVariationsMap.get(parentFragment.path).add(variationPath);
-            } catch (error) {
-                logger.error(`Grouped variation: Error finding parent for ${variationPath}: ${error.message}`);
-                return { items: [], success: false };
-            }
-        }
-
-        // For each parent fragment add items for all target locales
-        for (const [parentPath, variationPaths] of newVariationsMap.entries()) {
-            for (const locale of locales) {
-                const path = getTargetPath(parentPath, locale);
-                if (!path) continue;
-                const value = [...variationPaths].map((variation) => getTargetPath(variation, locale)).filter(Boolean);
-
-                if (value.length > 0) {
-                    logger.info(`Adding ${path} to sync with variations=${value}`);
-                    items.push({
-                        path,
-                        update: {
-                            name: 'variations',
-                            value,
-                        },
-                    });
+                const { fragment, status, etag } = await fetchFragmentByPath(params.odinEndpoint, path, authToken);
+                if (status === 200 && fragment) {
+                    const { values: existingEntries = [], path: existingEntriesPath } = getValues(fragment, 'entries');
+                    if (existingEntriesPath) {
+                        const newValues = [...existingEntries, ...targetPlaceholders];
+                        logger.info(`Adding ${path} (etag: ${etag}) to sync with entries=${newValues}`);
+                        items.push({
+                            id: fragment.id,
+                            etag,
+                            path,
+                            update: {
+                                name: 'entries',
+                                path: `${existingEntriesPath}/values`,
+                                value: newValues,
+                            },
+                        });
+                    }
                 }
             }
         }
-
-        return { items, success: true };
+        return items;
     }
 
     function getItemsToTranslate(projectCF) {
@@ -224,7 +177,13 @@ async function main(params) {
         const placeholders = getValues(projectCF, 'placeholders')?.values || [];
 
         // Combine all items into a single array
-        return [...fragments, ...collections, ...placeholders];
+        const itemsToTranslate = [...fragments, ...collections, ...placeholders];
+
+        if (itemsToTranslate.length === 0) {
+            logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
+            return null;
+        }
+        return itemsToTranslate;
     }
 
     async function versionTargetFragment(fragmentToVersion, { authToken, title }) {
@@ -300,68 +259,20 @@ async function main(params) {
         }
     }
 
-    async function sendSyncRequest({ path, update: { name, value } }, { authToken }) {
+    async function sendSyncRequest({ id, update: { name, value, path: updatePath }, path, etag }, { authToken }) {
         try {
-            const { fragment, status, etag } = await fetchFragmentByPath(params.odinEndpoint, path, authToken);
-            if (status !== 200 || !fragment) {
-                const errorMsg = `Failed to fetch fragment at ${path}: ${status}`;
-                logger.error(`Error syncing element ${path}: ${errorMsg}`);
-                return { success: false, path, error: errorMsg };
-            }
-
-            const { id } = fragment;
-            const existing = getValues(fragment, name);
-            const existingValues = existing?.values ?? [];
-            const merged = [...existingValues];
-            for (const v of value) {
-                if (!merged.includes(v)) merged.push(v);
-            }
-
-            // Variations fields are locked by live relationships and cannot be updated via PATCH
-            // Use PUT with full fragment instead
-            if (name === 'variations') {
-                if (merged.length === existingValues.length && merged.every((v, i) => v === existingValues[i])) {
-                    logger.info(`No change for variations at ${path}, skipping sync`);
-                    return { success: true };
-                }
-
-                // If variations field doesn't exist, add it; otherwise update the variations field in the fields array
-                const variationsField = fragment.fields.find((f) => f.name === 'variations');
-                const updatedFields = variationsField
-                    ? fragment.fields.map((field) => (field.name === 'variations' ? { ...field, values: merged } : field))
-                    : [
-                          ...fragment.fields,
-                          {
-                              name: 'variations',
-                              type: 'content-fragment',
-                              multiple: true,
-                              values: merged,
-                          },
-                      ];
-
-                // Send PUT request with full fragment
-                return await putToOdin(params.odinEndpoint, id, authToken, {
-                    title: fragment.title,
-                    description: fragment.description || '',
-                    fields: updatedFields,
-                    etag,
-                });
-            }
-
-            // For non-variations fields, use PATCH
-            const updatePath = existing?.path ? `${existing.path}/values` : null;
-            if (!updatePath) {
-                const errorMsg = `Field ${name} not found in fragment at ${path}`;
-                logger.error(`Error syncing element ${path}: ${errorMsg}`);
-                return { success: false, path, error: errorMsg };
-            }
-
-            const patchBody = [{ op: 'replace', path: updatePath, value: merged }];
-            return await patchToOdin(params.odinEndpoint, id, authToken, patchBody, etag);
+            logger.info(`Updating ${name} for ${path} (${id})`);
+            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${id}`, authToken, {
+                method: 'PATCH',
+                contentType: 'application/json-patch+json',
+                etag,
+                body: JSON.stringify([{ op: 'replace', path: updatePath, value }]),
+            });
+            await response.json();
+            return { success: true };
         } catch (error) {
             logger.error(`Error syncing element: ${error}`);
-            const errorMsg = `${error.message || error.toString()}`;
-            return { success: false, path, error: errorMsg };
+            return { success: false, path, error: error.message || error.toString() };
         }
     }
 
@@ -374,8 +285,8 @@ async function main(params) {
         // Check if any requests failed after all retries
         const failures = results.filter((result) => !result.success);
         if (failures.length > 0) {
-            const errorMsg = `${failures.length} request(s) failed: ${failures.map((failure) => failure.path || 'unknown').join(', ')}`;
-            return { success: false, error: errorMsg };
+            logger.error(`${failures.length} request(s) failed: ${failures.map((failure) => failure.item).join(', ')}`);
+            return { success: false };
         }
 
         logger.info(`Successfully sent ${results.length} sync requests`);

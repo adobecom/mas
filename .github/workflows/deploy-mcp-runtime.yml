@@ -1,0 +1,74 @@
+name: Deploy MCP Runtime Actions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'io/mcp-server/**'
+      - 'mas-mcp-server/src/services/**'
+      - 'mas-mcp-server/src/utils/**'
+      - 'mas-mcp-server/src/tools/studio-operations.js'
+      - '.github/workflows/deploy-mcp-runtime.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: io/mcp-server/package-lock.json
+
+      - name: Install Adobe I/O CLI
+        run: npm install -g @adobe/aio-cli
+
+      - name: Configure Adobe I/O CLI
+        env:
+          AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE }}
+          AIO_RUNTIME_AUTH: ${{ secrets.AIO_RUNTIME_AUTH }}
+        run: |
+          aio config:set runtime.namespace $AIO_RUNTIME_NAMESPACE
+          aio config:set runtime.auth $AIO_RUNTIME_AUTH
+
+      - name: Install dependencies
+        working-directory: io/mcp-server
+        run: npm ci
+
+      - name: Copy shared libraries
+        run: |
+          cp mas-mcp-server/src/services/auth-manager.js io/mcp-server/src/lib/
+          cp mas-mcp-server/src/services/aem-client.js io/mcp-server/src/lib/
+          cp mas-mcp-server/src/utils/studio-url-builder.js io/mcp-server/src/lib/
+          cp mas-mcp-server/src/tools/studio-operations.js io/mcp-server/src/lib/
+
+      - name: Deploy to Adobe I/O Runtime
+        working-directory: io/mcp-server
+        env:
+          AEM_BASE_URL: ${{ secrets.AEM_BASE_URL }}
+          STUDIO_BASE_URL: ${{ secrets.STUDIO_BASE_URL }}
+        run: aio app deploy --all
+
+      - name: Verify deployment
+        working-directory: io/mcp-server
+        run: aio runtime action list
+
+      - name: Deployment summary
+        run: |
+          echo "✅ MCP Runtime actions deployed successfully"
+          echo ""
+          echo "Deployed actions:"
+          echo "  - publish-card"
+          echo "  - unpublish-card"
+          echo "  - get-card"
+          echo "  - search-cards"
+          echo "  - delete-card"
+          echo "  - copy-card"
+          echo "  - update-card"

@@ -192,13 +192,6 @@ class MasToolbar extends LitElement {
         Store.renderMode.set(ev.target.value);
     }
 
-    clearUuidResolutionState() {
-        Store.search.removeMeta('uuid-query');
-        Store.search.removeMeta('uuid-path');
-        Store.filters.removeMeta('uuid-query');
-        Store.filters.removeMeta('uuid-locale');
-    }
-
     updateQuery(value) {
         Store.search.set((prev) => ({ ...prev, query: value }));
     }
@@ -219,13 +212,11 @@ class MasToolbar extends LitElement {
 
     handleSearchSubmit(ev) {
         ev.preventDefault();
-        this.clearUuidResolutionState();
         this.updateQuery(ev.target.value);
     }
 
     handleChange(ev) {
         if (ev.target.value === '') {
-            this.clearUuidResolutionState();
             this.updateQuery('');
         }
     }

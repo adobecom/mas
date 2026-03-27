@@ -1,0 +1,334 @@
+application:
+    actions: actions
+    hooks:
+        test: npm run test
+    runtimeManifest:
+        packages:
+            MerchAtScaleMCP:
+                license: Apache-2.0
+                actions:
+                    publish-card:
+                        function: src/actions/publish-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    unpublish-card:
+                        function: src/actions/unpublish-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    get-card:
+                        function: src/actions/get-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    search-cards:
+                        function: src/actions/search-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    delete-card:
+                        function: src/actions/delete-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    copy-card:
+                        function: src/actions/copy-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    update-card:
+                        function: src/actions/update-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-update-cards:
+                        function: src/actions/bulk-update-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-publish-cards:
+                        function: src/actions/bulk-publish-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    bulk-delete-cards:
+                        function: src/actions/bulk-delete-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    get-job-status:
+                        function: src/actions/get-job-status.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    preview-bulk-update:
+                        function: src/actions/preview-bulk-update.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    preview-bulk-publish:
+                        function: src/actions/preview-bulk-publish.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    preview-bulk-delete:
+                        function: src/actions/preview-bulk-delete.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    get-fragment-variations:
+                        function: src/actions/get-fragment-variations.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    create-card:
+                        function: src/actions/create-card.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    create-collection:
+                        function: src/actions/create-collection.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    get-collection:
+                        function: src/actions/get-collection.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    add-cards-to-collection:
+                        function: src/actions/add-cards-to-collection.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    search-collections:
+                        function: src/actions/search-collections.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    search-offers:
+                        function: src/actions/search-offers.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    get-offer-by-id:
+                        function: src/actions/get-offer-by-id.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    list-products:
+                        function: src/actions/list-products.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            PRODUCTS_ENDPOINT: $PRODUCTS_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    get-product-detail:
+                        function: src/actions/get-product-detail.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    compare-offers:
+                        function: src/actions/compare-offers.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    create-offer-selector:
+                        function: src/actions/create-offer-selector.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    resolve-offer-selector:
+                        function: src/actions/resolve-offer-selector.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    link-card-to-offer:
+                        function: src/actions/link-card-to-offer.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    validate-card-offer:
+                        function: src/actions/validate-card-offer.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    create-release-cards:
+                        function: src/actions/create-release-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                            AOS_URL: $AOS_URL
+                            AOS_API_KEY: $AOS_API_KEY
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    list-context-cards:
+                        function: src/actions/list-context-cards.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AEM_BASE_URL: $AEM_BASE_URL
+                            STUDIO_BASE_URL: $STUDIO_BASE_URL
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

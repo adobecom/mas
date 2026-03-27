@@ -28,7 +28,9 @@ nala/.auth/
 .CLAUDE.md
 **/CLAUDE.md
 .claude/
+.logs/
 .specify/
+.superpowers/
 /specs/
 /agents/
 reports/

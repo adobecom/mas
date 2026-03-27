@@ -7,15 +7,7 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import {
-    debounce,
-    looseEquals,
-    showToast,
-    UserFriendlyError,
-    extractLocaleFromPath,
-    extractSurfaceFromPath,
-    isUUID,
-} from './utils.js';
+import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -79,6 +71,11 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     cacheData.fields = normalizedFields;
 
     fragmentCache.add(cacheData);
+}
+
+function isUUID(str) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
 }
 
 export class MasRepository extends LitElement {
@@ -174,6 +171,8 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.FRAGMENT_EDITOR:
                 this.loadPreviewPlaceholders();
                 break;
+            case PAGE_NAMES.PRODUCT_CATALOG:
+                break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
                 break;
@@ -243,7 +242,12 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        if (!(this.page.value === PAGE_NAMES.CONTENT || this.page.value === PAGE_NAMES.TRANSLATION_EDITOR)) return;
+        if (
+            this.page.value !== PAGE_NAMES.CONTENT &&
+            this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR &&
+            this.page.value !== PAGE_NAMES.AI_ASSISTANT
+        )
+            return;
         if (!Store.profile.value) return;
 
         const path = this.search.value.path;
@@ -255,10 +259,8 @@ export class MasRepository extends LitElement {
         const currentLocale = dataStore.getMeta('locale');
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
-        let resolvedLocale = locale;
-        let resolvedPath = path;
 
-        if (currentData && currentPath === path && currentQuery === query && currentLocale === locale) {
+        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
             const filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
@@ -273,7 +275,6 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
-        dataStore.set([]);
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -300,11 +301,10 @@ export class MasRepository extends LitElement {
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
         const damPath = getDamPath(path);
-        const localizedPath = `${damPath}/${locale}`;
         const localSearch = {
             ...this.search.value,
             modelIds,
-            path: localizedPath,
+            path: `${damPath}/${this.filters.value.locale}`,
             tags,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
@@ -333,52 +333,24 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
-                const fragmentSurface = extractSurfaceFromPath(fragmentData?.path)?.toLowerCase() || null;
-                const fragmentLocale = extractLocaleFromPath(fragmentData?.path);
-                const matchesSurface = !fragmentSurface || fragmentSurface === path;
-                const syncedPathQuery = Store.search.getMeta('uuid-query');
-                const syncedPath = Store.search.getMeta('uuid-path');
-                const canSyncSurface = syncedPathQuery !== query || Store.search.value.path === syncedPath;
-                const syncedLocaleQuery = Store.filters.getMeta('uuid-query');
-                const syncedLocale = Store.filters.getMeta('uuid-locale');
-                const canSyncLocale = syncedLocaleQuery !== query || Store.filters.value.locale === syncedLocale;
-                const matchesLocale = !fragmentLocale || fragmentLocale === locale;
-
                 if (
                     fragmentData &&
-                    (canSyncSurface || matchesSurface) &&
-                    (canSyncLocale || matchesLocale) &&
+                    fragmentData.path.indexOf(ROOT_PATH) === 0 &&
                     !Fragment.isGroupedVariationPath(fragmentData.path)
                 ) {
-                    resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
-                    resolvedPath = canSyncSurface ? fragmentSurface || path : path;
-                    applyCorrectorToFragment(fragmentData, fragmentSurface);
+                    const fragmentFolderPath = fragmentData.path.substring(ROOT_PATH.length + 1);
+                    const fragmentFolder = fragmentFolderPath.split('/')[0];
+                    const surface = fragmentFolder?.toLowerCase();
+                    applyCorrectorToFragment(fragmentData, surface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
                     dataStore.set([sourceStore]);
 
-                    if (fragmentSurface) {
-                        Store.search.setMeta('uuid-query', query);
-                        Store.search.setMeta('uuid-path', fragmentSurface);
-                    }
-
-                    if (fragmentLocale) {
-                        Store.filters.setMeta('uuid-query', query);
-                        Store.filters.setMeta('uuid-locale', fragmentLocale);
-                    }
-
-                    // Backfill the surface for pathless UUID deep-links so the picker and URL normalize.
-                    if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
+                    // Update the search path to the fragment's folder
+                    if (Store.folders.data.get().includes(fragmentFolder)) {
                         Store.search.set((prev) => ({
                             ...prev,
-                            path: fragmentSurface,
-                        }));
-                    }
-
-                    if (canSyncLocale && fragmentLocale && Store.filters.value.locale !== fragmentLocale) {
-                        Store.filters.set((prev) => ({
-                            ...prev,
-                            locale: fragmentLocale,
+                            path: fragmentFolder,
                         }));
                     }
                 }
@@ -397,14 +369,14 @@ export class MasRepository extends LitElement {
                         fragmentStores.push(sourceStore);
                     }
                     dataStore.set([...fragmentStores]);
+                    Store.fragments.list.firstPageLoaded.set(true);
                 }
             }
 
-            dataStore.setMeta('path', resolvedPath);
+            dataStore.setMeta('path', path);
             dataStore.setMeta('query', query);
-            dataStore.setMeta('locale', resolvedLocale);
+            dataStore.setMeta('locale', locale);
             dataStore.setMeta('tags', tags);
-            Store.fragments.list.firstPageLoaded.set(true);
 
             this.#abortControllers.search = null;
         } catch (error) {

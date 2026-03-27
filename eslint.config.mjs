@@ -11,7 +11,6 @@ const ignoresConfig = {
         '/libs/',
         '**/libs/**',
         '**/dist/**',
-        'web-components/docs/**',
         'studio/ost/index.js',
         '**/nala/libs/auth.setup.cjs',
         '**/nala/libs/webutil.js',

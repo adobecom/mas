@@ -1,0 +1,267 @@
+#!/usr/bin/env node
+
+/**
+ * Knowledge Chunk Generator
+ *
+ * Processes markdown files from src/knowledge-chunks/ and generates
+ * embedded-chunks.js with pre-computed embeddings for deployment.
+ *
+ * Usage:
+ *   node scripts/generate-chunks.js           # Generate embedded-chunks.js
+ *   node scripts/generate-chunks.js --dry-run # Preview without writing
+ *   node scripts/generate-chunks.js --no-embed # Skip embedding generation
+ *
+ * Input: src/knowledge-chunks/**\/*.md
+ * Output: src/index-docs/embedded-chunks.js
+ */
+
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'fs';
+import { join, relative, basename, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = join(CURRENT_DIR, '..');
+const CHUNKS_DIR = join(PROJECT_ROOT, 'src/knowledge-chunks');
+const CONFLUENCE_DIR = join(PROJECT_ROOT, 'scraped-docs/confluence');
+const OUTPUT_FILE = join(PROJECT_ROOT, 'src/index-docs/embedded-chunks.js');
+
+const SOURCE_DIRS = [
+    { path: CHUNKS_DIR, categoryPrefix: '' },
+    { path: CONFLUENCE_DIR, categoryPrefix: 'confluence' },
+];
+
+const MIN_CHUNK_LENGTH = 50;
+const MAX_CHUNK_LENGTH = 4000;
+
+/**
+ * Extract source URL from markdown content
+ * Matches lines like: > Source: https://wiki.corp.adobe.com/...
+ */
+function extractSourceUrl(content) {
+    const match = content.match(/^>\s*Source:\s*(https?:\/\/[^\s]+)/m);
+    return match ? match[1] : null;
+}
+
+function getMarkdownFiles(dir) {
+    const files = [];
+
+    function walk(currentDir) {
+        if (!existsSync(currentDir)) return;
+
+        const items = readdirSync(currentDir);
+        for (const item of items) {
+            const fullPath = join(currentDir, item);
+            const stat = statSync(fullPath);
+
+            if (stat.isDirectory()) {
+                walk(fullPath);
+            } else if (item.endsWith('.md')) {
+                files.push(fullPath);
+            }
+        }
+    }
+
+    walk(dir);
+    return files;
+}
+
+function splitIntoChunks(content, filePath, baseDir, categoryPrefix = '') {
+    const chunks = [];
+    const relativePath = relative(baseDir, filePath);
+    const dirCategory = dirname(relativePath);
+    const category = categoryPrefix ? (dirCategory === '.' ? categoryPrefix : `${categoryPrefix}-${dirCategory}`) : dirCategory;
+    const baseId = basename(relativePath, '.md').replace(/[^a-zA-Z0-9-]/g, '-');
+    const sourceUrl = extractSourceUrl(content);
+
+    const sections = content.split(/(?=^##\s+)/m).filter(Boolean);
+
+    let chunkIndex = 0;
+    let parentSection = '';
+
+    for (const section of sections) {
+        const headerMatch = section.match(/^(#{2,3})\s+(.+)/m);
+        const sectionTitle = headerMatch ? headerMatch[2].trim() : 'Overview';
+        const headerLevel = headerMatch ? headerMatch[1].length : 2;
+
+        if (headerLevel === 2) {
+            parentSection = sectionTitle;
+        }
+
+        const text = section.trim();
+
+        if (text.length < MIN_CHUNK_LENGTH) {
+            continue;
+        }
+
+        if (text.length > MAX_CHUNK_LENGTH) {
+            const subChunks = splitLongSection(text, MAX_CHUNK_LENGTH);
+            for (let i = 0; i < subChunks.length; i++) {
+                chunks.push({
+                    id: `${category}-${baseId}-${chunkIndex}`,
+                    text: subChunks[i],
+                    metadata: {
+                        file: relativePath,
+                        section: i === 0 ? sectionTitle : `${sectionTitle} (cont.)`,
+                        parentSection: headerLevel === 3 ? parentSection : '',
+                        category: category || 'general',
+                        sourceUrl,
+                    },
+                });
+                chunkIndex++;
+            }
+        } else {
+            chunks.push({
+                id: `${category}-${baseId}-${chunkIndex}`,
+                text,
+                metadata: {
+                    file: relativePath,
+                    section: sectionTitle,
+                    parentSection: headerLevel === 3 ? parentSection : '',
+                    category: category || 'general',
+                    sourceUrl,
+                },
+            });
+            chunkIndex++;
+        }
+    }
+
+    return chunks;
+}
+
+function splitLongSection(text, maxLength) {
+    const subChunks = [];
+    const paragraphs = text.split(/\n\n+/);
+
+    let currentChunk = '';
+    for (const para of paragraphs) {
+        if (currentChunk.length + para.length + 2 > maxLength) {
+            if (currentChunk) {
+                subChunks.push(currentChunk.trim());
+            }
+            currentChunk = para;
+        } else {
+            currentChunk += (currentChunk ? '\n\n' : '') + para;
+        }
+    }
+
+    if (currentChunk) {
+        subChunks.push(currentChunk.trim());
+    }
+
+    return subChunks;
+}
+
+function generateOutputFile(chunks) {
+    const chunksArray = chunks.map((chunk) => {
+        const escapedText = chunk.text.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        const sourceUrlLine = chunk.metadata.sourceUrl ? `\n            sourceUrl: '${chunk.metadata.sourceUrl}',` : '';
+        return `    {
+        id: '${chunk.id}',
+        text: \`${escapedText}\`,
+        metadata: {
+            file: '${chunk.metadata.file}',
+            section: '${chunk.metadata.section.replace(/'/g, "\\'")}',
+            parentSection: '${chunk.metadata.parentSection.replace(/'/g, "\\'")}',
+            category: '${chunk.metadata.category}',${sourceUrlLine}
+        },
+    }`;
+    });
+
+    const output = `/**
+ * Embedded Knowledge Chunks
+ *
+ * Pre-processed knowledge chunks embedded directly for I/O Runtime.
+ * This avoids filesystem access issues in serverless environment.
+ *
+ * Generated by: node scripts/generate-chunks.js
+ * Generated at: ${new Date().toISOString()}
+ * Total chunks: ${chunks.length}
+ */
+
+export const KNOWLEDGE_CHUNKS = [
+${chunksArray.join(',\n')}
+];
+
+export function getEmbeddedChunks() {
+    return KNOWLEDGE_CHUNKS;
+}
+`;
+
+    return output;
+}
+
+async function main() {
+    const args = process.argv.slice(2);
+    const dryRun = args.includes('--dry-run');
+    const skipEmbed = args.includes('--no-embed');
+
+    console.log('=== Knowledge Chunk Generator ===\n');
+
+    const allChunks = [];
+    let totalFiles = 0;
+
+    for (const sourceDir of SOURCE_DIRS) {
+        if (!existsSync(sourceDir.path)) {
+            console.log(`⚠️  Directory not found: ${sourceDir.path}`);
+            continue;
+        }
+
+        const mdFiles = getMarkdownFiles(sourceDir.path);
+        if (mdFiles.length === 0) {
+            console.log(`⚠️  No markdown files in: ${sourceDir.path}`);
+            continue;
+        }
+
+        const sourceName = sourceDir.categoryPrefix || 'knowledge-chunks';
+        console.log(`\n📁 ${sourceName}/ (${mdFiles.length} files):`);
+
+        for (const file of mdFiles) {
+            const content = readFileSync(file, 'utf-8');
+            const chunks = splitIntoChunks(content, file, sourceDir.path, sourceDir.categoryPrefix);
+            console.log(`  ${relative(sourceDir.path, file)}: ${chunks.length} chunks`);
+            allChunks.push(...chunks);
+        }
+
+        totalFiles += mdFiles.length;
+    }
+
+    if (totalFiles === 0) {
+        console.log('\n❌ No markdown files found in any source directory.');
+        console.log('Add .md files to src/knowledge-chunks/ or run scrape:confluence first.');
+        return;
+    }
+
+    console.log(`\nTotal chunks: ${allChunks.length}`);
+
+    if (skipEmbed) {
+        console.log('Skipping embedding generation (--no-embed)');
+    }
+
+    if (dryRun) {
+        console.log('\n=== DRY RUN - Preview ===\n');
+        allChunks.forEach((chunk) => {
+            console.log(`[${chunk.id}] ${chunk.metadata.section}`);
+            console.log(`  Category: ${chunk.metadata.category}`);
+            console.log(`  Length: ${chunk.text.length} chars`);
+            console.log(`  Preview: ${chunk.text.substring(0, 100).replace(/\n/g, ' ')}...`);
+            console.log();
+        });
+        return;
+    }
+
+    const output = generateOutputFile(allChunks);
+    writeFileSync(OUTPUT_FILE, output);
+    console.log(`\nGenerated: ${OUTPUT_FILE}`);
+    console.log('Next steps:');
+    console.log('  1. Deploy: node /tmp/deploy-knowledge.mjs');
+    console.log('  2. Re-index: curl -X POST .../index-docs -d \'{"action":"index","clearFirst":true}\'');
+    console.log('  3. Test: npm test');
+}
+
+main().catch((err) => {
+    console.error('Error:', err.message);
+    process.exit(1);
+});

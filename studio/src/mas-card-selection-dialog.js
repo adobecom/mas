@@ -1,0 +1,1295 @@
+import { LitElement, html } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
+import Store from './store.js';
+import StoreController from './reactivity/store-controller.js';
+import { CARD_MODEL_PATH, TAG_MODEL_ID_MAPPING } from './constants.js';
+import { toggleSelection } from './store.js';
+import { VARIANTS } from './editors/variant-picker.js';
+import './mas-fragment.js';
+import './aem/mas-filter-panel.js';
+
+const TAG_VARIANT_PREFIX = 'mas:variant/';
+const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
+
+const CARDS_PER_PAGE = 10;
+const variantValues = VARIANTS.map((v) => v.value);
+
+class MasCardSelectionDialog extends LitElement {
+    static properties = {
+        selectionCount: { state: true },
+        loading: { state: true },
+        searchQuery: { state: true },
+        displayCount: { state: true },
+        viewMode: { state: true },
+        currentFilters: { state: true },
+        cardsRendering: { state: true },
+        mode: { type: String },
+        preloadedFragments: { type: Array },
+    };
+
+    selection = new StoreController(this, Store.selection);
+    fragments = new StoreController(this, Store.fragments.list.data);
+    fragmentsLoading = new StoreController(this, Store.fragments.list.loading);
+    firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
+    filters = new StoreController(this, Store.filters);
+    createdByUsers = new StoreController(this, Store.createdByUsers);
+
+    constructor() {
+        super();
+        this.selectionCount = 0;
+        this.searchQuery = '';
+        this.resolver = null;
+        this.previousSelectingState = false;
+        this.displayCount = CARDS_PER_PAGE;
+        this.cardGridElement = null;
+        this.boundHandleScroll = this.handleScroll.bind(this);
+        this.viewMode = 'table';
+        this.currentFilters = {};
+        this.resizeObserver = null;
+        this.cardLoadObserver = null;
+        this.loadedCardsSet = new Set();
+        this.reflowTimeout = null;
+        this.mode = 'selection';
+        this.preloadedFragments = null;
+    }
+
+    createRenderRoot() {
+        return this;
+    }
+
+    async open(options = {}) {
+        this.mode = options.mode || 'selection';
+        this.preloadedFragments = options.fragments || null;
+
+        return new Promise((resolve) => {
+            this.resolver = resolve;
+
+            if (this.mode === 'selection') {
+                this.previousSelectingState = Store.selecting.get();
+                Store.selecting.set(true);
+            }
+
+            if (this.preloadedFragments) {
+                this.#cachePreloadedFragments();
+                this.firstPageLoaded.value = true;
+            } else {
+                this.loadFragments();
+            }
+        });
+    }
+
+    #cachePreloadedFragments() {
+        const AemFragmentElement = customElements.get('aem-fragment');
+        if (!AemFragmentElement || !this.preloadedFragments) return;
+
+        this.preloadedFragments.forEach((fragment) => {
+            const cacheData = {
+                id: fragment.id,
+                fields: this.#convertFragmentFields(fragment.fields),
+            };
+            AemFragmentElement.cache.add(cacheData);
+        });
+    }
+
+    #convertFragmentFields(fields) {
+        if (!fields) return {};
+
+        const isAlreadyFlat = Object.values(fields).every(
+            (value) => typeof value !== 'object' || value === null || Array.isArray(value),
+        );
+
+        if (isAlreadyFlat) {
+            const normalizedFields = { ...fields };
+            ['mnemonicIcon', 'mnemonicAlt', 'mnemonicLink'].forEach((key) => {
+                if (normalizedFields[key] && !Array.isArray(normalizedFields[key])) {
+                    normalizedFields[key] = [normalizedFields[key]];
+                }
+            });
+            return normalizedFields;
+        }
+
+        let fieldsObj = fields;
+        if (Array.isArray(fields)) {
+            fieldsObj = fields.reduce((acc, field) => {
+                if (field.name) {
+                    acc[field.name] = field;
+                }
+                return acc;
+            }, {});
+        }
+
+        return Object.entries(fieldsObj).reduce((acc, [key, field]) => {
+            if (field?.value !== undefined) {
+                acc[key] = field.value;
+            } else if (field?.values !== undefined) {
+                acc[key] = field.values.length === 1 ? field.values[0] : field.values;
+            } else {
+                acc[key] = field;
+            }
+            return acc;
+        }, {});
+    }
+
+    async loadFragments() {
+        if (this.preloadedFragments) {
+            return;
+        }
+
+        try {
+            const repository = document.querySelector('mas-repository');
+            if (!repository) {
+                throw new Error('Repository not found');
+            }
+
+            const currentPath = Store.search.get().path;
+            if (!currentPath) {
+                const folders = Store.folders.data.get();
+                if (folders.length > 0) {
+                    Store.search.set((prev) => ({
+                        ...prev,
+                        path: folders[0],
+                    }));
+                }
+            }
+
+            await repository.searchFragments();
+        } catch (error) {
+            console.error('Failed to load fragments:', error);
+        }
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.currentFilters = Store.filters.get();
+        this.selectionSubscription = Store.selection.subscribe(() => {
+            this.selectionCount = Store.selection.get().length;
+            this.requestUpdate();
+        });
+        this.filtersSubscription = Store.filters.subscribe(() => {
+            this.currentFilters = Store.filters.get();
+            this.displayCount = CARDS_PER_PAGE;
+            this.scheduleGridReflow();
+        });
+        this.createdByUsersSubscription = Store.createdByUsers.subscribe(() => {
+            this.displayCount = CARDS_PER_PAGE;
+            this.scheduleGridReflow();
+        });
+    }
+
+    updated(changedProperties) {
+        super.updated(changedProperties);
+
+        if (!this.cardGridElement) {
+            const selector = this.viewMode === 'table' ? 'sp-table' : '.card-grid';
+            this.cardGridElement = this.querySelector(selector);
+            if (this.cardGridElement) {
+                this.cardGridElement.addEventListener('scroll', this.boundHandleScroll);
+                this.setupResizeObserver();
+                this.setupCardLoadObserver();
+            }
+        }
+
+        if (changedProperties.has('viewMode') && changedProperties.get('viewMode') !== undefined) {
+            if (this.cardGridElement) {
+                this.cardGridElement.removeEventListener('scroll', this.boundHandleScroll);
+                this.cleanupResizeObserver();
+                this.cleanupCardLoadObserver();
+            }
+            const selector = this.viewMode === 'table' ? 'sp-table' : '.card-grid';
+            this.cardGridElement = this.querySelector(selector);
+            if (this.cardGridElement) {
+                this.cardGridElement.addEventListener('scroll', this.boundHandleScroll);
+                this.setupResizeObserver();
+                this.setupCardLoadObserver();
+            }
+        }
+
+        if (changedProperties.has('displayCount') && this.cardGridElement && this.viewMode === 'render') {
+            this.scheduleGridReflow();
+        }
+    }
+
+    setupResizeObserver() {
+        if (this.viewMode !== 'render' || !this.cardGridElement) return;
+
+        this.cleanupResizeObserver();
+
+        this.resizeObserver = new ResizeObserver(() => {
+            this.forceGridReflow();
+        });
+
+        this.resizeObserver.observe(this.cardGridElement);
+    }
+
+    cleanupResizeObserver() {
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+    }
+
+    setupCardLoadObserver() {
+        if (this.viewMode !== 'render' || !this.cardGridElement) return;
+
+        this.cleanupCardLoadObserver();
+
+        this.cardLoadObserver = new MutationObserver(() => {
+            this.scheduleGridReflow();
+        });
+
+        this.cardLoadObserver.observe(this.cardGridElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class'],
+        });
+    }
+
+    cleanupCardLoadObserver() {
+        if (this.cardLoadObserver) {
+            this.cardLoadObserver.disconnect();
+            this.cardLoadObserver = null;
+        }
+        if (this.reflowTimeout) {
+            clearTimeout(this.reflowTimeout);
+            this.reflowTimeout = null;
+        }
+    }
+
+    scheduleGridReflow() {
+        if (this.reflowTimeout) {
+            clearTimeout(this.reflowTimeout);
+        }
+        this.reflowTimeout = setTimeout(() => {
+            this.forceGridReflow();
+            this.reflowTimeout = null;
+        }, 100);
+    }
+
+    forceGridReflow() {
+        if (!this.cardGridElement || this.viewMode !== 'render') return;
+
+        const currentDisplay = this.cardGridElement.style.display;
+        this.cardGridElement.style.display = 'none';
+        void this.cardGridElement.offsetHeight;
+        this.cardGridElement.style.display = currentDisplay || 'grid';
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this.selectionSubscription) {
+            this.selectionSubscription.unsubscribe();
+        }
+        if (this.filtersSubscription) {
+            this.filtersSubscription.unsubscribe();
+        }
+        if (this.createdByUsersSubscription) {
+            this.createdByUsersSubscription.unsubscribe();
+        }
+        if (this.cardGridElement) {
+            this.cardGridElement.removeEventListener('scroll', this.boundHandleScroll);
+        }
+        this.cleanupResizeObserver();
+        this.cleanupCardLoadObserver();
+    }
+
+    handleScroll(event) {
+        const element = event.target;
+        const scrollBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
+
+        if (scrollBottom < 200 && !this.fragmentsLoading.value) {
+            const filtered = this.filteredFragments;
+            if (this.displayCount < filtered.length) {
+                this.displayCount = Math.min(this.displayCount + CARDS_PER_PAGE, filtered.length);
+            }
+        }
+    }
+
+    handleConfirm() {
+        const selectedIds = Store.selection.get();
+        const fragmentsMap = new Map(this.filteredFragments.map((f) => [f.id, f]));
+
+        const selectedCards = selectedIds.map((id) => {
+            const fragmentStore = fragmentsMap.get(id);
+            const fragment = fragmentStore?.get?.();
+            const osi = fragment?.getFieldValue?.('osi') || null;
+            return { id, osi };
+        });
+
+        this.cleanup();
+        this.resolver(selectedCards);
+    }
+
+    handleCancel() {
+        this.cleanup();
+        this.resolver(null);
+    }
+
+    cleanup() {
+        Store.selecting.set(this.previousSelectingState);
+        Store.selection.set([]);
+        this.remove();
+    }
+
+    handleSearchInput(event) {
+        this.searchQuery = event.target.value.toLowerCase();
+        this.displayCount = CARDS_PER_PAGE;
+    }
+
+    handleViewModeChange(event) {
+        this.viewMode = event.target.value;
+        this.displayCount = CARDS_PER_PAGE;
+    }
+
+    handleCardClick(fragmentStore) {
+        toggleSelection(fragmentStore.id);
+    }
+
+    updateTableSelection(event) {
+        Store.selection.set(Array.from(event.target.selectedSet));
+    }
+
+    async handleOpenCard(fragment) {
+        const { Fragment } = await import('./aem/fragment.js');
+        const { FragmentStore } = await import('./reactivity/fragment-store.js');
+        const { editFragment } = await import('./store.js');
+
+        const fragmentInstance = new Fragment(fragment);
+        const fragmentStore = new FragmentStore(fragmentInstance);
+        editFragment(fragmentStore);
+
+        this.dispatchEvent(
+            new CustomEvent('card-opened', {
+                detail: { fragment },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    get filteredFragments() {
+        if (this.preloadedFragments) {
+            let filtered = this.preloadedFragments;
+
+            if (this.searchQuery) {
+                filtered = filtered.filter((fragment) => {
+                    const title = (fragment.title || '').toLowerCase();
+                    return title.includes(this.searchQuery);
+                });
+            }
+
+            return filtered;
+        }
+
+        const filterTags = this.currentFilters?.tags ? this.currentFilters.tags.split(',').filter(Boolean) : [];
+
+        const variantFilters = filterTags
+            .filter((tag) => tag.startsWith(TAG_VARIANT_PREFIX))
+            .map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
+
+        const contentTypeFilters = filterTags
+            .filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE))
+            .map((tag) => TAG_MODEL_ID_MAPPING[tag]);
+
+        const tagFilters = filterTags.filter(
+            (tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX),
+        );
+
+        const createdByUsers = Store.createdByUsers.get();
+        const createdByUsernames = createdByUsers.map((user) => user.userPrincipalName);
+
+        console.log('[Card Selection Dialog] Filtering cards:', {
+            totalFragments: this.fragments.value.length,
+            variantFilters,
+            contentTypeFilters,
+            tagFilters,
+            createdByUsernames,
+            searchQuery: this.searchQuery,
+        });
+
+        const filtered = this.fragments.value.filter((fragmentStore) => {
+            const fragment = fragmentStore.get();
+            if (!fragment) return false;
+            if (fragment.model?.path !== CARD_MODEL_PATH) return false;
+            if (!fragmentStore.new && !variantValues.includes(fragment.variant)) return false;
+
+            if (variantFilters.length > 0) {
+                const fragmentVariant = fragment.variant || fragment.getFieldValue('variant');
+                if (!variantFilters.includes(fragmentVariant)) return false;
+            }
+
+            if (contentTypeFilters.length > 0) {
+                const fragmentModelId = fragment.model?.id;
+                if (!contentTypeFilters.includes(fragmentModelId)) return false;
+            }
+
+            if (tagFilters.length > 0) {
+                const fragmentTags = fragment.tags || [];
+                const fragmentTagIds = fragmentTags.map((tag) => tag.id || tag);
+
+                const hasAllRequiredTags = tagFilters.every((filterTag) => {
+                    return fragmentTagIds.some(
+                        (fragTag) => fragTag === filterTag || fragTag.endsWith(filterTag.replace('mas:', '')),
+                    );
+                });
+
+                if (!hasAllRequiredTags) return false;
+            }
+
+            if (createdByUsernames.length > 0) {
+                const fragmentCreatedBy = fragment.created?.by;
+                if (!fragmentCreatedBy || !createdByUsernames.includes(fragmentCreatedBy)) {
+                    return false;
+                }
+            }
+
+            if (this.searchQuery) {
+                const title = (fragment.title || '').toLowerCase();
+                const label = (fragment.getFieldValue('label') || '').toLowerCase();
+                return title.includes(this.searchQuery) || label.includes(this.searchQuery);
+            }
+
+            return true;
+        });
+
+        console.log('[Card Selection Dialog] Filter results:', {
+            filteredCount: filtered.length,
+            sampleFragments: filtered.slice(0, 3).map((fs) => {
+                const f = fs.get();
+                return {
+                    id: f.id,
+                    title: f.title,
+                    variant: f.getFieldValue('variant'),
+                    modelPath: f.model?.path,
+                    tags: f.tags?.map((t) => t.id || t),
+                };
+            }),
+        });
+
+        return filtered;
+    }
+
+    renderFilterBar() {
+        return html`
+            <div class="filter-bar">
+                <div class="filter-header">
+                    <sp-search
+                        size="m"
+                        placeholder="Search by title or label..."
+                        @input=${this.handleSearchInput}
+                        @submit=${(e) => e.preventDefault()}
+                        value=${this.searchQuery}
+                        class="search-field"
+                    ></sp-search>
+
+                    <div class="filter-header-actions">
+                        <div class="view-toggle">
+                            <button
+                                class="view-btn ${this.viewMode === 'render' ? 'active' : ''}"
+                                @click=${() => {
+                                    this.viewMode = 'render';
+                                    this.displayCount = 10;
+                                }}
+                                title="Card view"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+                                    <rect x="1" y="1" width="7" height="7" rx="1" />
+                                    <rect x="10" y="1" width="7" height="7" rx="1" />
+                                    <rect x="1" y="10" width="7" height="7" rx="1" />
+                                    <rect x="10" y="10" width="7" height="7" rx="1" />
+                                </svg>
+                            </button>
+                            <button
+                                class="view-btn ${this.viewMode === 'table' ? 'active' : ''}"
+                                @click=${() => {
+                                    this.viewMode = 'table';
+                                    this.displayCount = 10;
+                                }}
+                                title="Table view"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+                                    <rect x="1" y="2" width="16" height="2" rx="0.5" />
+                                    <rect x="1" y="8" width="16" height="2" rx="0.5" />
+                                    <rect x="1" y="14" width="16" height="2" rx="0.5" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <mas-filter-panel></mas-filter-panel>
+            </div>
+        `;
+    }
+
+    get tableView() {
+        const filtered = this.filteredFragments;
+
+        return html`<sp-table
+            emphasized
+            scroller
+            selects="multiple"
+            selected=${JSON.stringify(this.selection.value)}
+            @change=${this.updateTableSelection}
+        >
+            <sp-table-head>
+                <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
+                <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
+                <sp-table-head-cell sortable class="title">Title</sp-table-head-cell>
+                <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
+                <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
+                <sp-table-head-cell sortable class="last-modified-by">Modified By</sp-table-head-cell>
+                <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
+                <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
+                <sp-table-head-cell class="actions"></sp-table-head-cell>
+                <sp-table-head-cell class="preview"></sp-table-head-cell>
+            </sp-table-head>
+            <sp-table-body>
+                ${repeat(
+                    filtered,
+                    (fragmentStore) => fragmentStore.id,
+                    (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+                )}
+            </sp-table-body>
+        </sp-table>`;
+    }
+
+    renderCardGrid() {
+        if (this.viewMode === 'table' && !this.preloadedFragments) {
+            return this.tableView;
+        }
+
+        const filtered = this.filteredFragments;
+
+        if (this.fragmentsLoading.value && filtered.length === 0 && !this.preloadedFragments) {
+            return html`
+                <div class="loading-state">
+                    <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+                    <p>Loading cards...</p>
+                </div>
+            `;
+        }
+
+        if (filtered.length === 0) {
+            return html`
+                <div class="empty-state">
+                    <sp-icon-view-grid></sp-icon-view-grid>
+                    <h3>No cards found</h3>
+                    <p>Try adjusting your${this.preloadedFragments ? '' : ' filters or'} search query.</p>
+                </div>
+            `;
+        }
+
+        const displayedCards = filtered.slice(0, this.displayCount);
+        const hasMore = this.displayCount < filtered.length;
+        const isViewOnly = this.mode === 'view-only';
+
+        if (this.preloadedFragments) {
+            return html`
+                <div class="card-grid">
+                    ${displayedCards.map((fragment) => {
+                        const isCollection = fragment.model?.path === '/conf/mas/settings/dam/cfm/models/collection';
+
+                        return html`
+                            <div class="card-wrapper view-only ${isCollection ? 'collection-item' : ''}">
+                                <div class="status-badge ${fragment.status?.toLowerCase() || 'draft'}">
+                                    ${fragment.status || 'Draft'}
+                                </div>
+
+                                ${isCollection
+                                    ? html`
+                                          <merch-card-collection class="collection-preview">
+                                              <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                          </merch-card-collection>
+                                      `
+                                    : html`
+                                          <merch-card>
+                                              <aem-fragment fragment="${fragment.id}"></aem-fragment>
+                                          </merch-card>
+                                      `}
+
+                                <div class="card-metadata">
+                                    <sp-badge variant="info" size="s">
+                                        ${isCollection
+                                            ? 'Collection'
+                                            : fragment.tags?.find((t) => t.id.includes('variant/'))
+                                              ? fragment.tags
+                                                    .find((t) => t.id.includes('variant/'))
+                                                    .id.split('/')
+                                                    .pop()
+                                              : 'N/A'}
+                                    </sp-badge>
+                                    <div class="card-title" title="${fragment.title}">${fragment.title}</div>
+                                </div>
+
+                                <div class="card-actions-overlay">
+                                    <sp-button size="s" variant="accent" @click=${() => this.handleOpenCard(fragment)}>
+                                        <sp-icon-edit slot="icon"></sp-icon-edit>
+                                        Open in Editor
+                                    </sp-button>
+                                </div>
+                            </div>
+                        `;
+                    })}
+                    ${hasMore
+                        ? html`
+                              <div class="loading-more">
+                                  <sp-progress-circle indeterminate size="m"></sp-progress-circle>
+                              </div>
+                          `
+                        : ''}
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="card-grid">
+                ${repeat(
+                    displayedCards,
+                    (fragmentStore) => fragmentStore.id,
+                    (fragmentStore) => {
+                        const fragment = fragmentStore.previewStore.get();
+                        const fullFragment = fragmentStore.get();
+                        const isSelected = this.selection.value.includes(fragmentStore.id);
+                        const status = fullFragment?.status?.toLowerCase() || 'draft';
+                        const variant = fullFragment?.variant || fullFragment?.getFieldValue?.('variant') || 'N/A';
+                        const title = fullFragment?.title || 'Untitled';
+                        const osi = fullFragment?.getFieldValue?.('osi') || '';
+
+                        return html`
+                            <div
+                                class="card-wrapper ${isSelected ? 'selected' : ''} ${isViewOnly ? 'view-only' : ''}"
+                                @click=${() => (isViewOnly ? null : this.handleCardClick(fragmentStore))}
+                            >
+                                <div class="status-badge ${status}">${fullFragment?.status || 'Draft'}</div>
+
+                                ${!isViewOnly
+                                    ? html`
+                                          <div
+                                              class="selection-overlay ${isSelected ? 'selected' : ''}"
+                                              @click=${(e) => {
+                                                  e.stopPropagation();
+                                                  this.handleCardClick(fragmentStore);
+                                              }}
+                                          >
+                                              ${isSelected
+                                                  ? html`<sp-icon-checkmark-circle size="s"></sp-icon-checkmark-circle>`
+                                                  : html`<sp-icon-add-circle size="s"></sp-icon-add-circle>`}
+                                          </div>
+                                      `
+                                    : ''}
+
+                                <merch-card>
+                                    <aem-fragment author fragment="${fragment.id}"></aem-fragment>
+                                </merch-card>
+
+                                <div class="card-metadata">
+                                    <sp-badge variant="info" size="s">${variant}</sp-badge>
+                                    <div class="card-title" title="${title}">${title}</div>
+                                    ${osi ? html`<div class="card-osi">OSI: ${osi}</div>` : ''}
+                                </div>
+
+                                ${isViewOnly
+                                    ? html`
+                                          <div class="card-actions-overlay">
+                                              <sp-button
+                                                  size="s"
+                                                  variant="accent"
+                                                  @click=${() => this.handleOpenCard(fullFragment)}
+                                              >
+                                                  <sp-icon-edit slot="icon"></sp-icon-edit>
+                                                  Open in Editor
+                                              </sp-button>
+                                          </div>
+                                      `
+                                    : ''}
+                            </div>
+                        `;
+                    },
+                )}
+                ${hasMore
+                    ? html`
+                          <div class="loading-more">
+                              <sp-progress-circle indeterminate size="m"></sp-progress-circle>
+                          </div>
+                      `
+                    : ''}
+            </div>
+        `;
+    }
+
+    renderFooter() {
+        if (this.mode === 'view-only') {
+            return html`
+                <div class="dialog-footer">
+                    <div class="action-buttons">
+                        <sp-button variant="secondary" @click=${this.handleCancel}>Close</sp-button>
+                    </div>
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="dialog-footer">
+                <div class="selection-info">
+                    <sp-icon-selection-checked size="s"></sp-icon-selection-checked>
+                    <span>${this.selectionCount} card${this.selectionCount !== 1 ? 's' : ''} selected</span>
+                </div>
+
+                <div class="action-buttons">
+                    <sp-button variant="secondary" @click=${this.handleCancel}>Cancel</sp-button>
+                    <sp-button variant="accent" @click=${this.handleConfirm} ?disabled=${this.selectionCount === 0}>
+                        Select Cards
+                    </sp-button>
+                </div>
+            </div>
+        `;
+    }
+
+    render() {
+        return html`
+            <style>
+                mas-card-selection-dialog {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    z-index: 999;
+                    display: block;
+                }
+
+                mas-card-selection-dialog .dialog-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background: rgba(0, 0, 0, 0.5);
+                    z-index: 999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                mas-card-selection-dialog .dialog-panel {
+                    background: var(--spectrum-gray-50, #fff);
+                    border-radius: 12px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    width: 95vw;
+                    height: 95vh;
+                    max-width: 1600px;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                    z-index: 1000;
+                }
+
+                mas-card-selection-dialog .dialog-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 20px 24px;
+                    border-bottom: 1px solid var(--spectrum-gray-200);
+                    flex-shrink: 0;
+                }
+
+                mas-card-selection-dialog .dialog-title {
+                    margin: 0;
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: var(--spectrum-gray-900);
+                }
+
+                mas-card-selection-dialog .dialog-header .close-button {
+                    background: transparent;
+                    border: none;
+                }
+
+                mas-card-selection-dialog .dialog-body {
+                    display: flex;
+                    flex-direction: column;
+                    flex: 1;
+                    overflow: hidden;
+                }
+
+                mas-card-selection-dialog .filter-bar {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    padding: 16px 24px;
+                    border-bottom: 1px solid var(--spectrum-gray-200);
+                    flex-shrink: 0;
+                    background: var(--spectrum-gray-50);
+                }
+
+                mas-card-selection-dialog .filter-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    flex-wrap: nowrap;
+                }
+
+                mas-card-selection-dialog .search-field {
+                    flex: 0 1 300px;
+                    min-width: 200px;
+                    max-width: 350px;
+                }
+
+                mas-card-selection-dialog .filter-header-actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-shrink: 0;
+                }
+
+                mas-card-selection-dialog .view-toggle {
+                    display: flex;
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 4px;
+                    overflow: hidden;
+                    background: var(--spectrum-gray-100);
+                }
+
+                mas-card-selection-dialog .view-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 36px;
+                    height: 32px;
+                    border: none;
+                    background: transparent;
+                    cursor: pointer;
+                    color: var(--spectrum-gray-700);
+                    transition:
+                        background 0.15s ease,
+                        color 0.15s ease;
+                }
+
+                mas-card-selection-dialog .view-btn:hover {
+                    background: var(--spectrum-gray-200);
+                }
+
+                mas-card-selection-dialog .view-btn.active {
+                    background: var(--spectrum-accent-color-500);
+                    color: white;
+                }
+
+                mas-card-selection-dialog .view-btn svg {
+                    width: 18px;
+                    height: 18px;
+                }
+
+                mas-card-selection-dialog .filter-bar mas-filter-panel {
+                    width: 100%;
+                }
+
+                mas-card-selection-dialog .filter-bar mas-filter-panel #filters {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    flex-wrap: wrap;
+                }
+
+                mas-card-selection-dialog .filter-bar mas-filter-panel #filters > sp-icon {
+                    display: none !important;
+                }
+
+                mas-card-selection-dialog .filter-bar mas-filter-panel aem-tag-picker-field,
+                mas-card-selection-dialog .filter-bar mas-filter-panel mas-locale-picker,
+                mas-card-selection-dialog .filter-bar mas-filter-panel mas-user-picker {
+                    min-width: 140px;
+                    max-width: 200px;
+                    flex: 0 1 auto;
+                }
+
+                mas-card-selection-dialog .filter-bar mas-filter-panel sp-action-button {
+                    flex: 0 0 auto;
+                }
+
+                mas-card-selection-dialog .filter-bar mas-filter-panel sp-tags {
+                    width: 100%;
+                    margin-top: 8px;
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                }
+
+                mas-card-selection-dialog .filter-bar mas-filter-panel sp-tags:empty {
+                    display: none;
+                }
+
+                mas-card-selection-dialog .card-grid {
+                    flex: 1;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                    padding: 24px;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    grid-auto-rows: min-content;
+                    gap: 24px;
+                    grid-auto-flow: row;
+                    width: 100%;
+                    box-sizing: border-box;
+                    background: var(--spectrum-gray-100, #f5f5f5);
+                }
+
+                @media (max-width: 1400px) {
+                    mas-card-selection-dialog .card-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+                    }
+                }
+
+                @media (max-width: 1000px) {
+                    mas-card-selection-dialog .card-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                    }
+                }
+
+                mas-card-selection-dialog .loading-more {
+                    display: flex;
+                    justify-content: center;
+                    padding: 20px;
+                    grid-column: 1 / -1;
+                }
+
+                mas-card-selection-dialog .status-badge {
+                    position: absolute;
+                    top: 12px;
+                    left: 12px;
+                    padding: 4px 12px;
+                    border-radius: 16px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    z-index: 10;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+                    transition: all 0.2s ease;
+                }
+
+                mas-card-selection-dialog .status-badge.published {
+                    background: #2d9d78;
+                    color: white;
+                }
+
+                mas-card-selection-dialog .status-badge.draft {
+                    background: #f5a623;
+                    color: white;
+                }
+
+                mas-card-selection-dialog .status-badge.modified {
+                    background: #4a90e2;
+                    color: white;
+                }
+
+                mas-card-selection-dialog .status-badge.archived {
+                    background: #95a5a6;
+                    color: white;
+                }
+
+                mas-card-selection-dialog .card-wrapper:hover .status-badge {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+                }
+
+                mas-card-selection-dialog .card-wrapper {
+                    position: relative;
+                    border-radius: 12px;
+                    transition:
+                        transform 0.2s ease,
+                        box-shadow 0.2s ease;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    width: 100%;
+                    min-height: 400px;
+                    overflow: hidden;
+                    contain: layout;
+                }
+
+                mas-card-selection-dialog .card-wrapper merch-card {
+                    flex: 1;
+                }
+
+                mas-card-selection-dialog .card-metadata {
+                    padding: 12px 8px 8px 8px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                    background: var(--spectrum-global-color-gray-50);
+                    border-radius: 0 0 12px 12px;
+                    margin-top: -4px;
+                }
+
+                mas-card-selection-dialog .card-metadata sp-badge {
+                    align-self: flex-start;
+                    text-transform: capitalize;
+                }
+
+                mas-card-selection-dialog .card-metadata .card-title {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: var(--spectrum-global-color-gray-800);
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    line-height: 1.4;
+                }
+
+                mas-card-selection-dialog .card-metadata .card-osi {
+                    font-size: 11px;
+                    color: var(--spectrum-global-color-gray-600);
+                    font-family: monospace;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                mas-card-selection-dialog .card-wrapper:hover {
+                    transform: translateY(-4px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+                }
+
+                mas-card-selection-dialog .card-wrapper.selected {
+                    border: 1px solid var(--spectrum-accent-color-900);
+                    border-radius: 12px;
+                    padding: 12px;
+                }
+
+                mas-card-selection-dialog .card-wrapper.selected::after {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: rgba(20, 115, 230, 0.08);
+                    pointer-events: none;
+                    z-index: 1;
+                }
+
+                mas-card-selection-dialog .selection-overlay {
+                    position: absolute;
+                    top: 12px;
+                    right: 12px;
+                    width: 32px;
+                    height: 32px;
+                    background: white;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+                    cursor: pointer;
+                    z-index: 10;
+                    transition: all 0.2s ease;
+                }
+
+                mas-card-selection-dialog .selection-overlay:hover {
+                    transform: scale(1.15);
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+                }
+
+                mas-card-selection-dialog .selection-overlay.selected {
+                    background: var(--spectrum-accent-color-900);
+                    color: white;
+                }
+
+                mas-card-selection-dialog .card-actions-overlay {
+                    position: absolute;
+                    bottom: 60px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    opacity: 0;
+                    transition: opacity 0.2s ease;
+                    z-index: 20;
+                }
+
+                mas-card-selection-dialog .card-wrapper.view-only:hover .card-actions-overlay {
+                    opacity: 1;
+                }
+
+                mas-card-selection-dialog .card-wrapper.view-only {
+                    cursor: default;
+                }
+
+                mas-card-selection-dialog .card-wrapper.collection-item {
+                    min-height: auto;
+                }
+
+                mas-card-selection-dialog .card-wrapper.collection-item merch-card-collection {
+                    display: block;
+                    width: 100%;
+                }
+
+                mas-card-selection-dialog .loading-state {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 20px;
+                    flex: 1;
+                    padding: 40px;
+                    background: var(--spectrum-gray-100, #f5f5f5);
+                }
+
+                mas-card-selection-dialog .loading-state p {
+                    font-size: 16px;
+                    color: var(--spectrum-gray-700);
+                    margin: 0;
+                }
+
+                mas-card-selection-dialog .empty-state {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    flex: 1;
+                    padding: 40px;
+                    color: var(--spectrum-gray-700);
+                    text-align: center;
+                    background: var(--spectrum-gray-100, #f5f5f5);
+                }
+
+                mas-card-selection-dialog .empty-state sp-icon {
+                    width: 80px;
+                    height: 80px;
+                    margin-bottom: 20px;
+                    color: var(--spectrum-global-color-gray-400);
+                }
+
+                mas-card-selection-dialog .empty-state h3 {
+                    margin: 0 0 8px 0;
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: var(--spectrum-global-color-gray-800);
+                }
+
+                mas-card-selection-dialog .empty-state p {
+                    margin: 0;
+                    font-size: 14px;
+                    color: var(--spectrum-global-color-gray-600);
+                }
+
+                mas-card-selection-dialog sp-table {
+                    width: 100%;
+                    flex: 1;
+                    overflow-y: auto;
+                    overflow-x: auto;
+                    background: var(--spectrum-gray-100, #f5f5f5);
+                }
+
+                mas-card-selection-dialog sp-table sp-table-body {
+                    background-color: var(--spectrum-gray-100);
+                }
+
+                mas-card-selection-dialog sp-table-cell,
+                mas-card-selection-dialog sp-table-head-cell {
+                    display: flex;
+                    align-items: center;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                mas-card-selection-dialog .expand-cell {
+                    flex: 0 0 40px;
+                    min-width: 40px;
+                }
+
+                mas-card-selection-dialog .name {
+                    flex: 2;
+                    min-width: 150px;
+                }
+
+                mas-card-selection-dialog .title {
+                    flex: 1.5;
+                    min-width: 120px;
+                }
+
+                mas-card-selection-dialog .offer-id {
+                    flex: 1;
+                    min-width: 80px;
+                }
+
+                mas-card-selection-dialog .offer-type {
+                    flex: 0.8;
+                    min-width: 80px;
+                }
+
+                mas-card-selection-dialog .last-modified-by {
+                    flex: 1.2;
+                    min-width: 100px;
+                }
+
+                mas-card-selection-dialog .price {
+                    flex: 0.8;
+                    min-width: 80px;
+                }
+
+                mas-card-selection-dialog .status {
+                    flex: 0.6;
+                    min-width: 80px;
+                }
+
+                mas-card-selection-dialog .actions {
+                    flex: 0 0 50px;
+                    min-width: 50px;
+                }
+
+                mas-card-selection-dialog .preview {
+                    flex: 0 0 50px;
+                    min-width: 50px;
+                }
+
+                mas-card-selection-dialog .dialog-footer {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 16px 24px;
+                    background: var(--spectrum-gray-50, #fff);
+                    border-top: 1px solid var(--spectrum-gray-200);
+                    flex-shrink: 0;
+                }
+
+                mas-card-selection-dialog .selection-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    color: var(--spectrum-global-color-gray-800);
+                    font-weight: 500;
+                    font-size: 14px;
+                }
+
+                mas-card-selection-dialog .action-buttons {
+                    display: flex;
+                    gap: 12px;
+                }
+            </style>
+            <div class="dialog-overlay">
+                <sp-theme system="spectrum-two" color="light" scale="medium">
+                    <div class="dialog-panel">
+                        <header class="dialog-header">
+                            <h2 class="dialog-title">
+                                ${this.mode === 'view-only' ? 'Search Results' : 'Select Cards for Context'}
+                            </h2>
+                            <sp-action-button quiet class="close-button" @click=${this.handleCancel}>
+                                <sp-icon-close slot="icon"></sp-icon-close>
+                            </sp-action-button>
+                        </header>
+
+                        <div class="dialog-body">
+                            ${this.mode === 'view-only' && !this.preloadedFragments ? '' : this.renderFilterBar()}
+                            ${this.renderCardGrid()}
+                        </div>
+
+                        ${(this.mode === 'view-only' && this.preloadedFragments) ||
+                        (this.firstPageLoaded.value && this.fragments.value.length > 0)
+                            ? this.renderFooter()
+                            : ''}
+                    </div>
+                </sp-theme>
+            </div>
+        `;
+    }
+}
+
+customElements.define('mas-card-selection-dialog', MasCardSelectionDialog);

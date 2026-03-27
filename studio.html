@@ -26,6 +26,7 @@
                     "prosemirror-commands": "/studio/libs/prosemirror.js",
                     "prosemirror-schema-list": "/studio/libs/prosemirror.js",
                     "prosemirror-history": "/studio/libs/prosemirror.js",
+                    "prosemirror-placeholder": "/studio/libs/prosemirror.js",
                     "fragment-client": "/studio/libs/fragment-client.js"
                 }
             }
@@ -77,11 +78,11 @@
                 if (envOverride) studio.aemEnv = envOverride;
             }
             const context = {
-                profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,
+                profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('9E1005A551ED61CA0A490D45@AdobeOrg')`,
             };
             window.adobeid = {
                 api_parameters: {
-                    profile_filter: "isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')",
+                    profile_filter: "isOwnedByOrg('9E1005A551ED61CA0A490D45@AdobeOrg')",
                 },
                 client_id: 'mas-studio',
                 environment: 'prod',

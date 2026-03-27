@@ -157,19 +157,10 @@ runTests(async () => {
             const card = document.querySelector(
                 'merch-card#card-width-tooltip',
             );
-            Object.defineProperty(window, 'screen', {
-                configurable: true,
-                value: {
-                    ...window.screen,
-                    width: 330,
-                },
-            });
-            const originalGetBoundingClientRect =
-                card.iconButton.getBoundingClientRect.bind(card.iconButton);
-            card.iconButton.getBoundingClientRect = () => ({
-                ...originalGetBoundingClientRect(),
-                x: 260,
-            });
+            window.screen = {
+                ...window.screen,
+                width: 330,
+            };
             card.iconButton.dispatchEvent(
                 new MouseEvent('mouseenter', { bubbles: true }),
             );
@@ -184,27 +175,16 @@ runTests(async () => {
             expect(card.iconButton.className).to.equal(
                 'icon-button tooltip-right',
             );
-            card.iconButton.getBoundingClientRect =
-                originalGetBoundingClientRect;
         });
 
         it('should dispplay callout info tooltip in the central position', async () => {
             const card = document.querySelector(
                 'merch-card#card-width-tooltip',
             );
-            Object.defineProperty(window, 'screen', {
-                configurable: true,
-                value: {
-                    ...window.screen,
-                    width: 599,
-                },
-            });
-            const originalGetBoundingClientRect =
-                card.iconButton.getBoundingClientRect.bind(card.iconButton);
-            card.iconButton.getBoundingClientRect = () => ({
-                ...originalGetBoundingClientRect(),
-                x: 200,
-            });
+            window.screen = {
+                ...window.screen,
+                width: 599,
+            };
             card.iconButton.dispatchEvent(
                 new MouseEvent('mouseenter', { bubbles: true }),
             );
@@ -217,8 +197,6 @@ runTests(async () => {
             );
             await delay(100);
             expect(card.iconButton.className).to.equal('icon-button');
-            card.iconButton.getBoundingClientRect =
-                originalGetBoundingClientRect;
         });
     });
 });

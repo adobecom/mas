@@ -131,9 +131,10 @@ const isDev = typeof window !== 'undefined' && window.location.hostname === 'loc
 const IO_NAMESPACE = isDev ? '14257-merchatscale-axel' : '14257-masstudio';
 
 export const AI_CHAT_BASE_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+const IO_MCP_NAMESPACE = '14257-merchatscale-axel';
 export const MCP_SERVER_URL = isDev
     ? 'http://localhost:3001'
-    : `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
+    : `https://${IO_MCP_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
 export const IO_MCP_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
 export const KNOWLEDGE_SERVICE_URL = `https://${IO_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleKnowledge`;
 

@@ -70,10 +70,11 @@
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
                         expect(filterPanel.tagsByType).to.deep.equal({
+                            custom: [],
+                            customer_segment: [],
+                            market_segments: [],
                             offer_type: [],
                             plan_type: [],
-                            market_segments: [],
-                            customer_segment: [],
                             product_code: [],
                             status: [],
                             'studio/content-type': [],

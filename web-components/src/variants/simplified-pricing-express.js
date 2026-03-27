@@ -115,15 +115,29 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 this.card.prices.map((price) => price.onceSettled?.()),
             );
         }
+        const container = this.getContainer();
+        if (!container) return;
+        const cards = container.querySelectorAll(
+            `merch-card[variant="${this.card.variant}"]`,
+        );
+
+        /* Set small font size button class if button text is too long */
+        const CTA_LONG_TEXT_CHAR_THRESHOLD = 34;
+        cards.forEach((card) => {
+            card.classList.remove('small-font-size-button');
+            const ctas = card.querySelectorAll(
+                '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]',
+            );
+            ctas.forEach((cta) => {
+                const isLong =
+                    cta.textContent.trim().length >
+                    CTA_LONG_TEXT_CHAR_THRESHOLD;
+                cta.classList.toggle('small-font-size-button', isLong);
+            });
+        });
 
         if (Media.isDesktopOrUp) {
-            const container = this.getContainer();
-            if (!container) return;
-
             requestAnimationFrame(() => {
-                const cards = container.querySelectorAll(
-                    `merch-card[variant="${this.card.variant}"]`,
-                );
                 cards.forEach((card) => card.variantLayout?.syncHeights?.());
             });
         }

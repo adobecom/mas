@@ -122,7 +122,7 @@ class MerchCardEditor extends LitElement {
                     ?readonly=${isReadonly}
                     label="Locale tags"
                     namespace="/content/cq:tags/mas"
-                    top="locale"
+                    top="locale,pzn"
                     multiple
                     value="${this.pznTagsValue}"
                     @change=${this.#handlePznTagsChange}

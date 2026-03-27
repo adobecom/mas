@@ -70,11 +70,6 @@ class MasProductCatalog extends LitElement {
         return Math.ceil(this.filteredProducts.length / this.pageSize);
     }
 
-    get paginatedProducts() {
-        const start = this.currentPage * this.pageSize;
-        return this.filteredProducts.slice(start, start + this.pageSize);
-    }
-
     handleSearch(e) {
         this.searchQuery = e.target.value || '';
         this.currentPage = 0;
@@ -251,11 +246,8 @@ class MasProductCatalog extends LitElement {
             </div>`;
         }
 
-        const start = this.currentPage * this.pageSize + 1;
-        const end = Math.min((this.currentPage + 1) * this.pageSize, this.filteredProducts.length);
-
         return html`
-            <sp-table emphasized scroller style="height: calc(100vh - 250px)" @scroll=${this.handleTableScroll}>
+            <sp-table emphasized scroller @scroll=${this.handleTableScroll}>
                 <sp-table-head>
                     <sp-table-head-cell class="col-icon"></sp-table-head-cell>
                     <sp-table-head-cell class="col-product" sortable sort-direction="asc">Product</sp-table-head-cell>

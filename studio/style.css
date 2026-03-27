@@ -1281,6 +1281,8 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 .product-catalog sp-table {
     --spectrum-table-row-padding-x: 8px;
     table-layout: fixed;
+    height: calc(100vh - 280px);
+    overflow: auto;
 }
 
 .product-catalog sp-table-head-cell.col-product,

@@ -23,6 +23,7 @@ import {
     CARD_MODEL_PATH,
     PZN_FOLDER,
     SURFACES,
+    isPznCountryTagId,
 } from './constants.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
@@ -78,6 +79,23 @@ function isUUID(str) {
     return uuidRegex.test(str);
 }
 
+const PZN_TAG_ID_PREFIX = `mas:${PZN_FOLDER}/`;
+
+/**
+ * True when the fragment has any mas:pzn tag outside the country subtree (mas:pzn/country/…).
+ * @param {import('./aem/fragment.js').Fragment | null | undefined} fragment
+ */
+function fragmentHasPersonalizationTag(fragment) {
+    return (
+        fragment?.tags?.some((t) => {
+            const id = t.id;
+            if (!id?.startsWith(PZN_TAG_ID_PREFIX)) return false;
+            if (isPznCountryTagId(id)) return false;
+            return true;
+        }) ?? false
+    );
+}
+
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },
@@ -116,6 +134,18 @@ export class MasRepository extends LitElement {
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
     #addonPlaceholdersRequest = null;
+
+    /**
+     * When personalization is off, exclude fragments that carry mas:pzn/… tags except mas:pzn/country/….
+     * @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores
+     */
+    #filterStoresByPersonalizationEnabled(fragmentStores) {
+        if (this.filters.value.personalizationFilterEnabled === true) return fragmentStores;
+        return fragmentStores.filter((fs) => {
+            const fragment = fs.get?.() ?? fs.value;
+            return !fragmentHasPersonalizationTag(fragment);
+        });
+    }
     /** @type {AEM} */
     aem;
 
@@ -252,12 +282,21 @@ export class MasRepository extends LitElement {
         const currentLocale = dataStore.getMeta('locale');
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
+        const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
+        const metaPersonalizationOn = dataStore.getMeta('personalizationFilterEnabled') === true;
 
-        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
-            const filteredData = currentData.filter((fragmentStore) => {
+        if (
+            currentData?.length > 0 &&
+            currentPath === path &&
+            currentQuery === query &&
+            currentLocale === locale &&
+            metaPersonalizationOn === personalizationOn
+        ) {
+            let filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
             });
+            filteredData = this.#filterStoresByPersonalizationEnabled(filteredData);
             if (filteredData.length !== currentData.length) {
                 dataStore.set(filteredData);
             }
@@ -280,6 +319,13 @@ export class MasRepository extends LitElement {
             } else {
                 console.warn('Unexpected tags format:', this.filters.value.tags);
             }
+        }
+
+        if (!personalizationOn) {
+            tags = tags.filter((tag) => {
+                if (!tag.startsWith(PZN_TAG_ID_PREFIX)) return true;
+                return isPznCountryTagId(tag);
+            });
         }
 
         const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
@@ -316,7 +362,11 @@ export class MasRepository extends LitElement {
             if (isUUID(this.search.value.query)) {
                 // Check if the fragment with this UUID is already the only one in the store
                 const [currentFragment] = dataStore.get() ?? [];
-                if (currentFragment?.value.id === this.search.value.query && dataStore.get()?.length === 1) {
+                if (
+                    currentFragment?.value.id === this.search.value.query &&
+                    dataStore.get()?.length === 1 &&
+                    metaPersonalizationOn === personalizationOn
+                ) {
                     // Skip search if we already have exactly this fragment
                     Store.fragments.list.loading.set(false);
                     Store.fragments.list.firstPageLoaded.set(true);
@@ -337,7 +387,7 @@ export class MasRepository extends LitElement {
                     applyCorrectorToFragment(fragmentData, surface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
-                    dataStore.set([sourceStore]);
+                    dataStore.set(this.#filterStoresByPersonalizationEnabled([sourceStore]));
 
                     // Update the search path to the fragment's folder
                     if (Store.folders.data.get().includes(fragmentFolder)) {
@@ -361,7 +411,7 @@ export class MasRepository extends LitElement {
                         const sourceStore = generateFragmentStore(fragment);
                         fragmentStores.push(sourceStore);
                     }
-                    dataStore.set([...fragmentStores]);
+                    dataStore.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
                     Store.fragments.list.firstPageLoaded.set(true);
                 }
             }
@@ -370,6 +420,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('query', query);
             dataStore.setMeta('locale', locale);
             dataStore.setMeta('tags', tags);
+            dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
 
             this.#abortControllers.search = null;
         } catch (error) {

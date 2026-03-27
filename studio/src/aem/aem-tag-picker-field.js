@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
-import { EVENT_OST_OFFER_SELECT } from '../constants.js';
+import { EVENT_OST_OFFER_SELECT, isPznCountryTagPath } from '../constants.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
 
@@ -345,8 +345,7 @@ class AemTagPickerField extends LitElement {
 
         let allTags = [...this.#data.values()].filter((tag) => tag.path.startsWith(this.#tagsRoot));
         if (this.top === 'pzn') {
-            const countryRoot = `${this.#tagsRoot}country`;
-            allTags = allTags.filter((tag) => tag.path !== countryRoot && !tag.path.startsWith(`${countryRoot}/`));
+            allTags = allTags.filter((tag) => !isPznCountryTagPath(tag.path));
         }
 
         if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {

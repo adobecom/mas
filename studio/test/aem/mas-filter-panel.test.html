@@ -80,7 +80,7 @@
                             'studio/content-type': [],
                             variant: [],
                         });
-                        expect(filterPanel.personalizationFilterEnabled).to.be.false;
+                        expect(Store.filters.get().personalizationFilterEnabled).to.be.false;
                     });
 
                     it('Should update tags when a tag is selected', async function () {
@@ -260,7 +260,7 @@
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
 
-                        expect(filterPanel.personalizationFilterEnabled).to.be.true;
+                        expect(Store.filters.get().personalizationFilterEnabled).to.be.true;
                         expect(filterPanel.tagsByType.pzn).to.have.lengthOf(1);
                         expect(filterPanel.tagsByType.pzn[0].path).to.equal('/content/cq:tags/mas/pzn/general');
                     });

@@ -180,6 +180,26 @@ export const VARIATION_TYPES = {
 
 export const PZN_FOLDER = 'pzn';
 
+/** CQ tag path for the country root under pzn (exception: not “personalization-only” for filters). */
+export const PZN_COUNTRY_TAG_PATH_PREFIX = '/content/cq:tags/mas/pzn/country';
+
+/**
+ * @param {string} [cqPath] - AEM tag path e.g. /content/cq:tags/mas/pzn/country/fr_FR
+ */
+export function isPznCountryTagPath(cqPath) {
+    if (!cqPath) return false;
+    return cqPath === PZN_COUNTRY_TAG_PATH_PREFIX || cqPath.startsWith(`${PZN_COUNTRY_TAG_PATH_PREFIX}/`);
+}
+
+/**
+ * @param {string} [tagId] - AEM tag id e.g. mas:pzn/country/fr_FR
+ */
+export function isPznCountryTagId(tagId) {
+    if (!tagId) return false;
+    const prefix = `mas:${PZN_FOLDER}/country`;
+    return tagId === prefix || tagId.startsWith(`${prefix}/`);
+}
+
 export const SURFACES = {
     ACOM: {
         label: 'Adobe.com',

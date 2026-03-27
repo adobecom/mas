@@ -122,7 +122,7 @@ class MerchCardEditor extends LitElement {
                     ?readonly=${isReadonly}
                     label="Locale tags"
                     namespace="/content/cq:tags/mas"
-                    top="locale"
+                    top="locale,pzn"
                     multiple
                     value="${this.pznTagsValue}"
                     @change=${this.#handlePznTagsChange}
@@ -834,26 +834,30 @@ class MerchCardEditor extends LitElement {
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="badge">
                         <sp-field-label for="card-badge">Badge</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter badge text"
+                        <rte-field
                             id="card-badge"
+                            inline
+                            hide-format-buttons
                             data-field="badge"
                             data-field-state="${this.getBadgeComponentState('badge', 'text')}"
-                            value="${this.badge.text}"
-                            @input="${this.#updateBadgeText}"
-                        ></sp-textfield>
+                            .osi="${form.osi.values[0]}"
+                            .value="${this.badge.text}"
+                            @change="${this.#updateBadgeText}"
+                        ></rte-field>
                         ${this.renderBadgeComponentOverrideIndicator('badge', 'text')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="trialBadge">
                         <sp-field-label for="card-trial-badge">Trial Badge</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter badge text"
+                        <rte-field
                             id="card-trial-badge"
+                            inline
+                            hide-format-buttons
                             data-field="trialBadge"
                             data-field-state="${this.getBadgeComponentState('trialBadge', 'text')}"
-                            value="${this.trialBadge.text}"
-                            @input="${this.#updateTrialBadgeText}"
-                        ></sp-textfield>
+                            .osi="${form.osi.values[0]}"
+                            .value="${this.trialBadge.text}"
+                            @change="${this.#updateTrialBadgeText}"
+                        ></rte-field>
                         ${this.renderBadgeComponentOverrideIndicator('trialBadge', 'text')}
                     </sp-field-group>
                     <sp-field-group class="toggle" id="badgeIcon">
@@ -1126,7 +1130,9 @@ class MerchCardEditor extends LitElement {
                     ${this.renderFieldStatusIndicator('shortDescription')}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="callout">
-                    <sp-field-label for="callout"> Callout text </sp-field-label>
+                    <sp-field-label for="callout">
+                        ${this.currentVariantMapping?.callout?.editorLabel ?? 'Callout text'}
+                    </sp-field-label>
                     <rte-field
                         id="callout"
                         link
@@ -1609,7 +1615,9 @@ class MerchCardEditor extends LitElement {
             };
         }
 
-        const text = this.badgeElement?.textContent || '';
+        const badgeEl = this.badgeElement;
+        const hasInlinePrice = badgeEl?.querySelector?.('span[is="inline-price"]');
+        const text = hasInlinePrice ? badgeEl.innerHTML : badgeEl?.textContent || '';
         const bgColorAttr = this.badgeElement?.getAttribute?.('background-color');
         const bgColor = bgColorAttr?.toLowerCase();
 
@@ -1652,14 +1660,13 @@ class MerchCardEditor extends LitElement {
             };
         }
 
-        const text = this.trialBadgeElement?.textContent || '';
+        const hasInlinePrice = this.trialBadgeElement?.querySelector?.('span[is="inline-price"]');
+        const text = hasInlinePrice ? this.trialBadgeElement.innerHTML : this.trialBadgeElement?.textContent || '';
         const bgColorAttr = this.trialBadgeElement?.getAttribute?.('background-color');
-        const bgColorSelected = document.querySelector('sp-picker[data-field="trialBadgeColor"]')?.value;
-        const bgColor = bgColorAttr?.toLowerCase() || bgColorSelected || 'spectrum-yellow-300';
+        const bgColor = bgColorAttr?.toLowerCase();
 
         const borderColorAttr = this.trialBadgeElement?.getAttribute?.('border-color');
-        const borderColorSelected = document.querySelector('sp-picker[data-field="trialBadgeBorderColor"]')?.value;
-        const borderColor = borderColorAttr?.toLowerCase() || borderColorSelected;
+        const borderColor = borderColorAttr?.toLowerCase();
 
         return {
             text,
@@ -1789,12 +1796,12 @@ class MerchCardEditor extends LitElement {
             element.setAttribute('icon', icon);
         }
         element.setAttribute('variant', this.getEffectiveFieldValue('variant'));
-        element.textContent = text;
+        element.innerHTML = text;
         return element;
     }
 
     #updateBadgeText(event) {
-        const text = event.target.value?.trim() || '';
+        const text = event.target.value || '';
         const icon = this.badge.icon;
         this.#updateBadgeTextAndIcon(text, icon);
     }
@@ -1815,7 +1822,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateTrialBadgeText(event) {
-        const text = event.target.value?.trim() || '';
+        const text = event.target.value || '';
         if (this.supportsBadgeColors) {
             this.#displayTrialBadgeColorFields(text);
             this.#updateTrialBadge(text, this.trialBadge.bgColor, this.trialBadge.borderColor);

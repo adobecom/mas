@@ -19,6 +19,7 @@ export const CHECKOUT_CTA_TEXTS = {
     'seven-day-trial': 'Start 7-day free trial',
     'fourteen-day-trial': 'Start 14-day free trial',
     'thirty-day-trial': 'Start 30-day free trial',
+    'six-month-free': 'Get 6-months Premium free',
     'save-today': 'Save today',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
@@ -46,6 +47,7 @@ export const ANALYTICS_LINK_IDS = [
     'seven-day-trial',
     'fourteen-day-trial',
     'thirty-day-trial',
+    'six-month-free',
     'save-today',
 ];
 
@@ -242,3 +244,6 @@ export const TABLE_TYPE = {
 };
 
 export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];
+
+/** Base URL for Odin preview fragment-by-path checks (e.g. fil_PH .json endpoint). */
+export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';

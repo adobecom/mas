@@ -183,7 +183,7 @@ export default class BaseReporter {
                         console.log(`    \x1b[36m   🔗 ${testPageUrl}\x1b[0m`);
                     }
                     if (lineNumber) {
-                        console.log(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? ': ' + lineContent : ''}\x1b[0m`);
+                        console.log(`    \x1b[90m   📍 Line ${lineNumber}${lineContent ? `: ${lineContent}` : ''}\x1b[0m`);
                     }
                 });
             console.log('    \x1b[1m\x1b[34m------------------------------------------\x1b[0m');
@@ -215,7 +215,7 @@ export default class BaseReporter {
         let url;
 
         const titleParts = title.split('@');
-        const name = titleParts[1].trim();
+        const name = titleParts[1]?.trim() ?? title?.trim() ?? 'unknown';
         const tags = titleParts.slice(2).map((tag) => tag.trim());
 
         const projectConfig = this.config.projects.find((project) => project.name === projectId);

@@ -125,6 +125,8 @@ import '@spectrum-web-components/overlay/sp-overlay.js';
 import '@spectrum-web-components/picker/sp-picker.js';
 import '@spectrum-web-components/popover/sp-popover.js';
 import '@spectrum-web-components/progress-circle/sp-progress-circle.js';
+import '@spectrum-web-components/radio/sp-radio-group.js';
+import '@spectrum-web-components/radio/sp-radio.js';
 import '@spectrum-web-components/search/sp-search.js';
 import '@spectrum-web-components/sidenav/sp-sidenav-heading.js';
 import '@spectrum-web-components/sidenav/sp-sidenav-item.js';

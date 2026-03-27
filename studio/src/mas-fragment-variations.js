@@ -1,4 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
+import Store from './store.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import { VARIATION_TYPES } from './constants.js';
@@ -6,6 +7,7 @@ import { createPreviewDataWithParent } from './reactivity/source-fragment-store.
 import { styles } from './mas-fragment-variations.css.js';
 import { extractLocaleFromPath } from './utils.js';
 import router from './router.js';
+import ReactiveController from './reactivity/reactive-controller.js';
 import './aem/aem-tag-picker-field.js';
 
 const styleElement = document.createElement('style');
@@ -24,18 +26,27 @@ class MasFragmentVariations extends LitElement {
         this.fragment = null;
         this.loading = false;
         this.expandedGroupedVariations = new Set();
+        this.filtersSearchReactiveController = new ReactiveController(this, [Store.filters, Store.search]);
     }
 
     createRenderRoot() {
         return this;
     }
 
+    get selectedLanguage() {
+        return Store.localeOrRegion().split('_')[0];
+    }
+
     get localeVariations() {
-        return this.fragment.listLocaleVariations() || [];
+        return this.fragment
+            .listLocaleVariations()
+            .filter(({ path }) => extractLocaleFromPath(path)?.split('_')[0] === this.selectedLanguage);
     }
 
     get groupedVariations() {
-        return this.fragment.listGroupedVariations() || [];
+        return this.fragment
+            .listGroupedVariations()
+            .filter(({ path }) => extractLocaleFromPath(path)?.split('_')[0] === this.selectedLanguage);
     }
 
     get hasLocaleVariations() {

@@ -101,5 +101,21 @@ export default {
             },
             tags: '@mas-studio @regional-variations',
         },
+        {
+            tcid: '11',
+            name: '@studio-variations-locale-filter',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala&query=',
+            data: {
+                cardid: '3f3d1bee-cfae-41dd-a364-3c5790b54220',
+                regionalVariationId1: '9baeaef8-d76e-4d0b-a20e-a48b6b43b2e3',
+                regionalVariationId2: '1d639f9f-2799-4a45-a9da-733e01ae3e7a',
+                groupedVariationId1: '2e10baf7-60d1-4744-a0a5-25026e248663',
+                groupedVariationId2: 'a0cb8f3c-de75-4aed-bacf-44b8e4f91370',
+                localePickerLabel: 'Polish (PL)',
+                targetLocale: 'pl_PL',
+            },
+            tags: '@mas-studio @regional-variations @grouped-variations',
+        },
     ],
 };

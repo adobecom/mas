@@ -539,6 +539,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.description).toBeVisible();
             await expect(await editor.description).not.toContainText(data.legalDisclaimer);
             await editor.descriptionFieldGroup.locator(editor.OSTButton).click();
+            await expect(await ost.legalDisclaimer).toBeVisible();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
             await expect(await ost.legalDisclaimer).not.toContainText(data.legalDisclaimer);
             await expect(await ost.unitCheckbox).toBeVisible();
@@ -560,6 +561,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await editor.description).toBeVisible();
             await expect(await editor.description.locator(editor.legalDisclaimer)).toBeVisible();
             await editor.description.locator(editor.legalDisclaimer).dblclick();
+            await expect(await ost.legalDisclaimer).toBeVisible();
             await ost.legalDisclaimer.scrollIntoViewIfNeeded();
             await expect(await ost.legalDisclaimer).not.toContainText(data.legalDisclaimerTax);
             await expect(await ost.unitCheckbox).toBeVisible();

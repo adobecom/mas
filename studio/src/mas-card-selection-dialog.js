@@ -626,9 +626,11 @@ class MasCardSelectionDialog extends LitElement {
                                           </merch-card-collection>
                                       `
                                     : html`
-                                          <merch-card>
-                                              <aem-fragment fragment="${fragment.id}"></aem-fragment>
-                                          </merch-card>
+                                          <div class="card-preview-container">
+                                              <merch-card>
+                                                  <aem-fragment author fragment="${fragment.id}"></aem-fragment>
+                                              </merch-card>
+                                          </div>
                                       `}
 
                                 <div class="card-metadata">
@@ -1023,10 +1025,23 @@ class MasCardSelectionDialog extends LitElement {
                         box-shadow 0.15s ease;
                 }
 
-                mas-card-selection-dialog .card-wrapper merch-card {
-                    flex: 1;
+                mas-card-selection-dialog .card-wrapper .card-preview-container {
+                    height: 220px;
+                    overflow: hidden;
+                    position: relative;
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: center;
                     pointer-events: none;
-                    min-width: 0;
+                }
+
+                mas-card-selection-dialog .card-wrapper merch-card {
+                    position: absolute;
+                    top: 8px;
+                    left: 50%;
+                    transform: translateX(-50%) scale(0.55);
+                    transform-origin: top center;
+                    width: 300px;
                 }
 
                 mas-card-selection-dialog .card-metadata {

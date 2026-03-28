@@ -952,7 +952,7 @@ class MasCardSelectionDialog extends LitElement {
                     overflow-x: hidden;
                     padding: 24px;
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
                     grid-auto-rows: min-content;
                     gap: 16px;
                     grid-auto-flow: row;
@@ -1018,7 +1018,6 @@ class MasCardSelectionDialog extends LitElement {
                     display: flex;
                     flex-direction: column;
                     width: 100%;
-                    overflow: hidden;
                     transition:
                         border-color 0.15s ease,
                         box-shadow 0.15s ease;
@@ -1027,6 +1026,7 @@ class MasCardSelectionDialog extends LitElement {
                 mas-card-selection-dialog .card-wrapper merch-card {
                     flex: 1;
                     pointer-events: none;
+                    min-width: 0;
                 }
 
                 mas-card-selection-dialog .card-metadata {

@@ -3,12 +3,14 @@ import { repeat } from 'lit/directives/repeat.js';
 import StoreController from './reactivity/store-controller.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Store from './store.js';
+import { isUUID } from './utils.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './personalization-utils.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
+
 class MasContent extends LitElement {
     createRenderRoot() {
         return this;
@@ -26,6 +28,8 @@ class MasContent extends LitElement {
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
+    search = new StoreController(this, Store.search);
+    filters = new StoreController(this, Store.filters);
 
     connectedCallback() {
         super.connectedCallback();
@@ -203,6 +207,46 @@ class MasContent extends LitElement {
         return html`<sp-progress-circle class="next-page" indeterminate size="l"></sp-progress-circle>`;
     }
 
+    get hasResolvedCurrentSearch() {
+        const dataStore = Store.fragments.list.data;
+        return (
+            dataStore.getMeta('path') === this.search.value.path &&
+            dataStore.getMeta('query') === this.search.value.query &&
+            dataStore.getMeta('locale') === this.filters.value.locale
+        );
+    }
+
+    get hasEmptySearchResult() {
+        return (
+            !this.loading.value &&
+            Boolean(this.search.value.query) &&
+            this.fragments.value.length === 0 &&
+            this.hasResolvedCurrentSearch
+        );
+    }
+
+    get emptyStateTitle() {
+        return isUUID(this.search.value.query) ? 'No fragment found' : 'No fragments found';
+    }
+
+    get emptyStateDescription() {
+        const locale = this.filters.value.locale;
+        const query = this.search.value.query;
+        if (isUUID(query)) {
+            return `No fragment with ID "${query}" exists in the ${locale} locale.`;
+        }
+        return `No fragments match "${query}" in the ${locale} locale.`;
+    }
+
+    get emptyState() {
+        if (!this.hasEmptySearchResult) return nothing;
+        return html`<div class="content-empty-state" role="status" aria-live="polite">
+            <sp-icon-info class="content-empty-state-icon"></sp-icon-info>
+            <p class="content-empty-state-title">${this.emptyStateTitle}</p>
+            <p class="content-empty-state-description">${this.emptyStateDescription}</p>
+        </div>`;
+    }
+
     render() {
         let view = nothing;
         switch (this.renderMode.value) {
@@ -215,7 +259,9 @@ class MasContent extends LitElement {
             default:
                 view = this.renderView;
         }
-        return html`<div id="content">${view} ${this.firstPageLoadingSpinner}</div>
+        return html`<div id="content">
+                ${this.hasEmptySearchResult ? this.emptyState : view} ${this.firstPageLoadingSpinner}
+            </div>
             ${this.pageLoadingSpinner}`;
     }
 }

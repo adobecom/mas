@@ -952,13 +952,13 @@ class MasCardSelectionDialog extends LitElement {
                     overflow-x: hidden;
                     padding: 24px;
                     display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
                     grid-auto-rows: min-content;
-                    gap: 24px;
+                    gap: 16px;
                     grid-auto-flow: row;
                     width: 100%;
                     box-sizing: border-box;
-                    background: var(--spectrum-gray-100, #f5f5f5);
+                    background: var(--spectrum-gray-50);
                 }
 
                 @media (max-width: 1400px) {
@@ -981,18 +981,7 @@ class MasCardSelectionDialog extends LitElement {
                 }
 
                 mas-card-selection-dialog .status-badge {
-                    position: absolute;
-                    top: 12px;
-                    left: 12px;
-                    padding: 4px 12px;
-                    border-radius: 16px;
-                    font-size: 11px;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    z-index: 10;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                    transition: all 0.2s ease;
+                    display: none;
                 }
 
                 mas-card-selection-dialog .status-badge.published {
@@ -1022,31 +1011,31 @@ class MasCardSelectionDialog extends LitElement {
 
                 mas-card-selection-dialog .card-wrapper {
                     position: relative;
-                    border-radius: 12px;
-                    transition:
-                        transform 0.2s ease,
-                        box-shadow 0.2s ease;
+                    border-radius: 8px;
+                    border: 1px solid var(--spectrum-gray-200);
+                    background: var(--spectrum-gray-50, #fff);
                     cursor: pointer;
                     display: flex;
                     flex-direction: column;
                     width: 100%;
-                    min-height: 400px;
                     overflow: hidden;
-                    contain: layout;
+                    transition:
+                        border-color 0.15s ease,
+                        box-shadow 0.15s ease;
                 }
 
                 mas-card-selection-dialog .card-wrapper merch-card {
                     flex: 1;
+                    pointer-events: none;
                 }
 
                 mas-card-selection-dialog .card-metadata {
-                    padding: 12px 8px 8px 8px;
+                    padding: 8px 10px;
                     display: flex;
                     flex-direction: column;
-                    gap: 6px;
-                    background: var(--spectrum-global-color-gray-50);
-                    border-radius: 0 0 12px 12px;
-                    margin-top: -4px;
+                    gap: 4px;
+                    border-top: 1px solid var(--spectrum-gray-200);
+                    background: var(--spectrum-gray-75);
                 }
 
                 mas-card-selection-dialog .card-metadata sp-badge {
@@ -1074,40 +1063,30 @@ class MasCardSelectionDialog extends LitElement {
                 }
 
                 mas-card-selection-dialog .card-wrapper:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+                    border-color: var(--spectrum-gray-400);
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                 }
 
                 mas-card-selection-dialog .card-wrapper.selected {
-                    border: 1px solid var(--spectrum-accent-color-900);
-                    border-radius: 12px;
-                    padding: 12px;
-                }
-
-                mas-card-selection-dialog .card-wrapper.selected::after {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    background: rgba(20, 115, 230, 0.08);
-                    pointer-events: none;
-                    z-index: 1;
+                    border-color: var(--spectrum-accent-color-900);
+                    box-shadow: 0 0 0 1px var(--spectrum-accent-color-900);
                 }
 
                 mas-card-selection-dialog .selection-overlay {
                     position: absolute;
-                    top: 12px;
-                    right: 12px;
-                    width: 32px;
-                    height: 32px;
-                    background: white;
+                    top: 8px;
+                    right: 8px;
+                    width: 28px;
+                    height: 28px;
+                    background: rgba(255, 255, 255, 0.9);
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+                    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
                     cursor: pointer;
                     z-index: 10;
-                    transition: all 0.2s ease;
+                    transition: all 0.15s ease;
                 }
 
                 mas-card-selection-dialog .selection-overlay:hover {

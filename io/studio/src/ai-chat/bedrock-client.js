@@ -15,6 +15,16 @@
 
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
+const MAX_HISTORY_TURNS = 10;
+
+function truncateHistory(conversationHistory) {
+    if (conversationHistory.length <= MAX_HISTORY_TURNS * 2) return conversationHistory;
+    const firstMessage = conversationHistory[0];
+    const recentMessages = conversationHistory.slice(-(MAX_HISTORY_TURNS * 2));
+    if (recentMessages[0] === firstMessage) return recentMessages;
+    return [firstMessage, ...recentMessages];
+}
+
 export class BedrockClient {
     constructor(credentials = {}) {
         const accessKeyId = credentials.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
@@ -89,7 +99,7 @@ export class BedrockClient {
      * @param {Object} context - Additional context (current card config, etc.)
      * @returns {Promise<Object>} - Claude response
      */
-    async sendWithContext(conversationHistory, userMessage, system, context = null) {
+    async sendWithContext(conversationHistory, userMessage, system, context = null, maxTokens = 4096) {
         let enhancedSystem = system;
 
         if (context) {
@@ -172,14 +182,15 @@ export class BedrockClient {
             }
         }
 
+        const truncated = truncateHistory(conversationHistory);
         const messages = [
-            ...conversationHistory,
+            ...truncated,
             {
                 role: 'user',
                 content: userMessage,
             },
         ];
 
-        return this.sendMessage(messages, enhancedSystem);
+        return this.sendMessage(messages, enhancedSystem, maxTokens);
     }
 }

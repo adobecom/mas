@@ -5,7 +5,7 @@
  * Part of the RAG (Retrieval-Augmented Generation) pipeline for the AI assistant.
  */
 
-import { KnowledgeRetriever } from '../shared/retriever.js';
+import { MemoryRetriever } from '../shared/memory-retriever.js';
 
 /**
  * Get response headers for web action
@@ -34,12 +34,10 @@ async function main(params) {
     }
 
     try {
-        const retriever = new KnowledgeRetriever({
+        const retriever = new MemoryRetriever({
             accessKeyId: params.AWS_ACCESS_KEY_ID,
             secretAccessKey: params.AWS_SECRET_ACCESS_KEY,
-            endpoint: params.OPENSEARCH_ENDPOINT,
             region: params.AWS_REGION,
-            opensearchRegion: params.OPENSEARCH_REGION,
         });
 
         const results = await retriever.retrieve(query, { topK, minScore });

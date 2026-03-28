@@ -17,13 +17,12 @@ import {
     COLLECTION_CREATION_SYSTEM_PROMPT,
     RELEASE_WORKFLOW_INSTRUCTIONS,
 } from './prompt-templates.js';
-import { OPERATIONS_SYSTEM_PROMPT } from './operations-prompt.js';
+import { buildOperationsPrompt } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
 import { parseAIResponse, validateCollectionConfig } from './response-parser.js';
 import { handleOperation } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
-import { getVariantConfig, VARIANT_METADATA } from './variant-configs.js';
-import { getVariantsForSurface } from './variant-configs.js';
+import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
 import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
 
@@ -312,13 +311,13 @@ async function main(params) {
         });
 
         const knowledgeClient = createKnowledgeClient(params);
+        const enrichedContext = enrichContextWithSurface(context);
+
         const {
             prompt: basePrompt,
             isDocumentation,
             isCardCreation,
-        } = determineSystemPromptWithMeta(intentHint, conversationHistory, message);
-
-        const enrichedContext = enrichContextWithSurface(context);
+        } = determineSystemPromptWithMeta(intentHint, conversationHistory, message, enrichedContext);
 
         const releaseIntent = isReleaseIntent(message, conversationHistory);
         const effectivePrompt = releaseIntent ? `${basePrompt}\n\n${RELEASE_WORKFLOW_INSTRUCTIONS}` : basePrompt;
@@ -340,19 +339,15 @@ async function main(params) {
             detectedVariant,
         });
 
-        console.log('[Backend] ===== ENRICHED CONTEXT SENT TO AI =====');
-        console.log('[Backend] Has lastOperation:', !!enrichedContext?.lastOperation);
-        if (enrichedContext?.lastOperation) {
-            console.log('[Backend] Last operation type:', enrichedContext.lastOperation.type);
-            console.log('[Backend] Fragment IDs count:', enrichedContext.lastOperation.fragmentIds?.length || 0);
-            console.log('[Backend] Fragment IDs:', enrichedContext.lastOperation.fragmentIds);
-        }
-        console.log('[Backend] Surface:', enrichedContext?.surface);
-        console.log('[Backend] Locale:', enrichedContext?.locale);
-        console.log('[Backend] Current path:', enrichedContext?.currentPath);
-        console.log('[Backend] Working set size:', enrichedContext?.workingSet?.length || 0);
+        const maxTokens = isDocumentation ? 2048 : isCardCreation ? 2048 : 1024;
 
-        const response = await bedrockClient.sendWithContext(conversationHistory, message, systemPrompt, enrichedContext);
+        const response = await bedrockClient.sendWithContext(
+            conversationHistory,
+            message,
+            systemPrompt,
+            enrichedContext,
+            maxTokens,
+        );
 
         if (!response.success) {
             return {
@@ -575,7 +570,7 @@ async function main(params) {
  * @param {string} message - Current user message
  * @returns {Object} - { prompt: string, isDocumentation: boolean, isCardCreation: boolean }
  */
-function determineSystemPromptWithMeta(intentHint, conversationHistory, message) {
+function determineSystemPromptWithMeta(intentHint, conversationHistory, message, context) {
     if (intentHint === 'documentation') {
         return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
     }
@@ -664,7 +659,7 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message)
 
     if (hasOperationKeyword) {
         return {
-            prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${OPERATIONS_SYSTEM_PROMPT}`,
+            prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${buildOperationsPrompt(message, context)}`,
             isDocumentation: false,
             isCardCreation: true,
         };
@@ -689,7 +684,7 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message)
     }
 
     return {
-        prompt: `${CARD_CREATION_SYSTEM_PROMPT}\n\n${OPERATIONS_SYSTEM_PROMPT}`,
+        prompt: CARD_CREATION_SYSTEM_PROMPT,
         isDocumentation: false,
         isCardCreation: true,
     };

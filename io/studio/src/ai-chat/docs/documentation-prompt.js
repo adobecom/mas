@@ -58,9 +58,9 @@ export function getRelevantKnowledgeDomains(message) {
         domains.push('troubleshooting');
     }
 
-    // If no specific domain detected, include all (general knowledge query)
+    // If no specific domain detected, let RAG handle it
     if (domains.length === 0) {
-        return ['architecture', 'authoring', 'troubleshooting'];
+        return [];
     }
 
     return [...new Set(domains)]; // Remove duplicates

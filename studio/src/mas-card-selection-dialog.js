@@ -168,11 +168,11 @@ class MasCardSelectionDialog extends LitElement {
         this.filtersSubscription = Store.filters.subscribe(() => {
             this.currentFilters = Store.filters.get();
             this.displayCount = CARDS_PER_PAGE;
-            this.scheduleGridReflow();
+            this.loadFragments();
         });
         this.createdByUsersSubscription = Store.createdByUsers.subscribe(() => {
             this.displayCount = CARDS_PER_PAGE;
-            this.scheduleGridReflow();
+            this.loadFragments();
         });
     }
 

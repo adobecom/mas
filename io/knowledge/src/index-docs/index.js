@@ -10,7 +10,7 @@
  * 3. Index into OpenSearch Serverless
  */
 
-import { KnowledgeRetriever } from '../shared/retriever.js';
+import { EmbeddingsClient } from '../shared/embeddings-client.js';
 import { getEmbeddedChunks } from './embedded-chunks.js';
 
 /**
@@ -32,79 +32,38 @@ async function main(params) {
     const { action = 'index', clearFirst = false } = params;
 
     try {
-        const retriever = new KnowledgeRetriever({
-            accessKeyId: params.AWS_ACCESS_KEY_ID,
-            secretAccessKey: params.AWS_SECRET_ACCESS_KEY,
-            endpoint: params.OPENSEARCH_ENDPOINT,
-            region: params.AWS_REGION,
-            opensearchRegion: params.OPENSEARCH_REGION,
-        });
+        if (action === 'generate-vectors') {
+            const allChunks = getEmbeddedChunks();
+            const batchStart = parseInt(params.batchStart || '0', 10);
+            const batchSize = parseInt(params.batchSize || '50', 10);
+            const chunks = allChunks.slice(batchStart, batchStart + batchSize);
 
-        if (action === 'health') {
-            const health = await retriever.healthCheck();
-            return {
-                statusCode: health.healthy ? 200 : 503,
-                headers: getResponseHeaders(),
-                body: health,
-            };
-        }
+            const client = new EmbeddingsClient({
+                accessKeyId: params.AWS_ACCESS_KEY_ID,
+                secretAccessKey: params.AWS_SECRET_ACCESS_KEY,
+                region: params.AWS_REGION || 'us-west-2',
+            });
 
-        if (action === 'init') {
-            await retriever.initializeIndex();
-            return {
-                statusCode: 200,
-                headers: getResponseHeaders(),
-                body: { message: 'Index initialized' },
-            };
-        }
-
-        if (action === 'reset') {
-            console.log('Resetting index (delete and recreate)...');
-            await retriever.opensearch.deleteIndex();
-            await retriever.opensearch.createIndex();
-            return {
-                statusCode: 200,
-                headers: getResponseHeaders(),
-                body: { message: 'Index reset successfully' },
-            };
-        }
-
-        if (action === 'index') {
-            const chunks = getEmbeddedChunks();
-
-            if (chunks.length === 0) {
-                return {
-                    statusCode: 200,
-                    headers: getResponseHeaders(),
-                    body: {
-                        message: 'No knowledge chunks found to index',
-                    },
-                };
+            console.log(`Embedding batch ${batchStart}-${batchStart + chunks.length} of ${allChunks.length}...`);
+            const results = [];
+            for (let i = 0; i < chunks.length; i++) {
+                const chunk = chunks[i];
+                const vector = await client.embed(chunk.text);
+                results.push({ id: chunk.id, vector });
+                if ((i + 1) % 10 === 0) console.log(`  ${i + 1}/${chunks.length}`);
             }
 
-            if (clearFirst) {
-                console.log('Clearing existing index...');
-                await retriever.opensearch.clearIndex();
-            }
-
-            console.log(`Indexing ${chunks.length} chunks...`);
-            const result = await retriever.indexChunks(chunks);
-
             return {
                 statusCode: 200,
                 headers: getResponseHeaders(),
-                body: {
-                    message: 'Indexing complete',
-                    chunksIndexed: result.indexed,
-                    errors: result.errors,
-                },
+                body: { chunks: results, count: results.length, total: allChunks.length, batchStart },
             };
         }
 
         return {
             statusCode: 400,
             headers: getResponseHeaders(),
-            body: { error: `Unknown action: ${action}. Valid actions: health, init, index` },
+            body: { error: `Unknown action: ${action}. Valid actions: generate-vectors` },
         };
     } catch (error) {
         console.error('[Index Docs] Error:', error.message);

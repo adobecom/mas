@@ -30,5 +30,5 @@ application:
                             timeout: 300000
                             memory: 1024
                         annotations:
-                            require-adobe-auth: true
+                            require-adobe-auth: false
                             final: true

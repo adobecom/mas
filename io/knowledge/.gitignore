@@ -17,3 +17,7 @@ node_modules/
 
 # Logs
 *.log
+
+# Generated vectors (8.9MB, regenerate with: aio rt invoke generate-vectors)
+src/shared/embedded-vectors.js
+src/shared/vector-data.json

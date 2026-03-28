@@ -18,18 +18,19 @@ export class EmbeddingsClient {
     constructor(credentials = {}) {
         const accessKeyId = credentials.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
         const secretAccessKey = credentials.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
+        const sessionToken = credentials.sessionToken || process.env.AWS_SESSION_TOKEN;
         const region = credentials.region || process.env.AWS_REGION || 'us-west-2';
 
         if (!accessKeyId || !secretAccessKey) {
             throw new Error('AWS credentials required for embeddings client');
         }
 
+        const creds = { accessKeyId, secretAccessKey };
+        if (sessionToken) creds.sessionToken = sessionToken;
+
         this.client = new BedrockRuntimeClient({
             region,
-            credentials: {
-                accessKeyId,
-                secretAccessKey,
-            },
+            credentials: creds,
         });
         this.modelId = TITAN_EMBED_MODEL;
     }

@@ -1179,10 +1179,6 @@ class MasCardSelectionDialog extends LitElement {
                     overflow-y: auto;
                     overflow-x: auto;
                     background: var(--spectrum-gray-50);
-                    border-radius: 8px;
-                    margin: 0 28px 12px;
-                    width: calc(100% - 56px);
-                    border: 1px solid var(--spectrum-gray-200);
                     --spectrum-table-cell-background-color: transparent;
                 }
 
@@ -1194,13 +1190,8 @@ class MasCardSelectionDialog extends LitElement {
                     border-bottom: 1px solid var(--spectrum-gray-100);
                 }
 
-                mas-card-selection-dialog sp-table-row:last-child {
-                    border-bottom: none;
-                }
-
-                mas-card-selection-dialog sp-table-head {
+                mas-card-selection-dialog sp-table-head-cell {
                     background-color: var(--spectrum-gray-75);
-                    border-bottom: 1px solid var(--spectrum-gray-200);
                 }
 
                 mas-card-selection-dialog sp-table-cell,
@@ -1210,15 +1201,6 @@ class MasCardSelectionDialog extends LitElement {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
-                    padding: 12px 16px;
-                }
-
-                mas-card-selection-dialog sp-table-head-cell {
-                    font-size: 12px;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    letter-spacing: 0.04em;
-                    color: var(--spectrum-gray-600);
                 }
 
                 mas-card-selection-dialog .expand-cell {

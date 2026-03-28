@@ -807,9 +807,9 @@ class MasCardSelectionDialog extends LitElement {
                     background: var(--spectrum-gray-50, #fff);
                     border-radius: 20px;
                     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-                    width: 90vw;
-                    height: 88vh;
-                    max-width: 1400px;
+                    width: 88vw;
+                    height: 82vh;
+                    max-width: 1300px;
                     display: flex;
                     flex-direction: column;
                     overflow: hidden;
@@ -1029,7 +1029,7 @@ class MasCardSelectionDialog extends LitElement {
                 }
 
                 mas-card-selection-dialog .card-wrapper .card-preview-container {
-                    height: 260px;
+                    height: 140px;
                     overflow: hidden;
                     position: relative;
                     pointer-events: none;
@@ -1041,7 +1041,7 @@ class MasCardSelectionDialog extends LitElement {
                     position: absolute;
                     top: 8px;
                     left: 50%;
-                    transform: translateX(-50%) scale(0.5);
+                    transform: translateX(-50%) scale(0.42);
                     transform-origin: top center;
                     width: 302px;
                 }

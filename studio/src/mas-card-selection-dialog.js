@@ -818,10 +818,9 @@ class MasCardSelectionDialog extends LitElement {
                     display: flex;
                     flex-direction: column;
                     gap: 8px;
-                    padding: 12px 28px;
-                    border-bottom: 1px solid var(--spectrum-gray-200);
+                    padding: 12px 28px 8px;
                     flex-shrink: 0;
-                    background: var(--spectrum-gray-75, #fafafa);
+                    background: transparent;
                 }
 
                 mas-card-selection-dialog .filter-header {
@@ -1175,19 +1174,29 @@ class MasCardSelectionDialog extends LitElement {
                     flex: 1;
                     overflow-y: auto;
                     overflow-x: auto;
-                    background: var(--spectrum-gray-50, #fff);
+                    background: var(--spectrum-gray-50);
+                    border-radius: 8px;
+                    margin: 0 28px 12px;
+                    width: calc(100% - 56px);
+                    border: 1px solid var(--spectrum-gray-200);
+                    --spectrum-table-cell-background-color: transparent;
                 }
 
                 mas-card-selection-dialog sp-table sp-table-body {
-                    background-color: var(--spectrum-gray-50, #fff);
+                    background-color: transparent;
                 }
 
                 mas-card-selection-dialog sp-table-row {
-                    border-bottom: 1px solid var(--spectrum-gray-200);
+                    border-bottom: 1px solid var(--spectrum-gray-100);
                 }
 
-                mas-card-selection-dialog sp-table-row:hover {
-                    background-color: var(--spectrum-gray-100);
+                mas-card-selection-dialog sp-table-row:last-child {
+                    border-bottom: none;
+                }
+
+                mas-card-selection-dialog sp-table-head {
+                    background-color: var(--spectrum-gray-75);
+                    border-bottom: 1px solid var(--spectrum-gray-200);
                 }
 
                 mas-card-selection-dialog sp-table-cell,
@@ -1197,6 +1206,15 @@ class MasCardSelectionDialog extends LitElement {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
+                    padding: 12px 16px;
+                }
+
+                mas-card-selection-dialog sp-table-head-cell {
+                    font-size: 12px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                    color: var(--spectrum-gray-600);
                 }
 
                 mas-card-selection-dialog .expand-cell {
@@ -1253,10 +1271,11 @@ class MasCardSelectionDialog extends LitElement {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 16px 28px;
-                    background: var(--spectrum-gray-50, #fff);
+                    padding: 14px 28px;
+                    background: var(--spectrum-gray-75);
                     border-top: 1px solid var(--spectrum-gray-200);
                     flex-shrink: 0;
+                    border-radius: 0 0 20px 20px;
                 }
 
                 mas-card-selection-dialog .selection-info {

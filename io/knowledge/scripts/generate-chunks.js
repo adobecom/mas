@@ -26,11 +26,13 @@ const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(CURRENT_DIR, '..');
 const CHUNKS_DIR = join(PROJECT_ROOT, 'src/knowledge-chunks');
 const CONFLUENCE_DIR = join(PROJECT_ROOT, 'scraped-docs/confluence');
+const WEB_COMPONENTS_DIR = join(PROJECT_ROOT, 'scraped-docs/mas-web-components');
 const OUTPUT_FILE = join(PROJECT_ROOT, 'src/index-docs/embedded-chunks.js');
 
 const SOURCE_DIRS = [
     { path: CHUNKS_DIR, categoryPrefix: '' },
     { path: CONFLUENCE_DIR, categoryPrefix: 'confluence' },
+    { path: WEB_COMPONENTS_DIR, categoryPrefix: 'web-components' },
 ];
 
 const MIN_CHUNK_LENGTH = 50;

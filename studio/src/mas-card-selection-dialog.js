@@ -11,7 +11,7 @@ import './aem/mas-filter-panel.js';
 const TAG_VARIANT_PREFIX = 'mas:variant/';
 const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 
-const CARDS_PER_PAGE = 10;
+const CARDS_PER_PAGE = 50;
 const variantValues = VARIANTS.map((v) => v.value);
 
 class MasCardSelectionDialog extends LitElement {

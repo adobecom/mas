@@ -765,7 +765,7 @@ class MasCardSelectionDialog extends LitElement {
                     left: 0;
                     width: 100vw;
                     height: 100vh;
-                    background: rgba(0, 0, 0, 0.5);
+                    background: rgba(0, 0, 0, 0.6);
                     z-index: 999;
                     display: flex;
                     align-items: center;
@@ -774,10 +774,10 @@ class MasCardSelectionDialog extends LitElement {
 
                 mas-card-selection-dialog .dialog-panel {
                     background: var(--spectrum-gray-50, #fff);
-                    border-radius: 12px;
-                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                    border-radius: 20px;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
                     width: 90vw;
-                    height: 90vh;
+                    height: 88vh;
                     max-width: 1400px;
                     display: flex;
                     flex-direction: column;
@@ -789,16 +789,17 @@ class MasCardSelectionDialog extends LitElement {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 16px 24px;
+                    padding: 20px 28px;
                     border-bottom: 1px solid var(--spectrum-gray-200);
                     flex-shrink: 0;
                 }
 
                 mas-card-selection-dialog .dialog-title {
                     margin: 0;
-                    font-size: 20px;
-                    font-weight: 700;
+                    font-size: 18px;
+                    font-weight: 600;
                     color: var(--spectrum-gray-900);
+                    letter-spacing: -0.01em;
                 }
 
                 mas-card-selection-dialog .dialog-header .close-button {
@@ -817,10 +818,10 @@ class MasCardSelectionDialog extends LitElement {
                     display: flex;
                     flex-direction: column;
                     gap: 8px;
-                    padding: 12px 24px;
+                    padding: 12px 28px;
                     border-bottom: 1px solid var(--spectrum-gray-200);
                     flex-shrink: 0;
-                    background: var(--spectrum-gray-50);
+                    background: var(--spectrum-gray-75, #fafafa);
                 }
 
                 mas-card-selection-dialog .filter-header {
@@ -1174,10 +1175,18 @@ class MasCardSelectionDialog extends LitElement {
                     flex: 1;
                     overflow-y: auto;
                     overflow-x: auto;
-                    background: var(--spectrum-gray-100, #f5f5f5);
+                    background: var(--spectrum-gray-50, #fff);
                 }
 
                 mas-card-selection-dialog sp-table sp-table-body {
+                    background-color: var(--spectrum-gray-50, #fff);
+                }
+
+                mas-card-selection-dialog sp-table-row {
+                    border-bottom: 1px solid var(--spectrum-gray-200);
+                }
+
+                mas-card-selection-dialog sp-table-row:hover {
                     background-color: var(--spectrum-gray-100);
                 }
 
@@ -1244,7 +1253,7 @@ class MasCardSelectionDialog extends LitElement {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 12px 24px;
+                    padding: 16px 28px;
                     background: var(--spectrum-gray-50, #fff);
                     border-top: 1px solid var(--spectrum-gray-200);
                     flex-shrink: 0;
@@ -1253,10 +1262,10 @@ class MasCardSelectionDialog extends LitElement {
                 mas-card-selection-dialog .selection-info {
                     display: flex;
                     align-items: center;
-                    gap: 12px;
-                    color: var(--spectrum-global-color-gray-800);
-                    font-weight: 500;
-                    font-size: 14px;
+                    gap: 8px;
+                    color: var(--spectrum-global-color-gray-700);
+                    font-weight: 400;
+                    font-size: 13px;
                 }
 
                 mas-card-selection-dialog .action-buttons {

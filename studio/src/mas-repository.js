@@ -23,8 +23,8 @@ import {
     CARD_MODEL_PATH,
     PZN_FOLDER,
     SURFACES,
-    isPznCountryTagId,
 } from './constants.js';
+import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
@@ -79,23 +79,6 @@ function isUUID(str) {
     return uuidRegex.test(str);
 }
 
-const PZN_TAG_ID_PREFIX = `mas:${PZN_FOLDER}/`;
-
-/**
- * True when the fragment has any mas:pzn tag outside the country subtree (mas:pzn/country/…).
- * @param {import('./aem/fragment.js').Fragment | null | undefined} fragment
- */
-function fragmentHasPersonalizationTag(fragment) {
-    return (
-        fragment?.tags?.some((t) => {
-            const id = t.id;
-            if (!id?.startsWith(PZN_TAG_ID_PREFIX)) return false;
-            if (isPznCountryTagId(id)) return false;
-            return true;
-        }) ?? false
-    );
-}
-
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },
@@ -137,6 +120,7 @@ export class MasRepository extends LitElement {
 
     /**
      * When personalization is off, exclude fragments that carry mas:pzn/… tags except mas:pzn/country/….
+     * When on, search omits non-country pzn tags from the API; narrowing by those tags happens in mas-content.
      * @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores
      */
     #filterStoresByPersonalizationEnabled(fragmentStores) {
@@ -146,6 +130,7 @@ export class MasRepository extends LitElement {
             return !fragmentHasPersonalizationTag(fragment);
         });
     }
+
     /** @type {AEM} */
     aem;
 
@@ -321,12 +306,11 @@ export class MasRepository extends LitElement {
             }
         }
 
-        if (!personalizationOn) {
-            tags = tags.filter((tag) => {
-                if (!tag.startsWith(PZN_TAG_ID_PREFIX)) return true;
-                return isPznCountryTagId(tag);
-            });
-        }
+        // Non-country mas:pzn/* filters apply only to the Personalization group in mas-content, not the search API
+        tags = tags.filter((tag) => {
+            if (!tag.startsWith(PZN_TAG_ID_PREFIX)) return true;
+            return isPznCountryTagId(tag);
+        });
 
         const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
 

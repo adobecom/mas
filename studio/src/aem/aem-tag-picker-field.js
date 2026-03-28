@@ -1,7 +1,8 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
-import { EVENT_OST_OFFER_SELECT, isPznCountryTagPath } from '../constants.js';
+import { EVENT_OST_OFFER_SELECT } from '../constants.js';
+import { isPznCountryTagPath } from '../personalization-utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
 

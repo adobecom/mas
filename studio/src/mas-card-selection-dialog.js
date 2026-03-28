@@ -522,33 +522,56 @@ class MasCardSelectionDialog extends LitElement {
         `;
     }
 
+    getFragmentPath(fragment) {
+        const parts = fragment.path?.split('/') || [];
+        const damIndex = parts.indexOf('mas');
+        if (damIndex === -1) return fragment.path || '';
+        const relevant = parts.slice(damIndex);
+        const modelLabel = fragment.model?.path?.includes('collection') ? 'collection' : 'merch-card';
+        return `${modelLabel}: ${relevant.join(' / ')}`;
+    }
+
     get tableView() {
         const filtered = this.filteredFragments;
 
-        return html`<sp-table
-            emphasized
-            scroller
-            selects="multiple"
-            selected=${JSON.stringify(this.selection.value)}
-            @change=${this.updateTableSelection}
-        >
+        return html`<sp-table emphasized scroller>
             <sp-table-head>
                 <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
                 <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
                 <sp-table-head-cell sortable class="title">Title</sp-table-head-cell>
-                <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
                 <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
                 <sp-table-head-cell sortable class="last-modified-by">Modified By</sp-table-head-cell>
-                <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
                 <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
-                <sp-table-head-cell class="actions"></sp-table-head-cell>
-                <sp-table-head-cell class="preview"></sp-table-head-cell>
             </sp-table-head>
             <sp-table-body>
                 ${repeat(
                     filtered,
                     (fragmentStore) => fragmentStore.id,
-                    (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+                    (fragmentStore) => {
+                        const data = fragmentStore.get();
+                        const isSelected = this.selection.value.includes(fragmentStore.id);
+                        return html`<sp-table-row
+                            value="${data.id}"
+                            class="${isSelected ? 'selected' : ''}"
+                            @click=${() => this.handleCardClick(fragmentStore)}
+                        >
+                            <sp-table-cell class="expand-cell">
+                                <sp-checkbox
+                                    ?checked=${isSelected}
+                                    @click=${(e) => e.stopPropagation()}
+                                    @change=${() => this.handleCardClick(fragmentStore)}
+                                ></sp-checkbox>
+                            </sp-table-cell>
+                            <sp-table-cell class="name">${this.getFragmentPath(data)}</sp-table-cell>
+                            <sp-table-cell class="title">${data.title}</sp-table-cell>
+                            <sp-table-cell class="offer-type">${data.getFieldValue?.('offerType') || ''}</sp-table-cell>
+                            <sp-table-cell class="last-modified-by">${data.modified?.by || ''}</sp-table-cell>
+                            <sp-table-cell class="status">
+                                <div class="status-dot"></div>
+                                <span>${data.status || 'DRAFT'}</span>
+                            </sp-table-cell>
+                        </sp-table-row>`;
+                    },
                 )}
             </sp-table-body>
         </sp-table>`;
@@ -1188,6 +1211,15 @@ class MasCardSelectionDialog extends LitElement {
 
                 mas-card-selection-dialog sp-table-row {
                     border-bottom: 1px solid var(--spectrum-gray-100);
+                    cursor: pointer;
+                }
+
+                mas-card-selection-dialog sp-table-row:hover {
+                    background-color: var(--spectrum-gray-100);
+                }
+
+                mas-card-selection-dialog sp-table-row.selected {
+                    background-color: var(--spectrum-blue-100, #e8f0fe);
                 }
 
                 mas-card-selection-dialog sp-table-head-cell {

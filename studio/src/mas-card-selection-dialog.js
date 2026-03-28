@@ -1027,17 +1027,19 @@ class MasCardSelectionDialog extends LitElement {
                 }
 
                 mas-card-selection-dialog .card-wrapper .card-preview-container {
-                    height: 200px;
+                    height: 260px;
                     overflow: hidden;
                     position: relative;
                     pointer-events: none;
+                    background: var(--spectrum-gray-75);
+                    border-bottom: 1px solid var(--spectrum-gray-200);
                 }
 
                 mas-card-selection-dialog .card-wrapper merch-card {
                     position: absolute;
-                    top: 4px;
+                    top: 8px;
                     left: 50%;
-                    transform: translateX(-50%) scale(0.45);
+                    transform: translateX(-50%) scale(0.5);
                     transform-origin: top center;
                     width: 302px;
                 }

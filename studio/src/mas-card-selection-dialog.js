@@ -776,9 +776,9 @@ class MasCardSelectionDialog extends LitElement {
                     background: var(--spectrum-gray-50, #fff);
                     border-radius: 12px;
                     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-                    width: 95vw;
-                    height: 95vh;
-                    max-width: 1600px;
+                    width: 90vw;
+                    height: 90vh;
+                    max-width: 1400px;
                     display: flex;
                     flex-direction: column;
                     overflow: hidden;
@@ -789,7 +789,7 @@ class MasCardSelectionDialog extends LitElement {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    padding: 20px 24px;
+                    padding: 16px 24px;
                     border-bottom: 1px solid var(--spectrum-gray-200);
                     flex-shrink: 0;
                 }
@@ -816,8 +816,8 @@ class MasCardSelectionDialog extends LitElement {
                 mas-card-selection-dialog .filter-bar {
                     display: flex;
                     flex-direction: column;
-                    gap: 12px;
-                    padding: 16px 24px;
+                    gap: 8px;
+                    padding: 12px 24px;
                     border-bottom: 1px solid var(--spectrum-gray-200);
                     flex-shrink: 0;
                     background: var(--spectrum-gray-50);
@@ -1196,12 +1196,12 @@ class MasCardSelectionDialog extends LitElement {
                 }
 
                 mas-card-selection-dialog .name {
-                    flex: 2;
-                    min-width: 150px;
+                    flex: 1.5;
+                    min-width: 120px;
                 }
 
                 mas-card-selection-dialog .title {
-                    flex: 1.5;
+                    flex: 1.8;
                     min-width: 120px;
                 }
 
@@ -1244,7 +1244,7 @@ class MasCardSelectionDialog extends LitElement {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 16px 24px;
+                    padding: 12px 24px;
                     background: var(--spectrum-gray-50, #fff);
                     border-top: 1px solid var(--spectrum-gray-200);
                     flex-shrink: 0;

@@ -16,6 +16,16 @@ export class MasChatFab extends LitElement {
         return this;
     }
 
+    connectedCallback() {
+        super.connectedCallback();
+        this.pageUnsubscribe = Store.page.subscribe(() => this.requestUpdate());
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.pageUnsubscribe?.();
+    }
+
     get isAIPage() {
         return Store.page.get() === PAGE_NAMES.AI_ASSISTANT;
     }

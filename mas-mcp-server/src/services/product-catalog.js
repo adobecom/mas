@@ -1,5 +1,3 @@
-import { AuthManager } from '../../../io/mcp-server/src/lib/auth-manager.js';
-
 /**
  * Product Catalog Service
  * Manages Adobe product listings

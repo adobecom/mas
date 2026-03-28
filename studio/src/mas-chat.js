@@ -1,5 +1,4 @@
-import { LitElement, html, css } from 'lit';
-import StoreController from './reactivity/store-controller.js';
+import { LitElement, html, nothing } from 'lit';
 import './mas-chat-message.js';
 import './mas-chat-input.js';
 import './mas-prompt-suggestions.js';
@@ -39,6 +38,12 @@ export class MasChat extends LitElement {
         this.showPromptSuggestions = true;
         this.currentSessionId = null;
         this.showWelcomeScreen = true;
+    }
+
+    #repositoryEl = null;
+
+    get repository() {
+        return (this.#repositoryEl ??= document.querySelector('mas-repository'));
     }
 
     getCurrentSurface() {
@@ -114,7 +119,7 @@ export class MasChat extends LitElement {
         const session = sessionManager.getSession(this.currentSessionId);
         if (!session) return;
 
-        if (this.messages.length > 0 && !session.name.startsWith('Chat ')) {
+        if (this.messages.length > 0 && session.name.startsWith('Chat ')) {
             const firstUserMessage = this.messages.find((m) => m.role === 'user');
             if (firstUserMessage) {
                 const generatedName = sessionManager.generateSessionName(firstUserMessage.content);
@@ -222,16 +227,6 @@ export class MasChat extends LitElement {
                 workingSet: this.getRecentFragments(),
             };
 
-            console.log('[AI Chat] Sending enriched context to backend:', {
-                hasLastOperation: !!enrichedContext.lastOperation,
-                lastOperationType: enrichedContext.lastOperation?.type,
-                fragmentCount: enrichedContext.lastOperation?.fragmentIds?.length || 0,
-                workingSetSize: enrichedContext.workingSet?.length || 0,
-                surface: enrichedContext.surface,
-                locale: enrichedContext.currentLocale,
-                path: enrichedContext.currentPath,
-            });
-
             const response = await this.callAIChatAction({
                 message,
                 conversationHistory: this.conversationHistory,
@@ -241,17 +236,9 @@ export class MasChat extends LitElement {
             if (response.type === 'operation' || response.type === 'mcp_operation') {
                 if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
                     let surface = null;
-                    let detectionMethod = null;
-
-                    console.log('[AI Chat] Surface Detection Debug:');
-                    console.log('  Store.search.value.path:', Store.search?.value?.path);
-                    console.log('  URL hash param (path):', getHashParam('path'));
-                    console.log('  Store.folders.data:', Store.folders?.data?.value);
 
                     if (Store.search?.value?.path) {
                         surface = this.extractSurfaceFromPath(Store.search.value.path);
-                        detectionMethod = 'Store.search.value.path';
-                        console.log(`  ✓ Method 1 (Store.search.value.path): ${surface}`);
                     }
 
                     if (!surface) {
@@ -267,35 +254,19 @@ export class MasChat extends LitElement {
                             nala: 'nala',
                         };
                         surface = surfaceMap[hashPath] || null;
-                        if (surface) {
-                            detectionMethod = 'URL hash parameter';
-                            console.log(`  ✓ Method 2 (URL hash): ${surface}`);
-                        } else {
-                            console.log(`  ✗ Method 2 (URL hash): Failed (hashPath: ${hashPath})`);
-                        }
                     }
 
                     if (!surface && Store.folders?.data?.value?.length > 0) {
                         const firstFolder = Store.folders.data.value[0];
                         surface = this.extractSurfaceFromPath(firstFolder);
-                        if (surface) {
-                            detectionMethod = 'First folder from Store.folders.data';
-                            console.log(`  ✓ Method 3 (First folder): ${surface} (from ${firstFolder})`);
-                        }
                     }
 
                     if (!surface) {
                         surface = 'acom';
-                        detectionMethod = 'Default fallback';
-                        console.log(`  ✓ Method 4 (Default): ${surface}`);
                     }
 
-                    console.log(`[AI Chat] Final surface: ${surface} (via ${detectionMethod})`);
-
                     response.mcpParams.surface = surface;
-                    const storeLocale = Store.filters?.value?.locale;
-                    console.log('[AI Chat] Store.filters.value.locale:', storeLocale);
-                    response.mcpParams.locale = storeLocale || 'en_US';
+                    response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
 
                     if (response.mcpParams.query) {
                         const query = response.mcpParams.query.toLowerCase();
@@ -307,16 +278,8 @@ export class MasChat extends LitElement {
                         const isImageQuery = imagePatterns.some((pattern) => pattern.test(query));
                         if (isImageQuery && !query.includes('backgroundimage:')) {
                             response.mcpParams.query = 'backgroundImage:*';
-                            console.log('[AI Chat] Converted image query to field search: backgroundImage:*');
                         }
                     }
-
-                    console.log('[AI Chat] MCP Params:', {
-                        surface: response.mcpParams.surface,
-                        locale: response.mcpParams.locale,
-                        query: response.mcpParams.query,
-                        limit: response.mcpParams.limit,
-                    });
                 }
 
                 const messageData = {
@@ -467,7 +430,7 @@ export class MasChat extends LitElement {
         });
 
         if (!response.ok) {
-            const error = await response.json();
+            const error = await response.json().catch(() => ({}));
             throw new Error(error.error || 'Failed to communicate with AI service');
         }
 
@@ -524,7 +487,7 @@ export class MasChat extends LitElement {
         try {
             this.isLoading = true;
 
-            const repository = document.querySelector('mas-repository');
+            const repository = this.repository;
             if (!repository) {
                 throw new Error('Repository not found');
             }
@@ -573,7 +536,7 @@ export class MasChat extends LitElement {
     }
 
     async saveDraftToAEM(cardConfig) {
-        const repository = document.querySelector('mas-repository');
+        const repository = this.repository;
         if (!repository) {
             throw new Error('Repository not found');
         }
@@ -609,7 +572,7 @@ export class MasChat extends LitElement {
     async publishDraft(fragmentId) {
         try {
             this.isLoading = true;
-            const repository = document.querySelector('mas-repository');
+            const repository = this.repository;
             if (!repository) {
                 throw new Error('Repository not found');
             }
@@ -638,7 +601,7 @@ export class MasChat extends LitElement {
     async deleteDraft(fragmentId, fragmentTitle) {
         try {
             this.isLoading = true;
-            const repository = document.querySelector('mas-repository');
+            const repository = this.repository;
             if (!repository) {
                 throw new Error('Repository not found');
             }
@@ -676,7 +639,7 @@ export class MasChat extends LitElement {
         try {
             this.isLoading = true;
 
-            const repository = document.querySelector('mas-repository');
+            const repository = this.repository;
             if (!repository) {
                 throw new Error('Repository not found');
             }
@@ -750,7 +713,7 @@ export class MasChat extends LitElement {
         this.isLoading = true;
 
         try {
-            const repository = document.querySelector('mas-repository');
+            const repository = this.repository;
             if (!repository) throw new Error('Repository not found');
 
             const collectionData = {
@@ -811,7 +774,7 @@ export class MasChat extends LitElement {
     async executeOperation(operation) {
         this.isLoading = true;
 
-        const repository = document.querySelector('mas-repository');
+        const repository = this.repository;
         if (!repository) {
             showToast('Repository not found', 'negative');
             this.isLoading = false;
@@ -1208,10 +1171,6 @@ export class MasChat extends LitElement {
         if (!lastOp) return null;
 
         const fragmentIds = lastOp.operationResult.results?.map((f) => f.id) || [];
-        console.log('[Frontend] ===== EXTRACTED FRAGMENT IDS FROM LAST OPERATION =====');
-        console.log('[Frontend] Operation type:', lastOp.operationResult.operation);
-        console.log('[Frontend] Total fragment IDs:', fragmentIds.length);
-        console.log('[Frontend] Fragment IDs:', fragmentIds);
 
         return {
             type: lastOp.operationResult.operation,
@@ -1290,7 +1249,7 @@ export class MasChat extends LitElement {
                               <sp-progress-circle indeterminate size="m"></sp-progress-circle>
                           </div>
                       `
-                    : ''}
+                    : nothing}
             </div>
         `;
     }
@@ -1313,7 +1272,7 @@ export class MasChat extends LitElement {
                               <div slot="content">${this.error}</div>
                           </sp-banner>
                       `
-                    : ''}
+                    : nothing}
 
                 <div class="chat-container">
                     <div class="chat-messages">
@@ -1335,7 +1294,7 @@ export class MasChat extends LitElement {
                                       <div class="typing-dot"></div>
                                   </div>
                               `
-                            : ''}
+                            : nothing}
                     </div>
                 </div>
 

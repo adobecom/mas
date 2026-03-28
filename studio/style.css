@@ -2459,3 +2459,29 @@ mas-prompt-suggestions {
     padding-top: var(--spectrum-global-dimension-size-200);
     border-top: 1px solid var(--spectrum-gray-300);
 }
+
+.product-icon-img {
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.product-subtitle {
+    color: var(--spectrum-gray-600);
+    font-size: 12px;
+}
+
+.product-detail-content {
+    padding: 0 24px;
+}
+
+.collection-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+body.chat-resizing {
+    cursor: col-resize;
+    user-select: none;
+}

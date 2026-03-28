@@ -22,14 +22,6 @@ export class BedrockClient {
         const region = credentials.region || process.env.AWS_REGION || 'us-west-2';
         const modelId = credentials.modelId || process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
 
-        console.log('BedrockClient initialization:', {
-            hasAccessKeyId: !!accessKeyId,
-            accessKeyIdPrefix: accessKeyId ? accessKeyId.substring(0, 4) : 'undefined',
-            hasSecretAccessKey: !!secretAccessKey,
-            region,
-            modelId,
-        });
-
         if (!accessKeyId || !secretAccessKey) {
             const errorMsg = `AWS credentials missing: accessKeyId=${!!accessKeyId}, secretAccessKey=${!!secretAccessKey}`;
             console.error(errorMsg);
@@ -178,25 +170,6 @@ export class BedrockClient {
                     enhancedSystem += `- For offer/pricing queries: OSI not available. Call get_card first to get the OSI.\n`;
                 }
             }
-
-            const attachedCardsInfo =
-                context.cards?.map((c) => ({
-                    id: typeof c === 'string' ? c : c.id,
-                    osi: typeof c === 'object' ? c.osi : null,
-                })) || [];
-
-            console.log('[Bedrock] Context sent to AI:', {
-                hasLastOperation: !!context.lastOperation,
-                fragmentCount: context.lastOperation?.fragmentIds?.length || 0,
-                workingSetSize: context.workingSet?.length || 0,
-                surface: context.surface,
-                locale: context.currentLocale,
-                hasOsi: !!context.osi,
-                osi: context.osi || null,
-                hasOffer: !!context.offer,
-                attachedCardsCount: context.cards?.length || 0,
-                attachedCards: attachedCardsInfo,
-            });
         }
 
         const messages = [

@@ -178,7 +178,7 @@ class MasCollectionPreview extends LitElement {
                     )}
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+                <div class="collection-form-section">
                     <sp-field-label for="collection-title">Collection Title</sp-field-label>
                     <sp-textfield
                         id="collection-title"

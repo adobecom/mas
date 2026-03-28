@@ -354,19 +354,10 @@ class MasProductCatalog extends LitElement {
                 <div class="create-dialog" @click=${(e) => e.stopPropagation()}>
                     <div class="create-dialog-top">
                         <div class="create-dialog-product">
-                            ${icon
-                                ? html`<img
-                                      src="${icon}"
-                                      width="36"
-                                      height="36"
-                                      style="object-fit:contain; border-radius:6px"
-                                  />`
-                                : nothing}
+                            ${icon ? html`<img src="${icon}" width="36" height="36" class="product-icon-img" />` : nothing}
                             <div>
                                 <strong>${name}</strong>
-                                <div style="color: var(--spectrum-gray-600); font-size: 12px">
-                                    ${product.product_code} · ${product.arrangement_code}
-                                </div>
+                                <div class="product-subtitle">${product.product_code} · ${product.arrangement_code}</div>
                             </div>
                         </div>
                         <sp-action-button quiet @click=${() => this.closeCreateDialog()}>
@@ -383,7 +374,7 @@ class MasProductCatalog extends LitElement {
                         </div>
                     </div>
 
-                    <sp-field-label size="s" style="padding: 0 24px">Select a template</sp-field-label>
+                    <sp-field-label size="s" class="product-detail-content">Select a template</sp-field-label>
                     <div class="template-grid">
                         ${!this.createDialog.previewsLoaded
                             ? html`<div class="template-loading">

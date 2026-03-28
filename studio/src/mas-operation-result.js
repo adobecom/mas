@@ -547,14 +547,9 @@ export class MasOperationResult extends LitElement {
     copyErrorsToClipboard(failed) {
         const errorLog = failed.map(({ id, error }) => `${id}: ${error}`).join('\n');
 
-        navigator.clipboard.writeText(errorLog).then(
-            () => {
-                console.log('[Error Log] Copied to clipboard:', errorLog);
-            },
-            (err) => {
-                console.error('[Error Log] Failed to copy:', err);
-            },
-        );
+        navigator.clipboard.writeText(errorLog).then(null, (err) => {
+            console.error('[Error Log] Failed to copy:', err);
+        });
     }
 
     extractLocale(variation) {

@@ -1,7 +1,3 @@
-import { StudioURLBuilder } from '../../../io/mcp-server/src/lib/studio-url-builder.js';
-import { AOSClient } from '../services/aos-client.js';
-import { ProductCatalog } from '../services/product-catalog.js';
-
 /**
  * Offer Discovery Tools
  * MCP tools for searching and retrieving offer information from AOS

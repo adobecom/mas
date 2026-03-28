@@ -2,7 +2,7 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { StudioOperations } from '../lib/studio-operations.js';
-import { requireIMSAuth } from '../lib/ims-validator.js';
+import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
 /**
  * Fetch full MCS merchandising data directly from AOS API for a given arrangement code.
@@ -68,7 +68,8 @@ async function main(params) {
         const authManager = new AuthManager();
         authManager.setAccessToken(accessToken);
 
-        const aemBaseUrl = params._aemBaseUrl || params.AEM_BASE_URL || 'https://author-p133911-e1313554.adobeaemcloud.com';
+        const { url: aemBaseUrl, error: aemError } = resolveAemBaseUrl(params);
+        if (aemError) return aemError;
         const studioBaseUrl = params.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html';
         const aosUrl = params.AOS_URL;
         const aosApiKey = params.AOS_API_KEY;

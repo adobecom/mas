@@ -1,4 +1,4 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
 import { EVENT_OST_OFFER_SELECT, EVENT_OST_SELECT } from './constants.js';
 import './rte/rte-field.js';
@@ -188,7 +188,7 @@ export class MasChatInput extends LitElement {
                               </sp-action-button>
                           </div>
                       `
-                    : ''}
+                    : nothing}
                 ${this.selectedCards.length > 0
                     ? html`
                           <div class="selected-cards-badges">
@@ -201,7 +201,7 @@ export class MasChatInput extends LitElement {
                               )}
                           </div>
                       `
-                    : ''}
+                    : nothing}
                 <div class="input-row">
                     <div class="rte-wrapper">
                         <rte-field
@@ -239,7 +239,7 @@ export class MasChatInput extends LitElement {
                                       <sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>
                                   </sp-action-button>
                               `
-                            : ''}
+                            : nothing}
                         <sp-action-button
                             variant="accent"
                             size="s"

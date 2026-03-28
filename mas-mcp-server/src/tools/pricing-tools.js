@@ -1,5 +1,3 @@
-import { AOSClient } from '../services/aos-client.js';
-
 /**
  * Pricing and Checkout Tools
  * MCP tools for getting formatted prices and checkout URLs

@@ -49,8 +49,7 @@ export class MasChatDrawer extends LitElement {
         this.startWidth = this.drawerWidth;
         document.addEventListener('mousemove', this.boundHandleMouseMove);
         document.addEventListener('mouseup', this.boundHandleMouseUp);
-        document.body.style.cursor = 'col-resize';
-        document.body.style.userSelect = 'none';
+        document.body.classList.add('chat-resizing');
     }
 
     handleMouseMove(e) {
@@ -59,18 +58,13 @@ export class MasChatDrawer extends LitElement {
         const maxWidth = window.innerWidth * MAX_WIDTH_RATIO;
         const newWidth = Math.min(Math.max(this.startWidth + delta, MIN_WIDTH), maxWidth);
         this.drawerWidth = newWidth;
-        const drawer = this.querySelector('.chat-drawer');
-        if (drawer) {
-            drawer.style.width = `${newWidth}px`;
-        }
     }
 
     handleMouseUp() {
         this.resizing = false;
         document.removeEventListener('mousemove', this.boundHandleMouseMove);
         document.removeEventListener('mouseup', this.boundHandleMouseUp);
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
+        document.body.classList.remove('chat-resizing');
         localStorage.setItem(STORAGE_KEY, String(this.drawerWidth));
     }
 
@@ -90,7 +84,10 @@ export class MasChatDrawer extends LitElement {
         if (!this.open && !this.closing) return nothing;
 
         return html`
-            <div class="chat-drawer ${this.closing ? 'chat-drawer-closing' : ''}" style="width: ${this.drawerWidth}px">
+            <div
+                class="chat-drawer ${this.closing ? 'chat-drawer-closing' : ''}"
+                style="--chat-drawer-width: ${this.drawerWidth}px"
+            >
                 <div class="chat-drawer-resize" @mousedown=${this.handleResizeStart}></div>
                 <div
                     class="chat-drawer-header"

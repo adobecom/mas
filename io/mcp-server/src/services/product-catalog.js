@@ -43,8 +43,8 @@ export class ProductCatalog {
             const search = params.searchText.toLowerCase();
             results = results.filter(
                 (p) =>
-                    p.name.toLowerCase().includes(search) ||
-                    p.code.toLowerCase().includes(search) ||
+                    p.name?.toLowerCase().includes(search) ||
+                    p.code?.toLowerCase().includes(search) ||
                     p.arrangement_code?.toLowerCase().includes(search),
             );
         }

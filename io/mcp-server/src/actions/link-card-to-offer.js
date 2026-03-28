@@ -2,7 +2,7 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { AOSClient } from '../services/aos-client.js';
-import { requireIMSAuth } from '../lib/ims-validator.js';
+import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
 async function main(params) {
     const { cardId, offerSelectorId, etag, __ow_headers } = params;
@@ -32,7 +32,8 @@ async function main(params) {
         const authManager = new AuthManager();
         authManager.setAccessToken(accessToken);
 
-        const aemBaseUrl = params._aemBaseUrl || params.AEM_BASE_URL || 'https://author-p133911-e1313554.adobeaemcloud.com';
+        const { url: aemBaseUrl, error: aemError } = resolveAemBaseUrl(params);
+        if (aemError) return aemError;
         const aosBaseUrl = params.AOS_URL || 'https://aos.adobe.io';
         const aosApiKey = params.AOS_API_KEY || '';
         const studioBaseUrl = params.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html';

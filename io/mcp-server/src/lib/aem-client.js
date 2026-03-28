@@ -17,8 +17,7 @@ export class AEMClient {
         const { path = '/content/dam/mas', query, tags, modelIds, limit = 50, offset = 0, searchMode = 'EDGES' } = params;
 
         const authHeader = await this.authManager.getAuthHeader();
-        console.log('[AEMClient] Auth header:', authHeader ? `${authHeader.slice(0, 27)}...` : 'MISSING');
-        console.log('[AEMClient] Base URL:', this.baseUrl);
+        console.log('[AEMClient] Auth header:', authHeader ? 'present' : 'MISSING');
 
         const filter = { path };
 
@@ -188,7 +187,7 @@ export class AEMClient {
             body: body.toString(),
         });
 
-        if (response.status === 201 || response.status === 200 || response.status === 409 || response.status === 500) {
+        if (response.status === 201 || response.status === 200 || response.status === 409) {
             return true;
         }
         console.error(`[AEMClient] createTag failed for ${tagId}: ${response.status}`);
@@ -394,7 +393,9 @@ export class AEMClient {
                 const invalidTags = match[1].split(',').map((t) => t.trim());
                 const validTags = tags.filter((t) => !invalidTags.includes(t));
                 if (validTags.length > 0) {
-                    console.log(`[AEMClient] Retrying with ${validTags.length} valid tags (skipped ${invalidTags.length} invalid)`);
+                    console.log(
+                        `[AEMClient] Retrying with ${validTags.length} valid tags (skipped ${invalidTags.length} invalid)`,
+                    );
                     await this.updateFragmentTags(id, validTags);
                 } else {
                     console.log('[AEMClient] No valid tags to apply');

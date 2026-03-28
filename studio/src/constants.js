@@ -128,7 +128,6 @@ export const PAGE_NAMES = {
 };
 
 const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-const IO_NAMESPACE = isDev ? '14257-merchatscale-axel' : '14257-masstudio';
 
 const IO_DEV_NAMESPACE = '14257-merchatscale-axel';
 export const AI_CHAT_BASE_URL = `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;

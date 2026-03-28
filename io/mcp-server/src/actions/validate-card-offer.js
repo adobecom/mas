@@ -2,7 +2,7 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { AOSClient } from '../services/aos-client.js';
-import { requireIMSAuth } from '../lib/ims-validator.js';
+import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
 async function main(params) {
     const { cardId, __ow_headers } = params;
@@ -25,7 +25,8 @@ async function main(params) {
         const authManager = new AuthManager();
         authManager.setAccessToken(accessToken);
 
-        const aemBaseUrl = params._aemBaseUrl || params.AEM_BASE_URL || 'https://author-p133911-e1313554.adobeaemcloud.com';
+        const { url: aemBaseUrl, error: aemError } = resolveAemBaseUrl(params);
+        if (aemError) return aemError;
         const aosBaseUrl = params.AOS_URL || 'https://aos.adobe.io';
         const aosApiKey = params.AOS_API_KEY || '';
         const studioBaseUrl = params.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html';
@@ -41,7 +42,7 @@ async function main(params) {
 
         const variantField = fragment.fields?.find?.((f) => f.name === 'variant');
         const sizeField = fragment.fields?.find?.((f) => f.name === 'size');
-        const mnemonicIconField = fragment.fields?.find?.((f) => f.name === 'mnemonicIcon');
+        const osiField = fragment.fields?.find?.((f) => f.name === 'osi');
 
         const card = {
             id: fragment.id,
@@ -58,7 +59,7 @@ async function main(params) {
         const issues = [];
         let offer = null;
 
-        const offerSelectorId = mnemonicIconField?.values?.[0];
+        const offerSelectorId = osiField?.values?.[0];
 
         if (!offerSelectorId) {
             issues.push('No offer selector linked to card');
@@ -80,7 +81,10 @@ async function main(params) {
                     issues.push(`Card missing offer_type tag: mas:offer_type/${offerType.toLowerCase()}`);
                 }
 
-                if (customerSegment && !cardTags.some((tag) => tag === `mas:customer_segment/${customerSegment.toLowerCase()}`)) {
+                if (
+                    customerSegment &&
+                    !cardTags.some((tag) => tag === `mas:customer_segment/${customerSegment.toLowerCase()}`)
+                ) {
                     issues.push(`Card missing customer_segment tag: mas:customer_segment/${customerSegment.toLowerCase()}`);
                 }
             } catch (error) {

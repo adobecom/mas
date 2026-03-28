@@ -14,7 +14,6 @@ import { MCP_SERVER_URL } from '../constants.js';
  * @returns {Promise<Object>} - Tool execution result
  */
 export async function executeMCPTool(toolName, params) {
-    console.log('[MCP Client] executeMCPTool called:', toolName, params);
     try {
         const accessToken =
             sessionStorage.getItem('masAccessToken') ??
@@ -22,20 +21,14 @@ export async function executeMCPTool(toolName, params) {
             window.adobeid?.authorize?.();
         const aemBaseUrl = document.querySelector('meta[name="aem-base-url"]')?.getAttribute('content');
 
-        console.log('[MCP Client] Access token:', accessToken ? 'EXISTS' : 'MISSING');
-        console.log('[MCP Client] AEM Base URL:', aemBaseUrl);
-
         const headers = {
             'Content-Type': 'application/json',
         };
 
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
-            headers['x-gw-ims-org-id'] = '9E1005A551ED61CA0A490D45';
+            headers['x-gw-ims-org-id'] = window.adobeIMS?.adobeIdData?.imsOrg || '';
             headers['x-api-key'] = window.adobeIMS?.adobeIdData?.client_id || '';
-            console.log('[MCP Client] Added Authorization header');
-        } else {
-            console.warn('[MCP Client] No access token available!');
         }
 
         const requestBody = {
@@ -46,8 +39,6 @@ export async function executeMCPTool(toolName, params) {
         const isLocal = MCP_SERVER_URL.includes('localhost');
         const actionName = toolName.replace(/_/g, '-');
         const endpoint = isLocal ? `${MCP_SERVER_URL}/tools/${toolName}` : `${MCP_SERVER_URL}/${actionName}`;
-
-        console.log('[MCP Client] Endpoint:', endpoint);
 
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -81,26 +72,28 @@ export async function executeStudioOperationWithProgress(mcpTool, mcpParams, onP
     const initialResult = await executeMCPTool(mcpTool, mcpParams);
 
     if (!initialResult.jobId) {
-        console.warn('[MCP Client] No jobId in response, returning result directly');
         return initialResult;
     }
 
     const { jobId } = initialResult;
-    console.log('[MCP Client] Started job:', jobId, 'polling every', pollInterval, 'ms');
+    const maxDuration = 5 * 60 * 1000;
+    const startTime = Date.now();
 
     return new Promise((resolve, reject) => {
-        const poll = setInterval(async () => {
+        const poll = async () => {
+            if (Date.now() - startTime > maxDuration) {
+                reject(new Error(`Job ${jobId} timed out after ${maxDuration / 1000}s`));
+                return;
+            }
             try {
                 const statusResult = await executeMCPTool('get_job_status', { jobId });
-                console.log('[MCP Client] Job status:', statusResult.status, statusResult.completed, '/', statusResult.total);
 
                 if (onProgress) {
                     onProgress(statusResult);
                 }
 
                 if (statusResult.status === 'completed') {
-                    clearInterval(poll);
-                    const finalResult = {
+                    resolve({
                         success: true,
                         operation: statusResult.type,
                         total: statusResult.total,
@@ -115,18 +108,17 @@ export async function executeStudioOperationWithProgress(mcpTool, mcpParams, onP
                             `✓ Completed ${statusResult.successCount} of ${statusResult.total} operations`,
                         updatedCards: statusResult.updatedCards || [],
                         previewLimit: statusResult.previewLimit || 0,
-                    };
-                    resolve(finalResult);
+                    });
                 } else if (statusResult.status === 'failed') {
-                    clearInterval(poll);
                     reject(new Error(statusResult.error || 'Job failed'));
+                } else {
+                    setTimeout(poll, pollInterval);
                 }
             } catch (error) {
-                clearInterval(poll);
-                console.error('[MCP Client] Polling error:', error);
                 reject(error);
             }
-        }, pollInterval);
+        };
+        setTimeout(poll, pollInterval);
     });
 }
 

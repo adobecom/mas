@@ -66,17 +66,12 @@ async function startHttpServer() {
         const authHeader = req.headers.authorization;
 
         try {
-            console.log('[HTTP] Request to:', toolName);
-            console.log('[HTTP] Auth header present:', !!authHeader);
-            console.log('[HTTP] _aemBaseUrl:', _aemBaseUrl);
-
-            if (authHeader?.startsWith('Bearer ')) {
-                const token = authHeader.slice(7);
-                console.log('[HTTP] Received token:', `${token.slice(0, 20)}...`);
-                mcpServer.authManager.setAccessToken(token);
-            } else {
-                console.log('[HTTP] WARNING: No auth header received');
+            if (!authHeader?.startsWith('Bearer ')) {
+                return res.status(401).json({ error: 'Authorization header with Bearer token is required' });
             }
+
+            const token = authHeader.slice(7);
+            mcpServer.authManager.setAccessToken(token);
 
             if (_aemBaseUrl) {
                 mcpServer.aemClient.baseUrl = _aemBaseUrl.replace(/\/$/, '');

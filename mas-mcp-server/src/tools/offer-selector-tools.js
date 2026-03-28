@@ -1,5 +1,3 @@
-import { StudioURLBuilder } from '../../../io/mcp-server/src/lib/studio-url-builder.js';
-import { AOSClient } from '../services/aos-client.js';
 import { WCSClient } from '../services/wcs-client.js';
 
 /**

@@ -7,7 +7,7 @@
  * - Field mappings are retrieved dynamically via RAG when needed
  */
 
-import { SURFACE_MAPPINGS, VARIANT_METADATA } from './variant-configs.js';
+import { SURFACE_MAPPINGS, VARIANT_METADATA, getVariantsForSurface, getSurfaceForVariant } from './variant-configs.js';
 
 /**
  * Build surface reference section
@@ -141,25 +141,6 @@ export function buildVariantKnowledge() {
         surfaceMapping: SURFACE_MAPPINGS,
         variants: Object.keys(VARIANT_METADATA),
     };
-}
-
-/**
- * Get variants available for a specific surface
- */
-export function getVariantsForSurface(surface) {
-    return SURFACE_MAPPINGS[surface] || [];
-}
-
-/**
- * Get surface for a given variant
- */
-export function getSurfaceForVariant(variantName) {
-    for (const [surface, variants] of Object.entries(SURFACE_MAPPINGS)) {
-        if (variants.includes(variantName)) {
-            return surface;
-        }
-    }
-    return null;
 }
 
 /**

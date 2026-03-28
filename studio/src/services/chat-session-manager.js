@@ -20,8 +20,13 @@ export class ChatSessionManager {
     }
 
     getData() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : { sessions: {}, activeSessionId: null };
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            return stored ? JSON.parse(stored) : { sessions: {}, activeSessionId: null };
+        } catch {
+            localStorage.removeItem(STORAGE_KEY);
+            return { sessions: {}, activeSessionId: null };
+        }
     }
 
     saveData(data) {

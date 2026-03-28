@@ -19,11 +19,12 @@ import {
 } from './prompt-templates.js';
 import { OPERATIONS_SYSTEM_PROMPT } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
-import { parseAIResponse, validateCardConfig, validateCollectionConfig } from './response-parser.js';
+import { parseAIResponse, validateCollectionConfig } from './response-parser.js';
 import { handleOperation } from './operations-handler.js';
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA } from './variant-configs.js';
-import { getVariantsForSurface, buildVariantRAGQuery } from './variant-knowledge-builder.js';
+import { getVariantsForSurface } from './variant-configs.js';
+import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
 
 /**
@@ -680,7 +681,7 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message)
     const recentAssistantMessages = conversationHistory
         .filter((msg) => msg.role === 'assistant')
         .slice(-2)
-        .map((msg) => msg.content.toLowerCase())
+        .map((msg) => (typeof msg.content === 'string' ? msg.content.toLowerCase() : ''))
         .join(' ');
 
     if (recentAssistantMessages.includes('collection')) {

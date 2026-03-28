@@ -1,4 +1,4 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import sessionManager from './services/chat-session-manager.js';
 import { showToast } from './utils.js';
 import { confirmation } from './mas-confirm-dialog.js';
@@ -254,7 +254,7 @@ export class MasChatSessionSelector extends LitElement {
                     <sp-icon-chat slot="icon"></sp-icon-chat>
                     <span class="session-trigger-text">
                         ${activeSession ? activeSession.name : 'No session'}
-                        ${sessionCount > 1 ? html`<span class="session-count">(${sessionCount})</span>` : ''}
+                        ${sessionCount > 1 ? html`<span class="session-count">(${sessionCount})</span>` : nothing}
                     </span>
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -288,10 +288,10 @@ export class MasChatSessionSelector extends LitElement {
                                             Maximum sessions reached. Delete some sessions to create new ones.
                                         </div>
                                     `
-                                  : ''}
+                                  : nothing}
                           </div>
                       `
-                    : ''}
+                    : nothing}
             </div>
         `;
     }

@@ -33,6 +33,20 @@ export async function validateIMSToken(token) {
  * @param {Object} headers - Runtime __ow_headers object
  * @returns {Promise<Object|null>} Error response or null if valid
  */
+/**
+ * Resolves AEM base URL from action params
+ * Returns error response if not configured, null if valid
+ * @param {Object} params - Runtime action params
+ * @returns {{url: string, error?: Object}}
+ */
+export function resolveAemBaseUrl(params) {
+    const url = params._aemBaseUrl || params.AEM_BASE_URL;
+    if (!url) {
+        return { url: null, error: { statusCode: 500, body: { error: 'AEM_BASE_URL is not configured' } } };
+    }
+    return { url, error: null };
+}
+
 export async function requireIMSAuth(headers) {
     const authHeader = headers?.authorization;
 

@@ -1,7 +1,3 @@
-import { AEMClient } from '../../../io/mcp-server/src/lib/aem-client.js';
-import { StudioURLBuilder } from '../../../io/mcp-server/src/lib/studio-url-builder.js';
-import { AOSClient } from '../services/aos-client.js';
-
 /**
  * Card-Offer Linking Tools
  * MCP tools for linking cards to offers and maintaining consistency

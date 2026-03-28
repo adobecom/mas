@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import './mas-card-selection-dialog.js';
 import './mas-collection-preview.js';
@@ -83,10 +83,10 @@ export class MasChatMessage extends LitElement {
                     <sp-badge size="s" variant="notice">${fragmentStatus || 'DRAFT'}</sp-badge>
                     ${validation?.warnings?.length > 0
                         ? html` <sp-badge size="s" variant="yellow">${validation.warnings.length} warnings</sp-badge> `
-                        : ''}
+                        : nothing}
                     ${validation?.errors?.length > 0
                         ? html` <sp-badge size="s" variant="negative">${validation.errors.length} errors</sp-badge> `
-                        : ''}
+                        : nothing}
                 </div>
 
                 ${validation?.warnings?.length > 0
@@ -95,14 +95,14 @@ export class MasChatMessage extends LitElement {
                               ${validation.warnings.map((warning) => html` <div class="warning-item">⚠️ ${warning}</div> `)}
                           </div>
                       `
-                    : ''}
+                    : nothing}
                 ${validation?.errors?.length > 0
                     ? html`
                           <div class="card-errors">
                               ${validation.errors.map((error) => html` <div class="error-item">❌ ${error}</div> `)}
                           </div>
                       `
-                    : ''}
+                    : nothing}
 
                 <div class="card-visual-preview">
                     <merch-card>
@@ -144,7 +144,7 @@ export class MasChatMessage extends LitElement {
                     <span>${collectionConfig.cards.length} cards</span>
                     ${validation?.cardValidations?.some((v) => v.warnings?.length > 0)
                         ? html` <sp-badge size="s" variant="yellow">Warnings</sp-badge> `
-                        : ''}
+                        : nothing}
                 </div>
 
                 <div class="collection-cards">
@@ -229,21 +229,23 @@ export class MasChatMessage extends LitElement {
                                                   ? item.changes.map(
                                                         (change) => html`<div class="activity-change">• ${change}</div>`,
                                                     )
-                                                  : ''}
-                                              ${item.error ? html`<div class="activity-error">Error: ${item.error}</div>` : ''}
+                                                  : nothing}
+                                              ${item.error
+                                                  ? html`<div class="activity-error">Error: ${item.error}</div>`
+                                                  : nothing}
                                           </div>
                                       </div>
                                   `,
                               )}
                           </div>
                       `
-                    : ''}
+                    : nothing}
 
                 <div class="progress-stats">
-                    ${successful > 0 ? html`<span class="success-stat">✓ ${successful} completed</span>` : ''}
-                    ${failed > 0 ? html`<span class="failure-stat">✗ ${failed} failed</span>` : ''}
-                    ${skipped > 0 ? html`<span class="skipped-stat">⊘ ${skipped} skipped</span>` : ''}
-                    ${current < total ? html`<span class="remaining-stat">⋯ ${total - current} remaining</span>` : ''}
+                    ${successful > 0 ? html`<span class="success-stat">✓ ${successful} completed</span>` : nothing}
+                    ${failed > 0 ? html`<span class="failure-stat">✗ ${failed} failed</span>` : nothing}
+                    ${skipped > 0 ? html`<span class="skipped-stat">⊘ ${skipped} skipped</span>` : nothing}
+                    ${current < total ? html`<span class="remaining-stat">⋯ ${total - current} remaining</span>` : nothing}
                 </div>
             </div>
         `;
@@ -368,7 +370,7 @@ export class MasChatMessage extends LitElement {
         const { sources } = this.message;
 
         if (!sources || sources.length === 0) {
-            return '';
+            return nothing;
         }
 
         return html`
@@ -397,19 +399,19 @@ export class MasChatMessage extends LitElement {
                                               : html`<span class="source-section">${source.section}</span>`}
                                           ${source.score
                                               ? html`<span class="source-score">${Math.round(source.score * 100)}%</span>`
-                                              : ''}
+                                              : nothing}
                                       </div>
                                   `,
                               )}
                           </div>
                       `
-                    : ''}
+                    : nothing}
             </div>
         `;
     }
 
     render() {
-        if (!this.message) return html``;
+        if (!this.message) return nothing;
 
         const {
             role,
@@ -475,7 +477,7 @@ export class MasChatMessage extends LitElement {
                                   </div>
                               </div>
                           `
-                        : ''}
+                        : nothing}
                     ${cards && cards.length > 0
                         ? html`
                               <div class="message-cards-context">
@@ -491,7 +493,7 @@ export class MasChatMessage extends LitElement {
                                   </div>
                               </div>
                           `
-                        : ''}
+                        : nothing}
 
                     <div class="message-content">
                         ${isLoading
@@ -502,33 +504,33 @@ export class MasChatMessage extends LitElement {
                                   </div>
                               `
                             : operationResult && content === operationResult.message
-                              ? ''
+                              ? nothing
                               : html`<div class="message-text">
                                     ${role === 'error'
                                         ? html`<sp-icon-alert size="s" class="error-icon"></sp-icon-alert> `
-                                        : ''}${unsafeHTML(isUser ? content : parseMarkdown(content))}
+                                        : nothing}${isUser ? content : unsafeHTML(parseMarkdown(content))}
                                 </div>`}
-                        ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : ''}
+                        ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : nothing}
                     </div>
 
-                    ${cardConfig || fragmentId ? this.renderCardPreview() : ''}
-                    ${collectionConfig ? this.renderCollectionPreview() : ''}
+                    ${cardConfig || fragmentId ? this.renderCardPreview() : nothing}
+                    ${collectionConfig ? this.renderCollectionPreview() : nothing}
                     ${operation || (this.message.mcpOperation && this.message.confirmationRequired)
                         ? this.renderOperationRequest()
-                        : ''}
+                        : nothing}
                     ${this.message.previewData
                         ? html`<mas-bulk-preview
                               .previewData=${this.message.previewData}
                               .operation=${this.message.previewOperation}
                           ></mas-bulk-preview>`
-                        : ''}
-                    ${operationLoading ? this.renderOperationProgress() : ''}
+                        : nothing}
+                    ${operationLoading ? this.renderOperationProgress() : nothing}
                     ${operationResult
                         ? html`<mas-operation-result
                               .result=${operationResult}
                               .operationType=${operationType}
                           ></mas-operation-result>`
-                        : ''}
+                        : nothing}
                 </div>
             </div>
         `;

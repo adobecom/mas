@@ -25,9 +25,11 @@ async function main(params) {
             };
         }
 
-        const endpoint = `${aosUrl}?country=US&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=en_US&api_key=${aosApiKey}&landscape=PUBLISHED&arrangement_code=${arrangementCode}&page_size=200`;
+        const endpoint = `${aosUrl}?country=US&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=en_US&landscape=PUBLISHED&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
 
-        const response = await fetch(endpoint);
+        const response = await fetch(endpoint, {
+            headers: { 'x-api-key': aosApiKey },
+        });
         if (!response.ok) {
             return {
                 statusCode: response.status,

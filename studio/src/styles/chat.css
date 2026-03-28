@@ -1870,7 +1870,7 @@
     position: fixed;
     top: 0;
     right: 0;
-    width: 440px;
+    width: var(--chat-drawer-width, 440px);
     max-width: 90vw;
     height: 100vh;
     background: var(--spectrum-white);

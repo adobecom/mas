@@ -704,9 +704,11 @@ class MasCardSelectionDialog extends LitElement {
                                       `
                                     : ''}
 
-                                <merch-card>
-                                    <aem-fragment author fragment="${fragment.id}"></aem-fragment>
-                                </merch-card>
+                                <div class="card-preview-container">
+                                    <merch-card>
+                                        <aem-fragment author fragment="${fragment.id}"></aem-fragment>
+                                    </merch-card>
+                                </div>
 
                                 <div class="card-metadata">
                                     <sp-badge variant="info" size="s">${variant}</sp-badge>

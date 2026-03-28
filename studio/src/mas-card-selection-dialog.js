@@ -759,6 +759,10 @@ class MasCardSelectionDialog extends LitElement {
                     display: block;
                 }
 
+                mas-card-selection-dialog sp-theme {
+                    background-color: transparent;
+                }
+
                 mas-card-selection-dialog .dialog-overlay {
                     position: fixed;
                     top: 0;

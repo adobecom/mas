@@ -75,6 +75,12 @@ class MasProductCatalog extends LitElement {
         this.currentPage = 0;
     }
 
+    copyToClipboard(e, text) {
+        e.stopPropagation();
+        navigator.clipboard.writeText(text);
+        showToast('Copied to clipboard', 'positive');
+    }
+
     navigateToDetail(product) {
         Store.productDetail.arrangementCode.set(product.arrangement_code);
         Store.page.set(PAGE_NAMES.PRODUCT_DETAIL);
@@ -252,10 +258,10 @@ class MasProductCatalog extends LitElement {
                     <sp-table-head-cell class="col-icon"></sp-table-head-cell>
                     <sp-table-head-cell class="col-product" sortable sort-direction="asc">Product</sp-table-head-cell>
                     <sp-table-head-cell class="col-code">Code</sp-table-head-cell>
-                    <sp-table-head-cell>Arrangement</sp-table-head-cell>
-                    <sp-table-head-cell>Family</sp-table-head-cell>
-                    <sp-table-head-cell>Segment</sp-table-head-cell>
-                    <sp-table-head-cell>Markets</sp-table-head-cell>
+                    <sp-table-head-cell class="col-arrangement">Arrangement</sp-table-head-cell>
+                    <sp-table-head-cell class="col-family">Family</sp-table-head-cell>
+                    <sp-table-head-cell class="col-segment">Segment</sp-table-head-cell>
+                    <sp-table-head-cell class="col-markets">Markets</sp-table-head-cell>
                     <sp-table-head-cell class="col-plans">Plan Types</sp-table-head-cell>
                     <sp-table-head-cell class="col-action"></sp-table-head-cell>
                 </sp-table-head>
@@ -292,15 +298,25 @@ class MasProductCatalog extends LitElement {
                 </sp-table-cell>
                 <sp-table-cell class="col-product product-name">${name}</sp-table-cell>
                 <sp-table-cell class="col-code"><code>${product.product_code || ''}</code></sp-table-cell>
-                <sp-table-cell><code>${product.arrangement_code || ''}</code></sp-table-cell>
-                <sp-table-cell>${product.product_family || ''}</sp-table-cell>
-                <sp-table-cell>${segment}</sp-table-cell>
-                <sp-table-cell>${markets}</sp-table-cell>
+                <sp-table-cell class="col-arrangement">
+                    <code>${product.arrangement_code || ''}</code>
+                    <sp-action-button
+                        quiet
+                        size="xs"
+                        class="copy-btn"
+                        @click=${(e) => this.copyToClipboard(e, product.arrangement_code)}
+                    >
+                        <sp-icon-copy slot="icon"></sp-icon-copy>
+                    </sp-action-button>
+                </sp-table-cell>
+                <sp-table-cell class="col-family">${product.product_family || ''}</sp-table-cell>
+                <sp-table-cell class="col-segment">${segment}</sp-table-cell>
+                <sp-table-cell class="col-markets">${markets}</sp-table-cell>
                 <sp-table-cell class="col-plans">${planTypes}</sp-table-cell>
                 <sp-table-cell class="col-action">
                     <sp-action-button quiet size="s" @click=${() => this.openCreateDialog(product)}>
                         <sp-icon-add slot="icon"></sp-icon-add>
-                        Create M@S Fragment
+                        Create Fragment
                     </sp-action-button>
                 </sp-table-cell>
             </sp-table-row>

@@ -1287,7 +1287,23 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 
 .product-catalog sp-table-head-cell.col-product,
 .product-catalog sp-table-cell.col-product {
-    flex: 2;
+    flex: 1;
+}
+
+.product-catalog sp-table-head-cell.col-arrangement,
+.product-catalog sp-table-cell.col-arrangement {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.product-catalog sp-table-cell.col-arrangement .copy-btn {
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.product-catalog sp-table-row:hover .copy-btn {
+    opacity: 1;
 }
 
 .product-catalog sp-table-head-cell.col-code,
@@ -1296,10 +1312,28 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     max-width: 100px;
 }
 
+.product-catalog sp-table-head-cell.col-family,
+.product-catalog sp-table-cell.col-family {
+    flex: 0 0 250px;
+    max-width: 250px;
+}
+
+.product-catalog sp-table-head-cell.col-segment,
+.product-catalog sp-table-cell.col-segment {
+    flex: 0 0 150px;
+    max-width: 150px;
+}
+
+.product-catalog sp-table-head-cell.col-markets,
+.product-catalog sp-table-cell.col-markets {
+    flex: 0 0 100px;
+    max-width: 100px;
+}
+
 .product-catalog sp-table-head-cell.col-plans,
 .product-catalog sp-table-cell.col-plans {
-    flex: 0 0 80px;
-    max-width: 80px;
+    flex: 0 0 100px;
+    max-width: 100px;
 }
 
 .product-catalog sp-table-head-cell.col-action,

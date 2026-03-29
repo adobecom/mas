@@ -86,7 +86,7 @@ async function main(params) {
         const studioOps = new StudioOperations(aemClient, urlBuilder);
 
         // Fetch full MCS data directly from AOS
-        const product = await fetchMCSProduct(arrangement_code, aosUrl, aosApiKey, locale || 'en_US');
+        const product = await fetchMCSProduct(arrangement_code, aosUrl, aosApiKey, 'en_US');
 
         if (!product) {
             return { statusCode: 404, body: { error: `Product not found in AOS for arrangement code: ${arrangement_code}` } };

@@ -115,6 +115,7 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #searchRetried = false;
     #addonPlaceholdersRequest = null;
     /** @type {AEM} */
     aem;
@@ -380,9 +381,17 @@ export class MasRepository extends LitElement {
 
             this.#abortControllers.search = null;
         } catch (error) {
+            if (error.name === 'AbortError') return;
+            if (!this.#searchRetried) {
+                this.#searchRetried = true;
+                this.searchFragments();
+                return;
+            }
+            this.#searchRetried = false;
             this.processError(error, 'Could not load fragments.');
         }
 
+        this.#searchRetried = false;
         Store.fragments.list.loading.set(false);
     }
 

@@ -257,11 +257,13 @@ class MasProductCatalog extends LitElement {
         const planTypes = Object.keys(product.planTypes || {}).join(', ');
 
         return html`
-            <sp-table-row value=${product.arrangement_code} @dblclick=${() => this.navigateToDetail(product)}>
+            <sp-table-row value=${product.arrangement_code}>
                 <sp-table-cell class="col-icon">
                     ${icon ? html`<img src="${icon}" alt="${name}" loading="lazy" />` : nothing}
                 </sp-table-cell>
-                <sp-table-cell class="col-product product-name">${name}</sp-table-cell>
+                <sp-table-cell class="col-product product-name">
+                    <span class="product-link" @click=${() => this.navigateToDetail(product)}>${name}</span>
+                </sp-table-cell>
                 <sp-table-cell class="col-code"><code>${product.product_code || ''}</code></sp-table-cell>
                 <sp-table-cell class="col-arrangement">
                     <code>${product.arrangement_code || ''}</code>

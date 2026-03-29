@@ -279,6 +279,163 @@ Query the knowledge base for "NPI release card variants" to determine which vari
 When you have MCS product data in the conversation (from a \`list_products\` call), ALWAYS use \`create_release_cards\`. NEVER use the standard card creation format (type: "card"). This applies even for a single card — just pass one variant in the array.
 `;
 
+export const GUIDED_CARD_CREATION_PROMPT = `
+=== GUIDED CARD CREATION FLOW ===
+
+When a user triggers "New Release" or "Kickstart cards for a new product release", follow this exact step-by-step guided flow. Each step returns a structured JSON response that the frontend renders as interactive UI elements.
+
+## Step 1: Product Selection
+Show popular product suggestions as clickable buttons. The user can click one or type a different product name.
+
+Response:
+\`\`\`json
+{
+  "type": "guided_step",
+  "message": "Let's create a new merchandising card. Here are some popular products, or you can type any product name below:",
+  "buttonGroup": {
+    "label": "Product",
+    "options": [
+      { "label": "Photoshop", "value": "Photoshop" },
+      { "label": "Acrobat", "value": "Acrobat" },
+      { "label": "Creative Cloud", "value": "Creative Cloud" },
+      { "label": "Illustrator", "value": "Illustrator" },
+      { "label": "Premiere Pro", "value": "Premiere Pro" },
+      { "label": "Lightroom", "value": "Lightroom" }
+    ]
+  }
+}
+\`\`\`
+
+IMPORTANT: The text input remains active so users can type a product not in this list.
+
+## Step 2: Product Lookup
+When the user provides a product name, call \`list_products\` to resolve it:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "list_products",
+  "mcpParams": { "searchText": "<product name>" },
+  "message": "Looking up <product name> in the catalog..."
+}
+\`\`\`
+
+## Step 3: Product Disambiguation (if multiple matches)
+If list_products returns multiple products, present them as a button group:
+\`\`\`json
+{
+  "type": "guided_step",
+  "message": "I found multiple products matching your search. Which one would you like?",
+  "buttonGroup": {
+    "label": "Product",
+    "options": [
+      { "label": "Photoshop Single App", "value": "phsp_direct_individual" },
+      { "label": "Photography Plan (20GB)", "value": "phsp_photo_20gb" }
+    ]
+  }
+}
+\`\`\`
+If only one product matches, skip disambiguation and proceed to Step 4.
+
+## Step 4: Segment Selection
+Present available segments as a button group. Only include segments the product supports (based on its customerSegments and marketSegments data).
+\`\`\`json
+{
+  "type": "guided_step",
+  "message": "Who is this card targeting?",
+  "buttonGroup": {
+    "label": "Customer Segment",
+    "options": [
+      { "label": "Individual", "value": "INDIVIDUAL|COM" },
+      { "label": "Teams", "value": "TEAM|COM" },
+      { "label": "Education", "value": "INDIVIDUAL|EDU" }
+    ]
+  }
+}
+\`\`\`
+
+The value format is "customerSegment|marketSegment" for downstream processing.
+
+## Step 5: Offering Type Selection
+Present offering types as a button group:
+\`\`\`json
+{
+  "type": "guided_step",
+  "message": "What type of offering should this card feature?",
+  "buttonGroup": {
+    "label": "Offering Type",
+    "options": [
+      { "label": "Monthly", "value": "MONTH|MONTHLY" },
+      { "label": "Annual, paid monthly", "value": "YEAR|MONTHLY" },
+      { "label": "Annual, prepaid", "value": "YEAR|ANNUAL" }
+    ]
+  }
+}
+\`\`\`
+
+The value format is "commitment|term" for downstream processing.
+
+## Step 6: Promo Code (Optional)
+Ask about promo code with a Skip button:
+\`\`\`json
+{
+  "type": "guided_step",
+  "message": "Do you have a promo code for this card? Type it below, or skip if none.",
+  "buttonGroup": {
+    "label": "Promo Code",
+    "options": [
+      { "label": "Skip — No promo code", "value": "SKIP" }
+    ]
+  }
+}
+\`\`\`
+If the user types a promo code instead of clicking Skip, accept it as text input.
+
+## Step 7: Confirmation Summary
+Present a confirmation summary of all selections:
+\`\`\`json
+{
+  "type": "release_confirmation",
+  "message": "Here's what I'll create:",
+  "confirmationSummary": {
+    "product": { "name": "Photoshop", "arrangement_code": "phsp_direct_individual", "icon": "https://..." },
+    "variant": null,
+    "segment": { "label": "Individual", "customerSegment": "INDIVIDUAL", "marketSegment": "COM" },
+    "offeringType": { "label": "Annual, paid monthly", "commitment": "YEAR", "term": "MONTHLY" },
+    "promoCode": null,
+    "locale": "en_US"
+  }
+}
+\`\`\`
+
+## Step 8: Card Generation
+When user confirms (clicks "Create Card"), emit create_release_cards:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "create_release_cards",
+  "mcpParams": {
+    "arrangement_code": "<resolved arrangement code>",
+    "variants": ["plans", "catalog"],
+    "parentPath": "/content/dam/mas/{surface}/{locale}"
+  },
+  "confirmationRequired": false,
+  "message": "Creating release cards for <product name>..."
+}
+\`\`\`
+
+## Error Handling
+- Product not found: Return a plain text message asking them to try again
+- Invalid promo code: Present a guided_step with "Continue Without Promo" / "Try Different Code" / "Cancel" buttons
+- Multiple product matches: Show button group for disambiguation (Step 3)
+
+## CRITICAL RULES
+1. Each step MUST return properly formatted JSON in a code block
+2. Button group options MUST have label and value fields
+3. Only show segments/offerings that the product actually supports
+4. Maintain conversation context to track which step you're on
+5. When user clicks "Start Over" (cancel on confirmation), restart from Step 1
+`;
+
 export const COLLECTION_CREATION_SYSTEM_PROMPT = `You are an expert at creating merch card collections for adobe.com.
 
 Collections group 2-6 related cards with shared properties.

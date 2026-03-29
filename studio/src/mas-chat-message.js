@@ -5,6 +5,8 @@ import './mas-collection-preview.js';
 import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
 import './mas-bulk-preview.js';
+import './mas-chat-button-group.js';
+import './mas-chat-confirmation-summary.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
 
 /**
@@ -494,25 +496,37 @@ export class MasChatMessage extends LitElement {
                               </div>
                           `
                         : nothing}
-
-                    <div class="message-content">
-                        ${isLoading
-                            ? html`
-                                  <div class="message-loading">
-                                      <sp-progress-circle indeterminate size="s"></sp-progress-circle>
-                                      <span>Thinking...</span>
+                    ${isLoading
+                        ? html`<div class="message-content">
+                              <div class="message-loading">
+                                  <sp-progress-circle indeterminate size="s"></sp-progress-circle>
+                                  <span>Thinking...</span>
+                              </div>
+                          </div>`
+                        : operationResult && content === operationResult.message
+                          ? nothing
+                          : content || this.showSuggestions
+                            ? html`<div class="message-content">
+                                  <div class="message-text">
+                                      ${role === 'error'
+                                          ? html`<sp-icon-alert size="s" class="error-icon"></sp-icon-alert> `
+                                          : nothing}${isUser ? content : unsafeHTML(parseMarkdown(content))}
                                   </div>
-                              `
-                            : operationResult && content === operationResult.message
-                              ? nothing
-                              : html`<div class="message-text">
-                                    ${role === 'error'
-                                        ? html`<sp-icon-alert size="s" class="error-icon"></sp-icon-alert> `
-                                        : nothing}${isUser ? content : unsafeHTML(parseMarkdown(content))}
-                                </div>`}
-                        ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : nothing}
-                    </div>
-
+                                  ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : nothing}
+                              </div>`
+                            : nothing}
+                    ${this.message.buttonGroup
+                        ? html`<mas-chat-button-group
+                              .buttons=${this.message.buttonGroup.options}
+                              .selectedValue=${this.message.buttonGroup.selectedValue}
+                          ></mas-chat-button-group>`
+                        : nothing}
+                    ${this.message.confirmationSummary
+                        ? html`<mas-chat-confirmation-summary
+                              .summary=${this.message.confirmationSummary}
+                              ?confirmed=${this.message.confirmed}
+                          ></mas-chat-confirmation-summary>`
+                        : nothing}
                     ${cardConfig || fragmentId ? this.renderCardPreview() : nothing}
                     ${collectionConfig ? this.renderCollectionPreview() : nothing}
                     ${operation || (this.message.mcpOperation && this.message.confirmationRequired)

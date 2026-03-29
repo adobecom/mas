@@ -69,6 +69,8 @@ export class MasChat extends LitElement {
         this.addEventListener('session-cleared', this.handleSessionCleared);
         this.addEventListener('approve-preview', this.handleApprovePreview);
         this.addEventListener('cancel-preview', this.handleCancelPreview);
+        this.addEventListener('button-selected', this.handleButtonSelected);
+        this.addEventListener('confirmation-action', this.handleConfirmationAction);
     }
 
     disconnectedCallback() {
@@ -83,6 +85,8 @@ export class MasChat extends LitElement {
         this.removeEventListener('session-cleared', this.handleSessionCleared);
         this.removeEventListener('approve-preview', this.handleApprovePreview);
         this.removeEventListener('cancel-preview', this.handleCancelPreview);
+        this.removeEventListener('button-selected', this.handleButtonSelected);
+        this.removeEventListener('confirmation-action', this.handleConfirmationAction);
     }
 
     loadActiveSession() {
@@ -177,6 +181,34 @@ export class MasChat extends LitElement {
         this.showPromptSuggestions = false;
         this.showWelcomeScreen = false;
         this.handleSendMessage({ detail: { message: prompt, context: {} } });
+    }
+
+    handleButtonSelected(event) {
+        const { value, label } = event.detail;
+        const messageIndex = this.messages.findLastIndex(
+            (m) => m.role === 'assistant' && m.buttonGroup && !m.buttonGroup.selectedValue,
+        );
+        if (messageIndex !== -1) {
+            const updatedMessage = {
+                ...this.messages[messageIndex],
+                buttonGroup: {
+                    ...this.messages[messageIndex].buttonGroup,
+                    selectedValue: value,
+                },
+            };
+            this.messages = [...this.messages.slice(0, messageIndex), updatedMessage, ...this.messages.slice(messageIndex + 1)];
+        }
+        this.handleSendMessage({ detail: { message: label, context: {} } });
+    }
+
+    handleConfirmationAction(event) {
+        const { action } = event.detail;
+        this.messages = this.messages.map((msg) => (msg.confirmationSummary ? { ...msg, confirmed: true } : msg));
+        if (action === 'confirm') {
+            this.handleSendMessage({ detail: { message: 'Confirmed. Create the card.', context: {} } });
+        } else {
+            this.handleSendMessage({ detail: { message: 'Start over. Let me create a different card.', context: {} } });
+        }
     }
 
     async handleSendMessage(event) {
@@ -335,6 +367,27 @@ export class MasChat extends LitElement {
                         content: response.message,
                         collectionConfig: response.collectionConfig,
                         validation: response.validation,
+                        timestamp: Date.now(),
+                    },
+                ];
+            } else if (response.type === 'guided_step') {
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: response.message,
+                        buttonGroup: response.buttonGroup,
+                        timestamp: Date.now(),
+                    },
+                ];
+            } else if (response.type === 'release_confirmation') {
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: response.message,
+                        confirmationSummary: response.confirmationSummary,
+                        confirmationRequired: true,
                         timestamp: Date.now(),
                     },
                 ];
@@ -1037,6 +1090,27 @@ export class MasChat extends LitElement {
                             : response.data;
                     await this.executeOperation(op);
                 }
+            } else if (response.type === 'guided_step') {
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: response.message,
+                        buttonGroup: response.buttonGroup,
+                        timestamp: Date.now(),
+                    },
+                ];
+            } else if (response.type === 'release_confirmation') {
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: response.message,
+                        confirmationSummary: response.confirmationSummary,
+                        confirmationRequired: true,
+                        timestamp: Date.now(),
+                    },
+                ];
             } else {
                 this.messages = [
                     ...this.messages,

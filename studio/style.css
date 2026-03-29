@@ -1284,16 +1284,26 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     --spectrum-table-row-padding-x: 8px;
     table-layout: fixed;
     height: calc(100vh - 180px);
-    overflow: auto;
+    overflow: hidden;
     border-radius: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .product-catalog sp-table-head {
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    flex-shrink: 0;
     background: var(--spectrum-gray-100);
-    border-radius: 8px;
+    border-radius: 8px 8px 0 0;
+}
+
+.product-catalog sp-table-body {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.product-catalog sp-table-body sp-table-row,
+.product-catalog sp-table-body sp-table-cell {
+    border-radius: 0;
 }
 
 .product-catalog sp-table-head-cell.col-product,
@@ -1379,6 +1389,14 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 
 .product-catalog .product-name {
     font-weight: 600;
+}
+
+.product-catalog .product-link {
+    cursor: pointer;
+}
+
+.product-catalog .product-link:hover {
+    text-decoration: underline;
 }
 
 .product-catalog .product-description {

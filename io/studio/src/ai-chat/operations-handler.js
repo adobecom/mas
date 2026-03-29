@@ -132,6 +132,7 @@ function validateMCPOperation(operation) {
         'list_products',
         'create_release_cards',
         'create_tags',
+        'create_offer_selector',
     ];
 
     if (!validMCPTools.includes(operation.mcpTool)) {
@@ -196,6 +197,12 @@ function validateMCPOperation(operation) {
         case 'create_tags':
             if (!operation.mcpParams.tags || !Array.isArray(operation.mcpParams.tags)) {
                 return { valid: false, error: 'create_tags requires mcpParams.tags array' };
+            }
+            break;
+
+        case 'create_offer_selector':
+            if (!operation.mcpParams.productArrangementCode) {
+                return { valid: false, error: 'create_offer_selector requires mcpParams.productArrangementCode' };
             }
             break;
 

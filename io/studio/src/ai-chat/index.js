@@ -16,6 +16,7 @@ import {
     CARD_CREATION_SYSTEM_PROMPT,
     COLLECTION_CREATION_SYSTEM_PROMPT,
     RELEASE_WORKFLOW_INSTRUCTIONS,
+    GUIDED_CARD_CREATION_PROMPT,
 } from './prompt-templates.js';
 import { buildOperationsPrompt } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
@@ -320,7 +321,9 @@ async function main(params) {
         } = determineSystemPromptWithMeta(intentHint, conversationHistory, message, enrichedContext);
 
         const releaseIntent = isReleaseIntent(message, conversationHistory);
-        const effectivePrompt = releaseIntent ? `${basePrompt}\n\n${RELEASE_WORKFLOW_INSTRUCTIONS}` : basePrompt;
+        const effectivePrompt = releaseIntent
+            ? `${basePrompt}\n\n${GUIDED_CARD_CREATION_PROMPT}`
+            : basePrompt;
 
         if (releaseIntent) {
             console.log('[Backend] Release/NPI intent detected, appending release workflow instructions');
@@ -520,6 +523,46 @@ async function main(params) {
                     message: parsedResponse.message,
                     fragmentIds: parsedResponse.fragmentIds,
                     suggestedTitle: parsedResponse.suggestedTitle,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'guided_step') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    type: 'guided_step',
+                    message: parsedResponse.message,
+                    buttonGroup: parsedResponse.buttonGroup,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'release_confirmation') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    type: 'release_confirmation',
+                    message: parsedResponse.message,
+                    confirmationSummary: parsedResponse.confirmationSummary,
                     usage: response.usage,
                     conversationHistory: [
                         ...conversationHistory,

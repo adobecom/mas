@@ -1957,3 +1957,63 @@
         width: 100vw;
     }
 }
+
+/* Button Group */
+.chat-button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spectrum-global-dimension-size-100);
+    margin-top: var(--spectrum-global-dimension-size-150);
+}
+
+/* Confirmation Summary */
+.chat-confirmation-summary {
+    margin-top: var(--spectrum-global-dimension-size-150);
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    border-radius: var(--spectrum-alias-border-radius-regular);
+    padding: var(--spectrum-global-dimension-size-200);
+    background: var(--spectrum-global-color-gray-50);
+}
+
+.chat-confirmation-summary .summary-header {
+    font-size: var(--spectrum-alias-heading-xxs-text-size);
+    font-weight: 600;
+    color: var(--spectrum-global-color-gray-900);
+    margin-bottom: var(--spectrum-global-dimension-size-150);
+    padding-bottom: var(--spectrum-global-dimension-size-100);
+    border-bottom: 1px solid var(--spectrum-global-color-gray-200);
+}
+
+.chat-confirmation-summary .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spectrum-global-dimension-size-75) 0;
+}
+
+.chat-confirmation-summary .summary-label {
+    color: var(--spectrum-global-color-gray-700);
+    font-size: var(--spectrum-global-dimension-size-150);
+}
+
+.chat-confirmation-summary .summary-value {
+    color: var(--spectrum-global-color-gray-900);
+    font-weight: 500;
+    font-size: var(--spectrum-global-dimension-size-150);
+    display: flex;
+    align-items: center;
+    gap: var(--spectrum-global-dimension-size-75);
+}
+
+.chat-confirmation-summary .summary-product-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.chat-confirmation-summary .summary-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spectrum-global-dimension-size-100);
+    margin-top: var(--spectrum-global-dimension-size-200);
+    padding-top: var(--spectrum-global-dimension-size-150);
+    border-top: 1px solid var(--spectrum-global-color-gray-200);
+}

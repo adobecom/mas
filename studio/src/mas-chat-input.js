@@ -16,6 +16,7 @@ export class MasChatInput extends LitElement {
         message: { type: String },
         selectedCards: { type: Array },
         placeholder: { type: String },
+        inputLocked: { type: Boolean, attribute: 'input-locked' },
     };
 
     static placeholderExamples = [
@@ -36,6 +37,7 @@ export class MasChatInput extends LitElement {
         this.selectedOffer = null;
         this.message = '';
         this.selectedCards = [];
+        this.inputLocked = false;
         this.placeholderIndex = Math.floor(Math.random() * MasChatInput.placeholderExamples.length);
         this.placeholder = MasChatInput.placeholderExamples[this.placeholderIndex];
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
@@ -213,7 +215,7 @@ export class MasChatInput extends LitElement {
                             maxLength="500"
                             placeholder="${this.placeholder}"
                             @keydown=${this.handleRteKeyDown}
-                            ?disabled=${this.disabled}
+                            ?disabled=${this.disabled || this.inputLocked}
                         >
                         </rte-field>
                     </div>
@@ -244,7 +246,7 @@ export class MasChatInput extends LitElement {
                             variant="accent"
                             size="s"
                             @click=${this.handleSend}
-                            ?disabled=${this.disabled}
+                            ?disabled=${this.disabled || this.inputLocked}
                             title="Send message"
                         >
                             <sp-icon-send slot="icon"></sp-icon-send>

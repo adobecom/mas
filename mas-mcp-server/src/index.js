@@ -797,9 +797,11 @@ export class MASMCPServer {
         const primaryItem = product.fulfillable_items?.[0]?.copy || {};
         const productName = product.copy.name || primaryItem.name || product.name;
         const iconUrl = product.assets.icons?.svg || product.icon;
-        const topDesc = product.copy.description || product.copy.short_description;
-        const itemDesc = primaryItem.description || primaryItem.short_description;
-        const description = itemDesc || topDesc;
+        const description =
+            product.copy.description ||
+            product.copy.short_description ||
+            primaryItem.description ||
+            primaryItem.short_description;
 
         const fields = { cardTitle: productName };
         if (description) fields.description = description;

@@ -79,6 +79,22 @@ export function parseAIResponse(responseText) {
             };
         }
 
+        if (cardConfig.type === 'guided_step') {
+            return {
+                type: 'guided_step',
+                message: conversationalText || cardConfig.message || 'Please make a selection:',
+                buttonGroup: cardConfig.buttonGroup || null,
+            };
+        }
+
+        if (cardConfig.type === 'release_confirmation') {
+            return {
+                type: 'release_confirmation',
+                message: conversationalText || cardConfig.message || "Here's what I'll create:",
+                confirmationSummary: cardConfig.confirmationSummary || null,
+            };
+        }
+
         return {
             type: 'card',
             message: conversationalText || "Here's your card:",

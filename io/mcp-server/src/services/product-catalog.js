@@ -40,21 +40,27 @@ export class ProductCatalog {
         let results = Array.from(products.values());
 
         if (params.searchText) {
-            const search = params.searchText.toLowerCase();
+            const search = String(params.searchText).toLowerCase();
             results = results.filter(
                 (p) =>
-                    p.name?.toLowerCase().includes(search) ||
-                    p.code?.toLowerCase().includes(search) ||
-                    p.arrangement_code?.toLowerCase().includes(search),
+                    String(p.name || '')
+                        .toLowerCase()
+                        .includes(search) ||
+                    String(p.code || '')
+                        .toLowerCase()
+                        .includes(search) ||
+                    String(p.arrangement_code || '')
+                        .toLowerCase()
+                        .includes(search),
             );
         }
 
         if (params.customerSegment) {
-            results = results.filter((p) => p.customerSegments[params.customerSegment] === true);
+            results = results.filter((p) => p.customerSegments?.[params.customerSegment] === true);
         }
 
         if (params.marketSegment) {
-            results = results.filter((p) => p.marketSegments[params.marketSegment] === true);
+            results = results.filter((p) => p.marketSegments?.[params.marketSegment] === true);
         }
 
         if (params.limit) {

@@ -416,7 +416,7 @@ export class AEMClient {
 
         let getResp = await fetch(tagsUrl, { method: 'GET', headers: { Authorization: authHeader } });
         if (getResp.status === 404) {
-            await new Promise((r) => setTimeout(r, 2000));
+            await new Promise((r) => setTimeout(r, 3000));
             getResp = await fetch(tagsUrl, { method: 'GET', headers: { Authorization: authHeader } });
         }
         if (!getResp.ok) {
@@ -424,7 +424,7 @@ export class AEMClient {
         }
         const etag = getResp.headers.get('Etag');
 
-        const response = await fetch(tagsUrl, {
+        let response = await fetch(tagsUrl, {
             method: 'PUT',
             headers: {
                 Authorization: authHeader,
@@ -433,6 +433,22 @@ export class AEMClient {
             },
             body: JSON.stringify({ tags }),
         });
+
+        if (response.status === 404) {
+            await new Promise((r) => setTimeout(r, 3000));
+            getResp = await fetch(tagsUrl, { method: 'GET', headers: { Authorization: authHeader } });
+            if (!getResp.ok) throw new Error(`Failed to get tags for fragment (${getResp.status})`);
+            const freshEtag = getResp.headers.get('Etag');
+            response = await fetch(tagsUrl, {
+                method: 'PUT',
+                headers: {
+                    Authorization: authHeader,
+                    'Content-Type': 'application/json',
+                    'If-Match': freshEtag,
+                },
+                body: JSON.stringify({ tags }),
+            });
+        }
 
         if (!response.ok) {
             const responseText = await response.text();

@@ -10,9 +10,11 @@ import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
  */
 async function fetchMCSProduct(arrangementCode, aosUrl, aosApiKey, locale = 'en_US') {
     const [, country] = locale.split('_');
-    const endpoint = `${aosUrl}?country=${country}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=${locale}&api_key=${aosApiKey}&landscape=PUBLISHED&arrangement_code=${arrangementCode}&page_size=200`;
+    const endpoint = `${aosUrl}?country=${encodeURIComponent(country)}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=${encodeURIComponent(locale)}&landscape=PUBLISHED&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
 
-    const response = await fetch(endpoint);
+    const response = await fetch(endpoint, {
+        headers: { 'x-api-key': aosApiKey },
+    });
     if (!response.ok) {
         throw new Error(`AOS API error: ${response.status} ${response.statusText}`);
     }

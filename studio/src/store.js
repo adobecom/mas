@@ -57,6 +57,9 @@ const Store = {
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
+    productCatalog: {
+        search: new ReactiveStore(''),
+    },
     placeholders: {
         search: new ReactiveStore(''),
         list: {

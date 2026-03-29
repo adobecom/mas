@@ -60,6 +60,48 @@ async function startHttpServer() {
         }
     });
 
+    app.get('/api/v1/products', async (req, res) => {
+        const authHeader = req.headers.authorization;
+        try {
+            if (!authHeader?.startsWith('Bearer ')) {
+                return res.status(401).json({ error: 'Authorization header with Bearer token is required' });
+            }
+            mcpServer.authManager.setAccessToken(authHeader.slice(7));
+
+            const params = {};
+            if (req.query.search) params.searchText = req.query.search;
+            if (req.query.customerSegment) params.customerSegment = req.query.customerSegment;
+            if (req.query.marketSegment) params.marketSegment = req.query.marketSegment;
+
+            const result = await mcpServer.listProductsWithMCS(params);
+            res.set('Cache-Control', 'public, max-age=3600');
+            res.json(result);
+        } catch (error) {
+            console.error('Products list error:', error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.get('/api/v1/products/:arrangementCode', async (req, res) => {
+        const authHeader = req.headers.authorization;
+        try {
+            if (!authHeader?.startsWith('Bearer ')) {
+                return res.status(401).json({ error: 'Authorization header with Bearer token is required' });
+            }
+            mcpServer.authManager.setAccessToken(authHeader.slice(7));
+
+            const result = await mcpServer.getProductDetail({
+                arrangementCode: req.params.arrangementCode,
+            });
+            res.set('Cache-Control', 'private, max-age=300');
+            res.json(result);
+        } catch (error) {
+            console.error('Product detail error:', error);
+            const status = error.message.includes('No product found') ? 404 : 500;
+            res.status(status).json({ error: error.message });
+        }
+    });
+
     app.post('/tools/:toolName', async (req, res) => {
         const { toolName } = req.params;
         const { _aemBaseUrl, ...params } = req.body;

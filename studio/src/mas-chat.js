@@ -10,10 +10,12 @@ import router from './router.js';
 import { createFragmentFromAIConfig, createFragmentDataForAEM } from './utils/ai-card-mapper.js';
 import { executeOperationWithFeedback } from './utils/ai-operations-executor.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { showToast, getHashParam } from './utils.js';
-import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
+import { showToast, getHashParam, extractSurfaceFromPath as extractSurface } from './utils.js';
+import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING, SURFACES } from './constants.js';
 import { getDamPath } from './mas-repository.js';
 import sessionManager from './services/chat-session-manager.js';
+
+const KNOWN_SURFACES = new Set(Object.values(SURFACES).map(({ name }) => name));
 
 /**
  * Main AI Chat Component
@@ -48,18 +50,7 @@ export class MasChat extends LitElement {
 
     getCurrentSurface() {
         const path = Store.search?.value?.path || getHashParam('path');
-        if (!path) return null;
-        const surfaceMap = {
-            acom: 'acom',
-            ccd: 'ccd',
-            commerce: 'commerce',
-            ahome: 'adobe-home',
-            express: 'express',
-            sandbox: 'sandbox',
-            docs: 'docs',
-            nala: 'nala',
-        };
-        return surfaceMap[path] || null;
+        return this.extractSurfaceFromPath(path);
     }
 
     createRenderRoot() {
@@ -235,35 +226,10 @@ export class MasChat extends LitElement {
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
                 if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
-                    let surface = null;
-
-                    if (Store.search?.value?.path) {
-                        surface = this.extractSurfaceFromPath(Store.search.value.path);
-                    }
-
-                    if (!surface) {
-                        const hashPath = getHashParam('path');
-                        const surfaceMap = {
-                            acom: 'acom',
-                            ccd: 'ccd',
-                            commerce: 'commerce',
-                            ahome: 'adobe-home',
-                            express: 'express',
-                            sandbox: 'sandbox',
-                            docs: 'docs',
-                            nala: 'nala',
-                        };
-                        surface = surfaceMap[hashPath] || null;
-                    }
-
-                    if (!surface && Store.folders?.data?.value?.length > 0) {
-                        const firstFolder = Store.folders.data.value[0];
-                        surface = this.extractSurfaceFromPath(firstFolder);
-                    }
-
-                    if (!surface) {
-                        surface = 'acom';
-                    }
+                    const surface =
+                        this.extractSurfaceFromPath(Store.search?.value?.path) ||
+                        this.extractSurfaceFromPath(getHashParam('path')) ||
+                        'acom';
 
                     response.mcpParams.surface = surface;
                     response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
@@ -757,6 +723,12 @@ export class MasChat extends LitElement {
     async handleOperationAction(event) {
         const { action, operation } = event.detail;
 
+        this.messages = this.messages.map((msg) =>
+            msg.operation === operation || msg.mcpOperation?.mcpTool === operation?.mcpTool
+                ? { ...msg, confirmationRequired: false, operation: null }
+                : msg,
+        );
+
         if (action === 'execute') {
             await this.executeOperation(operation);
         } else if (action === 'cancel') {
@@ -1119,26 +1091,8 @@ export class MasChat extends LitElement {
 
     extractSurfaceFromPath(path) {
         if (!path || typeof path !== 'string') return null;
-
-        const pathParts = path.split('/');
-        const surfaceIndex = pathParts.indexOf('mas') + 1;
-
-        if (surfaceIndex === 0 || surfaceIndex >= pathParts.length) return null;
-
-        const pathSegment = pathParts[surfaceIndex];
-
-        const surfaceMap = {
-            acom: 'acom',
-            ccd: 'ccd',
-            commerce: 'commerce',
-            ahome: 'adobe-home',
-            express: 'express',
-            sandbox: 'sandbox',
-            docs: 'docs',
-            nala: 'nala',
-        };
-
-        return surfaceMap[pathSegment] || null;
+        const surface = path.includes('/') ? extractSurface(path) : path;
+        return KNOWN_SURFACES.has(surface) ? surface : null;
     }
 
     scrollToBottom() {

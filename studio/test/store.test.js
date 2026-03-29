@@ -91,4 +91,33 @@ describe('store', () => {
             expect(storeFragments[0]).to.equal(store3);
         });
     });
+
+    describe('productCatalog.search', () => {
+        let originalProductCatalogSearch;
+
+        beforeEach(() => {
+            originalProductCatalogSearch = Store.productCatalog.search.value;
+        });
+
+        afterEach(() => {
+            Store.productCatalog.search.value = originalProductCatalogSearch;
+        });
+
+        it('has initial value of empty string', () => {
+            expect(Store.productCatalog.search.get()).to.equal('');
+        });
+
+        it('updates value with set()', () => {
+            Store.productCatalog.search.set('photoshop');
+            expect(Store.productCatalog.search.get()).to.equal('photoshop');
+        });
+
+        it('notifies subscribers on change', () => {
+            const spy = sandbox.spy();
+            Store.productCatalog.search.subscribe(spy);
+            Store.productCatalog.search.set('acrobat');
+            expect(spy.calledWith('acrobat')).to.be.true;
+            Store.productCatalog.search.unsubscribe(spy);
+        });
+    });
 });

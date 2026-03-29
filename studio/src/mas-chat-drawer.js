@@ -58,6 +58,8 @@ export class MasChatDrawer extends LitElement {
         const maxWidth = window.innerWidth * MAX_WIDTH_RATIO;
         const newWidth = Math.min(Math.max(this.startWidth + delta, MIN_WIDTH), maxWidth);
         this.drawerWidth = newWidth;
+        const drawer = this.querySelector('.chat-drawer');
+        if (drawer) drawer.style.setProperty('--chat-drawer-width', `${newWidth}px`);
     }
 
     handleMouseUp() {

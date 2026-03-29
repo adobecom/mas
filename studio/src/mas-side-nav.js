@@ -687,27 +687,18 @@ class MasSideNav extends LitElement {
                 <sp-icon-home slot="icon"></sp-icon-home>
             </mas-side-nav-item>
             <mas-side-nav-item
+                label="Product Catalog"
+                ?selected=${Store.page.get() === PAGE_NAMES.PRODUCT_CATALOG}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.PRODUCT_CATALOG)}"
+            >
+                <sp-icon-market slot="icon"></sp-icon-market>
+            </mas-side-nav-item>
+            <mas-side-nav-item
                 label="Fragments"
                 ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.CONTENT)}"
             >
                 <sp-icon-apps slot="icon"></sp-icon-apps>
-            </mas-side-nav-item>
-            <mas-side-nav-item label="Collections" disabled>
-                <sp-icon-aspect-ratio slot="icon"></sp-icon-aspect-ratio>
-            </mas-side-nav-item>
-            <mas-side-nav-item label="Promotions" disabled>
-                <sp-icon-promote slot="icon"></sp-icon-promote>
-            </mas-side-nav-item>
-            <mas-side-nav-item
-                label="Product Catalog"
-                ?selected=${Store.page.get() === PAGE_NAMES.PRODUCT_CATALOG}
-                @nav-click="${() => {
-                    Store.search.set((prev) => ({ ...prev, path: 'product-catalog' }));
-                    router.navigateToPage(PAGE_NAMES.PRODUCT_CATALOG)();
-                }}"
-            >
-                <sp-icon-market slot="icon"></sp-icon-market>
             </mas-side-nav-item>
             <mas-side-nav-item
                 label="Placeholders"

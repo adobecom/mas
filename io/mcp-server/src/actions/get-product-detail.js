@@ -25,7 +25,8 @@ async function main(params) {
             };
         }
 
-        const endpoint = `${aosUrl}?country=US&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=en_US&landscape=PUBLISHED&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
+        const baseUrl = aosUrl.endsWith('/offers') ? aosUrl : `${aosUrl}/offers`;
+        const endpoint = `${baseUrl}?country=US&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=en_US&landscape=PUBLISHED&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
 
         const response = await fetch(endpoint, {
             headers: { 'x-api-key': aosApiKey },

@@ -586,6 +586,10 @@ export class MASMCPServer {
                             type: 'string',
                             description: 'AEM DAM parent folder path (e.g., /content/dam/mas/sandbox/en_US)',
                         },
+                        osi: {
+                            type: 'string',
+                            description: 'Offer Selector ID (from OST) to assign to the card',
+                        },
                     },
                     required: ['arrangement_code', 'variants', 'parentPath'],
                 },
@@ -619,7 +623,7 @@ export class MASMCPServer {
                         },
                         operationType: {
                             type: 'string',
-                            description: 'Type of the previous operation (search, bulk_update, bulk_publish, etc.)',
+                            description: 'Type of the previous operation (search, bulk_update_cards, bulk_publish_cards, etc.)',
                         },
                     },
                     required: ['fragmentIds'],
@@ -784,7 +788,7 @@ export class MASMCPServer {
         return { success: true, product };
     }
 
-    async createReleaseCards({ arrangement_code, variants, parentPath, locale }) {
+    async createReleaseCards({ arrangement_code, variants, parentPath, locale, osi }) {
         if (!arrangement_code) throw new Error('arrangement_code is required');
         if (!Array.isArray(variants) || variants.length === 0) throw new Error('variants array is required');
         if (!parentPath) throw new Error('parentPath is required');
@@ -797,17 +801,21 @@ export class MASMCPServer {
         const primaryItem = product.fulfillable_items?.[0]?.copy || {};
         const productName = product.copy.name || primaryItem.name || product.name;
         const iconUrl = product.assets.icons?.svg || product.icon;
-        const description =
-            product.copy.description ||
-            product.copy.short_description ||
-            primaryItem.description ||
-            primaryItem.short_description;
+        const descriptionCandidates = [
+            product.copy.description,
+            product.copy.short_description,
+            primaryItem.description,
+            primaryItem.short_description,
+        ].filter(Boolean);
+        const description = descriptionCandidates.sort((a, b) => b.length - a.length)[0];
 
         const fields = { cardTitle: productName };
         if (description) fields.description = description;
         if (iconUrl) {
             fields.mnemonics = [{ icon: iconUrl, alt: productName }];
         }
+
+        if (osi) fields.osi = osi;
 
         const tags = [];
         if (product.product_code) tags.push(`mas:product_code/${product.product_code}`);

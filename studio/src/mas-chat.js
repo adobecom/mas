@@ -380,6 +380,16 @@ export class MasChat extends LitElement {
                         timestamp: Date.now(),
                     },
                 ];
+            } else if (response.type === 'open_ost') {
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: response.message,
+                        openOst: true,
+                        timestamp: Date.now(),
+                    },
+                ];
             } else if (response.type === 'release_confirmation') {
                 this.messages = [
                     ...this.messages,

@@ -374,7 +374,23 @@ Present offering types as a button group:
 
 The value format is "commitment|term" for downstream processing.
 
-## Step 6: Promo Code (Optional)
+## Step 6: Offer Selection via OST
+After the user picks an offering type, open the Offer Selector Tool (OST) so they can select the exact offer. Return an \`open_ost\` response:
+\`\`\`json
+{
+  "type": "open_ost",
+  "message": "Opening the Offer Selector Tool — please select the offer for this card.",
+  "searchParams": {
+    "arrangement_code": "<resolved arrangement code from step 2>",
+    "commitment": "<from step 5, e.g. YEAR>",
+    "term": "<from step 5, e.g. MONTHLY>"
+  }
+}
+\`\`\`
+
+The frontend will open OST pre-filtered with these parameters. When the user selects an offer, the OSI (Offer Selector ID) will be included in the next message context automatically. Proceed to Step 7 after receiving the user's response with the OSI.
+
+## Step 7: Promo Code (Optional)
 Ask about promo code with a Skip button:
 \`\`\`json
 {
@@ -390,7 +406,7 @@ Ask about promo code with a Skip button:
 \`\`\`
 If the user types a promo code instead of clicking Skip, accept it as text input.
 
-## Step 7: Confirmation Summary
+## Step 8: Confirmation Summary
 Present a confirmation summary of all selections:
 \`\`\`json
 {
@@ -401,14 +417,15 @@ Present a confirmation summary of all selections:
     "variant": null,
     "segment": { "label": "Individual", "customerSegment": "INDIVIDUAL", "marketSegment": "COM" },
     "offeringType": { "label": "Annual, paid monthly", "commitment": "YEAR", "term": "MONTHLY" },
+    "osi": "<offer selector ID from step 6>",
     "promoCode": null,
     "locale": "en_US"
   }
 }
 \`\`\`
 
-## Step 8: Card Generation
-When user confirms (clicks "Create Card"), emit create_release_cards:
+## Step 9: Card Generation
+When user confirms (clicks "Create Card"), emit create_release_cards with the OSI from step 6:
 \`\`\`json
 {
   "type": "mcp_operation",
@@ -416,12 +433,15 @@ When user confirms (clicks "Create Card"), emit create_release_cards:
   "mcpParams": {
     "arrangement_code": "<resolved arrangement code>",
     "variants": ["plans", "catalog"],
-    "parentPath": "/content/dam/mas/{surface}/{locale}"
+    "parentPath": "/content/dam/mas/{surface}/{locale}",
+    "osi": "<offer selector ID from step 6 context>"
   },
   "confirmationRequired": false,
   "message": "Creating release cards for <product name>..."
 }
 \`\`\`
+
+The server will set the OSI on the card's \`osi\` field so pricing resolves automatically.
 
 ## Error Handling
 - Product not found: Return a plain text message asking them to try again
@@ -434,6 +454,7 @@ When user confirms (clicks "Create Card"), emit create_release_cards:
 3. Only show segments/offerings that the product actually supports
 4. Maintain conversation context to track which step you're on
 5. When user clicks "Start Over" (cancel on confirmation), restart from Step 1
+6. ALWAYS include the osi from step 6 context in the create_release_cards mcpParams
 `;
 
 export const COLLECTION_CREATION_SYSTEM_PROMPT = `You are an expert at creating merch card collections for adobe.com.

@@ -936,6 +936,15 @@ export class MasRepository extends LitElement {
             fragment = new Fragment(fragmentData);
             fragmentCache.add(fragment);
         } else {
+            if (typeof fragment.refreshFrom !== 'function') {
+                console.warn('#addToCache: cached object lacks refreshFrom', {
+                    id: fragmentData.id,
+                    cachedType: fragment.constructor?.name,
+                    cachedKeys: Object.keys(fragment),
+                    isFragment: fragment instanceof Fragment,
+                    proto: Object.getPrototypeOf(fragment),
+                });
+            }
             fragment.refreshFrom(fragmentData);
         }
         return fragment;

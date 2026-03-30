@@ -51,7 +51,7 @@ async function fetchMCSProduct(arrangementCode, aosUrl, aosApiKey, locale = 'en_
 }
 
 async function main(params) {
-    const { arrangement_code, variants, parentPath, locale, __ow_headers } = params;
+    const { arrangement_code, variants, parentPath, locale, osi, __ow_headers } = params;
 
     try {
         const authError = await requireIMSAuth(__ow_headers);
@@ -95,13 +95,16 @@ async function main(params) {
         // Deterministic field mapping from MCS merchandising
         const productName = product.copy.name || product.name;
         const iconUrl = product.assets.icons?.svg || product.icon;
-        const description = product.copy.description || product.copy.short_description;
+        const descriptionCandidates = [product.copy.description, product.copy.short_description].filter(Boolean);
+        const description = descriptionCandidates.sort((a, b) => b.length - a.length)[0];
 
         const fields = { cardTitle: productName };
         if (description) fields.description = description;
         if (iconUrl) {
             fields.mnemonics = [{ icon: iconUrl, alt: productName }];
         }
+
+        if (osi) fields.osi = osi;
 
         // Deterministic tag mapping from AOS offer data
         const tags = [];

@@ -1041,7 +1041,7 @@ class MasCardSelectionDialog extends LitElement {
                     position: absolute;
                     top: 4px;
                     left: 50%;
-                    transform: translateX(-50%) scale(0.55);
+                    transform: translateX(-50%) scale(0.65);
                     transform-origin: top center;
                     width: 302px;
                 }

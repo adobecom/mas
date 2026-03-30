@@ -84,7 +84,7 @@ export class MasChatInput extends LitElement {
             this.selectedOsi = offerSelectorId;
             this.selectedOffer = offer;
             closeOfferSelectorTool();
-            this.requestUpdate();
+            this.autoSendOffer();
         }
     }
 
@@ -93,7 +93,22 @@ export class MasChatInput extends LitElement {
         this.selectedOsi = offerSelectorId || '';
         this.selectedOffer = offer || null;
         closeOfferSelectorTool();
-        this.requestUpdate();
+        this.autoSendOffer();
+    }
+
+    autoSendOffer() {
+        if (!this.selectedOsi) return;
+        const context = { osi: this.selectedOsi };
+        if (this.selectedOffer) context.offer = this.selectedOffer;
+        this.dispatchEvent(
+            new CustomEvent('send-message', {
+                detail: { message: `Selected offer: ${this.selectedOsi}`, context },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+        this.selectedOsi = null;
+        this.selectedOffer = null;
     }
 
     handleEscKey(event) {

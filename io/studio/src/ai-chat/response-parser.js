@@ -95,6 +95,14 @@ export function parseAIResponse(responseText) {
             };
         }
 
+        if (cardConfig.type === 'open_ost') {
+            return {
+                type: 'open_ost',
+                message: conversationalText || cardConfig.message || 'Opening the Offer Selector Tool...',
+                searchParams: cardConfig.searchParams || null,
+            };
+        }
+
         return {
             type: 'card',
             message: conversationalText || "Here's your card:",

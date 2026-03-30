@@ -8,6 +8,7 @@ import './mas-bulk-preview.js';
 import './mas-chat-button-group.js';
 import './mas-chat-confirmation-summary.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
+import { openOfferSelectorTool } from './rte/ost.js';
 
 /**
  * Chat Message Component
@@ -520,6 +521,12 @@ export class MasChatMessage extends LitElement {
                               .buttons=${this.message.buttonGroup.options}
                               .selectedValue=${this.message.buttonGroup.selectedValue}
                           ></mas-chat-button-group>`
+                        : nothing}
+                    ${this.message.openOst
+                        ? html`<sp-button variant="secondary" size="s" @click=${() => openOfferSelectorTool(this, null)}>
+                              <sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>
+                              Select Offer
+                          </sp-button>`
                         : nothing}
                     ${this.message.confirmationSummary
                         ? html`<mas-chat-confirmation-summary

@@ -65,7 +65,7 @@ Example context format:
 - When user says "update those cards" or "publish them", use the Fragment IDs from Last operation
 
 **CRITICAL WARNING - Complete Array Usage**:
-When using lastOperation.fragmentIds in bulk operations (bulk_update, bulk_publish, bulk_delete):
+When using lastOperation.fragmentIds in bulk operations (bulk_update_cards, bulk_publish_cards, bulk_delete_cards):
 - You MUST include the COMPLETE array without truncation
 - DO NOT reduce the array for brevity in your JSON response
 - If the array has 26 items, your mcpParams.fragmentIds MUST have all 26 items
@@ -720,7 +720,7 @@ Show cards from a previous operation (search, update, publish, etc.).
   "mcpTool": "list_context_cards",
   "mcpParams": {
     "fragmentIds": ["id-1", "id-2", "id-3"],
-    "operationType": "bulk_update"
+    "operationType": "bulk_update_cards"
   },
   "message": "Here are the 3 cards we modified..."
 }
@@ -745,16 +745,16 @@ When user asks to show cards from a previous operation, you MUST:
 **Examples**:
 
 User: (after bulk update) "show me the cards we modified"
-→ Use lastOperation.fragmentIds from the bulk_update operation
-→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "bulk_update" }, message: "Here are the X cards we modified..." }
+→ Use lastOperation.fragmentIds from the bulk_update_cards operation
+→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "bulk_update_cards" }, message: "Here are the X cards we modified..." }
 
 User: (after search) "show those cards again"
 → Use lastOperation.fragmentIds from the search operation
 → Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards from your search..." }
 
 User: "what cards did we just publish?"
-→ Use lastOperation.fragmentIds from the bulk_publish operation
-→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "bulk_publish" }, message: "Here are the X cards we published..." }
+→ Use lastOperation.fragmentIds from the bulk_publish_cards operation
+→ Return: { type: "mcp_operation", mcpTool: "list_context_cards", mcpParams: { fragmentIds: lastOperation.fragmentIds, operationType: "bulk_publish_cards" }, message: "Here are the X cards we published..." }
 
 **Edge cases**:
 - If lastOperation is null or fragmentIds is empty, respond: "I don't have any previous operation to show. Try searching for cards first."

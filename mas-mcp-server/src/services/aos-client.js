@@ -59,6 +59,8 @@ export class AOSClient {
             searchParams.price_point = [params.pricePoint];
         }
 
+        searchParams.country = params.country || 'US';
+
         const url = `${this.baseUrl}/v3/offers`;
 
         const response = await fetch(url, {
@@ -71,6 +73,9 @@ export class AOSClient {
             body: JSON.stringify(searchParams),
         });
 
+        if (response.status === 404) {
+            return [];
+        }
         if (!response.ok) {
             const error = await response.json().catch(() => ({ message: response.statusText }));
             throw new Error(`AOS search failed: ${error.message || response.statusText}`);

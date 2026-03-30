@@ -573,6 +573,26 @@ async function main(params) {
             };
         }
 
+        if (parsedResponse.type === 'open_ost') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    type: 'open_ost',
+                    message: parsedResponse.message,
+                    searchParams: parsedResponse.searchParams,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
         return {
             statusCode: 200,
             headers: {

@@ -1284,26 +1284,24 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     --spectrum-table-row-padding-x: 8px;
     table-layout: fixed;
     height: calc(100vh - 180px);
+    border-radius: 4px;
     overflow: hidden;
-    border-radius: 0;
+    border: 1px solid var(--spectrum-gray-100);
     display: flex;
     flex-direction: column;
+    border-radius: 12px;
 }
 
 .product-catalog sp-table-head {
     flex-shrink: 0;
     background: var(--spectrum-gray-100);
-    border-radius: 8px 8px 0 0;
+    border-radius: 12px;
 }
 
 .product-catalog sp-table-body {
     flex: 1;
     overflow-y: auto;
-}
-
-.product-catalog sp-table-body sp-table-row,
-.product-catalog sp-table-body sp-table-cell {
-    border-radius: 0;
+    border-radius: 0 0 12px 12px;
 }
 
 .product-catalog sp-table-head-cell.col-product,
@@ -1708,7 +1706,7 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 }
 
 .template-preview merch-card {
-    transform: scale(0.5);
+    transform: scale(0.7);
     transform-origin: top center;
     width: 300px;
     margin-top: 8px;
@@ -1826,7 +1824,6 @@ mas-chat {
 .chat-input {
     flex-shrink: 0;
     padding: 16px 0 24px;
-    border-top: 1px solid var(--spectrum-gray-200);
 }
 
 /* Chat Message Styles */

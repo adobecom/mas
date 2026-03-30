@@ -49,45 +49,30 @@ jobs:
             actions: read
 
       - name: Resolve comment body
+        if: always()
         id: comment-body
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body || github.event.review.body || github.event.issue.body }}
         run: |
-          if [ "${{ github.event_name }}" = "issue_comment" ]; then
-            BODY=$(cat <<'BODY_EOF'
-          ${{ github.event.comment.body }}
-          BODY_EOF
-            )
-          elif [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
-            BODY=$(cat <<'BODY_EOF'
-          ${{ github.event.comment.body }}
-          BODY_EOF
-            )
-          elif [ "${{ github.event_name }}" = "pull_request_review" ]; then
-            BODY=$(cat <<'BODY_EOF'
-          ${{ github.event.review.body }}
-          BODY_EOF
-            )
-          elif [ "${{ github.event_name }}" = "issues" ]; then
-            BODY=$(cat <<'BODY_EOF'
-          ${{ github.event.issue.body }}
-          BODY_EOF
-            )
-          fi
           echo "body<<BODY_DELIM" >> "$GITHUB_OUTPUT"
-          echo "$BODY" >> "$GITHUB_OUTPUT"
+          echo "$COMMENT_BODY" >> "$GITHUB_OUTPUT"
           echo "BODY_DELIM" >> "$GITHUB_OUTPUT"
 
       - name: Resolve issue/PR number
+        if: always()
         id: number
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if [ -n "${{ github.event.issue.number }}" ]; then
-            echo "value=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ github.event.pull_request.number }}" ]; then
-            echo "value=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=${{ github.event.comment.id }}" >> "$GITHUB_OUTPUT"
+          if [ -n "$ISSUE_NUMBER" ]; then
+            echo "value=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PR_NUMBER" ]; then
+            echo "value=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Generate harness repo token
+        if: always()
         id: harness-token
         uses: actions/create-github-app-token@v1
         with:
@@ -97,6 +82,7 @@ jobs:
           owner: joaquinrivero
 
       - name: Dispatch to harness knowledge-bot
+        if: always()
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ steps.harness-token.outputs.token }}

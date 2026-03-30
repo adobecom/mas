@@ -86,6 +86,27 @@ export default class StudioPage {
     }
 
     /**
+     * Wait for cards to load on both content and fragment-editor pages.
+     * Content pages render mas-fragment-render (lazy loaded via IntersectionObserver).
+     * Fragment-editor pages render merch-card directly inside mas-fragment-editor.
+     */
+    async waitForCardsLoaded() {
+        const fragmentRender = this.page.locator('mas-fragment-render').first();
+        const fragmentEditor = this.page.locator('mas-fragment-editor').first();
+
+        const winner = await Promise.race([
+            fragmentRender.waitFor({ state: 'attached', timeout: 30000 }).then(() => 'content'),
+            fragmentEditor.waitFor({ state: 'attached', timeout: 30000 }).then(() => 'editor'),
+        ]);
+
+        if (winner === 'content') {
+            await fragmentRender.scrollIntoViewIfNeeded();
+        }
+
+        await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 30000 });
+    }
+
+    /**
      * Select a locale from the locale picker dropdown
      * @param {string} localeName - The display name of the locale (e.g., 'French (FR)', 'Turkish (TR)')
      */

@@ -10,8 +10,8 @@
         "io/studio"
     ],
     "scripts": {
-        "lint": "eslint --fix",
-        "format": "prettier . --write",
+        "lint": "eslint --fix web-components studio",
+        "format": "prettier web-components studio --write",
         "test": "npm run test:ci --workspaces",
         "build": "npm run build --workspaces --if-present",
         "studio": "cd studio && npm run proxy & aem up",

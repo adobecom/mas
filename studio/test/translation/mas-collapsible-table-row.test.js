@@ -506,6 +506,32 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
             expect(Store.translationProjects.selectedCards.value).to.not.include(topLevelCard.path);
         });
+
+        it('should add path to selectedCards when row is clicked outside checkbox', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            const titleCell = row.querySelector('sp-table-cell:nth-of-type(4)');
+            titleCell.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.include(topLevelCard.path);
+        });
+
+        it('should not change selectedCards when expand button is clicked', async () => {
+            const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
+            setupCardVariationsInStore(topLevelCard.path, []);
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            expandButton.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.deep.equal([]);
+        });
     });
 
     describe('grouped variations tab', () => {

@@ -94,6 +94,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                   value=${variationPath}
                                   ?selected=${isSelected}
                                   aria-selected=${isSelected ? 'true' : 'false'}
+                                  @click=${(event) => this.#onRowClickForSelection(event, variationPath)}
                               >
                                   <sp-table-cell class="translation-table-icon-cell">
                                       <sp-button
@@ -112,7 +113,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                       <sp-checkbox
                                           value=${variationPath}
                                           ?checked=${isSelected}
-                                          @change=${(e) => this.#toggleSelect(e, variationPath)}
+                                          @change=${(event) => this.#toggleSelect(event, variationPath)}
                                       ></sp-checkbox>
                                   </sp-table-cell>
                                   ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
@@ -246,11 +247,22 @@ export class MasCollapsibleTableRow extends LitElement {
         }
     }
 
+    #onRowClickForSelection(e, path) {
+        const shouldIgnore = e.composedPath().some((node) => {
+            if (!(node instanceof Element)) return false;
+            if (node.tagName === 'SP-CHECKBOX') return true;
+            if (node.classList?.contains('expand-button')) return true;
+            if (node.tagName === 'SP-ACTION-BUTTON') return true;
+        });
+        if (shouldIgnore) return;
+        this.#toggleSelect(e, path);
+    }
+
     #toggleSelect(e, path) {
         e.stopPropagation();
         const current = Store.translationProjects.selectedCards.value || [];
         if (current.includes(path)) {
-            Store.translationProjects.selectedCards.set(current.filter((p) => p !== path));
+            Store.translationProjects.selectedCards.set(current.filter((selectedPath) => selectedPath !== path));
         } else {
             Store.translationProjects.selectedCards.set([...current, path]);
         }
@@ -321,6 +333,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 value=${this.topLevelCard.path}
                 ?selected=${isSelected}
                 aria-selected=${isSelected ? 'true' : 'false'}
+                @click=${(e) => this.#onRowClickForSelection(e, this.topLevelCard.path)}
             >
                 <sp-table-cell class="translation-table-icon-cell">
                     <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>

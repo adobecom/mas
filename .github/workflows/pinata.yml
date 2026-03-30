@@ -27,20 +27,20 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 1
 
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.PINATA_APP_ID }}
           private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
 
       - name: Run Piñata Agent
         id: pinata
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@88c168b39e7e64da0286d812b6e9fbebb6708185 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
@@ -50,7 +50,7 @@ jobs:
             actions: read
 
       - name: Resolve comment body
-        if: always()
+        if: ${{ !cancelled() }}
         id: comment-body
         env:
           COMMENT_BODY: ${{ github.event.comment.body || github.event.review.body || github.event.issue.body }}
@@ -61,7 +61,7 @@ jobs:
           echo "${DELIM}" >> "$GITHUB_OUTPUT"
 
       - name: Resolve issue/PR number
-        if: always()
+        if: ${{ !cancelled() }}
         id: number
         env:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -74,9 +74,9 @@ jobs:
           fi
 
       - name: Generate harness repo token
-        if: always()
+        if: ${{ !cancelled() }}
         id: harness-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.PINATA_APP_ID }}
           private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
@@ -85,8 +85,8 @@ jobs:
           owner: joaquinrivero
 
       - name: Dispatch to harness knowledge-bot
-        if: always()
-        uses: peter-evans/repository-dispatch@v3
+        if: ${{ !cancelled() }}
+        uses: peter-evans/repository-dispatch@ff45666b9427631e3450c54a1bcbee4d9ff4d7c0 # v3
         with:
           token: ${{ steps.harness-token.outputs.token }}
           repository: joaquinrivero/agentic-harness

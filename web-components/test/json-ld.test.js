@@ -119,6 +119,22 @@ describe('injectJsonLd', () => {
         );
     });
 
+    it('uses lower price when two BASE offers have offer as higher price', () => {
+        const offer = makeOffer({ price: 89.99 });
+        const regularOffer = makeOffer({ price: 59.99 });
+        const script = injectJsonLd(
+            makeFields(),
+            offer,
+            regularOffer,
+            PAGE_URL,
+        );
+        const data = JSON.parse(script.textContent);
+        const spec = data.offers[0].priceSpecification;
+        expect(spec.price).to.equal('59.99');
+        expect(spec.priceWithoutDiscount).to.equal('89.99');
+        expect(data.offers[0].price).to.equal('59.99');
+    });
+
     it('omits priceWithoutDiscount when same as price', () => {
         const offer = makeOffer({ price: 59.99, priceWithoutDiscount: 59.99 });
         const script = injectJsonLd(makeFields(), offer, null, PAGE_URL);

@@ -44,7 +44,22 @@ export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
     if (document.head.querySelector(`script[data-id="${dedupId}"]`))
         return null;
 
-    const priceStr = String(price);
+    let effectivePrice = price;
+    const regularPrice =
+        offer?.priceDetails?.priceWithoutDiscount ??
+        regularOffer?.priceDetails?.price;
+    let effectiveRegularPrice = regularPrice;
+
+    if (
+        effectiveRegularPrice != null &&
+        offer?.priceDetails?.priceWithoutDiscount == null &&
+        effectiveRegularPrice < effectivePrice
+    ) {
+        effectiveRegularPrice = effectivePrice;
+        effectivePrice = regularOffer.priceDetails.price;
+    }
+
+    const priceStr = String(effectivePrice);
 
     const priceSpecification = {
         '@type': 'UnitPriceSpecification',
@@ -54,11 +69,11 @@ export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
         billingIncrement: 1,
     };
 
-    const regularPrice =
-        offer?.priceDetails?.priceWithoutDiscount ??
-        regularOffer?.priceDetails?.price;
-    if (regularPrice != null && regularPrice !== price) {
-        priceSpecification.priceWithoutDiscount = String(regularPrice);
+    if (
+        effectiveRegularPrice != null &&
+        effectiveRegularPrice !== effectivePrice
+    ) {
+        priceSpecification.priceWithoutDiscount = String(effectiveRegularPrice);
     }
 
     const schemaOffer = {

@@ -362,8 +362,16 @@
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('overridden');
                         expect(editor.mnemonics).to.have.length(0);
 
-                        const indicator = editor.querySelector('#mnemonics .field-status-indicator sp-action-button');
-                        indicator.click();
+                        const indicator = editor.querySelector('#mnemonics .field-status-indicator');
+                        expect(indicator.querySelector('.field-status-label')?.textContent.trim()).to.equal('Overridden.');
+                        const restoreLink = indicator.querySelector('.field-status-restore-link');
+                        expect(restoreLink?.textContent.replace(/\s+/g, ' ').trim()).to.equal(
+                            'Overridden. Click to restore.',
+                        );
+                        expect(restoreLink?.querySelector('.field-status-restore-link-text')?.textContent.trim()).to.equal(
+                            'Click to restore.',
+                        );
+                        restoreLink.click();
 
                         await editor.updateComplete;
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
@@ -410,12 +418,18 @@
                             'overridden',
                         );
 
-                        editor.querySelector('sp-field-group#badge .field-status-indicator sp-action-button').click();
-                        editor.querySelector('sp-field-group#badgeColor .field-status-indicator sp-action-button').click();
+                        editor.querySelector('sp-field-group#badge .field-status-indicator .field-status-restore-link').click();
                         editor
-                            .querySelector('sp-field-group#badgeBorderColor .field-status-indicator sp-action-button')
+                            .querySelector('sp-field-group#badgeColor .field-status-indicator .field-status-restore-link')
                             .click();
-                        editor.querySelector('sp-field-group#border-color .field-status-indicator sp-action-button').click();
+                        editor
+                            .querySelector(
+                                'sp-field-group#badgeBorderColor .field-status-indicator .field-status-restore-link',
+                            )
+                            .click();
+                        editor
+                            .querySelector('sp-field-group#border-color .field-status-indicator .field-status-restore-link')
+                            .click();
 
                         await editor.updateComplete;
 
@@ -486,7 +500,9 @@
                             expect(editor.getFieldState(field)).to.equal('overridden');
                             expect(saveNavItem.disabled).to.be.true;
 
-                            const indicator = editor.querySelector(`${selector} .field-status-indicator sp-action-button`);
+                            const indicator = editor.querySelector(
+                                `${selector} .field-status-indicator .field-status-restore-link`,
+                            );
                             indicator.click();
                             await editor.updateComplete;
                             await sideNav.updateComplete;
@@ -501,7 +517,7 @@
                         editor.fragment.newTags = ['mas:product/illustrator'];
                         await editor.updateComplete;
 
-                        const indicator = editor.querySelector('#tags .field-status-indicator sp-action-button');
+                        const indicator = editor.querySelector('#tags .field-status-indicator .field-status-restore-link');
                         indicator.click();
                         await editor.updateComplete;
                         await sideNav.updateComplete;

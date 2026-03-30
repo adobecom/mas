@@ -166,10 +166,18 @@ class MerchCardEditor extends LitElement {
     #renderOverrideIndicatorLink(resetCallback) {
         return html`
             <div class="field-status-indicator">
-                <sp-action-button quiet @click=${resetCallback}>
-                    <sp-icon-unlink slot="icon"></sp-icon-unlink>
-                    Overridden. Click to restore.
-                </sp-action-button>
+                <sp-icon-unlink class="field-status-icon"></sp-icon-unlink>
+                <span class="field-status-label">Overridden.</span>
+                <a
+                    href="#"
+                    class="field-status-restore-link"
+                    @click=${(event) => {
+                        event.preventDefault();
+                        resetCallback();
+                    }}
+                    ><span class="field-status-restore-link-prefix" aria-hidden="true">Overridden. </span>
+                    <span class="field-status-restore-link-text">Click to restore.</span></a
+                >
             </div>
         `;
     }
@@ -722,13 +730,13 @@ class MerchCardEditor extends LitElement {
             <style>
                 /* Override styling using Spectrum's --mod-* tokens */
                 sp-textfield[data-field-state='overridden'] {
-                    --mod-textfield-border-color: var(--spectrum-blue-400);
-                    --mod-textfield-background-color: var(--spectrum-blue-100);
+                    --mod-textfield-border-color: #accffd;
+                    --mod-textfield-background-color: #f5f9ff;
                 }
 
                 sp-field-group sp-picker[data-field-state='overridden'] {
-                    --mod-picker-border-color-default: var(--spectrum-blue-400);
-                    --mod-picker-background-color-default: var(--spectrum-blue-100);
+                    --mod-picker-border-color-default: #accffd;
+                    --mod-picker-background-color-default: #f5f9ff;
                 }
 
                 sp-switch[data-field-state='overridden'][checked] {
@@ -741,15 +749,48 @@ class MerchCardEditor extends LitElement {
                     align-items: center;
                     gap: 6px;
                     margin-top: 6px;
-                    font-size: 12px;
-                    color: var(--spectrum-blue-700);
+                    font-size: 14px;
+                    line-height: 18px;
+                    color: var(--spectrum-accent-content-color-default, #3b63fb);
                 }
 
-                .field-status-indicator sp-action-button {
-                    --mod-actionbutton-icon-color-default: var(--spectrum-blue-700);
-                    --mod-actionbutton-label-color-default: var(--spectrum-blue-700);
-                    --mod-actionbutton-icon-color-hover: var(--spectrum-blue-800);
-                    --mod-actionbutton-label-color-hover: var(--spectrum-blue-800);
+                .field-status-icon {
+                    color: inherit;
+                    flex: none;
+                }
+
+                .field-status-label {
+                    color: inherit;
+                }
+
+                .field-status-restore-link {
+                    position: relative;
+                    color: inherit;
+                    font: inherit;
+                    line-height: inherit;
+                    text-decoration: underline;
+                    cursor: pointer;
+                }
+
+                .field-status-restore-link-prefix {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    margin: -1px;
+                    overflow: hidden;
+                    clip: rect(0, 0, 0, 0);
+                    white-space: nowrap;
+                    border: 0;
+                }
+
+                .field-status-restore-link:hover {
+                    color: var(--spectrum-accent-content-color-hover, #2f55e0);
+                }
+
+                .field-status-restore-link:focus-visible {
+                    outline: 2px solid var(--spectrum-accent-content-color-key-focus, #2f55e0);
+                    outline-offset: 2px;
                 }
 
                 .section-title {

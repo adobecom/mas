@@ -52,6 +52,28 @@ function getValue(fragment, property) {
     return field ? { value: field.values[0], path } : null;
 }
 
+/**
+ * @param {*} fragment fragment json representation
+ * @param {*} property nested property path, e.g. "modified.by"
+ * @returns value
+ */
+function getInternalValue(fragment, property) {
+    if (!fragment || !property) {
+        return null;
+    }
+
+    const segments = property.split('.');
+    let value = fragment;
+    for (const segment of segments) {
+        if (value == null || !Object.prototype.hasOwnProperty.call(value, segment)) {
+            return null;
+        }
+        value = value[segment];
+    }
+
+    return value;
+}
+
 async function postToOdin(odinEndpoint, URI, authToken, payload) {
     return fetchOdin(odinEndpoint, URI, authToken, {
         method: 'POST',
@@ -157,6 +179,7 @@ async function processBatchWithConcurrency(items, batchSize, processor) {
 module.exports = {
     fetchFragmentByPath,
     fetchOdin,
+    getInternalValue,
     getValue,
     getValues,
     postToOdinWithRetry,

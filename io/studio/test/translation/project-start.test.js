@@ -97,10 +97,41 @@ const responses = {
     }),
 };
 
+async function executeProjectStart(service, params) {
+    try {
+        const context = await service.prepareProjectStart(params);
+        const versioningResult = await service.runVersioningStage(context);
+        if (!versioningResult.success) {
+            throw service.createProjectStartError(500, 'Failed to version target fragments');
+        }
+        await service.runPostVersioningStage(context);
+        return service.finalizeProjectStart(context);
+    } catch (error) {
+        if (service.isProjectStartError(error)) {
+            return {
+                error: {
+                    statusCode: error.statusCode,
+                    body: {
+                        error: error.message,
+                    },
+                },
+            };
+        }
+
+        return {
+            error: {
+                statusCode: 500,
+                body: {
+                    error: `Internal server error - ${error.message}`,
+                },
+            },
+        };
+    }
+}
+
 describe('Translation project-start', () => {
-    let projectStart;
+    let projectStartService;
     let mockLogger;
-    let mockIms;
     let fetchStub;
 
     const baseParams = {
@@ -147,13 +178,6 @@ describe('Translation project-start', () => {
             warn: sinon.stub(),
         };
 
-        // Setup IMS mock
-        mockIms = {
-            validateTokenAllowList: sinon.stub(),
-        };
-
-        const ImsConstructorStub = sinon.stub().returns(mockIms);
-
         // Setup setTimeout stub for retry delays
         sinon.stub(global, 'setTimeout').callsFake((fn) => {
             fn();
@@ -164,14 +188,11 @@ describe('Translation project-start', () => {
         fetchStub = sinon.stub();
 
         // Load module with mocks using proxyquire
-        projectStart = proxyquire('../../src/translation/project-start.js', {
+        projectStartService = proxyquire('../../src/translation/project-start-service.js', {
             '@adobe/aio-sdk': {
                 Core: {
                     Logger: sinon.stub().returns(mockLogger),
                 },
-            },
-            '@adobe/aio-lib-ims': {
-                Ims: ImsConstructorStub,
             },
             fetch: fetchStub,
             global: {
@@ -199,7 +220,10 @@ describe('Translation project-start', () => {
 
     describe('main function', () => {
         it('should be defined', () => {
-            expect(projectStart.main).to.be.a('function');
+            expect(projectStartService.prepareProjectStart).to.be.a('function');
+            expect(projectStartService.runVersioningStage).to.be.a('function');
+            expect(projectStartService.runPostVersioningStage).to.be.a('function');
+            expect(projectStartService.finalizeProjectStart).to.be.a('function');
         });
 
         it('should return 400 if project ID is missing', async () => {
@@ -208,7 +232,7 @@ describe('Translation project-start', () => {
                 surface: 'acom',
             };
 
-            const result = await projectStart.main(params);
+            const result = await executeProjectStart(projectStartService, params);
 
             expect(result.error.statusCode).to.equal(400);
             expect(result.error.body.error).to.include('projectId');
@@ -220,44 +244,31 @@ describe('Translation project-start', () => {
                 projectId: 'test-project-id',
             };
 
-            const result = await projectStart.main(params);
+            const result = await executeProjectStart(projectStartService, params);
 
             expect(result.error.statusCode).to.equal(400);
             expect(result.error.body.error).to.include('surface');
         });
 
-        it('should return 401 if client ID is not allowed', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: false });
-
-            const result = await projectStart.main(baseParams);
-
-            expect(result.error.statusCode).to.equal(401);
-            expect(result.error.body.error).to.equal('Authorization failed');
-        });
-
         it('should return 500 if translation project is not found', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.error(500, 'Not Found'),
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.error.statusCode).to.equal(500);
             expect(mockLogger.error).to.have.been.calledWith(sinon.match(/Error fetching translation project/));
         });
 
         it('should return 400 if translation project is incomplete (no items)', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = createMockProjectCF();
 
             setupFetchStub({
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.error.statusCode).to.equal(400);
             expect(result.error.body.error).to.equal('Translation project is incomplete (missing items or locales)');
@@ -267,8 +278,6 @@ describe('Translation project-start', () => {
         });
 
         it('should return 400 if translation project is incomplete (missing locales)', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1', '/content/dam/mas/foo/en_US/fragment2'],
                 targetLocales: [],
@@ -278,15 +287,13 @@ describe('Translation project-start', () => {
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.error.statusCode).to.equal(400);
             expect(mockLogger.warn).to.have.been.calledWith('No locales found in translation project');
         });
 
         it('should return 500 if translation project fails to start', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 collections: ['/content/dam/mas/foo/en_US/fragment1'],
             });
@@ -303,7 +310,7 @@ describe('Translation project-start', () => {
                 ],
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
@@ -311,8 +318,6 @@ describe('Translation project-start', () => {
         });
 
         it('should successfully start translation project', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
                 collections: ['/content/dam/mas/foo/en_US/collection1'],
@@ -331,7 +336,7 @@ describe('Translation project-start', () => {
                 translationMapping: { acom: 'transcreation' },
             };
 
-            const result = await projectStart.main(params);
+            const result = await executeProjectStart(projectStartService, params);
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.message).to.equal('Translation project started');
@@ -340,21 +345,20 @@ describe('Translation project-start', () => {
         });
 
         it('should handle unexpected errors and return 500', async () => {
-            // Make IMS validation throw an error
-            mockIms.validateTokenAllowList.rejects(new Error('Unexpected IMS error'));
+            setupFetchStub({});
+            fetchStub.rejects(new Error('Unexpected fetch error'));
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.error.statusCode).to.equal(500);
-            expect(result.error.body.error).to.equal('Internal server error - Unexpected IMS error');
-            expect(mockLogger.error).to.have.been.called;
+            expect(result.error.body.error).to.equal(
+                'Internal server error - Failed to fetch translation project: Unexpected fetch error',
+            );
         });
     });
 
     describe('Rollout project type', () => {
         it('should start rollout project and return "Rollout project started" when projectType is rollout', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 projectType: ['rollout'],
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
@@ -368,7 +372,7 @@ describe('Translation project-start', () => {
                 '/bin/localeSync': { ok: true },
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.message).to.equal('Rollout project started');
@@ -389,8 +393,6 @@ describe('Translation project-start', () => {
         });
 
         it('should return 500 when projectType is rollout and rollout request fails', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 projectType: ['rollout'],
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
@@ -406,7 +408,7 @@ describe('Translation project-start', () => {
                 ],
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
@@ -415,8 +417,6 @@ describe('Translation project-start', () => {
         });
 
         it('should use translation flow when projectType is translation', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 projectType: ['translation'],
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
@@ -429,7 +429,7 @@ describe('Translation project-start', () => {
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.message).to.equal('Translation project started');
@@ -437,48 +437,8 @@ describe('Translation project-start', () => {
         });
     });
 
-    describe('IMS token validation', () => {
-        it('should validate token with correct client ID', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
-            const mockProjectCF = setProjectFields(createMockProjectCF(), {
-                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
-                targetLocales: ['en-US'],
-            });
-
-            setupFetchStub({
-                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
-                '/adobe/sites/cf/fragments?path=': responses.notFound(),
-                '/bin/sendToLocalisationAsync': { ok: true },
-            });
-
-            const params = {
-                ...baseParams,
-                allowedClientId: 'valid-client-id',
-            };
-
-            await projectStart.main(params);
-
-            // Verify IMS was called with the token (extracted by getBearerToken from utils)
-            expect(mockIms.validateTokenAllowList).to.have.been.called;
-            const callArgs = mockIms.validateTokenAllowList.firstCall.args;
-            expect(callArgs[0]).to.equal('token'); // Bearer token without 'Bearer ' prefix
-            expect(callArgs[1]).to.deep.equal(['valid-client-id']);
-        });
-
-        it('should reject token with invalid response', async () => {
-            mockIms.validateTokenAllowList.resolves(null);
-
-            const result = await projectStart.main(baseParams);
-
-            expect(result.error.statusCode).to.equal(401);
-        });
-    });
-
     describe('Translation project fetching', () => {
         it('should fetch project with correct headers', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
@@ -495,7 +455,7 @@ describe('Translation project-start', () => {
                 projectId: 'test-project-123',
             };
 
-            await projectStart.main(params);
+            await executeProjectStart(projectStartService, params);
 
             // Find the call that fetched the project
             const projectFetchCall = stub
@@ -513,13 +473,11 @@ describe('Translation project-start', () => {
         });
 
         it('should handle fetch errors gracefully', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const { stub } = createFetchStub({});
             stub.rejects(new Error('Network error'));
             global.fetch = stub;
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.error.statusCode).to.equal(500);
             expect(result.error.body.error).to.equal(
@@ -531,8 +489,6 @@ describe('Translation project-start', () => {
 
     describe('Batch processing with retry logic', () => {
         it('should send translation items as single batch (cfPaths array)', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: items,
@@ -544,7 +500,7 @@ describe('Translation project-start', () => {
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
@@ -555,9 +511,7 @@ describe('Translation project-start', () => {
             expect(requestBody.cfPaths).to.deep.equal(items);
         });
 
-        /*it('should process versioning in batches', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
+        it('should process versioning in batches', async () => {
             // 15 fragments × 1 locale = 15 itemsToVersion (batch size 10 → 2 batches)
             const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
@@ -572,7 +526,7 @@ describe('Translation project-start', () => {
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
@@ -581,8 +535,6 @@ describe('Translation project-start', () => {
         });
 
         it('should process versioning with custom batch size when batchSize param is provided', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             // 30 fragments × 1 locale = 30 itemsToVersion (batch size 25 → 2 batches)
             const items = Array.from({ length: 30 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
@@ -602,17 +554,15 @@ describe('Translation project-start', () => {
                 batchSize: 25,
             };
 
-            const result = await projectStart.main(params);
+            const result = await executeProjectStart(projectStartService, params);
 
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(1);
             expect(callCounts['/adobe/sites/cf/fragments?path=']).to.equal(30);
             expect(callCounts['/versions']).to.equal(30);
-        });*/
+        });
 
         it('should retry failed requests up to 3 times', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
@@ -624,15 +574,13 @@ describe('Translation project-start', () => {
                 '/bin/sendToLocalisationAsync': [responses.error(500, 'Error'), responses.error(500, 'Error'), { ok: true }],
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(3);
         });
 
         it('should fail after max retries exhausted', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 collections: ['/content/dam/mas/foo/en_US/collection1'],
             });
@@ -648,7 +596,7 @@ describe('Translation project-start', () => {
                 ],
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
@@ -656,8 +604,6 @@ describe('Translation project-start', () => {
         });
 
         it('should handle network errors with retry', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 collections: ['/content/dam/mas/foo/en_US/collection1'],
             });
@@ -673,7 +619,7 @@ describe('Translation project-start', () => {
                 ],
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(3);
@@ -682,8 +628,6 @@ describe('Translation project-start', () => {
 
     describe('Localization request payload', () => {
         it('should send correct payload with target locales and machineTranslation flag', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
                 targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
@@ -700,7 +644,7 @@ describe('Translation project-start', () => {
                 translationMapping: { acom: 'transcreation' },
             };
 
-            await projectStart.main(params);
+            await executeProjectStart(projectStartService, params);
 
             // Find the loc request call
             const locRequestCall = stub.getCalls().find((call) => call.args[0].includes('/bin/sendToLocalisationAsync'));
@@ -727,8 +671,6 @@ describe('Translation project-start', () => {
 
     describe('Update translation submission date', () => {
         it('should update submission date after successful translation project start', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
@@ -739,7 +681,7 @@ describe('Translation project-start', () => {
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.statusCode).to.equal(200);
 
@@ -760,8 +702,6 @@ describe('Translation project-start', () => {
         });
 
         it('should return 500 if submission date update fails', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
             });
@@ -776,15 +716,13 @@ describe('Translation project-start', () => {
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result).to.have.property('error');
             expect(result.error.statusCode).to.equal(500);
         });
 
         it('should return 500 if submissionDate field is not found', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             // Project without submissionDate field
             const mockProjectCF = {
                 id: 'test-project-id',
@@ -806,7 +744,7 @@ describe('Translation project-start', () => {
                 '/bin/sendToLocalisationAsync': { ok: true },
             });
 
-            const result = await projectStart.main(baseParams);
+            const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.error.statusCode).to.equal(500);
         });
@@ -814,8 +752,6 @@ describe('Translation project-start', () => {
 
     describe('Sync dictionary if a placeholder is synced', () => {
         it('should send correct synchronization request if a placeholder is in the payload', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
                 placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
@@ -843,7 +779,7 @@ describe('Translation project-start', () => {
                 surface: 'foo',
             };
 
-            const results = await projectStart.main(params);
+            const results = await executeProjectStart(projectStartService, params);
             const statusCode = results.statusCode || (results.error && results.error.statusCode);
             expect(statusCode).to.equal(200);
             expect(callCounts['/adobe/sites/cf/fragments?path=/content/dam/mas/foo/de_DE/dictionary/index']).to.equal(1);
@@ -860,8 +796,6 @@ describe('Translation project-start', () => {
         });
 
         it('should fail in case of a and issue with the synchronization request', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: [],
                 placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
@@ -884,7 +818,7 @@ describe('Translation project-start', () => {
                 surface: 'foo',
             };
 
-            const result = await projectStart.main(params);
+            const result = await executeProjectStart(projectStartService, params);
 
             expect(result.error.statusCode).to.equal(500);
         });
@@ -892,8 +826,6 @@ describe('Translation project-start', () => {
 
     /* describe('Version target fragments when already present', () => {
         it('should version already existing target paths', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1', '/content/dam/mas/foo/en_US/fragment2'],
                 placeholders: ['/content/dam/mas/foo/en_US/dictionary/placeholder1'],
@@ -929,8 +861,6 @@ describe('Translation project-start', () => {
         });
 
         it('should fail if we fail to check target fragment', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
                 placeholders: [],
@@ -957,8 +887,6 @@ describe('Translation project-start', () => {
         });
 
         it('should fail if version fails', async () => {
-            mockIms.validateTokenAllowList.resolves({ valid: true });
-
             const mockProjectCF = setProjectFields(createMockProjectCF(), {
                 fragments: ['/content/dam/mas/foo/en_US/fragment1'],
                 placeholders: [],

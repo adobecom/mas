@@ -111,6 +111,15 @@
                         expect(linkEditor.linkAnalyticsIdElement.value).to.equal('');
                     });
 
+                    it('should block save when analytics-id is missing for checkout link', async function () {
+                        const linkEditor = await createFromTemplate('checkout', this.test.title);
+                        let saved = false;
+                        linkEditor.addEventListener('save', () => { saved = true; });
+                        linkEditor.shadowRoot.getElementById('saveButton').click();
+                        expect(saved).to.be.false;
+                        expect(linkEditor.analyticsIdInvalid).to.be.true;
+                    });
+
                     it('should support checkout and variant parameters', async function () {
                         const linkEditor = await createFromTemplate('checkoutFilled', this.test.title);
                         expect(linkEditor.variant).to.equal('outline');

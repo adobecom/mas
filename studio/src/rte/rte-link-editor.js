@@ -24,6 +24,7 @@ export class RteLinkEditor extends LitElement {
             attribute: 'data-analytics-id',
             reflect: true,
         },
+        analyticsIdInvalid: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -134,15 +135,25 @@ export class RteLinkEditor extends LitElement {
     }
 
     get #isCheckoutLink() {
-        return this.checkoutParameters !== undefined;
+        return this.checkoutParameters !== undefined || this.linkAttrs?.['data-wcs-osi'] != null;
     }
 
     get #analyticsIdField() {
         const options = this.#isCheckoutLink ? Object.keys(CHECKOUT_CTA_TEXTS) : [...ANALYTICS_LINK_IDS];
-        options.push('');
-        return html` <sp-field-label for="analyticsId">Analytics Id</sp-field-label>
-            <sp-picker id="analyticsId" .value=${this.analyticsId} @change=${(e) => (this.analyticsId = e.target.value)}>
+        if (!this.#isCheckoutLink) options.push('');
+        const invalid = this.#isCheckoutLink && this.analyticsIdInvalid;
+        return html` <sp-field-label for="analyticsId" required=${this.#isCheckoutLink || nothing}>Analytics Id</sp-field-label>
+            <sp-picker
+                id="analyticsId"
+                .value=${this.analyticsId}
+                ?invalid=${invalid}
+                @change=${(e) => {
+                    this.analyticsId = e.target.value;
+                    this.analyticsIdInvalid = false;
+                }}
+            >
                 <sp-menu> ${options.map((option) => html`<sp-menu-item value="${option}">${option}</sp-menu-item>`)} </sp-menu>
+                ${invalid ? html`<sp-help-text slot="negative-help-text">Required for checkout links</sp-help-text>` : nothing}
             </sp-picker>`;
     }
 
@@ -353,6 +364,11 @@ export class RteLinkEditor extends LitElement {
     #handleSave(e) {
         e.preventDefault();
 
+        if (this.#isCheckoutLink && !this.analyticsId) {
+            this.analyticsIdInvalid = true;
+            return;
+        }
+
         const href = this.isPhone ? `tel:${this.text.replace(/ /g, '')}` : this.href;
 
         const data = {
@@ -387,6 +403,7 @@ export class RteLinkEditor extends LitElement {
 
     #handleClose() {
         this.open = false;
+        this.analyticsIdInvalid = false;
         this.dispatchEvent(new CustomEvent('close', { bubbles: false, composed: true }));
     }
 }

@@ -126,7 +126,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                           @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
                                       >
                                           ${isExpanded
-                                              ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
+                                              ? html`<sp-icon-chevron-right></sp-icon-chevron-right>`
                                               : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                                       </sp-button>
                                   </sp-table-cell>
@@ -162,7 +162,7 @@ export class MasCollapsibleTableRow extends LitElement {
                               @click=${this.#toggleExpandTopLevel}
                           >
                               ${this.isTopLevelExpanded
-                                  ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
+                                  ? html`<sp-icon-chevron-right></sp-icon-chevron-right>`
                                   : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                           </sp-button>
                       </sp-table-cell>`
@@ -380,7 +380,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 <sp-table-cell class="translation-table-icon-cell">
                     <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
                         ${this.isTopLevelExpanded
-                            ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
+                            ? html`<sp-icon-chevron-right></sp-icon-chevron-right>`
                             : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                     </sp-button>
                 </sp-table-cell>

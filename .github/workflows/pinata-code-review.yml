@@ -35,6 +35,15 @@ jobs:
           app-id: ${{ secrets.PINATA_APP_ID }}
           private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
 
+      - name: Generate harness repo token
+        id: harness-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.PINATA_APP_ID }}
+          private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
+          repositories: agentic-harness
+          owner: joaquinrivero
+
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
 
@@ -42,7 +51,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: joaquinrivero/agentic-harness
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ steps.harness-token.outputs.token }}
           path: harness
 
       - name: Run Piñata Code Review

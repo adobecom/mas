@@ -228,7 +228,9 @@ async function run() {
                 }
                 console.log(`[${folder.name}] current parent: ${currentParent ?? '(none)'}`);
                 console.log(`[${folder.name}] new parent:     ${parentReference ?? '(none)'}`);
-                updatedIndexes.push(`[${folder.name}] current parent: ${currentParent ?? '(none)'}, new parent: ${parentReference ?? '(none)'}`);
+                updatedIndexes.push(
+                    `[${folder.name}] current parent: ${currentParent ?? '(none)'}, new parent: ${parentReference ?? '(none)'}`,
+                );
                 await updateFragmentParent(existing, parentReference);
                 if (!dryRun) console.log(`[${folder.name}] parent updated`);
                 continue;

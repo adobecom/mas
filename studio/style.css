@@ -440,6 +440,29 @@ sp-table-row {
     border-bottom: 1px solid var(--spectrum-gray-100);
 }
 
+#content sp-table[emphasized] sp-table-body sp-table-row.fragment-group-header {
+    padding: 16px 20px;
+    cursor: default;
+    transition: none;
+}
+
+#content sp-table[emphasized] sp-table-body sp-table-row.fragment-group-header:hover {
+    background-color: transparent;
+    --spectrum-table-cell-background-color: transparent;
+}
+
+#content sp-table[emphasized] sp-table-body sp-table-row.fragment-group-header sp-table-cell.fragment-group-header-cell {
+    flex: 1 1 100%;
+    min-width: 100%;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 18px;
+    color: var(--spectrum-neutral-subdued-content-color-default, #505050);
+    padding-block: 10px 12px;
+    padding-left: 40px;
+    border: none;
+}
+
 sp-table-row.price-failed {
     background-color: var(--merch-color-error-background);
 }

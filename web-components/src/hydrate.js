@@ -696,11 +696,7 @@ export function processCTAs(
             .filter((cta) => {
                 if (!settings?.hideTrialCTAs) return true;
                 const id = cta.dataset.analyticsId;
-                if (id === 'free-trial' || id === 'start-free-trial')
-                    return false;
-                const text = cta.textContent?.toLowerCase() ?? '';
-                if (text.includes('free-trial')) return false;
-                return true;
+                return id !== 'free-trial' && id !== 'start-free-trial';
             })
             .map((cta) =>
                 transformLinkToButton(cta, merchCard, aemFragmentMapping),

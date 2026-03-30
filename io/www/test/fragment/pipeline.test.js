@@ -241,7 +241,7 @@ describe('pipeline full use case', () => {
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.include({
             path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
-            id: 'd99c359d-5349-43cc-95f4-8e388c299855',
+            id: 'some-fr-fr-fragment',
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');

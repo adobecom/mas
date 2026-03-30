@@ -180,7 +180,9 @@ function mergeVariations(root, customizeContext) {
         const regionalVariation = findRegionalVariation(variations, references, prefix);
         if (regionalVariation) {
             logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
-            return deepMerge(root, regionalVariation);
+            const merged = deepMerge(root, regionalVariation);
+            merged.id = root.id;
+            return merged;
         }
     }
     const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
@@ -189,7 +191,9 @@ function mergeVariations(root, customizeContext) {
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,
             customizeContext,
         );
-        return deepMerge(root, personalizationVariation);
+        const merged = deepMerge(root, personalizationVariation);
+        merged.id = root.id;
+        return merged;
     }
     return root;
 }
@@ -212,38 +216,26 @@ function customizeTree(root, referencesTree = [], customizeContext) {
             const child = customizeContext.references[reference.identifier]?.value;
             if (child) {
                 //start customization of the child fragment
-                const { fragment: customizedChild, references: customizedReferences } = customizeTree(
-                    child,
-                    reference.referencesTree,
-                    customizeContext,
-                );
-                if (customizedChild.id !== child.id) {
-                    //reference has been customized
-                    //we update reference tree
-                    reference.identifier = customizedChild.id;
-                    const updatedReference = customizedRoot?.fields[reference.fieldName];
-                    //we update the corresponding field, adding new reference, and removing old one
-                    const oldReferenceIndex = updatedReference?.indexOf(child.id);
-                    if (oldReferenceIndex > -1) {
-                        customizedRoot.fields[reference.fieldName] = [
-                            ...updatedReference.slice(0, oldReferenceIndex),
-                            customizedChild.id,
-                            ...updatedReference.slice(oldReferenceIndex + 1),
-                        ];
-                    }
-                }
+                const { references: customizedReferences } = customizeTree(child, reference.referencesTree, customizeContext);
                 //we collect update references and merge in current references
                 customizeContext.references = { ...customizeContext.references, ...customizedReferences };
             }
         }
     }
-    //finally we return updated root and references
-    if (customizedRoot.id !== root.id) {
-        //there has been a customization: we update references
-        customizeContext.references = {
-            ...customizeContext.references,
-            [customizedRoot.id]: { type: 'content-fragment', value: skimFragmentFromReferences(customizedRoot) },
-        };
+    //finally we return updated root and references (stable id: default fragment key in references map)
+    const refs = customizeContext.references;
+    if (refs && root.id != null) {
+        const existingRef = refs[root.id];
+        if (existingRef) {
+            customizeContext.references = {
+                ...refs,
+                [root.id]: {
+                    ...existingRef,
+                    type: 'content-fragment',
+                    value: skimFragmentFromReferences(customizedRoot),
+                },
+            };
+        }
     }
     return { fragment: customizedRoot, references: customizeContext.references, referencesTree };
 }

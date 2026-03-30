@@ -22,6 +22,7 @@ export default class StudioPage {
         this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
         this.renderView = page.locator('#render');
         this.tableView = page.locator('sp-table');
+        this.contentTableBody = page.locator('#content sp-table-body');
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');
         this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);

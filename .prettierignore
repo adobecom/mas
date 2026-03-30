@@ -1,4 +1,6 @@
 studio/libs
+studio/dist
+web-components/libs
 web-components/dist
 web-components/docs
 web-components/commerce.json

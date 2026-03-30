@@ -203,7 +203,11 @@ async function run() {
 
     const validLocaleCodes = new Set(getSurfaceLocales(surface).map(getLocaleCode));
     const localeFolders = await listLocaleFolders(surface);
-    console.log(`Found ${localeFolders.length} locale folders for surface '${surface}'`);
+    console.log(`Found ${localeFolders.length} folders for surface '${surface}'`);
+
+    const existingIndexes = [];
+    const missingIndexes = [];
+    const updatedIndexes = [];
 
     for (const folder of localeFolders) {
         if (!validLocaleCodes.has(folder.name)) {
@@ -216,6 +220,7 @@ async function run() {
             const existing = await fetchIndexFragment(indexPath);
             const parentReference = getParentReference(folder.name);
             if (existing) {
+                existingIndexes.push(indexPath);
                 const currentParent = existing.fields?.find((f) => f.name === 'parent')?.values?.[0] ?? null;
                 if (currentParent === parentReference) {
                     console.log(`[${folder.name}] index exists, parent is correct, skipping`);
@@ -223,10 +228,12 @@ async function run() {
                 }
                 console.log(`[${folder.name}] current parent: ${currentParent ?? '(none)'}`);
                 console.log(`[${folder.name}] new parent:     ${parentReference ?? '(none)'}`);
+                updatedIndexes.push(`[${folder.name}] current parent: ${currentParent ?? '(none)'}, new parent: ${parentReference ?? '(none)'}`);
                 await updateFragmentParent(existing, parentReference);
                 if (!dryRun) console.log(`[${folder.name}] parent updated`);
                 continue;
             } else {
+                missingIndexes.push(indexPath);
                 console.log(`[${folder.name}] index not found`);
             }
             await ensureDictionaryFolder(dictionaryPath);
@@ -241,6 +248,9 @@ async function run() {
         }
     }
 
+    console.log('\nExisting indexes:', JSON.stringify(existingIndexes, null, 2));
+    console.log('\nMissing indexes (to be created):', JSON.stringify(missingIndexes, null, 2));
+    console.log('\nUpdated indexes (parent changed):', JSON.stringify(updatedIndexes, null, 2));
     console.log('Done.');
 }
 

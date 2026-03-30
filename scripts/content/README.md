@@ -59,4 +59,3 @@ Use `--dry-run` to preview what the script would do without creating or publishi
 ```sh
 node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk --dry-run
 ```
-

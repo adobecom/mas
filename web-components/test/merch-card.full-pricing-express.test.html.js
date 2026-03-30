@@ -140,6 +140,54 @@ runTests(async () => {
                 expect(checkoutLink).to.exist;
                 expect(checkoutLink.classList.contains('button')).to.be.true;
             });
+
+            it('should add small-font-size-button class when CTA text is too long', async () => {
+                const cardWithShortCta = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                const cardWithLongCta = document.querySelector(
+                    '#full-pricing-card-with-long-cta',
+                );
+                await cardWithLongCta?.updateComplete;
+                await delay(300);
+
+                const shortCardCtas = cardWithShortCta.querySelectorAll(
+                    '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+                );
+                const longCardCtas = cardWithLongCta.querySelectorAll(
+                    '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+                );
+
+                const shortCtaHasSmallFontClass = [...shortCardCtas].some(
+                    (cta) => cta.classList.contains('small-font-size-button'),
+                );
+                expect(shortCtaHasSmallFontClass).to.be.false;
+                expect(longCardCtas.length).to.equal(2);
+                expect(
+                    longCardCtas[0].classList.contains(
+                        'small-font-size-button',
+                    ),
+                ).to.be.false;
+                expect(
+                    longCardCtas[1].classList.contains(
+                        'small-font-size-button',
+                    ),
+                ).to.be.true;
+            });
+
+            it('should remove small-font-size-button when CTA text is short', async () => {
+                const cardWithShortCta = document.querySelector(
+                    'merch-card[variant="full-pricing-express"]',
+                );
+                await delay(100);
+                const shortCardCtas = cardWithShortCta.querySelectorAll(
+                    '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+                );
+                const shortCtaHasSmallFontClass = [...shortCardCtas].some(
+                    (cta) => cta.classList.contains('small-font-size-button'),
+                );
+                expect(shortCtaHasSmallFontClass).to.be.false;
+            });
         });
 
         describe('Short Description Slot with Dividers', () => {

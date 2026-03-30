@@ -108,6 +108,35 @@ sp-sidenav-item sp-icon {
     position: relative;
 }
 
+.content-empty-state {
+    align-items: center;
+    color: var(--spectrum-gray-700, #464646);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+    min-height: 240px;
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.content-empty-state-icon {
+    color: var(--spectrum-gray-500, #707070);
+}
+
+.content-empty-state-title {
+    color: var(--spectrum-gray-900, #2c2c2c);
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.content-empty-state-description {
+    line-height: 1.5;
+    margin: 0;
+    max-width: 480px;
+}
+
 mas-studio > ul > li {
     list-style: none;
     position: relative;

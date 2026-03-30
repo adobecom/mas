@@ -16,7 +16,7 @@ export default {
             data: {
                 cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=content&query=',
             tags: '@mas-studio',
         },
         {

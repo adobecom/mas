@@ -30,7 +30,10 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         await test.step('step-3: Validate mnemonic URL field updated', async () => {
             await expect(await editor.iconURL).toHaveValue(data.iconURL.updated);
             await editor.saveMnemonicModal();
-            await expect(await fullPricingExpress.cardIconsSlot).toHaveAttribute('src', data.iconURL.updated);
+            await expect((await studio.getCard(data.cardid)).locator(fullPricingExpress.cardIconsSlot)).toHaveAttribute(
+                'src',
+                data.iconURL.updated,
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -38,7 +41,10 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await fullPricingExpress.cardIconsSlot).toHaveAttribute('src', data.iconURL.original);
+            await expect((await studio.getCard(data.cardid)).locator(fullPricingExpress.cardIconsSlot)).toHaveAttribute(
+                'src',
+                data.iconURL.original,
+            );
         });
     });
 
@@ -64,7 +70,9 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
 
         await test.step('step-3: Validate shortDescription field updated', async () => {
             await expect(await editor.shortDescription).toContainText(data.shortDescription.updated);
-            await expect(await fullPricingExpress.cardShortDescription).toContainText(data.shortDescription.updated);
+            await expect((await studio.getCard(data.cardid)).locator(fullPricingExpress.cardShortDescription)).toContainText(
+                data.shortDescription.updated,
+            );
         });
 
         await test.step('step-4: Close the editor and verify discard is triggered', async () => {
@@ -72,7 +80,9 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         });
 
         await test.step('step-5: Verify there is no changes of the card', async () => {
-            await expect(await fullPricingExpress.cardShortDescription).toContainText(data.shortDescription.original);
+            await expect((await studio.getCard(data.cardid)).locator(fullPricingExpress.cardShortDescription)).toContainText(
+                data.shortDescription.original,
+            );
         });
     });
 
@@ -91,7 +101,10 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'full-pricing-express');
-            await expect(await fullPricingExpress.cardIconsSlot).toHaveAttribute('src', data.productIcon.original.src);
+            await expect((await studio.getCard(data.cardid)).locator(fullPricingExpress.cardIconsSlot)).toHaveAttribute(
+                'src',
+                data.productIcon.original.src,
+            );
         });
 
         await test.step('step-3: Select product icon from icon picker', async () => {
@@ -101,7 +114,10 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         });
 
         await test.step('step-4: Validate mnemonic icon updated in editor', async () => {
-            await expect(await fullPricingExpress.cardIconsSlot).toHaveAttribute('src', data.productIcon.updated.src);
+            await expect((await studio.getCard(data.cardid)).locator(fullPricingExpress.cardIconsSlot)).toHaveAttribute(
+                'src',
+                data.productIcon.updated.src,
+            );
         });
 
         await test.step('step-5: Close the editor and verify discard is triggered', async () => {
@@ -109,7 +125,10 @@ test.describe('M@S Studio EXPRESS Full Pricing card test suite', () => {
         });
 
         await test.step('step-6: Validate icon reverted to original', async () => {
-            await expect(await fullPricingExpress.cardIconsSlot).toHaveAttribute('src', data.productIcon.original.src);
+            await expect((await studio.getCard(data.cardid)).locator(fullPricingExpress.cardIconsSlot)).toHaveAttribute(
+                'src',
+                data.productIcon.original.src,
+            );
         });
     });
 });

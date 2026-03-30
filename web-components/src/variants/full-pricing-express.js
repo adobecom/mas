@@ -117,7 +117,31 @@ export class FullPricingExpress extends VariantLayout {
         if (!this.card.isConnected) return;
 
         await this.card.updateComplete;
-        await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        if (this.card.prices?.length) {
+            await Promise.all(
+                this.card.prices.map((price) => price.onceSettled()),
+            );
+        }
+
+        const container = this.getContainer();
+        if (container) {
+            const cards = container.querySelectorAll(
+                `merch-card[variant="${this.card.variant}"]`,
+            );
+            const CTA_LONG_TEXT_CHAR_THRESHOLD = 49;
+            cards.forEach((card) => {
+                card.classList.remove('small-font-size-button');
+                const ctas = card.querySelectorAll(
+                    '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]',
+                );
+                ctas.forEach((cta) => {
+                    const isLong =
+                        cta.textContent.trim().length >
+                        CTA_LONG_TEXT_CHAR_THRESHOLD;
+                    cta.classList.toggle('small-font-size-button', isLong);
+                });
+            });
+        }
 
         if (window.matchMedia('(min-width: 1025px)').matches) {
             const container = this.getContainer();

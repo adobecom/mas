@@ -1,7 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
-import { isPznCountryTagPath } from '../personalization-utils.js';
+import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 

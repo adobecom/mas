@@ -1,4 +1,4 @@
-import { PZN_COUNTRY_TAG_PATH_PREFIX, PZN_FOLDER } from './constants.js';
+import { PZN_COUNTRY_TAG_PATH_PREFIX, PZN_FOLDER } from '../../constants.js';
 
 /**
  * @param {string} [cqPath] - AEM tag path e.g. /content/cq:tags/mas/pzn/country/fr_FR

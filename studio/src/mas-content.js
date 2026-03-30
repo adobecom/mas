@@ -7,7 +7,7 @@ import { isUUID } from './utils.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
-import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './personalization-utils.js';
+import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
 

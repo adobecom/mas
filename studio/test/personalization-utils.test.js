@@ -5,7 +5,7 @@ import {
     isPznCountryTagId,
     isPznCountryTagPath,
     PZN_TAG_ID_PREFIX,
-} from '../src/personalization-utils.js';
+} from '../src/common/utils/personalization-utils.js';
 
 describe('personalization-utils', () => {
     describe('PZN_TAG_ID_PREFIX', () => {

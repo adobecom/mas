@@ -32,7 +32,7 @@ import {
     PZN_FOLDER,
     SURFACES,
 } from './constants.js';
-import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './personalization-utils.js';
+import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';

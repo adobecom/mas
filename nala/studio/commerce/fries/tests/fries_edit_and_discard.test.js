@@ -29,7 +29,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-3: Validate badge field is removed', async () => {
             await expect(await editor.trialBadge).toHaveText('');
-            await expect(await fries.trialBadge).not.toBeVisible();
+            await expect((await studio.getCard(data.cardid)).locator(fries.trialBadge)).not.toBeVisible();
         });
 
         await test.step('step-4: Enter new value in the badge field', async () => {
@@ -38,7 +38,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
 
         await test.step('step-5: Validate badge field updated', async () => {
             await expect(await editor.trialBadge).toHaveText(data.trialBadge.updated);
-            await expect(await fries.trialBadge).toHaveText(data.trialBadge.updated);
+            await expect((await studio.getCard(data.cardid)).locator(fries.trialBadge)).toHaveText(data.trialBadge.updated);
         });
 
         await test.step('step-6: Close the editor and verify discard is triggered', async () => {
@@ -46,7 +46,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-7: Verify there is no changes of the card', async () => {
-            await expect(await fries.trialBadge).toHaveText(data.trialBadge.original);
+            await expect((await studio.getCard(data.cardid)).locator(fries.trialBadge)).toHaveText(data.trialBadge.original);
         });
     });
 

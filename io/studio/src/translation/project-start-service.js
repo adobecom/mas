@@ -3,10 +3,14 @@ const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('..
 const {
     fetchFragmentByPath,
     fetchOdin,
+    getTargetPath,
     getValue,
     getValues,
+    getVariationParent,
     postToOdinWithRetry,
     processBatchWithConcurrency,
+    putToOdin,
+    patchToOdin,
 } = require('../common.js');
 
 const DEFAULT_BATCH_SIZE = 10;
@@ -59,7 +63,7 @@ async function runPostVersioningStage(context) {
         context.params,
     );
     if (!syncResult.success) {
-        throw createProjectStartError(500, 'Failed to sync target fragments');
+        throw createProjectStartError(500, `Failed to sync: ${syncResult.error} target fragments`);
     }
 
     logger.info(`Project type: ${context.projectType}`);
@@ -150,10 +154,15 @@ async function getTranslationData(authToken, projectCF, surface, translationFlow
         return null;
     }
     const itemsToTranslate = getItemsToTranslate(projectCF);
-    if (!itemsToTranslate) {
+    if (itemsToTranslate?.length === 0) {
+        logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
         return null;
     }
-    const itemsToSync = await getItemsToSync(authToken, projectCF, locales, surface, params);
+    const { items: itemsToSync, success } = await getItemsToSync(authToken, projectCF, locales, surface);
+    if (!success) {
+        logger.error('Failed to get items to sync');
+        return null;
+    }
 
     logger.info(`Translation flow: ${translationFlow}`);
 
@@ -178,27 +187,61 @@ async function getItemsToSync(authToken, projectCF, locales, surface, params = {
         for (const locale of locales) {
             const targetPlaceholders = placeholders.map((placeholder) => placeholder.replace('/en_US/', `/${locale}/`));
             const path = ODIN_PATH(surface, locale, 'dictionary/index');
-            const { fragment, status, etag } = await fetchFragmentByPath(params.odinEndpoint, path, authToken);
-            if (status === 200 && fragment) {
-                const { values: existingEntries = [], path: existingEntriesPath } = getValues(fragment, 'entries');
-                if (existingEntriesPath) {
-                    const newValues = [...existingEntries, ...targetPlaceholders];
-                    logger.info(`Adding ${path} (etag: ${etag}) to sync with entries=${newValues}`);
-                    items.push({
-                        id: fragment.id,
-                        etag,
-                        path,
-                        update: {
-                            name: 'entries',
-                            path: `${existingEntriesPath}/values`,
-                            value: newValues,
-                        },
-                    });
-                }
+            logger.info(`Placeholder: Adding ${path} to sync with entries=${targetPlaceholders}`);
+            items.push({
+                path,
+                update: {
+                    name: 'entries',
+                    value: targetPlaceholders,
+                },
+            });
+        }
+    }
+    // for each grouped variation, add the parent fragments in target locales to the sync list
+    const variations = getPznVariations(projectCF);
+    if (variations.length === 0) {
+        return { items, success: true };
+    }
+    // map of parentPath -> Set of grouped variation paths
+    const newVariationsMap = new Map();
+    for (const variationPath of variations) {
+        try {
+            const { parentFragment, status } = await getVariationParent(params.odinEndpoint, variationPath, authToken);
+            if (status !== 200 || !parentFragment) {
+                logger.error(`Grouped variation: Failed to get parent for ${variationPath}: ${status}`);
+                return { items: [], success: false };
+            }
+            if (!newVariationsMap.has(parentFragment.path)) {
+                newVariationsMap.set(parentFragment.path, new Set());
+            }
+            newVariationsMap.get(parentFragment.path).add(variationPath);
+        } catch (error) {
+            logger.error(`Grouped variation: Error finding parent for ${variationPath}: ${error.message}`);
+            return { items: [], success: false };
+        }
+    }
+
+    // For each parent fragment add items for all target locales
+    for (const [parentPath, variationPaths] of newVariationsMap.entries()) {
+        for (const locale of locales) {
+            const path = getTargetPath(parentPath, locale);
+            if (!path) continue;
+            const value = [...variationPaths].map((variation) => getTargetPath(variation, locale)).filter(Boolean);
+
+            if (value.length > 0) {
+                logger.info(`Adding ${path} to sync with variations=${value}`);
+                items.push({
+                    path,
+                    update: {
+                        name: 'variations',
+                        value,
+                    },
+                });
             }
         }
     }
-    return items;
+
+    return { items, success: true };
 }
 
 function getItemsToTranslate(projectCF) {
@@ -206,13 +249,11 @@ function getItemsToTranslate(projectCF) {
     const collections = getValues(projectCF, 'collections')?.values || [];
     const placeholders = getValues(projectCF, 'placeholders')?.values || [];
 
-    const itemsToTranslate = [...fragments, ...collections, ...placeholders];
+    return [...fragments, ...collections, ...placeholders];
+}
 
-    if (itemsToTranslate.length === 0) {
-        logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
-        return null;
-    }
-    return itemsToTranslate;
+function getPznVariations(projectCF) {
+    return getValues(projectCF, 'fragments')?.values?.filter((path) => path?.includes('/pzn/')) || [];
 }
 
 async function versionTargetFragment(fragmentToVersion, { authToken, title, params }) {
@@ -305,20 +346,68 @@ async function sendLocRequestWithRetry(config) {
     }
 }
 
-async function sendSyncRequest({ id, update: { name, value, path: updatePath }, path, etag }, { authToken, params }) {
+async function sendSyncRequest({ path, update: { name, value } }, { authToken, params }) {
     try {
-        logger.info(`Updating ${name} for ${path} (${id})`);
-        const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${id}`, authToken, {
-            method: 'PATCH',
-            contentType: 'application/json-patch+json',
-            etag,
-            body: JSON.stringify([{ op: 'replace', path: updatePath, value }]),
-        });
-        await response.json();
-        return { success: true };
+        const { fragment, status, etag } = await fetchFragmentByPath(params.odinEndpoint, path, authToken);
+        if (status !== 200 || !fragment) {
+            const errorMsg = `Failed to fetch fragment at ${path}: ${status}`;
+            logger.error(`Error syncing element ${path}: ${errorMsg}`);
+            return { success: false, path, error: errorMsg };
+        }
+
+        const { id } = fragment;
+        const existing = getValues(fragment, name);
+        const existingValues = existing?.values ?? [];
+        const merged = [...existingValues];
+        for (const v of value) {
+            if (!merged.includes(v)) merged.push(v);
+        }
+
+        // Variations fields are locked by live relationships and cannot be updated via PATCH
+        // Use PUT with full fragment instead
+        if (name === 'variations') {
+            if (merged.length === existingValues.length && merged.every((v, i) => v === existingValues[i])) {
+                logger.info(`No change for variations at ${path}, skipping sync`);
+                return { success: true };
+            }
+
+            // If variations field doesn't exist, add it; otherwise update the variations field in the fields array
+            const variationsField = fragment.fields.find((f) => f.name === 'variations');
+            const updatedFields = variationsField
+                ? fragment.fields.map((field) => (field.name === 'variations' ? { ...field, values: merged } : field))
+                : [
+                      ...fragment.fields,
+                      {
+                          name: 'variations',
+                          type: 'content-fragment',
+                          multiple: true,
+                          values: merged,
+                      },
+                  ];
+
+            // Send PUT request with full fragment
+            return await putToOdin(params.odinEndpoint, id, authToken, {
+                title: fragment.title,
+                description: fragment.description || '',
+                fields: updatedFields,
+                etag,
+            });
+        }
+
+        // For non-variations fields, use PATCH
+        const updatePath = existing?.path ? `${existing.path}/values` : null;
+        if (!updatePath) {
+            const errorMsg = `Field ${name} not found in fragment at ${path}`;
+            logger.error(`Error syncing element ${path}: ${errorMsg}`);
+            return { success: false, path, error: errorMsg };
+        }
+
+        const patchBody = [{ op: 'replace', path: updatePath, value: merged }];
+        return await patchToOdin(params.odinEndpoint, id, authToken, patchBody, etag);
     } catch (error) {
         logger.error(`Error syncing element: ${error}`);
-        return { success: false, path, error: error.message || error.toString() };
+        const errorMsg = `${error.message || error.toString()}`;
+        return { success: false, path, error: errorMsg };
     }
 }
 
@@ -328,8 +417,8 @@ async function sendSyncRequests(itemsToSync, authToken, batchSize, params = {}) 
 
     const failures = results.filter((result) => !result.success);
     if (failures.length > 0) {
-        logger.error(`${failures.length} request(s) failed: ${failures.map((failure) => failure.item).join(', ')}`);
-        return { success: false };
+        const errorMsg = `${failures.length} request(s) failed: ${failures.map((failure) => failure.path || 'unknown').join(', ')}`;
+        return { success: false, error: errorMsg };
     }
 
     logger.info(`Successfully sent ${results.length} sync requests`);

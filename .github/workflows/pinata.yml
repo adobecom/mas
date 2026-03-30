@@ -1,0 +1,113 @@
+name: "Piñata Agent"
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  pinata-agent:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@pinata-agent')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@pinata-agent')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@pinata-agent')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@pinata-agent') || contains(github.event.issue.title, '@pinata-agent')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.PINATA_APP_ID }}
+          private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
+
+      - name: Run Piñata Agent
+        id: pinata
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          trigger_phrase: "@pinata-agent"
+          bot_name: "Piñata"
+          additional_permissions: |
+            actions: read
+
+      - name: Resolve comment body
+        id: comment-body
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            BODY=$(cat <<'BODY_EOF'
+          ${{ github.event.comment.body }}
+          BODY_EOF
+            )
+          elif [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            BODY=$(cat <<'BODY_EOF'
+          ${{ github.event.comment.body }}
+          BODY_EOF
+            )
+          elif [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            BODY=$(cat <<'BODY_EOF'
+          ${{ github.event.review.body }}
+          BODY_EOF
+            )
+          elif [ "${{ github.event_name }}" = "issues" ]; then
+            BODY=$(cat <<'BODY_EOF'
+          ${{ github.event.issue.body }}
+          BODY_EOF
+            )
+          fi
+          echo "body<<BODY_DELIM" >> "$GITHUB_OUTPUT"
+          echo "$BODY" >> "$GITHUB_OUTPUT"
+          echo "BODY_DELIM" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve issue/PR number
+        id: number
+        run: |
+          if [ -n "${{ github.event.issue.number }}" ]; then
+            echo "value=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ github.event.pull_request.number }}" ]; then
+            echo "value=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.event.comment.id }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate harness repo token
+        id: harness-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.PINATA_APP_ID }}
+          private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
+          repositories: agentic-harness
+          owner: joaquinrivero
+
+      - name: Dispatch to harness knowledge-bot
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ steps.harness-token.outputs.token }}
+          repository: joaquinrivero/agentic-harness
+          event-type: pinata-knowledge-bot
+          client-payload: |
+            {
+              "source_repo": "${{ github.repository }}",
+              "source_repo_owner": "${{ github.repository_owner }}",
+              "source_repo_name": "${{ github.event.repository.name }}",
+              "event_type": "${{ github.event_name }}",
+              "number": "${{ steps.number.outputs.value }}",
+              "comment_body": ${{ toJSON(steps.comment-body.outputs.body) }}
+            }

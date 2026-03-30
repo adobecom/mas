@@ -695,16 +695,27 @@ export function processCTAs(
         const ctas = [...footer.querySelectorAll('a')]
             .filter((cta) => {
                 if (!settings?.hideTrialCTAs) return true;
-                const id = cta.dataset.analyticsId;
-                return id !== 'free-trial' && id !== 'start-free-trial';
+                return !cta.dataset.analyticsId?.includes('trial');
             })
             .map((cta) =>
                 transformLinkToButton(cta, merchCard, aemFragmentMapping),
             );
 
-        footer.innerHTML = '';
+        footer.textContent = '';
         footer.append(...ctas);
         merchCard.append(footer);
+
+        if (settings?.hideTrialCTAs) {
+            ctas.forEach((cta) => {
+                const checkout = cta.source ?? cta;
+                if (!checkout.onceSettled) return;
+                checkout.onceSettled().then(() => {
+                    if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                        cta.remove();
+                    }
+                });
+            });
+        }
     }
 }
 

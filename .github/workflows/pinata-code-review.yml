@@ -1,0 +1,85 @@
+name: "Piñata Code Review"
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to review"
+        required: true
+      event_type:
+        description: "Event type override (workflow_dispatch|opened|synchronize|ready_for_review|reopened)"
+        required: false
+        default: "workflow_dispatch"
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pinata-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.PINATA_APP_ID }}
+          private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
+
+      - name: Generate harness repo token
+        id: harness-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.PINATA_APP_ID }}
+          private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
+          # NOTE: harness repo is currently under a personal account — update if it moves to the org
+          repositories: agentic-harness
+          owner: joaquinrivero
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Checkout agentic-harness
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: joaquinrivero/agentic-harness
+          token: ${{ steps.harness-token.outputs.token }}
+          path: harness
+
+      - name: Validate inputs
+        env:
+          PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
+          EVENT_TYPE: ${{ github.event.inputs.event_type || github.event.action || 'workflow_dispatch' }}
+        run: |
+          if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid PR number: ${PR_NUMBER}" && exit 1
+          fi
+          valid_events="workflow_dispatch opened synchronize ready_for_review reopened"
+          if ! echo "$valid_events" | grep -qw "$EVENT_TYPE"; then
+            echo "::error::Invalid event type: ${EVENT_TYPE}" && exit 1
+          fi
+
+      - name: Run Piñata Code Review
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
+          EVENT_TYPE: ${{ github.event.inputs.event_type || github.event.action || 'workflow_dispatch' }}
+          SOURCE_REPO: ${{ github.repository }}
+        run: |
+          cd harness
+          claude --settings '{"hooks":{"SessionStart":[],"PreToolUse":[],"PostToolUse":[],"Notification":[],"Stop":[],"SubagentStop":[],"PreCompact":[],"UserPromptSubmit":[],"SessionEnd":[]}}' -p "/app:pinata:review \"${SOURCE_REPO}\" \"${PR_NUMBER}\" \"${EVENT_TYPE}\""

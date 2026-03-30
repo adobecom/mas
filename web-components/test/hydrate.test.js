@@ -307,6 +307,30 @@ describe('processCTAs', async () => {
         expect(footer.firstChild.className).to.include('accent');
     });
 
+    it('should filter CTA with {{free-trial}} placeholder text when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<a href="#" data-analytics-id="buy-now" class="accent">Buy now</a><a href="#" class="primary-outline">{{free-trial}}</a>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        expect(footer.firstChild.className).to.include('accent');
+    });
+
+    it('should filter CTA with {{start-free-trial}} placeholder text when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<a href="#" data-analytics-id="buy-now" class="accent">Buy now</a><a href="#" class="primary-outline">{{start-free-trial}}</a>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        expect(footer.firstChild.className).to.include('accent');
+    });
+
     it('should keep all CTAs when hideTrialCTAs is false', async () => {
         const fields = {
             ctas: `<a href="#" data-analytics-id="buy-now" class="accent">Buy now</a><a href="#" data-analytics-id="free-trial" class="primary-outline">Free trial</a>`,

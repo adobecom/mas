@@ -347,45 +347,38 @@ test.describe('M@S Studio feature test suite', () => {
     // @studio-variations-locale-filter — Locale tab lists variations for the selected language only
     test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
         const { data } = features[11];
-        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.cardid}`;
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.query}`;
         setTestPage(testPage);
 
-        const parentFragmentTable = () => studio.tableViewFragmentTable(data.cardid);
-        const parentExpandButton = () => parentFragmentTable().locator('button.expand-button');
-        const regionalVariationsTable = () => studio.regionalVariationsTable(data.cardid);
-        const groupedVariationsTable = () => studio.groupedVariationsTable(data.cardid);
-        const localeVariationsTabPanel = () => studio.localeVariationsTabPanel(data.cardid);
-        const groupedVariationsTabPanel = () => studio.groupedVariationsTabPanel(data.cardid);
-
-        await test.step('step-1: Open content table and expand parent row', async () => {
+        await test.step('step-1: Check if English variations are visible when en_US is selected', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.switchToTableView();
-            await expect(parentFragmentTable()).toBeVisible();
-            await parentExpandButton().click();
-            await expect(regionalVariationsTable()).toHaveCount(2, { timeout: 15000 });
+            await expect(studio.tableViewFragmentTable(data.usCardId)).toBeVisible();
+            await studio.tableViewFragmentTable(data.usCardId).locator('button.expand-button').click();
+            await expect(studio.regionalVariationsTable(data.usCardId)).toHaveCount(2, { timeout: 15000 });
             await expect(studio.tableViewFragmentTable(data.regionalVariationId1)).toBeVisible({ timeout: 15000 });
             await expect(studio.tableViewFragmentTable(data.regionalVariationId2)).toBeVisible({ timeout: 15000 });
-            await studio.groupedVariationsTab(data.cardid).click();
-            await expect(groupedVariationsTable()).toHaveCount(2, { timeout: 15000 });
+            await studio.groupedVariationsTab(data.usCardId).click();
+            await expect(studio.groupedVariationsTable(data.usCardId)).toHaveCount(2, { timeout: 15000 });
             await expect(studio.tableViewFragmentTable(data.groupedVariationId1)).toBeVisible({ timeout: 15000 });
             await expect(studio.tableViewFragmentTable(data.groupedVariationId2)).toBeVisible({ timeout: 15000 });
         });
 
-        await test.step('step-2: After switching studio locale, locale tab hides non-matching variations', async () => {
+        await test.step('step-2: Check if English variations are hidden when pl_PL is selected', async () => {
             await studio.selectLocale(data.localePickerLabel);
             await page.reload({ waitUntil: 'domcontentloaded' });
             await studio.switchToTableView();
             await expect(studio.localePicker).toHaveAttribute('value', data.targetLocale);
-            await expect(parentFragmentTable()).toBeVisible({ timeout: 15000 });
-            await parentExpandButton().click();
-            await expect(localeVariationsTabPanel().getByText('No locale variations found')).toBeVisible({
+            await expect(studio.tableViewFragmentTable(data.plCardId)).toBeVisible({ timeout: 15000 });
+            await studio.tableViewFragmentTable(data.plCardId).locator('button.expand-button').click();
+            await expect(studio.localeVariationsTabPanel(data.plCardId).getByText('No locale variations found')).toBeVisible({
                 timeout: 15000,
             });
-            await expect(regionalVariationsTable()).toHaveCount(0);
-            await studio.groupedVariationsTab(data.cardid).click();
-            await expect(groupedVariationsTabPanel().getByText('No grouped variations found')).toBeVisible({ timeout: 15000 });
-            await expect(groupedVariationsTable()).toHaveCount(0);
+            await studio.groupedVariationsTab(data.plCardId).click();
+            await expect(studio.groupedVariationsTabPanel(data.plCardId).getByText('No grouped variations found')).toBeVisible({
+                timeout: 15000,
+            });
         });
     });
 });

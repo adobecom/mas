@@ -6,6 +6,7 @@ import Events from './events.js';
 import { generateFieldLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { isPowerUser } from './groups.js';
 
 const EVENT_MAS_READY = 'mas:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
@@ -34,7 +35,7 @@ class MasSideNav extends LitElement {
         :host {
             display: flex;
             flex-direction: column;
-            height: auto;
+            height: 100%;
             width: 68px;
             padding: 32px 12px 12px 5px;
             box-sizing: content-box;
@@ -50,11 +51,14 @@ class MasSideNav extends LitElement {
         .nav-items {
             display: flex;
             flex-direction: column;
+            height: 100%;
+            position: relative;
+            min-height: 770px;
         }
 
-        .side-nav-support {
-            margin-top: auto;
-            position: relative;
+        #settings-nav-item {
+            position: absolute;
+            bottom: 42px;
         }
 
         .side-nav-new-window {
@@ -139,7 +143,15 @@ class MasSideNav extends LitElement {
 
     reactiveController = new ReactiveController(
         this,
-        [Store.page, Store.search, Store.viewMode, Store.fragmentEditor.editorContext, Store.fragmentEditor.loading],
+        [
+            Store.page,
+            Store.search,
+            Store.viewMode,
+            Store.fragmentEditor.editorContext,
+            Store.fragmentEditor.loading,
+            Store.profile,
+            Store.users,
+        ],
         this.handleStoreChanges,
     );
 
@@ -153,15 +165,23 @@ class MasSideNav extends LitElement {
     #onCopyFieldTriggerPointerDown = () => {
         this.#copyFieldMenuOpenedByPointer = true;
     };
+    #clearFocusedCopyFieldMenuItem = (overlayTrigger) => {
+        const menu = overlayTrigger.querySelector('sp-menu');
+        const focusedItem = menu?.querySelector('sp-menu-item[focused]');
+        if (!focusedItem) return false;
+        focusedItem.blur();
+        focusedItem.removeAttribute('focused');
+        return true;
+    };
     #onCopyFieldMenuOpened = (event) => {
         if (!this.#copyFieldMenuOpenedByPointer) return;
         this.#copyFieldMenuOpenedByPointer = false;
         const overlayTrigger = event.currentTarget;
-        requestAnimationFrame(() => {
-            const menu = overlayTrigger.querySelector('sp-menu');
-            const focusedItem = menu?.querySelector('sp-menu-item[focused]');
-            focusedItem?.blur();
-            focusedItem?.removeAttribute('focused');
+        queueMicrotask(() => {
+            if (this.#clearFocusedCopyFieldMenuItem(overlayTrigger)) return;
+            this.updateComplete.then(() => {
+                this.#clearFocusedCopyFieldMenuItem(overlayTrigger);
+            });
         });
     };
     #onCopyFieldMenuClosed = () => {
@@ -192,6 +212,8 @@ class MasSideNav extends LitElement {
             Store.viewMode,
             Store.fragmentEditor.editorContext,
             Store.fragmentEditor.loading,
+            Store.profile,
+            Store.users,
         ];
         if (fragmentStore) {
             stores.push(fragmentStore);
@@ -640,6 +662,21 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.deleteFragment();
     }
 
+    get settingsItem() {
+        if (!isPowerUser()) {
+            return nothing;
+        }
+        return html`
+            <mas-side-nav-item
+                id="settings-nav-item"
+                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS || Store.page.get() === PAGE_NAMES.SETTINGS_EDITOR}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.SETTINGS)}"
+            >
+                <sp-icon-settings slot="icon" size="l"></sp-icon-settings>
+            </mas-side-nav-item>
+        `;
+    }
+
     get defaultNavigation() {
         return html`
             <mas-side-nav-item
@@ -687,6 +724,7 @@ class MasSideNav extends LitElement {
                 <sp-icon-help slot="icon"></sp-icon-help>
                 <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
             </mas-side-nav-item>
+            ${this.settingsItem}
         `;
     }
 

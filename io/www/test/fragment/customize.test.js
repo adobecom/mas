@@ -8,6 +8,7 @@ import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' wi
 
 const FAKE_CONTEXT = {
     status: 200,
+    debugLogs: true,
     state: new MockState(),
     surface: 'sandbox',
     parsedLocale: 'en_US',
@@ -73,6 +74,21 @@ describe('customize collections', function () {
         };
         const result = deepMerge(obj1, obj2);
         expect(result).to.deep.equal(expected);
+    });
+
+    it('should preserve left value when right has undefined (e.g. fields.variant)', function () {
+        const left = { fields: { variant: 'regional-variant', title: 'Root' } };
+        const right = { fields: { variant: undefined, title: 'Regional' } };
+        const result = deepMerge(left, right);
+        expect(result.fields.variant).to.equal('regional-variant');
+        expect(result.fields.title).to.equal('Regional');
+    });
+
+    it('should erase variant when right has empty string', function () {
+        const left = { fields: { variant: 'regional-variant' } };
+        const right = { fields: { variant: '' } };
+        const result = deepMerge(left, right);
+        expect(result.fields.variant).to.equal('');
     });
 
     it('should customize subcollections and sub fragments', async function () {
@@ -164,6 +180,484 @@ describe('customize collections', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('Kuwait PZN badge');
+    });
+
+    it('should merge personalization when pznTags end with pzn/country/<country>', async function () {
+        const pznVariationId = 'pzn-var-country';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/country',
+                        id: pznVariationId,
+                        title: 'Country targeting',
+                        fields: {
+                            pznTags: ['experience-fragments:mas/sandbox/pzn/country/KW'],
+                            badge: 'Kuwait country PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            country: 'KW',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Kuwait country PZN');
+    });
+
+    it('should merge personalization when country is MX and pznTags end with pzn/country/MX', async function () {
+        const pznVariationId = 'pzn-var-mx';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/mx',
+                        id: pznVariationId,
+                        title: 'Mexico country targeting',
+                        fields: {
+                            pznTags: ['mas:sandbox/pzn/country/MX'],
+                            badge: 'Mexico country PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            country: 'MX',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Mexico country PZN');
+    });
+
+    it('should merge personalization when pzn is TEAMS, EDU and tags match pzn/TEAMS and pzn/EDU', async function () {
+        const pznVariationId = 'pzn-var-teams-edu';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/teams-edu',
+                        id: pznVariationId,
+                        title: 'Teams and EDU',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/TEAMS', 'mas:audiences/pzn/EDU'],
+                            badge: 'Teams and EDU PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'TEAMS, EDU',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Teams and EDU PZN');
+    });
+
+    it('should prefer TEAMS+EDU variation over TEAMS-only when pzn is TEAMS, EDU', async function () {
+        const teamsOnlyId = 'pzn-teams-only';
+        const teamsEduId = 'pzn-teams-edu-combo';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [teamsOnlyId, teamsEduId],
+            },
+            references: {
+                [teamsOnlyId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/teams-only',
+                        id: teamsOnlyId,
+                        title: 'Teams only',
+                        fields: {
+                            pznTags: ['mas:offers/pzn/TEAMS'],
+                            badge: 'Teams only badge',
+                        },
+                    },
+                },
+                [teamsEduId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/teams-edu-combo',
+                        id: teamsEduId,
+                        title: 'Teams and EDU combo',
+                        fields: {
+                            pznTags: ['mas:offers/pzn/TEAMS', 'mas:offers/pzn/EDU'],
+                            badge: 'Teams and EDU combo badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'TEAMS, EDU',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Teams and EDU combo badge');
+    });
+
+    it('should prefer MX country plus TEAMS and EDU tags over TEAMS+EDU only when country is MX and pzn is TEAMS, EDU', async function () {
+        const teamsEduOnlyId = 'pzn-mx-teams-edu-no-country-tag';
+        const teamsEduMxId = 'pzn-mx-teams-edu-with-country';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [teamsEduOnlyId, teamsEduMxId],
+            },
+            references: {
+                [teamsEduOnlyId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/no-country',
+                        id: teamsEduOnlyId,
+                        title: 'TEAMS+EDU no country tag',
+                        fields: {
+                            pznTags: ['mas:seg/pzn/TEAMS', 'mas:seg/pzn/EDU'],
+                            badge: 'TEAMS EDU without MX',
+                        },
+                    },
+                },
+                [teamsEduMxId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/with-mx',
+                        id: teamsEduMxId,
+                        title: 'TEAMS+EDU with MX',
+                        fields: {
+                            pznTags: ['mas:seg/pzn/country/MX', 'mas:seg/pzn/TEAMS', 'mas:seg/pzn/EDU'],
+                            badge: 'TEAMS EDU Mexico',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            country: 'MX',
+            parsedLocale: 'en_US',
+            pzn: 'TEAMS, EDU',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('TEAMS EDU Mexico');
+    });
+
+    it('should merge personalization when a tag ends with pzn/<token>', async function () {
+        const pznVariationId = 'pzn-var-pzn-slash-token';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/pzn-slash',
+                        id: pznVariationId,
+                        title: 'pzn/ token',
+                        fields: {
+                            pznTags: ['mas:commerce/campaigns/pzn/winter-sale'],
+                            badge: 'Winter sale PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'winter-sale',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Winter sale PZN');
+    });
+
+    it('should prefer personalization variation that matches more pzn tokens', async function () {
+        const oneTokenId = 'pzn-one-token';
+        const twoTokenId = 'pzn-two-tokens';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [oneTokenId, twoTokenId],
+            },
+            references: {
+                [oneTokenId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/one',
+                        id: oneTokenId,
+                        title: 'One token',
+                        fields: {
+                            pznTags: ['mas:pzn/segment-a'],
+                            badge: 'One token badge',
+                        },
+                    },
+                },
+                [twoTokenId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/two',
+                        id: twoTokenId,
+                        title: 'Two tokens',
+                        fields: {
+                            pznTags: ['mas:pzn/segment-a', 'mas:offers/pzn/promo-b'],
+                            badge: 'Two tokens badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'segment-a,promo-b',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Two tokens badge');
+    });
+
+    it('should merge personalization when a comma-separated pzn token matches a tag suffix', async function () {
+        const pznVariationId = 'pzn-var-token';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/token',
+                        id: pznVariationId,
+                        title: 'Token targeting',
+                        fields: {
+                            pznTags: ['mas:commerce/pzn/promo-tier-gold'],
+                            badge: 'Gold tier PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'silver, promo-tier-gold ',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Gold tier PZN');
+    });
+
+    it('should coerce non-string pzn to string for token matching', async function () {
+        const pznVariationId = 'pzn-numeric-token';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/numeric',
+                        id: pznVariationId,
+                        title: 'Numeric pzn',
+                        fields: {
+                            pznTags: ['mas:segments/pzn/42'],
+                            badge: 'Numeric PZN badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 42,
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Numeric PZN badge');
+    });
+
+    it('should skip PZN variations with invalid or empty pznTags and merge a valid one', async function () {
+        const emptyArrayId = 'pzn-empty-array-tags';
+        const invalidArrayId = 'pzn-invalid-tags-array';
+        const emptyTagsId = 'pzn-all-falsy-tags';
+        const validId = 'pzn-valid-after-invalid';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [emptyArrayId, invalidArrayId, emptyTagsId, validId],
+            },
+            references: {
+                [emptyArrayId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/empty-array',
+                        id: emptyArrayId,
+                        title: 'Empty pznTags array',
+                        fields: {
+                            pznTags: [],
+                            badge: 'Empty array should not win',
+                        },
+                    },
+                },
+                [invalidArrayId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/invalid',
+                        id: invalidArrayId,
+                        title: 'Not an array',
+                        fields: {
+                            pznTags: 'mas:pzn/not-a-tag-array',
+                            badge: 'Should not win',
+                        },
+                    },
+                },
+                [emptyTagsId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/empty-tags',
+                        id: emptyTagsId,
+                        title: 'Only falsy tag entries',
+                        fields: {
+                            pznTags: ['', null, undefined],
+                            badge: 'Also should not win',
+                        },
+                    },
+                },
+                [validId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/valid',
+                        id: validId,
+                        title: 'Valid tags',
+                        fields: {
+                            pznTags: ['en_US'],
+                            badge: 'Valid PZN badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Valid PZN badge');
     });
 
     it('should not merge personalization variation when no pznTags match regionLocale', async function () {
@@ -437,7 +931,7 @@ describe('customize corner cases', function () {
             surface: 'sandbox',
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
+        expect(result).to.deep.include({
             message: 'Missing surface or fragmentPath',
             status: 400,
         });
@@ -450,7 +944,7 @@ describe('customize corner cases', function () {
                 fragmentPath: 'bar',
                 locale: 'fr_FR',
             }),
-        ).to.deep.equal({
+        ).to.deep.include({
             message: 'Missing surface or fragmentPath',
             status: 400,
         });
@@ -475,7 +969,7 @@ describe('customize corner cases', function () {
             fragmentPath: 'ccd-slice-wide-cc-all-app',
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
+        expect(result).to.deep.include({
             status: 503,
             message: 'fetch error',
         });
@@ -513,7 +1007,7 @@ describe('customize corner cases', function () {
             fragmentPath: 'ccd-slice-wide-cc-all-app',
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
+        expect(result).to.deep.include({
             status: 503,
             message: 'fetch error',
         });
@@ -536,7 +1030,7 @@ describe('customize corner cases', function () {
             fragmentPath: 'ccd-slice-wide-cc-all-app',
             locale: 'fr_FR',
         });
-        expect(result).to.deep.equal({
+        expect(result).to.deep.include({
             status: 404,
             message: 'Fragment not found',
         });

@@ -46,6 +46,10 @@ describe('MasTranslationEditor', () => {
 
     const createMockRepository = (overrides = {}) => ({
         aem: {
+            getFragmentByPath: sandbox.stub().callsFake(async (path) => ({
+                ...createMockFragment(),
+                path,
+            })),
             sites: {
                 cf: {
                     fragments: {
@@ -75,6 +79,7 @@ describe('MasTranslationEditor', () => {
         Store.translationProjects.selectedPlaceholders.value = [];
         Store.translationProjects.targetLocales.value = [];
         Store.translationProjects.showSelected.value = false;
+        Store.translationProjects.projectType.set('translation');
         Store.search.set({ path: SURFACES.ACOM.name });
     };
 
@@ -87,6 +92,10 @@ describe('MasTranslationEditor', () => {
         originalQuerySelector = document.querySelector.bind(document);
         defaultMockRepository = {
             aem: {
+                getFragmentByPath: sandbox.stub().callsFake(async (path) => ({
+                    ...createMockFragment(),
+                    path,
+                })),
                 sites: {
                     cf: {
                         fragments: {
@@ -303,15 +312,6 @@ describe('MasTranslationEditor', () => {
     });
 
     describe('rendering', () => {
-        it('should render breadcrumbs', async () => {
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            const breadcrumbs = el.shadowRoot.querySelector('sp-breadcrumbs');
-            expect(breadcrumbs).to.exist;
-            const breadcrumbItems = el.shadowRoot.querySelectorAll('sp-breadcrumb-item');
-            expect(breadcrumbItems.length).to.equal(2);
-            expect(breadcrumbItems[0].textContent).to.equal('Translations');
-        });
-
         it('should render "Create new project" header for new project', async () => {
             Store.translationProjects.translationProjectId.set(null);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -422,6 +422,26 @@ describe('MasTranslationEditor', () => {
         });
     });
 
+    describe('project type input handling', () => {
+        it('should update project type when project type changes', async () => {
+            const mockFragment = new Fragment(createMockFragment());
+            const fragmentStore = new FragmentStore(mockFragment);
+            Store.translationProjects.inEdit.set(fragmentStore);
+            Store.translationProjects.projectType.set('translation');
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const projectTypeGroup = el.shadowRoot.querySelector('#projectType');
+            expect(projectTypeGroup).to.exist;
+            const rolloutRadio = projectTypeGroup.querySelector('sp-radio[value="rollout"]');
+            expect(rolloutRadio).to.exist;
+            rolloutRadio.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.projectType.value).to.equal('rollout');
+            expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
+            expect(el.disabledActions.has(QUICK_ACTION.DISCARD)).to.be.false;
+        });
+    });
+
     describe('confirmation dialog', () => {
         it('should not render confirmation dialog when config is null', async () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -493,17 +513,6 @@ describe('MasTranslationEditor', () => {
             expect(cancelled).to.be.true;
             expect(el.confirmDialogConfig).to.be.null;
             expect(el.isDialogOpen).to.be.false;
-        });
-    });
-
-    describe('breadcrumb navigation', () => {
-        it('should navigate to translations page when breadcrumb is clicked', async () => {
-            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
-            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            const breadcrumbItem = el.shadowRoot.querySelector('sp-breadcrumb-item');
-            breadcrumbItem.click();
-            await el.updateComplete;
-            expect(navigateStub.calledWith(PAGE_NAMES.TRANSLATIONS)).to.be.true;
         });
     });
 
@@ -616,7 +625,7 @@ describe('MasTranslationEditor', () => {
             expect(metadataInfo).to.exist;
         });
 
-        it('should make title field readonly in readonly mode', async () => {
+        it('should render title and project type as span in readonly mode', async () => {
             const mockFragment = new Fragment(createMockFragment());
             const fragmentStore = new FragmentStore(mockFragment);
             Store.translationProjects.inEdit.set(fragmentStore);
@@ -624,7 +633,11 @@ describe('MasTranslationEditor', () => {
             el.isProjectReadonly = true;
             await el.updateComplete;
             const titleField = el.shadowRoot.querySelector('#title');
-            expect(titleField.readonly).to.be.true;
+            const projectTypeField = el.shadowRoot.querySelector('#projectType');
+            expect(titleField).to.exist;
+            expect(titleField.localName).to.equal('span');
+            expect(projectTypeField).to.exist;
+            expect(projectTypeField.localName).to.equal('span');
         });
     });
 
@@ -638,6 +651,7 @@ describe('MasTranslationEditor', () => {
                         { name: 'placeholders', type: 'content-fragment', multiple: true, values: [] },
                         { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
                         { name: 'targetLocales', type: 'text', multiple: true, values: [] },
+                        { name: 'projectType', type: 'enumeration', multiple: false, values: ['translation'] },
                     ],
                 }),
             );

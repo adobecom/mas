@@ -19,6 +19,7 @@ function displayHelp() {
   \x1b[33m* config=<config-file>\x1b[0m               Custom configuration file to use (default: Playwright's default)
   \x1b[33m* project=<project-name>\x1b[0m             Project configuration (default: mas-live-chromium)
   \x1b[33m* milolibs=<local|prod|code|feature>\x1b[0m Milo library environment (default: none)
+  \x1b[33m* masiourl=<mas-io-url>\x1b[0m              MAS IO URL to use for the test (default: none)
   \x1b[33m* owner=<repo-owner>\x1b[0m                 repo owner (default owner = adobecom) 
 
 \x1b[1mExamples:\x1b[0m
@@ -32,6 +33,7 @@ function displayHelp() {
   | npm run nala local -g=@accordion                       | Runs tests annotated with tag i.e @accordion on local env on chrome browser        |
   | npm run nala local -g=@accordion browser=firefox       | Runs tests annotated with tag i.e @accordion on local env on Firefox browser       |
   | npm run nala <featurebranch> owner='<owner>'           | Runs all nala tests on the specified feature branch for the given repo owner       |        
+  | npm run nala <featurebranch> masiourl='<mas-io-url>'   | Runs all nala tests on the specified feature branch for the given MAS IO URL       |        
 
 \x1b[1mDebugging:\x1b[0m
 -----------
@@ -53,6 +55,7 @@ function parseArgs(args) {
         config: '',
         project: '',
         milolibs: '',
+        masiourl: '',
         repo: 'mas',
         owner: 'adobecom',
     };
@@ -88,23 +91,16 @@ function parseArgs(args) {
     return parsedParams;
 }
 
-function getLocalTestLiveUrl(env, milolibs, repo = 'mas', owner = 'adobecom') {
+function getLocalTestLiveUrl(env, masiourl, milolibs, repo = 'mas', owner = 'adobecom') {
+    if (masiourl) {
+        process.env.MAS_IO_URL = `?mas-io-url=${masiourl}`;
+    }
     if (milolibs) {
         process.env.MILO_LIBS = `?milolibs=${milolibs}`;
-        if (env === 'local') {
-            return 'http://localhost:3000';
-        }
-        if (env === 'libs') {
-            return 'http://localhost:6456';
-        }
-        return `https://${env}--${repo}--${owner}.aem.live`;
     }
-    if (env === 'local') {
-        return 'http://localhost:3000';
-    }
-    if (env === 'libs') {
-        return 'http://localhost:6456';
-    }
+
+    if (env === 'local') return 'http://localhost:3000';
+    if (env === 'libs') return 'http://localhost:6456';
     return `https://${env}--${repo}--${owner}.aem.live`;
 }
 
@@ -222,6 +218,7 @@ function runNalaTest() {
     const parsedParams = parseArgs(args);
     const localTestLiveUrl = getLocalTestLiveUrl(
         parsedParams.env,
+        parsedParams.masiourl,
         parsedParams.milolibs,
         parsedParams.repo,
         parsedParams.owner,

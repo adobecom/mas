@@ -193,7 +193,7 @@ const CCD = [
 const EXPRESS = [
     { lang: 'da', country: 'DK' },
     { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
-    { lang: 'en', country: 'GB', regions: ['IN'] },
+    { lang: 'en', country: 'GB' },
     {
         lang: 'en',
         country: 'US',
@@ -461,6 +461,24 @@ export function getDefaultLocaleCode(surface, localeCode) {
 
 export function getDefaultLocales(surface) {
     return DEFAULT_LOCALES[surface] || [];
+}
+
+/**
+ * Get all locales for a given surface, including default locales and region variants.
+ * @param {string} surface e.g. 'acom'
+ * @returns {{ lang: string, country: string }[]}
+ */
+export function getSurfaceLocales(surface) {
+    const map = new Map();
+    getDefaultLocales(surface)
+        .flatMap(({ lang, country, regions = [] }) => [
+            { lang, country },
+            ...regions.map((region) => ({ lang, country: region })),
+        ])
+        .forEach((locale) => {
+            map.set(getLocaleCode(locale), locale);
+        });
+    return [...map.values()];
 }
 
 /**

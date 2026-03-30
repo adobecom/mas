@@ -1,7 +1,7 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
-import { PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
+import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 
 /**
  * @param {string} input
@@ -112,7 +112,20 @@ export function debounce(fn, delay) {
     };
 }
 
+/**
+ * Shared UUID pattern used for fragment-id searches.
+ */
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export class UserFriendlyError extends Error {}
+
+/**
+ * @param {string} value
+ * @returns {boolean}
+ */
+export function isUUID(value) {
+    return UUID_REGEX.test(value);
+}
 
 /**
  * Deeply compares two values for equality
@@ -345,9 +358,24 @@ export function extractSurfaceFromPath(fragmentPath) {
  */
 export function extractLocaleFromPath(fragmentPath) {
     if (!fragmentPath) return null;
-    const parts = fragmentPath.split('/');
-    const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
-    return parts.find((part) => localePattern.test(part)) || null;
+    const match = fragmentPath.match(PATH_TOKENS);
+    return match?.groups?.parsedLocale ?? null;
+}
+
+/**
+ * Builds a fragment path with the locale segment replaced (e.g. for fil_PH check).
+ * Uses PATH_TOKENS from paths.js so the path shape is the single source of truth.
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-path}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @param {string} newLocale - The new locale code (e.g. 'fil_PH')
+ * @returns {string | null} - The path with locale replaced, or null if path does not match PATH_TOKENS
+ */
+export function replaceLocaleInPath(fragmentPath, newLocale) {
+    if (!fragmentPath || !newLocale) return null;
+    const match = fragmentPath.match(PATH_TOKENS);
+    if (!match?.groups) return null;
+    const { surface, fragmentPath: fragmentPathSuffix } = match.groups;
+    return `${MAS_ROOT}/${surface}/${newLocale}/${fragmentPathSuffix}`;
 }
 
 export function deepEquals(a, b) {

@@ -639,7 +639,8 @@ describe('MasSideNav – Copy Field', () => {
 
             trigger.dispatchEvent(new Event('pointerdown', { bubbles: true, composed: true }));
             overlay.dispatchEvent(new Event('sp-opened'));
-            await new Promise((resolve) => requestAnimationFrame(resolve));
+            await Promise.resolve();
+            await Promise.resolve();
 
             expect(focusedItem.hasAttribute('focused')).to.be.false;
             expect(focusedItem.blur.calledOnce).to.be.true;
@@ -670,7 +671,8 @@ describe('MasSideNav – Copy Field', () => {
             focusedItem.blur = sandbox.stub();
 
             overlay.dispatchEvent(new Event('sp-opened'));
-            await new Promise((resolve) => requestAnimationFrame(resolve));
+            await Promise.resolve();
+            await Promise.resolve();
 
             expect(focusedItem.hasAttribute('focused')).to.be.true;
             expect(focusedItem.blur.called).to.be.false;
@@ -852,6 +854,11 @@ describe('MasSideNav – Copy Field', () => {
     });
 
     describe('lifecycle', () => {
+        afterEach(() => {
+            Store.fragments.inEdit.set(null);
+            el.disconnectedCallback();
+        });
+
         it('should unsubscribe from inEdit store on disconnect', () => {
             const unsubscribeStub = sandbox.stub(Store.fragments.inEdit, 'unsubscribe');
             el.disconnectedCallback();
@@ -866,9 +873,7 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(el.variationDataLoading).to.be.false;
             expect(updateStoresStub.called).to.be.true;
-            expect(updateStoresStub.firstCall.args[0]).to.have.length(5);
-
-            el.disconnectedCallback();
+            expect(updateStoresStub.firstCall.args[0]).to.have.length(7);
         });
 
         it('should subscribe to previewStore updates when fragment enters edit', () => {
@@ -881,9 +886,6 @@ describe('MasSideNav – Copy Field', () => {
 
             const updatedStores = updateStoresStub.lastCall.args[0];
             expect(updatedStores).to.include(previewStore);
-
-            Store.fragments.inEdit.set(null);
-            el.disconnectedCallback();
         });
     });
 

@@ -19,7 +19,7 @@ import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
-const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 20000;
+const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 30000;
 
 const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
@@ -33,6 +33,10 @@ const VARIANT_CLASSES = {
     segmentThreeColumns: ['three-merch-cards'],
     'special-offers': ['three-merch-cards'],
     image: ['three-merch-cards'],
+    'mini-compare-chart': ['three-merch-cards'],
+    'mini-compare-chartTwoColumns': ['two-merch-cards'],
+    'mini-compare-chart-mweb': ['three-merch-cards'],
+    'mini-compare-chart-mwebTwoColumns': ['two-merch-cards'],
 };
 
 const SIDENAV_AUTOCLOSE = {
@@ -562,6 +566,12 @@ export class MerchCardCollection extends LitElement {
             ) {
                 nmbOfColumns =
                     cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
+            } else if (
+                (variant === 'mini-compare-chart' ||
+                    variant === 'mini-compare-chart-mweb') &&
+                cards.length <= 2
+            ) {
+                nmbOfColumns = cards.length === 1 ? '' : 'TwoColumns';
             }
 
             if (variant) {

@@ -7,7 +7,15 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
+import {
+    debounce,
+    looseEquals,
+    showToast,
+    UserFriendlyError,
+    extractLocaleFromPath,
+    extractSurfaceFromPath,
+    isUUID,
+} from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -73,11 +81,6 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     fragmentCache.add(cacheData);
 }
 
-function isUUID(str) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(str);
-}
-
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },
@@ -115,6 +118,7 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #addonPlaceholdersRequest = null;
     /** @type {AEM} */
     aem;
 
@@ -172,6 +176,10 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.PLACEHOLDERS:
                 this.loadPlaceholders();
+                break;
+            case PAGE_NAMES.SETTINGS:
+            case PAGE_NAMES.SETTINGS_EDITOR:
+                this.loadAddonPlaceholders();
                 break;
             case PAGE_NAMES.PROMOTIONS:
                 this.loadPromotions();
@@ -247,8 +255,10 @@ export class MasRepository extends LitElement {
         const currentLocale = dataStore.getMeta('locale');
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
+        let resolvedLocale = locale;
+        let resolvedPath = path;
 
-        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
+        if (currentData && currentPath === path && currentQuery === query && currentLocale === locale) {
             const filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
@@ -263,6 +273,7 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
+        dataStore.set([]);
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -289,10 +300,11 @@ export class MasRepository extends LitElement {
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
         const damPath = getDamPath(path);
+        const localizedPath = `${damPath}/${locale}`;
         const localSearch = {
             ...this.search.value,
             modelIds,
-            path: `${damPath}/${this.filters.value.locale}`,
+            path: localizedPath,
             tags,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
@@ -321,24 +333,52 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
+                const fragmentSurface = extractSurfaceFromPath(fragmentData?.path)?.toLowerCase() || null;
+                const fragmentLocale = extractLocaleFromPath(fragmentData?.path);
+                const matchesSurface = !fragmentSurface || fragmentSurface === path;
+                const syncedPathQuery = Store.search.getMeta('uuid-query');
+                const syncedPath = Store.search.getMeta('uuid-path');
+                const canSyncSurface = syncedPathQuery !== query || Store.search.value.path === syncedPath;
+                const syncedLocaleQuery = Store.filters.getMeta('uuid-query');
+                const syncedLocale = Store.filters.getMeta('uuid-locale');
+                const canSyncLocale = syncedLocaleQuery !== query || Store.filters.value.locale === syncedLocale;
+                const matchesLocale = !fragmentLocale || fragmentLocale === locale;
+
                 if (
                     fragmentData &&
-                    fragmentData.path.indexOf(ROOT_PATH) === 0 &&
+                    (canSyncSurface || matchesSurface) &&
+                    (canSyncLocale || matchesLocale) &&
                     !Fragment.isGroupedVariationPath(fragmentData.path)
                 ) {
-                    const fragmentFolderPath = fragmentData.path.substring(ROOT_PATH.length + 1);
-                    const fragmentFolder = fragmentFolderPath.split('/')[0];
-                    const surface = fragmentFolder?.toLowerCase();
-                    applyCorrectorToFragment(fragmentData, surface);
+                    resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
+                    resolvedPath = canSyncSurface ? fragmentSurface || path : path;
+                    applyCorrectorToFragment(fragmentData, fragmentSurface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment);
                     dataStore.set([sourceStore]);
 
-                    // Update the search path to the fragment's folder
-                    if (Store.folders.data.get().includes(fragmentFolder)) {
+                    if (fragmentSurface) {
+                        Store.search.setMeta('uuid-query', query);
+                        Store.search.setMeta('uuid-path', fragmentSurface);
+                    }
+
+                    if (fragmentLocale) {
+                        Store.filters.setMeta('uuid-query', query);
+                        Store.filters.setMeta('uuid-locale', fragmentLocale);
+                    }
+
+                    // Backfill the surface for pathless UUID deep-links so the picker and URL normalize.
+                    if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
                         Store.search.set((prev) => ({
                             ...prev,
-                            path: fragmentFolder,
+                            path: fragmentSurface,
+                        }));
+                    }
+
+                    if (canSyncLocale && fragmentLocale && Store.filters.value.locale !== fragmentLocale) {
+                        Store.filters.set((prev) => ({
+                            ...prev,
+                            locale: fragmentLocale,
                         }));
                     }
                 }
@@ -357,14 +397,14 @@ export class MasRepository extends LitElement {
                         fragmentStores.push(sourceStore);
                     }
                     dataStore.set([...fragmentStores]);
-                    Store.fragments.list.firstPageLoaded.set(true);
                 }
             }
 
-            dataStore.setMeta('path', path);
+            dataStore.setMeta('path', resolvedPath);
             dataStore.setMeta('query', query);
-            dataStore.setMeta('locale', locale);
+            dataStore.setMeta('locale', resolvedLocale);
             dataStore.setMeta('tags', tags);
+            Store.fragments.list.firstPageLoaded.set(true);
 
             this.#abortControllers.search = null;
         } catch (error) {
@@ -820,7 +860,10 @@ export class MasRepository extends LitElement {
             this.#abortControllers.translations = new AbortController();
             Store.translationProjects.list.loading.set(true);
             const fragments = await this.searchFragmentList(
-                { path: translationsPath },
+                {
+                    path: translationsPath,
+                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+                },
                 50,
                 this.#abortControllers.translations,
             );
@@ -911,6 +954,8 @@ export class MasRepository extends LitElement {
         if (!fragment) {
             fragment = new Fragment(fragmentData);
             fragmentCache.add(fragment);
+        } else {
+            fragment.refreshFrom(fragmentData);
         }
         return fragment;
     }
@@ -1793,7 +1838,18 @@ export class MasRepository extends LitElement {
      * Uses the preview dictionary (loaded via odinpreview) instead of slow AEM search
      */
     async loadAddonPlaceholders() {
-        if (Store.placeholders.addons.data.get().length > 1) return;
+        const currentOptions = this.#dedupeAddonOptions(Store.placeholders.addons.data.get());
+        if (currentOptions.length !== Store.placeholders.addons.data.get().length) {
+            Store.placeholders.addons.data.set(currentOptions);
+        }
+        if (currentOptions.length > 1) return;
+        if (this.#addonPlaceholdersRequest) return this.#addonPlaceholdersRequest;
+
+        this.#addonPlaceholdersRequest = this.#loadAddonPlaceholders();
+        await this.#addonPlaceholdersRequest;
+    }
+
+    async #loadAddonPlaceholders() {
         Store.placeholders.addons.loading.set(true);
         try {
             await this.loadPreviewPlaceholders();
@@ -1802,13 +1858,27 @@ export class MasRepository extends LitElement {
                 const addonFragments = Object.keys(dictionary)
                     .filter((key) => /^addon-/.test(key))
                     .map((key) => ({ value: key, itemText: key }));
-                Store.placeholders.addons.data.set((prev) => [...prev, ...addonFragments]);
+                const nextOptions = this.#dedupeAddonOptions([...Store.placeholders.addons.data.get(), ...addonFragments]);
+                Store.placeholders.addons.data.set(nextOptions);
             }
         } catch (error) {
             this.processError(error, 'Could not load addon placeholders.');
         } finally {
+            this.#addonPlaceholdersRequest = null;
             Store.placeholders.addons.loading.set(false);
         }
+    }
+
+    #dedupeAddonOptions(options) {
+        const seen = new Set();
+        const uniqueOptions = [];
+        for (const option of options) {
+            const key = option.value;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            uniqueOptions.push(option);
+        }
+        return uniqueOptions;
     }
 
     render() {

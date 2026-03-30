@@ -1,4 +1,4 @@
-import { DESKTOP_UP, LARGE_DESKTOP, TABLET_UP } from './media.js';
+import { DESKTOP_UP, LARGE_DESKTOP, TABLET_UP, TABLET_DOWN } from './media.js';
 
 const styles = document.createElement('style');
 
@@ -27,6 +27,9 @@ styles.innerHTML = `
 
     /* cta */
     --consonant-merch-card-cta-font-size: 15px;
+
+    /* badge */
+    --type-heading-xxs-size: 11px;
 
     /* headings */
     --consonant-merch-card-heading-xxxs-font-size: 14px;
@@ -118,6 +121,11 @@ styles.innerHTML = `
     --spectrum-gray-300-plans: #DADADA;
     --spectrum-gray-700-plans: #505050;
     --spectrum-red-700-plans: #EB1000;
+
+    /* base spectrum colors (used by merch-badge) */
+    --spectrum-yellow-300: #F5C700;
+    --spectrum-green-900: #05834E;
+    --spectrum-red-700: #EB1000;
 
     /* special-offers colors */
     --spectrum-yellow-300-special-offers: #EDCC00;
@@ -236,6 +244,14 @@ merch-card-collection-header > div[slot] p {
     gap: var(--consonant-merch-spacing-m);
     padding: var(--spacing-m);
     grid-template-columns: var(--merch-card-collection-card-width);
+}
+
+.section[class$="merch-cards"] > .content {
+	padding: 0;
+}
+
+.tab-content [role='tabpanel'] .section[class$="merch-cards"] > .content {
+	width: auto;
 }
 
 .tabpanel > .four-merch-cards {
@@ -795,9 +811,29 @@ merch-card[border-color="spectrum-red-700-plans"] {
 }
 
 @media (max-width: 600px) {
-merch-card [slot='callout-content'] .icon-button::before {
-    max-width: 180px;
-  }
+    merch-card [slot='callout-content'] .icon-button.tooltip-left::before {
+        left: -30px;
+    }
+
+    merch-card [slot='callout-content'] .icon-button.tooltip-right::before {
+        left: unset;
+        right: -20px;
+    }    
+}
+
+@media screen and ${TABLET_DOWN} {
+    merch-card [slot='callout-content'] .icon-button::before {
+        top: unset;
+        left: unset;
+        margin-bottom: 34px;
+    }
+
+    merch-card [slot='callout-content'] .icon-button::after {
+        top: 0px;
+        left: unset;
+        margin-left: unset;
+        border-color: #0469E3 transparent transparent transparent;
+    }  
 }
 
 /* RTL support for collection header - Mobile */

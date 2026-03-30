@@ -139,7 +139,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-4: Validate image is removed from the card', async () => {
-            await expect(await slice.cardImage).not.toBeVisible();
+            await expect((await studio.getCard(data.cardid)).locator(slice.cardImage)).not.toBeVisible();
         });
 
         await test.step('step-5: Enter new value in the background URL field', async () => {
@@ -151,8 +151,11 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-7: Validate new image on the card', async () => {
-            await expect(await slice.cardImage).toBeVisible();
-            await expect(await slice.cardImage).toHaveAttribute('src', data.backgroundURL.updated);
+            await expect((await studio.getCard(data.cardid)).locator(slice.cardImage)).toBeVisible();
+            await expect((await studio.getCard(data.cardid)).locator(slice.cardImage)).toHaveAttribute(
+                'src',
+                data.backgroundURL.updated,
+            );
         });
 
         await test.step('step-8: Close the editor and verify discard is triggered', async () => {
@@ -160,8 +163,13 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         });
 
         await test.step('step-9: Verify there is no changes of the card', async () => {
-            await expect(await slice.cardImage).toBeVisible();
-            await expect(await slice.cardImage).toHaveAttribute('src', data.backgroundURL.original);
+            await expect(await studio.getCard(data.cardid)).toBeVisible();
+            await (await studio.getCard(data.cardid)).scrollIntoViewIfNeeded();
+            await expect((await studio.getCard(data.cardid)).locator(slice.cardImage)).toBeVisible();
+            await expect((await studio.getCard(data.cardid)).locator(slice.cardImage)).toHaveAttribute(
+                'src',
+                data.backgroundURL.original,
+            );
         });
     });
 });

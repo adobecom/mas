@@ -41,6 +41,7 @@ masStudio-*.json
 .env*
 .aio
 .cursor
+.superpowers/
 
 # web-components specific
 !web-components/dist

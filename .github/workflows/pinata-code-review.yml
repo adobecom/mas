@@ -13,9 +13,14 @@ on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pinata-review:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     permissions:
       contents: read
@@ -41,6 +46,7 @@ jobs:
         with:
           app-id: ${{ secrets.PINATA_APP_ID }}
           private-key: ${{ secrets.PINATA_APP_PRIVATE_KEY }}
+          # NOTE: harness repo is currently under a personal account — update if it moves to the org
           repositories: agentic-harness
           owner: joaquinrivero
 

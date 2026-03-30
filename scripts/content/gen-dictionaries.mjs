@@ -3,7 +3,7 @@
  * e.g: node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk
  */
 
-import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { getDefaultLocaleCode, getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 const ROOT_PATH = '/content/dam/mas';
 
@@ -201,10 +201,15 @@ async function publishFragment(fragment) {
 async function run() {
     if (dryRun) console.log('[dry-run] No POST requests will be made.\n');
 
+    const validLocaleCodes = new Set(getSurfaceLocales(surface).map(getLocaleCode));
     const localeFolders = await listLocaleFolders(surface);
     console.log(`Found ${localeFolders.length} locale folders for surface '${surface}'`);
 
     for (const folder of localeFolders) {
+        if (!validLocaleCodes.has(folder.name)) {
+            console.log(`[${folder.name}] not a locale folder, skipping`);
+            continue;
+        }
         const dictionaryPath = `${folder.path}/dictionary`;
         const indexPath = `${dictionaryPath}/index`;
         try {

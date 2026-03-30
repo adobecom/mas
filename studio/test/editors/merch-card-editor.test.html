@@ -365,9 +365,7 @@
                         const indicator = editor.querySelector('#mnemonics .field-status-indicator');
                         expect(indicator.querySelector('.field-status-label')?.textContent.trim()).to.equal('Overridden.');
                         const restoreLink = indicator.querySelector('.field-status-restore-link');
-                        expect(restoreLink?.textContent.replace(/\s+/g, ' ').trim()).to.equal(
-                            'Overridden. Click to restore.',
-                        );
+                        expect(restoreLink?.textContent.replace(/\s+/g, ' ').trim()).to.equal('Overridden. Click to restore.');
                         expect(restoreLink?.querySelector('.field-status-restore-link-text')?.textContent.trim()).to.equal(
                             'Click to restore.',
                         );
@@ -423,9 +421,7 @@
                             .querySelector('sp-field-group#badgeColor .field-status-indicator .field-status-restore-link')
                             .click();
                         editor
-                            .querySelector(
-                                'sp-field-group#badgeBorderColor .field-status-indicator .field-status-restore-link',
-                            )
+                            .querySelector('sp-field-group#badgeBorderColor .field-status-indicator .field-status-restore-link')
                             .click();
                         editor
                             .querySelector('sp-field-group#border-color .field-status-indicator .field-status-restore-link')

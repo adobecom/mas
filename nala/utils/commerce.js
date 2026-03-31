@@ -30,6 +30,7 @@ const DOCS_GALLERY_PATH = {
     ADOBE_HOME: { US: '/web-components/docs/adobe-home.html' },
     PLANS: '/web-components/docs/plans.html',
     MINICOMPARE: '/web-components/docs/minicompare.html',
+    MINICOMPARE_MWEB: '/web-components/docs/minicomparemweb.html',
     PRODUCT: '/web-components/docs/product.html',
     SEGMENT: '/web-components/docs/segment.html',
     SPECIALOFFER: '/web-components/docs/specialoffer.html',

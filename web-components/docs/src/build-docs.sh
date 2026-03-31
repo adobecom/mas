@@ -13,6 +13,7 @@ node ./docs/src/build-docs.mjs merch-card.md ./docs/merch-card.html
 node ./docs/src/build-docs.mjs plans.md ./docs/plans.html
 node ./docs/src/build-docs.mjs catalog.md ./docs/catalog.html
 node ./docs/src/build-docs.mjs minicompare.md ./docs/minicompare.html
+node ./docs/src/build-docs.mjs minicomparemweb.md ./docs/minicomparemweb.html
 node ./docs/src/build-docs.mjs product.md ./docs/product.html
 node ./docs/src/build-docs.mjs segment.md ./docs/segment.html
 node ./docs/src/build-docs.mjs specialoffer.md ./docs/specialoffer.html

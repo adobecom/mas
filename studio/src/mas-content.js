@@ -7,6 +7,7 @@ import { isUUID } from './utils.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
+import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
 
@@ -107,7 +108,70 @@ class MasContent extends LitElement {
         Store.selection.set(Array.from(event.target.selectedSet));
     }
 
+    /** @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores */
+    /** Non-country mas:pzn tag ids selected in the filter panel (narrow the Personalization group only). */
+    #getSelectedPersonalizationTagIds() {
+        const raw = Store.filters.get().tags;
+        if (!raw || typeof raw !== 'string') return [];
+        return raw
+            .split(',')
+            .map((t) => t.trim())
+            .filter((id) => id.startsWith(PZN_TAG_ID_PREFIX) && !isPznCountryTagId(id));
+    }
+
+    /** When no PZN tags are checked, all personalization-tagged rows appear; otherwise OR match on selected ids. */
+    #fragmentMatchesPznCheckboxFilter(frag, selectedPznIds) {
+        if (!fragmentHasPersonalizationTag(frag)) return false;
+        if (!selectedPznIds.length) return true;
+        const fragTagIds = new Set((frag.tags || []).map((t) => t.id).filter(Boolean));
+        return selectedPznIds.some((id) => fragTagIds.has(id));
+    }
+
+    #renderTableBodyGrouped(fragmentStores) {
+        const selectedPzn = this.#getSelectedPersonalizationTagIds();
+        const personalization = [];
+        const other = [];
+        for (const fs of fragmentStores) {
+            const frag = fs.get?.() ?? fs.value;
+            if (this.#fragmentMatchesPznCheckboxFilter(frag, selectedPzn)) {
+                personalization.push(fs);
+            } else if (!fragmentHasPersonalizationTag(frag)) {
+                other.push(fs);
+            }
+        }
+        return html`
+            <sp-table-row class="fragment-group-header">
+                <sp-table-cell class="fragment-group-header-cell">
+                    Personalization fragments (${personalization.length})
+                </sp-table-cell>
+            </sp-table-row>
+            ${repeat(
+                personalization,
+                (fragmentStore) => fragmentStore.get().path,
+                (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+            )}
+            <sp-table-row class="fragment-group-header">
+                <sp-table-cell class="fragment-group-header-cell">All other fragments (${other.length})</sp-table-cell>
+            </sp-table-row>
+            ${repeat(
+                other,
+                (fragmentStore) => fragmentStore.get().path,
+                (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+            )}
+        `;
+    }
+
     get tableView() {
+        const fragmentStores = this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null);
+        const personalizationOn = Store.filters.get().personalizationFilterEnabled === true;
+        const body = personalizationOn
+            ? this.#renderTableBodyGrouped(fragmentStores)
+            : repeat(
+                  fragmentStores,
+                  (fragmentStore) => fragmentStore.get().path,
+                  (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+              );
+
         return html`<sp-table
             emphasized
             scroller
@@ -127,13 +191,7 @@ class MasContent extends LitElement {
                 <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
                 <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
             </sp-table-head>
-            <sp-table-body>
-                ${repeat(
-                    this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null),
-                    (fragmentStore) => fragmentStore.get().path,
-                    (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
-                )}
-            </sp-table-body>
+            <sp-table-body> ${body} </sp-table-body>
         </sp-table>`;
     }
 

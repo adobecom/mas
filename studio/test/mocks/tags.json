@@ -594,6 +594,24 @@
             "excerpt": "",
             "name": "two_years",
             "title": "TWO_YEARS"
+        },
+        {
+            "path": "/content/cq:tags/mas/pzn/general",
+            "excerpt": "",
+            "name": "general",
+            "title": "GENERAL"
+        },
+        {
+            "path": "/content/cq:tags/mas/pzn/smb",
+            "excerpt": "",
+            "name": "smb",
+            "title": "SMB"
+        },
+        {
+            "path": "/content/cq:tags/mas/pzn/edu",
+            "excerpt": "",
+            "name": "edu",
+            "title": "EDU"
         }
     ]
 }

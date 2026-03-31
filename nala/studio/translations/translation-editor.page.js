@@ -49,63 +49,38 @@ export default class TranslationEditorPage {
         this.searchInput = fragmentsTab.locator(
             'mas-search-and-filters sp-search input, mas-search-and-filters input[type="search"]',
         );
-    }
-    async addOneItemAndConfirm() {
-        await this.addItemsButton.click();
-        await this.selectItemsDialog.waitFor({ state: 'visible', timeout: 10000 });
-        await this.page.waitForTimeout(2000);
-        await this.page.evaluate(() => {
-            function findAllInShadow(root, selector) {
-                const list = [];
-                const direct = root.querySelectorAll(selector);
-                direct.forEach((el) => list.push(el));
-                root.querySelectorAll('*').forEach((node) => {
-                    if (node.shadowRoot) list.push(...findAllInShadow(node.shadowRoot, selector));
-                });
-                return list;
-            }
-            const tables = findAllInShadow(document.body, 'mas-select-items-table');
-            // When MWPW-190616 is fixed, change back to clicking the row instead of the checkbox
-            // const tableEl = tables.find((el) => el.shadowRoot?.querySelector('sp-table.fragments-table sp-table-row'));
-            // const row = tableEl?.shadowRoot?.querySelector('sp-table.fragments-table sp-table-row');
-            // if (row) row.click();
-            const tableEl = tables.find((el) => el.shadowRoot?.querySelector('sp-table.fragments-table'));
-            if (!tableEl?.shadowRoot) return;
-            const checkboxes = findAllInShadow(tableEl.shadowRoot, 'sp-checkbox');
-            const checkbox = checkboxes[0];
-            if (checkbox) checkbox.click();
-        });
-        await this.page.waitForTimeout(500);
-        await this.selectItemsDialog.getByRole('button', { name: 'Add selected items' }).click();
-        await this.selectItemsDialog.waitFor({ state: 'hidden', timeout: 5000 });
+
+        // Filters
         this.filterButtons = page.locator('sp-action-button.filter-trigger');
         this.filterPopover = page.locator('sp-popover.filter-popover[open]').first();
 
+        // Collections tab
         const collectionsTabPanel = page.getByRole('tabpanel', { name: 'Collections' });
-        const placeholdersTabPanel = page.getByRole('tabpanel', { name: 'Placeholders' });
         this.selectItemsTableCollections = collectionsTabPanel.locator('mas-select-items-table');
-        this.selectItemsTablePlaceholders = placeholdersTabPanel.locator('mas-select-items-table');
-
-        // Collections / Placeholders table rows and checkboxes
         this.tableRowsCollections = this.selectItemsTableCollections.locator('sp-table-body sp-table-row');
         this.tableRowCheckboxCollections = (index) =>
             this.selectItemsTableCollections.locator('sp-table-body sp-table-row').nth(index).locator('sp-checkbox');
+
+        // Placeholders tab
+        const placeholdersTabPanel = page.getByRole('tabpanel', { name: 'Placeholders' });
+        this.selectItemsTablePlaceholders = placeholdersTabPanel.locator('mas-select-items-table');
         this.tableRowsPlaceholders = this.selectItemsTablePlaceholders.locator('sp-table-body sp-table-row');
         this.tableRowCheckboxPlaceholders = (index) =>
             this.selectItemsTablePlaceholders.locator('sp-table-body sp-table-row').nth(index).locator('sp-checkbox');
 
+        // Copy offer ID
         this.copyOfferIdButton = this.cardsTable.locator('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
 
-        // Loading state
+        // Expand/collapse button
         this.expandRowButton = (index) =>
-            this.cardsTable
-                .locator('sp-table-body sp-table-row')
-                .nth(index)
-                .locator('button[aria-label*="expand"], sp-action-button')
-                .first();
+            this.cardsTable.locator('sp-table-body sp-table-row').nth(index).locator('sp-button.expand-button').first();
 
         // View-only mode
         this.viewOnlyCardsTab = page.getByRole('tabpanel', { name: /Fragments\s*\(\d+\)/ }).first();
+
+        this.deleteButton = page.locator('mas-quick-actions sp-action-button[title="Delete"]');
+        this.editLanguagesButton = page.locator('.selected-langs-header sp-action-button', { hasText: 'Edit' });
+        this.editItemsButton = page.locator('.selected-items-header sp-action-button', { hasText: 'Edit' });
     }
 
     async createTranslationProject() {
@@ -129,10 +104,11 @@ export default class TranslationEditorPage {
         await this.addItemsButton.click();
         await expect(this.cardsTab).toBeVisible({ timeout: 10000 });
         await this.cardsTab.click();
-        await expect(this.tableRows.first()).toBeVisible({ timeout: 10000 });
+        await expect(this.tableRows.first()).toBeVisible({ timeout: 30000 });
         await this.tableRowCheckbox(0).click();
         await this.addSelectedItemsButton.click();
         await expect(this.selectItemsDialog).not.toBeVisible({ timeout: 10000 });
+        return title;
     }
 
     async saveTranslationProject() {

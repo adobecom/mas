@@ -49,7 +49,7 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+    filters: new ReactiveStore({ locale: 'en_US', personalizationFilterEnabled: false }, filtersValidator),
     sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     viewMode: new ReactiveStore('default'),
@@ -149,8 +149,12 @@ const Store = {
  * @returns {object}
  */
 function filtersValidator(value) {
-    if (!value) return { locale: 'en_US', tags: undefined };
+    if (!value) return { locale: 'en_US', tags: undefined, personalizationFilterEnabled: false };
     if (!value.locale) value.locale = 'en_US';
+
+    const rawPzn = value.personalizationFilterEnabled;
+    value.personalizationFilterEnabled =
+        rawPzn === true || rawPzn === 'true' || (typeof rawPzn === 'string' && rawPzn.toLowerCase() === 'true');
 
     // Ensure tags is always a string
     if (!value.tags) {

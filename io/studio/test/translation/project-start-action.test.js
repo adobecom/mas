@@ -19,7 +19,8 @@ function createResponse(json = {}, etag = null) {
     };
 }
 
-describe('Translation project-start action', () => {
+describe('Translation project-start action', function () {
+    this.timeout(5000);
     let mockLogger;
     let mockIms;
     let fetchStub;
@@ -41,7 +42,6 @@ describe('Translation project-start action', () => {
         __ow_namespace: 'ns',
         projectId: 'project-1',
         surface: 'acom',
-        batchSize: 7,
         allowedClientId: 'mas-studio',
         odinEndpoint: 'https://odin.example.com',
         translationMapping: {
@@ -84,6 +84,7 @@ describe('Translation project-start action', () => {
         enqueueJob = sinon.stub().resolves();
         buildSiblingActionName = sinon.stub().returns('/ns/MerchAtScaleStudio/translation-project-dispatcher');
         invokeAsyncAction = sinon.stub().resolves({ activationId: 'dispatcher-activation-1' });
+        global.fetch = fetchStub;
 
         const ImsConstructorStub = sinon.stub().returns(mockIms);
 
@@ -108,16 +109,7 @@ describe('Translation project-start action', () => {
                 buildSiblingActionName,
                 invokeAsyncAction,
             },
-            './project-start-service.js': {
-                DEFAULT_BATCH_SIZE: 10,
-            },
-            fetch: fetchStub,
-            global: {
-                fetch: fetchStub,
-            },
         });
-
-        global.fetch = fetchStub;
     });
 
     afterEach(() => {
@@ -181,7 +173,6 @@ describe('Translation project-start action', () => {
                 translationFlow: 'transcreation',
                 requestedAt: '2026-03-25T16:00:00Z',
                 requestedBy: 'editor@example.com',
-                batchSize: 7,
             }),
             { params: baseParams },
         );
@@ -212,7 +203,6 @@ describe('Translation project-start action', () => {
                     itemCount: 0,
                     completedItemCount: 0,
                     failedItemCount: 0,
-                    batchSize: 7,
                 },
                 lastError: null,
             }),

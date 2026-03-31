@@ -138,6 +138,7 @@ describe('Translation project-start', () => {
         __ow_headers: { authorization: 'Bearer token' },
         projectId: 'test-project-id',
         surface: 'acom',
+        batchSize: 10,
         allowedClientId: 'test-client-id',
         odinEndpoint: 'https://test-odin.com',
     };

@@ -45,7 +45,6 @@ application:
                         web: 'yes'
                         runtime: nodejs:22
                         inputs:
-                            batchSize: $BATCH_SIZE
                             translationMapping:
                                 acom: transcreation
                                 express: transcreation
@@ -62,6 +61,8 @@ application:
                     translation-project-start-worker:
                         function: src/translation/project-start-worker.js
                         runtime: nodejs:22
+                        inputs:
+                            batchSize: $BATCH_SIZE
                         limits:
                             timeout: 3600000
                         annotations:

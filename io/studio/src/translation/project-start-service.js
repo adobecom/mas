@@ -13,7 +13,6 @@ const {
     patchToOdin,
 } = require('../common.js');
 
-const DEFAULT_BATCH_SIZE = 10;
 const ODIN_PATH = (surface, locale, fragmentPath) => `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
 const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 const logger = Core.Logger('translation', { level: 'info' });
@@ -47,7 +46,7 @@ async function prepareProjectStart(params, options = {}) {
         projectType,
         responseMessage,
         translationData,
-        batchSize: params.batchSize || DEFAULT_BATCH_SIZE,
+        batchSize: params.batchSize,
     };
 }
 
@@ -549,7 +548,6 @@ async function updateProjectStatus(projectId, status, authToken, params = {}) {
 }
 
 module.exports = {
-    DEFAULT_BATCH_SIZE,
     prepareProjectStart,
     runVersioningStage,
     runPostVersioningStage,

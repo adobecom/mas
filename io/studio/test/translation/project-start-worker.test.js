@@ -125,7 +125,6 @@ describe('Translation project-start worker', function () {
             projectId: 'project-1',
             authToken: 'token-1',
             surface: 'acom',
-            batchSize: 7,
             translationFlow: 'transcreation',
         });
         prepareProjectStart.resolves({
@@ -168,6 +167,7 @@ describe('Translation project-start worker', function () {
             __ow_activation_id: 'activation-1',
             allowedClientId: 'mas-studio',
             odinEndpoint: 'https://odin.example.com',
+            batchSize: 7,
         });
 
         expect(acquireVersioningLock).to.have.been.calledOnceWith({
@@ -216,6 +216,7 @@ describe('Translation project-start worker', function () {
                 __ow_activation_id: 'activation-1',
                 allowedClientId: 'mas-studio',
                 odinEndpoint: 'https://odin.example.com',
+                batchSize: 7,
             },
             'translation-project-dispatcher',
             {
@@ -230,6 +231,7 @@ describe('Translation project-start worker', function () {
                 __ow_activation_id: 'activation-1',
                 allowedClientId: 'mas-studio',
                 odinEndpoint: 'https://odin.example.com',
+                batchSize: 7,
             },
         );
         expect(patchProjectSummary.firstCall).to.have.been.calledWith(

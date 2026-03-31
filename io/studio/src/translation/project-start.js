@@ -5,7 +5,6 @@ const { fetchOdin, getInternalValue, getValue, getValues } = require('../common.
 const { putJobPayload, putProjectSummary, patchProjectSummary } = require('./state.js');
 const { enqueueJob } = require('./queue.js');
 const { buildSiblingActionName, invokeAsyncAction } = require('./runtime-actions.js');
-const { DEFAULT_BATCH_SIZE } = require('./project-start-service.js');
 
 const logger = Core.Logger('translation-starter', { level: 'info' });
 const DISPATCHER_ACTION_NAME = 'translation-project-dispatcher';
@@ -32,7 +31,6 @@ async function main(params) {
         await updateSubmissionMetadata(params, projectCF, etag, authToken, submissionDate);
 
         const jobId = projectCF.id;
-        const batchSize = params.batchSize || DEFAULT_BATCH_SIZE;
         const projectType = getValue(projectCF, 'projectType')?.value || 'translation';
         const translationFlow = params.translationMapping?.[params.surface] || 'transcreation';
         const requestedBy = getInternalValue(projectCF, 'modified.by') || getInternalValue(projectCF, 'created.by') || null;
@@ -52,7 +50,6 @@ async function main(params) {
                 translationFlow,
                 requestedAt: submissionDate,
                 requestedBy,
-                batchSize,
             },
             { params },
         );
@@ -84,7 +81,6 @@ async function main(params) {
                     itemCount: 0,
                     completedItemCount: 0,
                     failedItemCount: 0,
-                    batchSize,
                 },
                 lastError: null,
             },

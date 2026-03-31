@@ -1,5 +1,6 @@
 import { test, expect, studio, miloLibs, setTestPage } from '../../libs/mas-test.js';
 import { features } from './settings.spec.js';
+import SettingsPage from './settings.page.js';
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
@@ -12,6 +13,7 @@ test.describe('Settings - hideTrialCTAs enabled', () => {
             const { data } = feature;
             const testPage = `${baseURL}${feature.path}${miloLibs}${feature.browserParams}${data.cardid}`;
             setTestPage(testPage);
+            const settingsPage = new SettingsPage(page);
 
             await test.step('1. Navigate to Studio card', async () => {
                 await page.goto(testPage);
@@ -24,15 +26,11 @@ test.describe('Settings - hideTrialCTAs enabled', () => {
             });
 
             await test.step('3. Verify trial CTA is stripped', async () => {
-                const card = await studio.getCard(data.cardid);
-                await expect(
-                    card.locator('[data-analytics-id="free-trial"], [data-analytics-id="start-free-trial"]'),
-                ).toHaveCount(0);
+                await expect(settingsPage.freeTrialCta).toHaveCount(0);
             });
 
             await test.step('4. Verify buy CTA is present', async () => {
-                const card = await studio.getCard(data.cardid);
-                await expect(card.locator('[data-analytics-id="buy-now"]')).toBeVisible();
+                await expect(settingsPage.buyNowCta).toBeVisible();
             });
         });
     });
@@ -43,6 +41,7 @@ test.describe('Settings - hideTrialCTAs disabled (route interception)', () => {
         const { data } = disabledFeature;
         const testPage = `${baseURL}${disabledFeature.path}${miloLibs}${disabledFeature.browserParams}${data.cardid}`;
         setTestPage(testPage);
+        const settingsPage = new SettingsPage(page);
 
         await test.step('1. Set up route interception to disable hideTrialCTAs setting', async () => {
             await page.route('**/mas/io/fragment**', async (route) => {
@@ -66,13 +65,11 @@ test.describe('Settings - hideTrialCTAs disabled (route interception)', () => {
         });
 
         await test.step('4. Verify trial CTA is rendered', async () => {
-            const card = await studio.getCard(data.cardid);
-            await expect(card.locator('[data-analytics-id="free-trial"]')).toBeVisible();
+            await expect(settingsPage.freeTrialCta).toBeVisible();
         });
 
         await test.step('5. Verify buy CTA is also rendered', async () => {
-            const card = await studio.getCard(data.cardid);
-            await expect(card.locator('[data-analytics-id="buy-now"]')).toBeVisible();
+            await expect(settingsPage.buyNowCta).toBeVisible();
         });
     });
 });

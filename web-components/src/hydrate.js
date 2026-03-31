@@ -12,6 +12,13 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
+const TRIAL_ANALYTICS_IDS = new Set([
+    'free-trial',
+    'start-free-trial',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
+]);
 
 /**
  * Normalizes variant names for consistency.
@@ -695,7 +702,7 @@ export function processCTAs(
         const ctas = [...footer.querySelectorAll('a')]
             .filter((cta) => {
                 if (!settings?.hideTrialCTAs) return true;
-                return !cta.dataset.analyticsId?.includes('trial');
+                return !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId);
             })
             .map((cta) =>
                 transformLinkToButton(cta, merchCard, aemFragmentMapping),
@@ -709,9 +716,12 @@ export function processCTAs(
             ctas.forEach((cta) => {
                 const checkout = cta.source ?? cta;
                 if (!checkout.onceSettled) return;
+                cta.hidden = true;
                 checkout.onceSettled().then(() => {
                     if (checkout.value?.[0]?.offerType === 'TRIAL') {
                         cta.remove();
+                    } else {
+                        cta.hidden = false;
                     }
                 });
             });

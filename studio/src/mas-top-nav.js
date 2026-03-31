@@ -6,6 +6,7 @@ import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
 import { extractLocaleFromPath } from './utils.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
@@ -194,6 +195,11 @@ class MasTopNav extends LitElement {
         return null;
     }
 
+    get pickerLocale() {
+        const locale = Store.localeOrRegion();
+        return getDefaultLocaleCode(Store.surface(), locale) || locale;
+    }
+
     async onLocaleChanged(e) {
         const { locale, fragmentId } = e.detail;
         if (this.isFragmentEditorPage) {
@@ -373,7 +379,7 @@ class MasTopNav extends LitElement {
                                   @locale-changed=${this.onLocaleChanged}
                                   ?disabled=${this.isLocalePickerDisabled}
                                   surface=${Store.surface()}
-                                  locale=${Store.localeOrRegion()}
+                                  locale=${this.pickerLocale}
                               ></mas-locale-picker>
                               <sp-switch
                                   class="landscape-switch"

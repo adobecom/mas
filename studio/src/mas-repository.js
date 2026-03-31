@@ -498,8 +498,9 @@ export class MasRepository extends LitElement {
             this.processError(error, 'Could not load next page.');
             this.#searchCursor = null;
             Store.fragments.list.hasMore.set(false);
+        } finally {
+            Store.fragments.list.loading.set(false);
         }
-        Store.fragments.list.loading.set(false);
     }
 
     async loadRecentlyUpdatedFragments() {

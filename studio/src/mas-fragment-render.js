@@ -20,10 +20,6 @@ class MasFragmentRender extends LitElement {
         return this;
     }
 
-    connectedCallback() {
-        super.connectedCallback();
-    }
-
     firstUpdated() {
         const root = this.closest('.main-container') ?? document.querySelector('.main-container');
         this.#observer = new IntersectionObserver(

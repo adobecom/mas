@@ -234,7 +234,15 @@ export class AemFragment extends HTMLElement {
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
-            return await this.generatePreview();
+            const preview = await this.generatePreview();
+            if (preview.status === 200) {
+                return preview.body;
+            } else {
+                throw new MasError(
+                    `Failed to generate preview: ${preview.message}`,
+                    {},
+                );
+            }
         }
         performance.mark(startMarkName);
         let response;
@@ -389,6 +397,7 @@ export class AemFragment extends HTMLElement {
             fields,
             id,
             tags,
+            variationId,
             settings = {},
             priceLiterals = {},
             dictionary = {},
@@ -407,6 +416,7 @@ export class AemFragment extends HTMLElement {
                 priceLiterals,
                 dictionary,
                 placeholders,
+                variationId,
             },
         );
     }
@@ -420,6 +430,7 @@ export class AemFragment extends HTMLElement {
             priceLiterals = {},
             dictionary = {},
             placeholders = {},
+            variationId,
         } = this.#rawData;
         this.#data = Object.entries(fields).reduce(
             (acc, [key, value]) => {
@@ -434,6 +445,7 @@ export class AemFragment extends HTMLElement {
                 priceLiterals,
                 dictionary,
                 placeholders,
+                variationId,
             },
         );
     }
@@ -470,6 +482,7 @@ export class AemFragment extends HTMLElement {
         const data = await previewFragment(this.#fragmentId, {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
+            fullContext: true,
         });
         return data;
     }

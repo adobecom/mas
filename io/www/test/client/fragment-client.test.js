@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { clearCaches, previewFragment } from '../../../../studio/libs/fragment-client.js';
+import { clearCaches, previewFragment, previewStudioFragment } from '../../../../studio/libs/fragment-client.js';
+import { transformer as settingsTransformer } from '../../src/fragment/transformers/settings.js';
 import sinon from 'sinon';
 import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
@@ -32,6 +33,12 @@ describe('FragmentClient', () => {
     let fetchStub;
 
     before(() => {
+        // Stub document for fragment-client (reads locale/country from mas-commerce-service)
+        if (typeof globalThis.document === 'undefined') {
+            globalThis.document = {
+                head: { querySelector: () => null },
+            };
+        }
         // Stub window.localStorage
         globalThis.window = globalThis.window || { localStorage: {} };
         sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
@@ -58,6 +65,35 @@ describe('FragmentClient', () => {
                 ],
             }),
         );
+        // Settings fetch (preview pipeline now loads settings)
+        const settingsIndexUrl = `${baseUrl}?path=/content/dam/mas/sandbox/settings/index`;
+        const settingsId = 'preview-settings-id';
+        const settingsContentUrl = `${baseUrl}/${settingsId}?references=all-hydrated`;
+        const settingsBody = {
+            references: {
+                ref1: {
+                    value: {
+                        fields: {
+                            name: 'displayPlanType',
+                            valuetype: 'boolean',
+                            booleanValue: true,
+                        },
+                    },
+                },
+                ref2: {
+                    value: {
+                        fields: {
+                            name: 'secureLabel',
+                            valuetype: 'optional-text',
+                            booleanValue: true,
+                            textValue: 'Secure transaction',
+                        },
+                    },
+                },
+            },
+        };
+        fetchStub.withArgs(settingsIndexUrl).returns(createResponse(200, { items: [{ id: settingsId }] }));
+        fetchStub.withArgs(settingsContentUrl).returns(createResponse(200, settingsBody));
     });
 
     after(() => {
@@ -106,18 +142,119 @@ describe('FragmentClient', () => {
         expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
     });
 
-    it('should handle fetch errors', async () => {
+    it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {
         const fragmentId = 'non-existent';
 
         fetchStub
             .withArgs(`${baseUrl}/${fragmentId}?references=all-hydrated`)
-            .returns(createResponse(404, { error: 'Not Found' }, 'Not Found'));
+            .returns(createResponse(404, { detail: 'Not Found' }, 'Not Found'));
 
-        const result = await previewFragment(fragmentId, {
-            surface: 'acom',
+        const consoleErrorSpy = sinon.spy(console, 'error');
+        try {
+            const bodyOnly = await previewFragment(fragmentId, {
+                surface: 'sandbox',
+                locale: 'en_US',
+            });
+            expect(bodyOnly).to.deep.equal({ message: 'Not Found' });
+
+            const full = await previewFragment(fragmentId, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+            });
+            expect(full.status).to.equal(404);
+            expect(full.body).to.deep.equal({ message: 'Not Found' });
+            expect(consoleErrorSpy.calledWithMatch(sinon.match(/Not Found/))).to.be.true;
+        } finally {
+            consoleErrorSpy.restore();
+        }
+    });
+
+    it('returns full context with api_key when options.fullContext is true', async () => {
+        const result = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
+            locale: 'en_US',
+            fullContext: true,
+        });
+        expect(result).to.have.property('status');
+        expect(result).to.have.property('body');
+        expect(result).to.have.property('api_key', 'fragment-client');
+    });
+
+    it('returns body only when options.fullContext is false', async () => {
+        const result = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
             locale: 'en_US',
         });
+        expect(result).to.have.property('fields');
+        expect(result).to.not.have.property('api_key');
+    });
 
-        expect(result).to.be.undefined;
+    it('returns error context when fetch rejects', async () => {
+        const fragmentId = 'network-fail';
+        fetchStub.withArgs(`${baseUrl}/${fragmentId}?references=all-hydrated`).rejects(new Error('Network failed'));
+        const result = await previewFragment(fragmentId, {
+            surface: 'sandbox',
+            locale: 'en_US',
+            fullContext: true,
+        });
+        expect([500, 503]).to.include(result.status);
+        expect(result).to.have.property('message');
+    });
+
+    it('merges options locale and country over document element', async () => {
+        const dePlaceholderIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
+        const deDictIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
+        const deVariationId = 'de-de-default-locale-fragment';
+        fetchStub.withArgs(dePlaceholderIndex).returns(
+            createResponse(200, {
+                items: [{ id: deVariationId, type: 'content-fragment' }],
+            }),
+        );
+        fetchStub.withArgs(deDictIndex).returns(
+            createResponse(200, {
+                items: [
+                    {
+                        id: mockPlaceholders.id,
+                        type: 'dictionary',
+                    },
+                ],
+            }),
+        );
+        fetchStub
+            .withArgs(`${baseUrl}/${deVariationId}?references=all-hydrated`)
+            .returns(createResponse(200, { ...mockCardFragment, id: deVariationId }));
+
+        const result = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
+            locale: 'de_DE',
+            country: 'DE',
+        });
+        expect(result).to.have.property('fields');
+    });
+
+    describe('previewStudioFragment', () => {
+        it('returns processed body with api_key fragment-client-studio', async () => {
+            const body = { ...mockCardFragment };
+            const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });
+            expect(result).to.have.property('fields');
+        });
+
+        it('maps non-200 studio pipeline to body.message and logs', async () => {
+            const stub = sinon.stub(settingsTransformer, 'process').callsFake(async (ctx) => ({
+                ...ctx,
+                status: 422,
+                message: 'Studio pipeline failed',
+            }));
+            const consoleErrorSpy = sinon.spy(console, 'error');
+            try {
+                const result = await previewStudioFragment({ ...mockCardFragment }, { locale: 'en_US', surface: 'sandbox' });
+                expect(result).to.deep.equal({ message: 'Studio pipeline failed' });
+                expect(consoleErrorSpy.calledWithMatch(sinon.match(/Studio pipeline failed/))).to.be.true;
+            } finally {
+                stub.restore();
+                consoleErrorSpy.restore();
+            }
+        });
     });
 });

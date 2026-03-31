@@ -112,7 +112,20 @@ export function debounce(fn, delay) {
     };
 }
 
+/**
+ * Shared UUID pattern used for fragment-id searches.
+ */
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export class UserFriendlyError extends Error {}
+
+/**
+ * @param {string} value
+ * @returns {boolean}
+ */
+export function isUUID(value) {
+    return UUID_REGEX.test(value);
+}
 
 /**
  * Deeply compares two values for equality

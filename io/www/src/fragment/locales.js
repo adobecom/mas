@@ -193,7 +193,7 @@ const CCD = [
 const EXPRESS = [
     { lang: 'da', country: 'DK' },
     { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
-    { lang: 'en', country: 'GB', regions: ['IN'] },
+    { lang: 'en', country: 'GB' },
     {
         lang: 'en',
         country: 'US',
@@ -207,6 +207,7 @@ const EXPRESS = [
             'ID',
             'IE',
             'IL',
+            'IN',
             'KW',
             'LU',
             'MY',

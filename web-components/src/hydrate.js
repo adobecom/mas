@@ -697,9 +697,13 @@ export function processCTAs(
         const footer = createTag('div', { slot }, fields.ctas);
         const allCtaLinks = [...footer.querySelectorAll('a')];
         const filteredLinks = settings?.hideTrialCTAs
-            ? allCtaLinks.filter((cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId))
+            ? allCtaLinks.filter(
+                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),
+              )
             : allCtaLinks;
-        const ctas = (filteredLinks.length > 0 ? filteredLinks : allCtaLinks).map((cta) =>
+        const ctas = (
+            filteredLinks.length > 0 ? filteredLinks : allCtaLinks
+        ).map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping),
         );
 
@@ -712,20 +716,25 @@ export function processCTAs(
                 const checkout = cta.source ?? cta;
                 if (!checkout.onceSettled) return;
                 cta.hidden = true;
-                checkout.onceSettled().then(() => {
-                    if (checkout.value?.[0]?.offerType === 'TRIAL') {
-                        const othersVisible = ctas.some((c) => c !== cta && !c.hidden);
-                        if (othersVisible) {
-                            cta.remove();
+                checkout
+                    .onceSettled()
+                    .then(() => {
+                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                            const othersVisible = ctas.some(
+                                (c) => c !== cta && !c.hidden,
+                            );
+                            if (othersVisible) {
+                                cta.remove();
+                            } else {
+                                cta.hidden = false;
+                            }
                         } else {
                             cta.hidden = false;
                         }
-                    } else {
+                    })
+                    .catch(() => {
                         cta.hidden = false;
-                    }
-                }).catch(() => {
-                    cta.hidden = false;
-                });
+                    });
             });
         }
     }

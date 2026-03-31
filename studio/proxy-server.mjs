@@ -41,12 +41,27 @@ if (keyPath && certPath) {
 } else {
     server = createHttpServer(requestHandler);
     serverProtocol = 'http';
-    serverPort = 8080; // Use 8080 for HTTP
+    serverPort = parseInt(process.env.PROXY_PORT || '8080', 10); // Use 8080 for HTTP
 }
 
 // Common request handler
 function requestHandler(req, res) {
     const { method, headers, url } = req;
+
+    if (method === 'GET' && url === '/__studio__/health') {
+        res.writeHead(200, {
+            'content-type': 'application/json',
+            ...corsHeaders,
+        });
+        res.end(
+            JSON.stringify({
+                port: serverPort,
+                protocol: serverProtocol,
+                targetOrigin,
+            }),
+        );
+        return;
+    }
 
     if (method === 'OPTIONS') {
         // Handle OPTIONS request directly

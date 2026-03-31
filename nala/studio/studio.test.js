@@ -344,10 +344,58 @@ test.describe('M@S Studio feature test suite', () => {
         });
     });
 
-    // @studio-variations-locale-filter — Locale tab lists variations for the selected language only
+    // @studio-nala-personalization-table-groups — Nala content in table view with personalization on shows grouped headers
     test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
-        const { data } = features[11];
-        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}${data.query}`;
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Open nala content with personalization filter enabled (hash)', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-2: Switch to table view', async () => {
+            await studio.switchToTableView();
+        });
+
+        await test.step('step-3: Validate Personalization / All other fragment group headers', async () => {
+            await expect(studio.contentTableBody).toBeVisible({ timeout: 30000 });
+            await expect(studio.contentTableBody.getByText(/Personalization fragments\s*\(/)).toBeVisible({
+                timeout: 30000,
+            });
+            await expect(studio.contentTableBody.getByText(/All other fragments\s*\(/)).toBeVisible({
+                timeout: 30000,
+            });
+        });
+    });
+
+    // @studio-nala-table-without-personalization-groups — Same path without personalization: no grouped section headers
+    test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Open nala content without personalization in URL', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-2: Switch to table view', async () => {
+            await studio.switchToTableView();
+        });
+
+        await test.step('step-3: Table body has no personalization group rows', async () => {
+            await expect(studio.contentTableBody).toBeVisible({ timeout: 30000 });
+            await expect(studio.contentTableBody.getByText(/Personalization fragments\s*\(/)).toHaveCount(0);
+            await expect(studio.contentTableBody.getByText(/All other fragments\s*\(/)).toHaveCount(0);
+        });
+    });
+
+    // @studio-variations-locale-filter — Locale tab lists variations for the selected language only
+    test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[13];
+        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.query}`;
         setTestPage(testPage);
 
         await test.step('step-1: Check if English variations are visible when en_US is selected', async () => {

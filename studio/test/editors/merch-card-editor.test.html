@@ -736,9 +736,9 @@
                             showPlanType: '#planType mas-plan-type-field',
                             showSecureLabel: '#secureLabel secure-text-field',
                         };
-                        const SETTINGS_OVERRIDE_INDICATORS_QUERY = Object.values(
-                            SETTINGS_OVERRIDE_INDICATOR_SELECTORS,
-                        ).join(', ');
+                        const SETTINGS_OVERRIDE_INDICATORS_QUERY = Object.values(SETTINGS_OVERRIDE_INDICATOR_SELECTORS).join(
+                            ', ',
+                        );
 
                         function getSettingOverrideIndicator(fieldName) {
                             return editor.querySelector(SETTINGS_OVERRIDE_INDICATOR_SELECTORS[fieldName]);

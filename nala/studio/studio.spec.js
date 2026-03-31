@@ -16,7 +16,7 @@ export default {
             data: {
                 cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=content&query=',
             tags: '@mas-studio',
         },
         {
@@ -100,6 +100,20 @@ export default {
                 price: PRICE_PATTERN.US.mo,
             },
             tags: '@mas-studio @regional-variations',
+        },
+        {
+            tcid: '11',
+            name: '@studio-nala-personalization-table-groups',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala&personalizationFilterEnabled=true',
+            tags: '@mas-studio @nala @personalization',
+        },
+        {
+            tcid: '12',
+            name: '@studio-nala-table-without-personalization-groups',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala',
+            tags: '@mas-studio @nala @personalization',
         },
     ],
 };

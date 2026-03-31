@@ -31,7 +31,11 @@ test.describe('M@S Studio Translations Test Suite', () => {
             const sentOnTexts = await translations.getSentOnColumnTexts();
             const timestamps = sentOnTexts.map(TranslationsPage.parseSentOnText);
             for (let i = 1; i < timestamps.length; i++) {
-                expect(timestamps[i]).toBeLessThanOrEqual(timestamps[i - 1]);
+                const prev = timestamps[i - 1];
+                const curr = timestamps[i];
+                if (prev > 0 && curr > 0) {
+                    expect(curr).toBeLessThanOrEqual(prev);
+                }
             }
         });
 

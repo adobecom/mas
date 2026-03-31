@@ -699,30 +699,36 @@ export function processCTAs(
 
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
-        const ctas = [...footer.querySelectorAll('a')]
-            .filter((cta) => {
-                if (!settings?.hideTrialCTAs) return true;
-                return !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId);
-            })
-            .map((cta) =>
-                transformLinkToButton(cta, merchCard, aemFragmentMapping),
-            );
+        const allCtaLinks = [...footer.querySelectorAll('a')];
+        const filteredLinks = settings?.hideTrialCTAs
+            ? allCtaLinks.filter((cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId))
+            : allCtaLinks;
+        const ctas = (filteredLinks.length > 0 ? filteredLinks : allCtaLinks).map((cta) =>
+            transformLinkToButton(cta, merchCard, aemFragmentMapping),
+        );
 
         footer.textContent = '';
         footer.append(...ctas);
         merchCard.append(footer);
 
-        if (settings?.hideTrialCTAs) {
+        if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
             ctas.forEach((cta) => {
                 const checkout = cta.source ?? cta;
                 if (!checkout.onceSettled) return;
                 cta.hidden = true;
                 checkout.onceSettled().then(() => {
                     if (checkout.value?.[0]?.offerType === 'TRIAL') {
-                        cta.remove();
+                        const othersVisible = ctas.some((c) => c !== cta && !c.hidden);
+                        if (othersVisible) {
+                            cta.remove();
+                        } else {
+                            cta.hidden = false;
+                        }
                     } else {
                         cta.hidden = false;
                     }
+                }).catch(() => {
+                    cta.hidden = false;
                 });
             });
         }

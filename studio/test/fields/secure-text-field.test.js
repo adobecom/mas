@@ -16,7 +16,7 @@ describe('Secure text field', () => {
         const el = await fixture(html`<secure-text-field></secure-text-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         expect(toggle).to.exist;
         expect(toggle.checked).to.be.false;
     });
@@ -24,7 +24,7 @@ describe('Secure text field', () => {
     it('should dispatch "true" when toggle is switched ON', async () => {
         const el = await fixture(html`<secure-text-field></secure-text-field>`, { parentNode: spTheme() });
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         const listener = oneEvent(el, 'input');
 
         toggle.checked = true;
@@ -39,7 +39,7 @@ describe('Secure text field', () => {
         const el = await fixture(html`<secure-text-field value="true"></secure-text-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         const listener = oneEvent(el, 'input');
 
         toggle.checked = false;
@@ -86,7 +86,7 @@ describe('Secure text field', () => {
         });
         await el.updateComplete;
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         expect(toggle).to.exist;
         expect(toggle.textContent.trim()).to.equal('Secure Transaction');
     });

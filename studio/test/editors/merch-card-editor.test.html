@@ -725,6 +725,45 @@
                         ];
 
                         const settingsMockFields = [...baseMockData.fields, ...SETTINGS_FIELD_DEFS];
+                        const SETTINGS_OVERRIDE_FIELDS = ['addon', 'showPlanType', 'showSecureLabel'];
+                        const SETTINGS_OVERRIDE_INDICATOR_SELECTORS = {
+                            addon: '#addon .setting-override-indicator',
+                            showPlanType: '#planType .setting-override-indicator',
+                            showSecureLabel: '#secureLabel .setting-override-indicator',
+                        };
+                        const SETTINGS_OVERRIDE_COMPONENT_SELECTORS = {
+                            addon: '#addon mas-addon-field',
+                            showPlanType: '#planType mas-plan-type-field',
+                            showSecureLabel: '#secureLabel secure-text-field',
+                        };
+                        const SETTINGS_OVERRIDE_INDICATORS_QUERY = Object.values(
+                            SETTINGS_OVERRIDE_INDICATOR_SELECTORS,
+                        ).join(', ');
+
+                        function getSettingOverrideIndicator(fieldName) {
+                            return editor.querySelector(SETTINGS_OVERRIDE_INDICATOR_SELECTORS[fieldName]);
+                        }
+
+                        function expectSettingOverrideIndicators(expectedFields) {
+                            for (const fieldName of SETTINGS_OVERRIDE_FIELDS) {
+                                const indicator = getSettingOverrideIndicator(fieldName);
+                                if (expectedFields.includes(fieldName)) {
+                                    expect(indicator).to.exist;
+                                } else {
+                                    expect(indicator).to.not.exist;
+                                }
+                            }
+                        }
+
+                        function expectSettingOverrideFieldState(expectedState, fieldNames = SETTINGS_OVERRIDE_FIELDS) {
+                            for (const fieldName of fieldNames) {
+                                expect(
+                                    editor
+                                        .querySelector(SETTINGS_OVERRIDE_COMPONENT_SELECTORS[fieldName])
+                                        ?.getAttribute('data-field-state'),
+                                ).to.equal(expectedState);
+                            }
+                        }
 
                         function buildSettingsFragment(overrides = {}) {
                             return {
@@ -850,9 +889,7 @@
                             const restoreAllLink = editor.querySelector('.restore-all-link');
                             expect(restoreAllLink).to.not.exist;
 
-                            const indicators = editor.querySelectorAll(
-                                '#addon .setting-override-indicator, #planType .setting-override-indicator, #secureLabel .setting-override-indicator',
-                            );
+                            const indicators = editor.querySelectorAll(SETTINGS_OVERRIDE_INDICATORS_QUERY);
                             expect(indicators.length).to.equal(0);
                         });
 
@@ -870,12 +907,8 @@
                             const restoreAllLink = editor.querySelector('.restore-all-link');
                             expect(restoreAllLink).to.exist;
 
-                            const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
-                            expect(planTypeIndicator).to.exist;
+                            expectSettingOverrideIndicators(['showPlanType']);
                             expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('false');
-
-                            const secureLabelIndicator = editor.querySelector('#secureLabel .setting-override-indicator');
-                            expect(secureLabelIndicator).to.not.exist;
                         });
 
                         it('treats explicit false secure label as an override on top-level cards', async () => {
@@ -887,8 +920,7 @@
 
                             expect(editor.isSettingOverridden('showSecureLabel')).to.be.true;
 
-                            const secureLabelIndicator = editor.querySelector('#secureLabel .setting-override-indicator');
-                            expect(secureLabelIndicator).to.exist;
+                            expectSettingOverrideIndicators(['showSecureLabel']);
                         });
 
                         it('restores card-level setting to global default', async () => {
@@ -919,8 +951,7 @@
                             expect(editor.isSettingOverridden('showPlanType')).to.be.true;
                             expect(editor.isAnySettingOverridden).to.be.true;
 
-                            const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
-                            expect(planTypeIndicator).to.exist;
+                            expectSettingOverrideIndicators(['showPlanType']);
                         });
 
                         it('restores variation-level override to inherit from parent (global default)', async () => {
@@ -951,8 +982,7 @@
                             expect(editor.isSettingOverridden('showPlanType')).to.be.true;
                             expect(editor.isAnySettingOverridden).to.be.true;
 
-                            const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
-                            expect(planTypeIndicator).to.exist;
+                            expectSettingOverrideIndicators(['showPlanType']);
                         });
 
                         it('restores variation-level override to inherit parent setting value', async () => {
@@ -972,19 +1002,34 @@
                             expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
                         });
 
-                        it('does not show override indicator when variation inherits parent setting', async () => {
+                        it('shows parent visual override styling when variation inherits explicit parent settings', async () => {
                             await setupSettingsTest({
                                 isVariation: true,
-                                parentOverrides: { showPlanType: ['true'] },
+                                parentOverrides: {
+                                    showPlanType: ['true'],
+                                    showSecureLabel: ['true'],
+                                    addon: ['{{addon-mili-test}}'],
+                                },
                                 variationOverrides: {},
-                                testId: 'variation-inherits-parent',
+                                testId: 'variation-inherits-parent-visual-overrides',
                             });
 
                             expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.false;
                             expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon-mili-test}}');
 
-                            const planTypeIndicator = editor.querySelector('#planType .setting-override-indicator');
-                            expect(planTypeIndicator).to.not.exist;
+                            expect(editor.isSettingVisuallyOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingVisuallyOverridden('showSecureLabel')).to.be.true;
+                            expect(editor.isSettingVisuallyOverridden('addon')).to.be.true;
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.exist;
+
+                            expectSettingOverrideIndicators(SETTINGS_OVERRIDE_FIELDS);
+                            expectSettingOverrideFieldState('overridden');
                         });
 
                         it('resolves global settings for variations that inherit variant from the parent', async () => {

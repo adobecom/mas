@@ -33,7 +33,7 @@ describe('Addon field', () => {
 
         expect(loadCount).to.equal(1);
 
-        const combobox = el.shadowRoot.querySelector('sp-combobox');
+        const combobox = el.querySelector('sp-combobox');
         expect(combobox).to.exist;
         expect(combobox.value).to.equal('addon-stock-trial');
     });

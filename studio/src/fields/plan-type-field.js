@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit';
+import { html, LitElement, nothing } from 'lit';
 import { EVENT_INPUT } from '../constants.js';
 
 export class PlanTypeField extends LitElement {
@@ -7,6 +7,7 @@ export class PlanTypeField extends LitElement {
         label: { type: String },
         value: { type: String },
         checked: { type: Boolean, state: true },
+        indicatorTemplate: { attribute: false },
     };
 
     constructor() {
@@ -16,33 +17,11 @@ export class PlanTypeField extends LitElement {
         this.value = '';
         this.disabled = false;
         this.checked = false;
+        this.indicatorTemplate = nothing;
     }
 
-    static get styles() {
-        return css`
-            :host {
-                display: block;
-            }
-
-            .field-row {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-
-            ::slotted(.setting-override-indicator) {
-                flex: none;
-            }
-
-            .field-row sp-switch {
-                flex: none;
-            }
-
-            :host([data-field-state='overridden']) sp-switch[checked] {
-                --mod-switch-background-color-selected-default: var(--spectrum-blue-500);
-                --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
-            }
-        `;
+    createRenderRoot() {
+        return this;
     }
 
     updated(changedProperties) {
@@ -73,7 +52,7 @@ export class PlanTypeField extends LitElement {
                     <sp-switch id="${this.id}-toggle" size="m" .checked="${this.checked}" @change="${this.#handleToggle}"
                         >${this.label}</sp-switch
                     >
-                    <slot name="indicator"></slot>
+                    ${this.indicatorTemplate}
                 </div>
             </sp-field-group>
         `;

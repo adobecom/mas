@@ -16,7 +16,7 @@ describe('Plan type field', () => {
         const el = await fixture(html`<mas-plan-type-field></mas-plan-type-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         expect(toggle).to.exist;
         expect(toggle.checked).to.be.false;
     });
@@ -24,7 +24,7 @@ describe('Plan type field', () => {
     it('should dispatch "true" when toggle is switched ON', async () => {
         const el = await fixture(html`<mas-plan-type-field></mas-plan-type-field>`, { parentNode: spTheme() });
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         const listener = oneEvent(el, 'input');
 
         toggle.checked = true;
@@ -39,7 +39,7 @@ describe('Plan type field', () => {
         const el = await fixture(html`<mas-plan-type-field value="true"></mas-plan-type-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         const listener = oneEvent(el, 'input');
 
         toggle.checked = false;
@@ -77,7 +77,7 @@ describe('Plan type field', () => {
         });
         await el.updateComplete;
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         expect(toggle).to.exist;
         expect(toggle.textContent.trim()).to.equal('Show Plan Type');
     });

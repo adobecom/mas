@@ -543,6 +543,7 @@ async function main(params) {
                     type: 'guided_step',
                     message: parsedResponse.message,
                     buttonGroup: parsedResponse.buttonGroup,
+                    productCards: parsedResponse.productCards,
                     usage: response.usage,
                     conversationHistory: [
                         ...conversationHistory,

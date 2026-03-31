@@ -29,12 +29,8 @@ function isQueueLockExpired(lock, options = {}) {
     return new Date(lock.leaseUntil).getTime() <= now.getTime();
 }
 
-async function getState() {
-    return init();
-}
-
 async function getPendingQueue() {
-    const state = await getState();
+    const state = await init();
     const result = await state.get(QUEUE_KEY);
     if (!result?.value) {
         return [];
@@ -43,7 +39,7 @@ async function getPendingQueue() {
 }
 
 async function putPendingQueue(queue, options = {}) {
-    const state = await getState();
+    const state = await init();
     const ttl = options.ttl ?? QUEUE_TTL;
     await state.put(QUEUE_KEY, JSON.stringify(queue), { ttl });
     return queue;
@@ -92,7 +88,7 @@ async function removeJobUnsafe(jobId, options = {}) {
 }
 
 async function getQueueLock() {
-    const state = await getState();
+    const state = await init();
     const result = await state.get(QUEUE_LOCK_KEY);
     if (!result?.value) {
         return null;
@@ -101,7 +97,7 @@ async function getQueueLock() {
 }
 
 async function putQueueLock(lock, options = {}) {
-    const state = await getState();
+    const state = await init();
     const ttlSeconds = Math.max(1, Math.ceil((options.leaseDurationMs ?? DEFAULT_QUEUE_LOCK_LEASE_MS) / 1000));
     await state.put(QUEUE_LOCK_KEY, JSON.stringify(lock), { ttl: ttlSeconds });
     return lock;
@@ -151,7 +147,7 @@ async function releaseQueueLock(ownerId) {
         };
     }
 
-    const state = await getState();
+    const state = await init();
     await state.delete(QUEUE_LOCK_KEY);
     return {
         released: true,

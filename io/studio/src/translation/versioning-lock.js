@@ -60,12 +60,8 @@ function getBackoffDelay(attempt, options = {}) {
     return baseDelay + jitter;
 }
 
-async function getState() {
-    return init();
-}
-
 async function getVersioningLock() {
-    const state = await getState();
+    const state = await init();
     const result = await state.get(VERSIONING_LOCK_KEY);
     if (!result?.value) {
         return null;
@@ -74,7 +70,7 @@ async function getVersioningLock() {
 }
 
 async function putVersioningLock(lock, options = {}) {
-    const state = await getState();
+    const state = await init();
     const ttlSeconds = Math.max(1, Math.ceil((options.leaseDurationMs ?? DEFAULT_LEASE_DURATION_MS) / 1000));
     await state.put(VERSIONING_LOCK_KEY, JSON.stringify(lock), { ttl: ttlSeconds });
     return lock;
@@ -186,7 +182,7 @@ async function releaseVersioningLock(owner) {
         };
     }
 
-    const state = await getState();
+    const state = await init();
     await state.delete(VERSIONING_LOCK_KEY);
     return {
         released: true,

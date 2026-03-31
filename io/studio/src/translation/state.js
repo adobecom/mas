@@ -49,19 +49,15 @@ function mergeValues(currentValue, patchValue) {
     return patchValue;
 }
 
-async function getClient() {
-    return init();
-}
-
 async function writeValue(key, value, ttl) {
-    const state = await getClient();
+    const state = await init();
     const serialized = JSON.stringify(value);
     await state.put(key, serialized, { ttl });
     return value;
 }
 
 async function readValue(key) {
-    const state = await getClient();
+    const state = await init();
     const result = await state.get(key);
     if (!result?.value) {
         return null;
@@ -70,7 +66,7 @@ async function readValue(key) {
 }
 
 async function deleteValue(key) {
-    const state = await getClient();
+    const state = await init();
     await state.delete(key);
 }
 

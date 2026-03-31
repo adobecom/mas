@@ -257,7 +257,9 @@ export class MerchCard extends LitElement {
 
     updated(changedProperties) {
         if (
-            !this.style.getPropertyValue('--consonant-merch-card-border-color') &&
+            !this.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ) &&
             this.computedBorderColor &&
             (changedProperties.has('badgeBackgroundColor') ||
                 changedProperties.has('borderColor'))

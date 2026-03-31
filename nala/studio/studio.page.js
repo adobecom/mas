@@ -61,7 +61,7 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:has-text("Fragments")');
+        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item').first();
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');

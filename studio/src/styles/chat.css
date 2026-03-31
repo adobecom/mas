@@ -1965,6 +1965,76 @@
     margin-top: var(--spectrum-global-dimension-size-150);
 }
 
+.button-group-hint {
+    display: flex;
+    align-items: center;
+    gap: var(--spectrum-global-dimension-size-75);
+    width: 100%;
+    margin-top: var(--spectrum-global-dimension-size-100);
+    font-size: var(--spectrum-alias-font-size-default);
+    color: var(--spectrum-global-color-gray-600);
+}
+
+/* Product Cards (disambiguation) */
+.chat-product-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spectrum-global-dimension-size-150);
+    margin-top: var(--spectrum-global-dimension-size-150);
+}
+
+.chat-product-cards .product-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spectrum-global-dimension-size-100);
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    border-radius: var(--spectrum-alias-border-radius-regular);
+    padding: var(--spectrum-global-dimension-size-200);
+    background: var(--spectrum-global-color-gray-50);
+    transition: border-color 0.15s;
+}
+
+.chat-product-cards .product-card:hover:not(.disabled) {
+    border-color: var(--spectrum-global-color-blue-400);
+}
+
+.chat-product-cards .product-card.selected {
+    border-color: var(--spectrum-global-color-blue-500);
+    background: var(--spectrum-global-color-blue-50, #f0f7ff);
+}
+
+.chat-product-cards .product-card.disabled {
+    opacity: 0.5;
+}
+
+.chat-product-cards .product-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spectrum-global-dimension-size-150);
+}
+
+.chat-product-cards .product-icon {
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.chat-product-cards .product-card-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-product-cards .product-code {
+    font-size: var(--spectrum-alias-font-size-default);
+    color: var(--spectrum-global-color-gray-600);
+    font-family: monospace;
+}
+
+.chat-product-cards .product-card-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spectrum-global-dimension-size-75);
+}
+
 /* Confirmation Summary */
 .chat-confirmation-summary {
     margin-top: var(--spectrum-global-dimension-size-150);

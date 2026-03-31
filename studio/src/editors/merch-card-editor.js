@@ -957,9 +957,17 @@ class MerchCardEditor extends LitElement {
                         --spectrum-accent-background-color-default,
                         var(--spectrum-blue-500)
                     );
+                    --mod-switch-background-color-selected-hover: var(
+                        --spectrum-accent-background-color-hover,
+                        var(--spectrum-blue-600)
+                    );
                     --mod-switch-handle-border-color-selected-default: var(
                         --spectrum-accent-background-color-default,
                         var(--spectrum-blue-500)
+                    );
+                    --mod-switch-handle-border-color-selected-hover: var(
+                        --spectrum-accent-background-color-hover,
+                        var(--spectrum-blue-600)
                     );
                 }
 
@@ -1443,7 +1451,7 @@ class MerchCardEditor extends LitElement {
                             data-field-state="${this.isSettingVisuallyOverridden('addon') ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.renderSettingOverrideIndicator('addon')}
                             .value="${this.getEffectiveSettingValue('addon')}"
-                            @change="${this.updateFragment}"
+                            @input="${this.updateFragment}"
                         ></mas-addon-field>
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
@@ -1455,7 +1463,7 @@ class MerchCardEditor extends LitElement {
                             data-field-state="${this.isSettingVisuallyOverridden('showPlanType') ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.renderSettingOverrideIndicator('showPlanType')}
                             value="${this.getEffectiveSettingValue('showPlanType')}"
-                            @change="${this.#handleFragmentUpdate}"
+                            @input="${this.#handleFragmentUpdate}"
                         ></mas-plan-type-field>
                     </sp-field-group>
                     <sp-field-group id="secureLabel" class="toggle">
@@ -1467,7 +1475,7 @@ class MerchCardEditor extends LitElement {
                             data-field-state="${this.isSettingVisuallyOverridden('showSecureLabel') ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.renderSettingOverrideIndicator('showSecureLabel')}
                             value="${this.getEffectiveSettingValue('showSecureLabel')}"
-                            @change="${this.#handleFragmentUpdate}"
+                            @input="${this.#handleFragmentUpdate}"
                         ></secure-text-field>
                     </sp-field-group>
                 </div>

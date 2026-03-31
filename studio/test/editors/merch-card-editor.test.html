@@ -1063,6 +1063,30 @@
                             expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
                             expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
                         });
+
+                        it('re-applies override state when toggling a setting after Restore all', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'toggle-after-restore-all',
+                            });
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+
+                            const planTypeField = editor.querySelector('#planType mas-plan-type-field');
+                            const toggle = planTypeField.querySelector('sp-switch');
+                            toggle.checked = false;
+                            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('false');
+                            expectSettingOverrideIndicators(['showPlanType']);
+                            expectSettingOverrideFieldState('overridden', ['showPlanType']);
+                        });
                     });
 
                     describe('getWhatsIncludedProps', () => {

@@ -397,7 +397,7 @@ const LANG_TO_LANGUAGE = {
 
 const regionLocalesCache = {};
 
-const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
+export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 
 /**
  * Get locale object from locale code

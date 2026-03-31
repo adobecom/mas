@@ -10,10 +10,18 @@ import '../mas-locale-picker.js';
 import '../aem/aem-tag-picker-field.js';
 import '../common/fields/tree-picker-field.js';
 import '../common/fields/quantity-select.js';
+import { createQuantitySelectValue } from '../common/fields/quantity-select.js';
 import { getVariantTreeData } from '../editors/variant-picker.js';
-import { getSettingDefaultValue, getSettingNameDefinition } from './setting-name-map.js';
 import { SETTING_NAME_DEFINITIONS } from '../../../io/www/src/fragment/transformers/settings.js';
-import { DELETE_BLOCKED_STATUSES } from './settings-store.js';
+import { DELETE_BLOCKED_STATUSES, getSettingNameDefinition } from './settings-store.js';
+
+const getSettingDefaultValue = (definition) => {
+    if (definition.editor === 'boolean') return true;
+    if (definition.editor === 'quantity-select') {
+        return createQuantitySelectValue({ title: '', min: '1', step: '1' });
+    }
+    return '';
+};
 
 class MasSettings extends LitElement {
     static styles = css`
@@ -185,7 +193,6 @@ class MasSettings extends LitElement {
         showDiscardDialog: { state: true },
     };
 
-    #loadedAem = null;
     #pendingDiscardPromise = null;
 
     reactiveController = new ReactiveController(this, [
@@ -261,6 +268,10 @@ class MasSettings extends LitElement {
     }
 
     update(changedProperties) {
+        if (changedProperties.has('aem') && this.aem) {
+            Store.settings.setAem(this.aem);
+            this.loadedSurface = '';
+        }
         const surfaceChanged = this.surface !== this.loadedSurface;
         if (
             changedProperties.has('aem') ||
@@ -276,14 +287,12 @@ class MasSettings extends LitElement {
 
     #loadSettings() {
         const surface = this.surface;
-        if (this.aem) Store.settings.setAem(this.aem);
-        if (!this.aem) Store.settings.initAem(this.bucket, this.baseUrl);
-        const aem = Store.settings.aem;
-        if (surface === this.loadedSurface && aem === this.#loadedAem) return;
-
+        if (surface === this.loadedSurface) return;
+        if (!Store.settings.aem) {
+            Store.settings.initAem(this.bucket, this.baseUrl);
+        }
         this.loadedSurface = surface;
-        this.#loadedAem = aem;
-        Store.settings.loadSurface(surface).then(() => {
+        Store.settings.ensureSurfaceLoaded(surface).then(() => {
             if (this.surface !== surface) {
                 this.#loadSettings();
             }
@@ -507,7 +516,8 @@ class MasSettings extends LitElement {
     };
 
     #handleAddOverrideDialog = ({ detail: { id } }) => {
-        const row = Store.settings.getRowStore(id).value;
+        const row = Store.settings.getRowStore(id)?.value;
+        if (!row) return;
         const settingDefinition = getSettingNameDefinition(row.name);
         const valueType = settingDefinition ? settingDefinition.valueType : row.valueType;
         const value = settingDefinition?.editor === 'addon' ? this.#toAddonValue(row.value) : row.value;
@@ -527,7 +537,8 @@ class MasSettings extends LitElement {
     };
 
     #buildConfirmDialogConfig(action, rowId, overrideId = null) {
-        const row = Store.settings.getRowStore(rowId).value;
+        const row = Store.settings.getRowStore(rowId)?.value;
+        if (!row) return null;
         const settingLabel = row.label;
 
         if (action === 'delete-override') {
@@ -610,13 +621,15 @@ class MasSettings extends LitElement {
     }
 
     #openConfirmDialog(action, rowId, overrideId = null, resetOnCancel = false) {
+        const config = this.#buildConfirmDialogConfig(action, rowId, overrideId);
+        if (!config) return;
         this.dialog = {
             type: 'confirm',
             action,
             rowId,
             overrideId,
             resetOnCancel,
-            config: this.#buildConfirmDialogConfig(action, rowId, overrideId),
+            config,
         };
     }
 
@@ -731,7 +744,8 @@ class MasSettings extends LitElement {
     get overrideConflict() {
         if (this.dialog?.type !== 'override') return null;
         if (!this.form.locales.length) return null;
-        const row = Store.settings.getRowStore(this.dialog.rowId).value;
+        const row = Store.settings.getRowStore(this.dialog.rowId)?.value;
+        if (!row) return null;
         return (
             row.overrides.find((override) => {
                 if (this.dialog.mode === 'edit' && override.id === this.dialog.overrideId) return false;
@@ -1063,7 +1077,8 @@ class MasSettings extends LitElement {
 
     get addOverrideDialogTemplate() {
         if (this.dialog?.type !== 'override') return nothing;
-        const row = Store.settings.getRowStore(this.dialog.rowId).value;
+        const row = Store.settings.getRowStore(this.dialog.rowId)?.value;
+        if (!row) return nothing;
         const conflict = this.overrideConflict;
         return html`
             <sp-underlay open @click=${this.#handleDialogCancel}></sp-underlay>

@@ -30,6 +30,8 @@ nala/.auth/
 .claude/
 .logs/
 .specify/
+.worktrees/
+.pids
 /specs/
 /agents/
 reports/

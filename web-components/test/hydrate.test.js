@@ -553,8 +553,7 @@ describe('hydrate', () => {
             fields: {
                 variant: 'plans',
                 cardTitle: 'Creative Cloud',
-                prices:
-                    '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
                 ctas: '<a class="accent" data-wcs-osi="main" data-analytics-id="buy">Buy</a>',
                 addon: addonHtml,
             },

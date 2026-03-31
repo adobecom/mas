@@ -51,7 +51,8 @@ jobs:
           owner: joaquinrivero
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        # TODO: unpin once upstream fix lands (2.1.88 broke skill resolution in -p mode)
+        run: npm install -g @anthropic-ai/claude-code@2.1.87
 
       - name: Checkout agentic-harness
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4

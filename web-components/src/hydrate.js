@@ -435,9 +435,10 @@ export function processDescription(fields, merchCard, mapping) {
     appendSlot('whatsIncluded', fields, merchCard, mapping);
 }
 
-export function processAddon(fields, merchCard, mapping) {
+export function processAddon(fields, merchCard, mapping, settings = {}) {
     if (!mapping.addon) return;
-    const addonField = fields.addon?.replace(/[{}]/g, '');
+    const addonSource = fields.addon ?? settings.addon;
+    const addonField = addonSource?.replace(/[{}]/g, '');
     if (!addonField) return;
     if (/disabled/.test(addonField)) return;
     const addon = createTag('merch-addon', { slot: 'addon' }, addonField);
@@ -455,12 +456,7 @@ export function processAddonConfirmation(fields, merchCard, mapping) {
     }
 }
 
-export function processStockOffersAndSecureLabel(
-    fields,
-    merchCard,
-    aemFragmentMapping,
-    settings,
-) {
+function processSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
     if (settings?.secureLabel && aemFragmentMapping?.secureLabel) {
         merchCard.setAttribute('secure-label', settings.secureLabel);
     }
@@ -817,9 +813,9 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping);
-    processAddon(fields, merchCard, mapping);
+    processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
-    processStockOffersAndSecureLabel(fields, merchCard, mapping, settings);
+    processSecureLabel(fields, merchCard, mapping, settings);
     try {
         processUptLinks(fields, merchCard);
     } catch {

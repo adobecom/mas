@@ -1,6 +1,5 @@
 const { Core } = require('@adobe/aio-sdk');
 const { Ims } = require('@adobe/aio-lib-ims');
-const { v4: uuidv4 } = require('uuid');
 const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils');
 const { fetchOdin, getInternalValue, getValue, getValues } = require('../common.js');
 const { putJobPayload, putProjectSummary, patchProjectSummary } = require('./state.js');
@@ -32,7 +31,7 @@ async function main(params) {
         const submissionDate = `${new Date().toISOString().split('.')[0]}Z`;
         await updateSubmissionMetadata(params, projectCF, etag, authToken, submissionDate);
 
-        const jobId = uuidv4();
+        const jobId = projectCF.id;
         const batchSize = params.batchSize || DEFAULT_BATCH_SIZE;
         const projectType = getValue(projectCF, 'projectType')?.value || 'translation';
         const translationFlow = params.translationMapping?.[params.surface] || 'transcreation';

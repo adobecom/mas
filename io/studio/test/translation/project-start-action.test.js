@@ -96,9 +96,6 @@ describe('Translation project-start action', () => {
             '@adobe/aio-lib-ims': {
                 Ims: ImsConstructorStub,
             },
-            uuid: {
-                v4: sinon.stub().returns('job-123'),
-            },
             './state.js': {
                 putJobPayload,
                 putProjectSummary,
@@ -170,13 +167,13 @@ describe('Translation project-start action', () => {
         expect(result).to.deep.equal({
             statusCode: 202,
             body: {
-                jobId: 'job-123',
+                jobId: 'project-1',
             },
         });
         expect(putJobPayload).to.have.been.calledOnceWith(
-            'job-123',
+            'project-1',
             sinon.match({
-                jobId: 'job-123',
+                jobId: 'project-1',
                 projectId: 'project-1',
                 surface: 'acom',
                 authToken: 'token',
@@ -192,7 +189,7 @@ describe('Translation project-start action', () => {
             'project-1',
             sinon.match({
                 projectId: 'project-1',
-                jobId: 'job-123',
+                jobId: 'project-1',
                 status: 'QUEUED',
                 submissionDate: '2026-03-25T16:00:00Z',
                 queue: {
@@ -221,13 +218,13 @@ describe('Translation project-start action', () => {
             }),
             { params: baseParams, updatedAt: '2026-03-25T16:00:00Z' },
         );
-        expect(enqueueJob).to.have.been.calledOnceWith('job-123');
+        expect(enqueueJob).to.have.been.calledOnceWith('project-1');
         expect(buildSiblingActionName).to.have.been.calledOnceWith(baseParams, 'translation-project-dispatcher', {
             overrideParamName: 'translationProjectStartDispatcherActionName',
         });
         expect(invokeAsyncAction).to.have.been.calledOnceWith(
             '/ns/MerchAtScaleStudio/translation-project-dispatcher',
-            { jobId: 'job-123' },
+            { jobId: 'project-1' },
             baseParams,
         );
         expect(patchProjectSummary).to.have.been.calledOnceWith(
@@ -264,7 +261,7 @@ describe('Translation project-start action', () => {
         await projectStartAction.main(baseParams);
 
         expect(putJobPayload).to.have.been.calledOnceWith(
-            'job-123',
+            'project-1',
             sinon.match({
                 requestedBy: 'user@example.com',
             }),
@@ -283,7 +280,7 @@ describe('Translation project-start action', () => {
         });
 
         expect(putJobPayload).to.have.been.calledOnceWith(
-            'job-123',
+            'project-1',
             sinon.match({
                 translationFlow: 'transcreation',
                 surface: 'unknown-surface',
@@ -305,7 +302,7 @@ describe('Translation project-start action', () => {
         await projectStartAction.main(baseParams);
 
         expect(putJobPayload).to.have.been.calledOnceWith(
-            'job-123',
+            'project-1',
             sinon.match({
                 requestedBy: null,
             }),

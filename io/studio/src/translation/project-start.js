@@ -1,10 +1,9 @@
 const { Core } = require('@adobe/aio-sdk');
 const { Ims } = require('@adobe/aio-lib-ims');
 const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils');
-const { fetchOdin, getInternalValue, getValue, getValues } = require('../common.js');
+const { buildSiblingActionName, fetchOdin, getInternalValue, getValue, getValues, invokeAsyncAction } = require('../common.js');
 const { putJobPayload, putProjectSummary, patchProjectSummary } = require('./state.js');
 const { enqueueJob } = require('./queue.js');
-const { buildSiblingActionName, invokeAsyncAction } = require('./runtime-actions.js');
 
 const logger = Core.Logger('translation-starter', { level: 'info' });
 const DISPATCHER_ACTION_NAME = 'translation-project-dispatcher';

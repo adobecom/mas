@@ -13,7 +13,7 @@ describe('Translation runtime actions', () => {
     });
 
     it('should derive a sibling action name from the current action name', () => {
-        const runtimeActions = require('../../src/translation/runtime-actions.js');
+        const runtimeActions = require('../../src/common.js');
 
         const name = runtimeActions.buildSiblingActionName(
             {
@@ -26,7 +26,7 @@ describe('Translation runtime actions', () => {
     });
 
     it('should use an explicit override action name when provided', () => {
-        const runtimeActions = require('../../src/translation/runtime-actions.js');
+        const runtimeActions = require('../../src/common.js');
 
         const name = runtimeActions.buildSiblingActionName(
             {
@@ -49,7 +49,7 @@ describe('Translation runtime actions', () => {
             },
         });
 
-        const runtimeActions = proxyquire('../../src/translation/runtime-actions.js', {
+        const runtimeActions = proxyquire('../../src/common.js', {
             openwhisk: openwhiskFactory,
         });
 

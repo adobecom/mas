@@ -2,6 +2,7 @@ const chai = require('chai');
 const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
 const proxyquire = require('proxyquire');
+const common = require('../../src/common.js');
 
 chai.use(sinonChai);
 
@@ -40,7 +41,8 @@ describe('Translation project-start dispatcher', () => {
                 getJobPayload,
                 patchProjectSummary,
             },
-            './runtime-actions.js': {
+            '../common.js': {
+                ...common,
                 buildSiblingActionName,
                 invokeAsyncAction,
             },
@@ -104,7 +106,8 @@ describe('Translation project-start dispatcher', () => {
                 getJobPayload: sinon.stub(),
                 patchProjectSummary: sinon.stub(),
             },
-            './runtime-actions.js': {
+            '../common.js': {
+                ...common,
                 buildSiblingActionName: sinon.stub().returns('/ns/MerchAtScaleStudio/translation-project-start-worker'),
                 invokeAsyncAction: sinon.stub(),
             },

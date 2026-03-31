@@ -2,6 +2,7 @@ const chai = require('chai');
 const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
 const proxyquire = require('proxyquire');
+const common = require('../../src/common.js');
 
 chai.use(sinonChai);
 
@@ -105,7 +106,8 @@ describe('Translation project-start action', function () {
             './queue.js': {
                 enqueueJob,
             },
-            './runtime-actions.js': {
+            '../common.js': {
+                ...common,
                 buildSiblingActionName,
                 invokeAsyncAction,
             },

@@ -1,4 +1,5 @@
 const { Core } = require('@adobe/aio-sdk');
+const { buildSiblingActionName, invokeAsyncAction } = require('../common.js');
 const { getJobPayload, deleteJobPayload, patchProjectSummary } = require('./state.js');
 const { enqueueJob, removeJob } = require('./queue.js');
 const { acquireVersioningLock, renewVersioningLock, releaseVersioningLock } = require('./versioning-lock.js');
@@ -11,7 +12,6 @@ const {
     isProjectStartError,
     updateProjectStatus,
 } = require('./project-start-service.js');
-const { buildSiblingActionName, invokeAsyncAction } = require('./runtime-actions.js');
 
 const logger = Core.Logger('translation-worker', { level: 'info' });
 const RUNNING_STATUS = 'RUNNING';

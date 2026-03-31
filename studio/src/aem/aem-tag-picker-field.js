@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
 import { EVENT_OST_OFFER_SELECT } from '../constants.js';
+import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
 
@@ -82,6 +83,10 @@ class AemTagPickerField extends LitElement {
         iconProvider: { type: Function, attribute: false },
         /** When true, renders tags in readonly mode without picker controls */
         readonly: { type: Boolean },
+        /** Personalization-only mode: show a top switch instead of search. */
+        personalizationToggle: { type: Boolean, attribute: 'personalization-toggle' },
+        /** Personalization switch state; when false, list is grayed out and disabled. */
+        personalizationEnabled: { type: Boolean, attribute: 'personalization-enabled' },
     };
 
     static styles = css`
@@ -175,6 +180,25 @@ class AemTagPickerField extends LitElement {
             color: var(--spectrum-gray-600);
             font-style: italic;
         }
+
+        .toggle-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spectrum-spacing-100);
+            padding-block-end: var(--spectrum-spacing-100);
+            padding-inline-start: 4px;
+        }
+
+        .toggle-divider {
+            height: 1px;
+            background-color: var(--spectrum-gray-300);
+            margin-block-end: var(--spectrum-spacing-100);
+        }
+
+        .checkbox-list--disabled {
+            opacity: 0.45;
+            pointer-events: none;
+        }
     `;
 
     #aem;
@@ -197,6 +221,8 @@ class AemTagPickerField extends LitElement {
         this.iconProvider = null;
         this.readonly = false;
         this.displayValue = false;
+        this.personalizationToggle = false;
+        this.personalizationEnabled = false;
     }
 
     #onOstSelect = ({ detail: { offer } }) => {
@@ -327,7 +353,10 @@ class AemTagPickerField extends LitElement {
             await this.#data;
         }
 
-        const allTags = [...this.#data.values()].filter((tag) => this.#tagRoots.some((root) => tag.path.startsWith(root)));
+        let allTags = [...this.#data.values()].filter((tag) => this.#tagRoots.some((root) => tag.path.startsWith(root)));
+        if (this.top === 'pzn') {
+            allTags = allTags.filter((tag) => !isPznCountryTagPath(tag.path));
+        }
 
         if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
             let tagsForCheckboxList = allTags.filter((tag) => this.#getTagTextByMode(tag));
@@ -610,8 +639,31 @@ class AemTagPickerField extends LitElement {
         return this.selection === SELECTION_CHECKBOX_TAGS;
     }
 
+    get #checkboxListDisabled() {
+        return this.personalizationToggle && !this.personalizationEnabled;
+    }
+
+    #handlePersonalizationToggleChange(event) {
+        event.stopPropagation();
+        const checked = event.target.checked;
+        this.personalizationEnabled = checked;
+        if (!checked) {
+            this.tempValue = [];
+            this.value = [];
+            void this.#notifyChange();
+        }
+        this.dispatchEvent(
+            new CustomEvent('personalization-toggle-change', {
+                bubbles: true,
+                composed: true,
+                detail: { enabled: checked },
+            }),
+        );
+    }
+
     async #handleCheckboxToggle(event) {
         event.stopPropagation();
+        if (this.#checkboxListDisabled) return;
         const checkbox = event.composedPath?.()[0] || event.target;
         const path = checkbox?.value || checkbox?.getAttribute?.('value');
         if (!path) return;
@@ -624,9 +676,14 @@ class AemTagPickerField extends LitElement {
             currentValue.splice(index, 1);
         }
         this.tempValue = currentValue;
+        if (this.personalizationToggle) {
+            this.value = [...this.tempValue];
+            void this.#notifyChange();
+        }
     }
 
     resetSelection() {
+        if (this.#checkboxListDisabled) return;
         this.tempValue = [];
         this.shadowRoot.querySelectorAll('sp-checkbox').forEach((checkbox) => {
             checkbox.checked = this.tempValue.includes(checkbox.value);
@@ -634,6 +691,7 @@ class AemTagPickerField extends LitElement {
     }
 
     async applySelection() {
+        if (this.#checkboxListDisabled) return;
         this.value = [...this.tempValue];
         this.tempValue = [];
         this.overlayTrigger.open = false;
@@ -666,16 +724,35 @@ class AemTagPickerField extends LitElement {
     get checkboxMenu() {
         if (!this.ready) return nothing;
 
+        const showSearch = !this.personalizationToggle && this.flatTags.length > 7;
         let filteredTags = this.flatTags;
-        if (this.flatTags.length > 7) {
+        if (showSearch) {
             filteredTags = this.flatTags.filter((path) =>
                 this.#resolveTagText(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
             );
         }
 
+        const listDisabled = this.#checkboxListDisabled;
+        const toggleHeader = this.personalizationToggle
+            ? html`
+                  <div class="toggle-header">
+                      <sp-switch
+                          id="aem-tag-picker-toggle"
+                          size="m"
+                          .checked=${this.personalizationEnabled}
+                          @change=${this.#handlePersonalizationToggleChange}
+                      >
+                          ${this.label}
+                      </sp-switch>
+                  </div>
+                  <div class="toggle-divider" role="separator"></div>
+              `
+            : nothing;
+
         return html`
             <div id="content">
-                ${this.flatTags.length > 7
+                ${toggleHeader}
+                ${showSearch
                     ? html`
                           <sp-search
                               name="tag-picker-search"
@@ -684,7 +761,7 @@ class AemTagPickerField extends LitElement {
                           ></sp-search>
                       `
                     : nothing}
-                <div class="checkbox-list">
+                <div class="checkbox-list ${listDisabled ? 'checkbox-list--disabled' : ''}">
                     ${repeat(
                         filteredTags,
                         (path) => path, // Unique key for each item
@@ -692,21 +769,32 @@ class AemTagPickerField extends LitElement {
                             const checked = this.tempValue.includes(path);
                             const icon = this.iconProvider ? this.iconProvider(path) : null;
                             return html`
-                                <sp-checkbox value="${path}" ?checked=${checked} @change=${this.#handleCheckboxToggle}>
+                                <sp-checkbox
+                                    value="${path}"
+                                    ?checked=${checked}
+                                    ?disabled=${listDisabled}
+                                    @change=${this.#handleCheckboxToggle}
+                                >
                                     ${icon ? html`${icon} ` : nothing}${this.#resolveTagText(path)}
                                 </sp-checkbox>
                             `;
                         },
                     )}
                 </div>
-                ${this.isCheckboxTagsMode
+                ${this.isCheckboxTagsMode || this.personalizationToggle
                     ? nothing
                     : html`<div id="footer">
                           <span> ${this.selectedText} </span>
-                          <sp-button size="s" @click=${this.resetSelection} variant="secondary" treatment="outline">
+                          <sp-button
+                              size="s"
+                              @click=${this.resetSelection}
+                              variant="secondary"
+                              treatment="outline"
+                              ?disabled=${listDisabled}
+                          >
                               Reset
                           </sp-button>
-                          <sp-button size="s" @click=${this.applySelection}> Apply </sp-button>
+                          <sp-button size="s" @click=${this.applySelection} ?disabled=${listDisabled}> Apply </sp-button>
                       </div>`}
             </div>
         `;
@@ -717,6 +805,7 @@ class AemTagPickerField extends LitElement {
      * - The list of sp-checkbox is scrollable if too large.
      * - In 'checkbox' mode, the footer shows # selected, plus Reset/Apply.
      * - In 'checkbox-tags' mode, selections apply when the popover closes and footer is hidden.
+     * - With personalization-toggle, no footer; each checkbox change updates value immediately.
      */
     get checkboxMode() {
         const currentValues = this.#asValueArray();

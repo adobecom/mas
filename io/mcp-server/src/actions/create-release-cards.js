@@ -29,6 +29,10 @@ async function fetchMCSProduct(arrangementCode, aosUrl, aosApiKey, locale = 'en_
     const offer = offers.find((o) => o.merchandising) || offers[0];
     const merch = offer.merchandising || {};
 
+    // Detect offer types across ALL offers for CTA generation
+    const hasTrial = offers.some((o) => o.offer_type === 'TRIAL');
+    const hasBuy = offers.some((o) => o.offer_type === 'BASE' || o.offer_type === 'PROMOTION');
+
     return {
         arrangement_code: offer.product_arrangement_code || arrangementCode,
         product_code: offer.product_code,
@@ -47,7 +51,21 @@ async function fetchMCSProduct(arrangementCode, aosUrl, aosApiKey, locale = 'en_
         // Convenience aliases
         name: merch.copy?.name,
         icon: merch.assets?.icons?.svg,
+        // Offer type flags for CTA generation
+        hasTrial,
+        hasBuy,
     };
+}
+
+function generateCtaHtml(product, osi) {
+    const checkoutAttrs = `is="checkout-link" data-wcs-osi="${osi}" data-checkout-workflow="UCv2" data-checkout-workflow-step="email"`;
+    if (product.hasTrial && product.hasBuy) {
+        return `<a ${checkoutAttrs} class="con-button secondary">Free trial</a> <a ${checkoutAttrs} class="con-button primary">Buy now</a>`;
+    }
+    if (product.hasTrial) {
+        return `<a ${checkoutAttrs} class="con-button primary">Start free trial</a>`;
+    }
+    return `<a ${checkoutAttrs} class="con-button primary">Buy now</a>`;
 }
 
 async function main(params) {
@@ -104,7 +122,12 @@ async function main(params) {
             fields.mnemonics = [{ icon: iconUrl, alt: productName }];
         }
 
-        if (osi) fields.osi = osi;
+        if (osi) {
+            fields.osi = osi;
+            const perUnit = product.customer_segment === 'TEAM' ? 'true' : 'false';
+            fields.prices = `<span is="inline-price" data-wcs-osi="${osi}" data-display-per-unit="${perUnit}" data-display-recurrence="true" data-display-tax="false"></span>`;
+            fields.ctas = generateCtaHtml(product, osi);
+        }
 
         // Deterministic tag mapping from AOS offer data
         const tags = [];

@@ -84,6 +84,7 @@ export function parseAIResponse(responseText) {
                 type: 'guided_step',
                 message: conversationalText || cardConfig.message || 'Please make a selection:',
                 buttonGroup: cardConfig.buttonGroup || null,
+                productCards: cardConfig.productCards || null,
             };
         }
 

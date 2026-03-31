@@ -190,7 +190,7 @@ export function getOffferSelectorTool() {
     `;
 }
 
-export function openOfferSelectorTool(triggerElement, offerElement) {
+export function openOfferSelectorTool(triggerElement, offerElement, initialSearchParams = null) {
     const masCommerceService = document.querySelector('mas-commerce-service');
     try {
         const landscape = Store.landscape?.value ?? WCS_LANDSCAPE_PUBLISHED;
@@ -236,6 +236,10 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);
             });
+        } else if (initialSearchParams) {
+            for (const [key, value] of Object.entries(initialSearchParams)) {
+                if (value) searchParameters.append(key, value);
+            }
         }
         const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',

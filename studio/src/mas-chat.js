@@ -377,6 +377,7 @@ export class MasChat extends LitElement {
                         role: 'assistant',
                         content: response.message,
                         buttonGroup: response.buttonGroup,
+                        productCards: response.productCards,
                         timestamp: Date.now(),
                     },
                 ];
@@ -387,6 +388,7 @@ export class MasChat extends LitElement {
                         role: 'assistant',
                         content: response.message,
                         openOst: true,
+                        ostSearchParams: response.searchParams,
                         timestamp: Date.now(),
                     },
                 ];
@@ -1107,6 +1109,7 @@ export class MasChat extends LitElement {
                         role: 'assistant',
                         content: response.message,
                         buttonGroup: response.buttonGroup,
+                        productCards: response.productCards,
                         timestamp: Date.now(),
                     },
                 ];

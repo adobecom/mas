@@ -6,9 +6,11 @@ import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
 import './mas-bulk-preview.js';
 import './mas-chat-button-group.js';
+import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
 import { openOfferSelectorTool } from './rte/ost.js';
+import { buildStudioFragmentHref, showToast } from './utils.js';
 
 /**
  * Chat Message Component
@@ -43,6 +45,22 @@ export class MasChatMessage extends LitElement {
                 composed: true,
             }),
         );
+    }
+
+    async copyFragmentLink() {
+        const { fragmentId } = this.message;
+        if (!fragmentId) return;
+        const url = buildStudioFragmentHref({
+            webComponentName: 'merch-card',
+            fragmentId,
+            page: 'content',
+        });
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast('Fragment link copied', 'positive');
+        } catch {
+            showToast('Failed to copy link', 'negative');
+        }
     }
 
     renderCardPreview() {
@@ -118,20 +136,24 @@ export class MasChatMessage extends LitElement {
                     <span>${fragmentPath}</span>
                 </div>
 
-                <div class="card-actions">
-                    <sp-button size="s" variant="accent" @click=${() => this.handleCardAction('edit')}>
-                        <sp-icon-edit slot="icon"></sp-icon-edit>
-                        Open in Editor
+                <div class="card-actions card-actions-primary">
+                    <sp-button size="s" variant="accent" @click=${() => this.copyFragmentLink()}>
+                        <sp-icon-link slot="icon"></sp-icon-link>
+                        Copy Fragment Link
                     </sp-button>
-                    <sp-button size="s" variant="primary" @click=${() => this.handleCardAction('publish')}>
-                        Publish to Production
+                    <sp-button size="s" variant="primary" @click=${() => this.handleCardAction('edit')}>
+                        <sp-icon-edit slot="icon"></sp-icon-edit>
+                        Edit in Fragment Editor
+                    </sp-button>
+                </div>
+                <div class="card-actions card-actions-secondary">
+                    <sp-button size="s" variant="secondary" @click=${() => this.handleCardAction('publish')}>
+                        Publish
                     </sp-button>
                     <sp-button size="s" variant="secondary" @click=${() => this.handleCardAction('regenerate')}>
                         Regenerate
                     </sp-button>
-                    <sp-button size="s" variant="negative" @click=${() => this.handleCardAction('delete')}>
-                        Delete Draft
-                    </sp-button>
+                    <sp-button size="s" variant="negative" @click=${() => this.handleCardAction('delete')}> Delete </sp-button>
                 </div>
             </div>
         `;
@@ -516,14 +538,24 @@ export class MasChatMessage extends LitElement {
                                   ${this.showSuggestions ? html`<mas-prompt-suggestions></mas-prompt-suggestions>` : nothing}
                               </div>`
                             : nothing}
-                    ${this.message.buttonGroup
-                        ? html`<mas-chat-button-group
-                              .buttons=${this.message.buttonGroup.options}
-                              .selectedValue=${this.message.buttonGroup.selectedValue}
-                          ></mas-chat-button-group>`
-                        : nothing}
+                    ${this.message.productCards
+                        ? html`<mas-chat-product-cards
+                              .products=${this.message.productCards}
+                              .selectedValue=${this.message.buttonGroup?.selectedValue}
+                          ></mas-chat-product-cards>`
+                        : this.message.buttonGroup
+                          ? html`<mas-chat-button-group
+                                .buttons=${this.message.buttonGroup.options}
+                                .selectedValue=${this.message.buttonGroup.selectedValue}
+                                .inputHint=${this.message.buttonGroup.inputHint}
+                            ></mas-chat-button-group>`
+                          : nothing}
                     ${this.message.openOst
-                        ? html`<sp-button variant="secondary" size="s" @click=${() => openOfferSelectorTool(this, null)}>
+                        ? html`<sp-button
+                              variant="secondary"
+                              size="s"
+                              @click=${() => openOfferSelectorTool(this, null, this.message.ostSearchParams)}
+                          >
                               <sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>
                               Select Offer
                           </sp-button>`

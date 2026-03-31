@@ -5,6 +5,7 @@ export class MasChatButtonGroup extends LitElement {
         buttons: { type: Array },
         selectedValue: { type: String, attribute: 'selected-value' },
         disabled: { type: Boolean },
+        inputHint: { type: String, attribute: 'input-hint' },
     };
 
     constructor() {
@@ -12,6 +13,7 @@ export class MasChatButtonGroup extends LitElement {
         this.buttons = [];
         this.selectedValue = null;
         this.disabled = false;
+        this.inputHint = null;
     }
 
     createRenderRoot() {
@@ -47,6 +49,12 @@ export class MasChatButtonGroup extends LitElement {
                         </sp-action-button>
                     `,
                 )}
+                ${this.inputHint && !this.selectedValue
+                    ? html`<div class="button-group-hint">
+                          <sp-icon-search size="s"></sp-icon-search>
+                          ${this.inputHint}
+                      </div>`
+                    : nothing}
             </div>
         `;
     }

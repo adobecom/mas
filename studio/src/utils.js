@@ -240,7 +240,7 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
     return { authorPath, code, richText, href };
 }
 
-function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
+export function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
     const params = new URLSearchParams();
     params.set('content-type', webComponentName);
     if (page) params.set('page', page);

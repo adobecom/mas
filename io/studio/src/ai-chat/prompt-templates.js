@@ -291,9 +291,10 @@ Response:
 \`\`\`json
 {
   "type": "guided_step",
-  "message": "Let's create a new merchandising card. Here are some popular products, or you can type any product name below:",
+  "message": "Which product is this card for? Pick one below or type any product name to search:",
   "buttonGroup": {
     "label": "Product",
+    "inputHint": "Or type a product name to search...",
     "options": [
       { "label": "Photoshop", "value": "Photoshop" },
       { "label": "Acrobat", "value": "Acrobat" },
@@ -320,20 +321,34 @@ When the user provides a product name, call \`list_products\` to resolve it:
 \`\`\`
 
 ## Step 3: Product Disambiguation (if multiple matches)
-If list_products returns multiple products, present them as a button group:
+If list_products returns multiple products, present them as product preview cards so the user can review details before choosing:
 \`\`\`json
 {
   "type": "guided_step",
-  "message": "I found multiple products matching your search. Which one would you like?",
-  "buttonGroup": {
-    "label": "Product",
-    "options": [
-      { "label": "Photoshop Single App", "value": "phsp_direct_individual" },
-      { "label": "Photography Plan (20GB)", "value": "phsp_photo_20gb" }
-    ]
-  }
+  "message": "I found multiple products matching your search. Review the details and select one:",
+  "productCards": [
+    {
+      "label": "Photoshop Single App",
+      "value": "phsp_direct_individual",
+      "arrangement_code": "phsp_direct_individual",
+      "product_code": "PHSP",
+      "product_family": "CC_ALL_APPS",
+      "segments": ["INDIVIDUAL", "TEAM"],
+      "icon": "https://www.adobe.com/content/dam/cc/icons/photoshop.svg"
+    },
+    {
+      "label": "Photography Plan (20GB)",
+      "value": "phsp_photo_20gb",
+      "arrangement_code": "phsp_photo_20gb",
+      "product_code": "PHSP",
+      "product_family": "PHOTO",
+      "segments": ["INDIVIDUAL"],
+      "icon": "https://www.adobe.com/content/dam/cc/icons/photoshop.svg"
+    }
+  ]
 }
 \`\`\`
+Include all available product details from the list_products response. The frontend will render these as detail cards the user can review.
 If only one product matches, skip disambiguation and proceed to Step 4.
 
 ## Step 4: Segment Selection

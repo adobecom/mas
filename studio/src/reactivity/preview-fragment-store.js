@@ -2,6 +2,60 @@ import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 import { Fragment } from '../aem/fragment.js';
+const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel']);
+
+export function serializePreviewFields(fields = []) {
+    return fields.reduce((result, field) => {
+        const values = field.values || [];
+        const isSingleEmptyString = field.multiple !== true && values.length === 1 && values[0] === '';
+
+        // Studio uses [''] as the single-value "inherit/default" sentinel for settings.
+        // Omit those fields from preview payloads so fragment-client resolves surface defaults.
+        if (isSingleEmptyString && INHERITED_SETTINGS_FIELDS.has(field.name)) {
+            return result;
+        }
+
+        result[field.name] = field.multiple ? values : values[0];
+        return result;
+    }, {});
+}
+
+export function mergeResolvedPreviewFields(originalFields = [], resolvedFields = {}, resolvedSettings = {}) {
+    return originalFields.map((field) => {
+        const resolvedValue = resolvedFields?.[field.name];
+
+        if (field.multiple) {
+            if (Array.isArray(resolvedValue)) {
+                return {
+                    ...field,
+                    values: resolvedValue,
+                };
+            }
+            return field;
+        }
+
+        if (resolvedValue !== undefined) {
+            return {
+                ...field,
+                values: [resolvedValue],
+            };
+        }
+
+        // For inherited settings fields omitted from the preview payload,
+        // the resolved value comes back in result.settings instead of result.fields.
+        if (INHERITED_SETTINGS_FIELDS.has(field.name)) {
+            const settingValue = resolvedSettings?.[field.name];
+            if (settingValue !== undefined) {
+                return {
+                    ...field,
+                    values: [settingValue],
+                };
+            }
+        }
+
+        return field;
+    });
+}
 
 export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
@@ -152,10 +206,7 @@ export class PreviewFragmentStore extends FragmentStore {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
         const originalFields = body.fields;
-        body.fields = {};
-        for (const field of originalFields) {
-            body.fields[field.name] = field.multiple ? field.values : field.values[0];
-        }
+        body.fields = serializePreviewFields(originalFields);
 
         const context = {
             locale: Store.localeOrRegion(),
@@ -165,11 +216,7 @@ export class PreviewFragmentStore extends FragmentStore {
         const result = await previewStudioFragment(body, context);
 
         /* Transform fields back to author */
-        for (const field of originalFields) {
-            const resolvedField = result.fields[field.name];
-            field.values = field.multiple ? resolvedField : [resolvedField];
-        }
-        result.fields = originalFields;
+        result.fields = mergeResolvedPreviewFields(originalFields, result.fields, result.settings);
 
         const essentialProps = [
             'path',

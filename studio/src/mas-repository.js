@@ -425,6 +425,7 @@ export class MasRepository extends LitElement {
                     if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
                         Store.search.set((prev) => ({
                             ...prev,
+                            query: prev.query ?? query,
                             path: fragmentSurface,
                         }));
                     }

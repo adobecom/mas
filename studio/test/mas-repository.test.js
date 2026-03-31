@@ -888,10 +888,13 @@ describe('MasRepository dictionary helpers', () => {
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
             Store.profile.set({ name: 'test-user' });
+            let dataValue = [];
             const mockDataStore = {
-                get: sandbox.stub().returns([]),
+                get: sandbox.stub().callsFake(() => dataValue),
                 getMeta: sandbox.stub().returns(null),
-                set: sandbox.stub(),
+                set: sandbox.stub().callsFake((value) => {
+                    dataValue = value;
+                }),
                 setMeta: sandbox.stub(),
             };
             const originalData = Store.fragments.list.data;
@@ -942,10 +945,13 @@ describe('MasRepository dictionary helpers', () => {
             Store.filters.set({ locale: 'fr_FR', tags: '' });
             Store.filters.removeMeta('uuid-query');
             Store.filters.removeMeta('uuid-locale');
+            let dataValue = [];
             const mockDataStore = {
-                get: sandbox.stub().returns([]),
+                get: sandbox.stub().callsFake(() => dataValue),
                 getMeta: sandbox.stub().returns(null),
-                set: sandbox.stub(),
+                set: sandbox.stub().callsFake((value) => {
+                    dataValue = value;
+                }),
                 setMeta: sandbox.stub(),
             };
             const originalData = Store.fragments.list.data;
@@ -1006,10 +1012,13 @@ describe('MasRepository dictionary helpers', () => {
             Store.filters.set({ locale: 'fr_FR', tags: '' });
             Store.filters.removeMeta('uuid-query');
             Store.filters.removeMeta('uuid-locale');
+            let dataValue = [];
             const mockDataStore = {
-                get: sandbox.stub().returns([]),
+                get: sandbox.stub().callsFake(() => dataValue),
                 getMeta: sandbox.stub().returns(null),
-                set: sandbox.stub(),
+                set: sandbox.stub().callsFake((value) => {
+                    dataValue = value;
+                }),
                 setMeta: sandbox.stub(),
             };
             const originalData = Store.fragments.list.data;

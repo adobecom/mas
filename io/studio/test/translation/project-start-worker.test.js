@@ -11,6 +11,7 @@ describe('Translation project-start worker', function () {
     this.timeout(5000);
     let mockLogger;
     let getJobPayload;
+    let deleteJobPayload;
     let patchProjectSummary;
     let enqueueJob;
     let acquireVersioningLock;
@@ -34,6 +35,7 @@ describe('Translation project-start worker', function () {
             error: sinon.stub(),
         };
         getJobPayload = sinon.stub();
+        deleteJobPayload = sinon.stub().resolves();
         patchProjectSummary = sinon.stub().resolves();
         enqueueJob = sinon.stub().resolves();
         acquireVersioningLock = sinon.stub();
@@ -58,6 +60,7 @@ describe('Translation project-start worker', function () {
             },
             './state.js': {
                 getJobPayload,
+                deleteJobPayload,
                 patchProjectSummary,
             },
             './queue.js': {
@@ -300,6 +303,7 @@ describe('Translation project-start worker', function () {
                 authToken: 'token-1',
             }),
         );
+        expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
         expect(result).to.deep.equal({
             statusCode: 200,
             body: {
@@ -334,6 +338,7 @@ describe('Translation project-start worker', function () {
         expect(runVersioningStage).to.not.have.been.called;
         expect(releaseVersioningLock).to.not.have.been.called;
         expect(updateProjectStatus).to.not.have.been.called;
+        expect(deleteJobPayload).to.not.have.been.called;
         expect(enqueueJob).to.have.been.calledOnceWith('job-1');
         expect(patchProjectSummary.firstCall).to.have.been.calledWith(
             'project-1',
@@ -435,6 +440,7 @@ describe('Translation project-start worker', function () {
             },
         );
         expect(updateProjectStatus).to.not.have.been.called;
+        expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
         expect(result).to.deep.equal({
             statusCode: 500,
             body: {
@@ -475,6 +481,7 @@ describe('Translation project-start worker', function () {
             },
         );
         expect(updateProjectStatus).to.not.have.been.called;
+        expect(deleteJobPayload).to.have.been.calledOnceWith('job-1');
         expect(result).to.deep.equal({
             statusCode: 500,
             body: {
@@ -510,6 +517,14 @@ describe('Translation project-start worker', function () {
         );
 
         expect(mockLogger.warn).to.have.been.calledOnceWith('Failed to release versioning lock for job job-1: not_owner');
+    });
+
+    it('should warn when deleting the job payload fails', async () => {
+        deleteJobPayload.rejects(new Error('delete failed'));
+
+        await worker.deleteJobPayloadOrWarn('job-1');
+
+        expect(mockLogger.warn).to.have.been.calledOnceWith('Failed to delete job payload for job-1: delete failed');
     });
 
     it('should expose fallback error messages for worker helper responses', () => {

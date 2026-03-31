@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk');
-const { getJobPayload, patchProjectSummary } = require('./state.js');
+const { getJobPayload, deleteJobPayload, patchProjectSummary } = require('./state.js');
 const { enqueueJob } = require('./queue.js');
 const { acquireVersioningLock, renewVersioningLock, releaseVersioningLock } = require('./versioning-lock.js');
 const {
@@ -26,6 +26,7 @@ async function main(params) {
     let lockHeld = false;
     let heartbeat;
     let shouldTriggerDispatcher = false;
+    let shouldDeleteJobPayload = false;
     let payload;
 
     try {
@@ -47,6 +48,7 @@ async function main(params) {
                 },
             };
         }
+        shouldDeleteJobPayload = true;
 
         await patchWorkerStartedSummary(payload.projectId, params);
         const workerParams = createWorkerParams(params, payload);
@@ -55,6 +57,7 @@ async function main(params) {
         lockOwner = createLockOwner(params, payload);
         const lockResult = await acquireVersioningLock(lockOwner);
         if (!lockResult.acquired) {
+            shouldDeleteJobPayload = false;
             await requeueJobForVersioningRetry(params.jobId, payload.projectId, params);
             return {
                 statusCode: 202,
@@ -157,6 +160,9 @@ async function main(params) {
         }
         if (shouldTriggerDispatcher) {
             await triggerDispatcher(params);
+        }
+        if (shouldDeleteJobPayload && params.jobId) {
+            await deleteJobPayloadOrWarn(params.jobId);
         }
     }
 }
@@ -419,6 +425,14 @@ async function releaseVersioningLockOrWarn(lockOwner, jobId) {
     }
 }
 
+async function deleteJobPayloadOrWarn(jobId) {
+    try {
+        await deleteJobPayload(jobId);
+    } catch (error) {
+        logger.warn(`Failed to delete job payload for ${jobId}: ${error.message}`);
+    }
+}
+
 module.exports = {
     main,
     createWorkerParams,
@@ -437,6 +451,7 @@ module.exports = {
     patchAsyncProcessingSummary,
     requeueJobForVersioningRetry,
     releaseVersioningLockOrWarn,
+    deleteJobPayloadOrWarn,
     DISPATCHER_ACTION_NAME,
     QUEUED_STATUS,
     RUNNING_STATUS,

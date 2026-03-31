@@ -763,12 +763,9 @@ describe('Translation project-start', () => {
                 ],
             });
 
-            const result = await projectStartService.updateProjectStatus(
-                'test-project-id',
-                'RUNNING',
-                'token',
-                { odinEndpoint: baseParams.odinEndpoint },
-            );
+            const result = await projectStartService.updateProjectStatus('test-project-id', 'RUNNING', 'token', {
+                odinEndpoint: baseParams.odinEndpoint,
+            });
 
             expect(result).to.deep.equal({ success: true });
             expect(callCounts['/adobe/sites/cf/fragments/test-project-id']).to.equal(2);
@@ -802,12 +799,9 @@ describe('Translation project-start', () => {
                 '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"fresh-etag"'),
             });
 
-            const result = await projectStartService.updateProjectStatus(
-                'test-project-id',
-                'FAILED',
-                'token',
-                { odinEndpoint: baseParams.odinEndpoint },
-            );
+            const result = await projectStartService.updateProjectStatus('test-project-id', 'FAILED', 'token', {
+                odinEndpoint: baseParams.odinEndpoint,
+            });
 
             expect(result).to.deep.equal({ success: false, skipped: true });
             expect(callCounts['/adobe/sites/cf/fragments/test-project-id']).to.equal(1);

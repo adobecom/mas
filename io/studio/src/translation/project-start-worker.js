@@ -145,7 +145,12 @@ async function main(params) {
             } else {
                 await markProjectFailed(payload.projectId, getErrorMessage(error), params);
                 if (payload.authToken) {
-                    await syncProjectFragmentStatus(payload.projectId, FAILED_STATUS, payload.authToken, createWorkerParams(params, payload));
+                    await syncProjectFragmentStatus(
+                        payload.projectId,
+                        FAILED_STATUS,
+                        payload.authToken,
+                        createWorkerParams(params, payload),
+                    );
                 }
             }
         }

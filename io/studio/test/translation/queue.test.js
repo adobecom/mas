@@ -32,44 +32,61 @@ describe('Translation queue helpers', () => {
     });
 
     it('should enqueue jobs in FIFO order and avoid duplicates', async () => {
-        mockState.get.onCall(0).resolves(null);
-        mockState.get.onCall(1).resolves({
-            value: JSON.stringify(['job-1']),
+        const persistedValues = {};
+        mockState.get.callsFake(async (key) => {
+            if (!Object.hasOwn(persistedValues, key)) {
+                return null;
+            }
+            return { value: persistedValues[key] };
         });
-        mockState.get.onCall(2).resolves({
-            value: JSON.stringify(['job-1', 'job-2']),
+        mockState.put.callsFake(async (key, value) => {
+            persistedValues[key] = value;
+        });
+        mockState.delete.callsFake(async (key) => {
+            delete persistedValues[key];
         });
 
-        await queueHelpers.enqueueJob('job-1');
-        await queueHelpers.enqueueJob('job-2');
-        const result = await queueHelpers.enqueueJob('job-2');
+        await queueHelpers.enqueueJob('job-1', { ownerId: 'queue-mutation-owner' });
+        await queueHelpers.enqueueJob('job-2', { ownerId: 'queue-mutation-owner' });
+        const result = await queueHelpers.enqueueJob('job-2', { ownerId: 'queue-mutation-owner' });
 
         expect(result).to.deep.equal(['job-1', 'job-2']);
-        expect(mockState.put).to.have.been.calledTwice;
-        expect(mockState.put.firstCall).to.have.been.calledWith(queueHelpers.QUEUE_KEY, JSON.stringify(['job-1']), {
-            ttl: queueHelpers.QUEUE_TTL,
-        });
-        expect(mockState.put.secondCall).to.have.been.calledWith(queueHelpers.QUEUE_KEY, JSON.stringify(['job-1', 'job-2']), {
-            ttl: queueHelpers.QUEUE_TTL,
-        });
+        expect(JSON.parse(persistedValues[queueHelpers.QUEUE_KEY])).to.deep.equal(['job-1', 'job-2']);
+        const queueWrites = mockState.put
+            .getCalls()
+            .filter((call) => call.args[0] === queueHelpers.QUEUE_KEY)
+            .map((call) => JSON.parse(call.args[1]));
+        expect(queueWrites).to.deep.equal([['job-1'], ['job-1', 'job-2']]);
+        expect(mockState.delete.callCount).to.equal(3);
     });
 
     it('should peek and dequeue the next job in FIFO order', async () => {
-        mockState.get.onFirstCall().resolves({
-            value: JSON.stringify(['job-1', 'job-2']),
+        const persistedValues = {
+            [queueHelpers.QUEUE_KEY]: JSON.stringify(['job-1', 'job-2']),
+        };
+        mockState.get.callsFake(async (key) => {
+            if (!Object.hasOwn(persistedValues, key)) {
+                return null;
+            }
+            return { value: persistedValues[key] };
         });
-        mockState.get.onSecondCall().resolves({
-            value: JSON.stringify(['job-1', 'job-2']),
+        mockState.put.callsFake(async (key, value) => {
+            persistedValues[key] = value;
+        });
+        mockState.delete.callsFake(async (key) => {
+            delete persistedValues[key];
         });
 
         const nextJob = await queueHelpers.peekNextJob();
-        const dequeuedJob = await queueHelpers.dequeueNextJob();
+        const dequeuedJob = await queueHelpers.dequeueNextJob({ ownerId: 'queue-mutation-owner', skipLock: false });
 
         expect(nextJob).to.equal('job-1');
         expect(dequeuedJob).to.equal('job-1');
+        expect(JSON.parse(persistedValues[queueHelpers.QUEUE_KEY])).to.deep.equal(['job-2']);
         expect(mockState.put).to.have.been.calledWith(queueHelpers.QUEUE_KEY, JSON.stringify(['job-2']), {
             ttl: queueHelpers.QUEUE_TTL,
         });
+        expect(mockState.delete).to.have.been.called;
     });
 
     it('should report queue length', async () => {
@@ -199,5 +216,63 @@ describe('Translation queue helpers', () => {
                 leaseUntil: '2026-03-24T10:00:30.000Z',
             },
         });
+    });
+
+    it('should retry queue mutation lock acquisition before enqueueing', async () => {
+        const clock = sinon.useFakeTimers();
+        const setTimeoutStub = sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+        mockState.get.onCall(0).resolves({
+            value: JSON.stringify({
+                ownerId: 'dispatcher-1',
+                acquiredAt: '2026-03-24T10:00:00.000Z',
+                leaseUntil: '2026-03-24T10:00:30.000Z',
+            }),
+        });
+        mockState.get.onCall(1).resolves(null);
+        mockState.get.onCall(2).resolves(null);
+
+        const result = await queueHelpers.enqueueJob('job-1', {
+            ownerId: 'queue-mutation-owner',
+            maxAttempts: 2,
+            retryDelayMs: 10,
+            now: () => new Date('2026-03-24T10:00:00Z'),
+        });
+
+        expect(result).to.deep.equal(['job-1']);
+        expect(setTimeoutStub).to.have.been.calledOnce;
+        clock.restore();
+    });
+
+    it('should throw when the queue mutation lock stays busy', async () => {
+        const setTimeoutStub = sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+        mockState.get.resolves({
+            value: JSON.stringify({
+                ownerId: 'dispatcher-1',
+                acquiredAt: '2026-03-24T10:00:00.000Z',
+                leaseUntil: '2026-03-24T10:00:30.000Z',
+            }),
+        });
+
+        let error;
+        try {
+            await queueHelpers.enqueueJob('job-1', {
+                ownerId: 'queue-mutation-owner',
+                maxAttempts: 2,
+                retryDelayMs: 10,
+                now: () => new Date('2026-03-24T10:00:00Z'),
+            });
+        } catch (caughtError) {
+            error = caughtError;
+        }
+
+        expect(error).to.be.instanceOf(Error);
+        expect(error.message).to.equal('Queue lock is already held');
+        expect(setTimeoutStub).to.have.been.calledOnce;
     });
 });

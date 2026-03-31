@@ -100,7 +100,7 @@ async function dispatchNextQueuedJob(params = {}, deps = {}) {
         });
 
         const workerResult = await invokeWorker(nextJobId, params);
-        await dequeueJob();
+        await dequeueJob({ skipLock: true });
 
         await patchSummary(payload.projectId, {
             queue: {

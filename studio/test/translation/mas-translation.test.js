@@ -795,5 +795,4 @@ describe('MasTranslation', () => {
             expect(Store.translationProjects.list.loading.get()).to.be.false;
         });
     });
-
 });

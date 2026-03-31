@@ -4,6 +4,8 @@ const QUEUE_KEY = 'translation-queue.pending';
 const QUEUE_LOCK_KEY = 'translation-queue.lock';
 const QUEUE_TTL = 7 * 24 * 60 * 60;
 const DEFAULT_QUEUE_LOCK_LEASE_MS = 30 * 1000;
+const DEFAULT_QUEUE_MUTATION_RETRY_DELAY_MS = 50;
+const DEFAULT_QUEUE_MUTATION_MAX_ATTEMPTS = 5;
 
 function toDate(value) {
     return value instanceof Date ? value : new Date(value);
@@ -58,6 +60,20 @@ async function peekNextJob() {
 }
 
 async function enqueueJob(jobId, options = {}) {
+    if (options.skipLock) {
+        return enqueueJobUnsafe(jobId, options);
+    }
+    return withQueueMutationLock(async () => enqueueJobUnsafe(jobId, options), options);
+}
+
+async function dequeueNextJob(options = {}) {
+    if (options.skipLock) {
+        return dequeueNextJobUnsafe(options);
+    }
+    return withQueueMutationLock(async () => dequeueNextJobUnsafe(options), options);
+}
+
+async function enqueueJobUnsafe(jobId, options = {}) {
     const queue = await getPendingQueue();
     if (!queue.includes(jobId)) {
         queue.push(jobId);
@@ -66,7 +82,7 @@ async function enqueueJob(jobId, options = {}) {
     return queue;
 }
 
-async function dequeueNextJob(options = {}) {
+async function dequeueNextJobUnsafe(options = {}) {
     const queue = await getPendingQueue();
     const jobId = queue.shift() || null;
     await putPendingQueue(queue, options);
@@ -140,11 +156,37 @@ async function releaseQueueLock(ownerId) {
     };
 }
 
+async function withQueueMutationLock(callback, options = {}) {
+    const ownerId = options.ownerId || `queue-mutation-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const maxAttempts = options.maxAttempts ?? DEFAULT_QUEUE_MUTATION_MAX_ATTEMPTS;
+    const retryDelayMs = options.retryDelayMs ?? DEFAULT_QUEUE_MUTATION_RETRY_DELAY_MS;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        const lock = await acquireQueueLock(ownerId, options);
+        if (lock.acquired) {
+            try {
+                return await callback();
+            } finally {
+                await releaseQueueLock(ownerId);
+            }
+        }
+
+        if (attempt === maxAttempts) {
+            throw new Error('Queue lock is already held');
+        }
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+
+    throw new Error('Queue lock is already held');
+}
+
 module.exports = {
     QUEUE_KEY,
     QUEUE_LOCK_KEY,
     QUEUE_TTL,
     DEFAULT_QUEUE_LOCK_LEASE_MS,
+    DEFAULT_QUEUE_MUTATION_RETRY_DELAY_MS,
+    DEFAULT_QUEUE_MUTATION_MAX_ATTEMPTS,
     isQueueLockExpired,
     acquireQueueLock,
     releaseQueueLock,
@@ -154,4 +196,7 @@ module.exports = {
     peekNextJob,
     enqueueJob,
     dequeueNextJob,
+    enqueueJobUnsafe,
+    dequeueNextJobUnsafe,
+    withQueueMutationLock,
 };

@@ -4,8 +4,12 @@ import { ROOT_PATH } from '../constants.js';
 import { ReactiveStore } from '../reactivity/reactive-store.js';
 import { showToast, normalizeKey } from '../utils.js';
 import { createTreeSelectionSummary } from '../common/fields/tree-picker-field.js';
-import { getSettingNameDefinition } from './setting-name-map.js';
 import { getVariantTreeData } from '../editors/variant-picker.js';
+import {
+    extractValue,
+    resolveSettingEntry,
+    SETTING_NAME_BY_VALUE,
+} from '../../../io/www/src/fragment/transformers/settings.js';
 
 const INDEX_REFERENCES_FIELD = 'entries';
 const INDEX_NOT_FOUND_MESSAGES = ['404', 'Fragment not found'];
@@ -18,6 +22,7 @@ export const DELETE_BLOCKED_STATUSES = ['PUBLISHED', 'MODIFIED'];
 
 const trueValues = new Set(['true', '1', 'yes', 'on']);
 const falseValues = new Set(['false', '0', 'no', 'off']);
+export const getSettingNameDefinition = (name) => SETTING_NAME_BY_VALUE.get(name);
 
 const normalizeBoolean = (value) => {
     const normalized = `${value}`.trim().toLowerCase();
@@ -129,6 +134,75 @@ const areStringListsEqual = (left = [], right = []) => {
 
 const templateSummaryHelper = createTreeSelectionSummary(getVariantTreeData());
 
+const getRowRecord = (rowLike) => (rowLike?.value?.name ? rowLike.value : rowLike);
+
+const toResolverEntry = (record) => {
+    const entry = {
+        name: record.name,
+        templates: record.templateIds || [],
+        locales: record.locales || [],
+        tags: record.tags || [],
+        valuetype: record.valueType || 'text',
+        booleanValue: record.booleanValue,
+    };
+
+    if (entry.valuetype === 'richText') {
+        entry.richTextValue = `${record.value ?? ''}`;
+    } else if (entry.valuetype !== 'boolean') {
+        entry.textValue = `${record.value ?? ''}`;
+    }
+
+    return entry;
+};
+
+const toResolverSetting = (rowLike) => {
+    const row = getRowRecord(rowLike);
+    return {
+        default: row ? toResolverEntry(row) : null,
+        override: (row?.overrides || []).map((override) => toResolverEntry(override)),
+    };
+};
+
+const hasMeaningfulValue = (value) => {
+    if (Array.isArray(value)) return value.some((item) => item !== '' && item !== null && item !== undefined);
+    return value !== '' && value !== null && value !== undefined;
+};
+
+const toResolverFragment = (fragment) => {
+    const fields = {};
+
+    for (const field of fragment?.fields || []) {
+        if (!field?.name) continue;
+        const rawValue = field.multiple ? [...(field.values || [])] : field.values?.[0];
+        if (!hasMeaningfulValue(rawValue)) continue;
+        fields[field.name] = rawValue;
+    }
+
+    const tagIds = (fragment?.tags || []).map((tag) => tag?.id || tag).filter(Boolean);
+    if (tagIds.length) {
+        fields.tags = tagIds;
+    }
+
+    return { fields };
+};
+
+export function getGlobalSettingsDefaults(fragment, rows = []) {
+    const runtimeFragment = toResolverFragment(fragment);
+    const locale = fragment?.locale || '';
+
+    return rows.reduce((defaults, rowLike) => {
+        const row = getRowRecord(rowLike);
+        if (!row?.name) return defaults;
+
+        const definition = getSettingNameDefinition(row.name);
+        const entry = resolveSettingEntry(runtimeFragment, locale, toResolverSetting(row));
+        if (!entry) return defaults;
+
+        defaults[definition?.propertyName || row.name] = extractValue(entry, runtimeFragment);
+        return defaults;
+    }, {});
+}
+
 /**
  * Settings table state holder and mutator surface.
  */
@@ -148,6 +222,8 @@ export class SettingsStore {
 
     #sourceFragment = null;
     #surface = '';
+    #loadingSurface = '';
+    #loadSurfacePromise = null;
 
     constructor(bucket = '', baseUrl = '') {
         this.bucket = bucket;
@@ -182,9 +258,22 @@ export class SettingsStore {
         this.aem = aem;
     }
 
+    async ensureSurfaceLoaded(surface) {
+        if (!surface) return;
+        if (surface === this.#surface) return this.#loadSurfacePromise;
+        return this.loadSurface(surface);
+    }
+
     async loadSurface(surface) {
-        this.#surface = surface || '';
-        if (!this.#surface) {
+        const nextSurface = surface || '';
+        if (nextSurface && this.#loadingSurface === nextSurface && this.#loadSurfacePromise) {
+            return this.#loadSurfacePromise;
+        }
+
+        this.#surface = nextSurface;
+        if (!nextSurface) {
+            this.#loadingSurface = '';
+            this.#loadSurfacePromise = null;
             this.error.set(null);
             this.setSettingFragments([]);
             return;
@@ -192,31 +281,47 @@ export class SettingsStore {
 
         if (!this.aem) return;
 
-        this.loading.set(true);
-        this.error.set(null);
+        this.#loadingSurface = nextSurface;
+        const settingsPath = `${ROOT_PATH}/${nextSurface}/settings`;
+        const indexPath = `${settingsPath}/index`;
+        const loadPromise = (async () => {
+            this.loading.set(true);
+            this.error.set(null);
 
-        try {
-            let indexFragment;
             try {
-                indexFragment = await this.aem.sites.cf.fragments.getByPath(this.#indexPath, {
-                    references: 'direct-hydrated',
-                });
-            } catch (error) {
-                if (!INDEX_NOT_FOUND_MESSAGES.some((message) => error.message.includes(message))) {
-                    throw error;
+                let indexFragment;
+                try {
+                    indexFragment = await this.aem.sites.cf.fragments.getByPath(indexPath, {
+                        references: 'direct-hydrated',
+                    });
+                } catch (error) {
+                    if (!INDEX_NOT_FOUND_MESSAGES.some((message) => error.message.includes(message))) {
+                        throw error;
+                    }
+                    await this.#createIndexFragment(settingsPath, indexPath);
+                    this.setSettingFragments([]);
+                    return;
                 }
-                await this.#createIndexFragment();
-                this.setSettingFragments([]);
-                return;
+                this.#setRowsFromIndex(indexFragment);
+            } catch (error) {
+                this.error.set('Failed to load settings.');
+                showToast('Failed to load settings.', 'negative');
+                this.setSettingFragments([], new Map(), false);
+            } finally {
+                if (this.#loadingSurface === nextSurface) {
+                    this.#loadingSurface = '';
+                }
+                this.loading.set(false);
             }
-            this.#setRowsFromIndex(indexFragment);
-        } catch (error) {
-            this.error.set('Failed to load settings.');
-            showToast('Failed to load settings.', 'negative');
-            this.setSettingFragments([], new Map(), false);
-        } finally {
-            this.loading.set(false);
-        }
+        })();
+
+        const wrappedPromise = loadPromise.finally(() => {
+            if (this.#loadSurfacePromise === wrappedPromise) {
+                this.#loadSurfacePromise = null;
+            }
+        });
+        this.#loadSurfacePromise = wrappedPromise;
+        return wrappedPromise;
     }
 
     setSourceFragment(fragment) {
@@ -681,7 +786,13 @@ export class SettingsStore {
         this.rows.set([]);
         this.expandedRowIds.set([]);
         this.activeTabByRowId.set({});
+        this.loading.set(false);
+        this.error.set(null);
         this.toast.set(null);
+        this.#sourceFragment = null;
+        this.#surface = '';
+        this.#loadingSurface = '';
+        this.#loadSurfacePromise = null;
     }
 
     async #runMutation(operation, successMessage, errorMessage, successVariant = '') {
@@ -818,14 +929,14 @@ export class SettingsStore {
         }
     }
 
-    async #createIndexFragment() {
-        const surfacePath = this.#settingsPath.slice(0, this.#settingsPath.lastIndexOf('/'));
+    async #createIndexFragment(settingsPath = this.#settingsPath, indexPath = this.#indexPath) {
+        const surfacePath = settingsPath.slice(0, settingsPath.lastIndexOf('/'));
         await this.aem.folders.create(surfacePath, 'settings', 'settings');
         await this.aem.wait(2000);
         let fragment;
         try {
             fragment = await this.aem.sites.cf.fragments.create({
-                parentPath: this.#settingsPath,
+                parentPath: settingsPath,
                 modelId: SETTINGS_INDEX_MODEL_ID,
                 name: 'index',
                 title: 'Settings Index',
@@ -837,7 +948,7 @@ export class SettingsStore {
             });
         } catch (error) {
             if (!`${error?.message || ''}`.includes('already exists')) throw error;
-            return this.aem.sites.cf.fragments.getByPath(this.#indexPath);
+            return this.aem.sites.cf.fragments.getByPath(indexPath);
         }
         await this.aem.wait(2000);
         const withEtag = await this.aem.sites.cf.fragments.getWithEtag(fragment.id);

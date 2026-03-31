@@ -66,11 +66,11 @@ async function enqueueJob(jobId, options = {}) {
     return withQueueMutationLock(async () => enqueueJobUnsafe(jobId, options), options);
 }
 
-async function dequeueNextJob(options = {}) {
+async function removeJob(jobId, options = {}) {
     if (options.skipLock) {
-        return dequeueNextJobUnsafe(options);
+        return removeJobUnsafe(jobId, options);
     }
-    return withQueueMutationLock(async () => dequeueNextJobUnsafe(options), options);
+    return withQueueMutationLock(async () => removeJobUnsafe(jobId, options), options);
 }
 
 async function enqueueJobUnsafe(jobId, options = {}) {
@@ -82,11 +82,13 @@ async function enqueueJobUnsafe(jobId, options = {}) {
     return queue;
 }
 
-async function dequeueNextJobUnsafe(options = {}) {
+async function removeJobUnsafe(jobId, options = {}) {
     const queue = await getPendingQueue();
-    const jobId = queue.shift() || null;
-    await putPendingQueue(queue, options);
-    return jobId;
+    const filteredQueue = queue.filter((queuedJobId) => queuedJobId !== jobId);
+    if (filteredQueue.length !== queue.length) {
+        await putPendingQueue(filteredQueue, options);
+    }
+    return filteredQueue;
 }
 
 async function getQueueLock() {
@@ -195,8 +197,8 @@ module.exports = {
     getQueueLength,
     peekNextJob,
     enqueueJob,
-    dequeueNextJob,
+    removeJob,
     enqueueJobUnsafe,
-    dequeueNextJobUnsafe,
+    removeJobUnsafe,
     withQueueMutationLock,
 };

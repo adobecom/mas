@@ -25,14 +25,12 @@ describe('Translation project-start dispatcher', () => {
             projectId: 'project-1',
         });
         const patchProjectSummary = sinon.stub().resolves();
-        const dequeueNextJob = sinon.stub().resolves('job-1');
 
         const dispatcher = proxyquire('../../src/translation/project-start-dispatcher.js', {
             './queue.js': {
                 acquireQueueLock,
                 releaseQueueLock,
                 peekNextJob,
-                dequeueNextJob,
             },
             './versioning-lock.js': {
                 getVersioningLock,
@@ -97,7 +95,6 @@ describe('Translation project-start dispatcher', () => {
                 acquireQueueLock: sinon.stub().rejects(new Error('lock failed')),
                 releaseQueueLock: sinon.stub(),
                 peekNextJob: sinon.stub(),
-                dequeueNextJob: sinon.stub(),
             },
             './versioning-lock.js': {
                 getVersioningLock: sinon.stub(),
@@ -207,7 +204,6 @@ describe('Translation project-start dispatcher', () => {
         const invokeWorker = sinon.stub().resolves({
             activationId: 'activation-1',
         });
-        const dequeueNextJob = sinon.stub().resolves('job-1');
         const releaseQueueLock = sinon.stub().resolves({ released: true });
 
         const result = await dispatchNextQueuedJob(
@@ -217,7 +213,6 @@ describe('Translation project-start dispatcher', () => {
                 acquireQueueLock: sinon.stub().resolves({ acquired: true }),
                 releaseQueueLock,
                 peekNextJob: sinon.stub().resolves('job-1'),
-                dequeueNextJob,
                 getVersioningLock: sinon.stub().resolves(null),
                 getJobPayload: sinon.stub().resolves({
                     jobId: 'job-1',
@@ -229,7 +224,6 @@ describe('Translation project-start dispatcher', () => {
         );
 
         expect(invokeWorker).to.have.been.calledOnceWith('job-1', {});
-        expect(dequeueNextJob).to.have.been.calledOnce;
         expect(patchProjectSummary.firstCall).to.have.been.calledWith('project-1', {
             queue: {
                 state: 'STARTING',
@@ -258,8 +252,7 @@ describe('Translation project-start dispatcher', () => {
         expect(releaseQueueLock).to.have.been.calledOnce;
     });
 
-    it('should not dequeue the job if the worker invocation fails', async () => {
-        const dequeueNextJob = sinon.stub().resolves('job-1');
+    it('should leave queue cleanup to the worker if the worker invocation fails', async () => {
         const releaseQueueLock = sinon.stub().resolves({ released: true });
         let error;
 
@@ -271,7 +264,6 @@ describe('Translation project-start dispatcher', () => {
                     acquireQueueLock: sinon.stub().resolves({ acquired: true }),
                     releaseQueueLock,
                     peekNextJob: sinon.stub().resolves('job-1'),
-                    dequeueNextJob,
                     getVersioningLock: sinon.stub().resolves(null),
                     getJobPayload: sinon.stub().resolves({
                         jobId: 'job-1',
@@ -287,8 +279,6 @@ describe('Translation project-start dispatcher', () => {
 
         expect(error).to.be.an('error');
         expect(error.message).to.equal('invoke failed');
-
-        expect(dequeueNextJob).to.not.have.been.called;
         expect(releaseQueueLock).to.have.been.calledOnce;
     });
 });

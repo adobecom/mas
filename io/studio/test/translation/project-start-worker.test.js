@@ -14,6 +14,7 @@ describe('Translation project-start worker', function () {
     let deleteJobPayload;
     let patchProjectSummary;
     let enqueueJob;
+    let removeJob;
     let acquireVersioningLock;
     let renewVersioningLock;
     let releaseVersioningLock;
@@ -38,6 +39,7 @@ describe('Translation project-start worker', function () {
         deleteJobPayload = sinon.stub().resolves();
         patchProjectSummary = sinon.stub().resolves();
         enqueueJob = sinon.stub().resolves();
+        removeJob = sinon.stub().resolves();
         acquireVersioningLock = sinon.stub();
         renewVersioningLock = sinon.stub().resolves({ renewed: true });
         releaseVersioningLock = sinon.stub().resolves({ released: true });
@@ -65,6 +67,7 @@ describe('Translation project-start worker', function () {
             },
             './queue.js': {
                 enqueueJob,
+                removeJob,
             },
             './versioning-lock.js': {
                 acquireVersioningLock,
@@ -173,6 +176,7 @@ describe('Translation project-start worker', function () {
             activationId: 'activation-1',
         });
         expect(prepareProjectStart).to.have.been.calledOnce;
+        expect(removeJob).to.have.been.calledOnceWith('job-1');
         expect(prepareProjectStart.firstCall.args[0]).to.deep.equal({
             jobId: 'job-1',
             __ow_activation_id: 'activation-1',
@@ -339,6 +343,7 @@ describe('Translation project-start worker', function () {
         expect(releaseVersioningLock).to.not.have.been.called;
         expect(updateProjectStatus).to.not.have.been.called;
         expect(deleteJobPayload).to.not.have.been.called;
+        expect(removeJob).to.have.been.calledOnceWith('job-1');
         expect(enqueueJob).to.have.been.calledOnceWith('job-1');
         expect(patchProjectSummary.firstCall).to.have.been.calledWith(
             'project-1',
@@ -417,6 +422,7 @@ describe('Translation project-start worker', function () {
             jobId: 'job-1',
         });
 
+        expect(removeJob).to.have.been.calledOnceWith('job-1');
         expect(releaseVersioningLock).to.have.been.calledOnce;
         expect(runPostVersioningStage).to.not.have.been.called;
         expect(patchProjectSummary).to.have.been.calledWith(
@@ -460,6 +466,7 @@ describe('Translation project-start worker', function () {
             jobId: 'job-1',
         });
 
+        expect(removeJob).to.have.been.calledOnceWith('job-1');
         expect(patchProjectSummary.firstCall).to.have.been.calledWith(
             'project-1',
             sinon.match({
@@ -525,6 +532,14 @@ describe('Translation project-start worker', function () {
         await worker.deleteJobPayloadOrWarn('job-1');
 
         expect(mockLogger.warn).to.have.been.calledOnceWith('Failed to delete job payload for job-1: delete failed');
+    });
+
+    it('should warn when removing the job from the queue fails', async () => {
+        removeJob.rejects(new Error('remove failed'));
+
+        await worker.removeJobFromQueueOrWarn('job-1');
+
+        expect(mockLogger.warn).to.have.been.calledOnceWith('Failed to remove job job-1 from queue: remove failed');
     });
 
     it('should expose fallback error messages for worker helper responses', () => {

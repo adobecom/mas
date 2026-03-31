@@ -1,5 +1,5 @@
 const { Core } = require('@adobe/aio-sdk');
-const { acquireQueueLock, releaseQueueLock, peekNextJob, dequeueNextJob } = require('./queue.js');
+const { acquireQueueLock, releaseQueueLock, peekNextJob } = require('./queue.js');
 const { getVersioningLock, isLockExpired } = require('./versioning-lock.js');
 const { getJobPayload, patchProjectSummary } = require('./state.js');
 const { buildSiblingActionName, invokeAsyncAction } = require('./runtime-actions.js');
@@ -39,7 +39,6 @@ async function dispatchNextQueuedJob(params = {}, deps = {}) {
     const acquireLock = deps.acquireQueueLock || acquireQueueLock;
     const releaseLock = deps.releaseQueueLock || releaseQueueLock;
     const peekJob = deps.peekNextJob || peekNextJob;
-    const dequeueJob = deps.dequeueNextJob || dequeueNextJob;
     const getLock = deps.getVersioningLock || getVersioningLock;
     const isExpired = deps.isLockExpired || isLockExpired;
     const getPayload = deps.getJobPayload || getJobPayload;
@@ -100,7 +99,6 @@ async function dispatchNextQueuedJob(params = {}, deps = {}) {
         });
 
         const workerResult = await invokeWorker(nextJobId, params);
-        await dequeueJob({ skipLock: true });
 
         await patchSummary(payload.projectId, {
             queue: {

@@ -1,6 +1,6 @@
 const { Core } = require('@adobe/aio-sdk');
 const { getJobPayload, deleteJobPayload, patchProjectSummary } = require('./state.js');
-const { enqueueJob } = require('./queue.js');
+const { enqueueJob, removeJob } = require('./queue.js');
 const { acquireVersioningLock, renewVersioningLock, releaseVersioningLock } = require('./versioning-lock.js');
 const {
     prepareProjectStart,
@@ -51,6 +51,7 @@ async function main(params) {
         shouldDeleteJobPayload = true;
 
         await patchWorkerStartedSummary(payload.projectId, params);
+        await removeJobFromQueueOrWarn(params.jobId);
         const workerParams = createWorkerParams(params, payload);
         const context = await prepareProjectStart(workerParams);
         const versioningItemCount = getVersioningItemCount(context.translationData);
@@ -438,6 +439,14 @@ async function deleteJobPayloadOrWarn(jobId) {
     }
 }
 
+async function removeJobFromQueueOrWarn(jobId) {
+    try {
+        await removeJob(jobId);
+    } catch (error) {
+        logger.warn(`Failed to remove job ${jobId} from queue: ${error.message}`);
+    }
+}
+
 module.exports = {
     main,
     createWorkerParams,
@@ -457,6 +466,7 @@ module.exports = {
     requeueJobForVersioningRetry,
     releaseVersioningLockOrWarn,
     deleteJobPayloadOrWarn,
+    removeJobFromQueueOrWarn,
     DISPATCHER_ACTION_NAME,
     QUEUED_STATUS,
     RUNNING_STATUS,

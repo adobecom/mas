@@ -60,7 +60,7 @@ describe('Translation queue helpers', () => {
         expect(mockState.delete.callCount).to.equal(3);
     });
 
-    it('should peek and dequeue the next job in FIFO order', async () => {
+    it('should peek the next job in FIFO order', async () => {
         const persistedValues = {
             [queueHelpers.QUEUE_KEY]: JSON.stringify(['job-1', 'job-2']),
         };
@@ -78,15 +78,55 @@ describe('Translation queue helpers', () => {
         });
 
         const nextJob = await queueHelpers.peekNextJob();
-        const dequeuedJob = await queueHelpers.dequeueNextJob({ ownerId: 'queue-mutation-owner', skipLock: false });
 
         expect(nextJob).to.equal('job-1');
-        expect(dequeuedJob).to.equal('job-1');
-        expect(JSON.parse(persistedValues[queueHelpers.QUEUE_KEY])).to.deep.equal(['job-2']);
-        expect(mockState.put).to.have.been.calledWith(queueHelpers.QUEUE_KEY, JSON.stringify(['job-2']), {
-            ttl: queueHelpers.QUEUE_TTL,
+        expect(JSON.parse(persistedValues[queueHelpers.QUEUE_KEY])).to.deep.equal(['job-1', 'job-2']);
+    });
+
+    it('should remove a specific job from the queue without affecting the remaining order', async () => {
+        const persistedValues = {
+            [queueHelpers.QUEUE_KEY]: JSON.stringify(['job-1', 'job-2', 'job-3']),
+        };
+        mockState.get.callsFake(async (key) => {
+            if (!Object.hasOwn(persistedValues, key)) {
+                return null;
+            }
+            return { value: persistedValues[key] };
         });
-        expect(mockState.delete).to.have.been.called;
+        mockState.put.callsFake(async (key, value) => {
+            persistedValues[key] = value;
+        });
+        mockState.delete.callsFake(async (key) => {
+            delete persistedValues[key];
+        });
+
+        const result = await queueHelpers.removeJob('job-2', { ownerId: 'queue-mutation-owner' });
+
+        expect(result).to.deep.equal(['job-1', 'job-3']);
+        expect(JSON.parse(persistedValues[queueHelpers.QUEUE_KEY])).to.deep.equal(['job-1', 'job-3']);
+    });
+
+    it('should no-op when removing a job that is not queued', async () => {
+        const persistedValues = {
+            [queueHelpers.QUEUE_KEY]: JSON.stringify(['job-1', 'job-2']),
+        };
+        mockState.get.callsFake(async (key) => {
+            if (!Object.hasOwn(persistedValues, key)) {
+                return null;
+            }
+            return { value: persistedValues[key] };
+        });
+        mockState.put.callsFake(async (key, value) => {
+            persistedValues[key] = value;
+        });
+        mockState.delete.callsFake(async (key) => {
+            delete persistedValues[key];
+        });
+
+        const result = await queueHelpers.removeJob('job-3', { ownerId: 'queue-mutation-owner' });
+
+        expect(result).to.deep.equal(['job-1', 'job-2']);
+        expect(mockState.put).to.not.have.been.calledWith(queueHelpers.QUEUE_KEY, sinon.match.any, sinon.match.any);
     });
 
     it('should report queue length', async () => {

@@ -1383,8 +1383,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
             await ost.nextButton.click();
             await ost.promoField.fill(data.promo.updated);
-            expect(await ost.promoLabel).toContainText(data.promo.updated);
-            await expect(await ost.promoField).toHaveValue(data.promo.updated);
+            await expect(ost.promoLabel).toContainText(data.promo.updated);
+            await expect(ost.promoField).toHaveValue(data.promo.updated);
             await ost.checkoutLinkUse.click();
         });
 
@@ -1410,7 +1410,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.promoLabel).toBeVisible();
 
             await ost.promoField.fill('');
-            expect(await ost.promoLabel).toContainText('no promo');
+            await expect(ost.promoLabel).toContainText('no promo');
             await expect(await ost.promoField).toHaveValue('');
             await ost.checkoutLinkUse.click();
         });

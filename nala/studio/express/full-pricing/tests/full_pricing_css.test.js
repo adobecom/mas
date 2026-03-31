@@ -18,8 +18,13 @@ test.describe('M@S Studio EXPRESS Full Pricing card CSS test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Wait for cards and validate CSS', async () => {
+        await test.step('step-2: Wait for cards to fully render', async () => {
             await studio.waitForCardsLoaded();
+            await expect(fullPricingExpressCard).toBeVisible();
+            await expect(fullPricingExpressCard).toHaveAttribute(
+                'variant',
+                /(full-pricing-express|simplified-pricing-express)/,
+            );
         });
 
         await test.step('step-3: Validate all full pricing express card CSS properties in parallel', async () => {

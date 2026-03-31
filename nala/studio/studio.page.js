@@ -61,7 +61,7 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:has-text("Fragments")');
+        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item').first();
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
@@ -345,15 +345,13 @@ export default class StudioPage {
 
                 await this.saveCardButton.click({ force: true });
 
-                // Wait for progress toast
-                await this.toastProgress
-                    .waitFor({
-                        state: 'visible',
-                        timeout: 5000,
-                    })
-                    .catch(() => {
-                        throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
-                    });
+                // Wait for progress toast or success toast (save may complete before progress is visible)
+                await Promise.race([
+                    this.toastProgress.waitFor({ state: 'visible', timeout: 10000 }),
+                    this.toastPositive.waitFor({ state: 'visible', timeout: 10000 }),
+                ]).catch(() => {
+                    throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
+                });
 
                 // Wait for any toast (excluding progress toast)
                 await this.page
@@ -548,6 +546,7 @@ export default class StudioPage {
         await expect(await editor.panel).not.toBeVisible();
         await this.page.goto(fragmentUrl);
         await this.page.waitForLoadState('domcontentloaded');
+        await this.waitForCardsLoaded();
     }
 
     /**

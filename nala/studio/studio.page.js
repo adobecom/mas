@@ -61,7 +61,7 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item').first();
+        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:has-text("Fragments")');
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
@@ -537,6 +537,8 @@ export default class StudioPage {
     }
 
     async discardEditorChanges(editor) {
+        // Close the editor and verify discard is triggered
+        // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
         const fragmentUrl = this.page.url();
         await expect(this.fragmentsTable).toBeVisible();
         await this.fragmentsTable.scrollIntoViewIfNeeded();

@@ -147,6 +147,7 @@ export class MasRepository extends LitElement {
         Store.filters.subscribe(() => {
             this.dictionaryCache.clear();
             if (this.page.value === PAGE_NAMES.CONTENT) {
+                this.#searchCursor = null;
                 Store.fragments.list.firstPageLoaded.set(false);
                 Store.fragments.list.data.set([]);
             }
@@ -314,7 +315,9 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
-        dataStore.set([]);
+        if (dataStore.get().length > 0) {
+            dataStore.set([]);
+        }
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -365,6 +368,7 @@ export class MasRepository extends LitElement {
             if (this.#abortControllers.search) this.#abortControllers.search.abort();
             this.#searchCursor = null;
             this.#abortControllers.search = new AbortController();
+            const searchController = this.#abortControllers.search;
 
             if (isUUID(this.search.value.query)) {
                 // Check if the fragment with this UUID is already the only one in the store
@@ -439,6 +443,10 @@ export class MasRepository extends LitElement {
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 const fragmentStores = [];
                 const done = await this.#fillPage(cursor, variants, surface, fragmentStores);
+                if (this.#abortControllers.search !== searchController) {
+                    Store.fragments.list.loading.set(false);
+                    return;
+                }
                 Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
                 this.#searchCursor = done ? null : { cursor, variants, surface, fragmentStores };
@@ -483,12 +491,13 @@ export class MasRepository extends LitElement {
     }
 
     async loadNextPage() {
-        if (!this.#searchCursor) return;
+        const cursorSnapshot = this.#searchCursor;
+        if (!cursorSnapshot) return;
         Store.fragments.list.loading.set(true);
-        const { cursor, variants, surface, fragmentStores } = this.#searchCursor;
+        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
         try {
             const done = await this.#fillPage(cursor, variants, surface, fragmentStores);
-            if (!this.#searchCursor) return;
+            if (this.#searchCursor !== cursorSnapshot) return;
             Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
             if (done) {
                 this.#searchCursor = null;

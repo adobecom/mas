@@ -101,5 +101,19 @@ export default {
             },
             tags: '@mas-studio @regional-variations',
         },
+        {
+            tcid: '11',
+            name: '@studio-nala-personalization-table-groups',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala&personalizationFilterEnabled=true',
+            tags: '@mas-studio @nala @personalization',
+        },
+        {
+            tcid: '12',
+            name: '@studio-nala-table-without-personalization-groups',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala',
+            tags: '@mas-studio @nala @personalization',
+        },
     ],
 };

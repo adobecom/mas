@@ -16,6 +16,7 @@ function getBillingDuration(commitment, term) {
 function buildImage(mnemonicIcon) {
     if (!Array.isArray(mnemonicIcon) || mnemonicIcon.length === 0)
         return undefined;
+    // Schema.org image should be raster; Adobe CDN converts SVG icons via these params
     const suffix = '?format=png&width=800&height=800';
     if (mnemonicIcon.length === 1) return `${mnemonicIcon[0]}${suffix}`;
     return mnemonicIcon.map((icon) => `${icon}${suffix}`);
@@ -33,7 +34,12 @@ export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
     if (!fields?.cardTitle || !offer) return null;
 
     const currency = getCurrencyCode(offer);
-    if (!currency) return null;
+    if (!currency) {
+        console.warn(
+            '[json-ld] No currency code found in offer analytics — JSON-LD injection skipped',
+        );
+        return null;
+    }
 
     const { price } = offer?.priceDetails ?? {};
     if (price == null) return null;
@@ -41,6 +47,7 @@ export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
     const url = getPageUrl(pageUrl);
 
     const dedupId = `json-ld-product-${url}`;
+    // One JSON-LD product block per page URL by design — DA authors use a single signal link per page
     if (document.head.querySelector(`script[data-id="${dedupId}"]`))
         return null;
 

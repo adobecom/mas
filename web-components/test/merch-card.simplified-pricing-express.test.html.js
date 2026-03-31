@@ -176,6 +176,50 @@ runTests(async () => {
             const title = card.title;
             expect(title).to.equal('Express - Create standout content');
         });
+
+        it('should add small-font-size-button class when CTA text is too long', async () => {
+            const cardWithShortCta = document.querySelector(
+                'merch-card[variant="simplified-pricing-express"]',
+            );
+            const cardWithLongCta = document.querySelector(
+                '#card-with-long-cta',
+            );
+            await cardWithLongCta?.updateComplete;
+            await delay(300);
+
+            const shortCardCtas = cardWithShortCta.querySelectorAll(
+                '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+            );
+            const longCardCtas = cardWithLongCta.querySelectorAll(
+                '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+            );
+
+            expect(
+                [...shortCardCtas].every(
+                    (cta) => !cta.classList.contains('small-font-size-button'),
+                ),
+            ).to.be.true;
+            expect(longCardCtas.length).to.equal(2);
+            expect(longCardCtas[0].classList.contains('small-font-size-button'))
+                .to.be.false;
+            expect(longCardCtas[1].classList.contains('small-font-size-button'))
+                .to.be.true;
+        });
+
+        it('should remove small-font-size-button when CTA text is short or missing', async () => {
+            const cardWithShortCta = document.querySelector(
+                'merch-card[variant="simplified-pricing-express"]',
+            );
+            await delay(100);
+            const shortCardCtas = cardWithShortCta.querySelectorAll(
+                '[slot="cta"] a, [slot="cta"] button, [slot="cta"] sp-button, a[slot="cta"]',
+            );
+            expect(
+                [...shortCardCtas].every(
+                    (cta) => !cta.classList.contains('small-font-size-button'),
+                ),
+            ).to.be.true;
+        });
     });
 
     describe('Tooltip functionality in simplified-pricing-express', () => {

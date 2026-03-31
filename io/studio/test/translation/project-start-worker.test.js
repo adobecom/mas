@@ -7,7 +7,8 @@ chai.use(sinonChai);
 
 const { expect } = chai;
 
-describe('Translation project-start worker', () => {
+describe('Translation project-start worker', function () {
+    this.timeout(5000);
     let mockLogger;
     let getJobPayload;
     let patchProjectSummary;
@@ -21,6 +22,7 @@ describe('Translation project-start worker', () => {
     let getVersioningItemCount;
     let createProjectStartError;
     let isProjectStartError;
+    let updateProjectStatus;
     let buildSiblingActionName;
     let invokeAsyncAction;
     let worker;
@@ -44,6 +46,7 @@ describe('Translation project-start worker', () => {
         createProjectStartError = (statusCode, message, options = {}) =>
             Object.assign(new Error(message), { statusCode }, options);
         isProjectStartError = sinon.stub().returns(false);
+        updateProjectStatus = sinon.stub().resolves({ success: true });
         buildSiblingActionName = sinon.stub().returns('/ns/MerchAtScaleStudio/translation-project-dispatcher');
         invokeAsyncAction = sinon.stub().resolves({ activationId: 'dispatcher-activation-1' });
 
@@ -72,6 +75,7 @@ describe('Translation project-start worker', () => {
                 getVersioningItemCount,
                 createProjectStartError,
                 isProjectStartError,
+                updateProjectStatus,
             },
             './runtime-actions.js': {
                 buildSiblingActionName,
@@ -183,6 +187,17 @@ describe('Translation project-start worker', () => {
         });
         expect(runVersioningStage).to.have.been.calledOnce;
         expect(runPostVersioningStage).to.have.been.calledOnce;
+        expect(updateProjectStatus.firstCall).to.have.been.calledWith(
+            'project-1',
+            'RUNNING',
+            'token-1',
+            sinon.match({
+                jobId: 'job-1',
+                odinEndpoint: 'https://odin.example.com',
+                projectId: 'project-1',
+                authToken: 'token-1',
+            }),
+        );
         expect(releaseVersioningLock).to.have.been.calledOnceWith({
             jobId: 'job-1',
             projectId: 'project-1',
@@ -274,6 +289,17 @@ describe('Translation project-start worker', () => {
                 lastError: null,
             }),
         );
+        expect(updateProjectStatus.secondCall).to.have.been.calledWith(
+            'project-1',
+            'ASYNC_PROCESSING',
+            'token-1',
+            sinon.match({
+                jobId: 'job-1',
+                odinEndpoint: 'https://odin.example.com',
+                projectId: 'project-1',
+                authToken: 'token-1',
+            }),
+        );
         expect(result).to.deep.equal({
             statusCode: 200,
             body: {
@@ -307,6 +333,7 @@ describe('Translation project-start worker', () => {
 
         expect(runVersioningStage).to.not.have.been.called;
         expect(releaseVersioningLock).to.not.have.been.called;
+        expect(updateProjectStatus).to.not.have.been.called;
         expect(enqueueJob).to.have.been.calledOnceWith('job-1');
         expect(patchProjectSummary.firstCall).to.have.been.calledWith(
             'project-1',
@@ -407,6 +434,7 @@ describe('Translation project-start worker', () => {
                 },
             },
         );
+        expect(updateProjectStatus).to.not.have.been.called;
         expect(result).to.deep.equal({
             statusCode: 500,
             body: {
@@ -446,6 +474,7 @@ describe('Translation project-start worker', () => {
                 },
             },
         );
+        expect(updateProjectStatus).to.not.have.been.called;
         expect(result).to.deep.equal({
             statusCode: 500,
             body: {

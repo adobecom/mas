@@ -530,6 +530,24 @@ async function updateTranslationDate(projectCF, etag, authToken, params = {}) {
     }
 }
 
+async function updateProjectStatus(projectId, status, authToken, params = {}) {
+    const { projectCF, etag } = await getTranslationProject(projectId, authToken, params);
+    const statusField = getValues(projectCF, 'status');
+    if (!statusField?.path) {
+        logger.info(`Status field not found in translation project ${projectId}, skipping status update to ${status}`);
+        return { success: false, skipped: true };
+    }
+
+    await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, authToken, {
+        method: 'PATCH',
+        contentType: 'application/json-patch+json',
+        etag,
+        body: JSON.stringify([{ op: 'replace', path: `${statusField.path}/values`, value: [status] }]),
+    });
+
+    return { success: true };
+}
+
 module.exports = {
     DEFAULT_BATCH_SIZE,
     prepareProjectStart,
@@ -539,4 +557,5 @@ module.exports = {
     getVersioningItemCount,
     createProjectStartError,
     isProjectStartError,
+    updateProjectStatus,
 };

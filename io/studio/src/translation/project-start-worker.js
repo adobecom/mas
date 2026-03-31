@@ -9,6 +9,7 @@ const {
     getVersioningItemCount,
     createProjectStartError,
     isProjectStartError,
+    updateProjectStatus,
 } = require('./project-start-service.js');
 const { buildSiblingActionName, invokeAsyncAction } = require('./runtime-actions.js');
 
@@ -76,6 +77,7 @@ async function main(params) {
             versioningItemCount,
             batchSize: context.batchSize,
         });
+        await syncProjectFragmentStatus(payload.projectId, RUNNING_STATUS, workerParams.authToken, workerParams);
 
         heartbeat = startVersioningLockHeartbeat(lockOwner);
         const versioningResult = await runVersioningStage(context, {
@@ -120,6 +122,7 @@ async function main(params) {
 
         const dispatchResult = await runPostVersioningStage(context);
         await patchAsyncProcessingSummary(payload.projectId, params);
+        await syncProjectFragmentStatus(payload.projectId, ASYNC_PROCESSING_STATUS, workerParams.authToken, workerParams);
 
         return {
             statusCode: 200,
@@ -138,6 +141,9 @@ async function main(params) {
                 );
             } else {
                 await markProjectFailed(payload.projectId, getErrorMessage(error), params);
+                if (payload.authToken) {
+                    await syncProjectFragmentStatus(payload.projectId, FAILED_STATUS, payload.authToken, createWorkerParams(params, payload));
+                }
             }
         }
         return toWorkerErrorResponse(error);
@@ -253,6 +259,19 @@ async function markProjectFailed(projectId, response, params = {}) {
         },
         { params },
     );
+}
+
+async function syncProjectFragmentStatus(projectId, status, authToken, params = {}) {
+    if (!authToken || !params?.odinEndpoint) {
+        return null;
+    }
+
+    try {
+        return await updateProjectStatus(projectId, status, authToken, params);
+    } catch (error) {
+        logger.warn(`Failed to mirror project status ${status} for ${projectId}: ${error.message}`);
+        return null;
+    }
 }
 
 function toWorkerErrorResponse(error) {
@@ -410,6 +429,7 @@ module.exports = {
     markProjectFailed,
     toWorkerErrorResponse,
     getErrorMessage,
+    syncProjectFragmentStatus,
     patchWorkerStartedSummary,
     patchRunningSummary,
     patchVersioningProgress,

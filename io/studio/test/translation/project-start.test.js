@@ -750,6 +750,70 @@ describe('Translation project-start', () => {
         });
     });
 
+    describe('Update project status', () => {
+        it('should refetch the project and patch the status with the latest etag', async () => {
+            const mockProjectCF = {
+                ...createMockProjectCF(),
+                fields: [...createMockProjectCF().fields, { name: 'status', values: ['QUEUED'] }],
+            };
+            const { lastCallOptions, callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': [
+                    responses.ok(mockProjectCF, '"fresh-etag"'),
+                    responses.ok({ success: true }),
+                ],
+            });
+
+            const result = await projectStartService.updateProjectStatus(
+                'test-project-id',
+                'RUNNING',
+                'token',
+                { odinEndpoint: baseParams.odinEndpoint },
+            );
+
+            expect(result).to.deep.equal({ success: true });
+            expect(callCounts['/adobe/sites/cf/fragments/test-project-id']).to.equal(2);
+
+            const options = lastCallOptions['/adobe/sites/cf/fragments/test-project-id'];
+            expect(options.method).to.equal('PATCH');
+            expect(options.headers).to.deep.include({
+                Authorization: 'Bearer token',
+                'Content-Type': 'application/json-patch+json',
+                'If-Match': '"fresh-etag"',
+            });
+
+            const patchBody = JSON.parse(options.body);
+            expect(patchBody).to.deep.equal([{ op: 'replace', path: '/fields/7/values', value: ['RUNNING'] }]);
+        });
+
+        it('should skip the patch when the project does not expose a status field', async () => {
+            const mockProjectCF = {
+                id: 'test-project-id',
+                fields: [
+                    { name: 'fragments', values: [] },
+                    { name: 'collections', values: [] },
+                    { name: 'placeholders', values: [] },
+                    { name: 'targetLocales', values: ['de_DE'] },
+                    { name: 'submissionDate', values: [] },
+                    { name: 'title', values: ['Test Project'] },
+                    { name: 'projectType', values: ['translation'] },
+                ],
+            };
+            const { callCounts } = setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"fresh-etag"'),
+            });
+
+            const result = await projectStartService.updateProjectStatus(
+                'test-project-id',
+                'FAILED',
+                'token',
+                { odinEndpoint: baseParams.odinEndpoint },
+            );
+
+            expect(result).to.deep.equal({ success: false, skipped: true });
+            expect(callCounts['/adobe/sites/cf/fragments/test-project-id']).to.equal(1);
+        });
+    });
+
     describe('Sync dictionary if a placeholder is synced', () => {
         it('should send correct synchronization request if a placeholder is in the payload', async () => {
             const mockProjectCF = setProjectFields(createMockProjectCF(), {

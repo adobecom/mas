@@ -6,6 +6,7 @@ import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
 import { extractLocaleFromPath } from './utils.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
@@ -174,7 +175,8 @@ class MasTopNav extends LitElement {
                 return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
             }
         }
-        return Store.localeOrRegion();
+        const locale = Store.localeOrRegion();
+        return getDefaultLocaleCode(Store.surface(), locale) || locale;
     }
 
     get isLocalePickerDisabled() {

@@ -222,13 +222,9 @@ describe('Translation project-start action', () => {
             { params: baseParams, updatedAt: '2026-03-25T16:00:00Z' },
         );
         expect(enqueueJob).to.have.been.calledOnceWith('job-123');
-        expect(buildSiblingActionName).to.have.been.calledOnceWith(
-            baseParams,
-            'translation-project-dispatcher',
-            {
-                overrideParamName: 'translationProjectStartDispatcherActionName',
-            },
-        );
+        expect(buildSiblingActionName).to.have.been.calledOnceWith(baseParams, 'translation-project-dispatcher', {
+            overrideParamName: 'translationProjectStartDispatcherActionName',
+        });
         expect(invokeAsyncAction).to.have.been.calledOnceWith(
             '/ns/MerchAtScaleStudio/translation-project-dispatcher',
             { jobId: 'job-123' },

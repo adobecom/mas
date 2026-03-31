@@ -46,16 +46,12 @@ describe('Translation queue helpers', () => {
 
         expect(result).to.deep.equal(['job-1', 'job-2']);
         expect(mockState.put).to.have.been.calledTwice;
-        expect(mockState.put.firstCall).to.have.been.calledWith(
-            queueHelpers.QUEUE_KEY,
-            JSON.stringify(['job-1']),
-            { ttl: queueHelpers.QUEUE_TTL },
-        );
-        expect(mockState.put.secondCall).to.have.been.calledWith(
-            queueHelpers.QUEUE_KEY,
-            JSON.stringify(['job-1', 'job-2']),
-            { ttl: queueHelpers.QUEUE_TTL },
-        );
+        expect(mockState.put.firstCall).to.have.been.calledWith(queueHelpers.QUEUE_KEY, JSON.stringify(['job-1']), {
+            ttl: queueHelpers.QUEUE_TTL,
+        });
+        expect(mockState.put.secondCall).to.have.been.calledWith(queueHelpers.QUEUE_KEY, JSON.stringify(['job-1', 'job-2']), {
+            ttl: queueHelpers.QUEUE_TTL,
+        });
     });
 
     it('should peek and dequeue the next job in FIFO order', async () => {
@@ -71,11 +67,9 @@ describe('Translation queue helpers', () => {
 
         expect(nextJob).to.equal('job-1');
         expect(dequeuedJob).to.equal('job-1');
-        expect(mockState.put).to.have.been.calledWith(
-            queueHelpers.QUEUE_KEY,
-            JSON.stringify(['job-2']),
-            { ttl: queueHelpers.QUEUE_TTL },
-        );
+        expect(mockState.put).to.have.been.calledWith(queueHelpers.QUEUE_KEY, JSON.stringify(['job-2']), {
+            ttl: queueHelpers.QUEUE_TTL,
+        });
     });
 
     it('should report queue length', async () => {
@@ -110,11 +104,7 @@ describe('Translation queue helpers', () => {
             acquiredAt: '2026-03-24T10:00:00.000Z',
             leaseUntil: '2026-03-24T10:00:30.000Z',
         });
-        expect(mockState.put).to.have.been.calledWith(
-            queueHelpers.QUEUE_LOCK_KEY,
-            JSON.stringify(acquired.lock),
-            { ttl: 30 },
-        );
+        expect(mockState.put).to.have.been.calledWith(queueHelpers.QUEUE_LOCK_KEY, JSON.stringify(acquired.lock), { ttl: 30 });
         expect(released).to.deep.equal({
             released: true,
         });

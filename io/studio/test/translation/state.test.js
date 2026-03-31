@@ -44,11 +44,9 @@ describe('Translation state helpers', () => {
 
         await stateHelpers.putJobPayload('job-1', payload);
 
-        expect(mockState.put).to.have.been.calledWith(
-            'translation-job.job-1.payload',
-            JSON.stringify(payload),
-            { ttl: stateHelpers.JOB_PAYLOAD_TTL },
-        );
+        expect(mockState.put).to.have.been.calledWith('translation-job.job-1.payload', JSON.stringify(payload), {
+            ttl: stateHelpers.JOB_PAYLOAD_TTL,
+        });
     });
 
     it('should use configured job payload ttl from action params when present', async () => {

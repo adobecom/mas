@@ -41,7 +41,8 @@ describe('Translation project-start worker', () => {
         runVersioningStage = sinon.stub();
         runPostVersioningStage = sinon.stub();
         getVersioningItemCount = sinon.stub();
-        createProjectStartError = (statusCode, message, options = {}) => Object.assign(new Error(message), { statusCode }, options);
+        createProjectStartError = (statusCode, message, options = {}) =>
+            Object.assign(new Error(message), { statusCode }, options);
         isProjectStartError = sinon.stub().returns(false);
         buildSiblingActionName = sinon.stub().returns('/ns/MerchAtScaleStudio/translation-project-dispatcher');
         invokeAsyncAction = sinon.stub().resolves({ activationId: 'dispatcher-activation-1' });
@@ -479,9 +480,7 @@ describe('Translation project-start worker', () => {
             'job-1',
         );
 
-        expect(mockLogger.warn).to.have.been.calledOnceWith(
-            'Failed to release versioning lock for job job-1: not_owner',
-        );
+        expect(mockLogger.warn).to.have.been.calledOnceWith('Failed to release versioning lock for job job-1: not_owner');
     });
 
     it('should expose fallback error messages for worker helper responses', () => {

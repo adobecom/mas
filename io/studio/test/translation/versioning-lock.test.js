@@ -56,11 +56,9 @@ describe('Translation versioning lock', () => {
             renewedAt: '2026-03-24T10:00:00.000Z',
             leaseUntil: '2026-03-24T10:01:00.000Z',
         });
-        expect(mockState.put).to.have.been.calledWith(
-            versioningLock.VERSIONING_LOCK_KEY,
-            JSON.stringify(result.lock),
-            { ttl: 60 },
-        );
+        expect(mockState.put).to.have.been.calledWith(versioningLock.VERSIONING_LOCK_KEY, JSON.stringify(result.lock), {
+            ttl: 60,
+        });
     });
 
     it('should read the current versioning lock from state', async () => {

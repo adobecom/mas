@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
-import { SettingsStore } from '../../src/settings/settings-store.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import { SettingsStore, getGlobalSettingsDefaults, normalizeSettingFragment } from '../../src/settings/settings-store.js';
 import { getVariantTreeData } from '../../src/editors/variant-picker.js';
 import { createSettingReference } from './settings-test-helpers.js';
 
@@ -36,6 +37,30 @@ const collectTemplateLeafMeta = (tree = getVariantTreeData()) => {
 
     return { allTemplateIds, branchByTemplateId, templateIdsByBranch };
 };
+
+const createSettingsRowRecord = (topLevel, overrides = []) => ({
+    ...normalizeSettingFragment(new Fragment(topLevel)),
+    locales: [],
+    overrides: overrides.map((override) => {
+        const record = normalizeSettingFragment(new Fragment(override));
+        return {
+            id: record.id,
+            path: record.fragment.path,
+            label: record.label,
+            locales: record.locales,
+            locale: record.locales.join(', '),
+            templateIds: record.templateIds,
+            template: '',
+            value: record.value,
+            booleanValue: record.booleanValue,
+            valueType: record.valueType,
+            tags: record.tags,
+            modifiedBy: record.modifiedBy,
+            modifiedAt: record.modifiedAt,
+            status: record.status,
+        };
+    }),
+});
 
 const createMutationHarness = ({ topLevel, overrides = [] }) => {
     let references = [topLevel, ...overrides];
@@ -161,6 +186,131 @@ const createMutationHarness = ({ topLevel, overrides = [] }) => {
 describe('Settings Store Namespace', () => {
     const { allTemplateIds, templateIdsByBranch } = collectTemplateLeafMeta();
     const crossBranchTemplateIds = [...templateIdsByBranch.values()].flatMap((ids) => ids.slice(0, 1));
+
+    it('resolves global settings defaults through the shared IO resolver', () => {
+        const rows = [
+            createSettingsRowRecord(
+                createSettingReference({
+                    id: 'setting-display-plan-type',
+                    name: 'displayPlanType',
+                    templates: ['plans'],
+                    value: true,
+                }),
+                [
+                    createSettingReference({
+                        id: 'setting-display-plan-type-fr',
+                        name: 'displayPlanType',
+                        templates: ['plans'],
+                        locales: ['fr_FR'],
+                        value: false,
+                    }),
+                ],
+            ),
+            createSettingsRowRecord(
+                createSettingReference({
+                    id: 'setting-show-secure-label',
+                    name: 'secureLabel',
+                    valueType: 'optional-text',
+                    booleanValue: true,
+                    templates: ['plans'],
+                    value: '{{secure-label-default}}',
+                }),
+                [
+                    createSettingReference({
+                        id: 'setting-show-secure-label-fr-generic',
+                        name: 'secureLabel',
+                        valueType: 'optional-text',
+                        booleanValue: true,
+                        templates: ['plans'],
+                        locales: ['fr_FR'],
+                        value: '{{secure-label-generic}}',
+                        fields: [{ name: 'tags', values: ['mas:keyword/generic'] }],
+                    }),
+                    createSettingReference({
+                        id: 'setting-show-secure-label-fr-checkout',
+                        name: 'secureLabel',
+                        valueType: 'optional-text',
+                        booleanValue: true,
+                        templates: ['plans'],
+                        locales: ['fr_FR'],
+                        value: '{{secure-label-checkout}}',
+                        fields: [{ name: 'tags', values: ['mas:keyword/checkout'] }],
+                    }),
+                ],
+            ),
+            createSettingsRowRecord(
+                createSettingReference({
+                    id: 'setting-show-addon',
+                    name: 'addon',
+                    valueType: 'optional-text',
+                    booleanValue: false,
+                    templates: ['plans'],
+                    value: '',
+                }),
+                [
+                    createSettingReference({
+                        id: 'setting-show-addon-fr',
+                        name: 'addon',
+                        valueType: 'optional-text',
+                        booleanValue: true,
+                        templates: ['plans'],
+                        locales: ['fr_FR'],
+                        value: '{{addon-checkout}}',
+                    }),
+                ],
+            ),
+        ];
+
+        const fragment = new Fragment({
+            path: '/content/dam/mas/acom/fr_FR/test-card',
+            tags: [{ id: 'mas:keyword/checkout', title: 'Checkout' }],
+            fields: [
+                { name: 'variant', values: ['plans'] },
+                { name: 'showSecureLabel', values: [''] },
+                { name: 'addon', values: [''] },
+            ],
+        });
+
+        const defaults = getGlobalSettingsDefaults(fragment, rows);
+
+        expect(defaults.showPlanType).to.equal(false);
+        expect(defaults.showSecureLabel).to.equal('{{secure-label-checkout}}');
+        expect(defaults.addon).to.equal('{{addon-checkout}}');
+    });
+
+    it('deduplicates in-flight surface loads for the same surface', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-display-plan-type',
+            name: 'displayPlanType',
+            templates: ['plans'],
+            value: true,
+            path: '/content/dam/mas/sandbox/settings/display-plan-type',
+        });
+        const harness = createMutationHarness({ topLevel });
+        const originalGetByPath = harness.aem.sites.cf.fragments.getByPath;
+        let resolveDeferred;
+        const deferred = new Promise((resolve) => {
+            resolveDeferred = resolve;
+        });
+        let getByPathCalls = 0;
+
+        harness.aem.sites.cf.fragments.getByPath = async (path) => {
+            getByPathCalls += 1;
+            await deferred;
+            return originalGetByPath(path);
+        };
+
+        const store = new SettingsStore();
+        store.setAem(harness.aem);
+
+        const firstLoad = store.loadSurface('sandbox');
+        const secondLoad = store.ensureSurfaceLoaded('sandbox');
+
+        resolveDeferred();
+        await Promise.all([firstLoad, secondLoad]);
+
+        expect(getByPathCalls).to.equal(1);
+    });
 
     it('reuses row stores by fragment id', () => {
         const store = new SettingsStore();

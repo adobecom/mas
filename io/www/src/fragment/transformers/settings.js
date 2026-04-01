@@ -81,7 +81,7 @@ function normalizeBoolean(value) {
     return value;
 }
 
-function extractValue(entry, fragment) {
+export function extractValue(entry, fragment) {
     const definition = SETTING_NAME_BY_VALUE.get(entry.name);
     const propertyName = definition?.propertyName || entry.name;
     const localeValue = fragment.fields?.[propertyName];
@@ -160,7 +160,7 @@ async function init(initContext) {
     return await getSettings(initContext);
 }
 
-function resolveSettingEntry(fragment, locale, setting) {
+export function resolveSettingEntry(fragment, locale, setting) {
     const defaultEntry = setting.default;
     const template = fragment.fields?.variant;
     if (!defaultEntry) return null;
@@ -225,6 +225,7 @@ function applyCollectionSettings(context, locale, settings) {
         noResultsText: '{{coll-no-results-text}}',
         plansSidenavTitle: '{{coll-plans-sidenav-title}}',
         catalogSidenavTitle: '{{coll-catalog-sidenav-title}}',
+        catalogSidenavClose: '{{coll-catalog-sidenav-close}}',
         catalogSpecialOffersAlt: '{{catalog-special-offers-alt}}',
         sidenavFilterCategories: '{{sidenav-filter-categories}}',
         sidenavResources: '{{sidenav-resources}}',

@@ -500,6 +500,7 @@ export class MasRepository extends LitElement {
     }
 
     async loadNextPage() {
+        if (Store.fragments.list.loading.get()) return;
         const cursorSnapshot = this.#searchCursor;
         if (!cursorSnapshot) return;
         Store.fragments.list.loading.set(true);

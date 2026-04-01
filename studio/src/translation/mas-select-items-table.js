@@ -83,7 +83,7 @@ class MasSelectItemsTable extends LitElement {
                 this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState);
             }
         }
-        if (!this.viewOnly) {
+        if (!this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
             this.scrollObserver = new IntersectionObserver(
                 (entries) => {
                     if (entries[0]?.isIntersecting && this.hasMore.value && !this.loading.value) {

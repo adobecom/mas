@@ -328,6 +328,106 @@ describe('translation-items-loader', () => {
             expect(items[0].groupedVariations).to.be.an('array');
         });
 
+        it('should resolve offerData for a grouped variation row via parent OSI when variation has no osi', async () => {
+            const parentPath = '/content/dam/mas/acom/en_US/cards/parent-card';
+            const variationPath = `${parentPath}/pzn/var-a`;
+            const mockParent = {
+                path: parentPath,
+                title: 'Parent',
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [{ name: 'osi', values: ['parent-osi'] }],
+                references: [],
+            };
+            const mockVariation = {
+                path: variationPath,
+                title: 'Var A',
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [{ name: 'name', values: ['v'] }],
+                fieldTags: [{ id: 't1', name: 'T1' }],
+                references: [],
+            };
+            const resolveHydratedParentFragment = sinon.stub().resolves(mockParent);
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().callsFake((requestedPath) => {
+                        if (requestedPath === variationPath) return Promise.resolve(mockVariation);
+                        return Promise.resolve(null);
+                    }),
+                },
+                resolveHydratedParentFragment,
+            };
+            const onItems = sinon.stub();
+
+            await loadSelectedFragments([variationPath], TABLE_TYPE.CARDS, repo, { onItems });
+
+            expect(onItems.called).to.be.true;
+            const items = onItems.firstCall.args[0];
+            expect(items).to.have.lengthOf(1);
+            expect(items[0].path).to.equal(variationPath);
+            expect(repo.aem.getFragmentByPath.calledWith(variationPath)).to.be.true;
+            expect(resolveHydratedParentFragment.calledOnceWith(variationPath)).to.be.true;
+            expect(items[0].offerData).to.deep.equal({ offerId: 'test-offer-id' });
+        });
+
+        it('should not call resolveHydratedParentFragment when grouped variation row has its own osi', async () => {
+            const parentPath = '/content/dam/mas/acom/en_US/cards/parent-card';
+            const variationPath = `${parentPath}/pzn/var-own-osi`;
+            const mockVariation = {
+                path: variationPath,
+                title: 'Var',
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [
+                    { name: 'osi', values: ['variation-osi'] },
+                    { name: 'name', values: ['v'] },
+                ],
+                fieldTags: [{ id: 't1', name: 'T1' }],
+                references: [],
+            };
+            const resolveHydratedParentFragment = sinon.stub().resolves(null);
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().resolves(mockVariation),
+                },
+                resolveHydratedParentFragment,
+            };
+            const onItems = sinon.stub();
+
+            await loadSelectedFragments([variationPath], TABLE_TYPE.CARDS, repo, { onItems });
+
+            expect(resolveHydratedParentFragment.called).to.be.false;
+            const items = onItems.firstCall.args[0];
+            expect(items[0].offerData).to.deep.equal({ offerId: 'test-offer-id' });
+        });
+
+        it('should leave offerData null for grouped variation without osi when resolveHydratedParentFragment returns null', async () => {
+            const parentPath = '/content/dam/mas/acom/en_US/cards/parent-card';
+            const variationPath = `${parentPath}/pzn/var-no-parent`;
+            const mockVariation = {
+                path: variationPath,
+                title: 'Var',
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [{ name: 'name', values: ['v'] }],
+                fieldTags: [{ id: 't1', name: 'T1' }],
+                references: [],
+            };
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().resolves(mockVariation),
+                },
+                resolveHydratedParentFragment: sinon.stub().resolves(null),
+            };
+            const onItems = sinon.stub();
+
+            await loadSelectedFragments([variationPath], TABLE_TYPE.CARDS, repo, { onItems });
+
+            const items = onItems.firstCall.args[0];
+            expect(items[0].offerData).to.be.null;
+        });
+
         it('should call onItems with empty array on error and not throw', async () => {
             const onItems = sinon.stub();
             const repo = {
@@ -495,6 +595,96 @@ describe('translation-items-loader', () => {
             expect(result.get(cardPath1).get('/card/1/v1')).to.exist;
             expect(result.get(cardPath2).get(varPath2)).to.exist;
         });
+
+        it('should resolve offerData using parent card OSI when variation has empty osi values', async () => {
+            const cardPath = '/content/dam/mas/acom/en_US/cards/parent-with-osi';
+            const variationPath = `${cardPath}/pzn/locale-pl`;
+            const mockVariation = {
+                path: variationPath,
+                fieldTags: [{ id: 'tag1', name: 'Tag1' }],
+                fields: [{ name: 'osi', values: [] }],
+            };
+            const mockParent = {
+                path: cardPath,
+                fields: [{ name: 'osi', values: ['parent-wcs-osi'] }],
+            };
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().callsFake((requestedPath) => {
+                        if (requestedPath === variationPath) return Promise.resolve(mockVariation);
+                        if (requestedPath === cardPath) return Promise.resolve(mockParent);
+                        return Promise.resolve(null);
+                    }),
+                },
+            };
+
+            await loadCardVariations(cardPath, [variationPath], repo);
+
+            expect(repo.aem.getFragmentByPath.calledWith(cardPath)).to.be.true;
+            const variation = Store.translationProjects.groupedVariationsByParent.value?.get(cardPath)?.get(variationPath);
+            expect(variation).to.exist;
+            expect(variation.offerData).to.deep.equal({ offerId: 'test-offer-id' });
+        });
+
+        it('should fetch parent path once for OSI when multiple variations lack OSI', async () => {
+            const cardPath = '/content/dam/mas/acom/en_US/cards/multi-parent';
+            const variationPathA = `${cardPath}/pzn/a`;
+            const variationPathB = `${cardPath}/pzn/b`;
+            const mockVariation = (path) => ({
+                path,
+                fieldTags: [{ id: 'tag1', name: 'Tag1' }],
+                fields: [],
+            });
+            const mockParent = {
+                path: cardPath,
+                fields: [{ name: 'osi', values: ['shared-parent-osi'] }],
+            };
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().callsFake((requestedPath) => {
+                        if (requestedPath === variationPathA) return Promise.resolve(mockVariation(variationPathA));
+                        if (requestedPath === variationPathB) return Promise.resolve(mockVariation(variationPathB));
+                        if (requestedPath === cardPath) return Promise.resolve(mockParent);
+                        return Promise.resolve(null);
+                    }),
+                },
+            };
+
+            await loadCardVariations(cardPath, [variationPathA, variationPathB], repo);
+
+            const parentFetchCalls = repo.aem.getFragmentByPath
+                .getCalls()
+                .filter((call) => call.args[0] === cardPath);
+            expect(parentFetchCalls.length).to.equal(1);
+        });
+
+        it('should resolve offerData when variation has no osi field and parent provides OSI', async () => {
+            const cardPath = '/content/dam/mas/acom/en_US/cards/no-osi-field';
+            const variationPath = `${cardPath}/pzn/v1`;
+            const mockVariation = {
+                path: variationPath,
+                fieldTags: [{ id: 'tag1', name: 'Tag1' }],
+                fields: [{ name: 'variant', values: ['default'] }],
+            };
+            const mockParent = {
+                path: cardPath,
+                fields: [{ name: 'osi', values: ['parent-wcs-osi'] }],
+            };
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().callsFake((requestedPath) => {
+                        if (requestedPath === variationPath) return Promise.resolve(mockVariation);
+                        if (requestedPath === cardPath) return Promise.resolve(mockParent);
+                        return Promise.resolve(null);
+                    }),
+                },
+            };
+
+            await loadCardVariations(cardPath, [variationPath], repo);
+
+            const variation = Store.translationProjects.groupedVariationsByParent.value?.get(cardPath)?.get(variationPath);
+            expect(variation.offerData).to.deep.equal({ offerId: 'test-offer-id' });
+        });
     });
 
     describe('fetchVariationByPath', () => {
@@ -553,6 +743,65 @@ describe('translation-items-loader', () => {
             expect(variation.path).to.equal(variationPath);
             expect(variation).to.have.property('offerData');
             expect(variation).to.have.property('studioPath');
+        });
+
+        it('should resolve offerData using parent OSI when variation has empty osi values', async () => {
+            const cardPath = '/content/dam/mas/acom/en_US/cards/parent-with-osi';
+            const fullVariationPath = `${cardPath}/pzn/var-locale`;
+            const mockVariation = {
+                path: fullVariationPath,
+                fieldTags: [{ id: 'tag1', name: 'Tag1' }],
+                fields: [{ name: 'osi', values: [] }],
+            };
+            const mockParent = {
+                path: cardPath,
+                fields: [{ name: 'osi', values: ['parent-wcs-osi'] }],
+            };
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().callsFake((requestedPath) => {
+                        if (requestedPath === fullVariationPath) return Promise.resolve(mockVariation);
+                        if (requestedPath === cardPath) return Promise.resolve(mockParent);
+                        return Promise.resolve(null);
+                    }),
+                },
+            };
+
+            const result = await fetchVariationByPath(fullVariationPath, repo);
+
+            expect(result).to.be.true;
+            expect(repo.aem.getFragmentByPath.calledWith(cardPath)).to.be.true;
+            const variation = Store.translationProjects.groupedVariationsByParent.value?.get(cardPath)?.get(fullVariationPath);
+            expect(variation.offerData).to.deep.equal({ offerId: 'test-offer-id' });
+        });
+
+        it('should resolve offerData when variation omits osi field and parent has OSI', async () => {
+            const cardPath = '/content/dam/mas/acom/en_US/cards/parent-no-osi-field';
+            const fullVariationPath = `${cardPath}/pzn/locale-xx`;
+            const mockVariation = {
+                path: fullVariationPath,
+                fieldTags: [{ id: 'tag1', name: 'Tag1' }],
+                fields: [{ name: 'variant', values: ['default'] }],
+            };
+            const mockParent = {
+                path: cardPath,
+                fields: [{ name: 'osi', values: ['parent-wcs-osi'] }],
+            };
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().callsFake((requestedPath) => {
+                        if (requestedPath === fullVariationPath) return Promise.resolve(mockVariation);
+                        if (requestedPath === cardPath) return Promise.resolve(mockParent);
+                        return Promise.resolve(null);
+                    }),
+                },
+            };
+
+            const result = await fetchVariationByPath(fullVariationPath, repo);
+
+            expect(result).to.be.true;
+            const variation = Store.translationProjects.groupedVariationsByParent.value?.get(cardPath)?.get(fullVariationPath);
+            expect(variation.offerData).to.deep.equal({ offerId: 'test-offer-id' });
         });
     });
 

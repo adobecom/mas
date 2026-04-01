@@ -823,6 +823,22 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
+    describe('viewOnly loading spinner (reactive state)', () => {
+        it('should hide spinner when viewOnlyLoading becomes false without a store update', async () => {
+            const card = createMockCard('/path/card1', 'Card 1');
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            el.viewOnlyLoading = true;
+            el.viewOnlyFragments = [];
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('sp-progress-circle')).to.exist;
+            el.viewOnlyLoading = false;
+            el.viewOnlyFragments = [card];
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('sp-progress-circle')).to.be.null;
+            expect(el.shadowRoot.querySelector('sp-table')).to.exist;
+        });
+    });
+
     describe('viewOnly mode rendering', () => {
         it('should render table when viewOnlyFragments has items', async () => {
             const card = createMockCard('/path/card1', 'Card 1');

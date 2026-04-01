@@ -454,15 +454,10 @@ describe('settings', () => {
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3-FR');
         });
 
-        it('does not apply hideTrialCTAs to non-catalog variant even with locale-wide override', async () => {
+        it('does not apply hideTrialCTAs to mini variant when override has catalog template restriction', async () => {
             const context = {
-                locale: 'fr_FR',
-                body: {
-                    fields: {
-                        variant: 'mini',
-                        tags: ['mas:offer_type/base', 'mas:plan_type/puf', 'mas:customer_segment/individual'],
-                    },
-                },
+                locale: 'en_US',
+                body: { fields: { variant: 'mini' } },
                 promises: {
                     settings: Promise.resolve({
                         hideTrialCTAs: {
@@ -471,6 +466,7 @@ describe('settings', () => {
                                 valuetype: 'boolean',
                                 booleanValue: false,
                                 locales: [],
+                                templates: [],
                                 tags: [],
                             },
                             override: [
@@ -478,7 +474,8 @@ describe('settings', () => {
                                     name: 'hideTrialCTAs',
                                     valuetype: 'boolean',
                                     booleanValue: true,
-                                    locales: ['fr_FR', 'fr_CA'],
+                                    locales: ['en_US'],
+                                    templates: ['catalog'],
                                     tags: [],
                                 },
                             ],
@@ -487,12 +484,12 @@ describe('settings', () => {
                 },
             };
             const result = await settings.process(context);
-            expect(result.body.settings?.hideTrialCTAs).to.be.undefined;
+            expect(result.body.settings.hideTrialCTAs).to.be.false;
         });
 
-        it('applies hideTrialCTAs to catalog variant with locale-wide override', async () => {
+        it('applies hideTrialCTAs to catalog variant with catalog template override', async () => {
             const context = {
-                locale: 'fr_FR',
+                locale: 'en_US',
                 body: { fields: { variant: 'catalog' } },
                 promises: {
                     settings: Promise.resolve({
@@ -502,6 +499,7 @@ describe('settings', () => {
                                 valuetype: 'boolean',
                                 booleanValue: false,
                                 locales: [],
+                                templates: [],
                                 tags: [],
                             },
                             override: [
@@ -509,7 +507,8 @@ describe('settings', () => {
                                     name: 'hideTrialCTAs',
                                     valuetype: 'boolean',
                                     booleanValue: true,
-                                    locales: ['fr_FR', 'fr_CA'],
+                                    locales: ['en_US'],
+                                    templates: ['catalog'],
                                     tags: [],
                                 },
                             ],
@@ -519,6 +518,80 @@ describe('settings', () => {
             };
             const result = await settings.process(context);
             expect(result.body.settings.hideTrialCTAs).to.be.true;
+        });
+
+        it('applies hideTrialCTAs to plans variant with plans template override', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                                locales: [],
+                                templates: [],
+                                tags: [],
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    locales: ['en_US'],
+                                    templates: ['catalog'],
+                                    tags: [],
+                                },
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    locales: ['en_US'],
+                                    templates: ['plans'],
+                                    tags: [],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.true;
+        });
+
+        it('does not apply catalog override to plans variant', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                                locales: [],
+                                templates: [],
+                                tags: [],
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    locales: ['en_US'],
+                                    templates: ['catalog'],
+                                    tags: [],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.false;
         });
 
         it('applies secureLabel locale override when fragment locale matches', async () => {

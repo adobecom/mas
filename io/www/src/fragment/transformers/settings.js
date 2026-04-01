@@ -15,7 +15,7 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'displayAnnual', valueType: 'boolean' },
     { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
-    { name: 'hideTrialCTAs', valueType: 'boolean', templates: ['catalog'] },
+    { name: 'hideTrialCTAs', valueType: 'boolean' },
 ];
 
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
@@ -165,12 +165,11 @@ export function resolveSettingEntry(fragment, locale, setting) {
     const defaultEntry = setting.default;
     const template = fragment.fields?.variant;
     if (!defaultEntry) return null;
-    const definition = SETTING_NAME_BY_VALUE.get(defaultEntry.name);
-    const templateRestriction = defaultEntry.templates?.length > 0 ? defaultEntry.templates : definition?.templates;
-    if (templateRestriction?.length > 0 && !templateRestriction.includes(template)) return null;
+    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) return null;
     const filteredLocale = setting.override.filter(
         (overrideSetting) =>
-            !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale),
+            (!overrideSetting.locales?.length || overrideSetting.locales.includes(locale)) &&
+            (!overrideSetting.templates?.length || overrideSetting.templates.includes(template)),
     );
     if (filteredLocale.length == 0) return defaultEntry;
     // Find all overrides matching the locale; now select best by tags

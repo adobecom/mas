@@ -1667,6 +1667,7 @@ var Fd=Object.defineProperty;var Nd=(pe,ne,ze)=>ne in pe?Fd(pe,ne,{enumerable:!0
             background: var(--spectrum-gray-75);
             border-radius: 8px;
             padding: 12px 16px;
+            flex-wrap: wrap;
         }
 
         :host([summary]) .header-icon {

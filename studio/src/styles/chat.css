@@ -2104,6 +2104,9 @@
     font-size: 13px;
     color: var(--spectrum-gray-600, #6e6e6e);
     font-family: monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chat-product-cards .product-card-details {
@@ -2198,6 +2201,11 @@
 
 .chat-confirmation-summary .template-preview {
     height: 200px;
+}
+
+.chat-confirmation-summary .template-preview merch-card {
+    transform: none;
+    zoom: 0.5;
 }
 
 .chat-confirmation-summary .summary-actions {

@@ -57,15 +57,16 @@ async function fetchMCSProduct(arrangementCode, aosUrl, aosApiKey, locale = 'en_
     };
 }
 
-function generateCtaHtml(product, osi) {
+function generateCtaHtml(product, osi, variant) {
     const checkoutAttrs = `is="checkout-link" data-wcs-osi="${osi}" data-checkout-workflow="UCv2" data-checkout-workflow-step="email"`;
+    const ctaStyle = variant === 'catalog' ? 'accent' : 'primary';
     if (product.hasTrial && product.hasBuy) {
-        return `<a ${checkoutAttrs} class="con-button secondary">Free trial</a> <a ${checkoutAttrs} class="con-button primary">Buy now</a>`;
+        return `<a ${checkoutAttrs} class="con-button secondary">Free trial</a> <a ${checkoutAttrs} class="con-button ${ctaStyle}">Buy now</a>`;
     }
     if (product.hasTrial) {
-        return `<a ${checkoutAttrs} class="con-button primary">Start free trial</a>`;
+        return `<a ${checkoutAttrs} class="con-button ${ctaStyle}">Start free trial</a>`;
     }
-    return `<a ${checkoutAttrs} class="con-button primary">Buy now</a>`;
+    return `<a ${checkoutAttrs} class="con-button ${ctaStyle}">Buy now</a>`;
 }
 
 async function main(params) {
@@ -113,20 +114,23 @@ async function main(params) {
         // Deterministic field mapping from MCS merchandising
         const productName = product.copy.name || product.name;
         const iconUrl = product.assets.icons?.svg || product.icon;
-        const descriptionCandidates = [product.copy.description, product.copy.short_description].filter(Boolean);
+        const descriptionCandidates = [
+            product.copy.description,
+            product.copy.short_description,
+            product.copy.shortDescription,
+        ].filter(Boolean);
         const description = descriptionCandidates.sort((a, b) => b.length - a.length)[0];
 
-        const fields = { cardTitle: productName };
-        if (description) fields.description = description;
+        const baseFields = { cardTitle: productName };
+        if (description) baseFields.description = description;
         if (iconUrl) {
-            fields.mnemonics = [{ icon: iconUrl, alt: productName }];
+            baseFields.mnemonics = [{ icon: iconUrl, alt: productName }];
         }
 
         if (osi) {
-            fields.osi = osi;
+            baseFields.osi = osi;
             const perUnit = product.customer_segment === 'TEAM' ? 'true' : 'false';
-            fields.prices = `<span is="inline-price" data-wcs-osi="${osi}" data-display-per-unit="${perUnit}" data-display-recurrence="true" data-display-tax="false"></span>`;
-            fields.ctas = generateCtaHtml(product, osi);
+            baseFields.prices = `<span is="inline-price" data-wcs-osi="${osi}" data-display-per-unit="${perUnit}" data-display-recurrence="true" data-display-tax="false"></span>`;
         }
 
         // Deterministic tag mapping from AOS offer data
@@ -142,6 +146,10 @@ async function main(params) {
         // Create cards
         const results = [];
         for (const variant of variants) {
+            const fields = { ...baseFields };
+            if (osi) {
+                fields.ctas = generateCtaHtml(product, osi, variant);
+            }
             const card = {
                 title: `${productName} - ${variant.charAt(0).toUpperCase() + variant.slice(1)}`,
                 variant,

@@ -7,7 +7,31 @@
         <meta name="nofollow-links" content="on" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="aem-base-url" />
+        <meta name="aem-author-url" />
         <meta name="io-base-url" />
+        <script>
+            const DEFAULT_LOCAL_APP_PORT = 3000;
+            const DEFAULT_LOCAL_PROXY_PORT = 8080;
+            const DEFAULT_LOCAL_RELAY_PORT = 3000;
+            const params = new URLSearchParams(window.location.search);
+            const parsePort = (value, fallback) => {
+                const port = Number.parseInt(value ?? '', 10);
+                return Number.isInteger(port) && port > 0 ? port : fallback;
+            };
+            const localAppPort = parsePort(window.location.port, DEFAULT_LOCAL_APP_PORT);
+            const localProxyPort = parsePort(params.get('proxy.port'), DEFAULT_LOCAL_PROXY_PORT);
+            const localRelayPort = parsePort(params.get('relay.port'), DEFAULT_LOCAL_RELAY_PORT);
+
+            // Relay check - redirect back to origin port if relayPort param + token in hash
+            const relayTargetPort = params.get('relayPort');
+            if (relayTargetPort && window.location.hash.length > 1) {
+                const url = new URL(window.location.href);
+                url.hostname = 'localhost';
+                url.port = relayTargetPort;
+                url.searchParams.delete('relayPort');
+                window.location.replace(url.toString());
+            }
+        </script>
         <script type="importmap">
             {
                 "imports": {
@@ -37,13 +61,12 @@
                 stage: 'e59471',
                 prod: 'e59433',
             };
-            const params = new URLSearchParams(window.location.search);
             const envOverride = params.get('aem.env');
             const isLocal = window.location.href.includes('localhost');
             let bucket;
             let baseUrl;
             if (isLocal) {
-                baseUrl = 'http://localhost:8080';
+                baseUrl = `http://localhost:${localProxyPort}`;
             } else {
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
                 baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
@@ -52,6 +75,8 @@
                 document.querySelector('title').innerText += ` [${envOverride.toUpperCase()}]`;
             }
             document.querySelector('meta[name="aem-base-url"]')?.setAttribute('content', baseUrl);
+            const authorBucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
+            document.querySelector('meta[name="aem-author-url"]')?.setAttribute('content', `https://author-p22655-${authorBucket}.adobeaemcloud.com`);
             const ioStudioEnvParam = params.get('io.studio.env') || envOverride;
             const ioStudioEnv = ioStudioEnvParam ? `-${ioStudioEnvParam}` : '';
             const ioBaseUrl = `https://14257-masstudio${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
@@ -86,7 +111,15 @@
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
-                redirect_uri: location.href.substring(0, location.href.length - location.hash.length),
+                redirect_uri: (() => {
+                    if (location.port && location.port !== `${localRelayPort}` && !location.hash.includes('id_token') && !location.hash.includes('access_token')) {
+                        let relayUrl = `http://localhost:${localRelayPort}/studio.html?relayPort=${localAppPort}&proxy.port=${localProxyPort}&relay.port=${localRelayPort}`;
+                        const mcpServer = params.get('mcp.server');
+                        if (mcpServer) relayUrl += `&mcp.server=${encodeURIComponent(mcpServer)}`;
+                        return relayUrl;
+                    }
+                    return location.href.substring(0, location.href.length - location.hash.length);
+                })(),
                 response_type: 'id_token',
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_members',
                 useLocalStorage: true,

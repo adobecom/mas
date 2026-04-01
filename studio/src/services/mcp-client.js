@@ -19,7 +19,10 @@ export async function executeMCPTool(toolName, params) {
             sessionStorage.getItem('masAccessToken') ??
             window.adobeIMS?.getAccessToken()?.token ??
             window.adobeid?.authorize?.();
-        const aemBaseUrl = document.querySelector('meta[name="aem-base-url"]')?.getAttribute('content');
+        let aemBaseUrl = document.querySelector('meta[name="aem-base-url"]')?.getAttribute('content');
+        if (aemBaseUrl?.includes('localhost')) {
+            aemBaseUrl = document.querySelector('meta[name="aem-author-url"]')?.getAttribute('content') || aemBaseUrl;
+        }
 
         const headers = {
             'Content-Type': 'application/json',

@@ -17,6 +17,9 @@ import {
     COLLECTION_CREATION_SYSTEM_PROMPT,
     RELEASE_WORKFLOW_INSTRUCTIONS,
     GUIDED_CARD_CREATION_PROMPT,
+    GUIDED_SEARCH_PROMPT,
+    GUIDED_CREATE_PROMPT,
+    GUIDED_HELP_PROMPT,
 } from './prompt-templates.js';
 import { buildOperationsPrompt } from './operations-prompt.js';
 import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
@@ -321,9 +324,7 @@ async function main(params) {
         } = determineSystemPromptWithMeta(intentHint, conversationHistory, message, enrichedContext);
 
         const releaseIntent = isReleaseIntent(message, conversationHistory);
-        const effectivePrompt = releaseIntent
-            ? `${basePrompt}\n\n${GUIDED_CARD_CREATION_PROMPT}`
-            : basePrompt;
+        const effectivePrompt = releaseIntent ? `${basePrompt}\n\n${GUIDED_CARD_CREATION_PROMPT}` : basePrompt;
 
         if (releaseIntent) {
             console.log('[Backend] Release/NPI intent detected, appending release workflow instructions');
@@ -645,6 +646,18 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
 
     if (intentHint === 'card') {
         return { prompt: CARD_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
+    }
+
+    if (intentHint === 'guided_search') {
+        return { prompt: GUIDED_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+    }
+
+    if (intentHint === 'guided_create') {
+        return { prompt: GUIDED_CREATE_PROMPT, isDocumentation: false, isCardCreation: true };
+    }
+
+    if (intentHint === 'guided_help') {
+        return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
     }
 
     const lowerMessage = message.toLowerCase();

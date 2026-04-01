@@ -22,19 +22,64 @@ export class MasPromptSuggestions extends LitElement {
     get baseSuggestions() {
         return [
             { text: 'New Release', icon: 'NewItem', prompt: 'Kickstart cards for a new product release' },
-            { text: 'Create Card', icon: 'AddCircle', prompt: 'Create a new merch card' },
-            { text: 'Search', icon: 'Search', prompt: 'Search for cards' },
-            { text: 'Help', icon: 'Help', prompt: 'Get help with M@S Studio' },
+            {
+                text: 'Create Card',
+                icon: 'AddCircle',
+                prompt: 'I want to create a new card — help me pick the right type',
+                intentHint: 'guided_create',
+            },
+            {
+                text: 'Find Cards',
+                icon: 'Search',
+                prompt: 'Help me find specific cards',
+                intentHint: 'guided_search',
+            },
+            {
+                text: 'Help',
+                icon: 'Help',
+                prompt: 'Show me help topics for M@S Studio',
+                intentHint: 'guided_help',
+            },
         ];
     }
 
     get surfaceSuggestions() {
         return {
-            acom: [{ text: 'Plans Cards', icon: 'Table', prompt: 'Show me plans cards' }],
-            ccd: [{ text: 'CCD Slices', icon: 'Layers', prompt: 'Show CCD slice cards' }],
-            commerce: [{ text: 'Fries Cards', icon: 'ShoppingCart', prompt: 'Show fries cards' }],
-            'adobe-home': [{ text: 'Try Buy Widget', icon: 'Collection', prompt: 'Show try-buy widget cards' }],
-            express: [{ text: 'Express Cards', icon: 'Star', prompt: 'Show express cards' }],
+            acom: [
+                { text: 'Plans Cards', icon: 'Table', prompt: 'Show me all plans cards in the current workspace' },
+                {
+                    text: 'Special Offers',
+                    icon: 'Star',
+                    prompt: 'Find special-offers cards in the current workspace',
+                },
+            ],
+            ccd: [{ text: 'CCD Slices', icon: 'Layers', prompt: 'Show CCD slice cards in the current workspace' }],
+            commerce: [
+                {
+                    text: 'Fries Cards',
+                    icon: 'ShoppingCart',
+                    prompt: 'Show fries cards in the current workspace',
+                },
+            ],
+            'adobe-home': [
+                {
+                    text: 'Try Buy Widgets',
+                    icon: 'Collection',
+                    prompt: 'Show try-buy widget cards in the current workspace',
+                },
+                {
+                    text: 'Promoted Plans',
+                    icon: 'Table',
+                    prompt: 'Show promoted plans cards in the current workspace',
+                },
+            ],
+            express: [
+                {
+                    text: 'Express Pricing',
+                    icon: 'Star',
+                    prompt: 'Show express pricing cards in the current workspace',
+                },
+            ],
         };
     }
 
@@ -47,7 +92,7 @@ export class MasPromptSuggestions extends LitElement {
     handleSuggestionClick(suggestion) {
         this.dispatchEvent(
             new CustomEvent('prompt-selected', {
-                detail: { prompt: suggestion.prompt },
+                detail: { prompt: suggestion.prompt, intentHint: suggestion.intentHint },
                 bubbles: true,
                 composed: true,
             }),

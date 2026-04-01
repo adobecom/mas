@@ -117,18 +117,39 @@ export class MASMCPServer {
         return [
             {
                 name: 'create_card',
-                description: 'Create a new merch card in AEM',
+                description:
+                    'Create a new merch card in AEM. When arrangement_code is provided, auto-populates card fields (title, description, icon) and tags from AOS product data.',
                 inputSchema: {
                     type: 'object',
                     properties: {
-                        title: { type: 'string', description: 'Card title' },
+                        title: {
+                            type: 'string',
+                            description: 'Card title (auto-populated from product when arrangement_code provided)',
+                        },
                         parentPath: { type: 'string', description: 'Parent folder path in AEM' },
                         variant: { type: 'string', description: 'Card variant (e.g., plans, segment, special-offers)' },
                         size: { type: 'string', description: 'Card size (wide, super-wide)' },
-                        fields: { type: 'object', description: 'Additional card fields' },
-                        tags: { type: 'array', items: { type: 'string' }, description: 'AEM tags' },
+                        fields: {
+                            type: 'object',
+                            description: 'Additional card fields (merged with product data when arrangement_code provided)',
+                        },
+                        tags: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'AEM tags (merged with product tags when arrangement_code provided)',
+                        },
+                        arrangement_code: {
+                            type: 'string',
+                            description:
+                                'Product arrangement code. Auto-populates title, description, icon, and product tags from AOS.',
+                        },
+                        landscape: {
+                            type: 'string',
+                            enum: ['PUBLISHED', 'DRAFT'],
+                            description: 'Commerce landscape for product lookup (default: PUBLISHED)',
+                        },
                     },
-                    required: ['title', 'parentPath'],
+                    required: ['parentPath'],
                 },
             },
             {
@@ -144,14 +165,31 @@ export class MASMCPServer {
             },
             {
                 name: 'update_card',
-                description: 'Update a merch card',
+                description:
+                    'Update a merch card. When arrangement_code is provided, re-enriches card fields and tags from latest AOS product data.',
                 inputSchema: {
                     type: 'object',
                     properties: {
                         id: { type: 'string', description: 'Card ID' },
-                        fields: { type: 'object', description: 'Fields to update' },
+                        fields: {
+                            type: 'object',
+                            description: 'Fields to update (merged with product data when arrangement_code provided)',
+                        },
                         title: { type: 'string', description: 'New title' },
-                        tags: { type: 'array', items: { type: 'string' }, description: 'New tags' },
+                        tags: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Tags (merged with product tags when arrangement_code provided)',
+                        },
+                        arrangement_code: {
+                            type: 'string',
+                            description: 'Product arrangement code. Re-enriches fields and tags from latest AOS product data.',
+                        },
+                        landscape: {
+                            type: 'string',
+                            enum: ['PUBLISHED', 'DRAFT'],
+                            description: 'Commerce landscape for product lookup (default: PUBLISHED)',
+                        },
                     },
                     required: ['id'],
                 },
@@ -169,7 +207,8 @@ export class MASMCPServer {
             },
             {
                 name: 'search_cards',
-                description: 'Search for merch cards with filters (requires surface selection)',
+                description:
+                    'Search for merch cards with filters. Supports product-aware filtering by arrangement_code or product_code.',
                 inputSchema: {
                     type: 'object',
                     properties: {
@@ -183,6 +222,14 @@ export class MASMCPServer {
                         limit: { type: 'number', description: 'Max results (default: 10)' },
                         locale: { type: 'string', description: 'Locale (default: en_US)' },
                         variant: { type: 'string', description: 'Filter by card variant' },
+                        arrangement_code: {
+                            type: 'string',
+                            description: 'Filter cards by product arrangement code (filters by mas:pa/ tag)',
+                        },
+                        product_code: {
+                            type: 'string',
+                            description: 'Filter cards by product code (filters by mas:product_code/ tag)',
+                        },
                         variationType: {
                             type: 'string',
                             description:
@@ -195,20 +242,31 @@ export class MASMCPServer {
             },
             {
                 name: 'copy_card',
-                description: 'Copy/duplicate a merch card',
+                description:
+                    'Copy/duplicate a merch card. When arrangement_code is provided, re-enriches the copy with latest product data.',
                 inputSchema: {
                     type: 'object',
                     properties: {
                         id: { type: 'string', description: 'Card ID to copy' },
                         parentPath: { type: 'string', description: 'Parent path for the copy (optional)' },
                         newTitle: { type: 'string', description: 'Title for the copied card (optional)' },
+                        arrangement_code: {
+                            type: 'string',
+                            description:
+                                'Product arrangement code. Re-enriches the copied card with latest product data from AOS.',
+                        },
+                        landscape: {
+                            type: 'string',
+                            enum: ['PUBLISHED', 'DRAFT'],
+                            description: 'Commerce landscape for product lookup (default: PUBLISHED)',
+                        },
                     },
                     required: ['id'],
                 },
             },
             {
                 name: 'publish_card',
-                description: 'Publish a merch card to production',
+                description: 'Publish a merch card to production. Validates required fields by default.',
                 inputSchema: {
                     type: 'object',
                     properties: {
@@ -216,6 +274,11 @@ export class MASMCPServer {
                         publishReferences: {
                             type: 'boolean',
                             description: 'Whether to publish referenced fragments (default: true)',
+                        },
+                        validate: {
+                            type: 'boolean',
+                            description:
+                                'Validate required fields before publishing (default: true). Warns if title/description missing or no product tags.',
                         },
                     },
                     required: ['id'],
@@ -590,6 +653,11 @@ export class MASMCPServer {
                             type: 'string',
                             description: 'Offer Selector ID (from OST) to assign to the card',
                         },
+                        landscape: {
+                            type: 'string',
+                            enum: ['PUBLISHED', 'DRAFT'],
+                            description: 'Commerce landscape to query (default: PUBLISHED). Use DRAFT for unreleased products.',
+                        },
                     },
                     required: ['arrangement_code', 'variants', 'parentPath'],
                 },
@@ -635,19 +703,19 @@ export class MASMCPServer {
     async handleToolCall(name, args) {
         switch (name) {
             case 'create_card':
-                return this.studioOperations.createCard(args);
+                return this.createCardWithEnrichment(args);
             case 'get_card':
                 return this.studioOperations.getCard(args);
             case 'update_card':
-                return this.studioOperations.updateCard(args);
+                return this.updateCardWithEnrichment(args);
             case 'delete_card':
                 return this.studioOperations.deleteCard(args);
             case 'search_cards':
-                return this.studioOperations.searchCards(args);
+                return this.searchCardsWithProductFilter(args);
             case 'copy_card':
-                return this.studioOperations.copyCard(args);
+                return this.copyCardWithEnrichment(args);
             case 'publish_card':
-                return this.studioOperations.publishCard(args);
+                return this.publishCardWithValidation(args);
             case 'unpublish_card':
                 return this.studioOperations.unpublishCard(args);
             case 'bulk_update_cards':
@@ -739,7 +807,128 @@ export class MASMCPServer {
         return { products: cachedProducts, total: cachedProducts.length };
     }
 
-    async fetchMCSProduct(arrangementCode, locale = 'en_US') {
+    enrichFromProduct(product) {
+        const primaryItem = product.fulfillable_items?.[0]?.copy || {};
+        const productName = product.copy?.name || primaryItem.name || product.name;
+        const iconUrl = product.assets?.icons?.svg || product.icon;
+        const descriptionCandidates = [
+            product.copy?.description,
+            product.copy?.short_description,
+            primaryItem.description,
+            primaryItem.short_description,
+        ].filter(Boolean);
+        const description = descriptionCandidates.sort((a, b) => b.length - a.length)[0];
+
+        const fields = { cardTitle: productName };
+        if (description) fields.description = description;
+        if (iconUrl) fields.mnemonics = [{ icon: iconUrl, alt: productName }];
+
+        const tags = [];
+        if (product.product_code) tags.push(`mas:product_code/${product.product_code}`);
+        if (product.arrangement_code) tags.push(`mas:pa/${product.arrangement_code}`);
+        if (product.product_family) tags.push(`mas:product_family/${product.product_family}`);
+        if (product.customer_segment) tags.push(`mas:customer_segment/${product.customer_segment}`);
+        if (product.market_segments) {
+            product.market_segments.forEach((s) => tags.push(`mas:market_segments/${s}`));
+        }
+
+        return { fields, tags, productName };
+    }
+
+    async createCardWithEnrichment(args) {
+        const { arrangement_code, landscape, ...cardArgs } = args;
+
+        if (arrangement_code) {
+            const product = await this.fetchMCSProduct(arrangement_code, 'en_US', landscape);
+            if (!product) {
+                throw new Error(`Product not found in AOS for arrangement code: ${arrangement_code}`);
+            }
+            const { fields: productFields, tags: productTags, productName } = this.enrichFromProduct(product);
+            cardArgs.fields = { ...productFields, ...(cardArgs.fields || {}) };
+            cardArgs.tags = [...new Set([...productTags, ...(cardArgs.tags || [])])];
+            if (!cardArgs.title) cardArgs.title = productName;
+        }
+
+        const result = await this.studioOperations.createCard(cardArgs);
+        if (arrangement_code) result.enrichedFromProduct = arrangement_code;
+        return result;
+    }
+
+    async searchCardsWithProductFilter(args) {
+        const { arrangement_code, product_code, ...searchArgs } = args;
+        if (!searchArgs.tags) searchArgs.tags = [];
+        if (arrangement_code) searchArgs.tags.push(`mas:pa/${arrangement_code}`);
+        if (product_code) searchArgs.tags.push(`mas:product_code/${product_code}`);
+        return this.studioOperations.searchCards(searchArgs);
+    }
+
+    async updateCardWithEnrichment(args) {
+        const { arrangement_code, landscape, ...updateArgs } = args;
+
+        if (arrangement_code) {
+            const product = await this.fetchMCSProduct(arrangement_code, 'en_US', landscape);
+            if (!product) {
+                throw new Error(`Product not found in AOS for arrangement code: ${arrangement_code}`);
+            }
+            const { fields: productFields, tags: productTags } = this.enrichFromProduct(product);
+            updateArgs.fields = { ...productFields, ...(updateArgs.fields || {}) };
+            updateArgs.tags = [...new Set([...productTags, ...(updateArgs.tags || [])])];
+        }
+
+        const result = await this.studioOperations.updateCard(updateArgs);
+        if (arrangement_code) result.enrichedFromProduct = arrangement_code;
+        return result;
+    }
+
+    async copyCardWithEnrichment(args) {
+        const { arrangement_code, landscape, ...copyArgs } = args;
+        const result = await this.studioOperations.copyCard(copyArgs);
+
+        if (arrangement_code && result.success && result.card?.id) {
+            const product = await this.fetchMCSProduct(arrangement_code, 'en_US', landscape);
+            if (product) {
+                const { fields: productFields, tags: productTags } = this.enrichFromProduct(product);
+                await this.studioOperations.updateCard({
+                    id: result.card.id,
+                    fields: productFields,
+                    tags: productTags,
+                });
+                const refreshed = await this.studioOperations.getCard({ id: result.card.id });
+                result.card = refreshed.card;
+                result.enrichedFromProduct = arrangement_code;
+            }
+        }
+
+        return result;
+    }
+
+    async publishCardWithValidation(args) {
+        const { validate = true, ...publishArgs } = args;
+
+        if (validate) {
+            const cardResult = await this.studioOperations.getCard({ id: publishArgs.id });
+            const card = cardResult.card;
+            const warnings = [];
+
+            if (!card.title || card.title.trim() === '') {
+                warnings.push('Card has no title');
+            }
+            const hasProductTag = (card.tags || []).some((t) => t.startsWith('mas:product_code/') || t.startsWith('mas:pa/'));
+            if (!hasProductTag) {
+                warnings.push('Card has no product tags — may not be linked to a product');
+            }
+
+            if (warnings.length > 0) {
+                const result = await this.studioOperations.publishCard(publishArgs);
+                result.warnings = warnings;
+                return result;
+            }
+        }
+
+        return this.studioOperations.publishCard(publishArgs);
+    }
+
+    async fetchMCSProduct(arrangementCode, locale = 'en_US', landscape = 'PUBLISHED') {
         const aosUrl = this.aosUrl;
         const aosApiKey = this.aosApiKey;
         if (!aosUrl || !aosApiKey) {
@@ -747,7 +936,7 @@ export class MASMCPServer {
         }
 
         const [, country] = locale.split('_');
-        const endpoint = `${aosUrl}?country=${encodeURIComponent(country)}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=${encodeURIComponent(locale)}&landscape=PUBLISHED&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
+        const endpoint = `${aosUrl}?country=${encodeURIComponent(country)}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=${encodeURIComponent(locale)}&landscape=${encodeURIComponent(landscape)}&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
 
         const response = await fetch(endpoint, {
             headers: { 'x-api-key': aosApiKey },
@@ -788,43 +977,18 @@ export class MASMCPServer {
         return { success: true, product };
     }
 
-    async createReleaseCards({ arrangement_code, variants, parentPath, locale, osi }) {
+    async createReleaseCards({ arrangement_code, variants, parentPath, locale, osi, landscape }) {
         if (!arrangement_code) throw new Error('arrangement_code is required');
         if (!Array.isArray(variants) || variants.length === 0) throw new Error('variants array is required');
         if (!parentPath) throw new Error('parentPath is required');
 
-        const product = await this.fetchMCSProduct(arrangement_code, 'en_US');
+        const product = await this.fetchMCSProduct(arrangement_code, 'en_US', landscape);
         if (!product) {
             throw new Error(`Product not found in AOS for arrangement code: ${arrangement_code}`);
         }
 
-        const primaryItem = product.fulfillable_items?.[0]?.copy || {};
-        const productName = product.copy.name || primaryItem.name || product.name;
-        const iconUrl = product.assets.icons?.svg || product.icon;
-        const descriptionCandidates = [
-            product.copy.description,
-            product.copy.short_description,
-            primaryItem.description,
-            primaryItem.short_description,
-        ].filter(Boolean);
-        const description = descriptionCandidates.sort((a, b) => b.length - a.length)[0];
-
-        const fields = { cardTitle: productName };
-        if (description) fields.description = description;
-        if (iconUrl) {
-            fields.mnemonics = [{ icon: iconUrl, alt: productName }];
-        }
-
+        const { fields, tags, productName } = this.enrichFromProduct(product);
         if (osi) fields.osi = osi;
-
-        const tags = [];
-        if (product.product_code) tags.push(`mas:product_code/${product.product_code}`);
-        if (product.arrangement_code) tags.push(`mas:pa/${product.arrangement_code}`);
-        if (product.product_family) tags.push(`mas:product_family/${product.product_family}`);
-        if (product.customer_segment) tags.push(`mas:customer_segment/${product.customer_segment}`);
-        if (product.market_segments) {
-            product.market_segments.forEach((s) => tags.push(`mas:market_segments/${s}`));
-        }
 
         const results = [];
         for (const variant of variants) {

@@ -180,6 +180,36 @@ export class MasChatSessionSelector extends LitElement {
         }
     }
 
+    async handleClearAllSessions() {
+        this.isOpen = false;
+
+        const confirmed = await confirmation({
+            title: 'Clear All Conversations',
+            content: 'Delete all chat sessions? A new empty session will be created. This cannot be undone.',
+            confirmLabel: 'Delete All',
+        });
+
+        if (!confirmed) return;
+
+        try {
+            const sessionIds = this.sessions.map((s) => s.id);
+            for (const id of sessionIds) {
+                sessionManager.deleteSession(id);
+            }
+            this.loadSessions();
+            this.dispatchEvent(
+                new CustomEvent('session-changed', {
+                    detail: { sessionId: sessionManager.getActiveSessionId() },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+            showToast('All conversations cleared', 'positive');
+        } catch (error) {
+            showToast(`Failed to clear conversations: ${error.message}`, 'negative');
+        }
+    }
+
     toggleDropdown() {
         this.isOpen = !this.isOpen;
     }
@@ -286,6 +316,21 @@ export class MasChatSessionSelector extends LitElement {
                                         <div class="session-limit-warning">
                                             <sp-icon-alert slot="icon"></sp-icon-alert>
                                             Maximum sessions reached. Delete some sessions to create new ones.
+                                        </div>
+                                    `
+                                  : nothing}
+                              ${this.sessions.length > 1
+                                  ? html`
+                                        <div class="session-dropdown-footer">
+                                            <sp-button
+                                                size="s"
+                                                variant="negative"
+                                                treatment="outline"
+                                                @click=${this.handleClearAllSessions}
+                                            >
+                                                <sp-icon-delete slot="icon"></sp-icon-delete>
+                                                Clear All Conversations
+                                            </sp-button>
                                         </div>
                                     `
                                   : nothing}

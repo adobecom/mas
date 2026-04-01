@@ -35,6 +35,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-cancel.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chat.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-cclibrary.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-checkmark.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-checkmark-circle.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-down.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-left.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-chevron-right.js';

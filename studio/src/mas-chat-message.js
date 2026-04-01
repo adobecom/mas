@@ -9,7 +9,6 @@ import './mas-chat-button-group.js';
 import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
-import { openOfferSelectorTool } from './rte/ost.js';
 import { buildStudioFragmentHref, showToast } from './utils.js';
 
 /**
@@ -371,7 +370,7 @@ export class MasChatMessage extends LitElement {
 
         if (confirmationRequired) {
             return html`
-                <div class="operation-actions" style="margin-top: var(--spectrum-global-dimension-size-150)">
+                <div class="operation-actions">
                     <sp-button size="s" variant="secondary" @click=${() => this.handleOperationAction('cancel')}>
                         Cancel
                     </sp-button>
@@ -383,7 +382,7 @@ export class MasChatMessage extends LitElement {
         }
 
         return html`
-            <div class="operation-actions" style="margin-top: var(--spectrum-global-dimension-size-150)">
+            <div class="operation-actions">
                 <sp-button size="s" variant="primary" @click=${() => this.handleOperationAction('execute')}>
                     Execute Operation
                 </sp-button>
@@ -400,16 +399,18 @@ export class MasChatMessage extends LitElement {
 
         return html`
             <div class="message-sources">
-                <button
+                <sp-action-button
+                    quiet
+                    size="s"
                     class="sources-toggle ${this.sourcesExpanded ? 'expanded' : ''}"
                     @click=${() => {
                         this.sourcesExpanded = !this.sourcesExpanded;
                     }}
                 >
-                    <sp-icon-info size="s"></sp-icon-info>
-                    <span>Sources (${sources.length})</span>
+                    <sp-icon-info slot="icon"></sp-icon-info>
+                    Sources (${sources.length})
                     <sp-icon-chevron-down size="s"></sp-icon-chevron-down>
-                </button>
+                </sp-action-button>
                 ${this.sourcesExpanded
                     ? html`
                           <div class="sources-list">
@@ -457,6 +458,27 @@ export class MasChatMessage extends LitElement {
 
         const messageClass = `chat-message chat-message-${role}`;
         const isUser = role === 'user';
+
+        const hasDisplayableContent =
+            content ||
+            isLoading ||
+            osi ||
+            (cards && cards.length > 0) ||
+            cardConfig ||
+            fragmentId ||
+            collectionConfig ||
+            operation ||
+            operationResult ||
+            operationLoading ||
+            this.message.productCards ||
+            this.message.buttonGroup ||
+            this.message.openOst ||
+            this.message.confirmationSummary ||
+            this.message.previewData ||
+            this.message.mcpOperation ||
+            this.showSuggestions;
+
+        if (!hasDisplayableContent && !isUser) return nothing;
 
         if (type === 'collection-selection') {
             return html`
@@ -554,7 +576,14 @@ export class MasChatMessage extends LitElement {
                         ? html`<sp-button
                               variant="secondary"
                               size="s"
-                              @click=${() => openOfferSelectorTool(this, null, this.message.ostSearchParams)}
+                              @click=${() =>
+                                  this.dispatchEvent(
+                                      new CustomEvent('open-ost-from-response', {
+                                          detail: { searchParams: this.message.ostSearchParams },
+                                          bubbles: true,
+                                          composed: true,
+                                      }),
+                                  )}
                           >
                               <sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>
                               Select Offer

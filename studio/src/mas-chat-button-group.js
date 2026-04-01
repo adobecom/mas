@@ -32,23 +32,38 @@ export class MasChatButtonGroup extends LitElement {
         );
     }
 
+    handleKeydown(event, button) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        this.handleButtonClick(button);
+    }
+
     render() {
         if (!this.buttons?.length) return nothing;
 
         return html`
             <div class="chat-button-group">
-                ${this.buttons.map(
-                    (button) => html`
-                        <sp-action-button
-                            size="s"
-                            ?selected=${this.selectedValue === button.value}
-                            ?disabled=${this.disabled || (this.selectedValue && this.selectedValue !== button.value)}
+                ${this.buttons.map((button) => {
+                    const isSelected = this.selectedValue === button.value;
+                    const isDisabled = this.disabled || (this.selectedValue && !isSelected);
+
+                    return html`
+                        <div
+                            class="chat-option-pill ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}"
+                            role="button"
+                            tabindex=${isDisabled ? '-1' : '0'}
+                            aria-pressed=${isSelected ? 'true' : 'false'}
+                            aria-disabled=${isDisabled ? 'true' : 'false'}
                             @click=${() => this.handleButtonClick(button)}
+                            @keydown=${(event) => this.handleKeydown(event, button)}
                         >
-                            ${button.label}
-                        </sp-action-button>
-                    `,
-                )}
+                            <span class="chat-option-pill-label">${button.label}</span>
+                            ${isSelected
+                                ? html`<sp-icon-checkmark-circle class="chat-option-pill-check"></sp-icon-checkmark-circle>`
+                                : nothing}
+                        </div>
+                    `;
+                })}
                 ${this.inputHint && !this.selectedValue
                     ? html`<div class="button-group-hint">
                           <sp-icon-search size="s"></sp-icon-search>

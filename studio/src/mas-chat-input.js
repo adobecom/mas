@@ -17,6 +17,7 @@ export class MasChatInput extends LitElement {
         selectedCards: { type: Array },
         placeholder: { type: String },
         inputLocked: { type: Boolean, attribute: 'input-locked' },
+        autoSendOnSelect: { type: Boolean },
     };
 
     static placeholderExamples = [
@@ -38,6 +39,7 @@ export class MasChatInput extends LitElement {
         this.message = '';
         this.selectedCards = [];
         this.inputLocked = false;
+        this.autoSendOnSelect = false;
         this.placeholderIndex = Math.floor(Math.random() * MasChatInput.placeholderExamples.length);
         this.placeholder = MasChatInput.placeholderExamples[this.placeholderIndex];
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
@@ -84,7 +86,10 @@ export class MasChatInput extends LitElement {
             this.selectedOsi = offerSelectorId;
             this.selectedOffer = offer;
             closeOfferSelectorTool();
-            this.autoSendOffer();
+            if (this.autoSendOnSelect) {
+                this.autoSendOnSelect = false;
+                this.sendOffer();
+            }
         }
     }
 
@@ -93,10 +98,13 @@ export class MasChatInput extends LitElement {
         this.selectedOsi = offerSelectorId || '';
         this.selectedOffer = offer || null;
         closeOfferSelectorTool();
-        this.autoSendOffer();
+        if (this.autoSendOnSelect) {
+            this.autoSendOnSelect = false;
+            this.sendOffer();
+        }
     }
 
-    autoSendOffer() {
+    sendOffer() {
         if (!this.selectedOsi) return;
         const context = { osi: this.selectedOsi };
         if (this.selectedOffer) context.offer = this.selectedOffer;
@@ -136,8 +144,9 @@ export class MasChatInput extends LitElement {
         if (!rteField) return;
         const message = (rteField.value || '').trim();
 
-        if (!message) return;
+        if (!message && !this.selectedOsi) return;
 
+        const effectiveMessage = message || `Selected offer: ${this.selectedOsi}`;
         const context = {};
         if (this.selectedOsi) {
             context.osi = this.selectedOsi;
@@ -151,7 +160,7 @@ export class MasChatInput extends LitElement {
 
         this.dispatchEvent(
             new CustomEvent('send-message', {
-                detail: { message, context },
+                detail: { message: effectiveMessage, context },
                 bubbles: true,
                 composed: true,
             }),
@@ -257,7 +266,7 @@ export class MasChatInput extends LitElement {
                                   </sp-action-button>
                               `
                             : nothing}
-                        <sp-action-button
+                        <sp-button
                             variant="accent"
                             size="s"
                             @click=${this.handleSend}
@@ -265,7 +274,7 @@ export class MasChatInput extends LitElement {
                             title="Send message"
                         >
                             <sp-icon-send slot="icon"></sp-icon-send>
-                        </sp-action-button>
+                        </sp-button>
                     </div>
                 </div>
             </div>

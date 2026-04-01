@@ -1,4 +1,4 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { openPreview, closePreview } from './mas-card-preview.js';
 
@@ -726,6 +726,66 @@ export class MasOperationResult extends LitElement {
         `;
     }
 
+    renderReleaseCardsResult() {
+        const rawResult = this.result.rawResult || {};
+        const cards = rawResult.cards || [];
+        const productName = rawResult.product?.name || '';
+        const successCount = cards.filter((c) => c.success).length;
+        const successCards = cards.filter((c) => c.success).map((c) => c.card).filter(Boolean);
+        this.cacheFragments(successCards);
+
+        return html`
+            <div class="operation-result success">
+                <div class="result-header">
+                    <sp-icon-check-circle size="m"></sp-icon-check-circle>
+                    <span>
+                        Created ${successCount} card${successCount !== 1 ? 's' : ''}${productName ? ` for ${productName}` : ''}
+                    </span>
+                </div>
+                <div class="release-cards-list">
+                    ${cards.map((item) => {
+                        const card = item.card || {};
+                        if (!item.success) {
+                            return html`
+                                <div class="release-card-item error">
+                                    <sp-icon-alert size="s"></sp-icon-alert>
+                                    <span>${card.title || 'Unknown'} — ${item.error}</span>
+                                </div>
+                            `;
+                        }
+                        return html`
+                            <div class="release-card-item">
+                                <div class="release-card-info">
+                                    <sp-icon-check-circle size="s"></sp-icon-check-circle>
+                                    <span class="release-card-title">${card.title}</span>
+                                    <sp-badge size="s">${card.variant}</sp-badge>
+                                </div>
+                                ${card.id
+                                    ? html`
+                                          <div class="release-card-preview">
+                                              <merch-card>
+                                                  <aem-fragment fragment="${card.id}" author ims></aem-fragment>
+                                              </merch-card>
+                                          </div>
+                                      `
+                                    : nothing}
+                                <div class="release-card-actions">
+                                    <sp-button size="s" variant="primary" @click=${() => this.handleOpenCard(card)}>
+                                        <sp-icon-edit slot="icon"></sp-icon-edit>
+                                        Edit
+                                    </sp-button>
+                                    <sp-button size="s" variant="secondary" @click=${() => this.handleOpenCard(card)}>
+                                        Open
+                                    </sp-button>
+                                </div>
+                            </div>
+                        `;
+                    })}
+                </div>
+            </div>
+        `;
+    }
+
     renderDefaultResult() {
         const { message, results = [], count = 0 } = this.result;
 
@@ -752,12 +812,12 @@ export class MasOperationResult extends LitElement {
             `;
         }
 
-        return html``;
+        return nothing;
     }
 
     render() {
         if (!this.result) {
-            return html`<p>No result data.</p>`;
+            return nothing;
         }
 
         switch (this.operationType) {
@@ -795,6 +855,8 @@ export class MasOperationResult extends LitElement {
                 return this.renderVariationsResult();
             case 'resolve_offer_selector':
                 return this.renderOfferSelectorResult();
+            case 'create_release_cards':
+                return this.renderReleaseCardsResult();
             default:
                 return this.renderDefaultResult();
         }

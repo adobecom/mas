@@ -4,10 +4,11 @@ import { executeMCPTool } from './services/mcp-client.js';
 import { fetchProducts } from './services/product-api.js';
 import { showToast } from './utils.js';
 import Store from './store.js';
-import { PAGE_NAMES, TEMPLATE_PREVIEWS } from './constants.js';
+import { EVENT_OST_OFFER_SELECT, PAGE_NAMES, TEMPLATE_PREVIEWS } from './constants.js';
 import { getVariantTreeData } from './editors/variant-picker.js';
 import { precacheTemplatePreviews } from './utils/template-cache.js';
 import { getUserSurfaces } from './groups.js';
+import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
 
 class MasProductCatalog extends LitElement {
     createRenderRoot() {
@@ -21,6 +22,7 @@ class MasProductCatalog extends LitElement {
         createDialog: { state: true },
         creating: { state: true },
         currentPage: { state: true },
+        pendingCreate: { state: true },
     };
 
     pageSize = 50;
@@ -33,6 +35,8 @@ class MasProductCatalog extends LitElement {
         this.error = null;
         this.createDialog = null;
         this.creating = false;
+        this.pendingCreate = null;
+        this.handleOfferSelect = this.handleOfferSelect.bind(this);
     }
 
     get searchQuery() {
@@ -48,11 +52,13 @@ class MasProductCatalog extends LitElement {
         super.connectedCallback();
         this.loadProducts();
         Store.productCatalog.search.subscribe(this.handleSearchChange);
+        document.addEventListener(EVENT_OST_OFFER_SELECT, this.handleOfferSelect);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.productCatalog.search.unsubscribe(this.handleSearchChange);
+        document.removeEventListener(EVENT_OST_OFFER_SELECT, this.handleOfferSelect);
     }
 
     async loadProducts() {
@@ -161,9 +167,29 @@ class MasProductCatalog extends LitElement {
         }
     }
 
-    async confirmCreate() {
+    confirmCreate() {
         const { product, surface, locale, selectedVariants } = this.createDialog;
-        const variants = [...selectedVariants];
+        this.pendingCreate = {
+            product,
+            surface,
+            locale,
+            variants: [...selectedVariants],
+        };
+        this.closeCreateDialog();
+        openOfferSelectorTool({ tagName: 'OSI-FIELD' }, null, {
+            arrangement_code: product.arrangement_code,
+        });
+    }
+
+    handleOfferSelect({ detail: { offerSelectorId } }) {
+        if (!this.pendingCreate) return;
+        closeOfferSelectorTool();
+        this.executeCreate(offerSelectorId);
+    }
+
+    async executeCreate(osi) {
+        const { product, surface, locale, variants } = this.pendingCreate;
+        this.pendingCreate = null;
         this.creating = true;
         try {
             const parentPath = `/content/dam/mas/${surface}/${locale}`;
@@ -171,6 +197,7 @@ class MasProductCatalog extends LitElement {
                 arrangement_code: product.arrangement_code,
                 variants,
                 parentPath,
+                osi,
             });
             if (result.success) {
                 const count = result.cards?.filter((c) => !c.error).length || 0;
@@ -183,7 +210,6 @@ class MasProductCatalog extends LitElement {
             showToast(`Error: ${e.message}`, 'negative');
         } finally {
             this.creating = false;
-            this.closeCreateDialog();
         }
     }
 
@@ -197,6 +223,7 @@ class MasProductCatalog extends LitElement {
                 ${this.loading ? this.loadingTemplate : nothing} ${this.error ? this.errorTemplate : nothing}
                 ${!this.loading && !this.error ? this.tableTemplate : nothing}
                 ${this.createDialog ? this.createDialogTemplate : nothing}
+                ${this.creating ? this.creatingOverlayTemplate : nothing}
             </div>
         `;
     }
@@ -332,14 +359,23 @@ class MasProductCatalog extends LitElement {
                         <sp-button variant="secondary" @click=${() => this.closeCreateDialog()}>Cancel</sp-button>
                         <sp-button
                             variant="accent"
-                            ?disabled=${this.creating || selectedVariants.size === 0}
+                            ?disabled=${selectedVariants.size === 0}
                             @click=${() => this.confirmCreate()}
                         >
-                            ${this.creating
-                                ? 'Creating...'
-                                : `Create ${selectedVariants.size || ''} Fragment${selectedVariants.size !== 1 ? 's' : ''}`}
+                            Next: Select Offer
                         </sp-button>
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    get creatingOverlayTemplate() {
+        return html`
+            <div class="dialog-backdrop">
+                <div class="create-dialog creating-overlay">
+                    <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+                    <p>Creating fragments...</p>
                 </div>
             </div>
         `;

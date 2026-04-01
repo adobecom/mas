@@ -127,13 +127,15 @@ export const PAGE_NAMES = {
     PRODUCT_DETAIL: 'product-detail',
 };
 
-const isDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-
 const IO_DEV_NAMESPACE = '14257-merchatscale-axel';
 export const AI_CHAT_BASE_URL = `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
-export const MCP_SERVER_URL = isDev
-    ? 'http://localhost:3001'
-    : `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
+function getMCPServerURL() {
+    const params = new URLSearchParams(window.location.search);
+    const override = params.get('mcp.server');
+    if (override) return override;
+    return `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
+}
+export const MCP_SERVER_URL = getMCPServerURL();
 export const IO_MCP_URL = `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
 export const KNOWLEDGE_SERVICE_URL = `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleKnowledge`;
 

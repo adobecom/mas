@@ -219,14 +219,14 @@ async function executeUpdate(operation, repository) {
  * @param {Function} onSuccess - Success callback
  * @param {Function} onError - Error callback
  */
-export async function executeOperationWithFeedback(operation, repository, onSuccess, onError) {
+export async function executeOperationWithFeedback(operation, repository, onSuccess, onError, { silent = false } = {}) {
     try {
-        showToast('Executing operation...', 'info');
+        if (!silent) showToast('Executing operation...', 'info');
 
         const result = await executeOperation(operation, repository);
 
         if (result.success) {
-            showToast(result.message, 'positive');
+            if (!silent) showToast(result.message, 'positive');
             if (onSuccess) {
                 onSuccess(result);
             }

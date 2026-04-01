@@ -200,12 +200,25 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
         }
         let searchOfferSelectorId;
         let initialReferenceOsi;
-        const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
+        const freshImsToken = window.adobeIMS?.getAccessToken?.()?.token;
+        const aosAccessToken =
+            freshImsToken ??
+            sessionStorage.getItem('masAccessToken') ??
+            localStorage.getItem('masAccessToken') ??
+            window.adobeid?.authorize?.();
+
+        if (freshImsToken) {
+            sessionStorage.setItem('masAccessToken', freshImsToken);
+            localStorage.setItem('masAccessToken', freshImsToken);
+        }
+
         const searchParameters = new URLSearchParams();
 
         const offerSelectorPlaceholderOptions = {};
         if (offerElement) {
-            searchParameters.append('type', offerElement.isInlinePrice ? 'price' : 'checkout');
+            const template = offerElement.getAttribute('data-template');
+            const baseType = offerElement.isInlinePrice ? 'price' : 'checkoutUrl';
+            searchParameters.append('type', template || baseType);
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }

@@ -36,10 +36,26 @@ export class MasChatConfirmationSummary extends LitElement {
         );
     }
 
+    getProductDescription(product) {
+        const candidates = [
+            product?.description,
+            product?.shortDescription,
+            product?.short_description,
+            product?.copy?.description,
+            product?.copy?.shortDescription,
+            product?.copy?.short_description,
+        ]
+            .map((value) => (typeof value === 'string' ? value.trim() : ''))
+            .filter(Boolean);
+
+        return candidates.sort((left, right) => right.length - left.length)[0] || '';
+    }
+
     render() {
         if (!this.summary) return nothing;
 
         const { product, variant, segment, offeringType, promoCode, locale } = this.summary;
+        const productDescription = this.getProductDescription(product);
 
         return html`
             <div class="chat-confirmation-summary">
@@ -52,6 +68,14 @@ export class MasChatConfirmationSummary extends LitElement {
                             ${product?.name || 'Unknown'}
                         </span>
                     </div>
+                    ${productDescription
+                        ? html`
+                              <div class="summary-description-row">
+                                  <span class="summary-label">Description</span>
+                                  <div class="summary-description">${productDescription}</div>
+                              </div>
+                          `
+                        : nothing}
                     ${variant
                         ? html`
                               <div class="summary-row">

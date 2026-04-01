@@ -13,9 +13,35 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, extractSurfaceFromPath as extractSurface } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING, SURFACES } from './constants.js';
 import { getDamPath } from './mas-repository.js';
+import { openOfferSelectorTool } from './rte/ost.js';
 import sessionManager from './services/chat-session-manager.js';
+import { fetchProducts, fetchProductDetail } from './services/product-api.js';
 
 const KNOWN_SURFACES = new Set(Object.values(SURFACES).map(({ name }) => name));
+const RECENT_MCS_PRODUCT_LIMIT = 6;
+const PRODUCT_SELECTION_MESSAGE_REGEX = /(which product|select(?:ing)? the product|pick one below|type any product name)/i;
+const SEGMENT_SELECTION_MESSAGE_REGEX = /who is this card targeting/i;
+const PRODUCT_TIMESTAMP_PATHS = [
+    ['createdAt'],
+    ['created_at'],
+    ['created'],
+    ['dateAdded'],
+    ['date_added'],
+    ['addedAt'],
+    ['added_at'],
+    ['updatedAt'],
+    ['updated_at'],
+    ['modifiedAt'],
+    ['modified_at'],
+    ['metadata', 'createdAt'],
+    ['metadata', 'created_at'],
+    ['metadata', 'updatedAt'],
+    ['metadata', 'updated_at'],
+    ['misc', 'createdAt'],
+    ['misc', 'created_at'],
+    ['misc', 'updatedAt'],
+    ['misc', 'updated_at'],
+];
 
 /**
  * Main AI Chat Component
@@ -40,6 +66,10 @@ export class MasChat extends LitElement {
         this.showPromptSuggestions = true;
         this.currentSessionId = null;
         this.showWelcomeScreen = true;
+        this.recentReleaseProductsPromise = null;
+        this.recentReleaseProductsCache = [];
+        this.selectedReleaseProduct = null;
+        this.selectedReleaseOffer = null;
     }
 
     #repositoryEl = null;
@@ -174,17 +204,20 @@ export class MasChat extends LitElement {
         this.messages = [];
         this.showWelcomeScreen = true;
         this.showPromptSuggestions = true;
+        this.recentReleaseProductsPromise = null;
+        this.selectedReleaseProduct = null;
+        this.selectedReleaseOffer = null;
     }
 
     handlePromptSelected(event) {
-        const { prompt } = event.detail;
+        const { prompt, intentHint } = event.detail;
         this.showPromptSuggestions = false;
         this.showWelcomeScreen = false;
-        this.handleSendMessage({ detail: { message: prompt, context: {} } });
+        this.handleSendMessage({ detail: { message: prompt, context: { intentHint } } });
     }
 
     handleButtonSelected(event) {
-        const { value, label } = event.detail;
+        const { value, label, product } = event.detail;
         const messageIndex = this.messages.findLastIndex(
             (m) => m.role === 'assistant' && m.buttonGroup && !m.buttonGroup.selectedValue,
         );
@@ -197,6 +230,9 @@ export class MasChat extends LitElement {
                 },
             };
             this.messages = [...this.messages.slice(0, messageIndex), updatedMessage, ...this.messages.slice(messageIndex + 1)];
+        }
+        if (product?.arrangement_code || product?.arrangementCode) {
+            this.selectedReleaseProduct = product;
         }
         this.handleSendMessage({ detail: { message: label, context: {} } });
     }
@@ -230,6 +266,7 @@ export class MasChat extends LitElement {
         }
         if (context?.offer) {
             userMessage.offer = context.offer;
+            this.selectedReleaseOffer = context.offer;
         }
         if (context?.cards && context.cards.length > 0) {
             userMessage.cards = context.cards;
@@ -254,6 +291,7 @@ export class MasChat extends LitElement {
                 message,
                 conversationHistory: this.conversationHistory,
                 context: enrichedContext,
+                intentHint: enrichedContext.intentHint || null,
             });
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
@@ -282,7 +320,7 @@ export class MasChat extends LitElement {
 
                 const messageData = {
                     role: 'assistant',
-                    content: response.message,
+                    content: response.message || 'Processing your request...',
                     confirmationRequired: response.confirmationRequired,
                     timestamp: Date.now(),
                 };
@@ -371,13 +409,36 @@ export class MasChat extends LitElement {
                     },
                 ];
             } else if (response.type === 'guided_step') {
+                const autoSelectedSegment = this.getAutoSelectedSegmentOption(response, context?.offer);
+                if (autoSelectedSegment) {
+                    await this.handleSendMessage({
+                        detail: {
+                            message: autoSelectedSegment.label,
+                            context: {},
+                        },
+                    });
+                    return;
+                }
+
+                const guidedStep = await this.enrichGuidedStepWithRecentProducts(response);
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: guidedStep.message,
+                        buttonGroup: guidedStep.buttonGroup,
+                        productCards: guidedStep.productCards,
+                        timestamp: Date.now(),
+                    },
+                ];
+            } else if (response.type === 'open_ost') {
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
                         content: response.message,
-                        buttonGroup: response.buttonGroup,
-                        productCards: response.productCards,
+                        openOst: true,
+                        ostSearchParams: response.searchParams,
                         timestamp: Date.now(),
                     },
                 ];
@@ -393,12 +454,13 @@ export class MasChat extends LitElement {
                     },
                 ];
             } else if (response.type === 'release_confirmation') {
+                const confirmationSummary = await this.enrichReleaseConfirmationSummary(response.confirmationSummary);
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
                         content: response.message,
-                        confirmationSummary: response.confirmationSummary,
+                        confirmationSummary,
                         confirmationRequired: true,
                         timestamp: Date.now(),
                     },
@@ -408,7 +470,7 @@ export class MasChat extends LitElement {
                     ...this.messages,
                     {
                         role: 'assistant',
-                        content: response.message,
+                        content: response.message || 'I processed your request but have nothing further to add.',
                         type: response.type,
                         sources: response.sources || [],
                         fragmentIds: response.fragmentIds,
@@ -466,6 +528,12 @@ export class MasChat extends LitElement {
         }
 
         return response.json();
+    }
+
+    handleOpenOstFromResponse(event) {
+        const chatInput = this.querySelector('mas-chat-input');
+        if (chatInput) chatInput.autoSendOnSelect = true;
+        openOfferSelectorTool(this, null, event.detail.searchParams);
     }
 
     async handleCardAction(event) {
@@ -1002,6 +1070,8 @@ export class MasChat extends LitElement {
 
         let operationResult = null;
 
+        const silent = operationType === 'list_products';
+
         await executeOperationWithFeedback(
             operation,
             repository,
@@ -1032,9 +1102,11 @@ export class MasChat extends LitElement {
                         : msg,
                 );
             },
+            { silent },
         );
 
         if (operationType === 'list_products' && operationResult?.success) {
+            this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
             await this.continueWithMCPResult('list_products', operationResult.rawResult);
         }
     }
@@ -1103,23 +1175,36 @@ export class MasChat extends LitElement {
                     await this.executeOperation(op);
                 }
             } else if (response.type === 'guided_step') {
+                const autoSelectedSegment = this.getAutoSelectedSegmentOption(response, context?.offer);
+                if (autoSelectedSegment) {
+                    await this.handleSendMessage({
+                        detail: {
+                            message: autoSelectedSegment.label,
+                            context: {},
+                        },
+                    });
+                    return;
+                }
+
+                const guidedStep = await this.enrichGuidedStepWithRecentProducts(response);
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
-                        content: response.message,
-                        buttonGroup: response.buttonGroup,
-                        productCards: response.productCards,
+                        content: guidedStep.message,
+                        buttonGroup: guidedStep.buttonGroup,
+                        productCards: guidedStep.productCards,
                         timestamp: Date.now(),
                     },
                 ];
             } else if (response.type === 'release_confirmation') {
+                const confirmationSummary = await this.enrichReleaseConfirmationSummary(response.confirmationSummary);
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
                         content: response.message,
-                        confirmationSummary: response.confirmationSummary,
+                        confirmationSummary,
                         confirmationRequired: true,
                         timestamp: Date.now(),
                     },
@@ -1180,6 +1265,303 @@ export class MasChat extends LitElement {
         if (!path || typeof path !== 'string') return null;
         const surface = path.includes('/') ? extractSurface(path) : path;
         return KNOWN_SURFACES.has(surface) ? surface : null;
+    }
+
+    async enrichGuidedStepWithRecentProducts(response) {
+        if (!this.isProductSelectionStep(response)) {
+            return response;
+        }
+
+        const recentProducts = await this.getRecentReleaseProducts();
+        if (!recentProducts.length) {
+            return response;
+        }
+
+        return {
+            ...response,
+            productCards: recentProducts,
+            buttonGroup: {
+                ...response.buttonGroup,
+                label: response.buttonGroup?.label || 'Product',
+                inputHint: response.buttonGroup?.inputHint || 'Or type a product name to search...',
+            },
+        };
+    }
+
+    async enrichReleaseConfirmationSummary(summary) {
+        const selectedProductDescription = this.getPreferredProductDescription(this.selectedReleaseProduct);
+        const selectedSegment = this.getPreferredReleaseSegment(summary);
+        if (selectedProductDescription) {
+            return {
+                ...summary,
+                product: {
+                    ...(this.selectedReleaseProduct || {}),
+                    ...(summary?.product || {}),
+                    description: selectedProductDescription,
+                },
+                segment: selectedSegment,
+            };
+        }
+
+        const arrangementCode =
+            summary?.product?.arrangement_code ?? summary?.product?.arrangementCode ?? summary?.product?.value ?? '';
+
+        if (!arrangementCode) {
+            return summary;
+        }
+
+        try {
+            const preferredDescriptionFromSummary = this.getPreferredProductDescription(summary.product);
+            if (preferredDescriptionFromSummary) {
+                return {
+                    ...summary,
+                    product: {
+                        ...summary.product,
+                        description: preferredDescriptionFromSummary,
+                    },
+                    segment: selectedSegment,
+                };
+            }
+
+            const productCatalog = await fetchProducts().catch(() => ({ products: [] }));
+            const matchingProduct = (productCatalog.products || []).find((product) => {
+                const productArrangementCode = product?.arrangement_code ?? product?.arrangementCode ?? product?.value;
+                return productArrangementCode === arrangementCode;
+            });
+
+            const catalogDescription = this.getPreferredProductDescription(matchingProduct, matchingProduct?.copy);
+            if (catalogDescription) {
+                return {
+                    ...summary,
+                    product: {
+                        ...summary.product,
+                        description: catalogDescription,
+                    },
+                    segment: selectedSegment,
+                };
+            }
+
+            const productDetail = await fetchProductDetail(arrangementCode).catch(() => null);
+            const mcsProduct = productDetail?.product;
+            if (mcsProduct) {
+                const mcsDescription = this.getPreferredProductDescription(mcsProduct, mcsProduct?.copy);
+                if (mcsDescription) {
+                    return {
+                        ...summary,
+                        product: {
+                            ...summary.product,
+                            description: mcsDescription,
+                        },
+                        segment: selectedSegment,
+                    };
+                }
+            }
+
+            return {
+                ...summary,
+                segment: selectedSegment,
+            };
+        } catch (error) {
+            console.error('Failed to enrich release confirmation summary:', error);
+            return {
+                ...summary,
+                segment: selectedSegment,
+            };
+        }
+    }
+
+    isProductSelectionStep(response) {
+        if (response?.type !== 'guided_step') return false;
+        if (response.buttonGroup?.label === 'Product') return true;
+        return PRODUCT_SELECTION_MESSAGE_REGEX.test(response.message || '');
+    }
+
+    isSegmentSelectionStep(response) {
+        if (response?.type !== 'guided_step') return false;
+        if (response.buttonGroup?.label === 'Customer Segment') return true;
+        return SEGMENT_SELECTION_MESSAGE_REGEX.test(response.message || '');
+    }
+
+    getAutoSelectedSegmentOption(response, offer) {
+        if (!this.isSegmentSelectionStep(response) || !offer || !response.buttonGroup?.options?.length) {
+            return null;
+        }
+
+        const customerSegment = String(offer.customer_segment || '').toUpperCase();
+        const marketSegment = String(
+            Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segment || '',
+        ).toUpperCase();
+
+        if (!customerSegment) {
+            return null;
+        }
+
+        return (
+            response.buttonGroup.options.find((option) => {
+                const value = String(option.value || '').toUpperCase();
+                const [optionCustomerSegment, optionMarketSegment] = value.split('|');
+                if (optionCustomerSegment !== customerSegment) {
+                    return false;
+                }
+                return !optionMarketSegment || !marketSegment || optionMarketSegment === marketSegment;
+            }) || null
+        );
+    }
+
+    async getRecentReleaseProducts() {
+        if (!this.recentReleaseProductsPromise) {
+            this.recentReleaseProductsPromise = this.loadRecentReleaseProducts()
+                .then((products) => {
+                    this.recentReleaseProductsCache = products;
+                    return products;
+                })
+                .catch((error) => {
+                    console.error('Failed to load recent MCS products for AI chat:', error);
+                    this.recentReleaseProductsPromise = null;
+                    return this.recentReleaseProductsCache;
+                });
+        }
+
+        return this.recentReleaseProductsPromise;
+    }
+
+    async loadRecentReleaseProducts() {
+        let lastError;
+
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            try {
+                const result = await fetchProducts();
+                const products = this.selectRecentMCSProducts(result.products || []);
+                if (products.length) {
+                    return products;
+                }
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        if (lastError) {
+            throw lastError;
+        }
+
+        return [];
+    }
+
+    selectRecentMCSProducts(products) {
+        return products
+            .map((product, index) => ({
+                product,
+                index,
+                timestamp: this.getProductTimestamp(product),
+            }))
+            .sort((a, b) => {
+                if (a.timestamp !== null && b.timestamp !== null) {
+                    return b.timestamp - a.timestamp;
+                }
+                if (a.timestamp !== null) return -1;
+                if (b.timestamp !== null) return 1;
+                return b.index - a.index;
+            })
+            .filter(({ product }) => {
+                const segments = Object.keys(product.customerSegments || {}).filter((key) => product.customerSegments[key]);
+                return segments.length === 0 || !segments.every((s) => s === 'ENTERPRISE');
+            })
+            .slice(0, RECENT_MCS_PRODUCT_LIMIT)
+            .map(({ product }) => this.mapProductToChatCard(product));
+    }
+
+    getProductTimestamp(product) {
+        for (const path of PRODUCT_TIMESTAMP_PATHS) {
+            let value = product;
+            for (const key of path) {
+                value = value?.[key];
+            }
+
+            if (!value) continue;
+
+            const timestamp = Date.parse(value);
+            if (!Number.isNaN(timestamp)) {
+                return timestamp;
+            }
+        }
+
+        return null;
+    }
+
+    mapProductToChatCard(product) {
+        const customerSegments = Object.entries(product.customerSegments || {})
+            .filter(([, enabled]) => enabled)
+            .map(([segment]) => segment);
+        const segments = customerSegments.length ? customerSegments : [product.customer_segment].filter(Boolean);
+
+        return {
+            label: product.copy?.name || product.name || product.arrangement_code,
+            value: product.arrangement_code,
+            arrangement_code: product.arrangement_code,
+            product_code: product.product_code,
+            product_family: product.product_family,
+            segments,
+            icon: product.assets?.icons?.svg || product.icon,
+            description: this.getPreferredProductDescription(product, product.copy),
+        };
+    }
+
+    getPreferredProductDescription(...sources) {
+        const candidates = [];
+
+        for (const source of sources) {
+            const values = [
+                source?.copy?.description,
+                source?.copy?.short_description,
+                source?.copy?.shortDescription,
+                source?.description,
+                source?.short_description,
+                source?.shortDescription,
+            ];
+
+            for (const value of values) {
+                const normalized = typeof value === 'string' ? value.trim() : '';
+                if (normalized) {
+                    candidates.push(normalized);
+                }
+            }
+        }
+
+        return candidates.sort((left, right) => right.length - left.length)[0] || '';
+    }
+
+    getPreferredReleaseSegment(summary) {
+        if (summary?.segment?.label) {
+            return summary.segment;
+        }
+
+        const offer = this.selectedReleaseOffer;
+        const customerSegment = String(offer?.customer_segment || '').trim();
+        if (customerSegment) {
+            return {
+                label: this.formatSegmentLabel(customerSegment),
+                value: customerSegment,
+            };
+        }
+
+        const productSegment = this.selectedReleaseProduct?.segments?.[0];
+        if (productSegment) {
+            return {
+                label: this.formatSegmentLabel(productSegment),
+                value: productSegment,
+            };
+        }
+
+        return summary?.segment;
+    }
+
+    formatSegmentLabel(segment) {
+        return String(segment)
+            .toLowerCase()
+            .split(/[_\s-]+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
     }
 
     scrollToBottom() {
@@ -1324,6 +1706,7 @@ export class MasChat extends LitElement {
                                     .showSuggestions=${this.showPromptSuggestions && message.showSuggestions}
                                     @card-action=${this.handleCardAction}
                                     @collection-action=${this.handleCollectionAction}
+                                    @open-ost-from-response=${this.handleOpenOstFromResponse}
                                 ></mas-chat-message>
                             `,
                         )}

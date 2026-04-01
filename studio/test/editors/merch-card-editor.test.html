@@ -95,6 +95,59 @@
             // Load the existing mock data for a merch card
             const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
 
+            const createSettingRow = ({
+                name,
+                value,
+                valueType = 'boolean',
+                booleanValue = valueType === 'boolean' ? Boolean(value) : true,
+                templateIds = ['plans'],
+                locales = [],
+                tags = [],
+                overrides = [],
+            }) => ({
+                value: {
+                    id: `setting-${name}`,
+                    name,
+                    locales,
+                    templateIds,
+                    value,
+                    booleanValue,
+                    valueType,
+                    tags,
+                    overrides,
+                },
+            });
+
+            const createDefaultSettingsRows = () => [
+                createSettingRow({
+                    name: 'displayPlanType',
+                    value: true,
+                    overrides: [
+                        {
+                            id: 'setting-display-plan-type-fr',
+                            locales: ['fr_FR'],
+                            templateIds: ['plans'],
+                            value: false,
+                            booleanValue: false,
+                            valueType: 'boolean',
+                            tags: [],
+                        },
+                    ],
+                }),
+                createSettingRow({
+                    name: 'secureLabel',
+                    value: '{{secure-label-default}}',
+                    valueType: 'optional-text',
+                    booleanValue: true,
+                }),
+                createSettingRow({
+                    name: 'addon',
+                    value: '',
+                    valueType: 'optional-text',
+                    booleanValue: false,
+                }),
+            ];
+
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
 
@@ -169,6 +222,7 @@
                         Store.placeholders.preview.set({});
                         Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
                         Store.viewMode.set('editing');
+                        Store.settings.rows.set(createDefaultSettingsRows());
 
                         layoutContainer = document.createElement('div');
                         layoutContainer.style.cssText = 'display: flex; width: 100%;';
@@ -291,6 +345,7 @@
                             layoutContainer.remove();
                             layoutContainer = null;
                         }
+                        Store.settings.rows.set([]);
                         Store.editor.resetChanges();
                     });
 
@@ -307,8 +362,14 @@
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('overridden');
                         expect(editor.mnemonics).to.have.length(0);
 
-                        const indicator = editor.querySelector('#mnemonics .field-status-indicator a');
-                        indicator.click();
+                        const indicator = editor.querySelector('#mnemonics .field-status-indicator');
+                        expect(indicator.querySelector('.field-status-label')?.textContent.trim()).to.equal('Overridden.');
+                        const restoreLink = indicator.querySelector('.field-status-restore-link');
+                        expect(restoreLink?.textContent.replace(/\s+/g, ' ').trim()).to.equal('Overridden. Click to restore.');
+                        expect(restoreLink?.querySelector('.field-status-restore-link-text')?.textContent.trim()).to.equal(
+                            'Click to restore.',
+                        );
+                        restoreLink.click();
 
                         await editor.updateComplete;
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
@@ -355,10 +416,16 @@
                             'overridden',
                         );
 
-                        editor.querySelector('sp-field-group#badge .field-status-indicator a').click();
-                        editor.querySelector('sp-field-group#badgeColor .field-status-indicator a').click();
-                        editor.querySelector('sp-field-group#badgeBorderColor .field-status-indicator a').click();
-                        editor.querySelector('sp-field-group#border-color .field-status-indicator a').click();
+                        editor.querySelector('sp-field-group#badge .field-status-indicator .field-status-restore-link').click();
+                        editor
+                            .querySelector('sp-field-group#badgeColor .field-status-indicator .field-status-restore-link')
+                            .click();
+                        editor
+                            .querySelector('sp-field-group#badgeBorderColor .field-status-indicator .field-status-restore-link')
+                            .click();
+                        editor
+                            .querySelector('sp-field-group#border-color .field-status-indicator .field-status-restore-link')
+                            .click();
 
                         await editor.updateComplete;
 
@@ -429,7 +496,9 @@
                             expect(editor.getFieldState(field)).to.equal('overridden');
                             expect(saveNavItem.disabled).to.be.true;
 
-                            const indicator = editor.querySelector(`${selector} .field-status-indicator a`);
+                            const indicator = editor.querySelector(
+                                `${selector} .field-status-indicator .field-status-restore-link`,
+                            );
                             indicator.click();
                             await editor.updateComplete;
                             await sideNav.updateComplete;
@@ -444,7 +513,7 @@
                         editor.fragment.newTags = ['mas:product/illustrator'];
                         await editor.updateComplete;
 
-                        const indicator = editor.querySelector('#tags .field-status-indicator a');
+                        const indicator = editor.querySelector('#tags .field-status-indicator .field-status-restore-link');
                         indicator.click();
                         await editor.updateComplete;
                         await sideNav.updateComplete;
@@ -646,6 +715,378 @@
 
                         const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
                         expect(relatedVariations).to.not.exist;
+                    });
+
+                    describe('Options and settings override behavior', () => {
+                        const SETTINGS_FIELD_DEFS = [
+                            { name: 'showSecureLabel', type: 'text', multiple: false, locked: false, values: [] },
+                            { name: 'showPlanType', type: 'text', multiple: false, locked: false, values: [] },
+                            { name: 'addon', type: 'text', multiple: false, locked: false, values: [] },
+                        ];
+
+                        const settingsMockFields = [...baseMockData.fields, ...SETTINGS_FIELD_DEFS];
+                        const SETTINGS_OVERRIDE_FIELDS = ['addon', 'showPlanType', 'showSecureLabel'];
+                        const SETTINGS_OVERRIDE_INDICATOR_SELECTORS = {
+                            addon: '#addon .setting-override-indicator',
+                            showPlanType: '#planType .setting-override-indicator',
+                            showSecureLabel: '#secureLabel .setting-override-indicator',
+                        };
+                        const SETTINGS_OVERRIDE_COMPONENT_SELECTORS = {
+                            addon: '#addon mas-addon-field',
+                            showPlanType: '#planType mas-plan-type-field',
+                            showSecureLabel: '#secureLabel secure-text-field',
+                        };
+                        const SETTINGS_OVERRIDE_INDICATORS_QUERY = Object.values(SETTINGS_OVERRIDE_INDICATOR_SELECTORS).join(
+                            ', ',
+                        );
+
+                        function getSettingOverrideIndicator(fieldName) {
+                            return editor.querySelector(SETTINGS_OVERRIDE_INDICATOR_SELECTORS[fieldName]);
+                        }
+
+                        function expectSettingOverrideIndicators(expectedFields) {
+                            for (const fieldName of SETTINGS_OVERRIDE_FIELDS) {
+                                const indicator = getSettingOverrideIndicator(fieldName);
+                                if (expectedFields.includes(fieldName)) {
+                                    expect(indicator).to.exist;
+                                } else {
+                                    expect(indicator).to.not.exist;
+                                }
+                            }
+                        }
+
+                        function expectSettingOverrideFieldState(expectedState, fieldNames = SETTINGS_OVERRIDE_FIELDS) {
+                            for (const fieldName of fieldNames) {
+                                expect(
+                                    editor
+                                        .querySelector(SETTINGS_OVERRIDE_COMPONENT_SELECTORS[fieldName])
+                                        ?.getAttribute('data-field-state'),
+                                ).to.equal(expectedState);
+                            }
+                        }
+
+                        function buildSettingsFragment(overrides = {}) {
+                            return {
+                                ...baseMockData,
+                                fields: settingsMockFields.map((field) => {
+                                    if (field.name === 'variant') return { ...field, values: ['plans'] };
+                                    if (overrides[field.name] !== undefined) {
+                                        return { ...field, values: overrides[field.name] };
+                                    }
+                                    return { ...field, values: [] };
+                                }),
+                            };
+                        }
+
+                        async function setupSettingsTest({
+                            variationOverrides = {},
+                            parentOverrides = {},
+                            isVariation = true,
+                            testId = 'settings',
+                            settingsRows = createDefaultSettingsRows(),
+                        } = {}) {
+                            const parentData = {
+                                ...buildSettingsFragment(parentOverrides),
+                                path: '/content/dam/mas/nala/en_US/test-settings-parent',
+                                id: 'test-settings-parent-id',
+                                tags: [],
+                            };
+                            const variationData = {
+                                ...buildSettingsFragment(variationOverrides),
+                                path: `/content/dam/mas/nala/en_AU/test-settings-${testId}`,
+                                title: `Test Settings ${testId}`,
+                                id: `test-settings-${testId}`,
+                                tags: [],
+                            };
+
+                            const variationFragment = new Fragment(structuredClone(variationData));
+                            const parentFragment = new Fragment(structuredClone(parentData));
+                            const store = isVariation
+                                ? generateFragmentStore(variationFragment, parentFragment)
+                                : generateFragmentStore(variationFragment);
+
+                            Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
+                            Store.fragmentEditor.fragmentId.set(`test-settings-${testId}`);
+                            Store.fragments.inEdit.set(store);
+                            Store.fragments.list.data.set([store]);
+                            Store.placeholders.preview.set({});
+                            Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: 'en_AU' }));
+                            Store.viewMode.set('editing');
+                            Store.settings.rows.set(settingsRows);
+
+                            layoutContainer = document.createElement('div');
+                            layoutContainer.style.cssText = 'display: flex; width: 100%;';
+
+                            sideNav = document.createElement('mas-side-nav');
+                            layoutContainer.appendChild(sideNav);
+
+                            fragmentEditor = document.createElement('mas-fragment-editor');
+                            fragmentEditor.style.cssText = 'flex: 1;';
+                            const repository = document.querySelector('mas-repository');
+                            repository.refreshFragment = async () => {};
+                            repository.loadPreviewPlaceholders = async () => {};
+
+                            fragmentEditor.editorContextStore = {
+                                localeDefaultFragment: null,
+                                loadFragmentContext: async () => {},
+                                isVariation: () => isVariation,
+                                getLocaleDefaultFragmentAsync: async () => structuredClone(parentData),
+                                getDefaultLocaleId: () => 'test-settings-parent-id',
+                                getLocaleDefaultFragment: () => structuredClone(parentData),
+                                setParent(data) {
+                                    if (!data) return;
+                                    this.localeDefaultFragment = data;
+                                },
+                            };
+                            fragmentEditor.localeDefaultFragment = isVariation ? parentFragment : null;
+                            fragmentEditor.initState = 'ready';
+                            store.previewStore.resolved = true;
+
+                            const AemFragment = customElements.get('aem-fragment');
+                            if (AemFragment?.cache) {
+                                AemFragment.cache.add(store.previewStore.value);
+                            }
+
+                            sideNav.reactiveController.updateStores([
+                                Store.page,
+                                Store.search,
+                                Store.viewMode,
+                                Store.fragmentEditor.editorContext,
+                                Store.fragments.inEdit,
+                                store,
+                            ]);
+
+                            layoutContainer.appendChild(fragmentEditor);
+                            spTheme.appendChild(layoutContainer);
+
+                            await fragmentEditor.updateComplete;
+                            await sideNav.updateComplete;
+                            await delay(200);
+
+                            editor = fragmentEditor.querySelector('merch-card-editor');
+                            fragmentStore = store;
+
+                            store.get().hasChanges = false;
+                            store.notify();
+                            await sideNav.updateComplete;
+
+                            return { store, editor };
+                        }
+
+                        it('shows global defaults when no card-level override exists', async () => {
+                            await setupSettingsTest({ isVariation: false, testId: 'global-shown' });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.false;
+
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('true');
+                            expect(`${editor.getEffectiveSettingValue('showSecureLabel')}`).to.equal(
+                                '{{secure-label-default}}',
+                            );
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.not.exist;
+
+                            const indicators = editor.querySelectorAll(SETTINGS_OVERRIDE_INDICATORS_QUERY);
+                            expect(indicators.length).to.equal(0);
+                        });
+
+                        it('shows override indicator when card overrides a global setting', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'card-override',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.exist;
+
+                            expectSettingOverrideIndicators(['showPlanType']);
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('false');
+                        });
+
+                        it('treats explicit false secure label as an override on top-level cards', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showSecureLabel: [false] },
+                                testId: 'card-secure-false-override',
+                            });
+
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.true;
+
+                            expectSettingOverrideIndicators(['showSecureLabel']);
+                        });
+
+                        it('restores card-level setting to global default', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'], showSecureLabel: ['true'] },
+                                testId: 'card-restore',
+                            });
+
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.false;
+                        });
+
+                        it('shows override indicator when variation overrides a global setting (parent has no override)', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-overrides-global',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            expectSettingOverrideIndicators(['showPlanType']);
+                        });
+
+                        it('restores variation-level override to inherit from parent (global default)', async () => {
+                            const { store } = await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-restore-global',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+
+                            editor.resetSettingToDefault('showPlanType');
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('true');
+                        });
+
+                        it('shows override indicator when variation overrides parent setting', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'] },
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-overrides-parent',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            expectSettingOverrideIndicators(['showPlanType']);
+                        });
+
+                        it('restores variation-level override to inherit parent setting value', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'] },
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-restore-parent',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+
+                            editor.resetSettingToDefault('showPlanType');
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                        });
+
+                        it('shows parent visual override styling when variation inherits explicit parent settings', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {
+                                    showPlanType: ['true'],
+                                    showSecureLabel: ['true'],
+                                    addon: ['{{addon-mili-test}}'],
+                                },
+                                variationOverrides: {},
+                                testId: 'variation-inherits-parent-visual-overrides',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon-mili-test}}');
+
+                            expect(editor.isSettingVisuallyOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingVisuallyOverridden('showSecureLabel')).to.be.true;
+                            expect(editor.isSettingVisuallyOverridden('addon')).to.be.true;
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.exist;
+
+                            expectSettingOverrideIndicators(SETTINGS_OVERRIDE_FIELDS);
+                            expectSettingOverrideFieldState('overridden');
+                        });
+
+                        it('resolves global settings for variations that inherit variant from the parent', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { variant: [] },
+                                testId: 'variation-inherits-variant-for-settings',
+                            });
+
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal(true);
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('{{secure-label-default}}');
+                        });
+
+                        it('Restore all resets only overridden variation settings to parent values', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'], showSecureLabel: ['true'] },
+                                variationOverrides: { showPlanType: ['false'], showSecureLabel: ['false'] },
+                                testId: 'variation-restore-all',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.true;
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                        });
+
+                        it('re-applies override state when toggling a setting after Restore all', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'toggle-after-restore-all',
+                            });
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+
+                            const planTypeField = editor.querySelector('#planType mas-plan-type-field');
+                            const toggle = planTypeField.querySelector('sp-switch');
+                            toggle.checked = false;
+                            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('false');
+                            expectSettingOverrideIndicators(['showPlanType']);
+                            expectSettingOverrideFieldState('overridden', ['showPlanType']);
+                        });
                     });
 
                     describe('getWhatsIncludedProps', () => {

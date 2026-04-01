@@ -42,9 +42,7 @@
             let bucket;
             let baseUrl;
             if (isLocal) {
-                const aemPort = parseInt(window.location.port || '3000', 10);
-                const proxyPort = params.get('proxy.port') || (aemPort + 5080);
-                baseUrl = \`http://localhost:\${proxyPort}\`;
+                baseUrl = 'http://localhost:8080';
             } else {
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
                 baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;

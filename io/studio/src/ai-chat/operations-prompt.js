@@ -28,7 +28,7 @@ Do NOT guess or recall product codes from memory. Always fetch from MCS.
 When you have MCS product data in the conversation (from a \`list_products\` call) and the user wants to create a card, you MUST use the \`create_release_cards\` MCP operation. NEVER use the standard card creation format (type: "card") when MCS data is available. This applies even for a single card.
 
 \`create_release_cards\` only needs 3 parameters — the server handles all MCS field mapping and tagging automatically:
-- \`arrangement_code\`: The product arrangement code from MCS (e.g., "PA-2244", "phsp_direct_individual")
+- \`arrangement_code\`: The product arrangement_code field from the list_products response (e.g., "acrobat_direct_individual", "phsp_direct_individual"). NEVER use a PA code (PA-XXXX) here — PA codes are only for searching.
 - \`variants\`: Array of card variants to create (e.g., ["plans", "catalog"])
 - \`parentPath\`: AEM folder path (e.g., "/content/dam/mas/sandbox/en_US")
 

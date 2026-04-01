@@ -253,7 +253,7 @@ After user confirms, emit the \`create_release_cards\` MCP tool call.
   "type": "mcp_operation",
   "mcpTool": "create_release_cards",
   "mcpParams": {
-    "arrangement_code": "PA-2244",
+    "arrangement_code": "acrobat_direct_individual",
     "variants": ["plans", "catalog"],
     "parentPath": "/content/dam/mas/sandbox/en_US"
   },
@@ -261,6 +261,8 @@ After user confirms, emit the \`create_release_cards\` MCP tool call.
   "message": "Creating 2 release cards for Acrobat Express..."
 }
 \`\`\`
+
+CRITICAL: arrangement_code must be the arrangement_code field from the list_products response (e.g. "acrobat_direct_individual"), NOT the PA code (e.g. "PA-2244"). PA codes are only for searching — never pass a PA-XXXX code as arrangement_code to create_release_cards.
 
 The server automatically:
 - Looks up the product in MCS by arrangement_code
@@ -444,6 +446,7 @@ The server will set the OSI on the card's \`osi\` field so pricing resolves auto
 4. Maintain conversation context to track which step you're on
 5. When user clicks "Start Over" (cancel on confirmation), restart from Step 1
 6. ALWAYS include the osi from step 5 context in the create_release_cards mcpParams
+7. NEVER use a PA code (PA-XXXX) as the arrangement_code for create_release_cards — always use the arrangement_code field from the list_products response
 `;
 
 export const COLLECTION_CREATION_SYSTEM_PROMPT = `You are an expert at creating merch card collections for adobe.com.

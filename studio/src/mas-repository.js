@@ -36,8 +36,7 @@ import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } f
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
-import { getDictionary } from '../libs/fragment-client.js';
-import { FREYJA_PREVIEW_URL, ODIN_PREVIEW_URL } from '../../io/www/src/fragment/utils/paths.js';
+import { getDictionary, getPreviewContext } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
 
@@ -677,11 +676,7 @@ export class MasRepository extends LitElement {
                 // If result is empty and locale isn't en_US, try fallback
                 if ((!result || Object.keys(result).length === 0) && this.filters.value.locale !== 'en_US') {
                     const fallbackContext = {
-                        preview: {
-                            url: FREYJA_PREVIEW_URL,
-                        },
-                        fallbackUrl: ODIN_PREVIEW_URL,
-                        authToken: window.adobeIMS?.getAccessToken()?.token,
+                        ...getPreviewContext(),
                         locale: 'en_US',
                         surface: this.search.value.path,
                         signal: this.#abortControllers.placeholders?.signal,
@@ -707,11 +702,7 @@ export class MasRepository extends LitElement {
 
     async fetchDictionary(abortController) {
         const context = {
-            preview: {
-                url: FREYJA_PREVIEW_URL,
-            },
-            fallbackUrl: ODIN_PREVIEW_URL,
-            authToken: window.adobeIMS?.getAccessToken()?.token,
+            ...getPreviewContext(),
             locale: this.filters.value.locale,
             surface: this.search.value.path,
             networkConfig: {

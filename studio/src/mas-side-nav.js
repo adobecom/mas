@@ -6,7 +6,7 @@ import Events from './events.js';
 import { generateFieldLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { isPowerUser } from './groups.js';
+import { canAccessSettings } from './groups.js';
 
 const EVENT_MAS_READY = 'mas:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
@@ -663,7 +663,7 @@ class MasSideNav extends LitElement {
     }
 
     get settingsItem() {
-        if (!isPowerUser()) {
+        if (!canAccessSettings(Store.surface())) {
             return nothing;
         }
         return html`

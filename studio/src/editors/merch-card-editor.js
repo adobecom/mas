@@ -20,6 +20,7 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/aem-tag-picker-field.js';
+import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -48,8 +49,10 @@ class MerchCardEditor extends LitElement {
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
         Footer: ['ctas'],
-        'Options and settings': ['secureLabel', 'planType', 'addon'],
+        'Options and settings': ['addon', 'planType', 'secureLabel'],
     };
+
+    static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel'];
 
     availableSizes = [];
     availableColors = [];
@@ -163,16 +166,18 @@ class MerchCardEditor extends LitElement {
     #renderOverrideIndicatorLink(resetCallback) {
         return html`
             <div class="field-status-indicator">
+                <sp-icon-unlink class="field-status-icon"></sp-icon-unlink>
+                <span class="field-status-label">Overridden.</span>
                 <a
-                    href="javascript:void(0)"
-                    @click=${(e) => {
-                        e.preventDefault();
+                    href="#"
+                    class="field-status-restore-link"
+                    @click=${(event) => {
+                        event.preventDefault();
                         resetCallback();
                     }}
+                    ><span class="field-status-restore-link-prefix" aria-hidden="true">Overridden. </span>
+                    <span class="field-status-restore-link-text">Click to restore.</span></a
                 >
-                    <sp-icon-unlink></sp-icon-unlink>
-                    Overridden. Click to restore.
-                </a>
             </div>
         `;
     }
@@ -253,6 +258,161 @@ class MerchCardEditor extends LitElement {
         return this.#renderOverrideIndicatorLink(() => this.resetSectionToParent(fieldNames));
     }
 
+    getSettingsContextFragment() {
+        if (!this.effectiveIsVariation || !this.localeDefaultFragment) {
+            return this.fragment;
+        }
+
+        const settingsContextFragment = structuredClone(this.fragment);
+        const inheritedVariant = this.localeDefaultFragment.getFieldValue('variant');
+        const ownVariant = this.fragment.getFieldValue('variant');
+
+        if ((ownVariant === undefined || ownVariant === null || ownVariant === '') && inheritedVariant) {
+            const variantField = settingsContextFragment.fields.find((field) => field.name === 'variant');
+            if (variantField) {
+                variantField.values = [inheritedVariant];
+            } else {
+                settingsContextFragment.fields.push({
+                    name: 'variant',
+                    type: 'text',
+                    multiple: false,
+                    values: [inheritedVariant],
+                });
+            }
+        }
+
+        if (!(settingsContextFragment.tags || []).length && (this.localeDefaultFragment.tags || []).length) {
+            settingsContextFragment.tags = structuredClone(this.localeDefaultFragment.tags);
+        }
+
+        return settingsContextFragment;
+    }
+
+    get globalSettingsDefaults() {
+        if (!this.#cachedGlobalDefaults) {
+            this.#cachedGlobalDefaults = getGlobalSettingsDefaults(
+                this.getSettingsContextFragment(),
+                Store.settings.rows.get(),
+            );
+        }
+        return this.#cachedGlobalDefaults;
+    }
+
+    getEffectiveSettingValue(fieldName) {
+        const value = this.getEffectiveFieldValue(fieldName, 0);
+        if (value === undefined || value === null || value === '') {
+            return this.globalSettingsDefaults[fieldName] ?? '';
+        }
+        return value;
+    }
+
+    /**
+     * Returns true when the card has an explicit setting value.
+     * Empty values ([] or ['']) mean "inherit from global settings" — notably
+     * ['false'] is a real override, not an inherit sentinel.
+     */
+    hasExplicitSettingOverride(fieldName) {
+        const field = this.fragment.getField(fieldName);
+        const values = field?.values || [];
+        if (values.length === 0) return false;
+        if (values.length === 1 && values[0] === '') return false;
+        return true;
+    }
+
+    hasFragmentExplicitSettingOverride(fragment, fieldName) {
+        const field = fragment?.getField(fieldName);
+        const values = field?.values || [];
+        if (values.length === 0) return false;
+        if (values.length === 1 && values[0] === '') return false;
+        return true;
+    }
+
+    /**
+     * For variations: true when the variation's own value differs from its parent.
+     * For top-level fragments: true when the card has an explicit value (overriding global settings).
+     */
+    isSettingOverridden(fieldName) {
+        if (this.effectiveIsVariation) {
+            return this.getFieldState(fieldName) === 'overridden';
+        }
+        return this.hasExplicitSettingOverride(fieldName);
+    }
+
+    get isAnySettingOverridden() {
+        return MerchCardEditor.SETTINGS_FIELDS.some((fieldName) => this.isSettingOverridden(fieldName));
+    }
+
+    isSettingVisuallyOverridden(fieldName) {
+        if (this.isSettingOverridden(fieldName)) {
+            return true;
+        }
+
+        if (!this.effectiveIsVariation) {
+            return false;
+        }
+
+        return this.hasFragmentExplicitSettingOverride(this.localeDefaultFragment, fieldName);
+    }
+
+    get isAnySettingVisuallyOverridden() {
+        return MerchCardEditor.SETTINGS_FIELDS.some((fieldName) => this.isSettingVisuallyOverridden(fieldName));
+    }
+
+    /**
+     * For variations: resets the field to the parent's value (inherit).
+     * For top-level fragments: clears the field so the global setting applies.
+     */
+    resetSettingToDefault(fieldName, silent = false) {
+        let restored = false;
+        if (this.effectiveIsVariation) {
+            const parentValues = this.localeDefaultFragment?.getField(fieldName)?.values || [];
+            restored = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        } else {
+            restored = this.fragmentStore.updateField(fieldName, ['']) !== false;
+        }
+        if (!silent && restored) showToast('Setting restored to default', 'positive');
+        return restored;
+    }
+
+    renderSettingOverrideIndicator(fieldName) {
+        if (!this.isSettingVisuallyOverridden(fieldName)) return nothing;
+        return html`
+            <sp-action-button
+                slot="indicator"
+                class="setting-override-indicator"
+                quiet
+                title="Restore setting to default"
+                aria-label="Restore setting to default"
+                @click=${() => this.resetSettingToDefault(fieldName)}
+            >
+                <sp-icon-unlink slot="icon"></sp-icon-unlink>
+            </sp-action-button>
+        `;
+    }
+
+    resetAllSettings() {
+        let restoredAny = false;
+        for (const fieldName of MerchCardEditor.SETTINGS_FIELDS) {
+            if (!this.isSettingVisuallyOverridden(fieldName)) continue;
+            restoredAny = this.resetSettingToDefault(fieldName, true) || restoredAny;
+        }
+        if (restoredAny) {
+            showToast('Settings restored to defaults', 'positive');
+        }
+    }
+
+    #handleRestoreAllSettingsClick = (event) => {
+        event.preventDefault();
+        this.resetAllSettings();
+    };
+
+    get settingsRestoreAllTemplate() {
+        if (!this.isAnySettingVisuallyOverridden) return nothing;
+        return html`
+            <sp-link href="#" class="restore-all-link" @click=${this.#handleRestoreAllSettingsClick}>Restore all</sp-link>
+        `;
+    }
+
     getFormWithInheritance() {
         const allFieldNames = new Set();
         this.fragment.fields.forEach((f) => allFieldNames.add(f.name));
@@ -281,20 +441,32 @@ class MerchCardEditor extends LitElement {
         this.lastMnemonicState = null;
     }
 
+    #cachedGlobalDefaults = null;
+
     willUpdate(changedProperties) {
+        this.#cachedGlobalDefaults = null;
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
-            this.reactiveController.updateStores([this.fragmentStore]);
+            this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows, Store.search]);
             this.#updateCurrentVariantMapping();
             this.#updateAvailableSizes();
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
+            this.#ensureSettingsLoaded();
         }
         if (changedProperties.has('localeDefaultFragment')) {
             this.fieldsReady = false;
             this.#updateCurrentVariantMapping();
             this.#updateAvailableColors();
             this.#updateBackgroundColors();
+        }
+    }
+
+    #ensureSettingsLoaded() {
+        if (this.effectiveIsVariation) return;
+        const surface = Store.surface();
+        if (surface) {
+            Store.settings.ensureSurfaceLoaded(surface);
         }
     }
 
@@ -439,7 +611,6 @@ class MerchCardEditor extends LitElement {
         super.updated(changedProperties);
         if (!this.fieldsReady && this.fragment) {
             await this.updateComplete;
-            void this.offsetHeight;
             await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
             this.toggleFields();
         }
@@ -588,13 +759,13 @@ class MerchCardEditor extends LitElement {
             <style>
                 /* Override styling using Spectrum's --mod-* tokens */
                 sp-textfield[data-field-state='overridden'] {
-                    --mod-textfield-border-color: var(--spectrum-blue-400);
-                    --mod-textfield-background-color: var(--spectrum-blue-100);
+                    --mod-textfield-border-color: #accffd;
+                    --mod-textfield-background-color: #f5f9ff;
                 }
 
                 sp-field-group sp-picker[data-field-state='overridden'] {
-                    --mod-picker-border-color-default: var(--spectrum-blue-400);
-                    --mod-picker-background-color-default: var(--spectrum-blue-100);
+                    --mod-picker-border-color-default: #accffd;
+                    --mod-picker-background-color-default: #f5f9ff;
                 }
 
                 sp-switch[data-field-state='overridden'][checked] {
@@ -607,21 +778,48 @@ class MerchCardEditor extends LitElement {
                     align-items: center;
                     gap: 6px;
                     margin-top: 6px;
-                    font-size: 12px;
-                    color: var(--spectrum-blue-700);
+                    font-size: 14px;
+                    line-height: 18px;
+                    color: var(--spectrum-accent-content-color-default, #3b63fb);
                 }
 
-                .field-status-indicator a {
-                    color: var(--spectrum-blue-700);
-                    text-decoration: none;
-                    cursor: pointer;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
+                .field-status-icon {
+                    color: inherit;
+                    flex: none;
                 }
 
-                .field-status-indicator a:hover {
+                .field-status-label {
+                    color: inherit;
+                }
+
+                .field-status-restore-link {
+                    position: relative;
+                    color: inherit;
+                    font: inherit;
+                    line-height: inherit;
                     text-decoration: underline;
+                    cursor: pointer;
+                }
+
+                .field-status-restore-link-prefix {
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    margin: -1px;
+                    overflow: hidden;
+                    clip: rect(0, 0, 0, 0);
+                    white-space: nowrap;
+                    border: 0;
+                }
+
+                .field-status-restore-link:hover {
+                    color: var(--spectrum-accent-content-color-hover, #2f55e0);
+                }
+
+                .field-status-restore-link:focus-visible {
+                    outline: 2px solid var(--spectrum-accent-content-color-key-focus, #2f55e0);
+                    outline-offset: 2px;
                 }
 
                 .section-title {
@@ -704,6 +902,83 @@ class MerchCardEditor extends LitElement {
                 }
                 #badge mas-mnemonic-field {
                     margin-right: 16px;
+                }
+
+                .section-header-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+
+                .section-header-row .section-title {
+                    margin-bottom: 0;
+                }
+
+                .restore-all-link {
+                    --mod-link-text-color-primary-default: var(--spectrum-accent-content-color-default);
+                    --mod-link-text-color-primary-hover: var(--spectrum-accent-content-color-hover);
+                    --mod-link-text-color-primary-active: var(--spectrum-accent-content-color-down);
+                    --mod-link-text-color-primary-focus: var(--spectrum-accent-content-color-key-focus);
+                }
+
+                .setting-override-indicator {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--spectrum-blue-700);
+                    line-height: 0;
+                }
+
+                .setting-override-indicator:hover {
+                    color: var(--spectrum-blue-800);
+                }
+
+                .settings-toggle-field {
+                    display: block;
+                }
+
+                .settings-toggle-field--addon {
+                    --spectrum-fieldgroup-margin: 0;
+                }
+
+                .settings-toggle-field .field-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .settings-toggle-field .field-row sp-switch,
+                .settings-toggle-field .field-row .setting-override-indicator {
+                    flex: none;
+                }
+
+                .settings-toggle-field[data-field-state='overridden'] sp-switch[checked] {
+                    --mod-switch-background-color-selected-default: var(
+                        --spectrum-accent-background-color-default,
+                        var(--spectrum-blue-500)
+                    );
+                    --mod-switch-background-color-selected-hover: var(
+                        --spectrum-accent-background-color-hover,
+                        var(--spectrum-blue-600)
+                    );
+                    --mod-switch-handle-border-color-selected-default: var(
+                        --spectrum-accent-background-color-default,
+                        var(--spectrum-blue-500)
+                    );
+                    --mod-switch-handle-border-color-selected-hover: var(
+                        --spectrum-accent-background-color-hover,
+                        var(--spectrum-blue-600)
+                    );
+                }
+
+                .settings-toggle-field--addon sp-combobox {
+                    width: 100%;
+                    margin-block-end: 16px;
+                }
+
+                .settings-toggle-field--addon[data-field-state='overridden'] sp-combobox {
+                    --mod-combobox-border-color-default: var(--spectrum-blue-400);
+                    --mod-combobox-background-color-default: var(--spectrum-blue-100);
                 }
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
@@ -1162,45 +1437,48 @@ class MerchCardEditor extends LitElement {
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')}
                 </sp-field-group>
-                <div class="section-title">Options and settings</div>
+                <div class="section-header-row">
+                    <div class="section-title">Options and settings</div>
+                    ${this.settingsRestoreAllTemplate}
+                </div>
                 <div class="two-column-grid">
-                    <sp-field-group id="secureLabel" class="toggle">
-                        <secure-text-field
-                            id="secure-text-field"
-                            label="Secure Transaction Label"
-                            data-field="showSecureLabel"
-                            data-field-state="${this.getFieldState('showSecureLabel')}"
-                            value="${form.showSecureLabel?.values[0]}"
-                            @change="${this.#handleFragmentUpdate}"
-                        >
-                        </secure-text-field>
-                        ${this.renderFieldStatusIndicator('showSecureLabel')}
+                    <sp-field-group id="addon" class="toggle">
+                        <mas-addon-field
+                            class="settings-toggle-field settings-toggle-field--addon"
+                            id="addon-field"
+                            label="Show Addon"
+                            data-field="addon"
+                            data-field-state="${this.isSettingVisuallyOverridden('addon') ? 'overridden' : 'default'}"
+                            .indicatorTemplate=${this.renderSettingOverrideIndicator('addon')}
+                            .value="${this.getEffectiveSettingValue('addon')}"
+                            @input="${this.updateFragment}"
+                        ></mas-addon-field>
                     </sp-field-group>
                     <sp-field-group id="planType" class="toggle">
                         <mas-plan-type-field
+                            class="settings-toggle-field"
                             id="plan-type-field"
-                            label="Plan Type text"
+                            label="Show Plan type"
                             data-field="showPlanType"
-                            data-field-state="${this.getFieldState('showPlanType')}"
-                            value="${form.showPlanType?.values[0]}"
-                            @change="${this.#handleFragmentUpdate}"
-                        >
-                        </mas-plan-type-field>
-                        ${this.renderFieldStatusIndicator('showPlanType')}
+                            data-field-state="${this.isSettingVisuallyOverridden('showPlanType') ? 'overridden' : 'default'}"
+                            .indicatorTemplate=${this.renderSettingOverrideIndicator('showPlanType')}
+                            value="${this.getEffectiveSettingValue('showPlanType')}"
+                            @input="${this.#handleFragmentUpdate}"
+                        ></mas-plan-type-field>
+                    </sp-field-group>
+                    <sp-field-group id="secureLabel" class="toggle">
+                        <secure-text-field
+                            class="settings-toggle-field"
+                            id="secure-text-field"
+                            label="Secure transaction"
+                            data-field="showSecureLabel"
+                            data-field-state="${this.isSettingVisuallyOverridden('showSecureLabel') ? 'overridden' : 'default'}"
+                            .indicatorTemplate=${this.renderSettingOverrideIndicator('showSecureLabel')}
+                            value="${this.getEffectiveSettingValue('showSecureLabel')}"
+                            @input="${this.#handleFragmentUpdate}"
+                        ></secure-text-field>
                     </sp-field-group>
                 </div>
-                <sp-field-group id="addon" class="toggle">
-                    <mas-addon-field
-                        id="addon-field"
-                        label="Addon"
-                        data-field="addon"
-                        data-field-state="${this.getFieldState('addon')}"
-                        .value="${form.addon?.values[0]}"
-                        @change="${this.updateFragment}"
-                    >
-                    </mas-addon-field>
-                    ${this.renderFieldStatusIndicator('addon')}
-                </sp-field-group>
                 <sp-field-group id="locReady">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                         <sp-field-label for="loc-ready">Send to translation?</sp-field-label>

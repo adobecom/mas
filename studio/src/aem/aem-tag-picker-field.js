@@ -236,6 +236,38 @@ class AemTagPickerField extends LitElement {
         }
     }
 
+    #getProductCodeTagPaths(productCode, productArrangementCode) {
+        const normalizedProductCode = String(productCode || '').toLowerCase();
+        const normalizedPac = String(productArrangementCode || '').toLowerCase();
+
+        if (normalizedPac && this.#data?.values) {
+            const pacTag = [...this.#data.values()].find(
+                (tag) =>
+                    tag.path.startsWith('/content/cq:tags/mas/product_code/') &&
+                    tag.path.toLowerCase().endsWith(`/${normalizedPac}`),
+            );
+
+            if (pacTag) {
+                const relativePath = pacTag.path.replace('/content/cq:tags/mas/product_code/', '');
+                const parts = relativePath.split('/').filter(Boolean);
+
+                let currentPath = '/content/cq:tags/mas/product_code';
+                return parts.reduce((paths, part) => {
+                    currentPath += `/${part}`;
+                    paths.push(currentPath);
+                    return paths;
+                }, []);
+            }
+        }
+
+        if (!normalizedProductCode) {
+            return [];
+        }
+
+        const parentTagPath = `/content/cq:tags/mas/product_code/${normalizedProductCode}`;
+        return [parentTagPath];
+    }
+
     #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         if (this.#data instanceof Promise) {
@@ -264,7 +296,7 @@ class AemTagPickerField extends LitElement {
         const existingTags = this.#asValueArray().filter((tagPath) => {
             for (const category of categoriesToUpdate) {
                 if (tagPath.includes(`/content/cq:tags/mas/${category}/`)) {
-                    return false; // Exclude this tagPath if it contains any of the categories
+                    return false;
                 }
             }
             return true;
@@ -275,29 +307,13 @@ class AemTagPickerField extends LitElement {
             .flatMap(([key, value]) => {
                 const formattedKey = convertCamelToSnake(key);
                 if (formattedKey === 'product_code') {
-                    const productCode = String(value).toLowerCase();
-                    const pac = extractedOffer.product_arrangement_code;
-                    const parentTagPath = `/content/cq:tags/mas/product_code/${productCode}`;
-
-                    if (!productCode) {
-                        return [];
-                    }
-
-                    if (!pac) {
-                        return [parentTagPath];
-                    }
-
-                    const childTagPath = `${parentTagPath}/${pac}`;
-                    if (this.#data?.has?.(childTagPath)) {
-                        return [parentTagPath, childTagPath];
-                    }
-                    return [parentTagPath];
+                    return this.#getProductCodeTagPaths(value, extractedOffer.product_arrangement_code);
                 }
                 const formattedValue = String(value).toLowerCase();
                 return [`/content/cq:tags/mas/${formattedKey}/${formattedValue}`];
             });
 
-        this.value = [...existingTags, ...newTagPaths].filter(Boolean);
+        this.value = this.#normalizeProductCodeTags([...existingTags, ...newTagPaths].filter(Boolean));
         this.#notifyChange();
     };
 
@@ -460,19 +476,50 @@ class AemTagPickerField extends LitElement {
         const isMultiSelection = this.multiple || this.isCheckboxTagsMode;
 
         if (!isMultiSelection) {
-            // single select
-            this.value = [storedPath];
+            this.value = this.#normalizeProductCodeTags([storedPath]);
             await this.#notifyChange();
             return;
         }
         // multi select
-        const hasEquivalent = currentValue.some((value) => equivalentValues.has(value));
+        const hasEquivalent = currentValue.some((value) => {
+            const valuePath = this.#toPath(value);
+            return equivalentValues.has(value) || equivalentValues.has(valuePath);
+        });
         if (!hasEquivalent) {
             currentValue.push(storedPath);
         } else {
-            currentValue = currentValue.filter((value) => !equivalentValues.has(value));
+            currentValue = currentValue.filter((value) => {
+                const valuePath = this.#toPath(value);
+
+                if (equivalentValues.has(value) || equivalentValues.has(valuePath)) {
+                    return false;
+                }
+
+                if (
+                    equivalentPath.startsWith('/content/cq:tags/mas/product_code/') &&
+                    valuePath.startsWith('/content/cq:tags/mas/product_code/')
+                ) {
+                    const selectedParts = equivalentPath
+                        .replace('/content/cq:tags/mas/product_code/', '')
+                        .split('/')
+                        .filter(Boolean);
+
+                    const valueParts = valuePath.replace('/content/cq:tags/mas/product_code/', '').split('/').filter(Boolean);
+
+                    const isParentOfSelected =
+                        selectedParts.length > 1 &&
+                        valueParts.length < selectedParts.length &&
+                        valueParts.every((part, index) => part === selectedParts[index]);
+
+                    if (isParentOfSelected) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
         }
-        this.value = currentValue;
+        this.value = this.#normalizeProductCodeTags(currentValue);
         await this.#notifyChange();
     }
 
@@ -514,6 +561,31 @@ class AemTagPickerField extends LitElement {
                 .filter(Boolean);
         }
         return [];
+    }
+
+    #normalizeProductCodeTags(values) {
+        const normalizedPaths = new Set();
+        this.#asValueArray(values)
+            .map((value) => this.#toPath(value))
+            .filter(Boolean)
+            .forEach((path) => {
+                normalizedPaths.add(path);
+                if (!path.startsWith('/content/cq:tags/mas/product_code/')) {
+                    return;
+                }
+                const relativePath = path.replace('/content/cq:tags/mas/product_code/', '');
+                const parts = relativePath.split('/').filter(Boolean);
+                if (parts.length < 2) {
+                    return;
+                }
+                let currentPath = '/content/cq:tags/mas/product_code';
+                parts.slice(0, -1).forEach((part) => {
+                    currentPath += `/${part}`;
+                    normalizedPaths.add(currentPath);
+                });
+            });
+
+        return [...normalizedPaths].map((path) => this.#toStoredValue(path));
     }
 
     #selectedPaths(values = this.value) {

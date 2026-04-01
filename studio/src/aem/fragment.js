@@ -53,18 +53,44 @@ export class Fragment {
     }
 
     getCurrentTagTitle(id) {
-        const tagIds = this.newTags || this.getField('tags')?.values || this.tags?.map((tag) => tag.id) || [];
-        const matchingIds = tagIds.filter((tagId) => tagId?.includes(id));
-        if (!matchingIds.length) return undefined;
-        const matchingId = [...matchingIds].sort((a, b) => b.length - a.length)[0];
+        const normalizeTagId = (tag) => {
+            const rawValue = typeof tag === 'string' ? tag : tag?.id || tag?.path || '';
+            if (!rawValue) return '';
 
-        const title =
-            this.tags?.find((tag) => tag.id === matchingId || tag.id?.includes(matchingId) || matchingId.includes(tag.id))
-                ?.title || getCachedTagTitle(matchingId);
+            if (rawValue.startsWith('/content/cq:tags/')) {
+                const match = rawValue.match(/\/content\/cq:tags\/([^/]+)\/(.+)$/);
+                return match ? `${match[1]}:${match[2]}` : '';
+            }
+
+            return rawValue;
+        };
+
+        const rawTagIds = this.newTags || this.getField('tags')?.values || this.tags || [];
+        const tagIds = rawTagIds.map(normalizeTagId).filter(Boolean);
+
+        const matchingIds = tagIds.filter((tagId) => tagId.includes(id));
+        if (!matchingIds.length) return undefined;
+
+        const matchingId = [...matchingIds].sort((a, b) => b.length - a.length)[0];
+        const tags = Array.isArray(this.tags) ? this.tags : [];
+
+        const exactTag = tags.find((tag) => normalizeTagId(tag) === matchingId);
+        const cachedTitle = getCachedTagTitle(matchingId);
+        const fallbackTag = tags.find((tag) => {
+            const tagId = normalizeTagId(tag);
+            return tagId && (tagId.includes(matchingId) || matchingId.includes(tagId));
+        });
+
+        const title = exactTag?.title || cachedTitle || fallbackTag?.title;
 
         if (id === 'mas:product_code/') {
-            const pac = matchingId.split('/').filter(Boolean).pop()?.toUpperCase();
-            if (title && pac) return `${title} (${pac})`;
+            const productCodePath = matchingId.replace('mas:product_code/', '');
+            const parts = productCodePath.split('/').filter(Boolean);
+
+            if (parts.length > 1) {
+                const pac = parts[parts.length - 1]?.toUpperCase();
+                if (title && pac) return `${title} (${pac})`;
+            }
         }
 
         if (title) return title;

@@ -70,6 +70,7 @@ export class MasChat extends LitElement {
         this.recentReleaseProductsCache = [];
         this.selectedReleaseProduct = null;
         this.selectedReleaseOffer = null;
+        this.selectedReleaseOsi = null;
     }
 
     #repositoryEl = null;
@@ -207,6 +208,7 @@ export class MasChat extends LitElement {
         this.recentReleaseProductsPromise = null;
         this.selectedReleaseProduct = null;
         this.selectedReleaseOffer = null;
+        this.selectedReleaseOsi = null;
     }
 
     handlePromptSelected(event) {
@@ -245,7 +247,12 @@ export class MasChat extends LitElement {
             const message = variantList
                 ? `Confirmed. Create cards for these variants: ${variantList}.`
                 : 'Confirmed. Create the card.';
-            this.handleSendMessage({ detail: { message, context: { selectedVariants } } });
+            this.handleSendMessage({
+                detail: {
+                    message,
+                    context: { selectedVariants, osi: this.selectedReleaseOsi },
+                },
+            });
         } else {
             this.handleSendMessage({ detail: { message: 'Start over. Let me create a different card.', context: {} } });
         }
@@ -267,6 +274,7 @@ export class MasChat extends LitElement {
 
         if (context?.osi) {
             userMessage.osi = context.osi;
+            this.selectedReleaseOsi = context.osi;
         }
         if (context?.offer) {
             userMessage.offer = context.offer;

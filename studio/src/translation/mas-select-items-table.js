@@ -42,6 +42,7 @@ class MasSelectItemsTable extends LitElement {
         this.selectedCollectionsStoreController = null;
         this.selectedPlaceholdersStoreController = null;
         this.observedSentinel = null;
+        this.wasLoading = false;
     }
 
     connectedCallback() {
@@ -113,6 +114,9 @@ class MasSelectItemsTable extends LitElement {
             this.viewOnlyLoading = false;
         }
 
+        const loadingJustCompleted = this.wasLoading && !this.loading.value;
+        this.wasLoading = this.loading.value;
+
         const sentinel = this.renderRoot.querySelector('.scroll-sentinel');
         if (sentinel && sentinel !== this.observedSentinel) {
             this.scrollObserver?.disconnect();
@@ -121,6 +125,9 @@ class MasSelectItemsTable extends LitElement {
         } else if (!sentinel) {
             this.scrollObserver?.disconnect();
             this.observedSentinel = null;
+        } else if (loadingJustCompleted && this.hasMore.value) {
+            this.scrollObserver?.unobserve(sentinel);
+            this.scrollObserver?.observe(sentinel);
         }
     }
 

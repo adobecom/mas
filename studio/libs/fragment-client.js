@@ -6,6 +6,7 @@
 // Import the modules
 import { logDebug, logError } from '../../io/www/src/fragment/utils/log.js';
 import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
+import { FREYJA_PREVIEW_URL, ODIN_PREVIEW_URL } from '../../io/www/src/fragment/utils/paths.js';
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
@@ -37,13 +38,17 @@ class LocaleStorageState {
 const DEFAULT_CONTEXT = {
     status: 200,
     preview:{
-        url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        url: FREYJA_PREVIEW_URL,
+    },
+    fallbackUrl: ODIN_PREVIEW_URL,
+    get authToken() {
+        return window.adobeIMS?.getAccessToken()?.token;
     },
     requestId: 'preview',
     state: new LocaleStorageState(),
     networkConfig: {
         mainTimeout: 20000,
-        fetchTimeout: 15000,
+        fetchTimeout: 4000,
         retries: 3,
     },
     locale: 'en_US',

@@ -29,7 +29,7 @@ const localStorageStub = {
 let objectKeysStub;
 
 describe('FragmentClient', () => {
-    const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
+    const baseUrl = 'https://preview-p22655-e59433.adobeaemcloud.com/adobe/contentFragments';
     let fetchStub;
 
     before(() => {
@@ -42,6 +42,7 @@ describe('FragmentClient', () => {
         // Stub window.localStorage
         globalThis.window = globalThis.window || { localStorage: {} };
         sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
+        globalThis.window.adobeIMS = { getAccessToken: () => ({ token: 'test-ims-token' }) };
         globalThis.localStorage = localStorageStub;
         objectKeysStub = sinon.stub(Object, 'keys').callThrough();
         objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
@@ -144,9 +145,13 @@ describe('FragmentClient', () => {
 
     it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {
         const fragmentId = 'non-existent';
+        const odinBaseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
 
         fetchStub
             .withArgs(`${baseUrl}/${fragmentId}?references=all-hydrated`)
+            .returns(createResponse(404, { detail: 'Not Found' }, 'Not Found'));
+        fetchStub
+            .withArgs(`${odinBaseUrl}/${fragmentId}?references=all-hydrated`)
             .returns(createResponse(404, { detail: 'Not Found' }, 'Not Found'));
 
         const consoleErrorSpy = sinon.spy(console, 'error');

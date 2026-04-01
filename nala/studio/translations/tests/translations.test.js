@@ -82,13 +82,13 @@ test.describe('M@S Studio Translations Test Suite', () => {
         await test.step('step-2: Expand a card with variations, verify nested rows appear', async () => {
             await translationEditor.expandRowButton(0).click();
             await page.waitForTimeout(1000);
-            await expect(page.getByRole('tab', { name: 'Promotion' }).first()).toBeVisible({ timeout: 5000 });
+            await expect(page.getByRole('tab', { name: 'Grouped variation' }).first()).toBeVisible({ timeout: 5000 });
         });
 
         await test.step('step-3: Collapse the card, verify nested rows disappear', async () => {
             await translationEditor.expandRowButton(0).click();
             await page.waitForTimeout(500);
-            await expect(page.getByRole('tab', { name: 'Promotion' }).first()).not.toBeVisible({ timeout: 10000 });
+            await expect(page.getByRole('tab', { name: 'Grouped variation' }).first()).not.toBeVisible({ timeout: 10000 });
         });
 
         // @translation-editor-cards-checkbox-select
@@ -252,6 +252,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
         await expect(translationEditor.saveButton).toBeDisabled();
         await expect(translationEditor.editLanguagesButton).not.toBeVisible();
         await expect(translationEditor.editItemsButton).not.toBeVisible();
+        await expect(translationEditor.sendToLocButton).toBeDisabled();
     });
 
     // 6. @translation-editor-loading-variations – Expand grouped variation
@@ -268,7 +269,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
         await expect(translationEditor.tableRows.first()).toBeVisible({ timeout: 30000 });
         await translationEditor.expandRowButton(0).click();
         await page.waitForTimeout(1500);
-        await expect(page.getByRole('tab', { name: 'Promotion' }).first()).toBeVisible({ timeout: 5000 });
+        await expect(page.getByRole('tab', { name: 'Grouped variation' }).first()).toBeVisible({ timeout: 5000 });
     });
 
     // 7. @translation-editor-actions

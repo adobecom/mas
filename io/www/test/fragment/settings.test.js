@@ -454,10 +454,15 @@ describe('settings', () => {
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3-FR');
         });
 
-        it('does not apply tag-restricted override to fragment without matching tags', async () => {
+        it('does not apply hideTrialCTAs to non-catalog variant even with locale-wide override', async () => {
             const context = {
                 locale: 'fr_FR',
-                body: { fields: { variant: 'ccd-mini', tags: ['mas:variant/ccd-mini'] } },
+                body: {
+                    fields: {
+                        variant: 'mini',
+                        tags: ['mas:offer_type/base', 'mas:plan_type/puf', 'mas:customer_segment/individual'],
+                    },
+                },
                 promises: {
                     settings: Promise.resolve({
                         hideTrialCTAs: {
@@ -474,7 +479,7 @@ describe('settings', () => {
                                     valuetype: 'boolean',
                                     booleanValue: true,
                                     locales: ['fr_FR', 'fr_CA'],
-                                    tags: ['mas:variant/catalog'],
+                                    tags: [],
                                 },
                             ],
                         },
@@ -482,13 +487,13 @@ describe('settings', () => {
                 },
             };
             const result = await settings.process(context);
-            expect(result.body.settings.hideTrialCTAs).to.be.false;
+            expect(result.body.settings?.hideTrialCTAs).to.be.undefined;
         });
 
-        it('applies tag-restricted override to fragment with matching tags', async () => {
+        it('applies hideTrialCTAs to catalog variant with locale-wide override', async () => {
             const context = {
                 locale: 'fr_FR',
-                body: { fields: { variant: 'catalog', tags: ['mas:variant/catalog'] } },
+                body: { fields: { variant: 'catalog' } },
                 promises: {
                     settings: Promise.resolve({
                         hideTrialCTAs: {
@@ -505,7 +510,7 @@ describe('settings', () => {
                                     valuetype: 'boolean',
                                     booleanValue: true,
                                     locales: ['fr_FR', 'fr_CA'],
-                                    tags: ['mas:variant/catalog'],
+                                    tags: [],
                                 },
                             ],
                         },

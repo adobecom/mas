@@ -299,6 +299,7 @@ async function processCardsData(allCards, repository, state) {
             }
             setCardVariationsByPaths(merged);
         }
+        Store.translationProjects.displayCards.set(enrichedCards);
         Store.translationProjects.allCards.set(enrichedCards);
         Store.translationProjects.cardsByPaths.set(cardsByPaths);
     } finally {
@@ -311,6 +312,7 @@ async function processCardsData(allCards, repository, state) {
  * @param {Array<Object>} allCollections - Array of collection objects
  */
 function processCollectionsData(allCollections) {
+    Store.translationProjects.displayCollections.set(allCollections);
     Store.translationProjects.allCollections.set(allCollections);
     const collectionsByPaths = new Map(allCollections.map((f) => [f.path, f]));
     Store.translationProjects.collectionsByPaths.set(collectionsByPaths);
@@ -327,6 +329,7 @@ export function loadAllPlaceholders() {
     const callback = () => {
         const placeholderValues = Store.placeholders.list.data.get().map((placeholder) => placeholder.value);
         const placeholdersByPaths = new Map(placeholderValues.map((p) => [p.path, p]));
+        Store.translationProjects.displayPlaceholders.set(placeholderValues);
         Store.translationProjects.allPlaceholders.set(placeholderValues);
         Store.translationProjects.placeholdersByPaths.set(placeholdersByPaths);
     };

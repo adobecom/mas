@@ -1772,6 +1772,32 @@ describe('MasRepository dictionary helpers', () => {
                 cleanup();
             }
         });
+
+        it('paginates results when page is TRANSLATION_EDITOR', async () => {
+            const page1 = Array.from({ length: 20 }, (_, i) =>
+                createFragment({ id: `t1-${i}`, path: `${ROOT_PATH}/acom/en_US/t1-${i}`, fields: [] }),
+            );
+            const page2 = Array.from({ length: 5 }, (_, i) =>
+                createFragment({ id: `t2-${i}`, path: `${ROOT_PATH}/acom/en_US/t2-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            repository.page = { value: PAGE_NAMES.TRANSLATION_EDITOR };
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                const setCalls = Store.fragments.list.data.set.getCalls();
+                const firstCall = setCalls[setCalls.length - 1];
+                expect(firstCall.args[0].length).to.equal(20);
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+                await repository.loadNextPage();
+                const nextCalls = Store.fragments.list.data.set.getCalls();
+                const lastCall = nextCalls[nextCalls.length - 1];
+                expect(lastCall.args[0].length).to.equal(25);
+            } finally {
+                cleanup();
+            }
+        });
     });
 
     describe('parseVariationAlreadyExistsPath', () => {

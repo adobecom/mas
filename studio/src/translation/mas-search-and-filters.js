@@ -48,6 +48,7 @@ class MasSearchAndFilters extends LitElement {
             if (!this.searchOnly) {
                 this.#extractFilterOptions();
             }
+            this.#applyFilters();
             this.requestUpdate();
         };
         Store.translationProjects[`all${this.typeUppercased}`].subscribe(dataCallback);

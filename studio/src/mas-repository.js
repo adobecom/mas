@@ -449,6 +449,7 @@ export class MasRepository extends LitElement {
                     surface,
                     fragmentStores,
                     variants.length > 0 ? Infinity : undefined,
+                    searchController.signal,
                 );
                 if (this.#abortControllers.search !== searchController) {
                     Store.fragments.list.loading.set(false);
@@ -481,9 +482,10 @@ export class MasRepository extends LitElement {
 
     static MIN_PAGE_SIZE = 10;
 
-    async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE) {
+    async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal) {
         let added = 0;
         while (added < limit) {
+            if (signal?.aborted) return false;
             const page = await cursor.next();
             if (page.done) return true;
             for await (const item of page.value) {
@@ -503,7 +505,14 @@ export class MasRepository extends LitElement {
         Store.fragments.list.loading.set(true);
         const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
         try {
-            const done = await this.#fillPage(cursor, variants, surface, fragmentStores);
+            const done = await this.#fillPage(
+                cursor,
+                variants,
+                surface,
+                fragmentStores,
+                undefined,
+                this.#abortControllers.search?.signal,
+            );
             if (this.#searchCursor !== cursorSnapshot) return;
             Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
             if (done) {

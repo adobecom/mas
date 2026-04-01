@@ -301,7 +301,6 @@ async function processCardsData(allCards, repository, state) {
         }
         Store.translationProjects.allCards.set(enrichedCards);
         Store.translationProjects.cardsByPaths.set(cardsByPaths);
-        Store.translationProjects.displayCards.set(enrichedCards);
     } finally {
         state.isProcessingCards = false;
     }
@@ -315,7 +314,6 @@ function processCollectionsData(allCollections) {
     Store.translationProjects.allCollections.set(allCollections);
     const collectionsByPaths = new Map(allCollections.map((f) => [f.path, f]));
     Store.translationProjects.collectionsByPaths.set(collectionsByPaths);
-    Store.translationProjects.displayCollections.set(allCollections);
 }
 
 /**
@@ -331,7 +329,6 @@ export function loadAllPlaceholders() {
         const placeholdersByPaths = new Map(placeholderValues.map((p) => [p.path, p]));
         Store.translationProjects.allPlaceholders.set(placeholderValues);
         Store.translationProjects.placeholdersByPaths.set(placeholdersByPaths);
-        Store.translationProjects.displayPlaceholders.set(placeholderValues);
     };
     Store.placeholders.list.data.subscribe(callback);
     return { unsubscribe: () => Store.placeholders.list.data.unsubscribe(callback) };

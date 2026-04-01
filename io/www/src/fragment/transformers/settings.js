@@ -20,8 +20,10 @@ export const SETTING_NAME_DEFINITIONS = [
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
 
 let settingsCache;
+const inflightSettings = new Map();
 
 export function clearSettingsCache(preview = false) {
+    inflightSettings.clear();
     if (preview) {
         console.log('Clearing settings preview cache');
         Object.keys(localStorage).forEach((key) => {
@@ -141,19 +143,30 @@ export async function getSettings(context) {
     if (context.hasExternalSettings) return context.settings;
     const cachedSettings = await getCachedSettings(context);
     if (cachedSettings && !cachedSettings.isExpired) return cachedSettings.settings;
-    const { id } = await getSettingsId(context);
-    if (!id) {
-        return null;
-    }
-    const response = await fetch(odinReferences(id, true, context.preview), context, 'settings');
 
-    if (response.status !== 200) {
-        logDebug(() => 'Failed to fetch settings fragment', context);
-        return null;
+    const key = await cacheKey(context);
+    if (inflightSettings.has(key)) {
+        return inflightSettings.get(key);
     }
 
-    const settings = collectSettingEntries(response.body);
-    return await cache(context, settings);
+    const promise = (async () => {
+        try {
+            const { id } = await getSettingsId(context);
+            if (!id) return null;
+            const response = await fetch(odinReferences(id, true, context.preview), context, 'settings');
+            if (response.status !== 200) {
+                logDebug(() => 'Failed to fetch settings fragment', context);
+                return null;
+            }
+            const settings = collectSettingEntries(response.body);
+            return await cache(context, settings);
+        } finally {
+            inflightSettings.delete(key);
+        }
+    })();
+
+    inflightSettings.set(key, promise);
+    return promise;
 }
 
 async function init(initContext) {

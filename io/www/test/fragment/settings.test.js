@@ -275,6 +275,19 @@ describe('settings', () => {
             await getSettings(createContext({ surface: DEFAULT_SURFACE, locale: 'fr_FR' }));
             expect(contentCalls()).to.have.length(1);
         });
+
+        it('deduplicates concurrent calls — only one fetch made for N simultaneous callers', async () => {
+            clearSettingsCache();
+            mockSettingsFetch(DEFAULT_SURFACE, 'settings-id', referencesBody);
+            const contentCalls = () => fetchStub.getCalls().filter((c) => c.args[0]?.includes('references=all-hydrated'));
+
+            const results = await Promise.all(Array.from({ length: 10 }, () => getSettings(createContext())));
+
+            expect(contentCalls()).to.have.length(1);
+            for (const result of results) {
+                expect(result.secureLabel.default.booleanValue).to.be.true;
+            }
+        });
     });
 
     describe('settings transformer process', () => {

@@ -442,7 +442,7 @@ export class MasRepository extends LitElement {
                     variants,
                     surface,
                     fragmentStores,
-                    variants.length > 0 ? Infinity : undefined,
+                    undefined,
                     searchController.signal,
                 );
                 if (this.#abortControllers.search !== searchController) {

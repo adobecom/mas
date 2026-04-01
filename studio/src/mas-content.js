@@ -86,6 +86,8 @@ class MasContent extends LitElement {
         Events.fragmentAdded.unsubscribe(this.goToFragment);
         Events.fragmentDeleted.unsubscribe(this.onFragmentDeleted);
         this.scrollObserver?.disconnect();
+        this.observedSentinel = null;
+        this.wasLoading = false;
 
         if (this.subscriptions && this.subscriptions.length) {
             this.subscriptions.forEach((subscription) => {

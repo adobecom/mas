@@ -248,7 +248,7 @@ export class MerchQuantitySelect extends LitElement {
 
     get configured() {
         return this.title || this.min || this.step;
-    }    
+    }
 
     get offerSelect() {
         return this.querySelector('merch-offer-select');

@@ -235,17 +235,17 @@ export const TEMPLATE_PREVIEWS = {
     plans: '1736f2c9-0931-401b-b3c0-fe87ff72ad38',
     'plans-education': 'b8cd82c8-f8fa-433a-afa2-9aba4ebe5ea5',
     fries: '8487f19d-b038-44fa-9db6-0dc55a85b326',
-    catalog: '562e30f0-df13-4a42-a129-6faa0e9a315e',
-    'special-offers': 'ff7c7861-453f-43d6-a380-5a56bb2facfd',
-    'mini-compare-chart': 'aec33efb-3eae-4dee-aab1-fd07e17c47c8',
-    'mini-compare-chart-mweb': 'b621670d-e7d1-4be4-97f5-a4cdc6f6dea0',
+    catalog: '60d6f47c-8fd7-485d-a4ac-2b7baa492ab1',
+    'special-offers': '0381d43f-2e1d-4074-a7a6-4a748bd81be7',
+    'mini-compare-chart': 'ce03bb09-75b1-45b9-8ff7-fcd42d33c765',
+    'mini-compare-chart-mweb': '127a74ee-bd16-4de2-a7a1-ad6a1ef39455',
     'plans-v2': 'aa96379a-d591-4c0c-8633-cdb4fb77c6da',
     image: '7da8f1fa-9591-445e-8542-9aa77d9dc1f4',
     'plans-students': '484739ec-72f7-4b4b-b756-bb9b42ee06c8',
     product: '5381e707-f04f-4c5f-9d2c-02455049132d',
     segment: '2f700fce-dd51-4fb0-bf20-6f046cc735a7',
     media: '339b00db-5217-4fc4-b1e9-7fec29bb3c89',
-    headless: '25ef1c26-ac82-4b27-a9f3-5a7b12a3d7df',
+    headless: '37e60185-599a-46d3-8b26-dacd9cbc2d52',
 };
 
 export const QUICK_ACTION = {

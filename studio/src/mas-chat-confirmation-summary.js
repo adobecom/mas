@@ -1,25 +1,60 @@
 import { LitElement, html, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
+import { getVariantTreeData } from './editors/variant-picker.js';
+import { TEMPLATE_PREVIEWS } from './constants.js';
+import { precacheTemplatePreviews } from './utils/template-cache.js';
 
 export class MasChatConfirmationSummary extends LitElement {
     static properties = {
         summary: { type: Object },
         confirmed: { type: Boolean },
+        surface: { type: String },
+        selectedVariants: { state: true },
+        previewsLoaded: { state: true },
     };
 
     constructor() {
         super();
         this.summary = null;
         this.confirmed = false;
+        this.surface = '';
+        this.selectedVariants = new Set();
+        this.previewsLoaded = false;
     }
 
     createRenderRoot() {
         return this;
     }
 
+    willUpdate(changedProperties) {
+        if (changedProperties.has('surface') && this.surface) {
+            this.loadPreviews();
+        }
+        if (changedProperties.has('summary') && this.summary?.variant) {
+            this.selectedVariants = new Set([this.summary.variant.name]);
+        }
+    }
+
+    async loadPreviews() {
+        this.previewsLoaded = false;
+        await precacheTemplatePreviews(this.surface);
+        this.previewsLoaded = true;
+    }
+
+    toggleVariant(name) {
+        const next = new Set(this.selectedVariants);
+        if (next.has(name)) next.delete(name);
+        else next.add(name);
+        this.selectedVariants = next;
+    }
+
     handleConfirm() {
         this.dispatchEvent(
             new CustomEvent('confirmation-action', {
-                detail: { action: 'confirm' },
+                detail: {
+                    action: 'confirm',
+                    selectedVariants: [...this.selectedVariants],
+                },
                 bubbles: true,
                 composed: true,
             }),
@@ -51,11 +86,51 @@ export class MasChatConfirmationSummary extends LitElement {
         return candidates.sort((left, right) => right.length - left.length)[0] || '';
     }
 
+    renderTemplateCard(v) {
+        const selected = this.selectedVariants.has(v.name);
+        const previewId = TEMPLATE_PREVIEWS[v.name];
+        const AemFragmentElement = customElements.get('aem-fragment');
+        const isCached = previewId && this.previewsLoaded && AemFragmentElement?.cache?.has(previewId);
+
+        return html`
+            <div class="template-card ${selected ? 'selected' : ''}" @click=${() => this.toggleVariant(v.name)}>
+                <div class="template-preview">
+                    ${isCached
+                        ? html`<merch-card><aem-fragment author fragment="${previewId}"></aem-fragment></merch-card>`
+                        : html`<div class="template-placeholder">${v.label}</div>`}
+                </div>
+                <div class="template-label">${v.label}</div>
+            </div>
+        `;
+    }
+
+    get templateGrid() {
+        const variants = getVariantTreeData(this.surface);
+        return html`
+            <div class="summary-templates">
+                <span class="summary-label">Select templates</span>
+                <div class="template-grid">
+                    ${!this.previewsLoaded
+                        ? html`<div class="template-loading">
+                              <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+                          </div>`
+                        : nothing}
+                    ${repeat(
+                        variants,
+                        (v) => v.name,
+                        (v) => this.renderTemplateCard(v),
+                    )}
+                </div>
+            </div>
+        `;
+    }
+
     render() {
         if (!this.summary) return nothing;
 
-        const { product, variant, segment, offeringType, promoCode, locale } = this.summary;
+        const { product, segment, offeringType, promoCode, locale } = this.summary;
         const productDescription = this.getProductDescription(product);
+        const variantCount = this.selectedVariants.size;
 
         return html`
             <div class="chat-confirmation-summary">
@@ -76,14 +151,6 @@ export class MasChatConfirmationSummary extends LitElement {
                               </div>
                           `
                         : nothing}
-                    ${variant
-                        ? html`
-                              <div class="summary-row">
-                                  <span class="summary-label">Variant</span>
-                                  <span class="summary-value">${variant.name}</span>
-                              </div>
-                          `
-                        : nothing}
                     <div class="summary-row">
                         <span class="summary-label">Segment</span>
                         <span class="summary-value">${segment?.label || 'Unknown'}</span>
@@ -101,12 +168,18 @@ export class MasChatConfirmationSummary extends LitElement {
                         <span class="summary-value">${locale || 'en_US'}</span>
                     </div>
                 </div>
+                ${this.surface ? this.templateGrid : nothing}
                 <div class="summary-actions">
                     <sp-button size="s" variant="secondary" ?disabled=${this.confirmed} @click=${this.handleCancel}>
                         Start Over
                     </sp-button>
-                    <sp-button size="s" variant="accent" ?disabled=${this.confirmed} @click=${this.handleConfirm}>
-                        Create Card
+                    <sp-button
+                        size="s"
+                        variant="accent"
+                        ?disabled=${this.confirmed || variantCount === 0}
+                        @click=${this.handleConfirm}
+                    >
+                        Create Card${variantCount !== 1 ? 's' : ''} (${variantCount})
                     </sp-button>
                 </div>
             </div>

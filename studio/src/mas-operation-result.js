@@ -759,6 +759,9 @@ export class MasOperationResult extends LitElement {
                                     <sp-icon-check-circle size="s"></sp-icon-check-circle>
                                     <span class="release-card-title">${card.title}</span>
                                     <sp-badge size="s">${card.variant}</sp-badge>
+                                    <sp-action-button quiet size="s" title="Edit" @click=${() => this.handleOpenCard(card)}>
+                                        <sp-icon-edit slot="icon"></sp-icon-edit>
+                                    </sp-action-button>
                                 </div>
                                 ${card.id
                                     ? html`
@@ -769,15 +772,6 @@ export class MasOperationResult extends LitElement {
                                           </div>
                                       `
                                     : nothing}
-                                <div class="release-card-actions">
-                                    <sp-button size="s" variant="primary" @click=${() => this.handleOpenCard(card)}>
-                                        <sp-icon-edit slot="icon"></sp-icon-edit>
-                                        Edit
-                                    </sp-button>
-                                    <sp-button size="s" variant="secondary" @click=${() => this.handleOpenCard(card)}>
-                                        Open
-                                    </sp-button>
-                                </div>
                             </div>
                         `;
                     })}

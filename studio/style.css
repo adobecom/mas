@@ -2101,12 +2101,6 @@ mas-chat {
     zoom: 0.7;
 }
 
-.release-card-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-}
-
 .card-actions {
     display: flex;
     gap: 8px;

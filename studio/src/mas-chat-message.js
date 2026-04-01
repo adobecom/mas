@@ -10,6 +10,7 @@ import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
 import { buildStudioFragmentHref, showToast } from './utils.js';
+import Store from './store.js';
 
 /**
  * Chat Message Component
@@ -593,6 +594,7 @@ export class MasChatMessage extends LitElement {
                         ? html`<mas-chat-confirmation-summary
                               .summary=${this.message.confirmationSummary}
                               ?confirmed=${this.message.confirmed}
+                              surface=${Store.search?.value?.path || ''}
                           ></mas-chat-confirmation-summary>`
                         : nothing}
                     ${cardConfig || fragmentId ? this.renderCardPreview() : nothing}

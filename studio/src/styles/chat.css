@@ -2181,6 +2181,25 @@
     height: 20px;
 }
 
+.chat-confirmation-summary .summary-templates {
+    margin-top: 12px;
+}
+
+.chat-confirmation-summary .summary-templates .summary-label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.chat-confirmation-summary .template-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 4px;
+}
+
+.chat-confirmation-summary .template-preview {
+    height: 200px;
+}
+
 .chat-confirmation-summary .summary-actions {
     display: flex;
     justify-content: flex-end;

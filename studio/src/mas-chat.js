@@ -238,10 +238,14 @@ export class MasChat extends LitElement {
     }
 
     handleConfirmationAction(event) {
-        const { action } = event.detail;
+        const { action, selectedVariants } = event.detail;
         this.messages = this.messages.map((msg) => (msg.confirmationSummary ? { ...msg, confirmed: true } : msg));
         if (action === 'confirm') {
-            this.handleSendMessage({ detail: { message: 'Confirmed. Create the card.', context: {} } });
+            const variantList = selectedVariants?.length ? selectedVariants.join(', ') : '';
+            const message = variantList
+                ? `Confirmed. Create cards for these variants: ${variantList}.`
+                : 'Confirmed. Create the card.';
+            this.handleSendMessage({ detail: { message, context: { selectedVariants } } });
         } else {
             this.handleSendMessage({ detail: { message: 'Start over. Let me create a different card.', context: {} } });
         }
@@ -1257,6 +1261,8 @@ export class MasChat extends LitElement {
 
     async handleOpenCardFromOperation(event) {
         const { fragment } = event.detail;
+        const drawer = document.querySelector('mas-chat-drawer');
+        drawer?.close();
         await router.navigateToFragmentEditor(fragment.id);
         showToast('Card opened in editor');
     }

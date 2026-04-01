@@ -40,6 +40,8 @@ class MasContent extends LitElement {
         super();
         this.goToFragment = this.goToFragment.bind(this);
         this.subscriptions = [];
+        this.observedSentinel = null;
+        this.wasLoading = false;
     }
 
     loading = new StoreController(this, Store.fragments.list.loading);
@@ -271,6 +273,9 @@ class MasContent extends LitElement {
     }
 
     updated() {
+        const loadingJustCompleted = this.wasLoading && !this.loading.value;
+        this.wasLoading = this.loading.value;
+
         const sentinel = this.querySelector('.scroll-sentinel');
         if (sentinel && sentinel !== this.observedSentinel) {
             this.scrollObserver?.disconnect();
@@ -279,6 +284,9 @@ class MasContent extends LitElement {
         } else if (!sentinel) {
             this.scrollObserver?.disconnect();
             this.observedSentinel = null;
+        } else if (loadingJustCompleted && this.hasMore.value) {
+            this.scrollObserver?.unobserve(sentinel);
+            this.scrollObserver?.observe(sentinel);
         }
     }
 

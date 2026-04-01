@@ -148,17 +148,11 @@ export class MasRepository extends LitElement {
             this.dictionaryCache.clear();
             if (this.page.value === PAGE_NAMES.CONTENT) {
                 this.#searchCursor = null;
-                Store.fragments.list.firstPageLoaded.set(false);
-                Store.fragments.list.data.set([]);
             }
         });
         Store.search.subscribe(() => {
             this.dictionaryCache.clear();
             this.#searchCursor = null;
-            if (this.page.value === PAGE_NAMES.CONTENT) {
-                Store.fragments.list.firstPageLoaded.set(false);
-                Store.fragments.list.data.set([]);
-            }
         });
 
         this.loadFolders();

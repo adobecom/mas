@@ -1681,9 +1681,8 @@ class MerchCardEditor extends LitElement {
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
         const entries = Array.isArray(event.target.value) ? event.target.value : [];
-        const nonEmptyEntries = entries.filter(
-            ({ icon, alt, link, mnemonicText, mnemonicPlacement }) =>
-                Boolean(icon || alt || link || mnemonicText || (mnemonicPlacement && mnemonicPlacement !== 'top')),
+        const nonEmptyEntries = entries.filter(({ icon, alt, link, mnemonicText, mnemonicPlacement }) =>
+            Boolean(icon || alt || link || mnemonicText || (mnemonicPlacement && mnemonicPlacement !== 'top')),
         );
         const hadOnlyBlankPlaceholderRows = entries.length > 0 && nonEmptyEntries.length === 0;
 

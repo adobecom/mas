@@ -481,7 +481,10 @@ class AemTagPickerField extends LitElement {
 
     #filterToParentProductCodeTags(tags) {
         return tags.filter((tag) => {
-            const relativePath = tag.path.replace(this.#tagsRoot, '');
+            const root = this.#rootForPath(tag.path);
+            if (!root) return false;
+
+            const relativePath = tag.path.slice(root.length);
             return relativePath && !relativePath.includes('/');
         });
     }

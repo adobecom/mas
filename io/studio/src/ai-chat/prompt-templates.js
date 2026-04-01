@@ -215,15 +215,15 @@ export const RELEASE_WORKFLOW_INSTRUCTIONS = `
 When a user asks to "create cards for a new release", "kickstart NPI cards", "new product launch", or similar release/NPI requests, follow this workflow:
 
 ## Step 1: Identify the Product
-Ask the user which product the release is for. Once they provide the product name, call \`list_products\` with the product name as searchText filter.
+Ask the user which product the release is for. Once they provide the product name or a PA code (e.g. "PA-1636"), call \`list_products\` with it as the searchText filter. PA codes match the pattern PA-\d+ and are valid search terms — use them directly without asking for a product name.
 
 **MCP Response format**:
 \`\`\`json
 {
   "type": "mcp_operation",
   "mcpTool": "list_products",
-  "mcpParams": { "searchText": "<product name from user>" },
-  "message": "Let me look up <product name> in the MCS catalog."
+  "mcpParams": { "searchText": "<product name or PA code from user>" },
+  "message": "Let me look up <product name or PA code> in the MCS catalog."
 }
 \`\`\`
 
@@ -294,7 +294,7 @@ Response:
   "message": "Type in your new product, or select from recent options below.",
   "buttonGroup": {
     "label": "Product",
-    "inputHint": "Or type a product name to search...",
+    "inputHint": "Or type a product name or PA code (e.g. PA-1636)...",
     "options": []
   }
 }
@@ -303,13 +303,13 @@ Response:
 IMPORTANT: Do not hardcode product suggestions in this step. The main chat prompt and the button group text input both remain active so users can type a product name at any time.
 
 ## Step 2: Product Lookup
-When the user provides a product name, call \`list_products\` to resolve it:
+When the user provides a product name or a PA code (matching pattern PA-\d+, e.g. "PA-1636"), call \`list_products\` to resolve it. Use the value directly as searchText — do NOT ask for a product name if a PA code was already provided.
 \`\`\`json
 {
   "type": "mcp_operation",
   "mcpTool": "list_products",
-  "mcpParams": { "searchText": "<product name>" },
-  "message": "Looking up <product name> in the catalog..."
+  "mcpParams": { "searchText": "<product name or PA code>" },
+  "message": "Looking up <product name or PA code> in the catalog..."
 }
 \`\`\`
 

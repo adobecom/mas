@@ -15,6 +15,7 @@ const OPERATIONS_PREAMBLE = `
 
 When the user asks about ANY of the following, you MUST call \`list_products\` first:
 - A specific product name: "Photoshop", "Illustrator", "Creative Cloud", "Acrobat", etc.
+- A PA code (Product Area code matching the pattern PA-\d+, e.g. "PA-1636", "can we do PA-2244"): use the PA code directly as searchText
 - Product codes, arrangement codes, or icons
 - Which segments or plan types a product supports
 - What products are available (for any segment, market, or use case)
@@ -1090,6 +1091,12 @@ User: "I want to create cards for Illustrator"
 
 User: "what icon does Acrobat use?"
 → Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "Acrobat" }, message: "Looking up Acrobat in MCS..." }
+
+User: "can we do PA-1636"
+→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "PA-1636" }, message: "Looking up PA-1636 in the MCS catalog..." }
+
+User: "let's create cards for PA-2244"
+→ Return: { type: "mcp_operation", mcpTool: "list_products", mcpParams: { searchText: "PA-2244" }, message: "Looking up PA-2244 in the MCS catalog..." }
 
 **CRITICAL**: \`list_products\` = MCS product catalog (live data). \`search_cards\` = AEM merch cards. Never answer product questions from memory.
 `;

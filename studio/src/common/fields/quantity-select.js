@@ -1,4 +1,7 @@
 import { css, html, LitElement } from 'lit';
+import { fieldStatusStyles } from './field-status.css.js';
+
+export const QUANTITY_SELECT_TAG = 'merch-quantity-select';
 
 /**
  * Builds a serialized merch quantity selector HTML value.
@@ -6,7 +9,7 @@ import { css, html, LitElement } from 'lit';
  * @returns {string}
  */
 export const createQuantitySelectValue = ({ title, min, step }) => {
-    const element = document.createElement('merch-quantity-select');
+    const element = document.createElement(QUANTITY_SELECT_TAG);
     element.setAttribute('title', `${title}`);
     element.setAttribute('min', `${min}`);
     element.setAttribute('max', '10');
@@ -23,7 +26,7 @@ export const parseQuantitySelectValue = (value) => {
     if (!value) return { title: '', min: '1', step: '1' };
     const parser = new DOMParser();
     const documentRoot = parser.parseFromString(value, 'text/html');
-    const element = documentRoot.querySelector('merch-quantity-select');
+    const element = documentRoot.querySelector(QUANTITY_SELECT_TAG);
     return {
         title: `${element?.getAttribute('title') ?? ''}`,
         min: `${element?.getAttribute('min') ?? '1'}`,
@@ -65,27 +68,7 @@ export class QuantitySelectField extends LitElement {
             width: 100%;
         }
 
-        .field-status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 6px;
-            font-size: 12px;
-            color: var(--spectrum-blue-700);
-        }
-
-        .field-status-indicator a {
-            color: var(--spectrum-blue-700);
-            text-decoration: none;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .field-status-indicator a:hover {
-            text-decoration: underline;
-        }
+        ${fieldStatusStyles}
     `;
 
     constructor() {

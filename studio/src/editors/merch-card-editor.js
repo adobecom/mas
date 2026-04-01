@@ -12,7 +12,7 @@ import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
-import { createQuantitySelectValue, parseQuantitySelectValue } from '../common/fields/quantity-select.js';
+import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
@@ -21,10 +21,11 @@ import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/aem-tag-picker-field.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
+import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
-const QUANTITY_EMPTY = '</merch-quantity-select>';
+const QUANTITY_EMPTY = `<${QUANTITY_SELECT_TAG}/>`;
 
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
@@ -604,6 +605,7 @@ class MerchCardEditor extends LitElement {
             if (this.effectiveIsVariation) html = QUANTITY_EMPTY;
         }
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
+        // on sp-checkbox uncheck Lit does not re-render, it has to be triggered manually
         if (!e.target.checked) this.requestUpdate();
     };
 
@@ -778,55 +780,6 @@ class MerchCardEditor extends LitElement {
                     --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
                 }
 
-                .field-status-indicator {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    margin-top: 6px;
-                    font-size: 14px;
-                    line-height: 18px;
-                    color: var(--spectrum-accent-content-color-default, #3b63fb);
-                }
-
-                .field-status-icon {
-                    color: inherit;
-                    flex: none;
-                }
-
-                .field-status-label {
-                    color: inherit;
-                }
-
-                .field-status-restore-link {
-                    position: relative;
-                    color: inherit;
-                    font: inherit;
-                    line-height: inherit;
-                    text-decoration: underline;
-                    cursor: pointer;
-                }
-
-                .field-status-restore-link-prefix {
-                    position: absolute;
-                    width: 1px;
-                    height: 1px;
-                    padding: 0;
-                    margin: -1px;
-                    overflow: hidden;
-                    clip: rect(0, 0, 0, 0);
-                    white-space: nowrap;
-                    border: 0;
-                }
-
-                .field-status-restore-link:hover {
-                    color: var(--spectrum-accent-content-color-hover, #2f55e0);
-                }
-
-                .field-status-restore-link:focus-visible {
-                    outline: 2px solid var(--spectrum-accent-content-color-key-focus, #2f55e0);
-                    outline-offset: 2px;
-                }
-
                 .section-title {
                     font-size: 20px;
                     font-weight: 700;
@@ -981,6 +934,8 @@ class MerchCardEditor extends LitElement {
                     --mod-combobox-border-color-default: var(--spectrum-blue-400);
                     --mod-combobox-background-color-default: var(--spectrum-blue-100);
                 }
+
+                ${fieldStatusStyles}
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
@@ -1981,18 +1936,28 @@ class MerchCardEditor extends LitElement {
         return this.#getCompositeComponentState(QUANTITY_MODEL, parseQuantitySelectValue, component, () => this.quantityValue);
     }
 
+    renderQuantityOverrideIndicator() {
+        const qsOpeningTag = `<${QUANTITY_SELECT_TAG} `;
+        const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
+        const ownHtml = this.fragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
+        if (!ownHtml) return nothing;
+        if (ownHtml.startsWith(qsOpeningTag) && parentHtml.startsWith(qsOpeningTag)) return nothing;
+        return null;
+    }
+
     renderQuantityComponentOverrideIndicator(component) {
         if (!this.effectiveIsVariation) return nothing;
         if (component && this.getQuantityComponentState(component) !== 'overridden') return nothing;
         if (!component) {
-            const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
-            const ownHtml = this.fragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
-            if (!ownHtml) return nothing;
-            if (ownHtml.startsWith('<merch-quantity-select ') && parentHtml.startsWith('<merch-quantity-select '))
-                return nothing;
+            const overrideIndicator = this.renderQuantityOverrideIndicator();
+            if (overrideIndicator) return overrideIndicator;
         }
 
         return this.#renderOverrideIndicatorLink(() => this.resetQuantityComponentToParent(component));
+    }
+
+    #getQuantitySelectValue(component, field, parentValues, currentValues) {
+        return !component || component === field ? parentValues[field] : currentValues[field];
     }
 
     async resetQuantityComponentToParent(component) {
@@ -2006,9 +1971,9 @@ class MerchCardEditor extends LitElement {
         const parentValues = parseQuantitySelectValue(parentHtml);
         const currentValues = parseQuantitySelectValue(this.quantityValue);
         const html = createQuantitySelectValue({
-            title: !component || component === 'title' ? parentValues.title : currentValues.title,
-            min: !component || component === 'min' ? parentValues.min : currentValues.min,
-            step: !component || component === 'step' ? parentValues.step : currentValues.step,
+            title: this.#getQuantitySelectValue(component, 'title', parentValues, currentValues),
+            min: this.#getQuantitySelectValue(component, 'min', parentValues, currentValues),
+            step: this.#getQuantitySelectValue(component, 'step', parentValues, currentValues),
         });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;

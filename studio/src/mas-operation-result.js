@@ -731,7 +731,10 @@ export class MasOperationResult extends LitElement {
         const cards = rawResult.cards || [];
         const productName = rawResult.product?.name || '';
         const successCount = cards.filter((c) => c.success).length;
-        const successCards = cards.filter((c) => c.success).map((c) => c.card).filter(Boolean);
+        const successCards = cards
+            .filter((c) => c.success)
+            .map((c) => c.card)
+            .filter(Boolean);
         this.cacheFragments(successCards);
 
         return html`
@@ -758,7 +761,6 @@ export class MasOperationResult extends LitElement {
                                 <div class="release-card-info">
                                     <sp-icon-check-circle size="s"></sp-icon-check-circle>
                                     <span class="release-card-title">${card.title}</span>
-                                    <sp-badge size="s">${card.variant}</sp-badge>
                                     <sp-action-button quiet size="s" title="Edit" @click=${() => this.handleOpenCard(card)}>
                                         <sp-icon-edit slot="icon"></sp-icon-edit>
                                     </sp-action-button>

@@ -397,6 +397,7 @@ export class AemFragment extends HTMLElement {
             fields,
             id,
             tags,
+            variationId,
             settings = {},
             priceLiterals = {},
             dictionary = {},
@@ -415,6 +416,7 @@ export class AemFragment extends HTMLElement {
                 priceLiterals,
                 dictionary,
                 placeholders,
+                variationId,
             },
         );
     }
@@ -428,6 +430,7 @@ export class AemFragment extends HTMLElement {
             priceLiterals = {},
             dictionary = {},
             placeholders = {},
+            variationId,
         } = this.#rawData;
         this.#data = Object.entries(fields).reduce(
             (acc, [key, value]) => {
@@ -442,6 +445,7 @@ export class AemFragment extends HTMLElement {
                 priceLiterals,
                 dictionary,
                 placeholders,
+                variationId,
             },
         );
     }

@@ -515,6 +515,58 @@ describe('hydrate', () => {
         expect(ctaButton).to.exist;
         expect(ctaButton.getAttribute('daa-ll')).to.equal('buy-now-1');
     });
+
+    it('sets variation-id when fragment includes variationId', async () => {
+        const fragment = {
+            variationId: 'ccd-variation-42',
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: ['test/mocks/img/photoshop.svg'],
+                mnemonicAlt: [],
+                mnemonicLink: ['www.adobe.com'],
+                backgroundImage: 'test/mocks/img/photoshop.svg',
+                ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" data-analytics-id="buy-now">Click me</a>',
+                tags: ['mas:term/montly', 'mas:product_code/ccsn'],
+            },
+            settings: {
+                secureLabel: 'Secure Label',
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.getAttribute('variation-id')).to.equal(
+            'ccd-variation-42',
+        );
+    });
+
+    it('hydrates MerchCard with variationId and merch-addon for plans variant', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const addonHtml = `<p><strong>Add-on</strong></p><p>Add for <span is="inline-price" data-template="price" data-wcs-osi="puf"></span></p><p>Add for <span is="inline-price" data-template="price" data-wcs-osi="abm"></span></p><p>Add for <span is="inline-price" data-template="price" data-wcs-osi="m2m"></span></p>`;
+        const fragment = {
+            id: 'plan-card-variation',
+            variationId: 'plans-variation-99',
+            fields: {
+                variant: 'plans',
+                cardTitle: 'Creative Cloud',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main" data-analytics-id="buy">Buy</a>',
+                addon: addonHtml,
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.getAttribute('variation-id')).to.equal(
+            'plans-variation-99',
+        );
+        expect(litCard.addon).to.exist;
+        expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
+        expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
 });
 
 describe('processDescription', async () => {

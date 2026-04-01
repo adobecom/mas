@@ -786,6 +786,8 @@ export async function hydrate(fragment, merchCard) {
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
     merchCard.id ??= fragment.id;
+    if (fragment.variationId)
+        merchCard.setAttribute('variation-id', fragment.variationId ?? '');
     merchCard.variant = variant;
     await merchCard.updateComplete;
 

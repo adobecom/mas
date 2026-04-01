@@ -27,19 +27,6 @@ export async function initUsers() {
         Store.profile.set(profile);
         const uniqueEditors = await loadUsers();
         Store.users.set(uniqueEditors);
-
-        Store.search.subscribe(async ({ path }) => {
-            if (path === 'sandbox') {
-                Store.createdByUsers.set([
-                    {
-                        displayName: profile.displayName,
-                        userPrincipalName: profile.email,
-                    },
-                ]);
-            } else {
-                Store.createdByUsers.set([]);
-            }
-        });
     } catch (e) {
         console.error('Error initializing users', e);
         Store.users.set([]);

@@ -19,6 +19,7 @@ class MasConfirmDialog extends LitElement {
 
         sp-dialog-wrapper {
             --sp-overlay-background: rgba(0, 0, 0, 0.4);
+            z-index: 10000;
         }
     `;
 

@@ -1578,21 +1578,27 @@ export class MasChat extends LitElement {
             .join(' ');
     }
 
-    scrollToBottom() {
+    scrollToLatestResponse() {
         const messagesContainer = this.querySelector('.chat-messages');
         if (!messagesContainer) return;
         requestAnimationFrame(() => {
-            messagesContainer.scrollTo({
-                top: messagesContainer.scrollHeight,
-                behavior: 'smooth',
-            });
+            const messages = messagesContainer.querySelectorAll('.chat-message-assistant');
+            const lastAssistant = messages[messages.length - 1];
+            if (lastAssistant) {
+                lastAssistant.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    behavior: 'smooth',
+                });
+            }
         });
     }
 
     updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('messages') || changedProperties.has('isLoading')) {
-            this.scrollToBottom();
+            this.scrollToLatestResponse();
             if (changedProperties.has('messages')) {
                 this.saveCurrentSession();
             }

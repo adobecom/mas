@@ -291,7 +291,7 @@ Response:
 \`\`\`json
 {
   "type": "guided_step",
-  "message": "Which product is this card for? Pick one below or type any product name to search:",
+  "message": "Type in your new product, or select from recent options below.",
   "buttonGroup": {
     "label": "Product",
     "inputHint": "Or type a product name to search...",
@@ -300,7 +300,7 @@ Response:
 }
 \`\`\`
 
-IMPORTANT: Do not hardcode product suggestions in this step. The text input remains active so users can type a product not shown in the recent MCS cards.
+IMPORTANT: Do not hardcode product suggestions in this step. The main chat prompt and the button group text input both remain active so users can type a product name at any time.
 
 ## Step 2: Product Lookup
 When the user provides a product name, call \`list_products\` to resolve it:
@@ -372,7 +372,8 @@ After the user picks an offering type, open the Offer Selector Tool (OST) so the
   "searchParams": {
     "arrangement_code": "<resolved arrangement code from step 2>",
     "commitment": "<from step 4, e.g. YEAR>",
-    "term": "<from step 4, e.g. MONTHLY>"
+    "term": "<from step 4, e.g. MONTHLY>",
+    "customerSegment": "<segment selected by user in step 3, e.g. INDIVIDUAL, TEAM, or ENTERPRISE>"
   }
 }
 \`\`\`

@@ -128,7 +128,13 @@ export const PAGE_NAMES = {
 };
 
 const IO_DEV_NAMESPACE = '14257-merchatscale-axel';
-export const AI_CHAT_BASE_URL = `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+function getAIChatBaseURL() {
+    const params = new URLSearchParams(window.location.search);
+    const override = params.get('ai.chat');
+    if (override) return override;
+    return `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
+}
+export const AI_CHAT_BASE_URL = getAIChatBaseURL();
 function getMCPServerURL() {
     const params = new URLSearchParams(window.location.search);
     const override = params.get('mcp.server');

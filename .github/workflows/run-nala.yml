@@ -162,8 +162,8 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
-            # Not gated on browser cache: cache restores binaries only, not OS apt packages.
             - name: Install Playwright system dependencies
+              if: steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install-deps
 
             - name: Install/verify Playwright browsers

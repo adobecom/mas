@@ -49,9 +49,11 @@ function measureTiming(context, label, startLabel = label) {
 async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
-        const responsePromise = fetch(path, {
-            headers: context.DEFAULT_HEADERS,
-        });
+        const headers = { ...context.DEFAULT_HEADERS };
+        if (context.authToken) {
+            headers['Authorization'] = `Bearer ${context.authToken}`;
+        }
+        const responsePromise = fetch(path, { headers });
 
         // Race the fetch promise with a timeout
         const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);
@@ -104,10 +106,39 @@ async function fetchAttempt(path, context, timeout, marker) {
 async function internalFetch(path, context, marker) {
     mark(context, `${marker}`);
     const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
+
+    // Primary attempt (single try when fallbackUrl is set, full retries otherwise)
+    const primaryRetries = context.fallbackUrl ? 1 : retries;
+    let response = await fetchWithRetries(path, context, fetchTimeout, primaryRetries, retryDelay, marker);
+
+    // Fallback: if primary failed and fallbackUrl is configured, try Odin
+    if (context.fallbackUrl && response.status !== 200) {
+        const fallbackPath = path.replace(context.preview?.url, context.fallbackUrl);
+        log(`[preview] Freyja failed (${response.status}), falling back to Odin`, context);
+        const fallbackContext = { ...context, authToken: undefined, fallbackUrl: undefined };
+        response = await fetchWithRetries(
+            fallbackPath,
+            fallbackContext,
+            fetchTimeout,
+            retries,
+            retryDelay,
+            `${marker}-fallback`,
+        );
+        if (response.status === 200) {
+            log('[preview] Odin fallback OK', context);
+        }
+    } else if (context.fallbackUrl && response.status === 200) {
+        log('[preview] Freyja OK', context);
+    }
+
+    measureTiming(context, `main-fetch-${marker}`, marker);
+    return response;
+}
+
+async function fetchWithRetries(path, context, fetchTimeout, retries, retryDelay, marker) {
     let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
-        // Race the fetch promise with a timeout
         response = await fetchAttempt(path, context, fetchTimeout, `fetch-${marker}-${attempt}`);
         if ([503, 504].includes(response.status)) {
             log(
@@ -115,12 +146,11 @@ async function internalFetch(path, context, marker) {
                 context,
             );
             await new Promise((resolve) => setTimeout(resolve, delay));
-            delay *= 2; // Exponential backoff
+            delay *= 2;
         } else {
             break;
         }
     }
-    measureTiming(context, `main-fetch-${marker}`, marker);
     return response;
 }
 

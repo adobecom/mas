@@ -83,6 +83,7 @@ function fragmentFieldsHaveNonCountryPzn(fragment) {
 
 /**
  * True when the fragment has any mas:pzn tag outside the country subtree (mas:pzn/country/…).
+ * Drives **hide vs show** for the Studio personalization toggle (hide when toggle is off, for non-country PZN).
  * Country PZN alone does not count; **country + non-country** still counts (country tags do not cancel non-country PZN).
  * Uses AEM fragment `tags` (id or path) plus CF fields (`pznTags`, `tags`, `tagFilters`).
  *

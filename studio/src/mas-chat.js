@@ -433,11 +433,14 @@ export class MasChat extends LitElement {
                 }
 
                 const guidedStep = await this.enrichGuidedStepWithRecentProducts(response);
+                const isProductSelectionStep = guidedStep.buttonGroup?.label === 'Product';
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
-                        content: guidedStep.message,
+                        content: isProductSelectionStep
+                            ? 'Type in your new product, or select from recent options below.'
+                            : guidedStep.message,
                         buttonGroup: guidedStep.buttonGroup,
                         productCards: guidedStep.productCards,
                         timestamp: Date.now(),
@@ -1199,11 +1202,14 @@ export class MasChat extends LitElement {
                 }
 
                 const guidedStep = await this.enrichGuidedStepWithRecentProducts(response);
+                const isProductSelectionStep = guidedStep.buttonGroup?.label === 'Product';
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
-                        content: guidedStep.message,
+                        content: isProductSelectionStep
+                            ? 'Type in your new product, or select from recent options below.'
+                            : guidedStep.message,
                         buttonGroup: guidedStep.buttonGroup,
                         productCards: guidedStep.productCards,
                         timestamp: Date.now(),

@@ -125,9 +125,9 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button {
     line-height: var(--merch-card-simplified-pricing-express-cta-line-height);
     font-size: var(--merch-card-simplified-pricing-express-cta-font-size);
     margin: 0;
-    padding: 10px 24px 13px 24px;
     border-radius: 26px;
-    height: 48px;
+    padding: 10px 24px;
+    min-height: 48px;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] {
@@ -435,5 +435,16 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] sp-button[variant=
 merch-card[variant="simplified-pricing-express"] [slot="cta"] button.spectrum-Button--accent .spectrum-Button-label,
 merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent .spectrum-Button-label {
     color: var(--spectrum-white, #ffffff);
+}
+
+/* Small font size button styles for desktop when button text is too long */
+@media screen and ${DESKTOP_UP} {
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] sp-button.small-font-size-button,
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] button.small-font-size-button,
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button.small-font-size-button,
+  merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.small-font-size-button,
+  merch-card[variant="simplified-pricing-express"] a[slot="cta"].small-font-size-button {
+      font-size: var(--merch-card-simplified-pricing-express-body-xs-font-size, 14px);
+  }
 }
 `;

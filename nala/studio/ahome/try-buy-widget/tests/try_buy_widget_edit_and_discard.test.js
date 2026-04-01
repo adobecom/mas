@@ -119,7 +119,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-4: Validate image is removed from the card', async () => {
-            await expect(await trybuywidget.cardImage).not.toBeVisible();
+            await expect((await studio.getCard(data.cardid)).locator(trybuywidget.cardImage)).not.toBeVisible();
         });
 
         await test.step('step-5: Enter new value in the background URL field', async () => {
@@ -131,8 +131,11 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-7: Validate new image on the card', async () => {
-            await expect(await trybuywidget.cardImage).toBeVisible();
-            await expect(await trybuywidget.cardImage).toHaveAttribute('src', data.background.updated);
+            await expect((await studio.getCard(data.cardid)).locator(trybuywidget.cardImage)).toBeVisible();
+            await expect((await studio.getCard(data.cardid)).locator(trybuywidget.cardImage)).toHaveAttribute(
+                'src',
+                data.background.updated,
+            );
         });
 
         await test.step('step-8: Close the editor and verify discard is triggered', async () => {
@@ -140,7 +143,10 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         });
 
         await test.step('step-9: Verify that the changes are not reflected on the card', async () => {
-            await expect(await trybuywidget.cardImage).toHaveAttribute('src', data.background.original);
+            await expect((await studio.getCard(data.cardid)).locator(trybuywidget.cardImage)).toHaveAttribute(
+                'src',
+                data.background.original,
+            );
         });
     });
 });

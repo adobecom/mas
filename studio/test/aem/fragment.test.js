@@ -540,5 +540,15 @@ describe('Fragment', () => {
             );
             expect(withNestedPa.getCurrentTagTitle('mas:product_code/')).to.equal('Frame.io Plus (FRAMEIO)');
         });
+
+        it('falls back to prettified segment when no tag title is available', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    tags: [],
+                    fields: [{ name: 'tags', values: ['mas:product_code/my_custom_code'], multiple: true }],
+                }),
+            );
+            expect(fragment.getCurrentTagTitle('mas:product_code/')).to.equal('My Custom Code');
+        });
     });
 });

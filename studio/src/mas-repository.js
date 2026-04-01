@@ -443,7 +443,13 @@ export class MasRepository extends LitElement {
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 const fragmentStores = [];
-                const done = await this.#fillPage(cursor, variants, surface, fragmentStores);
+                const done = await this.#fillPage(
+                    cursor,
+                    variants,
+                    surface,
+                    fragmentStores,
+                    variants.length > 0 ? Infinity : undefined,
+                );
                 if (this.#abortControllers.search !== searchController) {
                     Store.fragments.list.loading.set(false);
                     return;
@@ -475,9 +481,9 @@ export class MasRepository extends LitElement {
 
     static MIN_PAGE_SIZE = 10;
 
-    async #fillPage(cursor, variants, surface, fragmentStores) {
+    async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE) {
         let added = 0;
-        while (added < MasRepository.MIN_PAGE_SIZE) {
+        while (added < limit) {
             const page = await cursor.next();
             if (page.done) return true;
             for await (const item of page.value) {

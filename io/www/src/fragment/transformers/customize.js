@@ -1,7 +1,7 @@
 import { odinReferences, odinUrl } from '../utils/paths.js';
 import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
-import { getDefaultLocaleCode } from '../locales.js';
+import { getDefaultLocaleCode, getLocaleCode, getRegionLocales, parseLocaleCode } from '../locales.js';
 
 const PZN_FOLDER = '/pzn/';
 
@@ -180,7 +180,10 @@ function mergeVariations(root, customizeContext) {
         const regionalVariation = findRegionalVariation(variations, references, prefix);
         if (regionalVariation) {
             logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
-            return deepMerge(root, regionalVariation);
+            const merged = deepMerge(root, regionalVariation);
+            merged.id = root.id;
+            merged.variationId = regionalVariation.id;
+            return merged;
         }
     }
     const personalizationVariation = findPersonalizationVariation(variations, customizeContext);
@@ -189,7 +192,10 @@ function mergeVariations(root, customizeContext) {
             () => `Merging personalization variation ${personalizationVariation.id} for fragment ${root.id}`,
             customizeContext,
         );
-        return deepMerge(root, personalizationVariation);
+        const merged = deepMerge(root, personalizationVariation);
+        merged.id = root.id;
+        merged.variationId = personalizationVariation.id;
+        return merged;
     }
     return root;
 }
@@ -212,44 +218,62 @@ function customizeTree(root, referencesTree = [], customizeContext) {
             const child = customizeContext.references[reference.identifier]?.value;
             if (child) {
                 //start customization of the child fragment
-                const { fragment: customizedChild, references: customizedReferences } = customizeTree(
-                    child,
-                    reference.referencesTree,
-                    customizeContext,
-                );
-                if (customizedChild.id !== child.id) {
-                    //reference has been customized
-                    //we update reference tree
-                    reference.identifier = customizedChild.id;
-                    const updatedReference = customizedRoot?.fields[reference.fieldName];
-                    //we update the corresponding field, adding new reference, and removing old one
-                    const oldReferenceIndex = updatedReference?.indexOf(child.id);
-                    if (oldReferenceIndex > -1) {
-                        customizedRoot.fields[reference.fieldName] = [
-                            ...updatedReference.slice(0, oldReferenceIndex),
-                            customizedChild.id,
-                            ...updatedReference.slice(oldReferenceIndex + 1),
-                        ];
-                    }
-                }
+                const { references: customizedReferences } = customizeTree(child, reference.referencesTree, customizeContext);
                 //we collect update references and merge in current references
                 customizeContext.references = { ...customizeContext.references, ...customizedReferences };
             }
         }
     }
-    //finally we return updated root and references
-    if (customizedRoot.id !== root.id) {
-        //there has been a customization: we update references
-        customizeContext.references = {
-            ...customizeContext.references,
-            [customizedRoot.id]: { type: 'content-fragment', value: skimFragmentFromReferences(customizedRoot) },
-        };
+    //finally we return updated root and references (stable id: default fragment key in references map)
+    const refs = customizeContext.references;
+    if (refs && root.id != null) {
+        const existingRef = refs[root.id];
+        if (existingRef) {
+            customizeContext.references = {
+                ...refs,
+                [root.id]: {
+                    ...existingRef,
+                    type: 'content-fragment',
+                    value: skimFragmentFromReferences(customizedRoot),
+                },
+            };
+        }
     }
     return { fragment: customizedRoot, references: customizeContext.references, referencesTree };
 }
 
+/**
+ * Returns the locale used for regional paths and personalization.
+ * If the request uses the default locale code but country differs from that locale's default country and maps to a
+ * known region for that language on the surface, returns that regional code (e.g. fr_FR + CA → fr_CA).
+ * If the requested locale is already a regional code, it is preserved when no country override applies.
+ * @param {*} context
+ * @returns {string}
+ */
+export function computeRegionLocale(context) {
+    const { locale, defaultLocale: defaultLocaleCode, surface } = context;
+    const country = context.country?.toUpperCase();
+    const [, defaultCountry] = parseLocaleCode(defaultLocaleCode);
+    const defaultCountryUpper = defaultCountry?.toUpperCase();
+    const effectiveCountry = country && defaultCountryUpper != null && country !== defaultCountryUpper ? country : null;
+
+    let regionLocale = locale;
+    if (locale !== defaultLocaleCode || effectiveCountry != null) {
+        const regionObjects = getRegionLocales(surface, defaultLocaleCode, true);
+        const regionLocaleObject =
+            effectiveCountry != null ? regionObjects.find((r) => r.country?.toUpperCase() === effectiveCountry) : null;
+        const mapped = regionLocaleObject ? getLocaleCode(regionLocaleObject) : null;
+        regionLocale = mapped || locale;
+    }
+    logDebug(
+        () =>
+            `Computed region locale '${regionLocale}' for requested locale '${locale}' with country '${country}' on surface '${surface}'`,
+        context,
+    );
+    return regionLocale;
+}
+
 async function customize(context) {
-    const { locale, country, pzn } = context;
     const { surface } = await getRequestInfos(context);
     const { body, defaultLocale, status, message } = await context.promises?.customize;
     const promos = await context.promises?.promotions;
@@ -258,10 +282,9 @@ async function customize(context) {
         return { ...context, status, message };
     }
     const baseFragment = skimFragmentFromReferences(body);
-    const isRegionLocale = country ? defaultLocale.indexOf(`_${country}`) == -1 : defaultLocale !== locale;
-    logDebug(() => `isRegionLocale: ${isRegionLocale}`, context);
-    const regionLocale = country ? `${defaultLocale.split('_')[0]}_${country.toUpperCase()}` : locale;
     const { references, referencesTree } = body;
+    const regionLocale = computeRegionLocale({ ...context, defaultLocale });
+    const isRegionLocale = regionLocale !== defaultLocale;
     const customizeContext = {
         ...context,
         isRegionLocale,

@@ -175,17 +175,19 @@ export function resolveSettingEntry(fragment, locale, setting) {
     let bestMatch = defaultEntry;
     let maxTagMatches = -1;
     const tags = fragment.fields?.tags;
-    if (filteredLocale.length > 1 && tags?.length > 0) {
-        for (const overrideSetting of filteredLocale) {
+    for (const overrideSetting of filteredLocale) {
+        if (!overrideSetting.tags?.length) {
+            if (maxTagMatches < 0) {
+                maxTagMatches = 0;
+                bestMatch = overrideSetting;
+            }
+        } else if (tags?.length > 0) {
             const tagMatches = overrideSetting.tags.filter((tag) => tags.includes(tag)).length;
-            if (tagMatches > maxTagMatches) {
+            if (tagMatches > 0 && tagMatches > maxTagMatches) {
                 maxTagMatches = tagMatches;
                 bestMatch = overrideSetting;
             }
         }
-    } else if (filteredLocale.length === 1) {
-        // No tags or no fragment tags; just return the first matching override
-        bestMatch = filteredLocale[0];
     }
 
     return { ...defaultEntry, ...bestMatch };

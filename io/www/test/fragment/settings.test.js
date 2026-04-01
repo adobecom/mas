@@ -454,6 +454,68 @@ describe('settings', () => {
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3-FR');
         });
 
+        it('does not apply tag-restricted override to fragment without matching tags', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'ccd-mini', tags: ['mas:variant/ccd-mini'] } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                                locales: [],
+                                tags: [],
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    locales: ['fr_FR', 'fr_CA'],
+                                    tags: ['mas:variant/catalog'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.false;
+        });
+
+        it('applies tag-restricted override to fragment with matching tags', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'catalog', tags: ['mas:variant/catalog'] } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: false,
+                                locales: [],
+                                tags: [],
+                            },
+                            override: [
+                                {
+                                    name: 'hideTrialCTAs',
+                                    valuetype: 'boolean',
+                                    booleanValue: true,
+                                    locales: ['fr_FR', 'fr_CA'],
+                                    tags: ['mas:variant/catalog'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.true;
+        });
+
         it('applies secureLabel locale override when fragment locale matches', async () => {
             const context = {
                 locale: 'fr_FR',

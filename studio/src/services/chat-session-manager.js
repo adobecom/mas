@@ -148,13 +148,6 @@ export class ChatSessionManager {
         return data.activeSessionId;
     }
 
-    clearSession(sessionId) {
-        return this.updateSession(sessionId, {
-            messages: [],
-            conversationHistory: [],
-        });
-    }
-
     renameSession(sessionId, newName) {
         if (!newName || !newName.trim()) {
             throw new Error('Session name cannot be empty');

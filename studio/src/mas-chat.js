@@ -97,7 +97,6 @@ export class MasChat extends LitElement {
         this.addEventListener('operation-action', this.handleOperationAction);
         this.addEventListener('open-card', this.handleOpenCardFromOperation);
         this.addEventListener('session-changed', this.handleSessionChanged);
-        this.addEventListener('session-cleared', this.handleSessionCleared);
         this.addEventListener('approve-preview', this.handleApprovePreview);
         this.addEventListener('cancel-preview', this.handleCancelPreview);
         this.addEventListener('button-selected', this.handleButtonSelected);
@@ -113,7 +112,6 @@ export class MasChat extends LitElement {
         this.removeEventListener('operation-action', this.handleOperationAction);
         this.removeEventListener('open-card', this.handleOpenCardFromOperation);
         this.removeEventListener('session-changed', this.handleSessionChanged);
-        this.removeEventListener('session-cleared', this.handleSessionCleared);
         this.removeEventListener('approve-preview', this.handleApprovePreview);
         this.removeEventListener('cancel-preview', this.handleCancelPreview);
         this.removeEventListener('button-selected', this.handleButtonSelected);
@@ -191,16 +189,6 @@ export class MasChat extends LitElement {
         }
     }
 
-    handleSessionCleared(event) {
-        const { sessionId } = event.detail;
-        if (sessionId === this.currentSessionId) {
-            this.messages = [];
-            this.conversationHistory = [];
-            this.showPromptSuggestions = true;
-            this.showWelcomeScreen = true;
-        }
-    }
-
     addWelcomeMessage() {
         this.messages = [];
         this.showWelcomeScreen = true;
@@ -265,6 +253,10 @@ export class MasChat extends LitElement {
 
         this.showPromptSuggestions = false;
         this.showWelcomeScreen = false;
+
+        if (context?.osi) {
+            this.messages = this.messages.map((msg) => (msg.openOst ? { ...msg, ostConfirmed: true } : msg));
+        }
 
         const userMessage = {
             role: 'user',

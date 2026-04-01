@@ -11,6 +11,7 @@ export class MasChatConfirmationSummary extends LitElement {
         surface: { type: String },
         selectedVariants: { state: true },
         previewsLoaded: { state: true },
+        showTemplateDialog: { state: true },
     };
 
     constructor() {
@@ -20,6 +21,7 @@ export class MasChatConfirmationSummary extends LitElement {
         this.surface = '';
         this.selectedVariants = new Set();
         this.previewsLoaded = false;
+        this.showTemplateDialog = false;
     }
 
     createRenderRoot() {
@@ -48,7 +50,16 @@ export class MasChatConfirmationSummary extends LitElement {
         this.selectedVariants = next;
     }
 
+    openTemplateDialog() {
+        this.showTemplateDialog = true;
+    }
+
+    closeTemplateDialog() {
+        this.showTemplateDialog = false;
+    }
+
     handleConfirm() {
+        this.closeTemplateDialog();
         this.dispatchEvent(
             new CustomEvent('confirmation-action', {
                 detail: {
@@ -104,22 +115,40 @@ export class MasChatConfirmationSummary extends LitElement {
         `;
     }
 
-    get templateGrid() {
+    get templateDialog() {
+        if (!this.showTemplateDialog) return nothing;
         const variants = getVariantTreeData(this.surface);
         return html`
-            <div class="summary-templates">
-                <span class="summary-label">Select templates</span>
-                <div class="template-grid">
-                    ${!this.previewsLoaded
-                        ? html`<div class="template-loading">
-                              <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-                          </div>`
-                        : nothing}
-                    ${repeat(
-                        variants,
-                        (v) => v.name,
-                        (v) => this.renderTemplateCard(v),
-                    )}
+            <div class="dialog-backdrop" @click=${() => this.closeTemplateDialog()}>
+                <div class="create-dialog" @click=${(e) => e.stopPropagation()}>
+                    <div class="create-dialog-top">
+                        <h3 class="create-dialog-title">Select Templates</h3>
+                        <sp-action-button quiet @click=${() => this.closeTemplateDialog()}>
+                            <sp-icon-close slot="icon"></sp-icon-close>
+                        </sp-action-button>
+                    </div>
+                    <div class="template-grid">
+                        ${!this.previewsLoaded
+                            ? html`<div class="template-loading">
+                                  <sp-progress-circle indeterminate size="l"></sp-progress-circle>
+                              </div>`
+                            : nothing}
+                        ${repeat(
+                            variants,
+                            (v) => v.name,
+                            (v) => this.renderTemplateCard(v),
+                        )}
+                    </div>
+                    <div class="dialog-footer">
+                        <sp-button variant="secondary" @click=${() => this.closeTemplateDialog()}>Cancel</sp-button>
+                        <sp-button
+                            variant="accent"
+                            ?disabled=${this.selectedVariants.size === 0}
+                            @click=${() => this.handleConfirm()}
+                        >
+                            Confirm
+                        </sp-button>
+                    </div>
                 </div>
             </div>
         `;
@@ -168,7 +197,20 @@ export class MasChatConfirmationSummary extends LitElement {
                         <span class="summary-value">${locale || 'en_US'}</span>
                     </div>
                 </div>
-                ${this.surface ? this.templateGrid : nothing}
+                ${this.surface
+                    ? html`
+                          <div class="summary-template-action">
+                              <sp-button variant="accent" ?disabled=${this.confirmed} @click=${() => this.openTemplateDialog()}>
+                                  <sp-icon-preview slot="icon"></sp-icon-preview>
+                                  Select template
+                                  ${this.selectedVariants.size > 0
+                                      ? html`<sp-badge slot="label" size="s">${this.selectedVariants.size}</sp-badge>`
+                                      : nothing}
+                              </sp-button>
+                          </div>
+                          ${this.templateDialog}
+                      `
+                    : nothing}
                 <div class="summary-actions">
                     <sp-button size="s" variant="secondary" ?disabled=${this.confirmed} @click=${this.handleCancel}>
                         Start Over

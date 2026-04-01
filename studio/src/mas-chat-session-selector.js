@@ -107,10 +107,11 @@ export class MasChatSessionSelector extends LitElement {
         if (!confirmed) return;
 
         try {
+            const wasActive = sessionId === this.activeSessionId;
             const newActiveSessionId = sessionManager.deleteSession(sessionId);
             this.loadSessions();
 
-            if (sessionId === this.activeSessionId) {
+            if (wasActive) {
                 this.dispatchEvent(
                     new CustomEvent('session-changed', {
                         detail: { sessionId: newActiveSessionId },
@@ -141,42 +142,6 @@ export class MasChatSessionSelector extends LitElement {
             showToast('Session renamed', 'positive');
         } catch (error) {
             showToast(`Failed to rename session: ${error.message}`, 'negative');
-        }
-    }
-
-    async handleClearSession(event, sessionId) {
-        event.stopPropagation();
-
-        const session = sessionManager.getSession(sessionId);
-        if (!session) return;
-
-        this.isOpen = false;
-
-        const confirmed = await confirmation({
-            title: 'Clear Chat History',
-            content: `Clear all messages in "${session.name}"? The session will be kept but the conversation will be reset.`,
-            confirmLabel: 'Clear',
-        });
-
-        if (!confirmed) return;
-
-        try {
-            sessionManager.clearSession(sessionId);
-            this.loadSessions();
-
-            if (sessionId === this.activeSessionId) {
-                this.dispatchEvent(
-                    new CustomEvent('session-cleared', {
-                        detail: { sessionId },
-                        bubbles: true,
-                        composed: true,
-                    }),
-                );
-            }
-
-            showToast('Chat history cleared', 'positive');
-        } catch (error) {
-            showToast(`Failed to clear session: ${error.message}`, 'negative');
         }
     }
 
@@ -256,18 +221,10 @@ export class MasChatSessionSelector extends LitElement {
                     <sp-action-button
                         quiet
                         size="s"
-                        title="Clear conversation"
-                        @click=${(e) => this.handleClearSession(e, session.id)}
-                    >
-                        <sp-icon-delete slot="icon"></sp-icon-delete>
-                    </sp-action-button>
-                    <sp-action-button
-                        quiet
-                        size="s"
                         title="Delete session"
                         @click=${(e) => this.handleDeleteSession(e, session.id)}
                     >
-                        <sp-icon-close slot="icon"></sp-icon-close>
+                        <sp-icon-delete slot="icon"></sp-icon-delete>
                     </sp-action-button>
                 </div>
             </div>

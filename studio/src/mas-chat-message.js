@@ -575,8 +575,8 @@ export class MasChatMessage extends LitElement {
                           : nothing}
                     ${this.message.openOst
                         ? html`<sp-button
-                              variant="secondary"
-                              size="s"
+                              variant="accent"
+                              ?disabled=${this.message.ostConfirmed}
                               @click=${() =>
                                   this.dispatchEvent(
                                       new CustomEvent('open-ost-from-response', {

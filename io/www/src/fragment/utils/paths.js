@@ -2,6 +2,10 @@ const MAS_ROOT = '/content/dam/mas';
 
 const FRAGMENT_URL_PREFIX = 'https://odin.adobe.com/adobe/sites/fragments';
 
+const FREYJA_PREVIEW_URL = 'https://preview-p22655-e59433.adobeaemcloud.com/adobe/contentFragments';
+
+const ODIN_PREVIEW_URL = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
+
 const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 
 function rootURL(preview) {
@@ -43,4 +47,4 @@ function odinUrl(surface, { locale, fragmentPath, preview }) {
     return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
-export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinUrl, odinId, odinReferences };
+export { PATH_TOKENS, FRAGMENT_URL_PREFIX, FREYJA_PREVIEW_URL, ODIN_PREVIEW_URL, MAS_ROOT, odinUrl, odinId, odinReferences };

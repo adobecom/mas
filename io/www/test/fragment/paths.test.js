@@ -1,5 +1,11 @@
 import { expect } from 'chai';
-import { PATH_TOKENS, odinReferences, FRAGMENT_URL_PREFIX } from '../../src/fragment/utils/paths.js';
+import {
+    PATH_TOKENS,
+    odinReferences,
+    FRAGMENT_URL_PREFIX,
+    FREYJA_PREVIEW_URL,
+    ODIN_PREVIEW_URL,
+} from '../../src/fragment/utils/paths.js';
 
 describe('PATH_TOKENS', () => {
     it('should work with adobe-home surface', async () => {
@@ -25,5 +31,17 @@ describe('odinReferences', () => {
     it('should return URL without references parameter when allHydrated is not provided', () => {
         const result = odinReferences('test-id');
         expect(result).to.equal(`${FRAGMENT_URL_PREFIX}/test-id`);
+    });
+});
+
+describe('FREYJA_PREVIEW_URL', () => {
+    it('should point to Freyja v2 contentFragments endpoint', () => {
+        expect(FREYJA_PREVIEW_URL).to.equal('https://preview-p22655-e59433.adobeaemcloud.com/adobe/contentFragments');
+    });
+});
+
+describe('ODIN_PREVIEW_URL', () => {
+    it('should point to Odin preview fragments endpoint', () => {
+        expect(ODIN_PREVIEW_URL).to.equal('https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments');
     });
 });

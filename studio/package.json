@@ -19,6 +19,10 @@
     "license": "ISC",
     "dependencies": {
         "@spectrum-web-components/banner": "^0.49.0",
-        "prosemirror-placeholder": "^1.0.7"
+        "prosemirror-model": "1.24.1",
+        "prosemirror-placeholder": "^1.0.7",
+        "prosemirror-state": "1.4.3",
+        "prosemirror-transform": "1.10.2",
+        "prosemirror-view": "1.37.0"
     }
 }

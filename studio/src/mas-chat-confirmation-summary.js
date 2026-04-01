@@ -157,7 +157,7 @@ export class MasChatConfirmationSummary extends LitElement {
     render() {
         if (!this.summary) return nothing;
 
-        const { product, segment, offeringType, promoCode, locale } = this.summary;
+        const { product, segment, offeringType, locale } = this.summary;
         const productDescription = this.getProductDescription(product);
         const variantCount = this.selectedVariants.size;
 
@@ -187,10 +187,6 @@ export class MasChatConfirmationSummary extends LitElement {
                     <div class="summary-row">
                         <span class="summary-label">Offering</span>
                         <span class="summary-value">${offeringType?.label || 'Unknown'}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="summary-label">Promo Code</span>
-                        <span class="summary-value">${promoCode || 'None'}</span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Locale</span>

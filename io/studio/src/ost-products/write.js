@@ -47,7 +47,7 @@ const getPlanType = ({ commitment, term }) => {
 const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
     const { AOS_URL, AOS_API_KEY } = params;
     const [, country] = locale.split('_');
-    const offersEndpoint = `${AOS_URL}?country=${country}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=${locale}&api_key=${AOS_API_KEY}&landscape=${landscape}&page_size=100&page=${page}`;
+    const offersEndpoint = `${AOS_URL}?country=${country}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&sales_channel=DIRECT&buying_program=RETAIL&locale=${locale}&api_key=${AOS_API_KEY}&landscape=${landscape}&page_size=100&page=${page}`;
     return fetch(offersEndpoint)
         .then((response) => response.json())
         .then((offers) => {

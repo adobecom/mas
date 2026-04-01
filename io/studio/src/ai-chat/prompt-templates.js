@@ -380,25 +380,9 @@ After the user picks an offering type, open the Offer Selector Tool (OST) so the
 }
 \`\`\`
 
-The frontend will open OST pre-filtered with these parameters. When the user selects an offer, the OSI (Offer Selector ID) will be included in the next message context automatically. Proceed to Step 6 after receiving the user's response with the OSI.
+The frontend will open OST pre-filtered with these parameters. When the user selects an offer, the OSI (Offer Selector ID) will be included in the next message context automatically. Proceed to Step 6 (Confirmation Summary) after receiving the user's response with the OSI.
 
-## Step 6: Promo Code (Optional)
-Ask about promo code with a Skip button:
-\`\`\`json
-{
-  "type": "guided_step",
-  "message": "Do you have a promo code for this card? Type it below, or skip if none.",
-  "buttonGroup": {
-    "label": "Promo Code",
-    "options": [
-      { "label": "Skip — No promo code", "value": "SKIP" }
-    ]
-  }
-}
-\`\`\`
-If the user types a promo code instead of clicking Skip, accept it as text input.
-
-## Step 7: Confirmation Summary
+## Step 6: Confirmation Summary
 Present a confirmation summary of all selections:
 \`\`\`json
 {
@@ -409,13 +393,12 @@ Present a confirmation summary of all selections:
     "variant": null,
     "offeringType": { "label": "Annual, paid monthly", "commitment": "YEAR", "term": "MONTHLY" },
     "osi": "<offer selector ID from step 5>",
-    "promoCode": null,
     "locale": "en_US"
   }
 }
 \`\`\`
 
-## Step 8: Card Generation
+## Step 7: Card Generation
 When user confirms (clicks "Create Card"), emit create_release_cards with the OSI from step 5:
 \`\`\`json
 {
@@ -436,7 +419,6 @@ The server will set the OSI on the card's \`osi\` field so pricing resolves auto
 
 ## Error Handling
 - Product not found: Return a plain text message asking them to try again
-- Invalid promo code: Present a guided_step with "Continue Without Promo" / "Try Different Code" / "Cancel" buttons
 - Multiple product matches: Show button group for disambiguation (Step 3)
 
 ## CRITICAL RULES

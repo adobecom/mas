@@ -936,7 +936,7 @@ export class MASMCPServer {
         }
 
         const [, country] = locale.split('_');
-        const endpoint = `${aosUrl}?country=${encodeURIComponent(country)}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=${encodeURIComponent(locale)}&landscape=${encodeURIComponent(landscape)}&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
+        const endpoint = `${aosUrl}?country=${encodeURIComponent(country)}&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&sales_channel=DIRECT&buying_program=RETAIL&locale=${encodeURIComponent(locale)}&landscape=${encodeURIComponent(landscape)}&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
 
         const response = await fetch(endpoint, {
             headers: { 'x-api-key': aosApiKey },

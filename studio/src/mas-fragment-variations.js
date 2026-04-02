@@ -137,10 +137,10 @@ class MasFragmentVariations extends LitElement {
             showToast('Duplicating grouped variation...');
             await repository.duplicateGroupedVariation(this.duplicateSource.id, this.duplicatePznTags);
             showToast('Grouped variation duplicated', 'positive');
+            this.duplicateLoading = false;
             this.closeDuplicateDialog();
         } catch (err) {
             showToast(`Failed to duplicate: ${err.message}`, 'negative');
-        } finally {
             this.duplicateLoading = false;
         }
     }

@@ -15,7 +15,6 @@ export const SETTING_NAME_DEFINITIONS = [
     { name: 'displayAnnual', valueType: 'boolean' },
     { name: 'displayPlanType', valueType: 'boolean', propertyName: 'showPlanType' },
     { name: 'quantitySelect', valueType: 'optional-text', editor: 'quantity-select' },
-    { name: 'hideTrialCTAs', valueType: 'boolean' },
 ];
 
 export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((definition) => [definition.name, definition]));
@@ -167,26 +166,25 @@ export function resolveSettingEntry(fragment, locale, setting) {
     if (!defaultEntry) return null;
     if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) return null;
     const filteredLocale = setting.override.filter(
-        (overrideSetting) => !overrideSetting.locales?.length || overrideSetting.locales.includes(locale),
+        (overrideSetting) =>
+            !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale),
     );
     if (filteredLocale.length == 0) return defaultEntry;
     // Find all overrides matching the locale; now select best by tags
     let bestMatch = defaultEntry;
     let maxTagMatches = -1;
     const tags = fragment.fields?.tags;
-    for (const overrideSetting of filteredLocale) {
-        if (!overrideSetting.tags?.length) {
-            if (maxTagMatches < 0) {
-                maxTagMatches = 0;
-                bestMatch = overrideSetting;
-            }
-        } else if (tags?.length > 0) {
+    if (filteredLocale.length > 1 && tags?.length > 0) {
+        for (const overrideSetting of filteredLocale) {
             const tagMatches = overrideSetting.tags.filter((tag) => tags.includes(tag)).length;
-            if (tagMatches > 0 && tagMatches > maxTagMatches) {
+            if (tagMatches > maxTagMatches) {
                 maxTagMatches = tagMatches;
                 bestMatch = overrideSetting;
             }
         }
+    } else if (filteredLocale.length === 1) {
+        // No tags or no fragment tags; just return the first matching override
+        bestMatch = filteredLocale[0];
     }
 
     return { ...defaultEntry, ...bestMatch };

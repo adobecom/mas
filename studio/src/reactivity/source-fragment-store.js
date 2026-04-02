@@ -99,7 +99,7 @@ export class SourceFragmentStore extends FragmentStore {
  * @param {Fragment | null} parentFragment - The parent fragment for variations (optional)
  * @returns {SourceFragmentStore}
  */
-export default function generateFragmentStore(fragment, parentFragment = null) {
+export default function generateFragmentStore(fragment, parentFragment = null, options = {}) {
     // Source store keeps the raw fragment data
     const sourceFragment = new Fragment(structuredClone(fragment));
 
@@ -111,7 +111,7 @@ export default function generateFragmentStore(fragment, parentFragment = null) {
         previewData = structuredClone(fragment);
     }
 
-    const previewStore = new PreviewFragmentStore(new Fragment(previewData));
+    const previewStore = new PreviewFragmentStore(new Fragment(previewData), undefined, options);
     const sourceStore = new SourceFragmentStore(sourceFragment, previewStore, parentFragment);
     return sourceStore;
 }

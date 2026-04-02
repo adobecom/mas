@@ -39,8 +39,8 @@ describe('Fragment', () => {
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
                     references: [
-                        { id: 'ref-1', path: '/content/dam/mas/sandbox/fr_FR/my-fragment' }, // valid
-                        { id: 'ref-2', path: '/content/dam/mas/sandbox/de_DE/my-fragment' }, // valid
+                        { id: 'ref-1', path: '/content/dam/mas/sandbox/en_BE/my-fragment' }, // valid
+                        { id: 'ref-2', path: '/content/dam/mas/sandbox/en_CA/my-fragment' }, // valid
                         { id: 'ref-3', path: '/content/dam/mas/sandbox/en_US/different-fragment' }, // different fragment
                         { id: 'ref-4', path: '/content/dam/mas/acom/en_US/my-fragment' }, // different surface
                         { id: 'ref-5', path: '/invalid/path' }, // invalid path
@@ -72,8 +72,8 @@ describe('Fragment', () => {
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/folder/subfolder/my-fragment',
                     references: [
-                        { id: 'ref-1', path: '/content/dam/mas/sandbox/fr_FR/folder/subfolder/my-fragment' },
-                        { id: 'ref-2', path: '/content/dam/mas/sandbox/fr_FR/folder/my-fragment' },
+                        { id: 'ref-1', path: '/content/dam/mas/sandbox/en_CA/folder/subfolder/my-fragment' },
+                        { id: 'ref-2', path: '/content/dam/mas/sandbox/en_CA/folder/my-fragment' },
                     ],
                 }),
             );
@@ -109,13 +109,13 @@ describe('Fragment', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
-                    references: [{ id: 'ref-1', path: '/content/dam/mas/sandbox/fr_FR/my-fragment' }],
+                    references: [{ id: 'ref-1', path: '/content/dam/mas/sandbox/en_BE/my-fragment' }],
                     fields: [
                         {
                             name: 'variations',
                             values: [
-                                '/content/dam/mas/sandbox/fr_FR/my-fragment',
-                                '/content/dam/mas/sandbox/de_DE/my-fragment',
+                                '/content/dam/mas/sandbox/en_BE/my-fragment',
+                                '/content/dam/mas/sandbox/en_CA/my-fragment',
                             ],
                         },
                     ],
@@ -124,7 +124,7 @@ describe('Fragment', () => {
 
             const variations = fragment.listLocaleVariations();
             expect(variations).to.have.lengthOf(1);
-            expect(variations[0].path).to.equal('/content/dam/mas/sandbox/fr_FR/my-fragment');
+            expect(variations[0].path).to.equal('/content/dam/mas/sandbox/en_BE/my-fragment');
         });
     });
 

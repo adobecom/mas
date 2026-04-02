@@ -332,10 +332,7 @@ export class Fragment {
             const reference = referencesByPath.get(path);
             if (!reference) continue;
 
-            if (
-                Fragment.isGroupedVariationPath(path) &&
-                isVariationPathInParentLocaleFamily(surface, currentLocale, path)
-            ) {
+            if (Fragment.isGroupedVariationPath(path) && isVariationPathInParentLocaleFamily(surface, currentLocale, path)) {
                 grouped.push(reference);
                 continue;
             }

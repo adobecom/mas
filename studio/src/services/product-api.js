@@ -1,6 +1,7 @@
 import { IO_MCP_URL } from '../constants.js';
 
-const OST_PRODUCTS_URL = 'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';
+// TODO: revert to masstudio after MWPW-183572 merges and masstudio cache is rebuilt with DIRECT/RETAIL filter
+const OST_PRODUCTS_URL = 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';
 
 function getAuthHeaders() {
     const accessToken = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;

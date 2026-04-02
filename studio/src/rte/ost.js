@@ -202,6 +202,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         let initialReferenceOsi;
         const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
         const searchParameters = new URLSearchParams();
+        const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
         const offerSelectorPlaceholderOptions = {};
         if (offerElement) {
@@ -222,6 +223,10 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                     offerSelectorPlaceholderOptions[newKey] = newValue;
                 }
             });
+
+            if (promotionCode && !offerSelectorPlaceholderOptions.promotionCode) {
+                offerSelectorPlaceholderOptions.promotionCode = promotionCode;
+            }
 
             [
                 'promotionCode', // contextual promo code (e.g. set on card/)

@@ -21,9 +21,54 @@ import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/aem-tag-picker-field.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
+import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
+const EVENT_COMMERCE_READY = 'wcms:commerce:ready';
+const INLINE_PRICE_SELECTOR = 'span[is="inline-price"][data-wcs-osi]';
+
+function isEditorPriceElement(element) {
+    if (element.closest('#preview-wrapper')) return true;
+    const host = element.getRootNode()?.host;
+    return host?.nodeName === 'RTE-FIELD' && !!host.closest('merch-card-editor');
+}
+
+export function getActiveMerchCardEditor() {
+    return document.querySelector('merch-card-editor');
+}
+
+function groupedPreviewLocaleProvider(element, options) {
+    if (!element.closest('#preview-wrapper')) return;
+    const localeCode = getActiveMerchCardEditor()?.previewLocaleOverride;
+    if (!localeCode) return;
+
+    const locale = getLocaleByCode(localeCode);
+    if (!locale) return;
+
+    options.locale = localeCode;
+    options.language = locale.lang;
+    options.country = locale.country;
+}
+
+function registerGroupedPreviewLocaleProvider(service) {
+    if (!service?.providers?.price) return;
+    if (service.providers.has(groupedPreviewLocaleProvider)) return;
+    service.providers.price(groupedPreviewLocaleProvider);
+}
+
+function editorPromoCodeProvider(element, options) {
+    if (!isEditorPriceElement(element)) return;
+    const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
+    if (!promoCode) return;
+    options.promotionCode = promoCode;
+}
+
+function registerEditorPromoCodeProvider(service) {
+    if (!service?.providers?.price) return;
+    if (service.providers.has(editorPromoCodeProvider)) return;
+    service.providers.price(editorPromoCodeProvider);
+}
 
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
@@ -41,6 +86,7 @@ class MerchCardEditor extends LitElement {
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
         fieldsReady: { type: Boolean, state: true },
+        previewLocaleOverride: { type: String, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -72,6 +118,7 @@ class MerchCardEditor extends LitElement {
         this.isVariation = false;
         this.lastMnemonicState = null;
         this.fieldsReady = false;
+        this.previewLocaleOverride = null;
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
     }
@@ -90,6 +137,44 @@ class MerchCardEditor extends LitElement {
 
     get pznTagsValue() {
         return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).join(',');
+    }
+
+    #normalizeGroupedPreviewLocaleCode(tagValue) {
+        const localeCode = tagValue?.split('/').pop()?.trim();
+        return getLocaleByCode(localeCode) ? localeCode : null;
+    }
+
+    get groupedPreviewLocales() {
+        if (!this.isGroupedVariation) return [];
+        const tags = this.fragment?.getFieldValues('pznTags') || [];
+        const localeCodes = [...new Set(tags.map((tag) => this.#normalizeGroupedPreviewLocaleCode(tag)).filter(Boolean))];
+        return localeCodes.map((code) => {
+            const locale = getLocaleByCode(code);
+            return {
+                code,
+                lang: locale.lang,
+                country: locale.country,
+                label: `${locale.country} (${locale.lang.toUpperCase()})`,
+            };
+        });
+    }
+
+    #syncGroupedPreviewLocale() {
+        const locales = this.groupedPreviewLocales;
+        if (!locales.length) {
+            if (this.previewLocaleOverride !== null) {
+                this.previewLocaleOverride = null;
+            }
+            return;
+        }
+
+        const codes = locales.map((locale) => locale.code);
+        const globalLocale = Store.localeOrRegion();
+        this.previewLocaleOverride = codes.includes(this.previewLocaleOverride)
+            ? this.previewLocaleOverride
+            : codes.includes(globalLocale)
+              ? globalLocale
+              : codes[0];
     }
 
     #normalizePznTagIds(value) {
@@ -434,17 +519,41 @@ class MerchCardEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.#registerCommercePriceProviders();
+        document.addEventListener(EVENT_COMMERCE_READY, this.#handleCommerceReady);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        document.removeEventListener(EVENT_COMMERCE_READY, this.#handleCommerceReady);
         this.lastMnemonicState = null;
+    }
+
+    #handleCommerceReady = (event) => {
+        this.#registerCommercePriceProviders(event.detail || event.target);
+    };
+
+    #registerCommercePriceProviders(service = document.querySelector('mas-commerce-service')) {
+        registerGroupedPreviewLocaleProvider(service);
+        registerEditorPromoCodeProvider(service);
+    }
+
+    refreshRenderedPrices() {
+        document.querySelector('mas-commerce-service')?.refreshOffers?.();
+        this.querySelectorAll('rte-field').forEach((field) => {
+            field.shadowRoot?.querySelectorAll(INLINE_PRICE_SELECTOR).forEach((price) => {
+                price.requestUpdate(true);
+            });
+        });
     }
 
     #cachedGlobalDefaults = null;
 
     willUpdate(changedProperties) {
         this.#cachedGlobalDefaults = null;
+        if (this.fragmentStore?.get()) {
+            this.#syncGroupedPreviewLocale();
+        }
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
             this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows, Store.search]);
@@ -609,6 +718,19 @@ class MerchCardEditor extends LitElement {
 
     async updated(changedProperties) {
         super.updated(changedProperties);
+        if (changedProperties.has('previewLocaleOverride')) {
+            const oldValue = changedProperties.get('previewLocaleOverride');
+            if (oldValue !== this.previewLocaleOverride) {
+                this.refreshRenderedPrices();
+                this.dispatchEvent(
+                    new CustomEvent('preview-locale-change', {
+                        bubbles: true,
+                        composed: true,
+                        detail: { value: this.previewLocaleOverride },
+                    }),
+                );
+            }
+        }
         if (!this.fieldsReady && this.fragment) {
             await this.updateComplete;
             await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));

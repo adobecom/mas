@@ -56,6 +56,9 @@ function priceOptionsProvider(element, options) {
         options.literals ??= {};
         Object.assign(options.literals, card.priceLiterals);
     }
+    if (!options.promotionCode) {
+        options.promotionCode = card.promotionCode;
+    }
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
     }

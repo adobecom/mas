@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit';
+import { html, LitElement, nothing } from 'lit';
 import { EVENT_INPUT } from '../constants.js';
 
 export class SecureTextField extends LitElement {
@@ -6,36 +6,9 @@ export class SecureTextField extends LitElement {
         id: { type: String },
         label: { type: String },
         value: { type: String },
-        isEditable: { type: Boolean, state: true },
-        showSecureTextField: { type: Boolean, state: true },
+        checked: { type: Boolean, state: true },
+        indicatorTemplate: { attribute: false },
     };
-
-    static get styles() {
-        return css`
-            :host {
-                display: block;
-            }
-
-            div {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 8px;
-            }
-
-            :host([data-field-state='overridden']) sp-switch[checked] {
-                --mod-switch-background-color-selected-default: var(--spectrum-blue-500);
-                --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
-            }
-
-            :host([data-field-state='overridden']) sp-checkbox[checked] {
-                --mod-checkbox-checkmark-color: var(--spectrum-white);
-                --mod-checkbox-background-color-selected-default: var(--spectrum-blue-500);
-            }
-        `;
-    }
-
-    #interacting = false;
 
     constructor() {
         super();
@@ -43,41 +16,24 @@ export class SecureTextField extends LitElement {
         this.label = '';
         this.value = '';
         this.disabled = false;
-        this.isEditable = false;
-        this.showSecureTextField = true;
+        this.checked = false;
+        this.indicatorTemplate = nothing;
+    }
+
+    createRenderRoot() {
+        return this;
     }
 
     updated(changedProperties) {
-        if (changedProperties.has('value') && !this.#interacting) {
-            if (!this.value || this.value === 'false') {
-                this.isEditable = false;
-                this.showSecureTextField = true;
-            } else {
-                this.isEditable = true;
-                this.showSecureTextField = true;
-            }
+        if (changedProperties.has('value')) {
+            this.checked = Boolean(this.value && this.value !== 'false');
         }
-        this.#interacting = false;
     }
 
     #handleToggle(e) {
-        this.#interacting = true;
-        this.isEditable = e.target.checked;
-        if (this.isEditable) {
-            this.value = this.showSecureTextField ? 'true' : 'false';
-        } else {
-            this.value = 'false';
-        }
-        this.dispatchInputEvent(this.value);
-    }
-
-    #handleCheckbox(e) {
-        this.#interacting = true;
-        this.showSecureTextField = e.target.checked;
-        if (this.isEditable) {
-            this.value = e.target.checked ? 'true' : 'false';
-            this.dispatchInputEvent(this.value);
-        }
+        this.checked = e.target.checked;
+        this.value = this.checked ? 'true' : 'false';
+        this.dispatchInputEvent();
     }
 
     dispatchInputEvent() {
@@ -92,22 +48,12 @@ export class SecureTextField extends LitElement {
     render() {
         return html`
             <sp-field-group id="${this.id}">
-                <div>
-                    <sp-field-label for="${this.id}">${this.label}</sp-field-label>
-                    <sp-switch
-                        id="${this.id}-toggle"
-                        size="m"
-                        .checked="${this.isEditable}"
-                        @change="${this.#handleToggle}"
-                    ></sp-switch>
+                <div class="field-row">
+                    <sp-switch id="${this.id}-toggle" size="m" .checked="${this.checked}" @change="${this.#handleToggle}"
+                        >${this.label}</sp-switch
+                    >
+                    ${this.indicatorTemplate}
                 </div>
-                <sp-checkbox
-                    size="m"
-                    .checked="${this.showSecureTextField}"
-                    ?disabled="${!this.isEditable}"
-                    @change="${this.#handleCheckbox}"
-                    >Show Secure Transaction Label</sp-checkbox
-                >
             </sp-field-group>
         `;
     }

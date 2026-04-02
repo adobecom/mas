@@ -180,6 +180,9 @@ export const VARIATION_TYPES = {
 
 export const PZN_FOLDER = 'pzn';
 
+/** CQ tag path for the country root under pzn (exception: not “personalization-only” for filters). */
+export const PZN_COUNTRY_TAG_PATH_PREFIX = '/content/cq:tags/mas/pzn/country';
+
 export const SURFACES = {
     ACOM: {
         label: 'Adobe.com',

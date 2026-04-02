@@ -451,8 +451,15 @@ export class MasRepository extends LitElement {
                 }
                 Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
-                this.#searchCursor = done ? null : { cursor, variants, surface, fragmentStores };
+                const cursorState = done ? null : { cursor, variants, surface, fragmentStores };
+                this.#searchCursor = cursorState;
                 Store.fragments.list.hasMore.set(!done);
+                if (personalizationOn && cursorState) {
+                    Store.fragments.list.hasMore.set(false);
+                    this.#eagerLoadAllPznPages(cursorState, searchController);
+                } else {
+                    this.#abortControllers.search = null;
+                }
             }
 
             dataStore.setMeta('path', resolvedPath);
@@ -461,8 +468,6 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', this.filters.value.tags || '');
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
-
-            this.#abortControllers.search = null;
         } catch (error) {
             if (error.name !== 'AbortError') {
                 Store.fragments.list.loading.set(false);
@@ -491,6 +496,33 @@ export class MasRepository extends LitElement {
             }
         }
         return false;
+    }
+
+    async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
+        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        try {
+            while (this.#searchCursor === cursorSnapshot) {
+                const done = await this.#fillPage(
+                    cursor,
+                    variants,
+                    surface,
+                    fragmentStores,
+                    undefined,
+                    searchController.signal,
+                );
+                if (this.#searchCursor !== cursorSnapshot) return;
+                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                if (done) {
+                    this.#searchCursor = null;
+                    return;
+                }
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            if (this.#searchCursor === cursorSnapshot) {
+                Store.fragments.list.hasMore.set(true);
+            }
+        }
     }
 
     async loadNextPage() {

@@ -4,7 +4,7 @@ import { Fragment } from './aem/fragment.js';
 import { VARIATION_TYPES } from './constants.js';
 import { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
-import { extractLocaleFromPath } from './utils.js';
+import { extractLocaleFromPath, showToast } from './utils.js';
 import router from './router.js';
 import './aem/aem-tag-picker-field.js';
 
@@ -17,6 +17,9 @@ class MasFragmentVariations extends LitElement {
         fragment: { type: Object, attribute: false },
         loading: { type: Boolean, attribute: false },
         expandedGroupedVariations: { type: Object, state: true },
+        duplicateSource: { type: Object, state: true },
+        duplicatePznTags: { type: Array, state: true },
+        duplicateLoading: { type: Boolean, state: true },
     };
 
     constructor() {
@@ -24,6 +27,9 @@ class MasFragmentVariations extends LitElement {
         this.fragment = null;
         this.loading = false;
         this.expandedGroupedVariations = new Set();
+        this.duplicateSource = null;
+        this.duplicatePznTags = [];
+        this.duplicateLoading = false;
     }
 
     createRenderRoot() {
@@ -100,6 +106,85 @@ class MasFragmentVariations extends LitElement {
      */
     isGroupedVariationExpanded(fragmentId) {
         return this.expandedGroupedVariations.has(fragmentId);
+    }
+
+    openDuplicateDialog(variationFragment) {
+        const sourceTags = this.getGroupedVariationTagsValue(variationFragment);
+        this.duplicateSource = variationFragment;
+        this.duplicatePznTags = sourceTags ? sourceTags.split(',') : [];
+    }
+
+    closeDuplicateDialog() {
+        if (this.duplicateLoading) return;
+        this.duplicateSource = null;
+        this.duplicatePznTags = [];
+    }
+
+    handleDuplicatePznTagsChange(event) {
+        this.duplicatePznTags = event.target.value || [];
+    }
+
+    get canSubmitDuplicate() {
+        return !this.duplicateLoading && this.duplicatePznTags.length > 0;
+    }
+
+    async handleDuplicateSubmit() {
+        const repository = document.querySelector('mas-repository');
+        if (!repository || !this.duplicateSource?.id) return;
+
+        try {
+            this.duplicateLoading = true;
+            showToast('Duplicating grouped variation...');
+            await repository.duplicateGroupedVariation(this.duplicateSource.id, this.duplicatePznTags);
+            showToast('Grouped variation duplicated', 'positive');
+            this.closeDuplicateDialog();
+        } catch (err) {
+            showToast(`Failed to duplicate: ${err.message}`, 'negative');
+        } finally {
+            this.duplicateLoading = false;
+        }
+    }
+
+    get duplicateDialogTemplate() {
+        if (!this.duplicateSource) return nothing;
+        const sourceTags = this.getGroupedVariationTagsValue(this.duplicateSource);
+        return html`
+            <sp-underlay open @click=${() => this.closeDuplicateDialog()}></sp-underlay>
+            <sp-dialog size="s" no-divider>
+                <h2 slot="heading">Duplicate grouped variation</h2>
+                <div id="duplicate-fields">
+                    <sp-field-group>
+                        <sp-field-label>Grouped variation tags</sp-field-label>
+                        <aem-tag-picker-field
+                            label="Locale and PZN tags"
+                            namespace="/content/cq:tags/mas"
+                            selection="checkbox-tags"
+                            display-value
+                            top="locale,pzn"
+                            multiple
+                            value="${sourceTags}"
+                            ?disabled=${this.duplicateLoading}
+                            @change=${this.handleDuplicatePznTagsChange}
+                        ></aem-tag-picker-field>
+                    </sp-field-group>
+                </div>
+                <sp-button
+                    slot="button"
+                    variant="secondary"
+                    treatment="outline"
+                    ?disabled=${this.duplicateLoading}
+                    @click=${() => this.closeDuplicateDialog()}
+                    >Cancel</sp-button
+                >
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    ?disabled=${!this.canSubmitDuplicate}
+                    @click=${() => this.handleDuplicateSubmit()}
+                    >Duplicate</sp-button
+                >
+            </sp-dialog>
+        `;
     }
 
     get localeVariationsTemplate() {
@@ -187,6 +272,15 @@ class MasFragmentVariations extends LitElement {
                                                   readonly
                                               ></aem-tag-picker-field>
                                           </div>
+                                          <div class="duplicate-action">
+                                              <sp-action-button
+                                                  quiet
+                                                  @click=${() => this.openDuplicateDialog(variationFragment)}
+                                              >
+                                                  <sp-icon-copy slot="icon"></sp-icon-copy>
+                                                  Duplicate
+                                              </sp-action-button>
+                                          </div>
                                       </div>
                                   `
                                 : nothing}
@@ -221,6 +315,7 @@ class MasFragmentVariations extends LitElement {
                     </sp-tab-panel>
                     <sp-tab-panel value="grouped">${this.groupedVariationsTemplate}</sp-tab-panel>
                 </sp-tabs>
+                ${this.duplicateDialogTemplate}
             </div>
         `;
     }

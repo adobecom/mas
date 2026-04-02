@@ -251,7 +251,7 @@ class MasProductCatalog extends LitElement {
         }
 
         return html`
-            <sp-table emphasized scroller @scroll=${this.handleTableScroll}>
+            <sp-table emphasized>
                 <sp-table-head>
                     <sp-table-head-cell class="col-icon"></sp-table-head-cell>
                     <sp-table-head-cell class="col-product">Product</sp-table-head-cell>
@@ -263,7 +263,7 @@ class MasProductCatalog extends LitElement {
                     <sp-table-head-cell class="col-plans">Plan Types</sp-table-head-cell>
                     <sp-table-head-cell class="col-action"></sp-table-head-cell>
                 </sp-table-head>
-                <sp-table-body>
+                <sp-table-body @scroll=${this.handleTableScroll}>
                     ${repeat(
                         this.visibleProducts,
                         (p) => p.arrangement_code,

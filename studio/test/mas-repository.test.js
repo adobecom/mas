@@ -1466,7 +1466,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('excludes merch-card-collection with tagFilters PZN when personalization filter is off', async () => {
+        it('excludes merch-card-collection with PZN on fragment tags when personalization filter is off', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: '' } };
@@ -1480,8 +1480,8 @@ describe('MasRepository dictionary helpers', () => {
             const collectionWithPzn = createFragment({
                 id: 'coll-pzn',
                 path: `${ROOT_PATH}/acom/en_US/collections/c1`,
-                tags: [],
-                fields: [{ name: 'tagFilters', values: ['mas:pzn/general'] }],
+                tags: [{ id: 'mas:pzn/general' }],
+                fields: [{ name: 'tagFilters', values: ['mas:types/desktop'] }],
             });
             const plainCollection = createFragment({
                 id: 'coll-plain',

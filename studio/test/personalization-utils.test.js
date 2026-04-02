@@ -85,22 +85,22 @@ describe('personalization-utils', () => {
             ).to.be.true;
         });
 
-        it('detects non-country pzn on collection tagFilters field when fragment.tags is empty', () => {
+        it('does not treat tagFilters as PZN (sidenav-only field)', () => {
             expect(
                 fragmentHasPersonalizationTag({
                     tags: [],
                     fields: [{ name: 'tagFilters', values: ['mas:pzn/general'] }],
                 }),
-            ).to.be.true;
+            ).to.be.false;
         });
 
-        it('returns false when tagFilters only has country pzn', () => {
+        it('detects non-country pzn on CF tags field when metadata tags are empty', () => {
             expect(
                 fragmentHasPersonalizationTag({
                     tags: [],
-                    fields: [{ name: 'tagFilters', values: ['mas:pzn/country/fr_FR'] }],
+                    fields: [{ name: 'tags', values: ['mas:pzn/general'] }],
                 }),
-            ).to.be.false;
+            ).to.be.true;
         });
 
         it('detects pznTags on a Fragment instance', () => {
@@ -117,15 +117,6 @@ describe('personalization-utils', () => {
             expect(
                 fragmentHasPersonalizationTag({
                     tags: [{ path: '/content/cq:tags/mas/pzn/country/fr_FR' }, { path: '/content/cq:tags/mas/pzn/general' }],
-                }),
-            ).to.be.true;
-        });
-
-        it('detects non-country pzn in tagFilters when values are CQ paths', () => {
-            expect(
-                fragmentHasPersonalizationTag({
-                    tags: [],
-                    fields: [{ name: 'tagFilters', values: ['/content/cq:tags/mas/pzn/general'] }],
                 }),
             ).to.be.true;
         });

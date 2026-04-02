@@ -51,47 +51,31 @@ function isNonCountryPznTagId(tagId) {
     return !isPznCountryTagId(tagId);
 }
 
-/** CF fields that may hold mas:… tag id strings (cards: pznTags; collections: tagFilters; generic: tags). */
-const PERSONALIZATION_TAG_FIELD_NAMES = ['pznTags', 'tags', 'tagFilters'];
-
-/**
- * @param {unknown} value - mas:… id or /content/cq:tags/mas/… path
- */
-function fieldValueHasNonCountryPzn(value) {
-    if (typeof value !== 'string' || !value) return false;
-    const id = tagRefToTagId(value);
-    return typeof id === 'string' && isNonCountryPznTagId(id);
-}
-
-/**
- * @param {{ fields?: { name?: string, values?: string[] }[], getFieldValues?: (name: string) => string[] } | null | undefined} fragment
- */
-function fragmentFieldsHaveNonCountryPzn(fragment) {
-    const valuesHavePzn = (values) => Array.isArray(values) && values.some((v) => fieldValueHasNonCountryPzn(v));
-
-    if (typeof fragment.getFieldValues === 'function') {
-        return PERSONALIZATION_TAG_FIELD_NAMES.some((name) => valuesHavePzn(fragment.getFieldValues(name)));
-    }
-
-    for (const field of fragment.fields || []) {
-        if (field?.name && PERSONALIZATION_TAG_FIELD_NAMES.includes(field.name) && valuesHavePzn(field.values)) {
-            return true;
-        }
-    }
-    return false;
-}
+/** CF field names whose values are tag ids merged with fragment metadata `tags` for PZN checks. Not tagFilters — sidenav-only. */
+const PERSONALIZATION_FIELD_NAMES = ['pznTags', 'tags'];
 
 /**
  * True when the fragment has any mas:pzn tag outside the country subtree (mas:pzn/country/…).
  * Drives **hide vs show** for the Studio personalization toggle (hide when toggle is off, for non-country PZN).
  * Country PZN alone does not count; **country + non-country** still counts (country tags do not cancel non-country PZN).
- * Uses AEM fragment `tags` (id or path) plus CF fields (`pznTags`, `tags`, `tagFilters`).
+ * Checks AEM fragment metadata `tags` and CF fields `pznTags` and `tags` (not tagFilters).
  *
  * @param {{ tags?: ({ id?: string, path?: string } | string)[], fields?: { name?: string, values?: string[] }[], getFieldValues?: (name: string) => string[] } | null | undefined} fragment
  */
 export function fragmentHasPersonalizationTag(fragment) {
     if (!fragment) return false;
-    if (fragment.tags?.some((t) => isNonCountryPznTagId(tagRefToTagId(t)))) return true;
-    if (fragmentFieldsHaveNonCountryPzn(fragment)) return true;
+    const refHasNonCountryPzn = (ref) => isNonCountryPznTagId(tagRefToTagId(ref));
+    if (fragment.tags?.some(refHasNonCountryPzn)) return true;
+    for (const fieldName of PERSONALIZATION_FIELD_NAMES) {
+        let fieldTagRefs;
+        if (typeof fragment.getFieldValues === 'function') {
+            const fieldValues = fragment.getFieldValues(fieldName);
+            fieldTagRefs = Array.isArray(fieldValues) ? fieldValues : [];
+        } else {
+            const field = (fragment.fields || []).find((f) => f?.name === fieldName);
+            fieldTagRefs = Array.isArray(field?.values) ? field.values : [];
+        }
+        if (fieldTagRefs.some(refHasNonCountryPzn)) return true;
+    }
     return false;
 }

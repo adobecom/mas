@@ -141,7 +141,7 @@ class MasStudio extends LitElement {
         return html`<div id="content-container">
             <mas-toolbar></mas-toolbar>
             <mas-content></mas-content>
-        </div> `;
+        </div>`;
     }
 
     get placeholders() {

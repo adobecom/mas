@@ -59,6 +59,7 @@ class MasStudio extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        Store.settings.initAem(this.bucket, this.baseUrl);
         this.subscribeLocaleObserver();
         this.initMasJs();
         this.subscribeLandscapeObserver();
@@ -140,7 +141,7 @@ class MasStudio extends LitElement {
         return html`<div id="content-container">
             <mas-toolbar></mas-toolbar>
             <mas-content></mas-content>
-        </div> `;
+        </div>`;
     }
 
     get placeholders() {

@@ -291,6 +291,22 @@ export function generateFieldLink(fragment, path, page, fieldName) {
     return { displayText, href, richText };
 }
 
+export function generateJsonLdLink(fragment, path, page) {
+    const { fragmentParts } = getFragmentPartsToUse(fragment, path);
+    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    if (!webComponentName) return null;
+    const displayText = `mas-field: ${fragmentParts} → jsonLdSchema`;
+    const baseHref = buildStudioFragmentHref({
+        webComponentName,
+        fragmentId: fragment?.id,
+        page: page ?? 'content',
+        path,
+    });
+    const href = `${baseHref}&jsonld=on`;
+    const richText = `<a href="${href}" target="_blank">${displayText}</a>`;
+    return { displayText, href, richText };
+}
+
 // --- Copy Field display helpers ---
 
 /**

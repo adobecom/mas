@@ -1,10 +1,12 @@
 // @ts-nocheck
 import { runTests } from '@web/test-runner-mocha';
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 import { fixture, fixtureCleanup, html } from '@open-wc/testing';
+import { nothing } from 'lit';
 import Store from '../../src/store.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
-
+import { cardSkeleton } from '../../src/mas-content.js';
 import '../../src/mas-repository.js';
 import '../../src/mas-content.js';
 
@@ -124,6 +126,212 @@ runTests(async () => {
 
             expect(el.querySelector('.content-empty-state')).to.not.exist;
             expect(el.querySelector('mas-fragment')).to.exist;
+        });
+    });
+
+    describe('cardSkeleton', () => {
+        it('returns a template with skeleton placeholder elements', () => {
+            const container = document.createElement('div');
+            const templateResult = cardSkeleton();
+            expect(templateResult).to.not.be.undefined;
+            expect(templateResult.strings).to.exist;
+            const joined = templateResult.strings.join('');
+            expect(joined).to.include('render-fragment-placeholder');
+            expect(joined).to.include('skeleton-title');
+            expect(joined).to.include('skeleton-body');
+            expect(joined).to.include('skeleton-footer');
+        });
+    });
+
+    describe('skeleton rendering paths', () => {
+        let masContent;
+        let sandbox;
+
+        beforeEach(async () => {
+            sandbox = sinon.createSandbox();
+            masContent = document.createElement('mas-content');
+            spTheme.append(masContent);
+            await masContent.updateComplete;
+        });
+
+        afterEach(() => {
+            masContent.remove();
+            sandbox.restore();
+        });
+
+        describe('renderView getter', () => {
+            it('returns 8 card skeletons when firstPageLoaded is false', () => {
+                Store.fragments.list.firstPageLoaded.set(false);
+                const result = masContent.renderView;
+                const joined = result.strings.join('');
+                expect(joined).to.include('id="render"');
+                expect(result.values.length).to.equal(1);
+                const skeletons = result.values[0];
+                expect(skeletons).to.have.length(8);
+            });
+
+            it('returns fragment list when firstPageLoaded is true', () => {
+                Store.fragments.list.firstPageLoaded.set(true);
+                Store.fragments.list.data.set([]);
+                const result = masContent.renderView;
+                const joined = result.strings.join('');
+                expect(joined).to.include('id="render"');
+            });
+        });
+
+        describe('tableView getter', () => {
+            it('returns skeleton table when firstPageLoaded is false', () => {
+                Store.fragments.list.firstPageLoaded.set(false);
+                const result = masContent.tableView;
+                const joined = result.strings.join('');
+                expect(joined).to.include('sp-table');
+                expect(joined).to.include('sp-table-head');
+                expect(joined).to.include('sp-table-body');
+                const skeletons = result.values.find((v) => Array.isArray(v) && v.length === 8);
+                expect(skeletons).to.exist;
+            });
+
+            it('returns data table when firstPageLoaded is true', () => {
+                Store.fragments.list.firstPageLoaded.set(true);
+                Store.fragments.list.data.set([]);
+                const result = masContent.tableView;
+                const joined = result.strings.join('');
+                expect(joined).to.include('sp-table');
+            });
+        });
+
+        describe('tableLoadingSkeletons getter', () => {
+            it('returns 4 skeleton rows when loading and firstPageLoaded are both true', () => {
+                Store.fragments.list.loading.set(true);
+                Store.fragments.list.firstPageLoaded.set(true);
+                const result = masContent.tableLoadingSkeletons;
+                expect(result).to.not.equal(nothing);
+                expect(result.values.length).to.equal(1);
+                const rows = result.values[0];
+                expect(rows).to.have.length(4);
+            });
+
+            it('returns nothing when loading is false', () => {
+                Store.fragments.list.loading.set(false);
+                Store.fragments.list.firstPageLoaded.set(true);
+                expect(masContent.tableLoadingSkeletons).to.equal(nothing);
+            });
+
+            it('returns nothing when firstPageLoaded is false', () => {
+                Store.fragments.list.loading.set(true);
+                Store.fragments.list.firstPageLoaded.set(false);
+                expect(masContent.tableLoadingSkeletons).to.equal(nothing);
+            });
+        });
+
+        describe('pageLoadingSkeletons getter', () => {
+            it('returns card skeletons in render mode when loading', () => {
+                Store.fragments.list.loading.set(true);
+                Store.fragments.list.firstPageLoaded.set(true);
+                Store.renderMode.set('render');
+                const result = masContent.pageLoadingSkeletons;
+                expect(result).to.not.equal(nothing);
+                const joined = result.strings.join('');
+                expect(joined).to.include('next-page-skeletons');
+            });
+
+            it('returns nothing in table mode', () => {
+                Store.fragments.list.loading.set(true);
+                Store.fragments.list.firstPageLoaded.set(true);
+                Store.renderMode.set('table');
+                expect(masContent.pageLoadingSkeletons).to.equal(nothing);
+            });
+
+            it('returns nothing when not loading', () => {
+                Store.fragments.list.loading.set(false);
+                Store.fragments.list.firstPageLoaded.set(true);
+                Store.renderMode.set('render');
+                expect(masContent.pageLoadingSkeletons).to.equal(nothing);
+            });
+        });
+    });
+
+    describe('IntersectionObserver and scroll-sentinel', () => {
+        let masContent;
+        let sandbox;
+
+        beforeEach(async () => {
+            sandbox = sinon.createSandbox();
+            masContent = document.createElement('mas-content');
+            spTheme.append(masContent);
+            await masContent.updateComplete;
+        });
+
+        afterEach(() => {
+            masContent.remove();
+            sandbox.restore();
+            Store.fragments.list.hasMore.set(false);
+            Store.fragments.list.loading.set(false);
+            Store.fragments.list.firstPageLoaded.set(false);
+            Store.renderMode.set('render');
+        });
+
+        it('creates scrollObserver in connectedCallback', () => {
+            expect(masContent.scrollObserver).to.be.instanceOf(IntersectionObserver);
+        });
+
+        it('attaches observer to scroll-sentinel on updated', async () => {
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.data.set([]);
+            Store.renderMode.set('render');
+            masContent.requestUpdate();
+            await masContent.updateComplete;
+
+            const sentinel = masContent.querySelector('.scroll-sentinel');
+            expect(sentinel).to.exist;
+            expect(masContent.observedSentinel).to.equal(sentinel);
+        });
+
+        it('clears observedSentinel when sentinel is removed', async () => {
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.data.set([]);
+            Store.renderMode.set('render');
+            masContent.requestUpdate();
+            await masContent.updateComplete;
+            expect(masContent.observedSentinel).to.exist;
+
+            Store.fragments.list.hasMore.set(false);
+            masContent.requestUpdate();
+            await masContent.updateComplete;
+
+            const sentinel = masContent.querySelector('.scroll-sentinel');
+            expect(sentinel).to.be.null;
+            expect(masContent.observedSentinel).to.be.null;
+        });
+
+        it('renders scroll-sentinel when hasMore is true', async () => {
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.data.set([]);
+            Store.renderMode.set('render');
+            masContent.requestUpdate();
+            await masContent.updateComplete;
+
+            expect(masContent.querySelector('.scroll-sentinel')).to.exist;
+        });
+
+        it('does not render scroll-sentinel when hasMore is false', async () => {
+            Store.fragments.list.hasMore.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.data.set([]);
+            Store.renderMode.set('render');
+            masContent.requestUpdate();
+            await masContent.updateComplete;
+
+            expect(masContent.querySelector('.scroll-sentinel')).to.be.null;
+        });
+
+        it('disconnects observer on disconnectedCallback', () => {
+            const disconnectSpy = sandbox.spy(masContent.scrollObserver, 'disconnect');
+            masContent.remove();
+            expect(disconnectSpy.called).to.be.true;
         });
     });
 });

@@ -48,6 +48,7 @@ class MasSearchAndFilters extends LitElement {
             if (!this.searchOnly) {
                 this.#extractFilterOptions();
             }
+            this.#applyFilters();
             this.requestUpdate();
         };
         Store.translationProjects[`all${this.typeUppercased}`].subscribe(dataCallback);
@@ -315,6 +316,9 @@ class MasSearchAndFilters extends LitElement {
             return true;
         });
 
+        if (this.type === TABLE_TYPE.CARDS) {
+            result.sort((a, b) => (b.groupedVariations?.length > 0 ? 1 : 0) - (a.groupedVariations?.length > 0 ? 1 : 0));
+        }
         Store.translationProjects[`display${this.typeUppercased}`].set(result);
     }
 

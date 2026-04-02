@@ -777,6 +777,24 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('searchFragments', () => {
+        const createMockCursor = (pages) => {
+            let index = 0;
+            return {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+        };
+
         it('returns early when page is not CONTENT or TRANSLATION_EDITOR', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.WELCOME };
@@ -830,6 +848,8 @@ describe('MasRepository dictionary helpers', () => {
                     if (key === 'path') return 'acom';
                     if (key === 'query') return '';
                     if (key === 'locale') return 'en_US';
+                    if (key === 'tags') return '';
+                    if (key === 'createdBy') return '';
                     if (key === 'personalizationFilterEnabled') return false;
                     return null;
                 }),
@@ -868,10 +888,13 @@ describe('MasRepository dictionary helpers', () => {
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
             Store.profile.set({ name: 'test-user' });
+            let dataValue = [];
             const mockDataStore = {
-                get: sandbox.stub().returns([]),
+                get: sandbox.stub().callsFake(() => dataValue),
                 getMeta: sandbox.stub().returns(null),
-                set: sandbox.stub(),
+                set: sandbox.stub().callsFake((value) => {
+                    dataValue = value;
+                }),
                 setMeta: sandbox.stub(),
             };
             const originalData = Store.fragments.list.data;
@@ -922,10 +945,13 @@ describe('MasRepository dictionary helpers', () => {
             Store.filters.set({ locale: 'fr_FR', tags: '' });
             Store.filters.removeMeta('uuid-query');
             Store.filters.removeMeta('uuid-locale');
+            let dataValue = [];
             const mockDataStore = {
-                get: sandbox.stub().returns([]),
+                get: sandbox.stub().callsFake(() => dataValue),
                 getMeta: sandbox.stub().returns(null),
-                set: sandbox.stub(),
+                set: sandbox.stub().callsFake((value) => {
+                    dataValue = value;
+                }),
                 setMeta: sandbox.stub(),
             };
             const originalData = Store.fragments.list.data;
@@ -986,10 +1012,13 @@ describe('MasRepository dictionary helpers', () => {
             Store.filters.set({ locale: 'fr_FR', tags: '' });
             Store.filters.removeMeta('uuid-query');
             Store.filters.removeMeta('uuid-locale');
+            let dataValue = [];
             const mockDataStore = {
-                get: sandbox.stub().returns([]),
+                get: sandbox.stub().callsFake(() => dataValue),
                 getMeta: sandbox.stub().returns(null),
-                set: sandbox.stub(),
+                set: sandbox.stub().callsFake((value) => {
+                    dataValue = value;
+                }),
                 setMeta: sandbox.stub(),
             };
             const originalData = Store.fragments.list.data;
@@ -1127,7 +1156,7 @@ describe('MasRepository dictionary helpers', () => {
                 expect(getByIdStub.calledOnce).to.be.true;
                 expect(Store.search.get().path).to.equal('nala');
                 expect(Store.filters.get().locale).to.equal('da_DK');
-                expect(mockDataStore.set.calledOnce).to.be.true;
+                expect(mockDataStore.set.calledTwice).to.be.true;
                 expect(mockDataStore.set.firstCall.args[0]).to.deep.equal([]);
                 expect(mockDataStore.setMeta.calledWith('path', 'nala')).to.be.true;
                 expect(mockDataStore.setMeta.calledWith('locale', 'da_DK')).to.be.true;
@@ -1153,17 +1182,7 @@ describe('MasRepository dictionary helpers', () => {
             repository.search = { value: { path: 'acom', query: 'test-query' } };
             repository.filters = { value: { locale: 'en_US', tags: '' } };
             const mockFragments = [createFragment({ id: 'frag-1', path: `${ROOT_PATH}/acom/en_US/frag1`, fields: [] })];
-            const mockCursor = {
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        [Symbol.asyncIterator]: async function* () {
-                            for (const fragment of mockFragments) {
-                                yield fragment;
-                            }
-                        },
-                    };
-                },
-            };
+            const mockCursor = createMockCursor([mockFragments]);
             const searchStub = sandbox.stub().resolves(mockCursor);
             repository.aem = createAemMock({
                 fragments: {
@@ -1275,13 +1294,7 @@ describe('MasRepository dictionary helpers', () => {
                     tags: 'mas:variant/segment,mas:studio/content-type/merch-card,mas:custom-tag',
                 },
             };
-            const mockCursor = {
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        [Symbol.asyncIterator]: async function* () {},
-                    };
-                },
-            };
+            const mockCursor = createMockCursor([[]]);
             const searchStub = sandbox.stub().resolves(mockCursor);
             repository.aem = createAemMock({
                 fragments: {
@@ -1426,16 +1439,7 @@ describe('MasRepository dictionary helpers', () => {
                 tags: [{ id: 'mas:product/x' }],
                 fields: [],
             });
-            const mockCursor = {
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        [Symbol.asyncIterator]: async function* () {
-                            yield pznFragment;
-                            yield plainFragment;
-                        },
-                    };
-                },
-            };
+            const mockCursor = createMockCursor([[pznFragment, plainFragment]]);
             const searchStub = sandbox.stub().resolves(mockCursor);
             repository.aem = createAemMock({
                 fragments: {
@@ -1476,13 +1480,7 @@ describe('MasRepository dictionary helpers', () => {
                     tags: 'mas:status/published,mas:custom-tag',
                 },
             };
-            const mockCursor = {
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        [Symbol.asyncIterator]: async function* () {},
-                    };
-                },
-            };
+            const mockCursor = createMockCursor([[]]);
             const searchStub = sandbox.stub().resolves(mockCursor);
             repository.aem = createAemMock({
                 fragments: {
@@ -1509,6 +1507,295 @@ describe('MasRepository dictionary helpers', () => {
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
+            }
+        });
+    });
+
+    describe('fillPage pagination', () => {
+        const createMockCursorFromPages = (pages) => {
+            let index = 0;
+            return {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+        };
+
+        const setupSearchTest = async (mockCursor, tags = '') => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags } };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                searchStub,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        it('fetches multiple pages to fill minimum results when variant filtering reduces items', async () => {
+            const makeFragment = (id, variant) =>
+                createFragment({
+                    id,
+                    path: `${ROOT_PATH}/acom/en_US/${id}`,
+                    fields: [{ name: 'variant', values: [variant] }],
+                });
+            const page1 = Array.from({ length: 20 }, (_, i) => makeFragment(`frag-${i}`, i < 3 ? 'plans' : 'catalog'));
+            const page2 = Array.from({ length: 20 }, (_, i) => makeFragment(`frag-${20 + i}`, i < 8 ? 'plans' : 'catalog'));
+            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor, 'mas:variant/plans');
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                const setCalls = Store.fragments.list.data.set.getCalls();
+                const lastCall = setCalls[setCalls.length - 1];
+                expect(lastCall.args[0].length).to.equal(11);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('returns hasMore false when cursor is exhausted', async () => {
+            const fragments = [
+                createFragment({ id: 'f1', path: `${ROOT_PATH}/acom/en_US/f1`, fields: [] }),
+                createFragment({ id: 'f2', path: `${ROOT_PATH}/acom/en_US/f2`, fields: [] }),
+            ];
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('resets firstPageLoaded and clears data immediately on new search', async () => {
+            const mockCursor = createMockCursorFromPages([]);
+            const { repository, mockDataStore, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                expect(mockDataStore.set.calledWith([])).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('loadNextPage appends fragments and updates data store', async () => {
+            const page1 = Array.from({ length: 10 }, (_, i) =>
+                createFragment({ id: `p1-${i}`, path: `${ROOT_PATH}/acom/en_US/p1-${i}`, fields: [] }),
+            );
+            const page2 = Array.from({ length: 10 }, (_, i) =>
+                createFragment({ id: `p2-${i}`, path: `${ROOT_PATH}/acom/en_US/p2-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                const firstSetCalls = Store.fragments.list.data.set.getCalls();
+                const firstCount = firstSetCalls[firstSetCalls.length - 1].args[0].length;
+                expect(firstCount).to.equal(10);
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+
+                await repository.loadNextPage();
+                const allSetCalls = Store.fragments.list.data.set.getCalls();
+                const lastCall = allSetCalls[allSetCalls.length - 1];
+                expect(lastCall.args[0].length).to.equal(20);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('loadNextPage sets hasMore false and clears cursor when done', async () => {
+            const fragments = Array.from({ length: 5 }, (_, i) =>
+                createFragment({ id: `f-${i}`, path: `${ROOT_PATH}/acom/en_US/f-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+
+                await repository.loadNextPage();
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('loadNextPage returns early when no searchCursor', async () => {
+            const mockCursor = createMockCursorFromPages([]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                const loadingBefore = Store.fragments.list.loading.value;
+                await repository.loadNextPage();
+                expect(Store.fragments.list.loading.value).to.equal(loadingBefore);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('loadNextPage handles errors gracefully', async () => {
+            const page1 = Array.from({ length: 10 }, (_, i) =>
+                createFragment({ id: `e-${i}`, path: `${ROOT_PATH}/acom/en_US/e-${i}`, fields: [] }),
+            );
+            const errorCursor = {
+                next: async () => {
+                    throw new Error('Network failure');
+                },
+            };
+            const initialCursor = createMockCursorFromPages([page1]);
+            const wrappedCursor = {
+                callCount: 0,
+                next: async function () {
+                    this.callCount++;
+                    if (this.callCount <= 1) {
+                        return initialCursor.next();
+                    }
+                    throw new Error('Network failure');
+                },
+            };
+            const mockCursor = createMockCursorFromPages([page1, page1]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                if (Store.fragments.list.hasMore.value) {
+                    sandbox.stub(repository, 'processError');
+                    const originalLoadNextPage = repository.loadNextPage.bind(repository);
+                    await originalLoadNextPage();
+                }
+                expect(Store.fragments.list.loading.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('cache validation checks tags metadata', async () => {
+            const fragments = Array.from({ length: 3 }, (_, i) =>
+                createFragment({ id: `t-${i}`, path: `${ROOT_PATH}/acom/en_US/t-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, mockDataStore, cleanup } = await setupSearchTest(mockCursor, 'mas:variant/plans');
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+
+                mockDataStore.get.returns([{ get: () => ({ path: `${ROOT_PATH}/acom/en_US/t-0` }) }]);
+                mockDataStore.getMeta.withArgs('path').returns('acom');
+                mockDataStore.getMeta.withArgs('query').returns('');
+                mockDataStore.getMeta.withArgs('locale').returns('en_US');
+                mockDataStore.getMeta.withArgs('tags').returns('different-tag');
+                mockDataStore.getMeta.withArgs('createdBy').returns('');
+
+                await repository.searchFragments();
+                expect(mockDataStore.set.calledWith([])).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('cache validation checks createdBy metadata', async () => {
+            const fragments = Array.from({ length: 3 }, (_, i) =>
+                createFragment({ id: `c-${i}`, path: `${ROOT_PATH}/acom/en_US/c-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, mockDataStore, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+
+                mockDataStore.get.returns([{ get: () => ({ path: `${ROOT_PATH}/acom/en_US/c-0` }) }]);
+                mockDataStore.getMeta.withArgs('path').returns('acom');
+                mockDataStore.getMeta.withArgs('query').returns('');
+                mockDataStore.getMeta.withArgs('locale').returns('en_US');
+                mockDataStore.getMeta.withArgs('tags').returns('');
+                mockDataStore.getMeta.withArgs('createdBy').returns('different-user');
+
+                await repository.searchFragments();
+                expect(mockDataStore.set.calledWith([])).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('sets loading false after successful loadNextPage', async () => {
+            const page1 = Array.from({ length: 10 }, (_, i) =>
+                createFragment({ id: `l-${i}`, path: `${ROOT_PATH}/acom/en_US/l-${i}`, fields: [] }),
+            );
+            const page2 = Array.from({ length: 5 }, (_, i) =>
+                createFragment({ id: `l2-${i}`, path: `${ROOT_PATH}/acom/en_US/l2-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+                await repository.loadNextPage();
+                expect(Store.fragments.list.loading.value).to.be.false;
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('paginates results when page is TRANSLATION_EDITOR', async () => {
+            const page1 = Array.from({ length: 20 }, (_, i) =>
+                createFragment({ id: `t1-${i}`, path: `${ROOT_PATH}/acom/en_US/t1-${i}`, fields: [] }),
+            );
+            const page2 = Array.from({ length: 5 }, (_, i) =>
+                createFragment({ id: `t2-${i}`, path: `${ROOT_PATH}/acom/en_US/t2-${i}`, fields: [] }),
+            );
+            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const { repository, cleanup } = await setupSearchTest(mockCursor);
+            repository.page = { value: PAGE_NAMES.TRANSLATION_EDITOR };
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                const setCalls = Store.fragments.list.data.set.getCalls();
+                const firstCall = setCalls[setCalls.length - 1];
+                expect(firstCall.args[0].length).to.equal(20);
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+                await repository.loadNextPage();
+                const nextCalls = Store.fragments.list.data.set.getCalls();
+                const lastCall = nextCalls[nextCalls.length - 1];
+                expect(lastCall.args[0].length).to.equal(25);
+            } finally {
+                cleanup();
             }
         });
     });

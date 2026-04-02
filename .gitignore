@@ -32,6 +32,7 @@ nala/.auth/
 /specs/
 /agents/
 reports/
+/.superpowers
 .logs
 
 # IO Runtime Config
@@ -48,3 +49,4 @@ masStudio-*.json
 web-components/commerce.json
 web-components/mas.json
 web-components/stats.json
+*.jsonl

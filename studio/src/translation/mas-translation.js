@@ -252,7 +252,12 @@ class MasTranslation extends LitElement {
     #formatSubmissionDate(translationProject) {
         const date = translationProject.get().getFieldValue('submissionDate');
         if (!date) return 'N/A';
-        return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            timeZone: 'UTC',
+        });
     }
 
     #sortBySentOn({ detail: { sortKey, sortDirection } }) {

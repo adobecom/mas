@@ -454,7 +454,29 @@ describe('settings', () => {
             expect(result.body.settings.checkoutWorkflow).to.equal('UCv3-FR');
         });
 
-        it('does not apply hideTrialCTAs to mini variant when override has catalog template restriction', async () => {
+        it('applies hideTrialCTAs to catalog variant when default targets catalog', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'catalog' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
+                                booleanValue: true,
+                                templates: ['catalog'],
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.hideTrialCTAs).to.be.true;
+        });
+
+        it('does not apply hideTrialCTAs to mini variant when default targets catalog', async () => {
             const context = {
                 locale: 'en_US',
                 body: { fields: { variant: 'mini' } },
@@ -464,19 +486,37 @@ describe('settings', () => {
                             default: {
                                 name: 'hideTrialCTAs',
                                 valuetype: 'boolean',
+                                booleanValue: true,
+                                templates: ['catalog'],
+                            },
+                            override: [],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings?.hideTrialCTAs).to.be.undefined;
+        });
+
+        it('applies hideTrialCTAs locale override for catalog in matching locale', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'catalog' } },
+                promises: {
+                    settings: Promise.resolve({
+                        hideTrialCTAs: {
+                            default: {
+                                name: 'hideTrialCTAs',
+                                valuetype: 'boolean',
                                 booleanValue: false,
-                                locales: [],
-                                templates: [],
-                                tags: [],
+                                templates: ['catalog'],
                             },
                             override: [
                                 {
                                     name: 'hideTrialCTAs',
                                     valuetype: 'boolean',
                                     booleanValue: true,
-                                    locales: ['en_US'],
-                                    templates: ['catalog'],
-                                    tags: [],
+                                    locales: ['fr_FR'],
                                 },
                             ],
                         },
@@ -484,10 +524,10 @@ describe('settings', () => {
                 },
             };
             const result = await settings.process(context);
-            expect(result.body.settings.hideTrialCTAs).to.be.false;
+            expect(result.body.settings.hideTrialCTAs).to.be.true;
         });
 
-        it('applies hideTrialCTAs to catalog variant with catalog template override', async () => {
+        it('uses hideTrialCTAs default when locale override does not match', async () => {
             const context = {
                 locale: 'en_US',
                 body: { fields: { variant: 'catalog' } },
@@ -498,92 +538,14 @@ describe('settings', () => {
                                 name: 'hideTrialCTAs',
                                 valuetype: 'boolean',
                                 booleanValue: false,
-                                locales: [],
-                                templates: [],
-                                tags: [],
+                                templates: ['catalog'],
                             },
                             override: [
                                 {
                                     name: 'hideTrialCTAs',
                                     valuetype: 'boolean',
                                     booleanValue: true,
-                                    locales: ['en_US'],
-                                    templates: ['catalog'],
-                                    tags: [],
-                                },
-                            ],
-                        },
-                    }),
-                },
-            };
-            const result = await settings.process(context);
-            expect(result.body.settings.hideTrialCTAs).to.be.true;
-        });
-
-        it('applies hideTrialCTAs to plans variant with plans template override', async () => {
-            const context = {
-                locale: 'en_US',
-                body: { fields: { variant: 'plans' } },
-                promises: {
-                    settings: Promise.resolve({
-                        hideTrialCTAs: {
-                            default: {
-                                name: 'hideTrialCTAs',
-                                valuetype: 'boolean',
-                                booleanValue: false,
-                                locales: [],
-                                templates: [],
-                                tags: [],
-                            },
-                            override: [
-                                {
-                                    name: 'hideTrialCTAs',
-                                    valuetype: 'boolean',
-                                    booleanValue: true,
-                                    locales: ['en_US'],
-                                    templates: ['catalog'],
-                                    tags: [],
-                                },
-                                {
-                                    name: 'hideTrialCTAs',
-                                    valuetype: 'boolean',
-                                    booleanValue: true,
-                                    locales: ['en_US'],
-                                    templates: ['plans'],
-                                    tags: [],
-                                },
-                            ],
-                        },
-                    }),
-                },
-            };
-            const result = await settings.process(context);
-            expect(result.body.settings.hideTrialCTAs).to.be.true;
-        });
-
-        it('does not apply catalog override to plans variant', async () => {
-            const context = {
-                locale: 'en_US',
-                body: { fields: { variant: 'plans' } },
-                promises: {
-                    settings: Promise.resolve({
-                        hideTrialCTAs: {
-                            default: {
-                                name: 'hideTrialCTAs',
-                                valuetype: 'boolean',
-                                booleanValue: false,
-                                locales: [],
-                                templates: [],
-                                tags: [],
-                            },
-                            override: [
-                                {
-                                    name: 'hideTrialCTAs',
-                                    valuetype: 'boolean',
-                                    booleanValue: true,
-                                    locales: ['en_US'],
-                                    templates: ['catalog'],
-                                    tags: [],
+                                    locales: ['fr_FR'],
                                 },
                             ],
                         },

@@ -167,9 +167,7 @@ export function resolveSettingEntry(fragment, locale, setting) {
     if (!defaultEntry) return null;
     if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) return null;
     const filteredLocale = setting.override.filter(
-        (overrideSetting) =>
-            (!overrideSetting.locales?.length || overrideSetting.locales.includes(locale)) &&
-            (!overrideSetting.templates?.length || overrideSetting.templates.includes(template)),
+        (overrideSetting) => !overrideSetting.locales?.length || overrideSetting.locales.includes(locale),
     );
     if (filteredLocale.length == 0) return defaultEntry;
     // Find all overrides matching the locale; now select best by tags

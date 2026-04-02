@@ -39,7 +39,7 @@ export function getActiveMerchCardEditor() {
 }
 
 function groupedPreviewLocaleProvider(element, options) {
-    if (!element.closest('#preview-wrapper')) return;
+    if (!isEditorPriceElement(element)) return;
     const localeCode = getActiveMerchCardEditor()?.previewLocaleOverride;
     if (!localeCode) return;
 

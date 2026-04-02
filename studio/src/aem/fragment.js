@@ -1,4 +1,5 @@
 import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { isVariationPathInParentLocaleFamily } from '../../../io/www/src/fragment/locales.js';
 
 export class Fragment {
     path = '';
@@ -331,7 +332,10 @@ export class Fragment {
             const reference = referencesByPath.get(path);
             if (!reference) continue;
 
-            if (Fragment.isGroupedVariationPath(path)) {
+            if (
+                Fragment.isGroupedVariationPath(path) &&
+                isVariationPathInParentLocaleFamily(surface, currentLocale, path)
+            ) {
                 grouped.push(reference);
                 continue;
             }
@@ -346,7 +350,12 @@ export class Fragment {
                 const refMatch = path.match(PATH_TOKENS);
                 if (refMatch?.groups) {
                     const r = refMatch.groups;
-                    if (r.surface === surface && r.fragmentPath === fragmentPath && r.parsedLocale !== currentLocale) {
+                    if (
+                        r.surface === surface &&
+                        r.fragmentPath === fragmentPath &&
+                        r.parsedLocale !== currentLocale &&
+                        isVariationPathInParentLocaleFamily(surface, currentLocale, path)
+                    ) {
                         locale.push(reference);
                     }
                 }

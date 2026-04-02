@@ -505,7 +505,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(trigger.hasAttribute('disabled')).to.be.true;
         });
 
-        it('should render one menu item per copyable field', () => {
+        it('should render one menu item per copyable field plus the JSON-LD Schema item', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'description', values: ['Great plan'] },
@@ -516,7 +516,7 @@ describe('MasSideNav – Copy Field', () => {
             render(el.copyFieldButton, container);
 
             const items = container.querySelectorAll('sp-menu-item');
-            expect(items.length).to.equal(2);
+            expect(items.length).to.equal(3);
         });
 
         it('should render copy field menu inside a scroll container', () => {
@@ -701,6 +701,114 @@ describe('MasSideNav – Copy Field', () => {
             );
             expect(overriddenSection).to.not.exist;
             expect(container.querySelectorAll('.field-entry-overridden').length).to.equal(0);
+        });
+    });
+
+    describe('copyJsonLd', () => {
+        let clipboardStub;
+        let toastStub;
+        let clipboardItem;
+
+        beforeEach(() => {
+            clipboardStub = { write: sandbox.stub().resolves() };
+            Object.defineProperty(navigator, 'clipboard', { value: clipboardStub, configurable: true });
+            toastStub = sandbox.stub(Events.toast, 'emit');
+            sandbox.stub(Store.search, 'get').returns({ path: 'sandbox' });
+            clipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+
+                async getType(type) {
+                    return this.data[type];
+                }
+            };
+        });
+
+        afterEach(() => {
+            globalThis.ClipboardItem = clipboardItem;
+        });
+
+        it('should render JSON-LD Schema item in the Copy Field popover', () => {
+            const fragment = mockFragment([{ name: 'cardTitle', values: ['Photoshop'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const items = [...container.querySelectorAll('sp-menu-item')];
+            const jsonLdItem = items.find((item) => item.textContent.trim() === 'JSON-LD Schema');
+            expect(jsonLdItem).to.exist;
+        });
+
+        it('should copy a rich link with jsonld=on to clipboard', async () => {
+            const fragment = mockFragment([], { id: 'frag-abc' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const htmlBlob = await item.getType('text/html');
+            const htmlText = await htmlBlob.text();
+            expect(htmlText).to.include('jsonld=on');
+            expect(htmlText).to.include('jsonLdSchema');
+        });
+
+        it('should include fragment id in the link href', async () => {
+            const fragment = mockFragment([], { id: 'frag-abc' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const htmlBlob = await item.getType('text/html');
+            const htmlText = await htmlBlob.text();
+            expect(htmlText).to.include('frag-abc');
+        });
+
+        it('should emit positive toast on success', async () => {
+            const fragment = mockFragment([], { id: 'frag-abc' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+            expect(toastStub.firstCall.args[0].content).to.equal('Copied JSON-LD Schema link');
+        });
+
+        it('should emit negative toast on clipboard failure', async () => {
+            clipboardStub.write.rejects(new Error('denied'));
+            const fragment = mockFragment([], { id: 'frag-abc' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('negative');
+            expect(toastStub.firstCall.args[0].content).to.equal('Failed to copy JSON-LD Schema link');
+        });
+
+        it('should emit negative toast when fragment model is unknown', async () => {
+            const fragment = mockFragment([], { id: 'frag-abc', model: { path: '/unknown/model' } });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            expect(clipboardStub.write.called).to.be.false;
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('negative');
+        });
+
+        it('should do nothing when fragment is missing', async () => {
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(null));
+
+            await el.copyJsonLd();
+
+            expect(clipboardStub.write.called).to.be.false;
+            expect(toastStub.called).to.be.false;
         });
     });
 

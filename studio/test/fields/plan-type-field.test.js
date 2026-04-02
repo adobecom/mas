@@ -9,26 +9,22 @@ describe('Plan type field', () => {
     it('should render with default properties', async () => {
         const el = await fixture(html`<mas-plan-type-field></mas-plan-type-field>`, { parentNode: spTheme() });
         expect(el.value).to.equal('');
-        expect(el.isEditable).to.be.false;
-        expect(el.showPlanType).to.be.true;
+        expect(el.checked).to.be.false;
     });
 
-    it('should have toggle OFF and checkbox disabled by default', async () => {
+    it('should have toggle OFF by default', async () => {
         const el = await fixture(html`<mas-plan-type-field></mas-plan-type-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
-        const checkbox = el.shadowRoot.querySelector('sp-checkbox');
+        const toggle = el.querySelector('sp-switch');
         expect(toggle).to.exist;
-        expect(checkbox).to.exist;
         expect(toggle.checked).to.be.false;
-        expect(checkbox.disabled).to.be.true;
     });
 
-    it('should dispatch "true" when toggle is switched ON and checkbox is checked', async () => {
+    it('should dispatch "true" when toggle is switched ON', async () => {
         const el = await fixture(html`<mas-plan-type-field></mas-plan-type-field>`, { parentNode: spTheme() });
 
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         const listener = oneEvent(el, 'input');
 
         toggle.checked = true;
@@ -36,107 +32,53 @@ describe('Plan type field', () => {
         const event = await listener;
 
         expect(event.detail.value).to.equal('true');
-        expect(el.isEditable).to.be.true;
-        expect(el.showPlanType).to.be.true;
+        expect(el.checked).to.be.true;
     });
 
-    it('should dispatch "false" when checkbox is unchecked while editable', async () => {
+    it('should dispatch "false" when toggle is switched OFF', async () => {
         const el = await fixture(html`<mas-plan-type-field value="true"></mas-plan-type-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        const checkbox = el.shadowRoot.querySelector('sp-checkbox');
-        const listener = oneEvent(el, 'input');
-
-        checkbox.checked = false;
-        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-        const event = await listener;
-
-        expect(event.detail.value).to.equal('false');
-        expect(el.showPlanType).to.be.false;
-    });
-
-    it('should dispatch "true" when checkbox is re-checked while editable', async () => {
-        const el = await fixture(html`<mas-plan-type-field value="false"></mas-plan-type-field>`, { parentNode: spTheme() });
-        await el.updateComplete;
-
-        const checkbox = el.shadowRoot.querySelector('sp-checkbox');
-        const listener = oneEvent(el, 'input');
-
-        checkbox.checked = true;
-        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-        const event = await listener;
-
-        expect(event.detail.value).to.equal('true');
-        expect(el.showPlanType).to.be.true;
-    });
-
-    it('should dispatch empty string when toggle is switched OFF', async () => {
-        const el = await fixture(html`<mas-plan-type-field value="true"></mas-plan-type-field>`, { parentNode: spTheme() });
-        await el.updateComplete;
-
-        const toggle = el.shadowRoot.querySelector('sp-switch');
+        const toggle = el.querySelector('sp-switch');
         const listener = oneEvent(el, 'input');
 
         toggle.checked = false;
         toggle.dispatchEvent(new Event('change', { bubbles: true }));
         const event = await listener;
 
-        expect(event.detail.value).to.equal('');
-        expect(el.isEditable).to.be.false;
+        expect(event.detail.value).to.equal('false');
+        expect(el.checked).to.be.false;
     });
 
-    it('should parse value="true" as editable with checkbox checked', async () => {
+    it('should parse value="true" as checked', async () => {
         const el = await fixture(html`<mas-plan-type-field value="true"></mas-plan-type-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        expect(el.isEditable).to.be.true;
-        expect(el.showPlanType).to.be.true;
+        expect(el.checked).to.be.true;
     });
 
-    it('should parse value="false" as editable with checkbox unchecked', async () => {
+    it('should parse value="false" as unchecked', async () => {
         const el = await fixture(html`<mas-plan-type-field value="false"></mas-plan-type-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        expect(el.isEditable).to.be.true;
-        expect(el.showPlanType).to.be.false;
+        expect(el.checked).to.be.false;
     });
 
-    it('should parse empty value as not editable', async () => {
+    it('should parse empty value as unchecked', async () => {
         const el = await fixture(html`<mas-plan-type-field value=""></mas-plan-type-field>`, { parentNode: spTheme() });
         await el.updateComplete;
 
-        expect(el.isEditable).to.be.false;
-        expect(el.showPlanType).to.be.true;
+        expect(el.checked).to.be.false;
     });
 
-    it('should dispatch "false" when toggle is switched ON while showPlanType is false', async () => {
-        const el = await fixture(html`<mas-plan-type-field></mas-plan-type-field>`, { parentNode: spTheme() });
-        await el.updateComplete;
-
-        // Directly set internal state: not editable, showPlanType=false
-        el.isEditable = false;
-        el.showPlanType = false;
-        await el.updateComplete;
-
-        const toggle = el.shadowRoot.querySelector('sp-switch');
-        const listener = oneEvent(el, 'input');
-        toggle.checked = true;
-        toggle.dispatchEvent(new Event('change', { bubbles: true }));
-        const event = await listener;
-
-        // showPlanType was false when toggle fired, so value dispatched is 'false'
-        expect(event.detail.value).to.equal('false');
-        expect(el.isEditable).to.be.true;
-    });
-
-    it('should render sp-field-label with provided label', async () => {
+    it('should render switch label with provided label', async () => {
         const el = await fixture(html`<mas-plan-type-field label="Show Plan Type" id="plan-type"></mas-plan-type-field>`, {
             parentNode: spTheme(),
         });
         await el.updateComplete;
 
-        const label = el.shadowRoot.querySelector('sp-field-label');
-        expect(label).to.exist;
-        expect(label.textContent.trim()).to.equal('Show Plan Type');
+        const toggle = el.querySelector('sp-switch');
+        expect(toggle).to.exist;
+        expect(toggle.textContent.trim()).to.equal('Show Plan Type');
     });
 });

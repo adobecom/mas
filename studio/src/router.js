@@ -421,8 +421,9 @@ export class Router extends EventTarget {
         this.previousHash = this.location.hash;
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, ['path', 'query'], {});
-        this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
+        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled'], {
             locale: 'en_US',
+            personalizationFilterEnabled: false,
         });
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');

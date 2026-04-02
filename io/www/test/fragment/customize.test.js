@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
-import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
+import { computeRegionLocale, deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
@@ -102,19 +102,23 @@ describe('customize collections', function () {
 
         expect(result.status).to.equal(200);
 
-        expect(result.body.fields.collections[0], 'expecting main fragment collections field to be customized').to.equal(
-            'subcoll-en-kw',
+        expect(result.body.fields.collections[0], 'expecting main fragment collections field to keep default id').to.equal(
+            'subcoll-en-us',
         );
 
         expect(
             result.body.referencesTree[0].identifier,
-            'expecting main fragment reference tree field to be customized as well',
-        ).to.equal('subcoll-en-kw');
+            'expecting main fragment reference tree to keep default fragment id',
+        ).to.equal('subcoll-en-us');
 
         expect(
-            result.body.references['subcoll-en-kw'].value.fields.cards,
-            'expecting cards field in references to be customized',
-        ).to.deep.equal(['some-card-en-us', 'some-other-card-en-kw']);
+            result.body.references['subcoll-en-us'].value.fields.cards,
+            'expecting cards field in references to be customized under default id',
+        ).to.deep.equal(['some-card-en-us', 'some-other-card-en-us']);
+
+        expect(result.body.references['subcoll-en-us'].value.id, 'merged subcollection keeps default id').to.equal(
+            'subcoll-en-us',
+        );
 
         expect(
             result.body.referencesTree[0].referencesTree[0].identifier,
@@ -123,10 +127,10 @@ describe('customize collections', function () {
 
         expect(
             result.body.referencesTree[0].referencesTree[1].identifier,
-            'expecting 2nd card to be customized in references tree',
-        ).to.deep.equal('some-other-card-en-kw');
+            'expecting 2nd card to keep default id after regional merge',
+        ).to.deep.equal('some-other-card-en-us');
 
-        const cardKW = result.body.references['some-other-card-en-kw'].value;
+        const cardKW = result.body.references['some-other-card-en-us'].value;
         expect(cardKW.title).to.equal('Photography Promo KW');
         expect(cardKW.fields.cardTitle).to.equal('Photography  (1TB)');
         expect(cardKW.fields.backgroundImage).to.equal('https://www.adobe.com/my/image.jpg');
@@ -658,6 +662,8 @@ describe('customize collections', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('Valid PZN badge');
+        expect(result.body.id).to.equal('root-fragment');
+        expect(result.body.variationId).to.equal(validId);
     });
 
     it('should not merge personalization variation when no pznTags match regionLocale', async function () {
@@ -703,6 +709,23 @@ async function process(context) {
     context.promises.customize = customize.init(initContext);
     return await customize.process(context);
 }
+
+describe('computeRegionLocale', function () {
+    it('should compute well typical use cases', function () {
+        const CTX = {
+            defaultLocale: 'fr_FR',
+            surface: 'sandbox',
+        };
+        expect(computeRegionLocale({ locale: 'fr_FR', country: undefined, ...CTX })).to.equal('fr_FR');
+        expect(computeRegionLocale({ locale: 'fr_FR', country: 'FR', ...CTX })).to.equal('fr_FR');
+        expect(computeRegionLocale({ locale: 'fr_FR', country: 'BE', ...CTX })).to.equal('fr_BE');
+        expect(computeRegionLocale({ locale: 'fr_FR', country: 'ca', ...CTX })).to.equal('fr_CA');
+        expect(computeRegionLocale({ locale: 'fr_FR', country: 'IN', ...CTX })).to.equal('fr_FR');
+        expect(computeRegionLocale({ locale: 'fr_BE', country: undefined, ...CTX })).to.equal('fr_BE');
+        expect(computeRegionLocale({ locale: 'fr_BE', country: 'FR', ...CTX })).to.equal('fr_BE');
+        expect(computeRegionLocale({ locale: 'fr_BE', country: 'IN', ...CTX })).to.equal('fr_BE');
+    });
+});
 
 describe('customize typical cases', function () {
     beforeEach(function () {

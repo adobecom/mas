@@ -32,7 +32,7 @@ class MasSelectItemsTable extends LitElement {
         super();
         this.dataSubscription = null;
         this.processAbortController = null;
-        this.dataState = { isProcessingCards: false };
+        this.dataState = { isProcessingCards: false, abortController: new AbortController() };
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.displayCardsStoreController = null;
@@ -134,6 +134,7 @@ class MasSelectItemsTable extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.dataSubscription?.unsubscribe();
+        this.dataState.abortController?.abort();
         this.processAbortController?.abort();
         this.processAbortController = null;
         this.scrollObserver?.disconnect();

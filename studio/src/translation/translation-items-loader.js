@@ -219,20 +219,18 @@ function parseFragmentsFromStore(allFragments) {
 }
 
 /**
- * Processes and enriches cards with offer data and grouped variations, writes to store
+ * Processes and enriches cards with offer data and grouped variations, writes to store.
+ * Skips concurrent invocations — if already processing, the new call returns immediately.
  * @param {Array<Object>} allCards - Array of card objects
  * @param {Object} repository - MasRepository instance
- * @param {AbortSignal} signal - Abort signal for cancellation
- * @param {Object} state - Mutable state { isProcessingCards, processAbortController }
+ * @param {Object} state - Mutable state { isProcessingCards, abortController }
  */
 async function processCardsData(allCards, repository, state) {
-    if (state.isProcessingCards) {
-        state.processAbortController?.abort();
-    }
+    if (state.isProcessingCards) return;
     state.isProcessingCards = true;
-    state.processAbortController = new AbortController();
-    const { signal: currentSignal } = state.processAbortController;
+    const signal = state.abortController?.signal;
 
+    performance.mark('processCardsData:start');
     try {
         const existingCards = Store.translationProjects.allCards.get() || [];
         const existingOfferDataByPath = new Map(
@@ -248,10 +246,10 @@ async function processCardsData(allCards, repository, state) {
         if (cardsNeedingOfferData.length > 0) {
             const offerDataResults = await processConcurrently(
                 cardsNeedingOfferData,
-                (card) => loadOfferData(card, currentSignal),
+                (card) => loadOfferData(card, signal),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
-            if (currentSignal.aborted) return;
+            if (signal?.aborted) return;
             await yieldToMain();
             cardsNeedingOfferData.forEach((card, i) => {
                 existingOfferDataByPath.set(card.path, offerDataResults[i]);
@@ -262,17 +260,17 @@ async function processCardsData(allCards, repository, state) {
         if (cardsNeedingGroupedVariations.length > 0 && repository) {
             const groupedVariationsResults = await processConcurrently(
                 cardsNeedingGroupedVariations,
-                (card) => loadGroupedVariations(card, repository, currentSignal),
+                (card) => loadGroupedVariations(card, repository, signal),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
-            if (currentSignal.aborted) return;
+            if (signal?.aborted) return;
             await yieldToMain();
             cardsNeedingGroupedVariations.forEach((card, i) => {
                 existingGroupedVariationsByPath.set(card.path, groupedVariationsResults[i] ?? []);
             });
         }
 
-        if (currentSignal.aborted) return;
+        if (signal?.aborted) return;
 
         const enrichedCards = allCards.map((card) => ({
             ...card,
@@ -283,7 +281,7 @@ async function processCardsData(allCards, repository, state) {
         if (enrichedCards.length > 50) {
             await yieldToMain();
         }
-        if (currentSignal.aborted) return;
+        if (signal?.aborted) return;
 
         const cardsByPaths = new Map(enrichedCards.map((card) => [card.path, card]));
         const prefetchedVariations = new Map(
@@ -304,6 +302,7 @@ async function processCardsData(allCards, repository, state) {
         Store.translationProjects.cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;
+        performance.measure('processCardsData', 'processCardsData:start');
     }
 }
 
@@ -345,10 +344,10 @@ export function loadAllPlaceholders() {
  * @returns {{ unsubscribe: () => void }}
  */
 export function loadAllFragments(type, repository, state = {}) {
-    const typeUppercased = type.charAt(0).toUpperCase() + type.slice(1);
-    if (Store.translationProjects[`all${typeUppercased}`].get()?.length) {
+    if (state.subscribed) {
         return { unsubscribe: () => {} };
     }
+    state.subscribed = true;
     const callback = async () => {
         const { allCards, allCollections } = parseFragmentsFromStore(Store.fragments.list.data.get() || []);
         if (type === TABLE_TYPE.CARDS) {
@@ -358,7 +357,12 @@ export function loadAllFragments(type, repository, state = {}) {
         }
     };
     Store.fragments.list.data.subscribe(callback);
-    return { unsubscribe: () => Store.fragments.list.data.unsubscribe(callback) };
+    return {
+        unsubscribe: () => {
+            Store.fragments.list.data.unsubscribe(callback);
+            state.subscribed = false;
+        },
+    };
 }
 
 /**

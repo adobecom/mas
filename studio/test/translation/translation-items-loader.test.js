@@ -652,9 +652,7 @@ describe('translation-items-loader', () => {
 
             await loadCardVariations(cardPath, [variationPathA, variationPathB], repo);
 
-            const parentFetchCalls = repo.aem.getFragmentByPath
-                .getCalls()
-                .filter((call) => call.args[0] === cardPath);
+            const parentFetchCalls = repo.aem.getFragmentByPath.getCalls().filter((call) => call.args[0] === cardPath);
             expect(parentFetchCalls.length).to.equal(1);
         });
 

@@ -1533,8 +1533,7 @@ export class MasRepository extends LitElement {
      */
     generateGroupedVariationName(fragment, pznTags) {
         const parts = [];
-        const product =
-            fragment.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment.getTagTitle?.('mas:product/');
+        const product = fragment.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment.getTagTitle?.('mas:product/');
         if (product) parts.push(product);
 
         const customerSegment = fragment.getTagTitle('customer_segment');

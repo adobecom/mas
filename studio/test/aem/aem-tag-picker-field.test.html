@@ -728,9 +728,7 @@
                         await picker.updateComplete;
 
                         expect(picker.value).to.include('/content/cq:tags/mas/offer_type/promo');
-                        expect(picker.value.filter((p) => p.includes('/content/cq:tags/mas/product_code/'))).to.have.length(
-                            0,
-                        );
+                        expect(picker.value.filter((p) => p.includes('/content/cq:tags/mas/product_code/'))).to.have.length(0);
                     });
                 });
             });

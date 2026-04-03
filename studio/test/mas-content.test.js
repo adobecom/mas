@@ -1,4 +1,5 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, html, nextFrame } from '@open-wc/testing';
+import sinon from 'sinon';
 import '../src/swc.js';
 import { Fragment } from '../src/aem/fragment.js';
 import Store from '../src/store.js';
@@ -92,6 +93,33 @@ describe('MasContent table + personalization grouping', () => {
         const text = el.textContent ?? '';
         expect(text).to.include('Personalization fragments (1)');
         expect(text).to.include('All other fragments (1)');
+    });
+
+    it('uses requestAnimationFrame to re-observe sentinel after a page load completes', async () => {
+        Store.fragments.list.loading.set(true);
+        Store.fragments.list.firstPageLoaded.set(true);
+        Store.fragments.list.hasMore.set(true);
+        Store.fragments.list.data.value = [];
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        await el.updateComplete;
+
+        const rafStub = sinon.stub(window, 'requestAnimationFrame').callsFake((cb) => {
+            cb();
+            return 0;
+        });
+
+        try {
+            // Transition loading false → triggers loadingJustCompleted in updated()
+            Store.fragments.list.loading.set(false);
+            await nextFrame();
+            await el.updateComplete;
+
+            expect(rafStub.called).to.be.true;
+        } finally {
+            rafStub.restore();
+            Store.fragments.list.hasMore.set(false);
+        }
     });
 
     it('narrows the personalization group when selected filter tags are non-country PZN ids', async () => {

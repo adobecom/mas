@@ -110,7 +110,7 @@ async function previewFragment(id, options) {
     // Use Freyja endpoint with token if available, otherwise fall back to Odin
     if (context.freyjaToken) {
         context.preview = {
-            url: 'http://localhost:9006/adobe/contentFragments',
+            url: FREYJA_PREVIEW_URL,
         };
         context.DEFAULT_HEADERS = {
             ...(context.DEFAULT_HEADERS || {}),

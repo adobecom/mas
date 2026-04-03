@@ -131,6 +131,7 @@ async function previewFragment(id, options) {
                     ...structuredClone(context),
                     promises: initPromises,
                     fragmentsIds: context.fragmentsIds,
+                    DEFAULT_HEADERS: context.DEFAULT_HEADERS,
                 };
                 initContext.loggedTransformer = `${transformer.name}-init`;
                 logDebug(() => `Initializing transformer ${transformer.name}`, initContext);

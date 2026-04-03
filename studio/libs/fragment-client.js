@@ -106,6 +106,18 @@ async function previewFragment(id, options) {
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
     let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'fragment-client' };
+
+    // Use Freyja endpoint with token if available, otherwise fall back to Odin
+    if (context.freyjaToken) {
+        context.preview = {
+            url: 'http://localhost:9006/adobe/contentFragments',
+        };
+        context.DEFAULT_HEADERS = {
+            ...(context.DEFAULT_HEADERS || {}),
+            Authorization: `Bearer ${context.freyjaToken}`,
+        };
+    }
+
     const initPromises = {};    
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);

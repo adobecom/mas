@@ -26,9 +26,20 @@ export function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
 }
 
 export function imsSignedIn(imsReadyPromise) {
-    return imsReadyPromise.then(
-        () => window.adobeIMS?.isSignedInUser() ?? false,
-    );
+    const log = Log.module('ims');
+    return imsReadyPromise.then(() => {
+        const signedIn = window.adobeIMS?.isSignedInUser() ?? false;
+        if (signedIn) {
+            const token = window.adobeIMS?.getAccessToken?.()?.token;
+            if (token) {
+                sessionStorage.setItem('masFreyjaToken', token);
+                log.debug('Cached Freyja token to sessionStorage after sign-in');
+            } else {
+                log.warn('User signed in but no access token available');
+            }
+        }
+        return signedIn;
+    });
 }
 
 export function imsCountry(imsSignedInPromise) {

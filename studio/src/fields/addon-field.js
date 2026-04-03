@@ -1,4 +1,4 @@
-import { css, html, LitElement, nothing } from 'lit';
+import { html, LitElement, nothing } from 'lit';
 import { EVENT_INPUT } from '../constants.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import Store from '../store.js';
@@ -10,6 +10,7 @@ export class AddonField extends LitElement {
         label: { type: String },
         placeholderKey: { type: String },
         editable: { type: Boolean, state: true },
+        indicatorTemplate: { attribute: false },
     };
 
     addons = Store.placeholders.addons.data;
@@ -23,49 +24,32 @@ export class AddonField extends LitElement {
         this.value = '';
         this.disabled = false;
         this.editable = false;
+        this.indicatorTemplate = nothing;
     }
 
-    static get styles() {
-        return css`
-            :host {
-                display: block;
-                --spectrum-fieldgroup-margin: 0;
-            }
-
-            div {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 8px;
-            }
-
-            sp-combobox {
-                width: 100%;
-                margin-block-end: 16px;
-            }
-
-            :host([data-field-state='overridden']) sp-switch[checked] {
-                --mod-switch-background-color-selected-default: var(--spectrum-blue-500);
-                --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
-            }
-
-            :host([data-field-state='overridden']) sp-combobox {
-                --mod-combobox-border-color-default: var(--spectrum-blue-400);
-                --mod-combobox-background-color-default: var(--spectrum-blue-100);
-            }
-        `;
+    createRenderRoot() {
+        return this;
     }
 
     connectedCallback() {
         super.connectedCallback();
-        if (this.placeholderKey) {
-            this.repository.loadAddonPlaceholders();
+        this.#loadAddonPlaceholders();
+    }
+
+    updated(changedProperties) {
+        if (changedProperties.has('placeholderKey')) {
+            this.#loadAddonPlaceholders();
         }
     }
 
     /** @type {MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
+    }
+
+    #loadAddonPlaceholders() {
+        if (!this.placeholderKey) return;
+        this.repository?.loadAddonPlaceholders();
     }
 
     #handleToggle(e) {
@@ -119,9 +103,9 @@ export class AddonField extends LitElement {
     render() {
         return html`
             <sp-field-group>
-                <div>
-                    <sp-field-label for="addon-field">${this.label}</sp-field-label>
-                    <sp-switch size="m" .checked="${this.isEditable}" @change="${this.#handleToggle}"></sp-switch>
+                <div class="field-row">
+                    <sp-switch size="m" .checked="${this.isEditable}" @change="${this.#handleToggle}">${this.label}</sp-switch>
+                    ${this.indicatorTemplate}
                 </div>
                 <!-- style hack -->
                 <span></span>

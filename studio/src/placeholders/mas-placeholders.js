@@ -405,7 +405,7 @@ class MasPlaceholders extends LitElement {
                     )}
                 </sp-table-head>
                 <sp-table-body>
-                    ${this.loading && this.internalPlaceholders.length === 0
+                    ${this.loading
                         ? Array.from({ length: 5 }, placeholdersSkeletonRow)
                         : repeat(
                               this.internalPlaceholders,
@@ -426,7 +426,7 @@ class MasPlaceholders extends LitElement {
                                   `;
                               },
                           )}
-                    ${this.internalPlaceholders.length === 0 && !this.loading
+                    ${!this.loading && this.internalPlaceholders.length === 0
                         ? html`<p class="no-placeholders-label">No placeholders found</p>`
                         : nothing}
                 </sp-table-body>

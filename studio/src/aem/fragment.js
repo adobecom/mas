@@ -1,5 +1,6 @@
-import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX } from '../constants.js';
-import { getCachedTagTitle } from './aem-tag-picker-field.js';
+import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX, MAS_PRODUCT_CODE_PREFIX } from '../constants.js';
+import { getCachedTagTitle } from './tag-cache.js';
+import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
 
 export class Fragment {
     path = '';
@@ -53,19 +54,8 @@ export class Fragment {
     }
 
     getCurrentTagTitle(id) {
-        const normalizeTagId = (tag) => {
-            const rawValue = typeof tag === 'string' ? tag : tag?.id || tag?.path || '';
-            if (!rawValue) return '';
-
-            if (rawValue.startsWith('/content/cq:tags/')) {
-                const match = rawValue.match(/\/content\/cq:tags\/([^/]+)\/(.+)$/);
-                return match ? `${match[1]}:${match[2]}` : '';
-            }
-
-            return rawValue;
-        };
-
-        const rawTagIds = this.newTags || this.getField('tags')?.values || this.tags || [];
+        const fieldTagValues = this.getField('tags')?.values;
+        const rawTagIds = this.newTags ?? (fieldTagValues?.length ? fieldTagValues : null) ?? this.tags ?? [];
         const tagIds = rawTagIds.map(normalizeTagId).filter(Boolean);
 
         const matchingIds = tagIds.filter((tagId) => tagId.includes(id));
@@ -83,14 +73,9 @@ export class Fragment {
 
         const title = exactTag?.title || cachedTitle || fallbackTag?.title;
 
-        if (id === 'mas:product_code/') {
-            const productCodePath = matchingId.replace('mas:product_code/', '');
-            const parts = productCodePath.split('/').filter(Boolean);
-
-            if (parts.length > 1) {
-                const pac = parts[parts.length - 1]?.toUpperCase();
-                if (title && pac) return `${title} (${pac})`;
-            }
+        if (id === MAS_PRODUCT_CODE_PREFIX) {
+            const nestedTitle = formatProductCodeNestedTitle(title, matchingId);
+            if (nestedTitle) return nestedTitle;
         }
 
         if (title) return title;

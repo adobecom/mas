@@ -9,6 +9,7 @@ import {
     COLLECTION_MODEL_PATH,
     EVENT_KEYDOWN,
     EVENT_OST_OFFER_SELECT,
+    MAS_PRODUCT_CODE_PREFIX,
     OPERATIONS,
     PAGE_NAMES,
     TAG_PROMOTION_PREFIX,
@@ -37,7 +38,8 @@ export function getFragmentPartsToUse(store, fragment) {
                 variantCode: fragment?.getField('variant')?.values[0],
                 marketSegment: fragment?.getTagTitle('market_segment'),
                 customerSegment: fragment?.getTagTitle('customer_segment'),
-                product: fragment?.getTagTitle('mas:product/'),
+                product_code:
+                    fragment?.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment?.getTagTitle?.('mas:product/'),
                 promotion: fragment?.getTagTitle(TAG_PROMOTION_PREFIX),
             };
 
@@ -50,7 +52,7 @@ export function getFragmentPartsToUse(store, fragment) {
                 if (part) return ` / ${part}`;
                 return '';
             };
-            fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
+            fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product_code)}${buildPart(props.promotion)}`;
             title = props.cardTitle;
             break;
         case COLLECTION_MODEL_PATH:

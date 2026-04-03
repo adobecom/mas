@@ -1,4 +1,4 @@
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, MAS_PRODUCT_CODE_PREFIX, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
@@ -205,8 +205,9 @@ export function getFragmentPartsToUse(fragment, path) {
                 variantCode: fragment?.getField('variant')?.values[0],
                 marketSegment: fragment?.getTagTitle('market_segment'),
                 customerSegment: fragment?.getTagTitle('customer_segment'),
-                product: fragment?.getTagTitle('mas:product/'),
-                promotion: fragment?.getTagTitle(TAG_PROMOTION_PREFIX),
+                product_code:
+                    fragment?.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment?.getTagTitle?.('mas:product/'),
+                promotion: fragment?.getCurrentTagTitle?.(TAG_PROMOTION_PREFIX),
             };
 
             VARIANTS.forEach((variant) => {
@@ -218,7 +219,7 @@ export function getFragmentPartsToUse(fragment, path) {
                 if (part) return ` / ${part}`;
                 return '';
             };
-            fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product)}${buildPart(props.promotion)}`;
+            fragmentParts = `${surface}${buildPart(props.variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product_code)}${buildPart(props.promotion)}`;
             title = props.cardTitle;
             break;
         case COLLECTION_MODEL_PATH:

@@ -100,6 +100,10 @@ sp-sidenav-item sp-icon {
     overflow-y: auto;
 }
 
+.scroll-sentinel {
+    height: 1px;
+}
+
 #content-container {
     height: fit-content;
     border-radius: 8px;
@@ -362,14 +366,6 @@ mas-fragment-render[selected] .render-fragment {
     outline: 2px solid var(--spectrum-blue-600);
 }
 
-sp-progress-circle.fragments {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1;
-}
-
 mas-fragment-render:not(.has-tooltip) merch-card ~ sp-tooltip,
 mas-fragment-table:not(.has-tooltip) ~ sp-tooltip {
     display: none;
@@ -405,6 +401,7 @@ mas-content {
 #content {
     display: flex;
     justify-content: center;
+    flex-wrap: wrap;
     padding-bottom: 30px;
 }
 
@@ -429,11 +426,77 @@ mas-content {
     overflow: hidden;
 }
 
-#content #render {
+#content #render,
+.next-page-skeletons {
     width: 100%;
     display: flex;
     flex-wrap: wrap;
     gap: 15px;
+}
+
+#content sp-illustrated-message {
+    width: 100%;
+    padding: 40px 20px;
+}
+
+#content sp-illustrated-message sp-icon-cloud {
+    width: 100px;
+    height: 96px;
+    color: var(--spectrum-gray-800, #292929);
+}
+
+.render-fragment-placeholder {
+    width: 300px;
+    min-height: 300px;
+    border: 1px solid var(--spectrum-global-color-gray-300, var(--spectrum-gray-300, #d3d3d3));
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.skeleton-element {
+    background: linear-gradient(
+        90deg,
+        var(--spectrum-global-color-gray-200, var(--spectrum-gray-200, #e6e6e6)) 25%,
+        var(--spectrum-global-color-gray-100, var(--spectrum-gray-100, #f5f5f5)) 50%,
+        var(--spectrum-global-color-gray-200, var(--spectrum-gray-200, #e6e6e6)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+}
+
+.skeleton-title {
+    height: 24px;
+    width: 60%;
+}
+.skeleton-body {
+    height: 120px;
+    flex: 1;
+}
+.skeleton-footer {
+    height: 32px;
+    width: 40%;
+}
+
+.skeleton-row sp-table-cell {
+    padding: 16px 20px;
+}
+.skeleton-table-cell {
+    height: 18px;
+    width: 80%;
+    border-radius: 4px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 sp-table-row {
@@ -869,10 +932,6 @@ sp-progress-circle.preview {
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1000;
-}
-
-sp-progress-circle.next-page {
-    align-self: center;
 }
 
 .clone-dialog sp-progress-circle {

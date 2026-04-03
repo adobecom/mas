@@ -104,18 +104,21 @@ describe('MasContent table + personalization grouping', () => {
         const el = await fixture(html`<mas-content></mas-content>`);
         await el.updateComplete;
 
+        // Capture RAF callbacks without executing them — proves observe() is deferred
+        const rafCallbacks = [];
         const rafStub = sinon.stub(window, 'requestAnimationFrame').callsFake((cb) => {
-            cb();
-            return 0;
+            rafCallbacks.push(cb);
+            return rafCallbacks.length;
         });
 
         try {
-            // Transition loading false → triggers loadingJustCompleted in updated()
             Store.fragments.list.loading.set(false);
-            await nextFrame();
             await el.updateComplete;
 
+            // RAF was scheduled
             expect(rafStub.called).to.be.true;
+            // Callback was NOT yet executed (observe is deferred)
+            expect(rafCallbacks).to.have.length(1);
         } finally {
             rafStub.restore();
             Store.fragments.list.hasMore.set(false);

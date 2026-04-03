@@ -480,6 +480,7 @@ export class MasRepository extends LitElement {
     }
 
     static MIN_PAGE_SIZE = 10;
+    static MAX_EAGER_PAGES = 20;
 
     async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal) {
         let added = 0;
@@ -500,8 +501,13 @@ export class MasRepository extends LitElement {
 
     async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
         const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        let pagesLoaded = 0;
         try {
             while (this.#searchCursor === cursorSnapshot) {
+                if (pagesLoaded >= MasRepository.MAX_EAGER_PAGES) {
+                    Store.fragments.list.hasMore.set(true);
+                    break;
+                }
                 const done = await this.#fillPage(
                     cursor,
                     variants,
@@ -510,6 +516,7 @@ export class MasRepository extends LitElement {
                     undefined,
                     searchController.signal,
                 );
+                pagesLoaded++;
                 if (this.#searchCursor !== cursorSnapshot) return;
                 Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
                 if (done) {

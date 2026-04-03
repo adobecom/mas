@@ -1800,6 +1800,96 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('eagerLoadAllPznPages cap', () => {
+        const setupPznSearchTest = async (pageCount) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: true,
+                },
+            };
+            // Each page has MIN_PAGE_SIZE items so each #fillPage call consumes exactly 1 page
+            const pages = Array.from({ length: pageCount }, (_, p) =>
+                Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) =>
+                    createFragment({
+                        id: `pzn-${p}-${i}`,
+                        path: `${ROOT_PATH}/acom/en_US/pzn-${p}-${i}`,
+                        tags: [{ id: 'mas:pzn/general' }],
+                        fields: [],
+                    }),
+                ),
+            );
+            let index = 0;
+            const mockCursor = {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        it('stops eager loading after MAX_EAGER_PAGES and sets hasMore true', async () => {
+            const pageCount = MasRepository.MAX_EAGER_PAGES + 5;
+            const { repository, cleanup } = await setupPznSearchTest(pageCount);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                // Wait for the async eager-load loop to complete
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('does not set hasMore when all pages fit within MAX_EAGER_PAGES', async () => {
+            const pageCount = 2;
+            const { repository, cleanup } = await setupPznSearchTest(pageCount);
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+    });
+
     describe('parseVariationAlreadyExistsPath', () => {
         it('returns path when message is "A variation already exists at /path/to/fragment"', () => {
             const repository = createRepository();

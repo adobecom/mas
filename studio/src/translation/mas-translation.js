@@ -7,6 +7,14 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { PAGE_NAMES, TRANSLATIONS_ALLOWED_SURFACES } from '../constants.js';
 import { showToast } from '../utils.js';
 
+const translationSkeletonRow = () =>
+    html`<sp-table-row class="skeleton-row">
+        <sp-table-cell class="title"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="lastUpdatedBy"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="sentOn"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="actions"></sp-table-cell>
+    </sp-table-row>`;
+
 class MasTranslation extends LitElement {
     static styles = styles;
 
@@ -77,10 +85,27 @@ class MasTranslation extends LitElement {
     }
 
     get translationsProjectsContent() {
-        if (Store.translationProjects?.list?.loading?.get()) {
-            return html`<div class="loading-container--absolute">
-                <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-            </div>`;
+        const isLoading = Store.translationProjects?.list?.loading?.get();
+        if (isLoading && !this.translationProjectsData.length) {
+            return html` <sp-table emphasized .scroller=${true} class="translation-table">
+                <sp-table-head>
+                    ${[...this.columns].map(
+                        ({ key, label, align }) => html`
+                            <sp-table-head-cell
+                                class=${key}
+                                style="${align === 'right' ? 'text-align: right;' : ''}"
+                                .sortable=${key === 'sentOn'}
+                                sort-direction="asc"
+                                sort-key="sentOn"
+                                @sorted=${this.#sortBySentOn}
+                            >
+                                ${label}
+                            </sp-table-head-cell>
+                        `,
+                    )}
+                </sp-table-head>
+                <sp-table-body> ${Array.from({ length: 5 }, translationSkeletonRow)} </sp-table-body>
+            </sp-table>`;
         }
         if (this.translationProjectsData.length) {
             return html` <sp-table emphasized .scroller=${true} class="translation-table">

@@ -1152,9 +1152,12 @@ describe('MasSelectItemsTable', () => {
         it('should render sentinel when items are present and hasMore is true', async () => {
             Store.fragments.list.hasMore.set(true);
             Store.fragments.list.firstPageLoaded.set(true);
-            setupCardsInStore([createMockCard('/card/1', 'Card 1')]);
 
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            // Set displayCards after initial subscription fires (which overwrites with empty data)
+            setupCardsInStore([createMockCard('/card/1', 'Card 1')]);
             await el.updateComplete;
 
             const sentinel = el.renderRoot.querySelector('.scroll-sentinel');

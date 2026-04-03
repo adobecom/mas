@@ -8,6 +8,11 @@ export function imsReady({ interval = 200, maxAttempts = 25 } = {}) {
         /* c8 ignore next 10 */
         function poll() {
             if (window.adobeIMS?.initialized) {
+                const token = window.adobeIMS?.getAccessToken?.()?.token;
+                if (token) {
+                    sessionStorage.setItem('masFreyjaToken', token);
+                    log.debug('Cached Freyja token to sessionStorage');
+                }
                 resolve();
             } else if (++count > maxAttempts) {
                 log.debug('Timeout');

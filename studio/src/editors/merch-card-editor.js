@@ -1680,8 +1680,13 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = [];
         const mnemonicTooltipText = [];
         const mnemonicTooltipPlacement = [];
+        const entries = Array.isArray(event.target.value) ? event.target.value : [];
+        const nonEmptyEntries = entries.filter(({ icon, alt, link, mnemonicText, mnemonicPlacement }) =>
+            Boolean(icon || alt || link || mnemonicText || (mnemonicPlacement && mnemonicPlacement !== 'top')),
+        );
+        const hadOnlyBlankPlaceholderRows = entries.length > 0 && nonEmptyEntries.length === 0;
 
-        event.target.value.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
+        nonEmptyEntries.forEach(({ icon, alt, link, mnemonicText, mnemonicPlacement }) => {
             mnemonicIcon.push(icon ?? '');
             mnemonicAlt.push(alt ?? '');
             mnemonicLink.push(link ?? '');
@@ -1705,6 +1710,16 @@ class MerchCardEditor extends LitElement {
 
         // For variations: check if ALL mnemonic values match parent before resetting
         if (parent) {
+            if (hadOnlyBlankPlaceholderRows) {
+                for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
+                    this.fragment.resetFieldToParent(fieldName);
+                }
+                this.fragmentStore.notify();
+                this.fragmentStore.refreshAemFragment();
+                this.requestUpdate();
+                return;
+            }
+
             // Compare against effective parent values (what would be inherited)
             // For fields that don't exist on parent, treat default values as matching
             const allMatchParent = MerchCardEditor.MNEMONIC_FIELDS.every((fieldName) => {

@@ -32,7 +32,7 @@ class MasSelectItemsTable extends LitElement {
         super();
         this.dataSubscription = null;
         this.processAbortController = null;
-        this.dataState = { isProcessingCards: false, processAbortController: null };
+        this.dataState = { isProcessingCards: false };
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.displayCardsStoreController = null;
@@ -127,7 +127,7 @@ class MasSelectItemsTable extends LitElement {
             this.observedSentinel = null;
         } else if (loadingJustCompleted && this.hasMore.value) {
             this.scrollObserver?.unobserve(sentinel);
-            this.scrollObserver?.observe(sentinel);
+            requestAnimationFrame(() => this.scrollObserver?.observe(sentinel));
         }
     }
 
@@ -331,7 +331,8 @@ class MasSelectItemsTable extends LitElement {
                             <sp-table-body>${this.#renderTableBody()}</sp-table-body>
                         </sp-table>`
                       : html`<p>No items found.</p>`}
-                  ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}`}
+                  ${this.itemsToDisplay.length > 0 && this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing}
+                  ${this.loadingMoreIndicator}`}
         `;
     }
 }

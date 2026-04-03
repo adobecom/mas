@@ -1135,4 +1135,42 @@ describe('MasSelectItemsTable', () => {
             expect(el.isLoading).to.equal(el.viewOnlyLoading);
         });
     });
+
+    describe('scroll sentinel', () => {
+        it('should not render sentinel when items list is empty even if hasMore is true', async () => {
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.translationProjects.displayCards.set([]);
+
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
+            expect(sentinel).to.be.null;
+        });
+
+        it('should render sentinel when items are present and hasMore is true', async () => {
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.firstPageLoaded.set(true);
+            setupCardsInStore([createMockCard('/card/1', 'Card 1')]);
+
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
+            expect(sentinel).to.not.be.null;
+        });
+
+        it('should not render sentinel when hasMore is false even if items are present', async () => {
+            Store.fragments.list.hasMore.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            setupCardsInStore([createMockCard('/card/1', 'Card 1')]);
+
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
+            expect(sentinel).to.be.null;
+        });
+    });
 });

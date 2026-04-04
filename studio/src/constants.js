@@ -159,6 +159,7 @@ export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 
 // The first value in the array should be the default value
 export const SORT_COLUMNS = {
+    content: ['title', 'modifiedAt'],
     placeholders: ['key', 'value', 'status', 'locale', 'updatedBy', 'updatedAt'],
 };
 

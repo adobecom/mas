@@ -53,6 +53,7 @@ class MasContent extends LitElement {
     selection = new StoreController(this, Store.selection);
     search = new StoreController(this, Store.search);
     filters = new StoreController(this, Store.filters);
+    sort = new StoreController(this, Store.sort);
 
     connectedCallback() {
         super.connectedCallback();
@@ -211,6 +212,30 @@ class MasContent extends LitElement {
         `;
     }
 
+    #handleSort({ detail: { sortKey, sortDirection } }) {
+        Store.sort.set({ sortBy: sortKey, sortDirection });
+    }
+
+    get #sortedFragmentStores() {
+        const { sortBy, sortDirection } = this.sort.value ?? {};
+        const stores = this.fragments.value.filter((fs) => fs.get() !== null);
+        if (!sortBy) return stores;
+        return [...stores].sort((aStore, bStore) => {
+            const a = aStore.get();
+            const b = bStore.get();
+            if (sortBy === 'modifiedAt') {
+                const aVal = new Date(a.modified?.at || 0).getTime();
+                const bVal = new Date(b.modified?.at || 0).getTime();
+                const diff = aVal - bVal;
+                return sortDirection === 'desc' ? -diff : diff;
+            }
+            const aVal = (a[sortBy] ?? '').toString();
+            const bVal = (b[sortBy] ?? '').toString();
+            const cmp = aVal.localeCompare(bVal);
+            return sortDirection === 'desc' ? -cmp : cmp;
+        });
+    }
+
     get tableView() {
         if (!this.firstPageLoaded.value) {
             return html`<sp-table emphasized scroller>
@@ -221,6 +246,7 @@ class MasContent extends LitElement {
                     <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
                     <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
                     <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
+                    <sp-table-head-cell class="last-modified">Last Modified</sp-table-head-cell>
                     <sp-table-head-cell class="price">Price</sp-table-head-cell>
                     <sp-table-head-cell class="status">Status</sp-table-head-cell>
                     <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
@@ -229,12 +255,12 @@ class MasContent extends LitElement {
                 <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
-        const visibleFragments = this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null);
+        const fragmentStores = this.#sortedFragmentStores;
         const personalizationOn = Store.filters.get().personalizationFilterEnabled === true;
         const body = personalizationOn
-            ? this.#renderTableBodyGrouped(visibleFragments)
+            ? this.#renderTableBodyGrouped(fragmentStores)
             : repeat(
-                  visibleFragments,
+                  fragmentStores,
                   (fragmentStore) => fragmentStore.get().path,
                   (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
               );
@@ -248,19 +274,34 @@ class MasContent extends LitElement {
             >
                 <sp-table-head>
                     <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                    <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
+                    <sp-table-head-cell class="name">Path</sp-table-head-cell>
+                    <sp-table-head-cell
+                        sortable
+                        sort-key="title"
+                        sort-direction=${this.sort.value?.sortBy === 'title' ? this.sort.value.sortDirection : undefined}
+                        class="title"
+                        @sorted=${this.#handleSort}
+                        >Fragment Title</sp-table-head-cell
+                    >
+                    <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
+                    <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
+                    <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
+                    <sp-table-head-cell
+                        sortable
+                        sort-key="modifiedAt"
+                        sort-direction=${this.sort.value?.sortBy === 'modifiedAt' ? this.sort.value.sortDirection : undefined}
+                        class="last-modified"
+                        @sorted=${this.#handleSort}
+                        >Last Modified</sp-table-head-cell
+                    >
+                    <sp-table-head-cell class="price">Price</sp-table-head-cell>
+                    <sp-table-head-cell class="status">Status</sp-table-head-cell>
                     <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
                     <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
                 </sp-table-head>
                 <sp-table-body> ${body} ${this.tableLoadingSkeletons} </sp-table-body>
             </sp-table>
-            ${visibleFragments.length === 0 ? this.emptyState : nothing}`;
+            ${fragmentStores.length === 0 ? this.emptyState : nothing}`;
     }
 
     get tableLoadingSkeletons() {

@@ -146,6 +146,11 @@ class MasFragmentTable extends LitElement {
         }
     }
 
+    #formatDate(dateStr) {
+        if (!dateStr) return '';
+        return new Date(dateStr).toLocaleDateString();
+    }
+
     getTruncatedOfferId() {
         const offerId = this.offerData?.offerId;
         if (!offerId || offerId.length <= 5) return offerId;
@@ -212,6 +217,7 @@ class MasFragmentTable extends LitElement {
                 </sp-table-cell>
                 <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
                 <sp-table-cell class="last-modified-by">${data.modified?.by}</sp-table-cell>
+                <sp-table-cell class="last-modified">${this.#formatDate(data.modified?.at)}</sp-table-cell>
                 <sp-table-cell class="price">${this.price}</sp-table-cell>
                 <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
                     ><div class="status-dot"></div>

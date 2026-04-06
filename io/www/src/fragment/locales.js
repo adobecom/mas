@@ -130,8 +130,7 @@ const ACOM = [
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'HK' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const CCD = [
@@ -187,7 +186,7 @@ const CCD = [
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const EXPRESS = [
@@ -234,7 +233,7 @@ const EXPRESS = [
     { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
     { lang: 'sv', country: 'SE' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const ADOBE_HOME = [
@@ -289,7 +288,7 @@ const ADOBE_HOME = [
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const COMMERCE = [
@@ -343,7 +342,7 @@ const COMMERCE = [
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const DEFAULT_LOCALES = {

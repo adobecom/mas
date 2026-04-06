@@ -1,4 +1,4 @@
-import { css, html, LitElement, nothing } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { fieldStatusStyles } from './field-status.css.js';
 
 export const QUANTITY_SELECT_TAG = 'merch-quantity-select';
@@ -68,7 +68,7 @@ export class QuantitySelectField extends LitElement {
         this.step = '1';
         this.layout = 'grid';
         this.disabled = false;
-        this.fieldIndicatorTemplate = nothing;
+        this.fieldIndicatorTemplate = () => {};
     }
 
     willUpdate(changedProperties) {

@@ -24,12 +24,12 @@ export default {
             name: '@translation-editor-search-filters',
             path: '/studio.html',
             data: {
-                searchTerm: 'test',
+                searchTerm: 'grouped',
                 filters: {
                     template: 'Plans',
                     marketSegment: 'com',
                     customerSegment: 'Individual',
-                    product: 'Adobe Premiere Pro',
+                    product: 'Creative Cloud Individual Extra Storage',
                 },
             },
             browserParams: '#page=translation-editor&path=nala',

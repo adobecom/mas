@@ -733,6 +733,7 @@ export class MASMCPServer {
             case 'get_job_status':
                 return this.studioOperations.getJobStatus(args);
             case 'get_variations':
+            case 'get_fragment_variations':
                 return this.studioOperations.getFragmentVariations(args);
 
             case 'create_collection':

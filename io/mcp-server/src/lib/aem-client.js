@@ -317,15 +317,42 @@ export class AEMClient {
 
         const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}`;
 
-        console.log('[AEMClient] updateFragment called with:', {
-            id,
-            fieldsType: typeof fields,
-            fieldsKeys: Object.keys(fields || {}),
-            fieldsSample: JSON.stringify(fields, null, 2),
-            etag: etag ? 'present' : 'missing',
-            title: title !== undefined ? title : 'not provided',
-            tags: tags !== undefined ? `${tags.length} tags` : 'not provided',
+        const currentFragment = await this.getFragment(id);
+        if (!currentFragment) throw new Error(`Fragment not found: ${id}`);
+
+        const currentEtag = etag || currentFragment.etag;
+
+        const currentFields = Array.isArray(currentFragment.fields)
+            ? currentFragment.fields
+            : [];
+
+        const mergedFields = currentFields.map((field) => {
+            if (fields && field.name in fields) {
+                const newValue = fields[field.name];
+                return {
+                    ...field,
+                    values: Array.isArray(newValue) ? newValue : [newValue],
+                };
+            }
+            return field;
         });
+
+        if (fields) {
+            const existingNames = new Set(currentFields.map((f) => f.name));
+            for (const [key, value] of Object.entries(fields)) {
+                if (!existingNames.has(key)) {
+                    mergedFields.push({
+                        name: key,
+                        values: Array.isArray(value) ? value : [value],
+                    });
+                }
+            }
+        }
+
+        const body = {
+            title: title !== undefined ? title : currentFragment.title,
+            fields: mergedFields,
+        };
 
         const headers = {
             Authorization: authHeader,
@@ -336,22 +363,12 @@ export class AEMClient {
             'x-aem-affinity-type': 'api',
         };
 
-        if (etag) {
-            headers['If-Match'] = etag;
+        if (currentEtag) {
+            headers['If-Match'] = currentEtag;
         }
-
-        const body = { fields };
-        if (title !== undefined) {
-            body.title = title;
-        }
-        if (tags !== undefined) {
-            body.tags = tags;
-        }
-
-        console.log('[AEMClient] Request body to be sent:', JSON.stringify(body, null, 2));
 
         const response = await fetch(url, {
-            method: 'PATCH',
+            method: 'PUT',
             headers,
             body: JSON.stringify(body),
         });
@@ -370,15 +387,17 @@ export class AEMClient {
                 statusText: response.statusText,
                 errorMessage: error.message,
                 responseBody: responseText.substring(0, 500),
-                requestBody: JSON.stringify(body, null, 2),
-                requestBodySize: JSON.stringify(body).length,
-                requestHeaders: headers,
-                responseHeaders: Object.fromEntries(response.headers.entries()),
             });
             throw new Error(`Failed to update fragment (${response.status}): ${error.message || response.statusText}`);
         }
 
-        return await response.json();
+        const result = await response.json();
+
+        if (tags !== undefined) {
+            await this.applyValidTags(id, tags);
+        }
+
+        return result;
     }
 
     /**
@@ -489,7 +508,10 @@ export class AEMClient {
         const authHeader = await this.authManager.getAuthHeader();
         const csrfToken = await this.getCsrfToken();
 
-        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}/publish`;
+        const fragment = await this.getFragment(id);
+        if (!fragment) throw new Error(`Fragment not found: ${id}`);
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/publish`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -497,16 +519,25 @@ export class AEMClient {
                 Authorization: authHeader,
                 'Content-Type': 'application/json',
                 'CSRF-Token': csrfToken,
+                'If-Match': fragment.etag,
                 pragma: 'no-cache',
                 'cache-control': 'no-cache',
                 'x-aem-affinity-type': 'api',
             },
-            body: JSON.stringify({}),
+            body: JSON.stringify({
+                paths: [fragment.path],
+                filterReferencesByStatus: ['DRAFT', 'UNPUBLISHED'],
+                workflowModelId: '/var/workflow/models/scheduled_activation_with_references',
+            }),
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to publish fragment: ${response.statusText}`);
+            const text = await response.text();
+            throw new Error(`Failed to publish fragment (${response.status}): ${text.substring(0, 200) || response.statusText}`);
         }
+
+        if (response.status === 204) return { success: true };
+        return await response.json();
     }
 
     /**
@@ -516,7 +547,10 @@ export class AEMClient {
         const authHeader = await this.authManager.getAuthHeader();
         const csrfToken = await this.getCsrfToken();
 
-        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}/unpublish`;
+        const fragment = await this.getFragment(id);
+        if (!fragment) throw new Error(`Fragment not found: ${id}`);
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/publish`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -524,16 +558,24 @@ export class AEMClient {
                 Authorization: authHeader,
                 'Content-Type': 'application/json',
                 'CSRF-Token': csrfToken,
+                'If-Match': fragment.etag,
                 pragma: 'no-cache',
                 'cache-control': 'no-cache',
                 'x-aem-affinity-type': 'api',
             },
-            body: JSON.stringify({}),
+            body: JSON.stringify({
+                paths: [fragment.path],
+                workflowModelId: '/var/workflow/models/scheduled_deactivation',
+            }),
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to unpublish fragment: ${response.statusText}`);
+            const text = await response.text();
+            throw new Error(`Failed to unpublish fragment (${response.status}): ${text.substring(0, 200) || response.statusText}`);
         }
+
+        if (response.status === 204) return { success: true };
+        return await response.json();
     }
 
     /**

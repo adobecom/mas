@@ -260,6 +260,47 @@ describe('replace', () => {
             expect(response.body.fields.description).to.equal('foo: lfr bar');
         });
     });
+
+    describe('hasExternalDictionary (Studio preview)', () => {
+        it('merges Odin dictionary so partial external map still resolves placeholders', async () => {
+            mockDictionary(false, fetchStub, true);
+            const context = {
+                surface: DEFAULT_SURFACE,
+                locale: DEFAULT_LOCALE,
+                loggedTransformer: 'replace',
+                requestId: 'mas-replace-ut',
+                hasExternalDictionary: true,
+                dictionary: { 'editor-only-key': 'from studio' },
+                promises: {},
+                body: odinResponse('please {{view-account}}', '{{buy-now}}'),
+            };
+            context.promises.replace = replace.init(context);
+            await context.promises.replace;
+            const response = await replace.process(context);
+            expect(response.body.fields.cta).to.equal('Buy now');
+            expect(response.body.fields.description).to.equal(
+                'please View account for An AI tool was not used in creating this image region',
+            );
+        });
+
+        it('external dictionary overrides Odin for the same key', async () => {
+            mockDictionary(false, fetchStub, true);
+            const context = {
+                surface: DEFAULT_SURFACE,
+                locale: DEFAULT_LOCALE,
+                loggedTransformer: 'replace',
+                requestId: 'mas-replace-ut',
+                hasExternalDictionary: true,
+                dictionary: { 'buy-now': 'Studio CTA' },
+                promises: {},
+                body: odinResponse('x', '{{buy-now}}'),
+            };
+            context.promises.replace = replace.init(context);
+            await context.promises.replace;
+            const response = await replace.process(context);
+            expect(response.body.fields.cta).to.equal('Studio CTA');
+        });
+    });
 });
 
 export { mockDictionary };

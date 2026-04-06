@@ -95,8 +95,19 @@ function collectDictionariesEntries(fragmentId, rootFragment, references, dictio
 }
 
 export async function getDictionary(context) {
-    /* c8 ignore next 1 */
-    if (context.hasExternalDictionary) return context.dictionary;
+    const external =
+        context.hasExternalDictionary && context.dictionary && Object.keys(context.dictionary).length > 0
+            ? context.dictionary
+            : null;
+
+    if (external) {
+        // Studio (and similar) may prefetch a dictionary that is incomplete for the current surface/locale.
+        // Still load Odin so missing Lingo keys resolve; external entries win on the same key.
+        const odinContext = { ...context, hasExternalDictionary: false, dictionary: {} };
+        const fromOdin = await getDictionary(odinContext);
+        return { ...fromOdin, ...external };
+    }
+
     const cachedDictionary = await getCachedDictionary(context);
     if (cachedDictionary && !cachedDictionary.isExpired) return cachedDictionary.dictionary;
     const dictionary = context.dictionary || {};
@@ -132,8 +143,7 @@ function replaceValues(input, dictionary, calls) {
     let replaced = '';
     let nextIndex = 0;
     for (const match of placeholders) {
-        //match without {{ }}
-        const key = match[1];
+        const key = match[2] ?? match[1];
         //we concatenate everything from last iteration to index of placeholder
         replaced = replaced + input.slice(nextIndex, match.index);
         //value will be key in case of undefined or circular reference
@@ -167,9 +177,8 @@ async function replace(context) {
     let bodyString = JSON.stringify(body);
     if (bodyString.match(PH_REGEXP)) {
         let dictionary = await context?.promises?.[TRANSFORMER_NAME];
-        if (dictionary) {
-            //we need to merge init dictionary with the one initiated in context
-            dictionary = { ...dictionary, ...context.dictionary };
+        if (dictionary && Object.keys(dictionary).length > 0) {
+            dictionary = { ...dictionary, ...(context.dictionary || {}) };
         } else {
             dictionary = await getDictionary(context);
         }

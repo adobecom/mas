@@ -123,7 +123,9 @@ async function previewStudioFragment(body, options) {
         }),
     };
     context.fragmentsIds = context.fragmentsIds || {};
-    context.hasExternalDictionary = Boolean(context.dictionary);
+    context.hasExternalDictionary = Boolean(
+        context.dictionary && Object.keys(context.dictionary).length > 0,
+    );
     for (const transformer of [settings, replace, corrector]) {
         if (transformer.init) {
             const initContext = {

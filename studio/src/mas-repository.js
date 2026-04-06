@@ -150,9 +150,12 @@ export class MasRepository extends LitElement {
                 this.#searchCursor = null;
             }
         });
-        Store.search.subscribe(() => {
+        Store.search.subscribe((value, oldValue) => {
             this.dictionaryCache.clear();
             this.#searchCursor = null;
+            if (value.region !== oldValue?.region && this.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+                this.loadPreviewPlaceholders();
+            }
         });
 
         this.loadFolders();
@@ -646,7 +649,8 @@ export class MasRepository extends LitElement {
     async loadPreviewPlaceholders() {
         if (!this.search.value.path) return;
 
-        const cacheKey = `${this.filters.value.locale}_${this.search.value.path}`;
+        const previewLocale = Store.localeOrRegion();
+        const cacheKey = `${previewLocale}_${this.search.value.path}`;
 
         // Return cached result if available
         if (this.dictionaryCache.has(cacheKey)) {
@@ -671,10 +675,10 @@ export class MasRepository extends LitElement {
             const result = await promise;
 
             // Verify cache key hasn't changed during fetch (prevents stale data)
-            const currentKey = `${this.filters.value.locale}_${this.search.value.path}`;
+            const currentKey = `${Store.localeOrRegion()}_${this.search.value.path}`;
             if (currentKey === cacheKey) {
                 // If result is empty and locale isn't en_US, try fallback
-                if ((!result || Object.keys(result).length === 0) && this.filters.value.locale !== 'en_US') {
+                if ((!result || Object.keys(result).length === 0) && Store.localeOrRegion() !== 'en_US') {
                     const fallbackContext = {
                         preview: {
                             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
@@ -707,7 +711,7 @@ export class MasRepository extends LitElement {
             preview: {
                 url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
             },
-            locale: this.filters.value.locale,
+            locale: Store.localeOrRegion(),
             surface: this.search.value.path,
             networkConfig: {
                 mainTimeout: 15000,

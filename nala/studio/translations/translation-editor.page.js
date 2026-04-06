@@ -49,6 +49,8 @@ export default class TranslationEditorPage {
         this.searchInput = fragmentsTab.locator(
             'mas-search-and-filters sp-search input, mas-search-and-filters input[type="search"]',
         );
+        this.fragmentsResultCount = fragmentsTab.locator('mas-search-and-filters .result-count');
+        this.appliedFilterTags = fragmentsTab.locator('mas-search-and-filters .applied-filters sp-tag');
 
         // Filters
         this.filterButtons = page.locator('sp-action-button.filter-trigger');
@@ -83,6 +85,14 @@ export default class TranslationEditorPage {
         this.editItemsButton = page.locator('.selected-items-header sp-action-button', { hasText: 'Edit' });
     }
 
+    static COLUMNS = {
+        OFFER: 2,
+        FRAGMENT_TITLE: 3,
+        OFFER_ID: 4,
+        PATH: 5,
+        STATUS: 6,
+    };
+
     async createTranslationProject() {
         const title = getTitle();
         await expect(this.form).toBeVisible({ timeout: 10000 });
@@ -115,5 +125,43 @@ export default class TranslationEditorPage {
         await expect(this.saveButton).toBeEnabled({ timeout: 10000 });
         await this.saveButton.click();
         await this.page.waitForTimeout(2000);
+    }
+
+    async expectCardRowsMatchSearchTerm(term) {
+        const rows = this.tableRows;
+        const q = term.toLowerCase();
+        const count = await rows.count();
+        expect(count).toBeGreaterThan(0);
+        for (let i = 0; i < count; i++) {
+            const row = rows.nth(i);
+            const title = (
+                await row.locator('sp-table-cell').nth(TranslationEditorPage.COLUMNS.FRAGMENT_TITLE).textContent()
+            ).toLowerCase();
+            const offer = (
+                await row.locator('sp-table-cell').nth(TranslationEditorPage.COLUMNS.OFFER).textContent()
+            ).toLowerCase();
+            const offerId = (
+                await row.locator('sp-table-cell').nth(TranslationEditorPage.COLUMNS.OFFER_ID).textContent()
+            ).toLowerCase();
+            const matches = title.includes(q) || offer.includes(q) || offerId.includes(q);
+            expect(matches).toBe(true);
+        }
+    }
+
+    async expectResultCountMatchesTableRows() {
+        await expect(this.fragmentsResultCount).toHaveText(/\d+\s+result/i, { timeout: 30000 });
+        const text = await this.fragmentsResultCount.textContent();
+        const m = text?.match(/(\d+)/);
+        const expected = m ? parseInt(m[1], 10) : 0;
+        await expect(this.tableRows).toHaveCount(expected);
+    }
+
+    async expectCardRowsColumnContains(columnIndex, substring) {
+        const rows = this.tableRows;
+        const count = await rows.count();
+        expect(count).toBeGreaterThan(0);
+        for (let i = 0; i < count; i++) {
+            await expect(rows.nth(i).locator('sp-table-cell').nth(columnIndex)).toContainText(substring, { ignoreCase: true });
+        }
     }
 }

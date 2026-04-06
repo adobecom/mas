@@ -49,4 +49,12 @@ export const fieldStatusStyles = css`
         outline: 2px solid var(--spectrum-accent-content-color-key-focus, #2f55e0);
         outline-offset: 2px;
     }
+
+    .setting-override-indicator {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--spectrum-blue-700);
+        line-height: 0;
+    }
 `;

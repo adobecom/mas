@@ -1,4 +1,4 @@
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { fieldStatusStyles } from './field-status.css.js';
 
 export const QUANTITY_SELECT_TAG = 'merch-quantity-select';
@@ -45,23 +45,12 @@ export class QuantitySelectField extends LitElement {
         step: { type: String, state: true },
         layout: { type: String, reflect: true },
         disabled: { type: Boolean, reflect: true },
-        renderQuantityComponentOverrideIndicator: { type: Function, attribute: false },
+        fieldIndicatorTemplate: { attribute: false },
     };
 
     static styles = css`
         :host {
             display: block;
-        }
-
-        .fields {
-            display: grid;
-            gap: 12px;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        :host([layout='vertical']) .fields {
-            display: flex;
-            flex-direction: column;
         }
 
         sp-field-group {
@@ -79,7 +68,7 @@ export class QuantitySelectField extends LitElement {
         this.step = '1';
         this.layout = 'grid';
         this.disabled = false;
-        this.renderQuantityComponentOverrideIndicator = () => {};
+        this.fieldIndicatorTemplate = nothing;
     }
 
     willUpdate(changedProperties) {
@@ -126,9 +115,9 @@ export class QuantitySelectField extends LitElement {
 
     render() {
         return html`
-            <div class="fields">
-                <sp-field-group>
-                    <sp-field-label>Quantity selector title</sp-field-label>
+            <sp-field-group>
+                <sp-field-label>Quantity selector title</sp-field-label>
+                <div class="field-row">
                     <sp-textfield
                         id="quantity-selector-title"
                         size="m"
@@ -137,10 +126,12 @@ export class QuantitySelectField extends LitElement {
                         @change=${this.#suppressNativeChange}
                         @input=${this.#handleTitleChange}
                     ></sp-textfield>
-                    ${this.renderQuantityComponentOverrideIndicator('title')}
-                </sp-field-group>
-                <sp-field-group>
-                    <sp-field-label>Start quantity</sp-field-label>
+                    ${this.fieldIndicatorTemplate('title')}
+                </div>
+            </sp-field-group>
+            <sp-field-group>
+                <sp-field-label>Start quantity</sp-field-label>
+                <div class="field-row">
                     <sp-textfield
                         id="quantity-selector-start"
                         size="m"
@@ -150,21 +141,23 @@ export class QuantitySelectField extends LitElement {
                         @change=${this.#suppressNativeChange}
                         @input=${this.#handleMinChange}
                     ></sp-textfield>
-                    ${this.renderQuantityComponentOverrideIndicator('min')}
-                </sp-field-group>
-            </div>
+                    ${this.fieldIndicatorTemplate('min')}
+                </div>
+            </sp-field-group>
             <sp-field-group>
                 <sp-field-label>Step</sp-field-label>
-                <sp-textfield
-                    id="quantity-selector-step"
-                    size="m"
-                    ?disabled=${this.disabled}
-                    pattern="[0-9]*"
-                    .value=${this.step}
-                    @change=${this.#suppressNativeChange}
-                    @input=${this.#handleStepChange}
-                ></sp-textfield>
-                ${this.renderQuantityComponentOverrideIndicator('step')}
+                <div class="field-row">
+                    <sp-textfield
+                        id="quantity-selector-step"
+                        size="m"
+                        ?disabled=${this.disabled}
+                        pattern="[0-9]*"
+                        .value=${this.step}
+                        @change=${this.#suppressNativeChange}
+                        @input=${this.#handleStepChange}
+                    ></sp-textfield>
+                    ${this.fieldIndicatorTemplate('step')}
+                </div>
             </sp-field-group>
         `;
     }

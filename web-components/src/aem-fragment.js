@@ -367,10 +367,7 @@ export class AemFragment extends HTMLElement {
         fragment = await this.#getFragmentById(endpoint);
         fragment.fields.originalId ??= this.#fragmentId;
         cache.add(fragment);
-        // If add() no-ops (id already present), another writer (e.g. Studio preview)
-        // may have populated the cache while this fetch was in flight. Always prefer
-        // the cached entry so we do not overwrite resolved preview data with raw IO.
-        this.#rawData = cache.get(this.#fragmentId) ?? fragment;
+        this.#rawData = fragment;
         return true;
     }
 

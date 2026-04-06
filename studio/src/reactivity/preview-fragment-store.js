@@ -171,15 +171,8 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
-        if (this.isCollection) {
+        if (this.isCollection || !Store.placeholders.preview.value) {
             this.resolved = true;
-            this.refreshAemFragment(true);
-            this.notify();
-            return;
-        }
-
-        if (!Store.placeholders.preview.value) {
-            this.resolved = false;
             this.refreshAemFragment(true);
             this.notify();
             return;

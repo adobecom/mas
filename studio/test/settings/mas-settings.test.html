@@ -600,10 +600,8 @@
                             expect(quantitySelect).to.exist;
                             expect(quantitySelect.getAttribute('layout')).to.equal('vertical');
 
-                            const fields = quantitySelect.shadowRoot.querySelector('.fields');
-                            const computedFields = getComputedStyle(fields);
-                            expect(computedFields.display).to.equal('flex');
-                            expect(computedFields.flexDirection).to.equal('column');
+                            const fieldGroups = quantitySelect.shadowRoot.querySelectorAll('sp-field-group');
+                            expect(fieldGroups.length).to.equal(3);
 
                             const textfields = [...quantitySelect.shadowRoot.querySelectorAll('sp-textfield')];
                             expect(textfields.map((field) => field.getAttribute('size'))).to.deep.equal(['m', 'm', 'm']);

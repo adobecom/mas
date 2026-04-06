@@ -146,6 +146,12 @@
                     valueType: 'optional-text',
                     booleanValue: false,
                 }),
+                createSettingRow({
+                    name: 'quantitySelect',
+                    value: '<merch-quantity-select title=\"Select quantity\" min=\"1\" max=\"10\" step=\"1\"></merch-quantity-select>',
+                    valueType: 'optional-text',
+                    booleanValue: true,
+                }),
             ];
 
             runTests(async () => {

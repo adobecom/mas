@@ -472,6 +472,10 @@ export class MerchCardCollection extends LitElement {
         aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
             this.limit = 27; // number of cards per "page"
             this.data = normalizePayload(event.detail, this.#overrideMap);
+            if (event.detail.variationId) {
+                this.setAttribute('variation-id', event.detail.variationId);
+            }
+
             const { cards, hierarchy } = this.data;
 
             const rootDefaultChild =

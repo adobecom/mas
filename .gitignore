@@ -34,6 +34,8 @@ nala/.auth/
 /specs/
 /agents/
 reports/
+/.superpowers
+.logs
 
 # IO Runtime Config
 config.json
@@ -42,6 +44,7 @@ masStudio-*.json
 .env*
 .aio
 .cursor
+.superpowers/
 
 # web-components specific
 !web-components/dist

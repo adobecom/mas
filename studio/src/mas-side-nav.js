@@ -3,7 +3,7 @@ import router from './router.js';
 import Store from './store.js';
 import { PAGE_NAMES, SURFACES } from './constants.js';
 import Events from './events.js';
-import { generateFieldLink, camelToTitle, previewValue } from './utils.js';
+import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { isPowerUser } from './groups.js';
@@ -314,6 +314,7 @@ class MasSideNav extends LitElement {
         ctas: 'CTAs',
         whatsIncluded: "What's Included",
         originalId: 'Original ID',
+        jsonLdSchema: 'JSON-LD Schema',
     };
     static SHOW_FIELDS = new Set([
         'prices',
@@ -611,6 +612,8 @@ class MasSideNav extends LitElement {
                                       )}
                                   `
                                 : nothing}
+                            <sp-menu-divider></sp-menu-divider>
+                            <sp-menu-item @click=${() => this.copyJsonLd()}>JSON-LD Schema</sp-menu-item>
                         </sp-menu>
                     </div>
                 </sp-popover>
@@ -636,6 +639,28 @@ class MasSideNav extends LitElement {
             Events.toast.emit({ variant: 'positive', content: `Copied ${displayName} field link` });
         } catch {
             Events.toast.emit({ variant: 'negative', content: 'Failed to copy field link' });
+        }
+    }
+
+    async copyJsonLd() {
+        const fragment = this.fragmentEditor?.fragment;
+        if (!fragment) return;
+        const path = Store.search.get().path;
+        const link = generateJsonLdLink(fragment, path, PAGE_NAMES.CONTENT);
+        if (!link) {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy JSON-LD Schema link' });
+            return;
+        }
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([link.displayText], { type: 'text/plain' }),
+                    'text/html': new Blob([link.richText], { type: 'text/html' }),
+                }),
+            ]);
+            Events.toast.emit({ variant: 'positive', content: 'Copied JSON-LD Schema link' });
+        } catch {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy JSON-LD Schema link' });
         }
     }
 

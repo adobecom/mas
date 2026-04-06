@@ -34,8 +34,9 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
             await expect(await editor.backgroundColor).toHaveAttribute('value', data.color.original);
             await editor.backgroundColor.scrollIntoViewIfNeeded();
             await editor.backgroundColor.click();
-            await expect(await editor.backgroundColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated }).click();
+            const colorOption = page.getByRole('option', { name: data.color.updated });
+            await expect(colorOption).toBeVisible();
+            await colorOption.click();
             await page.waitForTimeout(2000);
         });
 

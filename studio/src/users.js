@@ -7,7 +7,7 @@ export async function loadUsers() {
             headers: {
                 Authorization: `Bearer ${window.adobeid?.authorize?.()}`,
                 accept: 'application/json',
-                'x-gw-ims-org-id': '9E1005A551ED61CA0A490D45',
+                'x-gw-ims-org-id': '3B962FB55F5F922E0A495C88',
             },
         });
         if (!response.ok) {
@@ -27,6 +27,19 @@ export async function initUsers() {
         Store.profile.set(profile);
         const uniqueEditors = await loadUsers();
         Store.users.set(uniqueEditors);
+
+        Store.search.subscribe(async ({ path }) => {
+            if (path === 'sandbox') {
+                Store.createdByUsers.set([
+                    {
+                        displayName: profile.displayName,
+                        userPrincipalName: profile.email,
+                    },
+                ]);
+            } else {
+                Store.createdByUsers.set([]);
+            }
+        });
     } catch (e) {
         console.error('Error initializing users', e);
         Store.users.set([]);

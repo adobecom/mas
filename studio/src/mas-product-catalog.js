@@ -116,10 +116,10 @@ class MasProductCatalog extends LitElement {
 
     get activeFilterChips() {
         const chips = [];
-        for (const value of this.marketsFilter) chips.push({ facet: 'marketsFilter', label: 'Market', value });
-        for (const value of this.planTypesFilter) chips.push({ facet: 'planTypesFilter', label: 'Plan', value });
-        for (const value of this.segmentsFilter) chips.push({ facet: 'segmentsFilter', label: 'Segment', value });
-        for (const value of this.familiesFilter) chips.push({ facet: 'familiesFilter', label: 'Family', value });
+        for (const value of this.familiesFilter) chips.push({ facet: 'familiesFilter', value });
+        for (const value of this.marketsFilter) chips.push({ facet: 'marketsFilter', value });
+        for (const value of this.planTypesFilter) chips.push({ facet: 'planTypesFilter', value });
+        for (const value of this.segmentsFilter) chips.push({ facet: 'segmentsFilter', value });
         return chips;
     }
 
@@ -408,18 +408,16 @@ class MasProductCatalog extends LitElement {
     }
 
     facetMenuTemplate(facetState, label, facet, options) {
-        const count = this[facetState].size;
-        const isActive = count > 0;
-        const displayLabel = isActive ? `${label} (${count})` : label;
+        const isActive = this[facetState].size > 0;
         return html`
             <sp-action-menu
                 size="m"
                 placement="bottom-start"
-                label=${displayLabel}
+                label=${label}
                 class="filter-menu ${isActive ? 'filter-menu-active' : ''}"
             >
                 <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
-                <span slot="label">${displayLabel}</span>
+                <span slot="label">${label}</span>
                 ${options.length === 0
                     ? html`<sp-menu-item disabled>No values</sp-menu-item>`
                     : options.map(
@@ -465,16 +463,15 @@ class MasProductCatalog extends LitElement {
             <div class="product-catalog-active-filters">
                 ${this.activeFilterChips.map(
                     (chip) => html`
-                        <sp-action-button
-                            quiet
-                            size="s"
+                        <button
+                            type="button"
                             class="active-filter-chip"
-                            title="Remove ${chip.label} filter: ${chip.value}"
+                            title="Remove filter: ${chip.value}"
                             @click=${() => this.toggleFilter(chip.facet, chip.value)}
                         >
-                            <sp-icon-close slot="icon"></sp-icon-close>
-                            ${chip.label}: ${chip.value}
-                        </sp-action-button>
+                            <span class="active-filter-chip-label">${chip.value}</span>
+                            <sp-icon-close size="xs"></sp-icon-close>
+                        </button>
                     `,
                 )}
             </div>

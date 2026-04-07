@@ -1354,48 +1354,62 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     margin-left: auto;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
 .product-catalog-filters .filter-menu {
-    --spectrum-actionbutton-m-background-color: var(--spectrum-gray-50);
-    --spectrum-actionbutton-m-border-color: var(--spectrum-gray-300);
-    border: 1px solid var(--spectrum-gray-300);
-    border-radius: 16px;
-    background: var(--spectrum-gray-50);
-    padding: 0 4px 0 12px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    font-size: 13px;
-    font-weight: 500;
+    --mod-actionbutton-background-color-default: var(--spectrum-gray-50, #ffffff);
+    --mod-actionbutton-border-color-default: var(--spectrum-gray-300);
+    --mod-actionbutton-edge-to-visual-only: 16px;
+    --mod-actionbutton-height: 36px;
+    --mod-actionbutton-border-radius: 9999px;
+    --mod-actionbutton-font-size: 14px;
+    border-radius: 9999px;
 }
 
 .product-catalog-filters .filter-menu.filter-menu-active {
-    border-color: var(--spectrum-blue-700, #1473e6);
-    background: var(--spectrum-blue-100, #e0f2ff);
-    color: var(--spectrum-blue-800, #0d66d0);
+    --mod-actionbutton-border-color-default: var(--spectrum-blue-700, #1473e6);
 }
 
 .product-catalog-active-filters {
     width: 100%;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 .product-catalog-active-filters .active-filter-chip {
-    --spectrum-actionbutton-m-background-color: var(--spectrum-blue-100, #e0f2ff);
-    border: 1px solid var(--spectrum-blue-400, #4b9cf5);
-    border-radius: 14px;
+    appearance: none;
+    border: none;
+    border-radius: 9999px;
     background: var(--spectrum-blue-100, #e0f2ff);
-    color: var(--spectrum-blue-800, #0d66d0);
-    height: 28px;
-    padding: 0 10px;
-    font-size: 12px;
-    font-weight: 500;
+    color: var(--spectrum-gray-900);
+    height: 36px;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 400;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease-in-out;
+}
+
+.product-catalog-active-filters .active-filter-chip:hover {
+    background: var(--spectrum-blue-200, #c7e3ff);
+}
+
+.product-catalog-active-filters .active-filter-chip sp-icon-close {
+    width: 14px;
+    height: 14px;
+    color: var(--spectrum-gray-700);
+}
+
+.product-catalog-active-filters .active-filter-chip-label {
+    line-height: 1;
 }
 
 .product-catalog-loading,

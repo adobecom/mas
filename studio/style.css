@@ -1352,7 +1352,6 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 }
 
 .product-catalog-filters {
-    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -1364,9 +1363,9 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     --mod-actionbutton-border-color-default: var(--spectrum-gray-300);
     --mod-actionbutton-edge-to-visual-only: 16px;
     --mod-actionbutton-height: 36px;
-    --mod-actionbutton-border-radius: 9999px;
+    --mod-actionbutton-border-radius: 8px;
     --mod-actionbutton-font-size: 14px;
-    border-radius: 9999px;
+    border-radius: 8px;
 }
 
 .product-catalog-filters .filter-menu.filter-menu-active {
@@ -1384,7 +1383,7 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 .product-catalog-active-filters .active-filter-chip {
     appearance: none;
     border: none;
-    border-radius: 9999px;
+    border-radius: 8px;
     background: var(--spectrum-blue-100, #e0f2ff);
     color: var(--spectrum-gray-900);
     height: 36px;

@@ -1,9 +1,6 @@
 import { test, expect, translations, translationEditor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
-import TranslationsPage from '../translations.page.js';
 import TranslationsSpec from '../specs/translations.spec.js';
-import TranslationEditorPage from '../translation-editor.page.js';
 
-const { COLUMNS } = TranslationEditorPage;
 const { features } = TranslationsSpec;
 
 test.describe('M@S Studio Translations Test Suite', () => {
@@ -30,7 +27,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
             expect(allTitles.find((t) => t.includes('loc 2'))).toBeDefined();
             expect(allTitles.find((t) => t.includes('loc 3'))).toBeDefined();
             const sentOnTexts = await translations.getSentOnColumnTexts();
-            const timestamps = sentOnTexts.map(TranslationsPage.parseSentOnText);
+            const timestamps = sentOnTexts.map((t) => translations.constructor.parseSentOnText(t));
             for (let i = 1; i < timestamps.length; i++) {
                 const prev = timestamps[i - 1];
                 const curr = timestamps[i];
@@ -183,7 +180,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
             await page.waitForTimeout(500);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.template })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
-            await translationEditor.expectCardRowsColumnContains(COLUMNS.PATH, data.filters.template);
+            await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.template);
         });
 
         await test.step('step-4: Apply Market Segment filter', async () => {
@@ -197,7 +194,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
             await page.waitForTimeout(500);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.marketSegment })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
-            await translationEditor.expectCardRowsColumnContains(COLUMNS.PATH, data.filters.marketSegment);
+            await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.marketSegment);
         });
 
         await test.step('step-5: Apply Customer Segment filter', async () => {
@@ -213,7 +210,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
             await page.waitForTimeout(500);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.customerSegment })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
-            await translationEditor.expectCardRowsColumnContains(COLUMNS.PATH, data.filters.customerSegment);
+            await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.PATH, data.filters.customerSegment);
         });
 
         await test.step('step-6: Apply Product filter', async () => {
@@ -227,7 +224,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
             await page.waitForTimeout(500);
             await expect(translationEditor.appliedFilterTags.filter({ hasText: data.filters.product })).toHaveCount(1);
             await translationEditor.expectResultCountMatchesTableRows();
-            await translationEditor.expectCardRowsColumnContains(COLUMNS.OFFER, data.filters.product);
+            await translationEditor.expectCardRowsColumnContains(translationEditor.COLUMNS.OFFER, data.filters.product);
         });
     });
 

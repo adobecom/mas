@@ -83,15 +83,15 @@ export default class TranslationEditorPage {
         this.deleteButton = page.locator('mas-quick-actions sp-action-button[title="Delete"]');
         this.editLanguagesButton = page.locator('.selected-langs-header sp-action-button', { hasText: 'Edit' });
         this.editItemsButton = page.locator('.selected-items-header sp-action-button', { hasText: 'Edit' });
-    }
 
-    static COLUMNS = {
-        OFFER: 2,
-        FRAGMENT_TITLE: 3,
-        OFFER_ID: 4,
-        PATH: 5,
-        STATUS: 6,
-    };
+        this.COLUMNS = {
+            OFFER: 2,
+            FRAGMENT_TITLE: 3,
+            OFFER_ID: 4,
+            PATH: 5,
+            STATUS: 6,
+        };
+    }
 
     async createTranslationProject() {
         const title = getTitle();
@@ -134,15 +134,9 @@ export default class TranslationEditorPage {
         expect(count).toBeGreaterThan(0);
         for (let i = 0; i < count; i++) {
             const row = rows.nth(i);
-            const title = (
-                await row.locator('sp-table-cell').nth(TranslationEditorPage.COLUMNS.FRAGMENT_TITLE).textContent()
-            ).toLowerCase();
-            const offer = (
-                await row.locator('sp-table-cell').nth(TranslationEditorPage.COLUMNS.OFFER).textContent()
-            ).toLowerCase();
-            const offerId = (
-                await row.locator('sp-table-cell').nth(TranslationEditorPage.COLUMNS.OFFER_ID).textContent()
-            ).toLowerCase();
+            const title = (await row.locator('sp-table-cell').nth(this.COLUMNS.FRAGMENT_TITLE).textContent()).toLowerCase();
+            const offer = (await row.locator('sp-table-cell').nth(this.COLUMNS.OFFER).textContent()).toLowerCase();
+            const offerId = (await row.locator('sp-table-cell').nth(this.COLUMNS.OFFER_ID).textContent()).toLowerCase();
             const matches = title.includes(q) || offer.includes(q) || offerId.includes(q);
             expect(matches).toBe(true);
         }

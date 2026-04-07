@@ -185,6 +185,7 @@ class MasIconPickerModal extends LitElement {
         this.selectedTab = 'icons';
         this.selectedProductId = null;
         this._isSpectrum = false;
+        this.altHtml = '';
     }
 
     connectedCallback() {
@@ -304,7 +305,7 @@ class MasIconPickerModal extends LitElement {
                 composed: true,
                 detail: {
                     icon: iconValue,
-                    alt: this.alt || '',
+                    alt: this.altHtml || this.alt || '',
                     link: '',
                 },
             }),
@@ -343,12 +344,12 @@ class MasIconPickerModal extends LitElement {
 
                 <div class="form-field">
                     <sp-field-label for="icon-description">Description</sp-field-label>
-                    <sp-textfield
+                    <rte-field
                         id="icon-description"
-                        placeholder="Text displayed next to the icon"
-                        value="${this.alt}"
-                        @input=${(e) => (this.alt = e.target.value)}
-                    ></sp-textfield>
+                        link
+                        .value=${this.alt || ''}
+                        @change=${(e) => (this.altHtml = e.target.value)}
+                    ></rte-field>                    
                 </div>
             </div>
         `;
@@ -370,12 +371,12 @@ class MasIconPickerModal extends LitElement {
 
                 <div class="form-field">
                     <sp-field-label for="url-description">Description</sp-field-label>
-                    <sp-textfield
+                    <rte-field
                         id="url-description"
-                        placeholder="Text displayed next to the icon"
-                        value="${this.alt}"
-                        @input=${(e) => (this.alt = e.target.value)}
-                    ></sp-textfield>
+                        link
+                        .value=${this.alt || ''}
+                        @change=${(e) => (this.altHtml = e.target.value)}
+                    ></rte-field>                      
                 </div>
             </div>
         `;

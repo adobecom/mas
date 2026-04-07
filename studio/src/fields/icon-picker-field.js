@@ -129,6 +129,9 @@ class IconPickerField extends LitElement {
     }
 
     #handleModalSave(event) {
+        // ignore save events fired from link editor
+        if (event.detail.href !== undefined) return;
+
         const { icon, alt, link } = event.detail;
         this.icon = icon;
         this.alt = alt;
@@ -177,13 +180,21 @@ class IconPickerField extends LitElement {
         return urlParts[urlParts.length - 1] || this.icon;
     }
 
+    parseTextFromHtml(html) {
+        if (!html || !html.startsWith('<p>')) return html;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        return doc.querySelector('p').textContent;
+    }
+
     renderIcon() {
         if (this.icon?.startsWith('sp-icon-')) {
             return html`${renderSpIcon(this.icon, this.variant)}`;
         }
         return html`<img
             src="${this.icon}"
-            alt="${this.alt || 'Icon preview'}"
+            alt="${this.parseTextFromHtml(this.alt) || 'Icon preview'}"
             @error=${(e) => (e.target.style.display = 'none')}
         />`;
     }
@@ -200,7 +211,7 @@ class IconPickerField extends LitElement {
                 </div>
 
                 <div class="included-info">
-                    <div class="value">${this.#getDisplayText(this.alt || this.#getIconName(), 'No icon selected')}</div>
+                    <div class="value">${this.#getDisplayText(this.parseTextFromHtml(this.alt) || this.#getIconName(), 'No icon selected')}</div>
                 </div>
 
                 <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>

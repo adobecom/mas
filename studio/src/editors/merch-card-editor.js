@@ -483,19 +483,22 @@ class MerchCardEditor extends LitElement {
     }
 
     getWhatsIncludedProps(el, fallback = true) {
+        const desc = el.querySelector('[slot="description"] > span');
+        const descHtml = desc?.innerHTML?.trim();
+        const alt = descHtml ? `<p>${descHtml}</p>` : '';
+
         const iconEl = el.querySelector('merch-icon');
         if (iconEl) {
+            const variantValue = this.getEffectiveFieldValue('variant');
+            const isMiniChart = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART;
             const icon = iconEl.getAttribute('src') || '';
-            const alt = iconEl.getAttribute('alt') || '';
             const linkEl = el.querySelector('[slot="icon"] a');
             const link = linkEl?.getAttribute('href') || '';
-            return { icon, alt, link };
+            return { icon, alt: isMiniChart ? alt : desc.textContent, link };
         }
         // Fallback for spectrum icons (sp-icon-* elements)
         const spIcon = el.querySelector('.sp-icon');
         if (spIcon && fallback) {
-            const desc = el.querySelector('[slot="description"]');
-            const alt = desc?.textContent?.trim() || '';
             const icon = spIcon.tagName.toLowerCase();
             return { icon, alt, link: '' };
         }
@@ -1512,6 +1515,7 @@ class MerchCardEditor extends LitElement {
     }
 
     createMnemonicList(value, isBullet) {
+        let merchIcon;
         const list = document.createElement('merch-mnemonic-list');
         const iconSlot = document.createElement('div');
         iconSlot.setAttribute('slot', 'icon');
@@ -1520,7 +1524,7 @@ class MerchCardEditor extends LitElement {
             icon.setAttribute('class', 'sp-icon');
             iconSlot.append(icon);
         } else if (value.icon) {
-            const merchIcon = document.createElement('merch-icon');
+            merchIcon = document.createElement('merch-icon');
             merchIcon.setAttribute('size', isBullet ? 'xs' : 's');
             merchIcon.setAttribute('src', value.icon);
             merchIcon.setAttribute('alt', value.alt || '');
@@ -1536,21 +1540,16 @@ class MerchCardEditor extends LitElement {
         const descriptionEl = document.createElement('p');
         descriptionEl.setAttribute('slot', 'description');
         const text = value.alt || '';
-        if (isBullet) {
-            const span = document.createElement('span');
-            if (text.startsWith('<p>')) {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                span.innerHTML = doc.querySelector('p').innerHTML;
-            } else {
-                span.textContent = text;
-            }
-            descriptionEl.append(span);
+        const span = document.createElement('span');
+        if (text.startsWith('<p>')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            span.innerHTML = doc.querySelector('p').innerHTML;
+            if (merchIcon) merchIcon.setAttribute('alt', doc.querySelector('p').textContent || '');
         } else {
-            const span = document.createElement('span');
             span.textContent = text;
-            descriptionEl.append(span);
         }
+        descriptionEl.append(span);
         list.append(iconSlot);
         list.append(descriptionEl);
         return list;

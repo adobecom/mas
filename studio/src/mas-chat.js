@@ -504,17 +504,6 @@ export class MasChat extends LitElement {
                         timestamp: Date.now(),
                     },
                 ];
-            } else if (response.type === 'open_ost') {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: response.message,
-                        openOst: true,
-                        ostSearchParams: response.searchParams,
-                        timestamp: Date.now(),
-                    },
-                ];
             } else if (response.type === 'release_confirmation') {
                 const confirmationSummary = await this.enrichReleaseConfirmationSummary(response.confirmationSummary);
                 this.messages = [

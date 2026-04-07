@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
-import { EVENT_OST_OFFER_SELECT, EVENT_OST_SELECT } from './constants.js';
+import { EVENT_OST_OFFER_SELECT, EVENT_OST_MULTI_OFFER_SELECT, EVENT_OST_SELECT } from './constants.js';
 import './rte/rte-field.js';
 import './mas-card-selection-dialog.js';
 
@@ -30,6 +30,7 @@ export class MasChatInput extends LitElement {
         this.autoSendOnSelect = false;
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
         this.boundHandleOfferSelect = this.handleOfferSelect.bind(this);
+        this.boundHandleMultiOfferSelect = this.handleMultiOfferSelect.bind(this);
         this.boundHandleEscKey = this.handleEscKey.bind(this);
         this.boundHandleRteChange = this.handleRteChange.bind(this);
     }
@@ -42,6 +43,7 @@ export class MasChatInput extends LitElement {
         super.connectedCallback();
         document.addEventListener(EVENT_OST_SELECT, this.boundHandleOstSelect);
         document.addEventListener(EVENT_OST_OFFER_SELECT, this.boundHandleOfferSelect);
+        document.addEventListener(EVENT_OST_MULTI_OFFER_SELECT, this.boundHandleMultiOfferSelect);
         document.addEventListener('keydown', this.boundHandleEscKey, { capture: true });
         this.addEventListener('change', this.boundHandleRteChange);
         this.addEventListener('keyup', this.boundHandleRteChange);
@@ -51,6 +53,7 @@ export class MasChatInput extends LitElement {
         super.disconnectedCallback();
         document.removeEventListener(EVENT_OST_SELECT, this.boundHandleOstSelect);
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.boundHandleOfferSelect);
+        document.removeEventListener(EVENT_OST_MULTI_OFFER_SELECT, this.boundHandleMultiOfferSelect);
         document.removeEventListener('keydown', this.boundHandleEscKey, { capture: true });
         this.removeEventListener('change', this.boundHandleRteChange);
         this.removeEventListener('keyup', this.boundHandleRteChange);
@@ -81,6 +84,45 @@ export class MasChatInput extends LitElement {
             this.autoSendOnSelect = false;
             this.sendOffer();
         }
+    }
+
+    handleMultiOfferSelect(event) {
+        const { base, trial } = event.detail || {};
+        if (!base?.osi) return;
+        // Stash both onto the input so sendMultiOffer can read them. The
+        // single-OSI fields stay populated for back-compat with sendOffer().
+        this.selectedOsi = base.osi;
+        this.selectedOffer = base.offer || null;
+        this.selectedTrialOsi = trial?.osi || null;
+        this.selectedTrialOffer = trial?.offer || null;
+        closeOfferSelectorTool();
+        if (this.autoSendOnSelect) {
+            this.autoSendOnSelect = false;
+            this.sendMultiOffer();
+        }
+    }
+
+    sendMultiOffer() {
+        if (!this.selectedOsi) return;
+        const context = { osi: this.selectedOsi };
+        if (this.selectedOffer) context.offer = this.selectedOffer;
+        if (this.selectedTrialOsi) context.trialOsi = this.selectedTrialOsi;
+        if (this.selectedTrialOffer) context.trialOffer = this.selectedTrialOffer;
+        const trialNote = this.selectedTrialOsi ? ` and trial offer: ${this.selectedTrialOsi}` : ' (no trial offer selected)';
+        this.dispatchEvent(
+            new CustomEvent('send-message', {
+                detail: {
+                    message: `Selected base offer: ${this.selectedOsi}${trialNote}`,
+                    context,
+                },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+        this.selectedOsi = null;
+        this.selectedOffer = null;
+        this.selectedTrialOsi = null;
+        this.selectedTrialOffer = null;
     }
 
     sendOffer() {

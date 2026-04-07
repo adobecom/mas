@@ -27,7 +27,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
             expect(allTitles.find((t) => t.includes('loc 2'))).toBeDefined();
             expect(allTitles.find((t) => t.includes('loc 3'))).toBeDefined();
             const sentOnTexts = await translations.getSentOnColumnTexts();
-            const timestamps = sentOnTexts.map((t) => translations.constructor.parseSentOnText(t));
+            const timestamps = sentOnTexts.map(translations.parseSentOnText);
             for (let i = 1; i < timestamps.length; i++) {
                 const prev = timestamps[i - 1];
                 const curr = timestamps[i];

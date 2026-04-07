@@ -63,6 +63,55 @@ export class MasChatMessage extends LitElement {
         }
     }
 
+    handleFeedback(rating) {
+        if (!this.message) return;
+        if (this.message.feedback === rating) return;
+        this.message.feedback = rating;
+        this.requestUpdate();
+        this.dispatchEvent(
+            new CustomEvent('chat-feedback', {
+                detail: {
+                    rating,
+                    messageId: this.message.id || null,
+                    content: this.message.content || '',
+                    timestamp: this.message.timestamp || Date.now(),
+                },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    renderFeedbackFooter() {
+        if (!this.message || this.message.role !== 'assistant') return nothing;
+        if (this.message.isLoading) return nothing;
+        if (!this.message.content || !String(this.message.content).trim()) return nothing;
+
+        const rating = this.message.feedback || null;
+        return html`
+            <div class="message-feedback">
+                <sp-action-button
+                    quiet
+                    size="s"
+                    title="Helpful"
+                    ?selected=${rating === 'up'}
+                    @click=${() => this.handleFeedback('up')}
+                >
+                    <sp-icon-thumb-up slot="icon"></sp-icon-thumb-up>
+                </sp-action-button>
+                <sp-action-button
+                    quiet
+                    size="s"
+                    title="Not helpful"
+                    ?selected=${rating === 'down'}
+                    @click=${() => this.handleFeedback('down')}
+                >
+                    <sp-icon-thumb-down slot="icon"></sp-icon-thumb-down>
+                </sp-action-button>
+            </div>
+        `;
+    }
+
     renderCardPreview() {
         const { fragmentId, fragmentPath, fragmentStatus, validation, isCreatingDraft, isDocumentation } = this.message;
 
@@ -615,6 +664,7 @@ export class MasChatMessage extends LitElement {
                               .operationType=${operationType}
                           ></mas-operation-result>`
                         : nothing}
+                    ${this.renderFeedbackFooter()}
                 </div>
             </div>
         `;

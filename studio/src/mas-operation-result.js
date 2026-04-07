@@ -1,6 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { openPreview, closePreview } from './mas-card-preview.js';
+import { buildStudioFragmentHref, showToast } from './utils.js';
 
 /**
  * Operation Result Display Component
@@ -264,6 +265,49 @@ export class MasOperationResult extends LitElement {
                 composed: true,
             }),
         );
+    }
+
+    async copyCardLink(card) {
+        if (!card?.id) {
+            showToast('Missing card id', 'negative');
+            return;
+        }
+        const url = buildStudioFragmentHref({
+            webComponentName: 'merch-card',
+            fragmentId: card.id,
+            page: 'content',
+        });
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast('Card link copied', 'positive');
+        } catch {
+            showToast('Failed to copy link', 'negative');
+        }
+    }
+
+    async copyAllCardLinks(cards) {
+        const validCards = (cards || []).filter((card) => card?.id);
+        if (validCards.length === 0) {
+            showToast('No card links to copy', 'negative');
+            return;
+        }
+        const markdown = validCards
+            .map((card) => {
+                const url = buildStudioFragmentHref({
+                    webComponentName: 'merch-card',
+                    fragmentId: card.id,
+                    page: 'content',
+                });
+                const title = card.title || card.name || card.id;
+                return `- [${title}](${url})`;
+            })
+            .join('\n');
+        try {
+            await navigator.clipboard.writeText(markdown);
+            showToast(`${validCards.length} card links copied as markdown`, 'positive');
+        } catch {
+            showToast('Failed to copy links', 'negative');
+        }
     }
 
     handlePreview(fragmentId) {
@@ -744,6 +788,20 @@ export class MasOperationResult extends LitElement {
                     <span>
                         Created ${successCount} card${successCount !== 1 ? 's' : ''}${productName ? ` for ${productName}` : ''}
                     </span>
+                    ${successCards.length > 1
+                        ? html`
+                              <sp-action-button
+                                  quiet
+                                  size="s"
+                                  class="copy-all-links-button"
+                                  title="Copy all card links as a markdown list"
+                                  @click=${() => this.copyAllCardLinks(successCards)}
+                              >
+                                  <sp-icon-link slot="icon"></sp-icon-link>
+                                  Copy all links
+                              </sp-action-button>
+                          `
+                        : nothing}
                 </div>
                 <div class="release-cards-list">
                     ${cards.map((item) => {
@@ -761,6 +819,14 @@ export class MasOperationResult extends LitElement {
                                 <div class="release-card-info">
                                     <sp-icon-check-circle size="s"></sp-icon-check-circle>
                                     <span class="release-card-title">${card.title}</span>
+                                    <sp-action-button
+                                        quiet
+                                        size="s"
+                                        title="Copy link to share with stakeholders"
+                                        @click=${() => this.copyCardLink(card)}
+                                    >
+                                        <sp-icon-link slot="icon"></sp-icon-link>
+                                    </sp-action-button>
                                     <sp-action-button quiet size="s" title="Edit" @click=${() => this.handleOpenCard(card)}>
                                         <sp-icon-edit slot="icon"></sp-icon-edit>
                                     </sp-action-button>
@@ -787,11 +853,26 @@ export class MasOperationResult extends LitElement {
 
         if (results.length > 0) {
             this.cacheFragments(results);
+            const fragmentsWithId = results.filter((fragment) => fragment?.id);
             return html`
                 <div class="operation-result success">
                     <div class="result-header">
                         <sp-icon-check-circle size="m"></sp-icon-check-circle>
                         <span>${message || `${count} item${count !== 1 ? 's' : ''} processed`}</span>
+                        ${fragmentsWithId.length > 1
+                            ? html`
+                                  <sp-action-button
+                                      quiet
+                                      size="s"
+                                      class="copy-all-links-button"
+                                      title="Copy all card links as a markdown list"
+                                      @click=${() => this.copyAllCardLinks(fragmentsWithId)}
+                                  >
+                                      <sp-icon-link slot="icon"></sp-icon-link>
+                                      Copy all links
+                                  </sp-action-button>
+                              `
+                            : nothing}
                     </div>
                     <div class="default-result-cards">
                         ${results.map(
@@ -800,6 +881,19 @@ export class MasOperationResult extends LitElement {
                                     <merch-card>
                                         <aem-fragment fragment="${fragment.id}" author ims></aem-fragment>
                                     </merch-card>
+                                    ${fragment.id
+                                        ? html`
+                                              <sp-action-button
+                                                  quiet
+                                                  size="s"
+                                                  class="card-wrapper-copy-link"
+                                                  title="Copy link to share with stakeholders"
+                                                  @click=${() => this.copyCardLink(fragment)}
+                                              >
+                                                  <sp-icon-link slot="icon"></sp-icon-link>
+                                              </sp-action-button>
+                                          `
+                                        : nothing}
                                 </div>
                             `,
                         )}

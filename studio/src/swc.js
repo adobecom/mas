@@ -115,6 +115,8 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-text-bold.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-text-bulleted.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-text-italic.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-text-strikethrough.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-thumb-down.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-thumb-up.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-translate.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-underline.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-undo.js';

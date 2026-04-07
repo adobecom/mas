@@ -23,6 +23,8 @@ class MasProductCatalog extends LitElement {
         creating: { state: true },
         currentPage: { state: true },
         pendingCreate: { state: true },
+        sortBy: { state: true },
+        sortDirection: { state: true },
     };
 
     pageSize = 50;
@@ -36,7 +38,47 @@ class MasProductCatalog extends LitElement {
         this.createDialog = null;
         this.creating = false;
         this.pendingCreate = null;
+        this.sortBy = null;
+        this.sortDirection = 'asc';
         this.handleOfferSelect = this.handleOfferSelect.bind(this);
+    }
+
+    handleSort = ({ detail: { sortKey, sortDirection } }) => {
+        this.sortBy = sortKey;
+        this.sortDirection = sortDirection;
+        this.currentPage = 0;
+    };
+
+    getSortValue(product, column) {
+        switch (column) {
+            case 'name':
+                return product.copy?.name || product.name || '';
+            case 'code':
+                return product.product_code || '';
+            case 'arrangement':
+                return product.arrangement_code || '';
+            case 'family':
+                return product.product_family || '';
+            case 'segment':
+                return (
+                    product.customer_segment ||
+                    Object.keys(product.customerSegments || {})
+                        .sort()
+                        .join(', ')
+                );
+            case 'markets':
+                return Array.isArray(product.market_segments)
+                    ? [...product.market_segments].sort().join(', ')
+                    : Object.keys(product.marketSegments || {})
+                          .sort()
+                          .join(', ');
+            case 'plans':
+                return Object.keys(product.planTypes || {})
+                    .sort()
+                    .join(', ');
+            default:
+                return '';
+        }
     }
 
     get searchQuery() {
@@ -76,15 +118,43 @@ class MasProductCatalog extends LitElement {
     }
 
     get filteredProducts() {
-        if (!this.searchQuery) return this.products;
-        const q = this.searchQuery.toLowerCase();
-        return this.products.filter(
-            (p) =>
-                (p.copy?.name || p.name || '').toLowerCase().includes(q) ||
-                (p.product_code || '').toLowerCase().includes(q) ||
-                (p.arrangement_code || '').toLowerCase().includes(q) ||
-                (p.product_family || '').toLowerCase().includes(q),
-        );
+        const source = this.searchQuery
+            ? this.products.filter((p) => {
+                  const q = this.searchQuery.toLowerCase();
+                  return (
+                      (p.copy?.name || p.name || '').toLowerCase().includes(q) ||
+                      (p.product_code || '').toLowerCase().includes(q) ||
+                      (p.arrangement_code || '').toLowerCase().includes(q) ||
+                      (p.product_family || '').toLowerCase().includes(q)
+                  );
+              })
+            : this.products;
+
+        if (this.sortBy) {
+            const direction = this.sortDirection === 'desc' ? -1 : 1;
+            return [...source].sort((a, b) => {
+                const left = this.getSortValue(a, this.sortBy) || '';
+                const right = this.getSortValue(b, this.sortBy) || '';
+                // Empty values always sort to the bottom regardless of direction,
+                // so toggling asc/desc never pins nameless rows at the top.
+                if (!left && right) return 1;
+                if (left && !right) return -1;
+                const comparison = String(left).localeCompare(String(right), undefined, { sensitivity: 'base' });
+                if (comparison !== 0) return comparison * direction;
+                return (a.arrangement_code || '').localeCompare(b.arrangement_code || '');
+            });
+        }
+
+        // Default sort: cluster by product family, then by product name.
+        // Users asked for a consistent default ordering so the same product always appears in
+        // the same spot, and so products from the same family sit next to each other.
+        return [...source].sort((a, b) => {
+            const familyCompare = (a.product_family || '').localeCompare(b.product_family || '');
+            if (familyCompare !== 0) return familyCompare;
+            const nameA = a.copy?.name || a.name || '';
+            const nameB = b.copy?.name || b.name || '';
+            return nameA.localeCompare(nameB);
+        });
     }
 
     get totalPages() {
@@ -250,17 +320,74 @@ class MasProductCatalog extends LitElement {
             </div>`;
         }
 
+        const directionFor = (key) => (this.sortBy === key ? this.sortDirection : 'asc');
         return html`
             <sp-table emphasized>
                 <sp-table-head>
                     <sp-table-head-cell class="col-icon"></sp-table-head-cell>
-                    <sp-table-head-cell class="col-product">Product</sp-table-head-cell>
-                    <sp-table-head-cell class="col-code">Code</sp-table-head-cell>
-                    <sp-table-head-cell class="col-arrangement">Arrangement</sp-table-head-cell>
-                    <sp-table-head-cell class="col-family">Family</sp-table-head-cell>
-                    <sp-table-head-cell class="col-segment">Segment</sp-table-head-cell>
-                    <sp-table-head-cell class="col-markets">Markets</sp-table-head-cell>
-                    <sp-table-head-cell class="col-plans">Plan Types</sp-table-head-cell>
+                    <sp-table-head-cell
+                        class="col-product"
+                        sortable
+                        sort-key="name"
+                        sort-direction=${directionFor('name')}
+                        @sorted=${this.handleSort}
+                    >
+                        Product
+                    </sp-table-head-cell>
+                    <sp-table-head-cell
+                        class="col-code"
+                        sortable
+                        sort-key="code"
+                        sort-direction=${directionFor('code')}
+                        @sorted=${this.handleSort}
+                    >
+                        Code
+                    </sp-table-head-cell>
+                    <sp-table-head-cell
+                        class="col-arrangement"
+                        sortable
+                        sort-key="arrangement"
+                        sort-direction=${directionFor('arrangement')}
+                        @sorted=${this.handleSort}
+                    >
+                        Arrangement
+                    </sp-table-head-cell>
+                    <sp-table-head-cell
+                        class="col-family"
+                        sortable
+                        sort-key="family"
+                        sort-direction=${directionFor('family')}
+                        @sorted=${this.handleSort}
+                    >
+                        Family
+                    </sp-table-head-cell>
+                    <sp-table-head-cell
+                        class="col-segment"
+                        sortable
+                        sort-key="segment"
+                        sort-direction=${directionFor('segment')}
+                        @sorted=${this.handleSort}
+                    >
+                        Segment
+                    </sp-table-head-cell>
+                    <sp-table-head-cell
+                        class="col-markets"
+                        sortable
+                        sort-key="markets"
+                        sort-direction=${directionFor('markets')}
+                        @sorted=${this.handleSort}
+                    >
+                        Markets
+                    </sp-table-head-cell>
+                    <sp-table-head-cell
+                        class="col-plans"
+                        sortable
+                        sort-key="plans"
+                        sort-direction=${directionFor('plans')}
+                        @sorted=${this.handleSort}
+                    >
+                        Plan Types
+                    </sp-table-head-cell>
                     <sp-table-head-cell class="col-action"></sp-table-head-cell>
                 </sp-table-head>
                 <sp-table-body @scroll=${this.handleTableScroll}>

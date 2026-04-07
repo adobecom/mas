@@ -255,6 +255,22 @@
     border-color: var(--spectrum-global-color-red-300);
 }
 
+.message-feedback {
+    display: flex;
+    gap: var(--spectrum-global-dimension-size-75);
+    margin-top: var(--spectrum-global-dimension-size-100);
+    padding-top: var(--spectrum-global-dimension-size-100);
+    border-top: 1px solid var(--spectrum-global-color-gray-200);
+    opacity: 0.6;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.chat-message-assistant:hover .message-feedback,
+.message-feedback:focus-within,
+.message-feedback:has(sp-action-button[selected]) {
+    opacity: 1;
+}
+
 .error-icon {
     color: var(--spectrum-global-color-red-600);
     vertical-align: middle;
@@ -1058,6 +1074,21 @@
 .default-result-cards .card-wrapper {
     max-width: 400px;
     width: 100%;
+    position: relative;
+}
+
+.card-wrapper-copy-link {
+    position: absolute;
+    top: var(--spectrum-global-dimension-size-100);
+    right: var(--spectrum-global-dimension-size-100);
+    z-index: 1;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.copy-all-links-button {
+    margin-left: auto;
 }
 
 .default-result-cards merch-card {

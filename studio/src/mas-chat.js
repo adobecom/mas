@@ -101,6 +101,7 @@ export class MasChat extends LitElement {
         this.addEventListener('cancel-preview', this.handleCancelPreview);
         this.addEventListener('button-selected', this.handleButtonSelected);
         this.addEventListener('confirmation-action', this.handleConfirmationAction);
+        this.addEventListener('chat-feedback', this.handleChatFeedback);
     }
 
     disconnectedCallback() {
@@ -116,6 +117,7 @@ export class MasChat extends LitElement {
         this.removeEventListener('cancel-preview', this.handleCancelPreview);
         this.removeEventListener('button-selected', this.handleButtonSelected);
         this.removeEventListener('confirmation-action', this.handleConfirmationAction);
+        this.removeEventListener('chat-feedback', this.handleChatFeedback);
     }
 
     loadActiveSession() {
@@ -155,6 +157,59 @@ export class MasChat extends LitElement {
             messages: this.messages,
             conversationHistory: this.conversationHistory,
         });
+
+        this.maybeUpgradeSessionTitle(session);
+    }
+
+    maybeUpgradeSessionTitle(session) {
+        if (!session || session.titleGenerated) return;
+
+        const firstUserMessage = this.messages.find((m) => m.role === 'user');
+        const firstAssistantMessage = this.messages.find(
+            (m) => m.role === 'assistant' && typeof m.content === 'string' && m.content.trim(),
+        );
+        if (!firstUserMessage || !firstAssistantMessage) return;
+
+        const sessionId = this.currentSessionId;
+        this.requestSessionTitle(firstUserMessage.content, firstAssistantMessage.content)
+            .then((title) => {
+                if (!title) return;
+                sessionManager.renameSession(sessionId, title);
+                sessionManager.updateSession(sessionId, { titleGenerated: true });
+            })
+            .catch((error) => {
+                console.warn('Session title generation failed, keeping fallback name:', error.message);
+            });
+    }
+
+    async requestSessionTitle(userMessage, assistantMessage) {
+        const response = await this.callAIChatAction({
+            requestType: 'title',
+            userMessage,
+            assistantMessage,
+        });
+        return typeof response?.title === 'string' ? response.title.trim() : null;
+    }
+
+    async handleChatFeedback(event) {
+        const { rating, messageId, content, timestamp } = event.detail || {};
+        if (!rating) return;
+
+        this.saveCurrentSession();
+        showToast(rating === 'up' ? 'Thanks for the feedback!' : 'Thanks — we will use this to improve.', 'positive');
+
+        try {
+            await this.callAIChatAction({
+                requestType: 'feedback',
+                rating,
+                messageId,
+                sessionId: this.currentSessionId,
+                content,
+                timestamp,
+            });
+        } catch (error) {
+            console.warn('Feedback submission failed:', error.message);
+        }
     }
 
     handleSessionChanged(event) {

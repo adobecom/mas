@@ -97,6 +97,120 @@ function getResponseHeaders() {
 }
 
 /**
+ * Record a chat feedback signal (thumbs up/down) on a specific assistant message.
+ * Writes a structured log entry so the signals are queryable via `aio runtime activation logs`.
+ * A durable store (e.g. Application State or a dedicated DB) can be layered on top later
+ * without changing this request shape.
+ * @param {Object} params - Action params with { rating, messageId, sessionId, content, timestamp }.
+ * @returns {Promise<Object>} - { statusCode, headers, body }
+ */
+async function recordChatFeedback(params) {
+    const { rating, messageId = null, sessionId = null, content = '', timestamp = null } = params;
+
+    if (rating !== 'up' && rating !== 'down') {
+        return {
+            statusCode: 400,
+            headers: { ...getResponseHeaders() },
+            body: { error: "rating must be 'up' or 'down'" },
+        };
+    }
+
+    const snippet = typeof content === 'string' ? content.slice(0, 500) : '';
+
+    console.log(
+        '[ai-chat feedback]',
+        JSON.stringify({
+            rating,
+            sessionId,
+            messageId,
+            timestamp,
+            contentSnippet: snippet,
+            receivedAt: Date.now(),
+        }),
+    );
+
+    return {
+        statusCode: 200,
+        headers: { ...getResponseHeaders() },
+        body: { ok: true },
+    };
+}
+
+/**
+ * Generate a short (3-5 word) title for a chat session based on the first turn.
+ * Intentionally skips RAG / knowledge / variant detection so it stays cheap and fast.
+ * @param {Object} params - Action params. Expects `userMessage` and optional `assistantMessage`.
+ * @returns {Promise<Object>} - { statusCode, headers, body: { title } | { error } }
+ */
+async function generateSessionTitle(params) {
+    const { userMessage, assistantMessage = '' } = params;
+
+    if (!userMessage || typeof userMessage !== 'string') {
+        return {
+            statusCode: 400,
+            headers: { ...getResponseHeaders() },
+            body: { error: 'userMessage is required for requestType=title' },
+        };
+    }
+
+    try {
+        const { AWS_BEARER_TOKEN_BEDROCK, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
+
+        const bedrockClient = new BedrockClient({
+            bearerToken: AWS_BEARER_TOKEN_BEDROCK,
+            accessKeyId: AWS_ACCESS_KEY_ID,
+            secretAccessKey: AWS_SECRET_ACCESS_KEY,
+            region: AWS_REGION,
+            modelId: BEDROCK_MODEL_ID,
+        });
+
+        const systemPrompt =
+            'You title chat sessions about Adobe merch card creation. ' +
+            'Given the first user message and optional assistant reply, ' +
+            'return a concise 3 to 5 word title in Title Case that captures the topic. ' +
+            'Return only the title text — no quotes, no trailing punctuation, no commentary.';
+
+        const userContent = assistantMessage
+            ? `First user message:\n${userMessage}\n\nAssistant reply:\n${assistantMessage}`
+            : `First user message:\n${userMessage}`;
+
+        const result = await bedrockClient.sendMessage([{ role: 'user', content: userContent }], systemPrompt, 40);
+
+        if (!result.success) {
+            return {
+                statusCode: 502,
+                headers: { ...getResponseHeaders() },
+                body: { error: result.error || 'Title generation failed' },
+            };
+        }
+
+        const rawTitle = (result.message || '').trim().replace(/^["'`]+|["'`.]+$/g, '');
+        if (!rawTitle) {
+            return {
+                statusCode: 502,
+                headers: { ...getResponseHeaders() },
+                body: { error: 'Empty title returned by model' },
+            };
+        }
+
+        const title = rawTitle.split(/\s+/).slice(0, 6).join(' ').slice(0, 60);
+
+        return {
+            statusCode: 200,
+            headers: { ...getResponseHeaders() },
+            body: { title },
+        };
+    } catch (error) {
+        console.error('generateSessionTitle error:', error);
+        return {
+            statusCode: 500,
+            headers: { ...getResponseHeaders() },
+            body: { error: error.message },
+        };
+    }
+}
+
+/**
  * Extract surface from AEM path
  * @param {string} path - AEM content path (e.g., /content/dam/mas/commerce/...)
  * @returns {string|null} - Surface name (acom, ccd, commerce, adobe-home) or null
@@ -294,7 +408,15 @@ async function main(params) {
         };
     }
 
-    const { message, conversationHistory = [], context = null, intentHint = null } = params;
+    const { message, conversationHistory = [], context = null, intentHint = null, requestType = null } = params;
+
+    if (requestType === 'title') {
+        return generateSessionTitle(params);
+    }
+
+    if (requestType === 'feedback') {
+        return recordChatFeedback(params);
+    }
 
     if (!message || typeof message !== 'string') {
         return {

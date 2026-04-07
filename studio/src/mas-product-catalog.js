@@ -4,7 +4,7 @@ import { executeMCPTool } from './services/mcp-client.js';
 import { fetchProducts } from './services/product-api.js';
 import { showToast } from './utils.js';
 import Store from './store.js';
-import { EVENT_OST_OFFER_SELECT, PAGE_NAMES, TEMPLATE_PREVIEWS } from './constants.js';
+import { EVENT_OST_OFFER_SELECT, PAGE_NAMES, TEMPLATE_PREVIEWS, WCS_LANDSCAPE_DRAFT } from './constants.js';
 import { getVariantTreeData } from './editors/variant-picker.js';
 import { precacheTemplatePreviews } from './utils/template-cache.js';
 import { getUserSurfaces } from './groups.js';
@@ -171,17 +171,28 @@ class MasProductCatalog extends LitElement {
         this.requestUpdate();
     };
 
+    handleLandscapeChange = () => {
+        this.currentPage = 0;
+        this.requestUpdate();
+    };
+
     connectedCallback() {
         super.connectedCallback();
         this.loadProducts();
         Store.productCatalog.search.subscribe(this.handleSearchChange);
+        Store.landscape.subscribe(this.handleLandscapeChange);
         document.addEventListener(EVENT_OST_OFFER_SELECT, this.handleOfferSelect);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.productCatalog.search.unsubscribe(this.handleSearchChange);
+        Store.landscape.unsubscribe(this.handleLandscapeChange);
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.handleOfferSelect);
+    }
+
+    get isDraftLandscape() {
+        return Store.landscape.value === WCS_LANDSCAPE_DRAFT;
     }
 
     async loadProducts() {
@@ -221,11 +232,16 @@ class MasProductCatalog extends LitElement {
     }
 
     get filteredProducts() {
+        const showDraft = this.isDraftLandscape;
         const source = this.products.filter((p) => {
             // Hide products without a usable name — they have nothing to show in the
             // Product column and just create empty rows. Some MCS entries arrive as
             // arrangement-code-only stubs.
             if (!this.hasName(p)) return false;
+            // The cache merges DRAFT + PUBLISHED into a single payload, with `draft: true`
+            // marking products that only exist in the draft landscape. Honor the global
+            // `Store.landscape` toggle so the catalog mirrors the OST draft-landscape switch.
+            if (!showDraft && p.draft === true) return false;
             if (this.searchQuery) {
                 const q = this.searchQuery.toLowerCase();
                 const matchesSearch =

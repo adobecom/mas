@@ -1383,7 +1383,7 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 .product-catalog-active-filters .active-filter-chip {
     appearance: none;
     border: none;
-    border-radius: 8px;
+    border-radius: 9999px;
     background: var(--spectrum-blue-100, #e0f2ff);
     color: var(--spectrum-gray-900);
     height: 36px;

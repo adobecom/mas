@@ -392,16 +392,20 @@ class MasTopNav extends LitElement {
                                   surface=${Store.surface()}
                                   locale=${Store.localeOrRegion()}
                               ></mas-locale-picker>
-                              <sp-switch
-                                  class="landscape-switch"
-                                  size="m"
-                                  ?checked=${this.isDraftLandscape}
-                                  @change=${(e) => {
-                                      Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
-                                  }}
-                              >
-                                  Draft landscape offer
-                              </sp-switch>
+                              ${this.isProductCatalogPage
+                                  ? nothing
+                                  : html`<sp-switch
+                                        class="landscape-switch"
+                                        size="m"
+                                        ?checked=${this.isDraftLandscape}
+                                        @change=${(e) => {
+                                            Store.landscape.set(
+                                                e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED,
+                                            );
+                                        }}
+                                    >
+                                        Draft landscape offer
+                                    </sp-switch>`}
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

@@ -702,6 +702,27 @@ async function main(params) {
             };
         }
 
+        if (parsedResponse.type === 'release_cards') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    type: 'release_cards',
+                    message: parsedResponse.message,
+                    parentPath: parsedResponse.parentPath,
+                    cardConfigs: parsedResponse.cardConfigs,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
         if (parsedResponse.type === 'open_ost') {
             return {
                 statusCode: 200,

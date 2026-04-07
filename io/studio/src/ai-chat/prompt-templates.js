@@ -55,6 +55,23 @@ Cards automatically hydrate with Web Commerce Service when:
 YOU MUST: Generate proper HTML structure
 YOU DON'T: Need to generate actual price values (WCS handles this dynamically)
 
+=== DUAL-OSI ON PLANS CARDS ===
+
+Plans cards have TWO CTAs: a "Buy now" anchor and a "Free trial" anchor. Each
+should resolve to a DIFFERENT offer at runtime — the buy CTA points to the
+recurring purchase offer, the trial CTA points to a separate free-trial offer.
+
+When generating ctas HTML for plans variants, always emit BOTH anchors and
+distinguish them with data-analytics-id:
+- Buy CTA: <a class="con-button primary-outline" data-analytics-id="buy-now">Buy now</a>
+- Trial CTA: <a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>
+
+DO NOT include data-wcs-osi attributes on these anchors. The studio client
+substitutes data-wcs-osi at fragment-creation time using the base osi field for
+the buy-now anchor and the trialOsi field for the free-trial anchor. If trialOsi
+is missing, the studio drops the free-trial anchor entirely so the rendered card
+shows only Buy now.
+
 === WORKSPACE CONTEXT AWARENESS ===
 
 **Current User Workspace:**
@@ -167,7 +184,7 @@ If user asks about pricing without specifying card content, include:
   "prices": "<p slot=\\"heading-m\\"><span class=\\"heading-xs\\">$XX.XX/mo</span></p>",
   "description": "<div slot=\\"body-xs\\"><p>Key features and benefits:</p><ul><li>Feature 1</li><li>Feature 2</li><li>Feature 3</li></ul></div>",
   "badge": {"text": "Best value", "backgroundColor": "spectrum-yellow-300-plans"},
-  "ctas": "<p slot=\\"footer\\"><a href=\\"#\\" class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\">Buy now</a></p>"
+  "ctas": "<p slot=\\"footer\\"><a href=\\"#\\" class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a href=\\"#\\" class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>"
 }
 
 **MINI Variant Placeholders**:
@@ -366,24 +383,25 @@ Present offering types as a button group:
 The value format is "commitment|term" for downstream processing.
 
 ## Step 5: Offer Selection via OST
-After the user picks an offering type, open the Offer Selector Tool (OST) so they can select the exact offer. Return an \`open_ost\` response:
+After the user picks an offering type, open the Offer Selector Tool (OST) so they can select two offers in a single session — a base offer (recurring purchase) and a trial offer (free trial). Return an \`open_ost\` response with multi-select mode:
 \`\`\`json
 {
   "type": "open_ost",
-  "message": "Opening the Offer Selector Tool — please select the offer for this card.",
+  "message": "Opening the Offer Selector Tool — please pick a base offer and a free-trial offer for this product.",
   "searchParams": {
     "arrangement_code": "<resolved arrangement code from step 2>",
     "commitment": "<from step 4, e.g. YEAR>",
     "term": "<from step 4, e.g. MONTHLY>",
-    "customerSegment": "<segment selected by user in step 3, e.g. INDIVIDUAL, TEAM, or ENTERPRISE>"
+    "customerSegment": "<segment selected by user in step 3, e.g. INDIVIDUAL, TEAM, or ENTERPRISE>",
+    "mode": "plans-base-and-trial"
   }
 }
 \`\`\`
 
-The frontend will open OST pre-filtered with these parameters. When the user selects an offer, the OSI (Offer Selector ID) will be included in the next message context automatically. Proceed to Step 6 (Confirmation Summary) after receiving the user's response with the OSI.
+The \`mode: "plans-base-and-trial"\` flag tells the studio to open OST in multi-select mode with two slots ("Base offer" / "Trial offer"). The trial slot is OPTIONAL — the user can confirm with only the base slot filled. After OST closes, the studio sends the next user message with context containing both \`osi\` (base) and \`trialOsi\` (trial, may be undefined). Proceed to Step 6 once you see osi in the context.
 
 ## Step 6: Confirmation Summary
-Present a confirmation summary of all selections:
+Present a confirmation summary of all selections, including both OSIs:
 \`\`\`json
 {
   "type": "release_confirmation",
@@ -392,30 +410,47 @@ Present a confirmation summary of all selections:
     "product": { "name": "Photoshop", "arrangement_code": "phsp_direct_individual", "icon": "https://..." },
     "variant": null,
     "offeringType": { "label": "Annual, paid monthly", "commitment": "YEAR", "term": "MONTHLY" },
-    "osi": "<offer selector ID from step 5>",
+    "osi": "<base offer selector ID from step 5 context>",
+    "trialOsi": "<trial offer selector ID from step 5 context, omit or null if user did not pick one>",
     "locale": "en_US"
   }
 }
 \`\`\`
 
+If the user did not pick a trial offer in OST (only the base slot was filled), omit \`trialOsi\` from the summary or set it to null. The frontend will render the trial row as "(none — only Buy now CTA)".
+
 ## Step 7: Card Generation
-When user confirms (clicks "Create Card"), emit create_release_cards with the OSI from step 5:
+When user confirms (clicks "Create Card"), emit a \`release_cards\` response with a fully formed \`cardConfigs\` array — one entry per variant. The studio's local card mapper builds the AEM fragments directly, without going through the MCP \`create_release_cards\` tool.
 \`\`\`json
 {
-  "type": "mcp_operation",
-  "mcpTool": "create_release_cards",
-  "mcpParams": {
-    "arrangement_code": "<resolved arrangement code>",
-    "variants": ["plans", "catalog"],
-    "parentPath": "/content/dam/mas/{surface}/{locale}",
-    "osi": "<offer selector ID from step 5 context>"
-  },
-  "confirmationRequired": false,
-  "message": "Creating release cards for <product name>..."
+  "type": "release_cards",
+  "message": "Creating release cards for <product name>...",
+  "parentPath": "/content/dam/mas/{surface}/{locale}",
+  "cardConfigs": [
+    {
+      "variant": "plans",
+      "title": "<h3 slot=\\"heading-xs\\"><product name></h3>",
+      "subtitle": "<p slot=\\"subtitle\\"><tagline></p>",
+      "prices": "<p slot=\\"heading-m\\"><span class=\\"heading-xs\\">$XX.XX/mo</span></p>",
+      "description": "<div slot=\\"body-xs\\"><p>Key features and benefits...</p></div>",
+      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>",
+      "osi": "<base offer selector ID from step 5 context>",
+      "trialOsi": "<trial offer selector ID from step 5 context, omit if user skipped>"
+    },
+    {
+      "variant": "catalog",
+      "title": "<h3 slot=\\"heading-xs\\"><product name></h3>",
+      "description": "<div slot=\\"body-xs\\"><p>Catalog description...</p></div>",
+      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\">Learn more</a></p>",
+      "osi": "<base offer selector ID from step 5 context>"
+    }
+  ]
 }
 \`\`\`
 
-The server will set the OSI on the card's \`osi\` field so pricing resolves automatically.
+The studio loops over \`cardConfigs\`, runs each one through the AI card mapper (which stamps distinct \`data-wcs-osi\` attributes onto the buy-now and free-trial anchors for plans variants), and creates one AEM fragment per entry. If \`trialOsi\` is missing on a plans card, the mapper drops the free-trial anchor entirely so the rendered card shows only Buy now.
+
+DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow — that path is single-OSI only and is no longer used.
 
 ## Error Handling
 - Product not found: Return a plain text message asking them to try again
@@ -427,8 +462,9 @@ The server will set the OSI on the card's \`osi\` field so pricing resolves auto
 3. Only show offerings that the product actually supports
 4. Maintain conversation context to track which step you're on
 5. When user clicks "Start Over" (cancel on confirmation), restart from Step 1
-6. ALWAYS include the osi from step 5 context in the create_release_cards mcpParams
-7. NEVER use a PA code (PA-XXXX) as the arrangement_code for create_release_cards — always use the arrangement_code field from the list_products response
+6. ALWAYS include the base \`osi\` from step 5 context on every cardConfig in step 7. If \`trialOsi\` is also present in the context, include it on plans variant cardConfigs too. Catalog and other non-plans variants do NOT need trialOsi.
+7. The plans variant cardConfig MUST include both a \`data-analytics-id="buy-now"\` anchor AND a \`data-analytics-id="free-trial"\` anchor inside its \`ctas\` HTML, with NO \`data-wcs-osi\` attributes. The studio injects them at fragment-creation time.
+8. NEVER emit \`mcp_operation\` with \`create_release_cards\` in the release flow — always use \`type: "release_cards"\` with full \`cardConfigs\` instead.
 `;
 
 export const COLLECTION_CREATION_SYSTEM_PROMPT = `You are an expert at creating merch card collections for adobe.com.

@@ -157,7 +157,7 @@ export class MasChatConfirmationSummary extends LitElement {
     render() {
         if (!this.summary) return nothing;
 
-        const { product, segment, offeringType, locale } = this.summary;
+        const { product, segment, offeringType, locale, osi, trialOsi } = this.summary;
         const productDescription = this.getProductDescription(product);
         const variantCount = this.selectedVariants.size;
 
@@ -187,6 +187,20 @@ export class MasChatConfirmationSummary extends LitElement {
                     <div class="summary-row">
                         <span class="summary-label">Offering</span>
                         <span class="summary-value">${offeringType?.label || 'Unknown'}</span>
+                    </div>
+                    ${osi
+                        ? html`
+                              <div class="summary-row">
+                                  <span class="summary-label">Base offer</span>
+                                  <span class="summary-value"><code>${osi}</code></span>
+                              </div>
+                          `
+                        : nothing}
+                    <div class="summary-row">
+                        <span class="summary-label">Trial offer</span>
+                        <span class="summary-value">
+                            ${trialOsi ? html`<code>${trialOsi}</code>` : html`<em>None — Free trial CTA will be hidden</em>`}
+                        </span>
                     </div>
                     <div class="summary-row">
                         <span class="summary-label">Locale</span>

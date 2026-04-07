@@ -71,6 +71,8 @@ export class MasChat extends LitElement {
         this.selectedReleaseProduct = null;
         this.selectedReleaseOffer = null;
         this.selectedReleaseOsi = null;
+        this.selectedReleaseTrialOffer = null;
+        this.selectedReleaseTrialOsi = null;
     }
 
     #repositoryEl = null;
@@ -252,6 +254,8 @@ export class MasChat extends LitElement {
         this.selectedReleaseProduct = null;
         this.selectedReleaseOffer = null;
         this.selectedReleaseOsi = null;
+        this.selectedReleaseTrialOffer = null;
+        this.selectedReleaseTrialOsi = null;
     }
 
     handlePromptSelected(event) {
@@ -293,7 +297,11 @@ export class MasChat extends LitElement {
             this.handleSendMessage({
                 detail: {
                     message,
-                    context: { selectedVariants, osi: this.selectedReleaseOsi },
+                    context: {
+                        selectedVariants,
+                        osi: this.selectedReleaseOsi,
+                        trialOsi: this.selectedReleaseTrialOsi,
+                    },
                 },
             });
         } else {
@@ -323,9 +331,17 @@ export class MasChat extends LitElement {
             userMessage.osi = context.osi;
             this.selectedReleaseOsi = context.osi;
         }
+        if (context?.trialOsi) {
+            userMessage.trialOsi = context.trialOsi;
+            this.selectedReleaseTrialOsi = context.trialOsi;
+        }
         if (context?.offer) {
             userMessage.offer = context.offer;
             this.selectedReleaseOffer = context.offer;
+        }
+        if (context?.trialOffer) {
+            userMessage.trialOffer = context.trialOffer;
+            this.selectedReleaseTrialOffer = context.trialOffer;
         }
         if (context?.cards && context.cards.length > 0) {
             userMessage.cards = context.cards;
@@ -516,6 +532,8 @@ export class MasChat extends LitElement {
                         timestamp: Date.now(),
                     },
                 ];
+            } else if (response.type === 'release_cards') {
+                await this.handleReleaseCardsResponse(response);
             } else {
                 this.messages = [
                     ...this.messages,
@@ -685,18 +703,37 @@ export class MasChat extends LitElement {
         return `${baseName}-${timestamp}`;
     }
 
-    async saveDraftToAEM(cardConfig) {
+    async saveDraftToAEM(cardConfig, options = {}) {
         const repository = this.repository;
         if (!repository) {
             throw new Error('Repository not found');
         }
 
-        const title = this.extractTitle(cardConfig);
-        const uniqueName = this.generateUniqueFragmentName(title);
-        const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
+        const title = options.title || this.extractTitle(cardConfig);
+        const uniqueName = options.name || this.generateUniqueFragmentName(title);
+        const parentPath =
+            options.parentPath || `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
+
+        // Stamp the latest dual-OSI selections from chat state onto the cardConfig if the
+        // AI did not already include them. This keeps the agentic release flow honest:
+        // even if the AI omits trialOsi from the release_cards payload, the chat-side
+        // value captured by the OST multi-select callback still flows through.
+        const enrichedConfig = { ...cardConfig };
+        if (enrichedConfig.variant?.startsWith('plans')) {
+            if (!enrichedConfig.osi && this.selectedReleaseOsi) {
+                enrichedConfig.osi = this.selectedReleaseOsi;
+            }
+            if (!enrichedConfig.trialOsi && this.selectedReleaseTrialOsi) {
+                enrichedConfig.trialOsi = this.selectedReleaseTrialOsi;
+            }
+        } else if (!enrichedConfig.osi && this.selectedReleaseOsi) {
+            enrichedConfig.osi = this.selectedReleaseOsi;
+        }
+
+        const fragmentData = createFragmentDataForAEM(enrichedConfig, enrichedConfig.variant, {
             title,
             name: uniqueName,
-            parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
+            parentPath,
         });
 
         const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
@@ -707,6 +744,101 @@ export class MasChat extends LitElement {
         }
 
         return newFragment;
+    }
+
+    async handleReleaseCardsResponse(response) {
+        const cardConfigs = Array.isArray(response.cardConfigs) ? response.cardConfigs : [];
+        if (cardConfigs.length === 0) {
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'error',
+                    content: 'No card configurations were provided for the release.',
+                    timestamp: Date.now(),
+                },
+            ];
+            return;
+        }
+
+        const productName =
+            this.selectedReleaseProduct?.copy?.name ||
+            this.selectedReleaseProduct?.name ||
+            this.extractTitle(cardConfigs[0]) ||
+            '';
+
+        const placeholderIndex = this.messages.length;
+        this.messages = [
+            ...this.messages,
+            {
+                role: 'assistant',
+                content:
+                    response.message || `Creating ${cardConfigs.length} release card${cardConfigs.length !== 1 ? 's' : ''}...`,
+                operationLoading: true,
+                operationType: 'create_release_cards',
+                timestamp: Date.now(),
+            },
+        ];
+
+        const parentPath =
+            response.parentPath || `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
+
+        const results = [];
+        for (const cardConfig of cardConfigs) {
+            const title = `${productName || this.extractTitle(cardConfig)} - ${
+                cardConfig.variant?.charAt(0).toUpperCase() + cardConfig.variant?.slice(1)
+            }`;
+            try {
+                const newFragment = await this.saveDraftToAEM(cardConfig, {
+                    title,
+                    parentPath,
+                });
+                results.push({
+                    success: true,
+                    card: {
+                        id: newFragment.id,
+                        title: newFragment.title,
+                        path: newFragment.path,
+                        variant: cardConfig.variant,
+                    },
+                });
+            } catch (error) {
+                console.error('Failed to create release card:', error);
+                results.push({
+                    success: false,
+                    card: { title, variant: cardConfig.variant },
+                    error: error.message,
+                });
+            }
+        }
+
+        const successCount = results.filter((r) => r.success).length;
+        const operationResult = {
+            success: successCount === results.length,
+            rawResult: {
+                cards: results,
+                product: { name: productName },
+            },
+        };
+
+        this.messages = [
+            ...this.messages.slice(0, placeholderIndex),
+            {
+                role: 'assistant',
+                content:
+                    response.message ||
+                    `Created ${successCount} of ${results.length} release card${results.length !== 1 ? 's' : ''}.`,
+                operationType: 'create_release_cards',
+                operationResult,
+                timestamp: Date.now(),
+            },
+            ...this.messages.slice(placeholderIndex + 1),
+        ];
+
+        if (successCount === results.length) {
+            showToast(`Created ${successCount} release card${successCount !== 1 ? 's' : ''}`, 'positive');
+        } else {
+            showToast(`Created ${successCount} of ${results.length} release cards`, 'negative');
+        }
     }
 
     async openDraftInEditor(fragmentId) {
@@ -1263,6 +1395,8 @@ export class MasChat extends LitElement {
                         timestamp: Date.now(),
                     },
                 ];
+            } else if (response.type === 'release_cards') {
+                await this.handleReleaseCardsResponse(response);
             } else {
                 this.messages = [
                     ...this.messages,

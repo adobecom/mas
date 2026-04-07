@@ -96,6 +96,15 @@ export function parseAIResponse(responseText) {
             };
         }
 
+        if (cardConfig.type === 'release_cards') {
+            return {
+                type: 'release_cards',
+                message: conversationalText || cardConfig.message || 'Creating release cards...',
+                parentPath: cardConfig.parentPath || null,
+                cardConfigs: Array.isArray(cardConfig.cardConfigs) ? cardConfig.cardConfigs : [],
+            };
+        }
+
         if (cardConfig.type === 'open_ost') {
             return {
                 type: 'open_ost',

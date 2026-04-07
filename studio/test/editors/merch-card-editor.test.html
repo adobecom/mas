@@ -1099,7 +1099,9 @@
                             iconEl.setAttribute('alt', 'Test description');
                             const descEl = document.createElement('span');
                             descEl.setAttribute('slot', 'description');
-                            descEl.textContent = 'Test description';
+                            const span = document.createElement('span');
+                            span.textContent = 'Test description';
+                            descEl.append(span);
                             el.append(iconEl, descEl);
 
                             const result = editor.getWhatsIncludedProps(el);
@@ -1165,8 +1167,8 @@
                             const html = `<merch-whats-included>
                                 <div slot="contentBullets">
                                     <merch-mnemonic-list>
-                                        <merch-icon src="https://example.com/icon.svg" alt="Icon alt"></merch-icon>
-                                        <span slot="description">Bullet with icon</span>
+                                        <merch-icon src="https://example.com/icon.svg" alt="Bullet with icon"></merch-icon>
+                                        <span slot="description"><span>Bullet with icon</span></span>
                                     </merch-mnemonic-list>
                                 </div>
                             </merch-whats-included>`;
@@ -1176,7 +1178,7 @@
                             const result = editor.whatsIncluded;
                             expect(result.bullets).to.have.length(1);
                             expect(result.bullets[0].icon).to.equal('https://example.com/icon.svg');
-                            expect(result.bullets[0].alt).to.equal('Icon alt');
+                            expect(result.bullets[0].alt).to.equal('Bullet with icon');
                         });
 
                         it('parses contentBullets with no merch-icon, desc innerHTML equals text', async () => {

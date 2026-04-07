@@ -494,7 +494,7 @@ class MerchCardEditor extends LitElement {
             const icon = iconEl.getAttribute('src') || '';
             const linkEl = el.querySelector('[slot="icon"] a');
             const link = linkEl?.getAttribute('href') || '';
-            return { icon, alt: isMiniChart ? alt : desc.textContent, link };
+            return { icon, alt: isMiniChart ? alt : desc?.textContent, link };
         }
         // Fallback for spectrum icons (sp-icon-* elements)
         const spIcon = el.querySelector('.sp-icon');

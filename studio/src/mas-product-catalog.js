@@ -28,6 +28,7 @@ class MasProductCatalog extends LitElement {
         marketsFilter: { state: true },
         planTypesFilter: { state: true },
         segmentsFilter: { state: true },
+        familiesFilter: { state: true },
     };
 
     pageSize = 50;
@@ -46,6 +47,7 @@ class MasProductCatalog extends LitElement {
         this.marketsFilter = new Set();
         this.planTypesFilter = new Set();
         this.segmentsFilter = new Set();
+        this.familiesFilter = new Set();
         this.handleOfferSelect = this.handleOfferSelect.bind(this);
     }
 
@@ -62,6 +64,7 @@ class MasProductCatalog extends LitElement {
         this.marketsFilter = new Set();
         this.planTypesFilter = new Set();
         this.segmentsFilter = new Set();
+        this.familiesFilter = new Set();
         this.currentPage = 0;
     };
 
@@ -81,20 +84,43 @@ class MasProductCatalog extends LitElement {
         const markets = new Set();
         const planTypes = new Set();
         const segments = new Set();
+        const families = new Set();
         for (const p of this.products) {
+            if (!this.hasName(p)) continue;
             this.getProductMarkets(p).forEach((m) => markets.add(m));
             this.getProductPlanTypes(p).forEach((t) => planTypes.add(t));
             this.getProductSegments(p).forEach((s) => segments.add(s));
+            if (p.product_family) families.add(p.product_family);
         }
         return {
             markets: [...markets].sort(),
             planTypes: [...planTypes].sort(),
             segments: [...segments].sort(),
+            families: [...families].sort(),
         };
     }
 
+    hasName(product) {
+        const name = (product.copy?.name || product.name || '').trim();
+        return name.length > 0;
+    }
+
     get hasActiveFilters() {
-        return this.marketsFilter.size > 0 || this.planTypesFilter.size > 0 || this.segmentsFilter.size > 0;
+        return (
+            this.marketsFilter.size > 0 ||
+            this.planTypesFilter.size > 0 ||
+            this.segmentsFilter.size > 0 ||
+            this.familiesFilter.size > 0
+        );
+    }
+
+    get activeFilterChips() {
+        const chips = [];
+        for (const value of this.marketsFilter) chips.push({ facet: 'marketsFilter', label: 'Market', value });
+        for (const value of this.planTypesFilter) chips.push({ facet: 'planTypesFilter', label: 'Plan', value });
+        for (const value of this.segmentsFilter) chips.push({ facet: 'segmentsFilter', label: 'Segment', value });
+        for (const value of this.familiesFilter) chips.push({ facet: 'familiesFilter', label: 'Family', value });
+        return chips;
     }
 
     handleSort = ({ detail: { sortKey, sortDirection } }) => {
@@ -102,6 +128,14 @@ class MasProductCatalog extends LitElement {
         this.sortDirection = sortDirection;
         this.currentPage = 0;
     };
+
+    static cleanJoin(values) {
+        return values
+            .map((v) => String(v ?? '').trim())
+            .filter(Boolean)
+            .sort()
+            .join(', ');
+    }
 
     getSortValue(product, column) {
         switch (column) {
@@ -114,22 +148,15 @@ class MasProductCatalog extends LitElement {
             case 'family':
                 return product.product_family || '';
             case 'segment':
-                return (
-                    product.customer_segment ||
-                    Object.keys(product.customerSegments || {})
-                        .sort()
-                        .join(', ')
-                );
+                return product.customer_segment
+                    ? String(product.customer_segment).trim()
+                    : MasProductCatalog.cleanJoin(Object.keys(product.customerSegments || {}));
             case 'markets':
                 return Array.isArray(product.market_segments)
-                    ? [...product.market_segments].sort().join(', ')
-                    : Object.keys(product.marketSegments || {})
-                          .sort()
-                          .join(', ');
+                    ? MasProductCatalog.cleanJoin(product.market_segments)
+                    : MasProductCatalog.cleanJoin(Object.keys(product.marketSegments || {}));
             case 'plans':
-                return Object.keys(product.planTypes || {})
-                    .sort()
-                    .join(', ');
+                return MasProductCatalog.cleanJoin(Object.keys(product.planTypes || {}));
             default:
                 return '';
         }
@@ -187,11 +214,18 @@ class MasProductCatalog extends LitElement {
             const match = productSegments.some((s) => this.segmentsFilter.has(s));
             if (!match) return false;
         }
+        if (this.familiesFilter.size > 0) {
+            if (!this.familiesFilter.has(product.product_family)) return false;
+        }
         return true;
     }
 
     get filteredProducts() {
         const source = this.products.filter((p) => {
+            // Hide products without a usable name — they have nothing to show in the
+            // Product column and just create empty rows. Some MCS entries arrive as
+            // arrangement-code-only stubs.
+            if (!this.hasName(p)) return false;
             if (this.searchQuery) {
                 const q = this.searchQuery.toLowerCase();
                 const matchesSearch =
@@ -375,9 +409,16 @@ class MasProductCatalog extends LitElement {
 
     facetMenuTemplate(facetState, label, facet, options) {
         const count = this[facetState].size;
-        const displayLabel = count > 0 ? `${label} (${count})` : label;
+        const isActive = count > 0;
+        const displayLabel = isActive ? `${label} (${count})` : label;
         return html`
-            <sp-action-menu size="m" quiet placement="bottom-start" label=${displayLabel}>
+            <sp-action-menu
+                size="m"
+                placement="bottom-start"
+                label=${displayLabel}
+                class="filter-menu ${isActive ? 'filter-menu-active' : ''}"
+            >
+                <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 <span slot="label">${displayLabel}</span>
                 ${options.length === 0
                     ? html`<sp-menu-item disabled>No values</sp-menu-item>`
@@ -402,6 +443,7 @@ class MasProductCatalog extends LitElement {
         const facets = this.availableFacets;
         return html`
             <div class="product-catalog-filters">
+                ${this.facetMenuTemplate('familiesFilter', 'Family', 'families', facets.families)}
                 ${this.facetMenuTemplate('marketsFilter', 'Markets', 'markets', facets.markets)}
                 ${this.facetMenuTemplate('planTypesFilter', 'Plan Types', 'planTypes', facets.planTypes)}
                 ${this.facetMenuTemplate('segmentsFilter', 'Segments', 'segments', facets.segments)}
@@ -413,6 +455,28 @@ class MasProductCatalog extends LitElement {
                           </sp-action-button>
                       `
                     : nothing}
+            </div>
+            ${this.hasActiveFilters ? this.activeFiltersTemplate : nothing}
+        `;
+    }
+
+    get activeFiltersTemplate() {
+        return html`
+            <div class="product-catalog-active-filters">
+                ${this.activeFilterChips.map(
+                    (chip) => html`
+                        <sp-action-button
+                            quiet
+                            size="s"
+                            class="active-filter-chip"
+                            title="Remove ${chip.label} filter: ${chip.value}"
+                            @click=${() => this.toggleFilter(chip.facet, chip.value)}
+                        >
+                            <sp-icon-close slot="icon"></sp-icon-close>
+                            ${chip.label}: ${chip.value}
+                        </sp-action-button>
+                    `,
+                )}
             </div>
         `;
     }
@@ -443,7 +507,6 @@ class MasProductCatalog extends LitElement {
         return html`
             <sp-table emphasized>
                 <sp-table-head>
-                    <sp-table-head-cell class="col-icon"></sp-table-head-cell>
                     <sp-table-head-cell
                         class="col-product"
                         sortable
@@ -523,27 +586,23 @@ class MasProductCatalog extends LitElement {
     renderProductRow(product) {
         const name = product.copy?.name || product.name || '';
         const icon = product.assets?.icons?.svg || product.icon || '';
-        const segment =
-            product.customer_segment ||
-            Object.keys(product.customerSegments || {})
-                .sort()
-                .join(', ');
+        const segment = product.customer_segment
+            ? String(product.customer_segment).trim()
+            : MasProductCatalog.cleanJoin(Object.keys(product.customerSegments || {}));
         const markets = Array.isArray(product.market_segments)
-            ? [...product.market_segments].sort().join(', ')
-            : Object.keys(product.marketSegments || {})
-                  .sort()
-                  .join(', ');
-        const planTypes = Object.keys(product.planTypes || {})
-            .sort()
-            .join(', ');
+            ? MasProductCatalog.cleanJoin(product.market_segments)
+            : MasProductCatalog.cleanJoin(Object.keys(product.marketSegments || {}));
+        const planTypes = MasProductCatalog.cleanJoin(Object.keys(product.planTypes || {}));
 
         return html`
             <sp-table-row value=${product.arrangement_code}>
-                <sp-table-cell class="col-icon">
-                    ${icon ? html`<img src="${icon}" alt="${name}" loading="lazy" />` : nothing}
-                </sp-table-cell>
                 <sp-table-cell class="col-product product-name">
-                    <span class="product-link" @click=${() => this.navigateToDetail(product)}>${name}</span>
+                    <div class="product-cell">
+                        ${icon
+                            ? html`<img class="product-icon" src="${icon}" alt="${name}" loading="lazy" />`
+                            : html`<div class="product-icon product-icon-placeholder"></div>`}
+                        <span class="product-link" @click=${() => this.navigateToDetail(product)}>${name}</span>
+                    </div>
                 </sp-table-cell>
                 <sp-table-cell class="col-code"><code>${product.product_code || ''}</code></sp-table-cell>
                 <sp-table-cell class="col-arrangement">

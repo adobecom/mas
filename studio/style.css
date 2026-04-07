@@ -1358,6 +1358,46 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     flex-wrap: wrap;
 }
 
+.product-catalog-filters .filter-menu {
+    --spectrum-actionbutton-m-background-color: var(--spectrum-gray-50);
+    --spectrum-actionbutton-m-border-color: var(--spectrum-gray-300);
+    border: 1px solid var(--spectrum-gray-300);
+    border-radius: 16px;
+    background: var(--spectrum-gray-50);
+    padding: 0 4px 0 12px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.product-catalog-filters .filter-menu.filter-menu-active {
+    border-color: var(--spectrum-blue-700, #1473e6);
+    background: var(--spectrum-blue-100, #e0f2ff);
+    color: var(--spectrum-blue-800, #0d66d0);
+}
+
+.product-catalog-active-filters {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.product-catalog-active-filters .active-filter-chip {
+    --spectrum-actionbutton-m-background-color: var(--spectrum-blue-100, #e0f2ff);
+    border: 1px solid var(--spectrum-blue-400, #4b9cf5);
+    border-radius: 14px;
+    background: var(--spectrum-blue-100, #e0f2ff);
+    color: var(--spectrum-blue-800, #0d66d0);
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
 .product-catalog-loading,
 .product-catalog-error,
 .product-catalog-empty {
@@ -1456,23 +1496,23 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     text-align: right;
 }
 
-.product-catalog sp-table-head-cell.col-icon,
-.product-catalog sp-table-cell.col-icon {
-    width: 56px;
-    min-width: 56px;
-    max-width: 56px;
-    flex: 0 0 56px;
-    padding: 8px 8px 8px 16px;
+.product-catalog .product-cell {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
+    min-width: 0;
 }
 
-.product-catalog sp-table-cell.col-icon img {
+.product-catalog .product-cell .product-icon {
     width: 32px;
     height: 32px;
+    flex: 0 0 32px;
     object-fit: contain;
     border-radius: 6px;
+}
+
+.product-catalog .product-cell .product-icon-placeholder {
+    background: var(--spectrum-gray-100);
 }
 
 .product-catalog .product-name {

@@ -235,9 +235,21 @@ export class MasChatSessionSelector extends LitElement {
         const activeSession = this.sessions.find((s) => s.id === this.activeSessionId);
         const sessionCount = this.sessions.length;
 
+        const atMaxSessions = sessionManager.isAtMaxSessions();
+
         return html`
             <div class="chat-session-selector">
-                <sp-action-button class="session-selector-trigger" quiet @click=${this.toggleDropdown} title="Chat sessions">
+                <sp-action-button
+                    class="new-chat-button"
+                    quiet
+                    @click=${this.handleNewSession}
+                    ?disabled=${atMaxSessions}
+                    title=${atMaxSessions ? 'Maximum sessions reached' : 'Start a new chat'}
+                >
+                    <sp-icon-add slot="icon"></sp-icon-add>
+                    New Chat
+                </sp-action-button>
+                <sp-action-button class="session-selector-trigger" quiet @click=${this.toggleDropdown} title="Chat history">
                     <sp-icon-chat slot="icon"></sp-icon-chat>
                     <span class="session-trigger-text">
                         ${activeSession ? activeSession.name : 'No session'}
@@ -250,18 +262,7 @@ export class MasChatSessionSelector extends LitElement {
                     ? html`
                           <div class="session-dropdown" @click=${(e) => e.stopPropagation()}>
                               <div class="session-dropdown-header">
-                                  <h3>Chat Sessions</h3>
-                                  <sp-action-button
-                                      size="s"
-                                      @click=${this.handleNewSession}
-                                      ?disabled=${sessionManager.isAtMaxSessions()}
-                                      title=${sessionManager.isAtMaxSessions()
-                                          ? 'Maximum sessions reached'
-                                          : 'Create new session'}
-                                  >
-                                      <sp-icon-add slot="icon"></sp-icon-add>
-                                      New Chat
-                                  </sp-action-button>
+                                  <h3>Chat History</h3>
                               </div>
                               <div class="session-list">
                                   ${this.sessions.length === 0

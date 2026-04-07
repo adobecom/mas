@@ -277,11 +277,19 @@ class MasProductCatalog extends LitElement {
     renderProductRow(product) {
         const name = product.copy?.name || product.name || '';
         const icon = product.assets?.icons?.svg || product.icon || '';
-        const segment = product.customer_segment || Object.keys(product.customerSegments || {}).join(', ');
+        const segment =
+            product.customer_segment ||
+            Object.keys(product.customerSegments || {})
+                .sort()
+                .join(', ');
         const markets = Array.isArray(product.market_segments)
-            ? product.market_segments.join(', ')
-            : Object.keys(product.marketSegments || {}).join(', ');
-        const planTypes = Object.keys(product.planTypes || {}).join(', ');
+            ? [...product.market_segments].sort().join(', ')
+            : Object.keys(product.marketSegments || {})
+                  .sort()
+                  .join(', ');
+        const planTypes = Object.keys(product.planTypes || {})
+            .sort()
+            .join(', ');
 
         return html`
             <sp-table-row value=${product.arrangement_code}>

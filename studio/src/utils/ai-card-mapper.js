@@ -75,6 +75,13 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
         }
     }
 
+    // Plans variants must render the secure transaction label by default.
+    // If the AI did not specify showSecureLabel, force it on so the generated
+    // card matches the expected Plans look-and-feel (POC feedback MWPW-183572).
+    if (variant?.startsWith('plans') && !fields.some((field) => field.name === 'showSecureLabel')) {
+        fields.push({ name: 'showSecureLabel', type: 'text', values: ['true'] });
+    }
+
     return fields;
 }
 

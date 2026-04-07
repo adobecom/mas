@@ -103,6 +103,39 @@ describe('ai-card-mapper', () => {
             expect(fields[0].name).to.equal('variant');
         });
 
+        it('should auto-inject showSecureLabel=true for plans variants', () => {
+            stubMerchCard();
+            const fields = mapAIConfigToFragmentFields({ title: '<h3>Creative Cloud</h3>' }, 'plans');
+            const secureLabelField = fields.find((f) => f.name === 'showSecureLabel');
+            expect(secureLabelField).to.deep.equal({
+                name: 'showSecureLabel',
+                type: 'text',
+                values: ['true'],
+            });
+        });
+
+        it('should auto-inject showSecureLabel=true for plans sub-variants (plans-education, plans-students)', () => {
+            stubMerchCard();
+            const eduFields = mapAIConfigToFragmentFields({}, 'plans-education');
+            const studentsFields = mapAIConfigToFragmentFields({}, 'plans-students');
+            expect(eduFields.find((f) => f.name === 'showSecureLabel')?.values).to.deep.equal(['true']);
+            expect(studentsFields.find((f) => f.name === 'showSecureLabel')?.values).to.deep.equal(['true']);
+        });
+
+        it('should not auto-inject showSecureLabel for non-plans variants', () => {
+            stubMerchCard();
+            const catalogFields = mapAIConfigToFragmentFields({ title: '<h3>Photoshop</h3>' }, 'catalog');
+            expect(catalogFields.find((f) => f.name === 'showSecureLabel')).to.be.undefined;
+        });
+
+        it('should respect an explicit showSecureLabel from aiConfig for plans variants', () => {
+            stubMerchCard({ ...MOCK_FRAGMENT_MAPPING, showSecureLabel: {} });
+            const fields = mapAIConfigToFragmentFields({ showSecureLabel: 'false' }, 'plans');
+            const secureLabelFields = fields.filter((f) => f.name === 'showSecureLabel');
+            expect(secureLabelFields).to.have.lengthOf(1);
+            expect(secureLabelFields[0].values).to.deep.equal(['false']);
+        });
+
         it('should map a complete config with multiple fields', () => {
             stubMerchCard();
             const config = {

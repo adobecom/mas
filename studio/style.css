@@ -1384,7 +1384,7 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     appearance: none;
     border: none;
     border-radius: 9999px;
-    background: var(--spectrum-blue-100, #e0f2ff);
+    background: var(--spectrum-blue-200, #c7e3ff);
     color: var(--spectrum-gray-900);
     height: 36px;
     padding: 0 14px;
@@ -1399,7 +1399,7 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 }
 
 .product-catalog-active-filters .active-filter-chip:hover {
-    background: var(--spectrum-blue-200, #c7e3ff);
+    background: var(--spectrum-blue-300, #a5d0ff);
 }
 
 .product-catalog-active-filters .active-filter-chip sp-icon-close {

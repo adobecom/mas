@@ -15,34 +15,9 @@ export class MasChatInput extends LitElement {
         selectedOffer: { type: Object },
         message: { type: String },
         selectedCards: { type: Array },
-        placeholder: { type: String },
         inputLocked: { type: Boolean, attribute: 'input-locked' },
         autoSendOnSelect: { type: Boolean },
     };
-
-    static placeholderExamples = [
-        'Create a plans card for Photoshop',
-        'Search for all published cards',
-        'Show me fries cards on commerce',
-        'Help me set up a new release',
-        'Find cards with background images',
-        'Create a CCD slice for Illustrator',
-        'Publish all draft cards in sandbox',
-        'What offer types are available?',
-    ];
-
-    static getActivePlaceholderExamples() {
-        // Drop the new-release prompt once the user has clicked the welcome chip for it,
-        // so we stop nudging them toward a flow they have already discovered.
-        let newReleaseClicked = false;
-        try {
-            newReleaseClicked = localStorage.getItem('mas-chat-new-release-clicked') === '1';
-        } catch {
-            // localStorage unavailable — fall through with the full list.
-        }
-        if (!newReleaseClicked) return MasChatInput.placeholderExamples;
-        return MasChatInput.placeholderExamples.filter((p) => p !== 'Help me set up a new release');
-    }
 
     constructor() {
         super();
@@ -53,9 +28,6 @@ export class MasChatInput extends LitElement {
         this.selectedCards = [];
         this.inputLocked = false;
         this.autoSendOnSelect = false;
-        const examples = MasChatInput.getActivePlaceholderExamples();
-        this.placeholderIndex = Math.floor(Math.random() * examples.length);
-        this.placeholder = examples[this.placeholderIndex];
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
         this.boundHandleOfferSelect = this.handleOfferSelect.bind(this);
         this.boundHandleEscKey = this.handleEscKey.bind(this);
@@ -73,7 +45,6 @@ export class MasChatInput extends LitElement {
         document.addEventListener('keydown', this.boundHandleEscKey, { capture: true });
         this.addEventListener('change', this.boundHandleRteChange);
         this.addEventListener('keyup', this.boundHandleRteChange);
-        this.placeholderInterval = setInterval(() => this.rotatePlaceholder(), 4000);
     }
 
     disconnectedCallback() {
@@ -83,13 +54,6 @@ export class MasChatInput extends LitElement {
         document.removeEventListener('keydown', this.boundHandleEscKey, { capture: true });
         this.removeEventListener('change', this.boundHandleRteChange);
         this.removeEventListener('keyup', this.boundHandleRteChange);
-        clearInterval(this.placeholderInterval);
-    }
-
-    rotatePlaceholder() {
-        const examples = MasChatInput.getActivePlaceholderExamples();
-        this.placeholderIndex = (this.placeholderIndex + 1) % examples.length;
-        this.placeholder = examples[this.placeholderIndex];
     }
 
     handleOstSelect(event) {
@@ -252,7 +216,6 @@ export class MasChatInput extends LitElement {
                             hide-counter="true"
                             no-border="true"
                             maxLength="500"
-                            placeholder="${this.placeholder}"
                             @keydown=${this.handleRteKeyDown}
                             ?disabled=${this.disabled || this.inputLocked}
                         >

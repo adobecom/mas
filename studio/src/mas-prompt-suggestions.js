@@ -1,8 +1,5 @@
 import { LitElement, html } from 'lit';
 
-export const NEW_RELEASE_INTENT = 'new_release';
-export const NEW_RELEASE_CLICKED_KEY = 'mas-chat-new-release-clicked';
-
 /**
  * Prompt Suggestions Component
  * Displays clickable chip-style suggestions for quick start
@@ -24,12 +21,7 @@ export class MasPromptSuggestions extends LitElement {
 
     get baseSuggestions() {
         return [
-            {
-                text: 'New Release',
-                icon: 'NewItem',
-                prompt: 'Kickstart cards for a new product release',
-                intentHint: NEW_RELEASE_INTENT,
-            },
+            { text: 'New Release', icon: 'NewItem', prompt: 'Kickstart cards for a new product release' },
             {
                 text: 'Create Card',
                 icon: 'AddCircle',
@@ -98,14 +90,6 @@ export class MasPromptSuggestions extends LitElement {
     }
 
     handleSuggestionClick(suggestion) {
-        if (suggestion.intentHint === NEW_RELEASE_INTENT) {
-            try {
-                localStorage.setItem(NEW_RELEASE_CLICKED_KEY, '1');
-            } catch {
-                // localStorage is unavailable (private mode, quota); fail silently
-                // — the placeholder will keep rotating, which is harmless.
-            }
-        }
         this.dispatchEvent(
             new CustomEvent('prompt-selected', {
                 detail: { prompt: suggestion.prompt, intentHint: suggestion.intentHint },

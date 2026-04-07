@@ -211,7 +211,9 @@ class IconPickerField extends LitElement {
                 </div>
 
                 <div class="included-info">
-                    <div class="value">${this.#getDisplayText(this.parseTextFromHtml(this.alt) || this.#getIconName(), 'No icon selected')}</div>
+                    <div class="value">
+                        ${this.#getDisplayText(this.parseTextFromHtml(this.alt) || this.#getIconName(), 'No icon selected')}
+                    </div>
                 </div>
 
                 <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>

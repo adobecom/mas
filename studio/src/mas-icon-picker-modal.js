@@ -349,7 +349,7 @@ class MasIconPickerModal extends LitElement {
                         link
                         .value=${this.alt || ''}
                         @change=${(e) => (this.altHtml = e.target.value)}
-                    ></rte-field>                    
+                    ></rte-field>
                 </div>
             </div>
         `;
@@ -376,7 +376,7 @@ class MasIconPickerModal extends LitElement {
                         link
                         .value=${this.alt || ''}
                         @change=${(e) => (this.altHtml = e.target.value)}
-                    ></rte-field>                      
+                    ></rte-field>
                 </div>
             </div>
         `;

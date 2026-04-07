@@ -1142,7 +1142,7 @@ merch-card-collection-header.catalog {
 
 @media screen and ${_} {
     :root {
-        --consonant-merch-card-catalog-width: 276px;
+        --consonant-merch-card-catalog-width: 300px;
     }
 
     merch-card-collection-header.catalog {

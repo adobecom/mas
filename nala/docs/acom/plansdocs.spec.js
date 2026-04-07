@@ -43,7 +43,7 @@ export const features = [
         tcid: '3',
         name: '@MAS-Plans-CA-Visitor',
         path: DOCS_GALLERY_PATH.PLANS.CA_VISITOR,
-        data: { id: '5a5ca143-a417-4087-b466-5b72ac68a830', badgeText: 'CANADA' },
+        data: { id: '5a5ca143-a417-4087-b466-5b72ac68a830', badgeText: 'CANADA', price: PRICE_PATTERN.CA.mo },
         browserParams: '?theme=darkest',
         tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo @regional-variation',
     },

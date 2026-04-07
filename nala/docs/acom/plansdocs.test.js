@@ -130,7 +130,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
 
         await test.step('step-3: Verify Plans CA Visitor Merch Card price is in CAD', async () => {
             await expect(await acomPage.getCardPrice(data.id)).toBeVisible();
-            await expect(await acomPage.getCardPrice(data.id)).toContainText(/CA\$/);
+            await expect(await acomPage.getCardPrice(data.id)).toContainText(data.price);
         });
 
         await test.step('step-4: Verify Plans CA Visitor Merch Card CTA checkout URL targets CA', async () => {

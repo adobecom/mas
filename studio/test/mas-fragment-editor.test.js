@@ -4,7 +4,7 @@ import '../src/mas-fragment-editor.js';
 import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
-import generateFragmentStore, { SourceFragmentStore } from '../src/reactivity/source-fragment-store.js';
+import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
 import { PAGE_NAMES, CARD_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
@@ -283,10 +283,11 @@ describe('MasFragmentEditor', () => {
 
             await el.initFragment();
 
+            expect(mockRepo.loadPreviewPlaceholders.calledOnce).to.be.true;
             expect(mockRepo.refreshFragment.calledOnce).to.be.true;
             expect(el.editorContextStore.loadFragmentContext.calledOnceWith('existing-id', existingData.path)).to.be.true;
             expect(el.inEdit.get()).to.equal(existingStore);
-            expect(existingStore.previewStore.resolved).to.equal(false);
+            expect(existingStore.previewStore.resolved).to.equal(true);
             expect(Store.search.get().region).to.equal('fr_FR');
             expect(el.updateTranslatedLocalesStore.calledOnceWith(false, existingData.path)).to.be.true;
             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
@@ -357,7 +358,6 @@ describe('MasFragmentEditor', () => {
 
         it('reloads locale placeholders for variations when active locale differs', async () => {
             const fragmentData = createFragmentData({ id: 'variation-id', locale: 'fr_FR', slug: 'variation' });
-            const resolvePreviewSpy = sandbox.spy(SourceFragmentStore.prototype, 'resolvePreviewFragment');
 
             Store.filters.value = { locale: 'tr_TR' };
             mockRepo.aem.sites.cf.fragments.getById.resolves(fragmentData);
@@ -367,9 +367,24 @@ describe('MasFragmentEditor', () => {
 
             await el.initFragment();
 
-            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
-            expect(resolvePreviewSpy.calledOnce).to.be.true;
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(1);
             expect(Store.search.get().region).to.equal('fr_FR');
+        });
+
+        it('sets region to path locale for same-language regional variations', async () => {
+            Store.filters.value = { locale: 'fr_FR' };
+            const variationData = createFragmentData({ id: 'fr-ch-var', locale: 'fr_CH', slug: 'regional' });
+            const existingStore = generateFragmentStore(new Fragment(variationData));
+            Store.fragments.list.data.value = [existingStore];
+            Store.fragmentEditor.fragmentId.value = 'fr-ch-var';
+            el.editorContextStore.isVariation.returns(true);
+            sandbox.stub(el, 'resolveVariationParentFragment').resolves(
+                new Fragment(createFragmentData({ id: 'parent-id', locale: 'fr_FR', slug: 'parent' })),
+            );
+
+            await el.initFragment();
+
+            expect(Store.search.get().region).to.equal('fr_CH');
         });
 
         it('uses pending parent from create variation event when context is not ready', async () => {

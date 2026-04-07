@@ -144,10 +144,12 @@ export default class TranslationEditorPage {
 
     async expectResultCountMatchesTableRows() {
         await expect(this.fragmentsResultCount).toHaveText(/\d+\s+result/i, { timeout: 30000 });
-        const text = await this.fragmentsResultCount.textContent();
-        const m = text?.match(/(\d+)/);
-        const expected = m ? parseInt(m[1], 10) : 0;
-        await expect(this.tableRows).toHaveCount(expected);
+        await expect(async () => {
+            const text = await this.fragmentsResultCount.textContent();
+            const m = text?.match(/(\d+)/);
+            const expected = m ? parseInt(m[1], 10) : 0;
+            await expect(this.tableRows).toHaveCount(expected);
+        }).toPass({ intervals: [500], timeout: 30000 });
     }
 
     async expectCardRowsColumnContains(columnIndex, substring) {

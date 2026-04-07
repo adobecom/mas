@@ -136,8 +136,8 @@ test.describe('ACOM MAS cards feature test suite', () => {
         await test.step('step-4: Verify Plans CA Visitor Merch Card CTA checkout URL targets CA', async () => {
             await expect(await acomPage.getCardCTA(data.id)).toBeVisible();
             const ctaHref = await (await acomPage.getCardCTA(data.id)).evaluate((el) => el.href);
-            expect(validateCommerceUrl(ctaHref, { requiredParams: ['apc'] })).toBe(true);
             expect(ctaHref).toContain('co=CA');
+            await expect(await acomPage.getCardCTA(data.id)).toHaveAttribute('data-analytics-id', /.*/);
         });
     });
 

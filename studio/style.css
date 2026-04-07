@@ -1350,6 +1350,14 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     font-size: 14px;
 }
 
+.product-catalog-filters {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .product-catalog-loading,
 .product-catalog-error,
 .product-catalog-empty {

@@ -25,6 +25,9 @@ class MasProductCatalog extends LitElement {
         pendingCreate: { state: true },
         sortBy: { state: true },
         sortDirection: { state: true },
+        marketsFilter: { state: true },
+        planTypesFilter: { state: true },
+        segmentsFilter: { state: true },
     };
 
     pageSize = 50;
@@ -40,7 +43,58 @@ class MasProductCatalog extends LitElement {
         this.pendingCreate = null;
         this.sortBy = null;
         this.sortDirection = 'asc';
+        this.marketsFilter = new Set();
+        this.planTypesFilter = new Set();
+        this.segmentsFilter = new Set();
         this.handleOfferSelect = this.handleOfferSelect.bind(this);
+    }
+
+    toggleFilter(facet, value) {
+        const current = this[facet];
+        const next = new Set(current);
+        if (next.has(value)) next.delete(value);
+        else next.add(value);
+        this[facet] = next;
+        this.currentPage = 0;
+    }
+
+    clearAllFilters = () => {
+        this.marketsFilter = new Set();
+        this.planTypesFilter = new Set();
+        this.segmentsFilter = new Set();
+        this.currentPage = 0;
+    };
+
+    getProductMarkets(product) {
+        return Array.isArray(product.market_segments) ? product.market_segments : Object.keys(product.marketSegments || {});
+    }
+
+    getProductPlanTypes(product) {
+        return Object.keys(product.planTypes || {}).filter(Boolean);
+    }
+
+    getProductSegments(product) {
+        return product.customer_segment ? [product.customer_segment] : Object.keys(product.customerSegments || {});
+    }
+
+    get availableFacets() {
+        const markets = new Set();
+        const planTypes = new Set();
+        const segments = new Set();
+        for (const p of this.products) {
+            this.getProductMarkets(p).forEach((m) => markets.add(m));
+            this.getProductPlanTypes(p).forEach((t) => planTypes.add(t));
+            this.getProductSegments(p).forEach((s) => segments.add(s));
+        }
+        return {
+            markets: [...markets].sort(),
+            planTypes: [...planTypes].sort(),
+            segments: [...segments].sort(),
+        };
+    }
+
+    get hasActiveFilters() {
+        return this.marketsFilter.size > 0 || this.planTypesFilter.size > 0 || this.segmentsFilter.size > 0;
     }
 
     handleSort = ({ detail: { sortKey, sortDirection } }) => {
@@ -117,18 +171,38 @@ class MasProductCatalog extends LitElement {
         }
     }
 
+    matchesFacetFilters(product) {
+        if (this.marketsFilter.size > 0) {
+            const productMarkets = this.getProductMarkets(product);
+            const match = productMarkets.some((m) => this.marketsFilter.has(m));
+            if (!match) return false;
+        }
+        if (this.planTypesFilter.size > 0) {
+            const productPlanTypes = this.getProductPlanTypes(product);
+            const match = productPlanTypes.some((t) => this.planTypesFilter.has(t));
+            if (!match) return false;
+        }
+        if (this.segmentsFilter.size > 0) {
+            const productSegments = this.getProductSegments(product);
+            const match = productSegments.some((s) => this.segmentsFilter.has(s));
+            if (!match) return false;
+        }
+        return true;
+    }
+
     get filteredProducts() {
-        const source = this.searchQuery
-            ? this.products.filter((p) => {
-                  const q = this.searchQuery.toLowerCase();
-                  return (
-                      (p.copy?.name || p.name || '').toLowerCase().includes(q) ||
-                      (p.product_code || '').toLowerCase().includes(q) ||
-                      (p.arrangement_code || '').toLowerCase().includes(q) ||
-                      (p.product_family || '').toLowerCase().includes(q)
-                  );
-              })
-            : this.products;
+        const source = this.products.filter((p) => {
+            if (this.searchQuery) {
+                const q = this.searchQuery.toLowerCase();
+                const matchesSearch =
+                    (p.copy?.name || p.name || '').toLowerCase().includes(q) ||
+                    (p.product_code || '').toLowerCase().includes(q) ||
+                    (p.arrangement_code || '').toLowerCase().includes(q) ||
+                    (p.product_family || '').toLowerCase().includes(q);
+                if (!matchesSearch) return false;
+            }
+            return this.matchesFacetFilters(p);
+        });
 
         if (this.sortBy) {
             const direction = this.sortDirection === 'desc' ? -1 : 1;
@@ -289,11 +363,56 @@ class MasProductCatalog extends LitElement {
                 <div class="product-catalog-header">
                     <h2>Product Catalog</h2>
                     <span class="product-count">${this.filteredProducts.length} products</span>
+                    ${this.products.length > 0 ? this.filtersTemplate : nothing}
                 </div>
                 ${this.loading ? this.loadingTemplate : nothing} ${this.error ? this.errorTemplate : nothing}
                 ${!this.loading && !this.error ? this.tableTemplate : nothing}
                 ${this.createDialog ? this.createDialogTemplate : nothing}
                 ${this.creating ? this.creatingOverlayTemplate : nothing}
+            </div>
+        `;
+    }
+
+    facetMenuTemplate(facetState, label, facet, options) {
+        const count = this[facetState].size;
+        const displayLabel = count > 0 ? `${label} (${count})` : label;
+        return html`
+            <sp-action-menu size="m" quiet placement="bottom-start" label=${displayLabel}>
+                <span slot="label">${displayLabel}</span>
+                ${options.length === 0
+                    ? html`<sp-menu-item disabled>No values</sp-menu-item>`
+                    : options.map(
+                          (value) => html`
+                              <sp-menu-item
+                                  ?selected=${this[facetState].has(value)}
+                                  @click=${(event) => {
+                                      event.stopPropagation();
+                                      this.toggleFilter(facetState, value);
+                                  }}
+                              >
+                                  ${value}
+                              </sp-menu-item>
+                          `,
+                      )}
+            </sp-action-menu>
+        `;
+    }
+
+    get filtersTemplate() {
+        const facets = this.availableFacets;
+        return html`
+            <div class="product-catalog-filters">
+                ${this.facetMenuTemplate('marketsFilter', 'Markets', 'markets', facets.markets)}
+                ${this.facetMenuTemplate('planTypesFilter', 'Plan Types', 'planTypes', facets.planTypes)}
+                ${this.facetMenuTemplate('segmentsFilter', 'Segments', 'segments', facets.segments)}
+                ${this.hasActiveFilters
+                    ? html`
+                          <sp-action-button quiet size="s" @click=${this.clearAllFilters} title="Clear all filters">
+                              <sp-icon-close slot="icon"></sp-icon-close>
+                              Clear filters
+                          </sp-action-button>
+                      `
+                    : nothing}
             </div>
         `;
     }

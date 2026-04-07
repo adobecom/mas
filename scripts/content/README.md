@@ -59,3 +59,26 @@ Use `--dry-run` to preview what the script would do without creating or publishi
 ```sh
 node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk --dry-run
 ```
+
+# repair-dictionary-entry.mjs
+
+Checks that all dictionary entry fragments in each locale's `dictionary` folder are referenced in the index's `entries` field. Logs and repairs missing entries. Use `--publish` to publish the index after repair.
+
+```sh
+export MAS_ACCESS_TOKEN="your-access-token"
+export MAS_API_KEY="mas-studio"
+
+node repair-dictionary-entry.mjs author-*-* sandbox
+```
+
+To run for a specific locale, in dry run - no edits, no publish:
+
+```sh
+node repair-dictionary-entry.mjs author-*-* sandbox de_DE --dry-run
+```
+
+To repair and publish:
+
+```sh
+node repair-dictionary-entry.mjs author-*-* sandbox de_DE --publish
+```

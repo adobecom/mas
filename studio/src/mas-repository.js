@@ -32,6 +32,7 @@ import {
     PZN_FOLDER,
     SURFACES,
 } from './constants.js';
+import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
@@ -118,7 +119,22 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #searchCursor = null;
     #addonPlaceholdersRequest = null;
+
+    /**
+     * When personalization is off, exclude fragments that carry mas:pzn/… tags except mas:pzn/country/….
+     * When on, search omits non-country pzn tags from the API; narrowing by those tags happens in mas-content.
+     * @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores
+     */
+    #filterStoresByPersonalizationEnabled(fragmentStores) {
+        if (this.filters.value.personalizationFilterEnabled === true) return fragmentStores;
+        return fragmentStores.filter((fs) => {
+            const fragment = fs.get?.() ?? fs.value;
+            return !fragmentHasPersonalizationTag(fragment);
+        });
+    }
+
     /** @type {AEM} */
     aem;
 
@@ -130,9 +146,13 @@ export class MasRepository extends LitElement {
         // Invalidate dictionary cache when filters or search path change
         Store.filters.subscribe(() => {
             this.dictionaryCache.clear();
+            if (this.page.value === PAGE_NAMES.CONTENT) {
+                this.#searchCursor = null;
+            }
         });
         Store.search.subscribe(() => {
             this.dictionaryCache.clear();
+            this.#searchCursor = null;
         });
 
         this.loadFolders();
@@ -255,14 +275,30 @@ export class MasRepository extends LitElement {
         const currentLocale = dataStore.getMeta('locale');
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
+        const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
+        const metaPersonalizationOn = dataStore.getMeta('personalizationFilterEnabled') === true;
         let resolvedLocale = locale;
         let resolvedPath = path;
 
-        if (currentData && currentPath === path && currentQuery === query && currentLocale === locale) {
-            const filteredData = currentData.filter((fragmentStore) => {
+        const currentTags = dataStore.getMeta('tags');
+        const tagsString = this.filters.value.tags || '';
+        const currentCreatedBy = dataStore.getMeta('createdBy');
+        const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
+        const createdByString = createdBy.join(',');
+        if (
+            currentData?.length > 0 &&
+            currentPath === path &&
+            currentQuery === query &&
+            currentLocale === locale &&
+            currentTags === tagsString &&
+            currentCreatedBy === createdByString &&
+            metaPersonalizationOn === personalizationOn
+        ) {
+            let filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
             });
+            filteredData = this.#filterStoresByPersonalizationEnabled(filteredData);
             if (filteredData.length !== currentData.length) {
                 dataStore.set(filteredData);
             }
@@ -273,7 +309,9 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
-        dataStore.set([]);
+        if (dataStore.get().length > 0) {
+            dataStore.set([]);
+        }
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -288,7 +326,11 @@ export class MasRepository extends LitElement {
             }
         }
 
-        const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
+        // Non-country mas:pzn/* filters apply only to the Personalization group in mas-content, not the search API
+        tags = tags.filter((tag) => {
+            if (!tag.startsWith(PZN_TAG_ID_PREFIX)) return true;
+            return isPznCountryTagId(tag);
+        });
 
         let modelIds = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE)).map((tag) => TAG_MODEL_ID_MAPPING[tag]);
 
@@ -318,12 +360,18 @@ export class MasRepository extends LitElement {
 
         try {
             if (this.#abortControllers.search) this.#abortControllers.search.abort();
+            this.#searchCursor = null;
             this.#abortControllers.search = new AbortController();
+            const searchController = this.#abortControllers.search;
 
             if (isUUID(this.search.value.query)) {
                 // Check if the fragment with this UUID is already the only one in the store
                 const [currentFragment] = dataStore.get() ?? [];
-                if (currentFragment?.value.id === this.search.value.query && dataStore.get()?.length === 1) {
+                if (
+                    currentFragment?.value.id === this.search.value.query &&
+                    dataStore.get()?.length === 1 &&
+                    metaPersonalizationOn === personalizationOn
+                ) {
                     // Skip search if we already have exactly this fragment
                     Store.fragments.list.loading.set(false);
                     Store.fragments.list.firstPageLoaded.set(true);
@@ -354,8 +402,8 @@ export class MasRepository extends LitElement {
                     resolvedPath = canSyncSurface ? fragmentSurface || path : path;
                     applyCorrectorToFragment(fragmentData, fragmentSurface);
                     const fragment = await this.#addToCache(fragmentData);
-                    const sourceStore = generateFragmentStore(fragment);
-                    dataStore.set([sourceStore]);
+                    const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
+                    dataStore.set(this.#filterStoresByPersonalizationEnabled([sourceStore]));
 
                     if (fragmentSurface) {
                         Store.search.setMeta('uuid-query', query);
@@ -371,6 +419,7 @@ export class MasRepository extends LitElement {
                     if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
                         Store.search.set((prev) => ({
                             ...prev,
+                            query: prev.query ?? query,
                             path: fragmentSurface,
                         }));
                     }
@@ -382,36 +431,128 @@ export class MasRepository extends LitElement {
                         }));
                     }
                 }
+                Store.fragments.list.data.set(dataStore.get());
+                Store.fragments.list.firstPageLoaded.set(true);
             } else {
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
-                const fragmentStores = [];
-                // Extract surface from path for corrector
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
-                for await (const result of cursor) {
-                    for await (const item of result) {
-                        if (this.skipVariant(variants, item)) continue;
-                        // Apply corrector transformer before caching
-                        applyCorrectorToFragment(item, surface);
-                        const fragment = await this.#addToCache(item);
-                        const sourceStore = generateFragmentStore(fragment);
-                        fragmentStores.push(sourceStore);
-                    }
-                    dataStore.set([...fragmentStores]);
+                const fragmentStores = [];
+                const done = await this.#fillPage(
+                    cursor,
+                    variants,
+                    surface,
+                    fragmentStores,
+                    undefined,
+                    searchController.signal,
+                );
+                if (this.#abortControllers.search !== searchController) {
+                    Store.fragments.list.loading.set(false);
+                    return;
+                }
+                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                Store.fragments.list.firstPageLoaded.set(true);
+                const cursorState = done ? null : { cursor, variants, surface, fragmentStores };
+                this.#searchCursor = cursorState;
+                Store.fragments.list.hasMore.set(!done);
+                if (personalizationOn && cursorState) {
+                    Store.fragments.list.hasMore.set(false);
+                    this.#eagerLoadAllPznPages(cursorState, searchController);
+                } else {
+                    this.#abortControllers.search = null;
                 }
             }
 
             dataStore.setMeta('path', resolvedPath);
             dataStore.setMeta('query', query);
             dataStore.setMeta('locale', resolvedLocale);
-            dataStore.setMeta('tags', tags);
-            Store.fragments.list.firstPageLoaded.set(true);
-
-            this.#abortControllers.search = null;
+            dataStore.setMeta('tags', this.filters.value.tags || '');
+            dataStore.setMeta('createdBy', createdByString);
+            dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
         } catch (error) {
+            if (error.name !== 'AbortError') {
+                Store.fragments.list.loading.set(false);
+            }
             this.processError(error, 'Could not load fragments.');
+            return;
         }
 
         Store.fragments.list.loading.set(false);
+    }
+
+    static MIN_PAGE_SIZE = 10;
+
+    async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal) {
+        let added = 0;
+        while (added < limit) {
+            if (signal?.aborted) return false;
+            const page = await cursor.next();
+            if (page.done) return true;
+            for await (const item of page.value) {
+                if (this.skipVariant(variants, item)) continue;
+                applyCorrectorToFragment(item, surface);
+                const fragment = await this.#addToCache(item);
+                fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
+                added++;
+            }
+        }
+        return false;
+    }
+
+    async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
+        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        try {
+            while (this.#searchCursor === cursorSnapshot) {
+                const done = await this.#fillPage(
+                    cursor,
+                    variants,
+                    surface,
+                    fragmentStores,
+                    undefined,
+                    searchController.signal,
+                );
+                if (this.#searchCursor !== cursorSnapshot) return;
+                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                if (done) {
+                    this.#searchCursor = null;
+                    return;
+                }
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            if (this.#searchCursor === cursorSnapshot) {
+                Store.fragments.list.hasMore.set(true);
+            }
+        }
+    }
+
+    async loadNextPage() {
+        if (Store.fragments.list.loading.get()) return;
+        const cursorSnapshot = this.#searchCursor;
+        if (!cursorSnapshot) return;
+        Store.fragments.list.loading.set(true);
+        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        try {
+            const done = await this.#fillPage(
+                cursor,
+                variants,
+                surface,
+                fragmentStores,
+                undefined,
+                this.#abortControllers.search?.signal,
+            );
+            if (this.#searchCursor !== cursorSnapshot) return;
+            Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+            if (done) {
+                this.#searchCursor = null;
+                Store.fragments.list.hasMore.set(false);
+            }
+        } catch (error) {
+            this.processError(error, 'Could not load next page.');
+            this.#searchCursor = null;
+            Store.fragments.list.hasMore.set(false);
+        } finally {
+            Store.fragments.list.loading.set(false);
+        }
     }
 
     async loadRecentlyUpdatedFragments() {
@@ -447,7 +588,7 @@ export class MasRepository extends LitElement {
                 // Apply corrector transformer before caching
                 applyCorrectorToFragment(item, surface);
                 const fragment = await this.#addToCache(item);
-                const sourceStore = generateFragmentStore(fragment);
+                const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                 fragmentStores.push(sourceStore);
             }
             dataStore.set(fragmentStores);

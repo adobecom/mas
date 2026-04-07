@@ -283,6 +283,14 @@ runTests(async () => {
             expect(merchCard).to.exist;
         });
 
+        it('sets variation-id on the host when the collection fragment payload includes variationId', async () => {
+            render();
+            await collectionElement.checkReady();
+            expect(collectionElement.getAttribute('variation-id')).to.equal(
+                'test-collection-variation-id',
+            );
+        });
+
         it('should populate filters in hydration', async () => {
             render();
             await collectionElement.checkReady();

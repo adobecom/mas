@@ -51,5 +51,19 @@ export const styles = [
         .loading-container--flex {
             padding: 80px;
         }
+
+        .scroll-sentinel {
+            height: 1px;
+        }
+
+        .loading-more {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            color: var(--spectrum-gray-700);
+            font-size: var(--spectrum-font-size-75);
+        }
     `,
 ];

@@ -168,7 +168,11 @@ function enrichContextWithSurface(context) {
  * @returns {Promise<boolean>} - True if token is valid
  */
 async function authorize(headers) {
-    const authHeader = headers['authorization'];
+    if (!headers) {
+        console.error('authorize: headers is undefined');
+        return false;
+    }
+    const authHeader = headers['authorization'] || headers['Authorization'];
     if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.slice(7);
         if (token) {
@@ -305,9 +309,10 @@ async function main(params) {
     }
 
     try {
-        const { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
+        const { AWS_BEARER_TOKEN_BEDROCK, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, BEDROCK_MODEL_ID } = params;
 
         const bedrockClient = new BedrockClient({
+            bearerToken: AWS_BEARER_TOKEN_BEDROCK,
             accessKeyId: AWS_ACCESS_KEY_ID,
             secretAccessKey: AWS_SECRET_ACCESS_KEY,
             region: AWS_REGION,

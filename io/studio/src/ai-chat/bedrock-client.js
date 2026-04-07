@@ -2,13 +2,9 @@
  * AWS Bedrock Client
  *
  * Handles communication with AWS Bedrock for Claude Sonnet 4 API calls.
- * Uses permanent IAM user credentials (no session token required).
- *
- * Constructor accepts credentials object with the following properties:
- * - accessKeyId: IAM user access key (starts with AKIA)
- * - secretAccessKey: IAM user secret key
- * - region: AWS region (default: us-west-2)
- * - modelId: Bedrock model ID (default: anthropic.claude-sonnet-4-20250514-v1:0)
+ * Supports two authentication methods (in priority order):
+ * 1. Bedrock API Key (bearer token) — uses direct REST API calls
+ * 2. IAM credentials (access key + secret) — uses AWS SDK with SigV4
  *
  * Falls back to process.env if credentials not provided (for local development).
  */
@@ -27,25 +23,37 @@ function truncateHistory(conversationHistory) {
 
 export class BedrockClient {
     constructor(credentials = {}) {
-        const accessKeyId = credentials.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
-        const secretAccessKey = credentials.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
+        const bearerToken = credentials.bearerToken || process.env.AWS_BEARER_TOKEN_BEDROCK;
         const region = credentials.region || process.env.AWS_REGION || 'us-west-2';
         const modelId = credentials.modelId || process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
 
-        if (!accessKeyId || !secretAccessKey) {
-            const errorMsg = `AWS credentials missing: accessKeyId=${!!accessKeyId}, secretAccessKey=${!!secretAccessKey}`;
-            console.error(errorMsg);
-            throw new Error(errorMsg);
-        }
-
-        this.client = new BedrockRuntimeClient({
-            region,
-            credentials: {
-                accessKeyId,
-                secretAccessKey,
-            },
-        });
         this.modelId = modelId;
+        this.region = region;
+
+        if (bearerToken) {
+            this.authMode = 'bearer';
+            this.bearerToken = bearerToken;
+            this.endpoint = `https://bedrock-runtime.${region}.amazonaws.com/model/${encodeURIComponent(modelId)}/invoke`;
+            console.log(
+                `BedrockClient bearer auth v2: tokenLen=${bearerToken.length}, prefix=${bearerToken.slice(0, 8)}, suffix=${bearerToken.slice(-6)}, modelId=${modelId}`,
+            );
+        } else {
+            const accessKeyId = credentials.accessKeyId || process.env.AWS_ACCESS_KEY_ID;
+            const secretAccessKey = credentials.secretAccessKey || process.env.AWS_SECRET_ACCESS_KEY;
+
+            if (!accessKeyId || !secretAccessKey) {
+                const errorMsg =
+                    'AWS credentials missing: provide AWS_BEARER_TOKEN_BEDROCK or AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY';
+                console.error(errorMsg);
+                throw new Error(errorMsg);
+            }
+
+            this.authMode = 'iam';
+            this.client = new BedrockRuntimeClient({
+                region,
+                credentials: { accessKeyId, secretAccessKey },
+            });
+        }
     }
 
     /**
@@ -64,16 +72,9 @@ export class BedrockClient {
             temperature: 0.7,
         };
 
-        const command = new InvokeModelCommand({
-            modelId: this.modelId,
-            contentType: 'application/json',
-            accept: 'application/json',
-            body: JSON.stringify(payload),
-        });
-
         try {
-            const response = await this.client.send(command);
-            const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+            const responseBody =
+                this.authMode === 'bearer' ? await this.#invokeBearerToken(payload) : await this.#invokeSdk(payload);
 
             return {
                 success: true,
@@ -89,6 +90,37 @@ export class BedrockClient {
                 errorType: error.name,
             };
         }
+    }
+
+    async #invokeBearerToken(payload) {
+        const response = await fetch(this.endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${this.bearerToken}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const body = await response.text();
+            const debug = `[tokenLen=${this.bearerToken.length} prefix=${this.bearerToken.slice(0, 10)} suffix=${this.bearerToken.slice(-8)} endpoint=${this.endpoint}]`;
+            throw new Error(`Bedrock API returned ${response.status}: ${body} ${debug}`);
+        }
+
+        return response.json();
+    }
+
+    async #invokeSdk(payload) {
+        const command = new InvokeModelCommand({
+            modelId: this.modelId,
+            contentType: 'application/json',
+            accept: 'application/json',
+            body: JSON.stringify(payload),
+        });
+
+        const response = await this.client.send(command);
+        return JSON.parse(new TextDecoder().decode(response.body));
     }
 
     /**

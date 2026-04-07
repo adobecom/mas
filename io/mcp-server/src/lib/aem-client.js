@@ -322,9 +322,7 @@ export class AEMClient {
 
         const currentEtag = etag || currentFragment.etag;
 
-        const currentFields = Array.isArray(currentFragment.fields)
-            ? currentFragment.fields
-            : [];
+        const currentFields = Array.isArray(currentFragment.fields) ? currentFragment.fields : [];
 
         const mergedFields = currentFields.map((field) => {
             if (fields && field.name in fields) {
@@ -533,7 +531,9 @@ export class AEMClient {
 
         if (!response.ok) {
             const text = await response.text();
-            throw new Error(`Failed to publish fragment (${response.status}): ${text.substring(0, 200) || response.statusText}`);
+            throw new Error(
+                `Failed to publish fragment (${response.status}): ${text.substring(0, 200) || response.statusText}`,
+            );
         }
 
         if (response.status === 204) return { success: true };
@@ -571,7 +571,9 @@ export class AEMClient {
 
         if (!response.ok) {
             const text = await response.text();
-            throw new Error(`Failed to unpublish fragment (${response.status}): ${text.substring(0, 200) || response.statusText}`);
+            throw new Error(
+                `Failed to unpublish fragment (${response.status}): ${text.substring(0, 200) || response.statusText}`,
+            );
         }
 
         if (response.status === 204) return { success: true };
@@ -646,6 +648,48 @@ export class AEMClient {
         }
 
         throw new Error(`Fragment ${id} not available after ${maxAttempts} attempts`);
+    }
+
+    async createFolder(path) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const csrfToken = await this.getCsrfToken();
+        const url = `${this.baseUrl}${path}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: authHeader,
+                'CSRF-Token': csrfToken,
+                'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+            },
+            body: JSON.stringify({ 'jcr:primaryType': 'sling:OrderedFolder' }),
+        });
+        return response.status === 201 || response.ok || response.status === 409;
+    }
+
+    async getFragmentTranslations(id) {
+        const authHeader = await this.authManager.getAuthHeader();
+
+        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}/translations`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: authHeader,
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                pragma: 'no-cache',
+                'cache-control': 'no-cache',
+                'x-aem-affinity-type': 'api',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get fragment translations: ${response.statusText}`);
+        }
+
+        return await response.json();
     }
 
     /**

@@ -100,3 +100,40 @@ export const MODAL_TYPES = {
     D2P: 'd2p',
     CRM: 'crm',
 };
+
+export const LOCALE_DEFAULTS = [
+    'ar_MENA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_DE',
+    'en_US',
+    'es_ES',
+    'fi_FI',
+    'fr_FR',
+    'he_IL',
+    'hu_HU',
+    'id_ID',
+    'it_IT',
+    'ja_JP',
+    'ko_KR',
+    'nb_NO',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'ro_RO',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'vi_VN',
+    'zh_CN',
+    'zh_TW',
+];
+
+export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL3RyYW5zbGF0aW9uLXByb2plY3Q=';
+
+export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];

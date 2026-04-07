@@ -2,6 +2,8 @@ import { AEMClient } from './aem-client.js';
 import { StudioURLBuilder } from './studio-url-builder.js';
 import { sharedJobManager } from './shared-job-manager.js';
 
+const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-]+)\/(?<locale>[a-z]{2}_[A-Z]{2,4})\/(?<fragmentPath>.+)/;
+
 const LOCALE_DEFAULTS = [
     'ar_MENA',
     'bg_BG',
@@ -1666,6 +1668,244 @@ export class StudioOperations {
             count: results.length,
             errors: errors.length > 0 ? errors : undefined,
             message: `Showing ${results.length} card${results.length !== 1 ? 's' : ''} from ${operationLabel}`,
+        };
+    }
+
+    getVariationValues(fragment) {
+        const fields = Array.isArray(fragment.fields) ? fragment.fields : [];
+        const variationsField = fields.find((f) => f.name === 'variations');
+        if (!variationsField) return [];
+        return (variationsField.values || []).filter(Boolean);
+    }
+
+    async getCardWithVariations(params) {
+        const { id } = params;
+        if (!id) throw new Error('Card ID is required');
+
+        const fragment = await this.aemClient.getFragment(id);
+        if (!fragment) throw new Error(`Card not found: ${id}`);
+
+        const card = this.formatCard(fragment);
+        const variationPaths = this.getVariationValues(fragment);
+
+        const localeVariations = [];
+        const groupedVariations = [];
+        const promoVariations = [];
+
+        for (const vPath of variationPaths) {
+            try {
+                const vFragment = await this.aemClient.getFragmentByPath(vPath);
+                if (!vFragment) continue;
+                const vCard = this.formatCard(vFragment);
+                const locale = this.extractLocaleFromPath(vPath);
+
+                if (vPath.includes('/pzn/')) {
+                    groupedVariations.push({ ...vCard, locale, variationType: 'grouped' });
+                } else {
+                    const tags = vFragment.tags || [];
+                    const isPromo = tags.some((t) => (t.id || t).startsWith('mas:promotions/'));
+                    if (isPromo) {
+                        promoVariations.push({ ...vCard, locale, variationType: 'promo' });
+                    } else {
+                        localeVariations.push({ ...vCard, locale, variationType: 'locale' });
+                    }
+                }
+            } catch (e) {
+                console.error(`Failed to load variation ${vPath}:`, e.message);
+            }
+        }
+
+        return {
+            success: true,
+            card,
+            localeVariations,
+            groupedVariations,
+            promoVariations,
+            totalVariations: localeVariations.length + groupedVariations.length + promoVariations.length,
+        };
+    }
+
+    async listVariationLocales(params) {
+        const { id } = params;
+        if (!id) throw new Error('Card ID is required');
+
+        const fragment = await this.aemClient.getFragment(id);
+        if (!fragment) throw new Error(`Card not found: ${id}`);
+
+        const variationPaths = this.getVariationValues(fragment);
+        const parentLocale = this.extractLocaleFromPath(fragment.path);
+
+        const locales = [{ locale: parentLocale, type: 'parent', path: fragment.path }];
+
+        for (const vPath of variationPaths) {
+            const locale = this.extractLocaleFromPath(vPath);
+            const type = vPath.includes('/pzn/') ? 'grouped' : 'locale';
+            locales.push({ locale, type, path: vPath });
+        }
+
+        return { success: true, cardId: id, locales, count: locales.length };
+    }
+
+    async getVariationParent(params) {
+        const { id, path: variationPath } = params;
+
+        let vPath = variationPath;
+        if (id && !vPath) {
+            const fragment = await this.aemClient.getFragment(id);
+            if (!fragment) throw new Error(`Fragment not found: ${id}`);
+            vPath = fragment.path;
+        }
+        if (!vPath) throw new Error('Either id or path is required');
+
+        const match = vPath.match(PATH_TOKENS);
+        if (!match) throw new Error(`Cannot parse path: ${vPath}`);
+
+        const { surface, fragmentPath } = match.groups;
+        const parentPath = `/content/dam/mas/${surface}/en_US/${fragmentPath}`;
+
+        try {
+            const parentFragment = await this.aemClient.getFragmentByPath(parentPath);
+            if (parentFragment) {
+                const parentCard = this.formatCard(parentFragment);
+                return { success: true, parent: parentCard, variationPath: vPath };
+            }
+        } catch (e) {
+            // not found at expected path
+        }
+
+        throw new Error(`Could not find parent for variation: ${vPath}`);
+    }
+
+    async createLocaleVariation(params) {
+        const { id, targetLocale } = params;
+        if (!id) throw new Error('Card ID is required');
+        if (!targetLocale) throw new Error('Target locale is required');
+
+        const parentFragment = await this.aemClient.getFragment(id);
+        if (!parentFragment) throw new Error(`Card not found: ${id}`);
+
+        const match = parentFragment.path.match(PATH_TOKENS);
+        if (!match) throw new Error(`Cannot parse path: ${parentFragment.path}`);
+
+        const { surface, locale: parentLocale, fragmentPath } = match.groups;
+        if (parentLocale !== 'en_US') {
+            throw new Error('Variations can only be created from en_US (default locale) cards');
+        }
+
+        const targetFolderPath = `/content/dam/mas/${surface}/${targetLocale}`;
+        const targetFragmentPath = `${targetFolderPath}/${fragmentPath}`;
+
+        try {
+            const existing = await this.aemClient.getFragmentByPath(targetFragmentPath);
+            if (existing) throw new Error(`Variation already exists at ${targetFragmentPath}`);
+        } catch (e) {
+            if (!e.message.includes('not found') && !e.message.includes('Failed to get')) throw e;
+        }
+
+        const folderParts = targetFragmentPath.split('/');
+        folderParts.pop();
+        const folderPath = folderParts.join('/');
+        await this.aemClient.createFolder(folderPath);
+
+        const fragmentData = {
+            title: parentFragment.title,
+            description: parentFragment.description || `Variation: ${targetLocale}`,
+            modelId: parentFragment.model?.id || parentFragment.modelId,
+            parentPath: folderPath,
+            fields: [],
+            tags: (parentFragment.tags || []).map((t) => t.id || t),
+        };
+
+        const newFragment = await this.aemClient.createFragment(fragmentData);
+
+        await this.updateParentVariations(parentFragment, newFragment.path || targetFragmentPath);
+
+        const card = this.formatCard(newFragment);
+        return {
+            success: true,
+            operation: 'create_locale_variation',
+            card,
+            parentId: id,
+            targetLocale,
+            message: `Created ${targetLocale} variation of "${parentFragment.title}"`,
+        };
+    }
+
+    async updateParentVariations(parentFragment, variationPath) {
+        const freshParent = await this.aemClient.getFragment(parentFragment.id || parentFragment);
+        const fields = Array.isArray(freshParent.fields) ? freshParent.fields : [];
+        const variationsField = fields.find((f) => f.name === 'variations');
+
+        const currentPaths = variationsField ? variationsField.values || [] : [];
+        if (currentPaths.includes(variationPath)) return;
+
+        const updatedPaths = [...currentPaths, variationPath];
+        await this.aemClient.updateFragment(freshParent.id, { variations: updatedPaths }, freshParent.etag);
+    }
+
+    async createGroupedVariation(params) {
+        const { id, pznTags, title: customTitle } = params;
+        if (!id) throw new Error('Card ID is required');
+        if (!pznTags || pznTags.length === 0) throw new Error('pznTags array is required');
+
+        const parentFragment = await this.aemClient.getFragment(id);
+        if (!parentFragment) throw new Error(`Card not found: ${id}`);
+
+        const match = parentFragment.path.match(PATH_TOKENS);
+        if (!match) throw new Error(`Cannot parse path: ${parentFragment.path}`);
+
+        const { surface } = match.groups;
+        const pznFolderPath = `/content/dam/mas/${surface}/en_US/pzn`;
+
+        await this.aemClient.createFolder(pznFolderPath);
+
+        const fragmentData = {
+            title: customTitle || parentFragment.title,
+            description: `PZN variation of ${parentFragment.title}`,
+            modelId: parentFragment.model?.id || parentFragment.modelId,
+            parentPath: pznFolderPath,
+            fields: [{ name: 'pznTags', values: pznTags }],
+            tags: (parentFragment.tags || []).map((t) => t.id || t),
+        };
+
+        const newFragment = await this.aemClient.createFragment(fragmentData);
+        await this.updateParentVariations(parentFragment, newFragment.path);
+
+        const card = this.formatCard(newFragment);
+        return {
+            success: true,
+            operation: 'create_grouped_variation',
+            card,
+            parentId: id,
+            pznTags,
+            message: `Created grouped variation of "${parentFragment.title}" with PZN tags: ${pznTags.join(', ')}`,
+        };
+    }
+
+    async bulkCreateVariations(params) {
+        const { fragmentIds, targetLocales } = params;
+        if (!fragmentIds?.length) throw new Error('fragmentIds array is required');
+        if (!targetLocales?.length) throw new Error('targetLocales array is required');
+
+        const results = [];
+        for (const fid of fragmentIds) {
+            for (const locale of targetLocales) {
+                try {
+                    const result = await this.createLocaleVariation({ id: fid, targetLocale: locale });
+                    results.push({ fragmentId: fid, locale, success: true, card: result.card });
+                } catch (e) {
+                    results.push({ fragmentId: fid, locale, success: false, error: e.message });
+                }
+            }
+        }
+
+        const successCount = results.filter((r) => r.success).length;
+        return {
+            success: successCount > 0,
+            results,
+            count: results.length,
+            successCount,
+            message: `Created ${successCount}/${results.length} variations`,
         };
     }
 

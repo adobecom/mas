@@ -17,7 +17,8 @@ import { CollectionTools } from './tools/collection-tools.js';
 import { OfferTools } from './tools/offer-tools.js';
 import { OfferSelectorTools } from './tools/offer-selector-tools.js';
 import { CardOfferTools } from './tools/card-offer-tools.js';
-import { SURFACES } from './config/constants.js';
+import { TranslationTools } from './tools/translation-tools.js';
+import { SURFACES, TRANSLATIONS_ALLOWED_SURFACES } from './config/constants.js';
 
 /**
  * MAS MCP Server
@@ -66,6 +67,7 @@ export class MASMCPServer {
         this.offerTools = new OfferTools(this.aosClient, this.productCatalog, this.urlBuilder);
         this.offerSelectorTools = new OfferSelectorTools(this.aosClient, this.urlBuilder, this.wcsClient);
         this.cardOfferTools = new CardOfferTools(this.aemClient, this.aosClient, this.urlBuilder);
+        this.translationTools = new TranslationTools(this.aemClient, this.urlBuilder);
         this.studioOperations = new StudioOperations(this.aemClient, this.urlBuilder);
 
         this.setupHandlers();
@@ -451,6 +453,210 @@ export class MASMCPServer {
                 },
             },
             {
+                name: 'get_card_with_variations',
+                description: 'Get a card with all its variations grouped by type (locale, grouped/PZN, promo)',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID' },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'list_variation_locales',
+                description: 'List which locales a card has variations for',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Card ID' },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'get_variation_parent',
+                description: 'Find the parent (default locale) fragment for a variation',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Variation fragment ID' },
+                        path: { type: 'string', description: 'Variation fragment path (alternative to id)' },
+                    },
+                },
+            },
+            {
+                name: 'create_locale_variation',
+                description:
+                    'Create a regional locale variation of a card (e.g. fr_FR, de_DE). Card must be in en_US (default locale).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Parent card ID (must be en_US)' },
+                        targetLocale: { type: 'string', description: 'Target locale code (e.g. fr_FR, de_DE, ja_JP)' },
+                    },
+                    required: ['id', 'targetLocale'],
+                },
+            },
+            {
+                name: 'create_grouped_variation',
+                description: 'Create a grouped (PZN/personalization) variation of a card with targeting tags',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Parent card ID' },
+                        pznTags: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Personalization targeting tags (e.g. locale codes like fr_FR, country codes)',
+                        },
+                        title: { type: 'string', description: 'Custom title for the variation (optional)' },
+                    },
+                    required: ['id', 'pznTags'],
+                },
+            },
+            {
+                name: 'bulk_create_variations',
+                description: 'Create locale variations for multiple cards across multiple target locales',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        fragmentIds: { type: 'array', items: { type: 'string' }, description: 'Array of parent card IDs' },
+                        targetLocales: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Array of target locale codes',
+                        },
+                    },
+                    required: ['fragmentIds', 'targetLocales'],
+                },
+            },
+            {
+                name: 'create_translation_project',
+                description: 'Create a translation project with cards and target locales',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        title: { type: 'string', description: 'Project title' },
+                        surface: { type: 'string', description: 'Surface (acom, express, sandbox, nala)' },
+                        fragmentPaths: { type: 'array', items: { type: 'string' }, description: 'Card paths to include' },
+                        targetLocales: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Target locales (e.g. fr_FR, de_DE)',
+                        },
+                        projectType: {
+                            type: 'string',
+                            enum: ['translation', 'rollout'],
+                            description: 'Project type (default: translation)',
+                        },
+                    },
+                    required: ['title', 'surface', 'fragmentPaths', 'targetLocales'],
+                },
+            },
+            {
+                name: 'submit_translation_project',
+                description: 'Submit a translation project to the localization service',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Translation project ID' },
+                        surface: { type: 'string', description: 'Surface the project belongs to' },
+                    },
+                    required: ['id', 'surface'],
+                },
+            },
+            {
+                name: 'list_translation_projects',
+                description: 'List translation projects for a surface',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        surface: {
+                            type: 'string',
+                            description: 'Surface to list translation projects for',
+                            enum: TRANSLATIONS_ALLOWED_SURFACES,
+                        },
+                        query: { type: 'string', description: 'Search query' },
+                        limit: { type: 'number', description: 'Max results (default: 20)' },
+                    },
+                    required: ['surface'],
+                },
+            },
+            {
+                name: 'get_translation_project',
+                description: 'Get a translation project by ID',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Translation project ID' },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'check_translation_status',
+                description: 'Check which locales a fragment is translated to',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        id: { type: 'string', description: 'Fragment ID to check translations for' },
+                        locales: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Specific locales to check (defaults to all)',
+                        },
+                    },
+                    required: ['id'],
+                },
+            },
+            {
+                name: 'list_locales',
+                description: 'List supported locales for translations',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                },
+            },
+            {
+                name: 'translation_coverage_report',
+                description: 'Get translation coverage stats for a surface',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        surface: {
+                            type: 'string',
+                            description: 'Surface to report on',
+                            enum: TRANSLATIONS_ALLOWED_SURFACES,
+                        },
+                        locales: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Specific locales to check (defaults to all)',
+                        },
+                        limit: { type: 'number', description: 'Max cards to analyze (default: 50)' },
+                    },
+                    required: ['surface'],
+                },
+            },
+            {
+                name: 'find_untranslated_cards',
+                description: 'Find cards missing a specific locale translation',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        surface: {
+                            type: 'string',
+                            description: 'Surface to search in',
+                            enum: TRANSLATIONS_ALLOWED_SURFACES,
+                        },
+                        locale: { type: 'string', description: 'Target locale to check for' },
+                        limit: { type: 'number', description: 'Max results (default: 20)' },
+                    },
+                    required: ['surface', 'locale'],
+                },
+            },
+            {
                 name: 'create_collection',
                 description: 'Create a new merch card collection',
                 inputSchema: {
@@ -735,6 +941,35 @@ export class MASMCPServer {
             case 'get_variations':
             case 'get_fragment_variations':
                 return this.studioOperations.getFragmentVariations(args);
+            case 'get_card_with_variations':
+                return this.studioOperations.getCardWithVariations(args);
+            case 'list_variation_locales':
+                return this.studioOperations.listVariationLocales(args);
+            case 'get_variation_parent':
+                return this.studioOperations.getVariationParent(args);
+            case 'create_locale_variation':
+                return this.studioOperations.createLocaleVariation(args);
+            case 'create_grouped_variation':
+                return this.studioOperations.createGroupedVariation(args);
+            case 'bulk_create_variations':
+                return this.studioOperations.bulkCreateVariations(args);
+
+            case 'create_translation_project':
+                return this.translationTools.createTranslationProject(args);
+            case 'submit_translation_project':
+                return this.translationTools.submitTranslationProject(args);
+            case 'list_translation_projects':
+                return this.translationTools.listTranslationProjects(args);
+            case 'get_translation_project':
+                return this.translationTools.getTranslationProject(args);
+            case 'check_translation_status':
+                return this.translationTools.checkTranslationStatus(args);
+            case 'list_locales':
+                return this.translationTools.listLocales();
+            case 'translation_coverage_report':
+                return this.translationTools.translationCoverageReport(args);
+            case 'find_untranslated_cards':
+                return this.translationTools.findUntranslatedCards(args);
 
             case 'create_collection':
                 return this.collectionTools.createCollection(args);

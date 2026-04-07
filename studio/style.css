@@ -1337,6 +1337,7 @@ span[is='inline-price'].placeholder-failed .price-error-content {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
 .product-catalog-header h2 {
@@ -1373,11 +1374,11 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 }
 
 .product-catalog-active-filters {
-    width: 100%;
+    flex: 0 0 100%;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 4px;
 }
 
 .product-catalog-active-filters .active-filter-chip {

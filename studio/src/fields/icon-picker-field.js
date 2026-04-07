@@ -8,7 +8,6 @@ class IconPickerField extends LitElement {
     static get properties() {
         return {
             icon: { type: String, reflect: true },
-            description: { type: String, reflect: true },
             alt: { type: String, reflect: true },
             link: { type: String, reflect: true },
             variant: { type: String, reflect: true },
@@ -88,7 +87,6 @@ class IconPickerField extends LitElement {
     constructor() {
         super();
         this.icon = '';
-        this.description = '';
         this.alt = '';
         this.link = '';
         this.variant = VARIANT_NAMES.MINI_COMPARE_CHART;
@@ -131,9 +129,11 @@ class IconPickerField extends LitElement {
     }
 
     #handleModalSave(event) {
-        const { icon, description, alt, link } = event.detail;
+        // ignore save events fired from link editor
+        if (event.detail.href !== undefined) return;
+
+        const { icon, alt, link } = event.detail;
         this.icon = icon;
-        this.description = description;
         this.alt = alt;
         this.link = link;
         this.modalOpen = false;
@@ -150,7 +150,6 @@ class IconPickerField extends LitElement {
     get value() {
         return {
             icon: this.icon ?? '',
-            description: this.description ?? '',
             alt: this.alt ?? '',
             link: this.link ?? '',
         };
@@ -181,13 +180,21 @@ class IconPickerField extends LitElement {
         return urlParts[urlParts.length - 1] || this.icon;
     }
 
+    parseTextFromHtml(html) {
+        if (!html || !html.startsWith('<p>')) return html;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        return doc.querySelector('p').textContent;
+    }
+
     renderIcon() {
         if (this.icon?.startsWith('sp-icon-')) {
             return html`${renderSpIcon(this.icon, this.variant)}`;
         }
         return html`<img
             src="${this.icon}"
-            alt="${this.alt || 'Icon preview'}"
+            alt="${this.parseTextFromHtml(this.alt) || 'Icon preview'}"
             @error=${(e) => (e.target.style.display = 'none')}
         />`;
     }
@@ -205,7 +212,7 @@ class IconPickerField extends LitElement {
 
                 <div class="included-info">
                     <div class="value">
-                        ${this.#getDisplayText(this.description || this.#getIconName(), 'No icon selected')}
+                        ${this.#getDisplayText(this.parseTextFromHtml(this.alt) || this.#getIconName(), 'No icon selected')}
                     </div>
                 </div>
 
@@ -227,7 +234,6 @@ class IconPickerField extends LitElement {
             <mas-icon-picker-modal
                 ?open=${this.modalOpen}
                 .icon=${this.icon}
-                .description=${this.description}
                 .alt=${this.alt}
                 .variant=${this.variant}
                 @modal-close=${this.#handleModalClose}

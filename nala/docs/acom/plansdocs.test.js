@@ -10,7 +10,7 @@ let webUtil;
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
 const workerSetup = createWorkerPageSetup({
-    pages: [{ name: 'US', url: DOCS_GALLERY_PATH.PLANS }],
+    pages: [{ name: 'US', url: DOCS_GALLERY_PATH.PLANS.US }],
 });
 
 test.describe('ACOM MAS cards feature test suite', () => {

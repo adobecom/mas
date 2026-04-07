@@ -36,6 +36,66 @@ function getFieldType(fieldName, mappingConfig) {
 }
 
 /**
+ * Rewrites a `ctas` HTML blob so the Buy and Trial anchors carry distinct
+ * `data-wcs-osi` attributes. The plans web component already supports per-anchor
+ * OSIs at render time; this helper just ensures the right value lands on each
+ * anchor before the fragment is created.
+ *
+ * Anchors are matched by `data-analytics-id`:
+ *   - `data-analytics-id="buy-now"` → `baseOsi`
+ *   - `data-analytics-id="free-trial"` → `trialOsi`
+ *
+ * If `trialOsi` is missing/empty, the trial anchor is removed entirely (along
+ * with any whitespace-only siblings) so the rendered card has only the Buy CTA
+ * — no orphaned Free trial button pointing at the wrong offer.
+ *
+ * Anchors with neither analytics id are left untouched. Non-string inputs return
+ * the input as-is.
+ *
+ * @param {string} ctasHtml - The original ctas HTML value
+ * @param {string} baseOsi - OSI to stamp onto the buy-now anchor
+ * @param {string} [trialOsi] - OSI to stamp onto the free-trial anchor
+ * @returns {string} - Rewritten ctas HTML (or the original if no rewrite was needed)
+ */
+export function applyDualOsiToCtas(ctasHtml, baseOsi, trialOsi) {
+    if (typeof ctasHtml !== 'string' || !ctasHtml) return ctasHtml;
+    if (typeof DOMParser === 'undefined') return ctasHtml;
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = ctasHtml;
+
+    const buyAnchor = wrapper.querySelector('a[data-analytics-id="buy-now"]');
+    const trialAnchor = wrapper.querySelector('a[data-analytics-id="free-trial"]');
+
+    if (!buyAnchor && !trialAnchor) return ctasHtml;
+
+    if (buyAnchor && baseOsi) {
+        buyAnchor.setAttribute('data-wcs-osi', baseOsi);
+    }
+
+    if (trialAnchor) {
+        if (trialOsi) {
+            trialAnchor.setAttribute('data-wcs-osi', trialOsi);
+        } else {
+            // No trial offer picked — drop the anchor entirely so the card
+            // only shows Buy now. Also strip a leading/trailing whitespace
+            // text node so we don't leave a stray space behind.
+            const prev = trialAnchor.previousSibling;
+            const next = trialAnchor.nextSibling;
+            if (prev && prev.nodeType === Node.TEXT_NODE && !prev.textContent.trim()) {
+                prev.remove();
+            }
+            if (next && next.nodeType === Node.TEXT_NODE && !next.textContent.trim()) {
+                next.remove();
+            }
+            trialAnchor.remove();
+        }
+    }
+
+    return wrapper.innerHTML;
+}
+
+/**
  * Maps AI-generated config to AEM Fragment fields
  * @param {Object} aiConfig - AI-generated card configuration
  * @param {string} variant - Card variant
@@ -53,9 +113,16 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
     // Map variant
     fields.push({ name: 'variant', type: 'text', values: [variant] });
 
+    // Pull the OSI pair out up-front so the loop below can leave them alone
+    // and the ctas rewrite has access to both values.
+    const baseOsi = aiConfig.osi;
+    const trialOsi = aiConfig.trialOsi;
+
     // Map each field based on AI config and Milo mapping
     for (const [fieldName, value] of Object.entries(aiConfig)) {
         if (fieldName === 'variant') continue;
+        if (fieldName === 'osi') continue;
+        if (fieldName === 'trialOsi') continue;
         if (!value) continue;
 
         const mappingConfig = fragmentMapping[fieldName];
@@ -65,13 +132,32 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
             fields.push(...mapMnemonics(value, mappingConfig));
         } else if (fieldName === 'badge' && typeof value === 'object') {
             fields.push(...mapBadge(value, mappingConfig));
-        } else if (fieldName === 'osi') {
-            fields.push({ name: 'osi', type: 'text', values: [value] });
         } else if (mappingConfig) {
             // Translate variant field name to AEM field name
             const aemFieldName = VARIANT_TO_AEM_FIELD_MAPPING[fieldName] || fieldName;
             const fieldType = getFieldType(aemFieldName, mappingConfig);
             fields.push({ name: aemFieldName, type: fieldType, values: [value] });
+        }
+    }
+
+    // Re-emit osi and trialOsi as their own top-level fields so any consumer
+    // that reads the fragment-level fields (e.g. the merch-card render fallback)
+    // still sees them. The actual per-CTA targeting happens via the ctas HTML
+    // rewrite below.
+    if (baseOsi) {
+        fields.push({ name: 'osi', type: 'text', values: [baseOsi] });
+    }
+    if (trialOsi) {
+        fields.push({ name: 'trialOsi', type: 'text', values: [trialOsi] });
+    }
+
+    // For plans variants, stamp distinct data-wcs-osi attributes onto the
+    // buy-now and free-trial anchors inside the ctas HTML so each CTA resolves
+    // to its own offer at render time.
+    if (variant?.startsWith('plans') && baseOsi) {
+        const ctasField = fields.find((field) => field.name === 'ctas');
+        if (ctasField && Array.isArray(ctasField.values) && ctasField.values.length > 0) {
+            ctasField.values = [applyDualOsiToCtas(ctasField.values[0], baseOsi, trialOsi)];
         }
     }
 

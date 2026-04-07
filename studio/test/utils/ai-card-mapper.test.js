@@ -5,6 +5,7 @@ import {
     createFragmentFromAIConfig,
     validateAIConfig,
     createFragmentDataForAEM,
+    applyDualOsiToCtas,
 } from '../../src/utils/ai-card-mapper.js';
 import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../../src/constants.js';
 
@@ -134,6 +135,98 @@ describe('ai-card-mapper', () => {
             const secureLabelFields = fields.filter((f) => f.name === 'showSecureLabel');
             expect(secureLabelFields).to.have.lengthOf(1);
             expect(secureLabelFields[0].values).to.deep.equal(['false']);
+        });
+
+        it('should stamp distinct data-wcs-osi onto buy-now and free-trial anchors for plans variants', () => {
+            stubMerchCard();
+            const ctas =
+                '<p slot="footer">' +
+                '<a class="con-button primary-outline" data-analytics-id="buy-now">Buy now</a>' +
+                '<a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>' +
+                '</p>';
+            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base-osi-123', trialOsi: 'trial-osi-456' }, 'plans');
+            const ctasField = fields.find((f) => f.name === 'ctas');
+            expect(ctasField).to.exist;
+            const html = ctasField.values[0];
+            expect(html).to.include('data-analytics-id="buy-now"');
+            expect(html).to.include('data-analytics-id="free-trial"');
+            expect(html).to.match(
+                /data-analytics-id="buy-now"[^>]*data-wcs-osi="base-osi-123"|data-wcs-osi="base-osi-123"[^>]*data-analytics-id="buy-now"/,
+            );
+            expect(html).to.match(
+                /data-analytics-id="free-trial"[^>]*data-wcs-osi="trial-osi-456"|data-wcs-osi="trial-osi-456"[^>]*data-analytics-id="free-trial"/,
+            );
+        });
+
+        it('should emit both osi and trialOsi as top-level fields for plans variants', () => {
+            stubMerchCard();
+            const fields = mapAIConfigToFragmentFields({ osi: 'base-osi-123', trialOsi: 'trial-osi-456' }, 'plans');
+            const osiField = fields.find((f) => f.name === 'osi');
+            const trialOsiField = fields.find((f) => f.name === 'trialOsi');
+            expect(osiField).to.deep.equal({ name: 'osi', type: 'text', values: ['base-osi-123'] });
+            expect(trialOsiField).to.deep.equal({ name: 'trialOsi', type: 'text', values: ['trial-osi-456'] });
+        });
+
+        it('should drop the free-trial anchor entirely when trialOsi is missing for plans variants', () => {
+            stubMerchCard();
+            const ctas =
+                '<p slot="footer">' +
+                '<a class="con-button primary-outline" data-analytics-id="buy-now">Buy now</a> ' +
+                '<a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>' +
+                '</p>';
+            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base-osi-only' }, 'plans');
+            const ctasField = fields.find((f) => f.name === 'ctas');
+            const html = ctasField.values[0];
+            expect(html).to.include('data-analytics-id="buy-now"');
+            expect(html).to.not.include('data-analytics-id="free-trial"');
+            expect(html).to.not.include('Free trial');
+            expect(fields.find((f) => f.name === 'trialOsi')).to.be.undefined;
+        });
+
+        it('should leave anchors without data-analytics-id untouched', () => {
+            stubMerchCard();
+            const ctas = '<p slot="footer"><a class="con-button">Click me</a></p>';
+            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base', trialOsi: 'trial' }, 'plans');
+            const html = fields.find((f) => f.name === 'ctas').values[0];
+            expect(html).to.equal(ctas);
+        });
+
+        it('should not rewrite ctas for non-plans variants even when trialOsi is provided', () => {
+            stubMerchCard();
+            const ctas =
+                '<p slot="footer"><a data-analytics-id="buy-now">Buy</a><a data-analytics-id="free-trial">Trial</a></p>';
+            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base', trialOsi: 'trial' }, 'catalog');
+            const html = fields.find((f) => f.name === 'ctas').values[0];
+            expect(html).to.equal(ctas);
+            expect(html).to.not.include('data-wcs-osi');
+        });
+
+        describe('applyDualOsiToCtas helper', () => {
+            it('returns the input unchanged for non-string values', () => {
+                expect(applyDualOsiToCtas(null, 'a', 'b')).to.equal(null);
+                expect(applyDualOsiToCtas(undefined, 'a', 'b')).to.equal(undefined);
+                expect(applyDualOsiToCtas('', 'a', 'b')).to.equal('');
+            });
+
+            it('returns the input unchanged when no recognised anchors are present', () => {
+                const html = '<p><a>Click</a></p>';
+                expect(applyDualOsiToCtas(html, 'a', 'b')).to.equal(html);
+            });
+
+            it('stamps both OSIs when both anchors are present', () => {
+                const html = '<p><a data-analytics-id="buy-now">Buy</a><a data-analytics-id="free-trial">Trial</a></p>';
+                const out = applyDualOsiToCtas(html, 'X', 'Y');
+                expect(out).to.include('data-wcs-osi="X"');
+                expect(out).to.include('data-wcs-osi="Y"');
+            });
+
+            it('removes the trial anchor when trialOsi is missing', () => {
+                const html = '<p><a data-analytics-id="buy-now">Buy</a> <a data-analytics-id="free-trial">Trial</a></p>';
+                const out = applyDualOsiToCtas(html, 'X');
+                expect(out).to.include('data-analytics-id="buy-now"');
+                expect(out).to.not.include('free-trial');
+                expect(out).to.not.include('Trial');
+            });
         });
 
         it('should map a complete config with multiple fields', () => {

@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { clearCaches, previewFragment, previewStudioFragment } from '../../../../studio/libs/fragment-client.js';
+import { transformer as settingsTransformer } from '../../src/fragment/transformers/settings.js';
 import sinon from 'sinon';
 import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
@@ -141,19 +142,32 @@ describe('FragmentClient', () => {
         expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
     });
 
-    it('should handle fetch errors', async () => {
+    it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {
         const fragmentId = 'non-existent';
 
         fetchStub
             .withArgs(`${baseUrl}/${fragmentId}?references=all-hydrated`)
-            .returns(createResponse(404, { error: 'Not Found' }, 'Not Found'));
+            .returns(createResponse(404, { detail: 'Not Found' }, 'Not Found'));
 
-        const result = await previewFragment(fragmentId, {
-            surface: 'acom',
-            locale: 'en_US',
-        });
+        const consoleErrorSpy = sinon.spy(console, 'error');
+        try {
+            const bodyOnly = await previewFragment(fragmentId, {
+                surface: 'sandbox',
+                locale: 'en_US',
+            });
+            expect(bodyOnly).to.deep.equal({ message: 'Not Found' });
 
-        expect(result).to.be.undefined;
+            const full = await previewFragment(fragmentId, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+            });
+            expect(full.status).to.equal(404);
+            expect(full.body).to.deep.equal({ message: 'Not Found' });
+            expect(consoleErrorSpy.calledWithMatch(sinon.match(/Not Found/))).to.be.true;
+        } finally {
+            consoleErrorSpy.restore();
+        }
     });
 
     it('returns full context with api_key when options.fullContext is true', async () => {
@@ -189,6 +203,28 @@ describe('FragmentClient', () => {
     });
 
     it('merges options locale and country over document element', async () => {
+        const dePlaceholderIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
+        const deDictIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
+        const deVariationId = 'de-de-default-locale-fragment';
+        fetchStub.withArgs(dePlaceholderIndex).returns(
+            createResponse(200, {
+                items: [{ id: deVariationId, type: 'content-fragment' }],
+            }),
+        );
+        fetchStub.withArgs(deDictIndex).returns(
+            createResponse(200, {
+                items: [
+                    {
+                        id: mockPlaceholders.id,
+                        type: 'dictionary',
+                    },
+                ],
+            }),
+        );
+        fetchStub
+            .withArgs(`${baseUrl}/${deVariationId}?references=all-hydrated`)
+            .returns(createResponse(200, { ...mockCardFragment, id: deVariationId }));
+
         const result = await previewFragment(mockCardFragment.id, {
             surface: 'sandbox',
             locale: 'de_DE',
@@ -202,6 +238,23 @@ describe('FragmentClient', () => {
             const body = { ...mockCardFragment };
             const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });
             expect(result).to.have.property('fields');
+        });
+
+        it('maps non-200 studio pipeline to body.message and logs', async () => {
+            const stub = sinon.stub(settingsTransformer, 'process').callsFake(async (ctx) => ({
+                ...ctx,
+                status: 422,
+                message: 'Studio pipeline failed',
+            }));
+            const consoleErrorSpy = sinon.spy(console, 'error');
+            try {
+                const result = await previewStudioFragment({ ...mockCardFragment }, { locale: 'en_US', surface: 'sandbox' });
+                expect(result).to.deep.equal({ message: 'Studio pipeline failed' });
+                expect(consoleErrorSpy.calledWithMatch(sinon.match(/Studio pipeline failed/))).to.be.true;
+            } finally {
+                stub.restore();
+                consoleErrorSpy.restore();
+            }
         });
     });
 });

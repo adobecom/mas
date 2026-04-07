@@ -12,6 +12,13 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
+const TRIAL_ANALYTICS_IDS = new Set([
+    'free-trial',
+    'start-free-trial',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
+]);
 
 /**
  * Normalizes variant names for consistency.
@@ -435,9 +442,10 @@ export function processDescription(fields, merchCard, mapping) {
     appendSlot('whatsIncluded', fields, merchCard, mapping);
 }
 
-export function processAddon(fields, merchCard, mapping) {
+export function processAddon(fields, merchCard, mapping, settings = {}) {
     if (!mapping.addon) return;
-    const addonField = fields.addon?.replace(/[{}]/g, '');
+    const addonSource = fields.addon ?? settings.addon;
+    const addonField = addonSource?.replace(/[{}]/g, '');
     if (!addonField) return;
     if (/disabled/.test(addonField)) return;
     const addon = createTag('merch-addon', { slot: 'addon' }, addonField);
@@ -455,12 +463,7 @@ export function processAddonConfirmation(fields, merchCard, mapping) {
     }
 }
 
-export function processStockOffersAndSecureLabel(
-    fields,
-    merchCard,
-    aemFragmentMapping,
-    settings,
-) {
+function processSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
     if (settings?.secureLabel && aemFragmentMapping?.secureLabel) {
         merchCard.setAttribute('secure-label', settings.secureLabel);
     }
@@ -680,20 +683,60 @@ function createConsonantButton(
     return button;
 }
 
-export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
+export function processCTAs(
+    fields,
+    merchCard,
+    aemFragmentMapping,
+    variant,
+    settings,
+) {
     if (fields.ctas) {
-        // Process tooltips in CTAs
         fields.ctas = processMnemonicElements(fields.ctas);
 
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
-        const ctas = [...footer.querySelectorAll('a')].map((cta) =>
+        const allCtaLinks = [...footer.querySelectorAll('a')];
+        const filteredLinks = settings?.hideTrialCTAs
+            ? allCtaLinks.filter(
+                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),
+              )
+            : allCtaLinks;
+        const ctas = (
+            filteredLinks.length > 0 ? filteredLinks : allCtaLinks
+        ).map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping),
         );
 
-        footer.innerHTML = '';
+        footer.textContent = '';
         footer.append(...ctas);
         merchCard.append(footer);
+
+        if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
+            ctas.forEach((cta) => {
+                const checkout = cta.source ?? cta;
+                if (!checkout.onceSettled) return;
+                cta.hidden = true;
+                checkout
+                    .onceSettled()
+                    .then(() => {
+                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                            const othersVisible = ctas.some(
+                                (c) => c !== cta && !c.hidden,
+                            );
+                            if (othersVisible) {
+                                cta.remove();
+                            } else {
+                                cta.hidden = false;
+                            }
+                        } else {
+                            cta.hidden = false;
+                        }
+                    })
+                    .catch(() => {
+                        cta.hidden = false;
+                    });
+            });
+        }
     }
 }
 
@@ -790,6 +833,8 @@ export async function hydrate(fragment, merchCard) {
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
     merchCard.id ??= fragment.id;
+    if (fragment.variationId)
+        merchCard.setAttribute('variation-id', fragment.variationId ?? '');
     merchCard.variant = variant;
     await merchCard.updateComplete;
 
@@ -817,16 +862,16 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping);
-    processAddon(fields, merchCard, mapping);
+    processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
-    processStockOffersAndSecureLabel(fields, merchCard, mapping, settings);
+    processSecureLabel(fields, merchCard, mapping, settings);
     try {
         processUptLinks(fields, merchCard);
     } catch {
         // UptLink construction may fail (customized built-in element timing);
         // must not block remaining hydration steps.
     }
-    processCTAs(fields, merchCard, mapping, variant);
+    processCTAs(fields, merchCard, mapping, variant, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

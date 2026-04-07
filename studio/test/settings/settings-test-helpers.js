@@ -4,7 +4,7 @@ const defaultModified = {
 };
 
 const buildValueFields = (valueType, value, booleanValue) => [
-    { name: 'textValue', values: valueType === 'text' ? [`${value ?? ''}`] : [] },
+    { name: 'textValue', values: valueType === 'text' || valueType === 'optional-text' ? [`${value ?? ''}`] : [] },
     { name: 'richTextValue', values: valueType === 'richText' ? [`${value ?? ''}`] : [] },
     { name: 'booleanValue', values: [Boolean(booleanValue)] },
 ];

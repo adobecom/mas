@@ -22,6 +22,7 @@ export default class StudioPage {
         this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
         this.renderView = page.locator('#render');
         this.tableView = page.locator('sp-table');
+        this.contentTableBody = page.locator('#content sp-table-body');
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');
         this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);
@@ -83,6 +84,27 @@ export default class StudioPage {
         this.createDialogOSIButton = this.createDialog.locator('osi-field#osi #offerSelectorToolButtonOSI');
         this.createDialogCreateButton = this.createDialog.locator('sp-button:has-text("Create")');
         this.createDialogMerchCardOption = page.getByRole('menuitem', { name: 'Merch Card', exact: true }).first();
+    }
+
+    /**
+     * Wait for cards to load on both content and fragment-editor pages.
+     * Content pages render mas-fragment-render (lazy loaded via IntersectionObserver).
+     * Fragment-editor pages render merch-card directly inside mas-fragment-editor.
+     */
+    async waitForCardsLoaded() {
+        const fragmentRender = this.page.locator('mas-fragment-render').first();
+        const fragmentEditor = this.page.locator('mas-fragment-editor').first();
+
+        const winner = await Promise.race([
+            fragmentRender.waitFor({ state: 'attached', timeout: 30000 }).then(() => 'content'),
+            fragmentEditor.waitFor({ state: 'attached', timeout: 30000 }).then(() => 'editor'),
+        ]);
+
+        if (winner === 'content') {
+            await fragmentRender.scrollIntoViewIfNeeded();
+        }
+
+        await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 30000 });
     }
 
     /**
@@ -323,15 +345,13 @@ export default class StudioPage {
 
                 await this.saveCardButton.click({ force: true });
 
-                // Wait for progress toast
-                await this.toastProgress
-                    .waitFor({
-                        state: 'visible',
-                        timeout: 5000,
-                    })
-                    .catch(() => {
-                        throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
-                    });
+                // Wait for progress toast or success toast (save may complete before progress is visible)
+                await Promise.race([
+                    this.toastProgress.waitFor({ state: 'visible', timeout: 10000 }),
+                    this.toastPositive.waitFor({ state: 'visible', timeout: 10000 }),
+                ]).catch(() => {
+                    throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
+                });
 
                 // Wait for any toast (excluding progress toast)
                 await this.page
@@ -519,6 +539,7 @@ export default class StudioPage {
     async discardEditorChanges(editor) {
         // Close the editor and verify discard is triggered
         // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
+        const fragmentUrl = this.page.url();
         await expect(this.fragmentsTable).toBeVisible();
         await this.fragmentsTable.scrollIntoViewIfNeeded();
         await this.fragmentsTable.click();
@@ -526,6 +547,9 @@ export default class StudioPage {
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
+        await this.page.goto(fragmentUrl);
+        await this.page.waitForLoadState('domcontentloaded');
+        await this.waitForCardsLoaded();
     }
 
     /**

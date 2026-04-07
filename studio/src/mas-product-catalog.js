@@ -269,15 +269,15 @@ class MasProductCatalog extends LitElement {
             });
         }
 
-        // Default sort: cluster by product family, then by product name.
-        // Users asked for a consistent default ordering so the same product always appears in
-        // the same spot, and so products from the same family sit next to each other.
+        // Default sort: pure A-Z by product name. The earlier family-then-name grouping
+        // produced surprising orderings where the same product would jump locations in
+        // the table depending on family-bucket boundaries.
         return [...source].sort((a, b) => {
-            const familyCompare = (a.product_family || '').localeCompare(b.product_family || '');
-            if (familyCompare !== 0) return familyCompare;
             const nameA = a.copy?.name || a.name || '';
             const nameB = b.copy?.name || b.name || '';
-            return nameA.localeCompare(nameB);
+            const cmp = nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+            if (cmp !== 0) return cmp;
+            return (a.arrangement_code || '').localeCompare(b.arrangement_code || '');
         });
     }
 

@@ -104,7 +104,6 @@ export class MasChatProductCards extends LitElement {
                                         : nothing}
                                 </div>
                                 <div class="product-card-affordance">
-                                    <sp-icon-chevron-right></sp-icon-chevron-right>
                                     <span>${isSelected ? 'Selected' : 'Select'}</span>
                                 </div>
                             </div>

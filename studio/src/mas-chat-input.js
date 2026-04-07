@@ -31,6 +31,19 @@ export class MasChatInput extends LitElement {
         'What offer types are available?',
     ];
 
+    static getActivePlaceholderExamples() {
+        // Drop the new-release prompt once the user has clicked the welcome chip for it,
+        // so we stop nudging them toward a flow they have already discovered.
+        let newReleaseClicked = false;
+        try {
+            newReleaseClicked = localStorage.getItem('mas-chat-new-release-clicked') === '1';
+        } catch {
+            // localStorage unavailable — fall through with the full list.
+        }
+        if (!newReleaseClicked) return MasChatInput.placeholderExamples;
+        return MasChatInput.placeholderExamples.filter((p) => p !== 'Help me set up a new release');
+    }
+
     constructor() {
         super();
         this.disabled = false;
@@ -40,8 +53,9 @@ export class MasChatInput extends LitElement {
         this.selectedCards = [];
         this.inputLocked = false;
         this.autoSendOnSelect = false;
-        this.placeholderIndex = Math.floor(Math.random() * MasChatInput.placeholderExamples.length);
-        this.placeholder = MasChatInput.placeholderExamples[this.placeholderIndex];
+        const examples = MasChatInput.getActivePlaceholderExamples();
+        this.placeholderIndex = Math.floor(Math.random() * examples.length);
+        this.placeholder = examples[this.placeholderIndex];
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
         this.boundHandleOfferSelect = this.handleOfferSelect.bind(this);
         this.boundHandleEscKey = this.handleEscKey.bind(this);
@@ -73,8 +87,9 @@ export class MasChatInput extends LitElement {
     }
 
     rotatePlaceholder() {
-        this.placeholderIndex = (this.placeholderIndex + 1) % MasChatInput.placeholderExamples.length;
-        this.placeholder = MasChatInput.placeholderExamples[this.placeholderIndex];
+        const examples = MasChatInput.getActivePlaceholderExamples();
+        this.placeholderIndex = (this.placeholderIndex + 1) % examples.length;
+        this.placeholder = examples[this.placeholderIndex];
     }
 
     handleOstSelect(event) {

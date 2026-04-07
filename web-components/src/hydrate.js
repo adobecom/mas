@@ -12,6 +12,13 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
+const TRIAL_ANALYTICS_IDS = new Set([
+    'free-trial',
+    'start-free-trial',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
+]);
 
 /**
  * Normalizes variant names for consistency.
@@ -676,20 +683,60 @@ function createConsonantButton(
     return button;
 }
 
-export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
+export function processCTAs(
+    fields,
+    merchCard,
+    aemFragmentMapping,
+    variant,
+    settings,
+) {
     if (fields.ctas) {
-        // Process tooltips in CTAs
         fields.ctas = processMnemonicElements(fields.ctas);
 
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
-        const ctas = [...footer.querySelectorAll('a')].map((cta) =>
+        const allCtaLinks = [...footer.querySelectorAll('a')];
+        const filteredLinks = settings?.hideTrialCTAs
+            ? allCtaLinks.filter(
+                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),
+              )
+            : allCtaLinks;
+        const ctas = (
+            filteredLinks.length > 0 ? filteredLinks : allCtaLinks
+        ).map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping),
         );
 
-        footer.innerHTML = '';
+        footer.textContent = '';
         footer.append(...ctas);
         merchCard.append(footer);
+
+        if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
+            ctas.forEach((cta) => {
+                const checkout = cta.source ?? cta;
+                if (!checkout.onceSettled) return;
+                cta.hidden = true;
+                checkout
+                    .onceSettled()
+                    .then(() => {
+                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                            const othersVisible = ctas.some(
+                                (c) => c !== cta && !c.hidden,
+                            );
+                            if (othersVisible) {
+                                cta.remove();
+                            } else {
+                                cta.hidden = false;
+                            }
+                        } else {
+                            cta.hidden = false;
+                        }
+                    })
+                    .catch(() => {
+                        cta.hidden = false;
+                    });
+            });
+        }
     }
 }
 
@@ -824,7 +871,7 @@ export async function hydrate(fragment, merchCard) {
         // UptLink construction may fail (customized built-in element timing);
         // must not block remaining hydration steps.
     }
-    processCTAs(fields, merchCard, mapping, variant);
+    processCTAs(fields, merchCard, mapping, variant, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

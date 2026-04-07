@@ -746,6 +746,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             ${this.open?p`<div class="popover">${this.text}</div>`:P}
         `:P}}k(Kr,"properties",{text:{type:String},open:{type:Boolean,state:!0}}),k(Kr,"styles",A`
         :host {
+            font-family: inherit;
             display: inline-flex;
             align-items: center;
             position: relative;
@@ -837,6 +838,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             <mas-ost-help-icon text="${be.landscapeEnv}"></mas-ost-help-icon>
         `}}k(Vr,"properties",{countries:{type:Array,state:!0},countryInput:{type:String,state:!0},showDropdown:{type:Boolean,state:!0}}),k(Vr,"styles",A`
         :host {
+            font-family: inherit;
             display: flex;
             align-items: center;
             gap: 16px;
@@ -993,6 +995,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             </div>
         `}}k(Yr,"properties",{}),k(Yr,"styles",A`
         :host {
+            font-family: inherit;
             display: block;
         }
 
@@ -1083,6 +1086,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
                   `:""}
         `}}k(Zr,"properties",{}),k(Zr,"styles",A`
         :host {
+            font-family: inherit;
             display: block;
         }
 
@@ -1197,6 +1201,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             </div>
         `}}k(Xr,"properties",{searchQuery:{type:String,attribute:"search-query"}}),k(Xr,"styles",A`
         :host {
+            font-family: inherit;
             display: block;
         }
 
@@ -1440,6 +1445,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             </span>
         `}}k(Jr,"properties",{offer:{type:Object},selected:{type:Boolean,reflect:!0},resolving:{type:Boolean,state:!0},copied:{type:Boolean,state:!0}}),k(Jr,"styles",A`
         :host {
+            font-family: inherit;
             display: table-row;
             cursor: pointer;
         }
@@ -1555,6 +1561,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
                     `}
         `}}k(Qr,"properties",{loading:{type:Boolean,state:!0},summary:{type:Boolean,reflect:!0}}),k(Qr,"styles",A`
         :host {
+            font-family: inherit;
             display: flex;
             flex-direction: column;
             min-height: 0;
@@ -1786,6 +1793,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
                 `)}
         `}}k(zs,"styles",A`
         :host {
+            font-family: inherit;
             display: flex;
             flex-direction: column;
         }
@@ -2102,6 +2110,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             </span>
         `}}k(to,"properties",{ctaDropdownOpen:{type:Boolean,state:!0},ctaFilter:{type:String,state:!0}}),k(to,"styles",A`
         :host {
+            font-family: inherit;
             display: flex;
             flex-direction: column;
             gap: var(--spectrum-spacing-200, 16px);
@@ -2212,6 +2221,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             </div>
         `}}k(ro,"properties",{placeholderType:{type:String},referenceOsi:{type:String}}),k(ro,"styles",A`
         :host {
+            font-family: inherit;
             display: block;
         }
 
@@ -2302,6 +2312,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             </div>
         `}}k(oo,"properties",{buttonText:{type:String,state:!0},placeholderType:{type:String},referenceOsi:{type:String}}),k(oo,"styles",A`
         :host {
+            font-family: inherit;
             display: block;
         }
 
@@ -2371,6 +2382,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             ></mas-ost-code-output>
         `}}k(so,"styles",A`
         :host {
+            font-family: inherit;
             display: flex;
             flex-direction: column;
             gap: var(--spectrum-spacing-200, 16px);
@@ -2435,6 +2447,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             </div>
         `}}k($s,"styles",A`
         :host {
+            font-family: inherit;
             display: block;
             border-top: 1px solid var(--spectrum-gray-200);
             padding-top: 16px;
@@ -2495,6 +2508,7 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             </div>
         `:P}}k(Ts,"styles",A`
         :host {
+            font-family: inherit;
             display: block;
         }
 
@@ -2649,6 +2663,10 @@ var Nd=Object.defineProperty;var Kd=(pe,ne,ze)=>ne in pe?Nd(pe,ne,{enumerable:!0
             display: block;
             height: 100%;
             overflow: hidden;
+            font-family: var(
+                --spectrum-sans-font-family-stack,
+                var(--spectrum-font-family, 'adobe-clean', 'adobe-clean-ux', system-ui, -apple-system, sans-serif)
+            );
         }
 
         :host([dialog]) {

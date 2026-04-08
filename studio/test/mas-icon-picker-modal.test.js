@@ -13,7 +13,6 @@ describe('MAS Icon Picker Modal', () => {
 
         expect(el.open).to.be.false;
         expect(el.icon).to.equal('');
-        expect(el.description).to.equal('');
         expect(el.alt).to.equal('');
         expect(el.selectedTab).to.equal('icons');
         expect(el.selectedProductId).to.be.null;
@@ -84,8 +83,7 @@ describe('MAS Icon Picker Modal', () => {
         const el = await fixture(
             html`<mas-icon-picker-modal
                 icon="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg"
-                description="Photoshop"
-                alt="Photoshop icon"
+                alt="Photoshop"
             ></mas-icon-picker-modal>`,
             { parentNode: spTheme() },
         );
@@ -94,16 +92,14 @@ describe('MAS Icon Picker Modal', () => {
         await el.updateComplete;
 
         // Mutate values
-        el.description = 'Changed';
-        el.alt = 'Changed alt';
+        el.alt = 'Changed';
 
         // Cancel should restore original values
         const listener = oneEvent(el, 'modal-close');
         el.shadowRoot.querySelector('sp-button[variant="secondary"]').click();
         await listener;
 
-        expect(el.description).to.equal('Photoshop');
-        expect(el.alt).to.equal('Photoshop icon');
+        expect(el.alt).to.equal('Photoshop');
     });
 
     it('should dispatch modal-close event on cancel', async () => {
@@ -123,8 +119,7 @@ describe('MAS Icon Picker Modal', () => {
         el.selectedTab = 'icons';
         el.selectedProductId = 'photoshop';
         el._isSpectrum = false;
-        el.description = 'Photoshop';
-        el.alt = 'Photoshop icon';
+        el.alt = 'Photoshop';
         await el.updateComplete;
 
         const listener = oneEvent(el, 'save');
@@ -132,8 +127,7 @@ describe('MAS Icon Picker Modal', () => {
         const event = await listener;
 
         expect(event.detail.icon).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg');
-        expect(event.detail.description).to.equal('Photoshop');
-        expect(event.detail.alt).to.equal('Photoshop icon');
+        expect(event.detail.alt).to.equal('Photoshop');
         expect(event.detail.link).to.equal('');
         expect(el.open).to.be.false;
     });
@@ -301,21 +295,6 @@ describe('MAS Icon Picker Modal', () => {
 
             expect(el._isSpectrum).to.be.true;
             expect(el.selectedProductId).to.equal(ICON_LIBRARY[0].id);
-        }
-    });
-
-    it('should update description via text field input', async () => {
-        const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, {
-            parentNode: spTheme(),
-        });
-        await el.updateComplete;
-
-        const descField = el.shadowRoot.querySelector('#icon-description');
-        if (descField) {
-            descField.value = 'New description';
-            descField.dispatchEvent(new Event('input', { bubbles: true }));
-            await el.updateComplete;
-            expect(el.description).to.equal('New description');
         }
     });
 

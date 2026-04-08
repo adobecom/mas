@@ -155,6 +155,7 @@ export class MasRepository extends LitElement {
             this.#searchCursor = null;
         });
 
+        initFragmentCache();
         this.loadFolders();
         this.style.display = 'none';
     }

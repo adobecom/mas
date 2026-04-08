@@ -126,23 +126,23 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     get queryLabel() {
-        return this.#getEffectiveFieldValue('queryLabel');
+        return this.fragment?.getEffectiveFieldValue('queryLabel', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get label() {
-        return this.#getEffectiveFieldValue('label');
+        return this.fragment?.getEffectiveFieldValue('label', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get navigationLabel() {
-        return this.#getEffectiveFieldValue('navigationLabel');
+        return this.fragment?.getEffectiveFieldValue('navigationLabel', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get icon() {
-        return this.#getEffectiveFieldValue('icon');
+        return this.fragment?.getEffectiveFieldValue('icon', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get iconLight() {
-        return this.#getEffectiveFieldValue('iconLight');
+        return this.fragment?.getEffectiveFieldValue('iconLight', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get fragment() {
@@ -150,31 +150,33 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     get searchText() {
-        return this.#getEffectiveFieldValue('searchText');
+        return this.fragment?.getEffectiveFieldValue('searchText', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get tagFiltersTitle() {
-        return this.#getEffectiveFieldValue('tagFiltersTitle');
+        return this.fragment?.getEffectiveFieldValue('tagFiltersTitle', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get tagFilters() {
-        return this.#getEffectiveFieldValues('tagFilters').join(',');
+        return (this.fragment?.getEffectiveFieldValues('tagFilters', this.localeDefaultFragment, this.isVariation) ?? []).join(
+            ',',
+        );
     }
 
     get linksTitle() {
-        return this.#getEffectiveFieldValue('linksTitle');
+        return this.fragment?.getEffectiveFieldValue('linksTitle', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get link() {
-        return this.#getEffectiveFieldValue('link');
+        return this.fragment?.getEffectiveFieldValue('link', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get linkIcon() {
-        return this.#getEffectiveFieldValue('linkIcon');
+        return this.fragment?.getEffectiveFieldValue('linkIcon', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get linkText() {
-        return this.#getEffectiveFieldValue('linkText');
+        return this.fragment?.getEffectiveFieldValue('linkText', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     #getField(fieldName) {
@@ -183,22 +185,6 @@ class MerchCardCollectionEditor extends LitElement {
 
     #getFieldState(fieldName) {
         return this.fragment?.getFieldState(fieldName, this.localeDefaultFragment, this.isVariation);
-    }
-
-    /** Returns the field to display: parent's if inherited, own if overridden. */
-    #getEffectiveField(fieldName) {
-        if (this.#getFieldState(fieldName) === 'inherited') {
-            return this.localeDefaultFragment?.fields?.find((f) => f.name === fieldName);
-        }
-        return this.#getField(fieldName);
-    }
-
-    #getEffectiveFieldValue(fieldName) {
-        return this.#getEffectiveField(fieldName)?.values?.[0] || '';
-    }
-
-    #getEffectiveFieldValues(fieldName) {
-        return this.#getEffectiveField(fieldName)?.values || [];
     }
 
     /** Only shows restore indicator (sp-icon-unlink) when the field is overridden — same as card editor. */
@@ -279,6 +265,7 @@ class MerchCardCollectionEditor extends LitElement {
             if (parentField?.multiple) newField.multiple = true;
             fragment.fields.push(newField);
         }
+        fragment.hasChanges = true;
         this.fragmentStore.notify();
         this.requestUpdate();
         showToast(`${fieldName} overridden`, 'positive');
@@ -336,15 +323,17 @@ class MerchCardCollectionEditor extends LitElement {
     get #cards() {
         if (!this.fragment) return nothing;
 
-        const cardsField = this.#getEffectiveField('cards');
-        const hasCards = cardsField?.values?.length > 0;
+        const cardsValues = this.fragment.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation);
+        const hasCards = cardsValues.length > 0;
         const inherited = this.#getFieldState('cards') === 'inherited';
 
         // Always show cards section to allow drops
         return html`
             ${this.#cardsHeader}
             <div class="cards-container ${this.hideCards ? 'hidden' : ''}">
-                ${hasCards ? this.getItems(cardsField, inherited) : html`<div class="empty-cards-placeholder"></div>`}
+                ${hasCards
+                    ? this.getItems({ values: cardsValues }, inherited)
+                    : html`<div class="empty-cards-placeholder"></div>`}
             </div>
         `;
     }
@@ -413,8 +402,12 @@ class MerchCardCollectionEditor extends LitElement {
     get #collections() {
         if (!this.fragment) return nothing;
 
-        const collectionsField = this.#getEffectiveField('collections');
-        const hasCollections = collectionsField?.values?.length > 0;
+        const collectionsValues = this.fragment.getEffectiveFieldValues(
+            'collections',
+            this.localeDefaultFragment,
+            this.isVariation,
+        );
+        const hasCollections = collectionsValues.length > 0;
         const inherited = this.#getFieldState('collections') === 'inherited';
 
         return html`
@@ -431,7 +424,7 @@ class MerchCardCollectionEditor extends LitElement {
                 </div>
                 <div class="collections-container">
                     ${hasCollections
-                        ? this.getItems(collectionsField, inherited)
+                        ? this.getItems({ values: collectionsValues }, inherited)
                         : html`<div class="empty-cards-placeholder"></div>`}
                 </div>
             </div>
@@ -1244,8 +1237,8 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     render() {
-        const cardsField = this.#getEffectiveField('cards');
-        const hasCards = cardsField?.values?.length > 0;
+        const hasCards =
+            (this.fragment?.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation) ?? []).length > 0;
         const supportsDefault = this.#supportsDefaultCard;
 
         return html`<div class="editor-container">

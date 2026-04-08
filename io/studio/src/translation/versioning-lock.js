@@ -1,6 +1,6 @@
 const { init } = require('@adobe/aio-lib-state');
 
-const VERSIONING_LOCK_KEY = 'translation-lock.versioning';
+const VERSIONING_LOCK_KEY = 'translation-versioning.lock';
 const DEFAULT_LEASE_DURATION_MS = 90 * 1000;
 const DEFAULT_MAX_ATTEMPTS = 1;
 const DEFAULT_INITIAL_RETRY_DELAY_MS = 1000;

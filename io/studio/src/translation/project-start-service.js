@@ -16,6 +16,7 @@ const {
 const ODIN_PATH = (surface, locale, fragmentPath) => `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
 const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 const logger = Core.Logger('translation', { level: 'info' });
+const DEFAULT_BATCH_SIZE = 10;
 
 async function prepareProjectStart(params, options = {}) {
     logger.info('Calling the main action');
@@ -46,7 +47,7 @@ async function prepareProjectStart(params, options = {}) {
         projectType,
         responseMessage,
         translationData,
-        batchSize: params.batchSize,
+        batchSize: Number(params.batchSize) || DEFAULT_BATCH_SIZE,
     };
 }
 
@@ -157,7 +158,7 @@ async function getTranslationData(authToken, projectCF, surface, translationFlow
         logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
         return null;
     }
-    const { items: itemsToSync, success } = await getItemsToSync(authToken, projectCF, locales, surface);
+    const { items: itemsToSync, success } = await getItemsToSync(authToken, projectCF, locales, surface, params);
     if (!success) {
         logger.error('Failed to get items to sync');
         return null;

@@ -283,7 +283,7 @@ async function customize(context) {
     }
     const baseFragment = skimFragmentFromReferences(body);
     const { references, referencesTree } = body;
-    const regionLocale = computeRegionLocale({ ...context, defaultLocale });
+    const regionLocale = computeRegionLocale({ ...context, defaultLocale, surface });
     const isRegionLocale = regionLocale !== defaultLocale;
     const customizeContext = {
         ...context,

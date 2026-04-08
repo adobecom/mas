@@ -1096,16 +1096,17 @@
                             const el = document.createElement('div');
                             const iconEl = document.createElement('merch-icon');
                             iconEl.setAttribute('src', 'https://example.com/icon.svg');
-                            iconEl.setAttribute('alt', 'Test alt');
+                            iconEl.setAttribute('alt', 'Test description');
                             const descEl = document.createElement('span');
                             descEl.setAttribute('slot', 'description');
-                            descEl.textContent = 'Test description';
+                            const span = document.createElement('span');
+                            span.textContent = 'Test description';
+                            descEl.append(span);
                             el.append(iconEl, descEl);
 
                             const result = editor.getWhatsIncludedProps(el);
                             expect(result.icon).to.equal('https://example.com/icon.svg');
-                            expect(result.alt).to.equal('Test alt');
-                            expect(result.description).to.equal('Test description');
+                            expect(result.alt).to.equal('Test description');
                             expect(result.link).to.equal('');
                         });
 
@@ -1154,7 +1155,6 @@
                             const result = editor.getWhatsIncludedProps(el);
                             // The no-icon fallback returns empty strings for all fields
                             expect(result.icon).to.equal('');
-                            expect(result.description).to.equal('');
                             expect(result.alt).to.equal('');
                             expect(result.link).to.equal('');
                         });
@@ -1167,8 +1167,8 @@
                             const html = `<merch-whats-included>
                                 <div slot="contentBullets">
                                     <merch-mnemonic-list>
-                                        <merch-icon src="https://example.com/icon.svg" alt="Icon alt"></merch-icon>
-                                        <span slot="description">Bullet with icon</span>
+                                        <merch-icon src="https://example.com/icon.svg" alt="Bullet with icon"></merch-icon>
+                                        <span slot="description"><span>Bullet with icon</span></span>
                                     </merch-mnemonic-list>
                                 </div>
                             </merch-whats-included>`;
@@ -1178,7 +1178,7 @@
                             const result = editor.whatsIncluded;
                             expect(result.bullets).to.have.length(1);
                             expect(result.bullets[0].icon).to.equal('https://example.com/icon.svg');
-                            expect(result.bullets[0].alt).to.equal('Icon alt');
+                            expect(result.bullets[0].alt).to.equal('Bullet with icon');
                         });
 
                         it('parses contentBullets with no merch-icon, desc innerHTML equals text', async () => {
@@ -1196,7 +1196,7 @@
 
                             const result = editor.whatsIncluded;
                             expect(result.bullets).to.have.length(1);
-                            expect(result.bullets[0].description).to.be.a('string');
+                            expect(result.bullets[0].alt).to.be.a('string');
                         });
 
                         it('parses contentBullets with no merch-icon, desc innerHTML differs from text', async () => {
@@ -1214,7 +1214,41 @@
 
                             const result = editor.whatsIncluded;
                             expect(result.bullets).to.have.length(1);
-                            expect(result.bullets[0].description).to.include('<p>');
+                            expect(result.bullets[0].alt).to.include('<p>');
+                        });
+
+                        it('generates whats-included element', async () => {
+                            const label = 'what is included label';
+                            const values = [
+                                {
+                                    icon: 'https://www.adobe.com/icon.svg',
+                                    alt: 'alt text 1',
+                                    link: 'https://www.adobe.com/1.html',
+                                    description: 'desc 1',
+                                },
+                            ];
+                            const bullets = [
+                                {
+                                    icon: 'sp-icon-all',
+                                    alt: '<p>alt text 2</p>',
+                                    link: 'https://www.adobe.com/2.html',
+                                    description: 'desc 2',
+                                },
+                                {
+                                    icon: 'sp-icon-web',
+                                    alt: 'alt text 3',
+                                    link: 'https://www.adobe.com/3.html',
+                                    description: 'desc 3',
+                                },
+                            ];
+                            const element = editor.createIncludedElement(label, values, bullets);
+                            expect(element.getAttribute('has-bullets')).to.equal('true');
+                            expect(element.querySelector('[slot="heading"]').textContent).to.equal(label);
+                            expect(element.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').length).to.equal(2);
+                            expect(element.querySelectorAll('[slot="content"] merch-mnemonic-list').length).to.equal(1);
+                            expect(
+                                element.querySelector('[slot="content"] merch-mnemonic-list a merch-icon').getAttribute('alt'),
+                            ).to.equal('alt text 1');
                         });
                     });
 

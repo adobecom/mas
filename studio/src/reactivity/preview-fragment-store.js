@@ -68,17 +68,20 @@ export class PreviewFragmentStore extends FragmentStore {
      * @param {Fragment} initialValue
      * @param {(value: any) => any} validator
      */
-    constructor(initialValue, validator) {
+    constructor(initialValue, validator, { lazy = false } = {}) {
         const fragmentInstance = initialValue instanceof Fragment ? initialValue : new Fragment(initialValue);
         super(fragmentInstance, validator);
+        this.lazy = lazy;
 
         this.placeholderUnsubscribe = Store.placeholders.preview.subscribe(() => {
-            if (!this.resolved && Store.placeholders.preview.value) {
+            if (!this.lazy && !this.resolved && Store.placeholders.preview.value) {
                 this.resolveFragment(true);
             }
         });
 
-        this.resolveFragment();
+        if (!this.lazy) {
+            this.resolveFragment();
+        }
     }
 
     set(value) {
@@ -133,6 +136,7 @@ export class PreviewFragmentStore extends FragmentStore {
     }
 
     resolveFragment(immediate = false) {
+        this.lazy = false;
         clearTimeout(this.#resolveDebounceTimer);
         if (immediate) {
             this.#doResolveFragment();

@@ -143,6 +143,7 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
+    context.requestLocale = context.locale;
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };

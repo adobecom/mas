@@ -12,6 +12,7 @@ import {
     getLocaleSettings,
     getPreviewSurface,
     getSettings,
+    mergeCommerceCountryFromGeo,
 } from '../src/settings.js';
 
 import { expect } from './utilities.js';
@@ -395,5 +396,48 @@ describe('getPreviewSurface', () => {
     it('handles pattern match with special characters', () => {
         const result = getPreviewSurface('CreativeCloud_!@#$%');
         expect(result).to.equal('ccd');
+    });
+});
+
+describe('mergeCommerceCountryFromGeo', () => {
+    let href;
+
+    after(() => {
+        window.history.replaceState({}, '', href);
+    });
+
+    afterEach(() => {
+        window.sessionStorage.clear();
+        window.history.replaceState({}, '', href);
+    });
+
+    before(() => {
+        ({ href } = window.location);
+    });
+
+    it('sets country from akamaiLocale query param', () => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('akamaiLocale', 'CH');
+        window.history.replaceState({}, '', url.toString());
+        expect(mergeCommerceCountryFromGeo({ locale: 'fr_FR', country: 'FR' })).to.deep.equal({
+            locale: 'fr_FR',
+            country: 'CH',
+        });
+    });
+
+    it('does not override explicit country when session akamai differs', () => {
+        window.sessionStorage.setItem('akamai', JSON.stringify({ country: 'CH' }));
+        expect(mergeCommerceCountryFromGeo({ locale: 'fr_FR', country: 'DE' })).to.deep.equal({
+            locale: 'fr_FR',
+            country: 'DE',
+        });
+    });
+
+    it('applies session akamai when country matches path locale', () => {
+        window.sessionStorage.setItem('akamai', JSON.stringify({ country: 'CH' }));
+        expect(mergeCommerceCountryFromGeo({ locale: 'fr_FR', country: 'FR' })).to.deep.equal({
+            locale: 'fr_FR',
+            country: 'CH',
+        });
     });
 });

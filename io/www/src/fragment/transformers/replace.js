@@ -153,14 +153,7 @@ function replaceValues(input, dictionary, calls) {
     return replaced;
 }
 
-async function init(context) {
-    // we fetch dictionary at this stage only if id has already been cached
-    // because we can't know surface of fragment *before* first fetch
-    // if dictionaryId is present in cache - early load dictionary
-    // if nothing in cache - dictionaryId and dictionary itself will be loaded later,
-    // during process
-    return await getDictionary(context);
-}
+async function init() {}
 
 async function replace(context) {
     let body = context.body;

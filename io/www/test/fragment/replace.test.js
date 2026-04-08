@@ -102,7 +102,7 @@ describe('replace', () => {
 
     it('returns 200 & no placeholders', async () => {
         const response = await getResponse('foo', 'Buy now');
-        const expected = expectedResponse('foo');
+        const { fragmentsIds: _omit, ...expected } = expectedResponse('foo');
         expect(response).to.deep.include(expected);
     });
     it('returns 200 & replaced entries keys with text', async () => {

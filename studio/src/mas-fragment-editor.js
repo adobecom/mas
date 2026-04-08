@@ -8,14 +8,7 @@ import StoreController from './reactivity/store-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import {
-    extractLocaleFromPath,
-    extractSurfaceFromPath,
-    generateCodeToUse,
-    getFragmentMapping,
-    replaceLocaleInPath,
-    showToast,
-} from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
@@ -634,48 +627,15 @@ export default class MasFragmentEditor extends LitElement {
         return attrs;
     }
 
-    #ensureSearchSurfaceFromFragmentPath(fragmentPath) {
-        const surface = extractSurfaceFromPath(fragmentPath);
-        if (surface && !Store.search.value.path) {
-            Store.search.set((prev) => ({ ...prev, path: surface }));
-        }
-    }
-
-    /**
-     * Sets `Store.search.region` when preview Lingo should follow the fragment path, not only the list filter.
-     */
+    // Derives locale from fragment path and applies a region override when it is safe to do so.
     #updateLocaleIfNeeded(path) {
         const locale = extractLocaleFromPath(path);
-        if (!locale) return;
-
-        const filterLocale = Store.filters.value.locale;
-        if (locale === filterLocale) {
-            if (Store.search.value.region) {
-                Store.search.set((prev) => ({ ...prev, region: null }));
-            }
-            return;
-        }
-
-        const pathLang = locale.split('_')[0];
-        const filterLang = filterLocale.split('_')[0];
-        const sameLanguageDifferentRegion = pathLang === filterLang && locale !== filterLocale;
-
-        if (filterLocale === 'en_US' && Store.localeOrRegion() !== locale) {
-            Store.search.set((prev) => ({ ...prev, region: locale }));
-            return;
-        }
-
-        if (sameLanguageDifferentRegion && Store.localeOrRegion() !== locale) {
+        // Only update region if the current locale filter is the default (en_US)
+        // This preserves the locale when viewing missing variations (e.g., locale=tr_TR with en_US fragment)
+        if (locale && Store.filters.value.locale === 'en_US' && Store.localeOrRegion() !== locale) {
             Store.search.set((prev) => ({ ...prev, region: locale }));
         }
-    }
-
-    #syncPreviewRegionForVariation(fragmentPath, isVariation) {
-        if (!isVariation) return;
-        const fragmentLocale = extractLocaleFromPath(fragmentPath);
-        if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
-            Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-        }
+        return locale;
     }
 
     // Activates a fragment store in the editor and wires reactive dependencies.
@@ -729,7 +689,6 @@ export default class MasFragmentEditor extends LitElement {
     // Initializes editor state when the fragment already exists in the list store cache.
     async #initializeFromCachedStore(fragmentId, existingStore) {
         const fragmentPath = existingStore.get().path;
-        this.#ensureSearchSurfaceFromFragmentPath(fragmentPath);
         this.#updateLocaleIfNeeded(fragmentPath);
 
         // Reload context to correctly determine if this fragment is a variation
@@ -746,19 +705,15 @@ export default class MasFragmentEditor extends LitElement {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
 
-        const treatAsVariation = isVariationAfterContext && !skipVariation;
-        this.#syncPreviewRegionForVariation(fragmentPath, treatAsVariation);
-
-        await this.repository.loadPreviewPlaceholders().catch(() => null);
-
         this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath); // no need to await
 
+        // Use existing store - just refresh it
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
         }
-        await this.repository.refreshFragment(existingStore);
-        existingStore.resolvePreviewFragment(true);
-        this.dispatchFragmentLoaded();
+        this.repository.refreshFragment(existingStore).then(() => {
+            this.dispatchFragmentLoaded();
+        });
 
         this.#activateEditorStore(existingStore, { resetChanges: true });
         this.#markInitReady();
@@ -796,10 +751,11 @@ export default class MasFragmentEditor extends LitElement {
     // Initializes editor state for fragments that are not yet present in list store cache.
     async #initializeFromRepository(fragmentId) {
         try {
+            // Start loading placeholders early
+            const placeholdersPromise = this.repository.loadPreviewPlaceholders().catch(() => null);
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
             const fragment = new Fragment(fragmentData);
 
-            this.#ensureSearchSurfaceFromFragmentPath(fragment.path);
             this.#updateLocaleIfNeeded(fragment.path);
             await this.editorContextStore.loadFragmentContext(fragmentId, fragment.path);
 
@@ -807,9 +763,8 @@ export default class MasFragmentEditor extends LitElement {
             const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
-            this.#syncPreviewRegionForVariation(fragment.path, isVariationForStore);
-
-            await this.repository.loadPreviewPlaceholders().catch(() => null);
+            // Wait for placeholders before creating stores (needed for preview resolution)
+            await placeholdersPromise;
 
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
             // Only add to main list if not a variation (variations appear under parent's variations panel)
@@ -819,6 +774,16 @@ export default class MasFragmentEditor extends LitElement {
 
             this.#activateEditorStore(fragmentStore);
             this.dispatchFragmentLoaded();
+
+            // Handle locale-specific placeholder reload for variations
+            if (isVariationForStore) {
+                const fragmentLocale = extractLocaleFromPath(fragment.path);
+                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                    await this.repository.loadPreviewPlaceholders();
+                    fragmentStore.resolvePreviewFragment();
+                }
+            }
 
             Store.editor.resetChanges();
             this.updateTranslatedLocalesStore(isVariationForStore, fragment.path); // no need to await

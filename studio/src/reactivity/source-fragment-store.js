@@ -81,8 +81,8 @@ export class SourceFragmentStore extends FragmentStore {
         return success;
     }
 
-    resolvePreviewFragment(immediate = false) {
-        this.previewStore.resolveFragment(immediate);
+    resolvePreviewFragment() {
+        this.previewStore.resolveFragment();
     }
 
     refreshAemFragment() {

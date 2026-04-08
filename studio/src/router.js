@@ -498,16 +498,14 @@ export class Router extends EventTarget {
                 }
             }
 
+            Store.removeRegionOverride();
+
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
                 const currentValue = store.get();
                 const isObject = typeof currentValue === 'object' && currentValue !== null;
                 this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
             });
-
-            if (Store.page.value !== PAGE_NAMES.FRAGMENT_EDITOR) {
-                Store.removeRegionOverride();
-            }
 
             this.previousHash = this.location.hash;
         });

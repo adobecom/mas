@@ -22,7 +22,10 @@ describe('MasContent table + personalization grouping', () => {
             fragmentListValue: list.value,
             loading: Store.fragments.list.loading.get(),
             firstPageLoaded: Store.fragments.list.firstPageLoaded.get(),
+            page: Store.page.get(),
+            sort: Store.sort.get(),
         };
+        Store.page.set('content');
         Store.search.set({ path: 'acom' });
         Store.fragments.list.loading.set(false);
         Store.fragments.list.firstPageLoaded.set(true);
@@ -36,6 +39,8 @@ describe('MasContent table + personalization grouping', () => {
         Store.fragments.list.data.value = snapshot.fragmentListValue;
         Store.fragments.list.loading.set(snapshot.loading);
         Store.fragments.list.firstPageLoaded.set(snapshot.firstPageLoaded);
+        Store.page.set(snapshot.page);
+        Store.sort.set(snapshot.sort);
     });
 
     const makeFragment = (overrides = {}) =>

@@ -690,10 +690,38 @@ describe('customize collections', function () {
                         },
                     },
                 },
-                'card-a': { type: 'content-fragment', value: { path: '/content/dam/mas/sandbox/en_US/card-a', id: 'card-a', fields: { title: 'Card A', variations: [] } } },
-                'card-b': { type: 'content-fragment', value: { path: '/content/dam/mas/sandbox/en_US/card-b', id: 'card-b', fields: { title: 'Card B', variations: [] } } },
-                'card-c': { type: 'content-fragment', value: { path: '/content/dam/mas/sandbox/en_US/card-c', id: 'card-c', fields: { title: 'Card C', variations: [] } } },
-                'card-d': { type: 'content-fragment', value: { path: '/content/dam/mas/sandbox/en_US/card-d', id: 'card-d', fields: { title: 'Card D', variations: [] } } },
+                'card-a': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-a',
+                        id: 'card-a',
+                        fields: { title: 'Card A', variations: [] },
+                    },
+                },
+                'card-b': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-b',
+                        id: 'card-b',
+                        fields: { title: 'Card B', variations: [] },
+                    },
+                },
+                'card-c': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-c',
+                        id: 'card-c',
+                        fields: { title: 'Card C', variations: [] },
+                    },
+                },
+                'card-d': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-d',
+                        id: 'card-d',
+                        fields: { title: 'Card D', variations: [] },
+                    },
+                },
             },
             referencesTree: [
                 { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },
@@ -741,8 +769,14 @@ describe('customize collections', function () {
                         fields: { cards: ['card-a', 'card-new'], collections: [] },
                     },
                 },
-                'card-a': { type: 'content-fragment', value: { path: '/content/dam/mas/sandbox/en_US/card-a', id: 'card-a', fields: { variations: [] } } },
-                'card-new': { type: 'content-fragment', value: { path: '/content/dam/mas/sandbox/en_US/card-new', id: 'card-new', fields: { variations: [] } } },
+                'card-a': {
+                    type: 'content-fragment',
+                    value: { path: '/content/dam/mas/sandbox/en_US/card-a', id: 'card-a', fields: { variations: [] } },
+                },
+                'card-new': {
+                    type: 'content-fragment',
+                    value: { path: '/content/dam/mas/sandbox/en_US/card-new', id: 'card-new', fields: { variations: [] } },
+                },
             },
             referencesTree: [
                 { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },

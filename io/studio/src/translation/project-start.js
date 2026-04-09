@@ -108,6 +108,7 @@ async function main(params) {
             statusCode: 202,
             body: {
                 jobId,
+                submissionDate,
             },
         };
     } catch (error) {

@@ -162,6 +162,7 @@ describe('Translation project-start action', function () {
             statusCode: 202,
             body: {
                 jobId: 'project-1',
+                submissionDate: '2026-03-25T16:00:00Z',
             },
         });
         expect(putJobPayload).to.have.been.calledOnceWith(

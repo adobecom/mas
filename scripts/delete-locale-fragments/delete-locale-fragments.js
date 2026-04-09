@@ -3,14 +3,16 @@
  */
 
 const { join } = require('node:path');
-const { fetchOdin, processBatchWithConcurrency } = require(join(__dirname, '../../io/studio/src/common.js'));
+const { fetchOdin, processBatchWithConcurrency, getFragmentWithEtag, deleteFragmentById } = require(
+    join(__dirname, '../../io/studio/src/common.js'),
+);
 
 const ODIN_ENDPOINT = process.env.AEM_BASE_URL?.replace(/\/$/, '');
 const AUTH_TOKEN = process.env.AEM_TOKEN;
 const DRY_RUN = process.env.DRY_RUN !== 'false';
 const LOCALE_FOLDER = (process.env.LOCALE_FOLDER || '').trim();
 const CONCURRENCY = Math.max(1, parseInt(process.env.CONCURRENCY || '5', 10));
-const SURFACES = (process.env.SURFACES || 'acom,ccd,express,adobe-home,commerce,sandbox')
+const SURFACES = (process.env.SURFACES || '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
@@ -31,6 +33,11 @@ if (!LOCALE_FOLDER) {
     process.exit(1);
 }
 
+if (!SURFACES.length) {
+    console.error('Set SURFACES');
+    process.exit(1);
+}
+
 async function searchUnderFolder(folderPath) {
     const all = [];
     let cursor;
@@ -46,22 +53,6 @@ async function searchUnderFolder(folderPath) {
         if (!cursor) break;
     }
     return all;
-}
-
-async function getFragmentWithEtag(fragmentId) {
-    const response = await fetchOdin(ODIN_ENDPOINT, `/adobe/sites/cf/fragments/${fragmentId}`, AUTH_TOKEN, {
-        method: 'GET',
-    });
-    const etag = response.headers.get('etag') || response.headers.get('Etag');
-    const fragment = await response.json();
-    return { fragment, etag };
-}
-
-async function deleteFragment(fragmentId, etag) {
-    await fetchOdin(ODIN_ENDPOINT, `/adobe/sites/cf/fragments/${fragmentId}`, AUTH_TOKEN, {
-        method: 'DELETE',
-        etag,
-    });
 }
 
 async function main() {
@@ -99,15 +90,15 @@ async function main() {
         }
 
         if (DRY_RUN) {
-            console.log('');
+            console.log('  Dry run, skipping deletes.');
             continue;
         }
 
         const batchResults = await processBatchWithConcurrency(fragments, CONCURRENCY, async (frag) => {
             try {
-                const data = await getFragmentWithEtag(frag.id);
+                const data = await getFragmentWithEtag(ODIN_ENDPOINT, frag.id, AUTH_TOKEN);
                 if (!data?.etag) throw new Error(`No etag for ${frag.id}`);
-                await deleteFragment(frag.id, data.etag);
+                await deleteFragmentById(ODIN_ENDPOINT, frag.id, AUTH_TOKEN, data.etag);
                 return { ok: true };
             } catch (err) {
                 console.error(`  FAIL ${frag.path}: ${err.message}`);

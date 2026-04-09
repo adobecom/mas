@@ -768,7 +768,7 @@ describe('Translation project-start', () => {
                 odinEndpoint: baseParams.odinEndpoint,
             });
 
-            expect(result).to.deep.equal({ success: true });
+            expect(result).to.deep.equal({ success: true, etag: null });
             expect(callCounts['/adobe/sites/cf/fragments/test-project-id']).to.equal(2);
 
             const options = lastCallOptions['/adobe/sites/cf/fragments/test-project-id'];

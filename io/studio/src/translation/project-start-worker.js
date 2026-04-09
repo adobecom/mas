@@ -81,7 +81,7 @@ async function main(params) {
             versioningItemCount,
             batchSize: context.batchSize,
         });
-        await syncProjectFragmentStatus(payload.projectId, RUNNING_STATUS, workerParams.authToken, workerParams);
+        const { etag: runningStatusEtag } = await syncProjectFragmentStatus(payload.projectId, RUNNING_STATUS, workerParams.authToken, workerParams) ?? {};
 
         heartbeat = startVersioningLockHeartbeat(lockOwner);
         const versioningResult = await runVersioningStage(context, {
@@ -126,7 +126,7 @@ async function main(params) {
 
         const dispatchResult = await runPostVersioningStage(context);
         await patchAsyncProcessingSummary(payload.projectId, params);
-        await syncProjectFragmentStatus(payload.projectId, ASYNC_PROCESSING_STATUS, workerParams.authToken, workerParams);
+        await syncProjectFragmentStatus(payload.projectId, ASYNC_PROCESSING_STATUS, workerParams.authToken, workerParams, runningStatusEtag);
 
         return {
             statusCode: 200,
@@ -273,13 +273,13 @@ async function markProjectFailed(projectId, response, params = {}) {
     );
 }
 
-async function syncProjectFragmentStatus(projectId, status, authToken, params = {}) {
+async function syncProjectFragmentStatus(projectId, status, authToken, params = {}, etag = null) {
     if (!authToken || !params?.odinEndpoint) {
         return null;
     }
 
     try {
-        return await updateProjectStatus(projectId, status, authToken, params);
+        return await updateProjectStatus(projectId, status, authToken, params, etag);
     } catch (error) {
         logger.warn(`Failed to mirror project status ${status} for ${projectId}: ${error.message}`);
         return null;

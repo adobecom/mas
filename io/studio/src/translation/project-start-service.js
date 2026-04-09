@@ -530,22 +530,22 @@ async function updateTranslationDate(projectCF, etag, authToken, params = {}) {
     }
 }
 
-async function updateProjectStatus(projectId, status, authToken, params = {}) {
-    const { projectCF, etag } = await getTranslationProject(projectId, authToken, params);
+async function updateProjectStatus(projectId, status, authToken, params = {}, etag = null) {
+    const { projectCF, etag: fetchedEtag } = await getTranslationProject(projectId, authToken, params);
     const statusField = getValues(projectCF, 'status');
     if (!statusField?.path) {
         logger.info(`Status field not found in translation project ${projectId}, skipping status update to ${status}`);
         return { success: false, skipped: true };
     }
 
-    await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, authToken, {
+    const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, authToken, {
         method: 'PATCH',
         contentType: 'application/json-patch+json',
-        etag,
+        etag: etag ?? fetchedEtag,
         body: JSON.stringify([{ op: 'replace', path: `${statusField.path}/values`, value: [status] }]),
     });
 
-    return { success: true };
+    return { success: true, etag: response.headers.get('etag') };
 }
 
 module.exports = {

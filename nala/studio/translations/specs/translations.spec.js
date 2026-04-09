@@ -33,7 +33,7 @@ export default {
                 },
             },
             browserParams: '#page=translation-editor&path=nala',
-            tags: '@mas-studio @translation-editor',
+            tags: '@mas-studio @translation-editor @nopr',
             description:
                 'Search and Filters: enter search term and apply Template, Market Segment, Customer Segment, Product filters',
         },

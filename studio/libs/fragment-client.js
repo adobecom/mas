@@ -47,11 +47,6 @@ function getPreviewUrl() {
     return FREYJA_PREVIEW_URL;
 }
 
-function getPreviewFallback() {
-    if (backendMode === 'odin' || backendMode === 'freyja') return undefined;
-    return ODIN_PREVIEW_URL;
-}
-
 function getPreviewToken() {
     if (backendMode === 'odin') return undefined;
     if (typeof sessionStorage !== 'undefined') {
@@ -63,20 +58,17 @@ function getPreviewToken() {
 
 function getPreviewContext() {
     return {
-        preview: { url: getPreviewUrl() },
-        fallbackUrl: getPreviewFallback(),
-        authToken: getPreviewToken(),
+        preview: { url: getPreviewUrl(), authToken: getPreviewToken() },
     };
 }
 
 const DEFAULT_CONTEXT = {
     status: 200,
-    preview:{
+    preview: {
         url: getPreviewUrl(),
-    },
-    fallbackUrl: getPreviewFallback(),
-    get authToken() {
-        return getPreviewToken();
+        get authToken() {
+            return getPreviewToken();
+        },
     },
     requestId: 'preview',
     state: new LocaleStorageState(),
@@ -107,14 +99,11 @@ async function previewFragment(id, options) {
     const country = serviceElement?.getAttribute('country');
     let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'fragment-client' };
 
-    // Use Freyja endpoint with token if available, otherwise fall back to Odin
+    // Use Freyja endpoint with token if explicitly provided
     if (context.freyjaToken) {
         context.preview = {
             url: FREYJA_PREVIEW_URL,
-        };
-        context.DEFAULT_HEADERS = {
-            ...(context.DEFAULT_HEADERS || {}),
-            Authorization: `Bearer ${context.freyjaToken}`,
+            authToken: context.freyjaToken,
         };
     }
 
@@ -203,57 +192,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-/* c8 ignore next 50 */
-async function compareBackends(id, options = {}) {
-    const runs = options.runs || 3;
-    const results = { freyja: [], odin: [] };
-
-    for (let i = 0; i < runs; i++) {
-        clearCaches();
-        const freyjaToken = sessionStorage.getItem('masFreyjaToken')
-            ?? window.adobeIMS?.getAccessToken()?.token;
-
-        const fStart = performance.now();
-        const fResult = await previewFragment(id, {
-            ...options,
-            fullContext: true,
-            preview: { url: FREYJA_PREVIEW_URL },
-            fallbackUrl: undefined,
-            authToken: freyjaToken,
-        });
-        const fDuration = performance.now() - fStart;
-        results.freyja.push({ duration: Math.round(fDuration), status: fResult?.status ?? 200 });
-
-        clearCaches();
-
-        const oStart = performance.now();
-        const oResult = await previewFragment(id, {
-            ...options,
-            fullContext: true,
-            preview: { url: ODIN_PREVIEW_URL },
-            fallbackUrl: undefined,
-            authToken: undefined,
-        });
-        const oDuration = performance.now() - oStart;
-        results.odin.push({ duration: Math.round(oDuration), status: oResult?.status ?? 200 });
-    }
-
-    const avg = (arr) => Math.round(arr.reduce((a, b) => a + b.duration, 0) / arr.length);
-    const min = (arr) => Math.min(...arr.map((r) => r.duration));
-    const max = (arr) => Math.max(...arr.map((r) => r.duration));
-
-    console.group(`[MAS Perf] Freyja vs Odin — fragment ${id} (${runs} runs)`);
-    console.table({
-        Freyja: { avg_ms: avg(results.freyja), min_ms: min(results.freyja), max_ms: max(results.freyja), status: results.freyja[0]?.status },
-        Odin: { avg_ms: avg(results.odin), min_ms: min(results.odin), max_ms: max(results.odin), status: results.odin[0]?.status },
-    });
-    console.log('Speedup:', `${((avg(results.odin) / avg(results.freyja)) || 0).toFixed(1)}x`);
-    console.groupEnd();
-    return results;
-}
-
-if (typeof window !== 'undefined') {
-    window.masCompareBackends = compareBackends;
-}
-
-export { clearCaches, getPreviewContext, previewFragment, previewStudioFragment, compareBackends, customize, settings, replace, getDictionary, corrector };
+export { clearCaches, getPreviewContext, previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };

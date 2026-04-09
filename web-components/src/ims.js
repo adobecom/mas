@@ -33,7 +33,9 @@ export function imsSignedIn(imsReadyPromise) {
             const token = window.adobeIMS?.getAccessToken?.()?.token;
             if (token) {
                 sessionStorage.setItem('masFreyjaToken', token);
-                log.debug('Cached Freyja token to sessionStorage after sign-in');
+                log.debug(
+                    'Cached Freyja token to sessionStorage after sign-in',
+                );
             } else {
                 log.warn('User signed in but no access token available');
             }

@@ -50,8 +50,8 @@ async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
         const headers = { ...context.DEFAULT_HEADERS };
-        if (context.authToken) {
-            headers['Authorization'] = `Bearer ${context.authToken}`;
+        if (context.preview?.authToken) {
+            headers['Authorization'] = `Bearer ${context.preview.authToken}`;
         }
         const responsePromise = fetch(path, { headers });
 
@@ -107,29 +107,7 @@ async function internalFetch(path, context, marker) {
     mark(context, `${marker}`);
     const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
 
-    // Primary attempt (single try when fallbackUrl is set, full retries otherwise)
-    const primaryRetries = context.fallbackUrl ? 1 : retries;
-    let response = await fetchWithRetries(path, context, fetchTimeout, primaryRetries, retryDelay, marker);
-
-    // Fallback: if primary failed and fallbackUrl is configured, try Odin
-    if (context.fallbackUrl && response.status !== 200) {
-        const fallbackPath = path.replace(context.preview?.url, context.fallbackUrl);
-        log(`[preview] Freyja failed (${response.status}), falling back to Odin`, context);
-        const fallbackContext = { ...context, authToken: undefined, fallbackUrl: undefined };
-        response = await fetchWithRetries(
-            fallbackPath,
-            fallbackContext,
-            fetchTimeout,
-            retries,
-            retryDelay,
-            `${marker}-fallback`,
-        );
-        if (response.status === 200) {
-            log('[preview] Odin fallback OK', context);
-        }
-    } else if (context.fallbackUrl && response.status === 200) {
-        log('[preview] Freyja OK', context);
-    }
+    const response = await fetchWithRetries(path, context, fetchTimeout, retries, retryDelay, marker);
 
     measureTiming(context, `main-fetch-${marker}`, marker);
     return response;

@@ -6,7 +6,7 @@ export const features = [
     {
         tcid: '0',
         name: '@MAS-Plans',
-        path: DOCS_GALLERY_PATH.PLANS,
+        path: DOCS_GALLERY_PATH.PLANS.US,
         data: {
             id: '5a5ca143-a417-4087-b466-5b72ac68a830',
             title: 'Acrobat Pro',
@@ -26,7 +26,7 @@ export const features = [
     {
         tcid: '1',
         name: '@MAS-Plans-CSS',
-        path: DOCS_GALLERY_PATH.PLANS,
+        path: DOCS_GALLERY_PATH.PLANS.US,
         data: { id: '8373b5c2-69e6-4e9c-befc-b424dd33469b' },
         browserParams: '?theme=darkest',
         tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo',
@@ -34,9 +34,17 @@ export const features = [
     {
         tcid: '2',
         name: '@MAS-Plans-Students-CSS',
-        path: DOCS_GALLERY_PATH.PLANS,
+        path: DOCS_GALLERY_PATH.PLANS.US,
         data: { id: 'dfc2eede-7e88-4ed3-b96c-f5214472dfcf' },
         browserParams: '?theme=darkest',
         tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo',
+    },
+    {
+        tcid: '3',
+        name: '@MAS-Plans-CA-Visitor',
+        path: DOCS_GALLERY_PATH.PLANS.CA_VISITOR,
+        data: { id: '5a5ca143-a417-4087-b466-5b72ac68a830', badgeText: 'CANADA', price: PRICE_PATTERN.CA.mo },
+        browserParams: '?theme=darkest',
+        tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo @regional-variation',
     },
 ];

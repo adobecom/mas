@@ -482,25 +482,27 @@ class MerchCardEditor extends LitElement {
         return doc.querySelector('merch-whats-included');
     }
 
-    getWhatsIncludedProps(el) {
-        const desc = el.querySelector('[slot="description"]');
-        const description = desc?.textContent?.trim() || '';
+    getWhatsIncludedProps(el, fallback = true) {
+        const desc = el.querySelector('[slot="description"] > span');
+        const descHtml = desc?.innerHTML?.trim();
+        const alt = descHtml ? `<p>${descHtml}</p>` : '';
+
         const iconEl = el.querySelector('merch-icon');
         if (iconEl) {
+            const variantValue = this.getEffectiveFieldValue('variant');
+            const isMiniChart = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART;
             const icon = iconEl.getAttribute('src') || '';
-            const alt = iconEl.getAttribute('alt') || '';
             const linkEl = el.querySelector('[slot="icon"] a');
             const link = linkEl?.getAttribute('href') || '';
-            return { icon, description, alt, link };
+            return { icon, alt: isMiniChart ? alt : desc?.textContent, link };
         }
         // Fallback for spectrum icons (sp-icon-* elements)
         const spIcon = el.querySelector('.sp-icon');
-        if (spIcon) {
+        if (spIcon && fallback) {
             const icon = spIcon.tagName.toLowerCase();
-            const alt = '';
-            return { icon, description, alt, link: '' };
+            return { icon, alt, link: '' };
         }
-        return { icon: '', description: '', alt: '', link: '' };
+        return { icon: '', alt: '', link: '' };
     }
 
     get whatsIncluded() {
@@ -512,20 +514,20 @@ class MerchCardEditor extends LitElement {
 
         const bullets = [];
         this.whatsIncludedElement?.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').forEach((listEl) => {
-            const props = this.getWhatsIncludedProps(listEl);
+            const props = this.getWhatsIncludedProps(listEl, false);
             if (props.icon) {
                 bullets.push(props);
             } else {
                 const icon = listEl.querySelector('.sp-icon')?.tagName.toLowerCase() || '';
                 const desc = listEl.querySelector('[slot="description"] > span');
                 const text = listEl.querySelector('[slot="description"]')?.textContent || '';
-                let description;
+                let alt;
                 if (desc?.innerHTML == text) {
-                    description = text;
+                    alt = text;
                 } else {
-                    description = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
+                    alt = desc?.innerHTML ? `<p>${desc.innerHTML}</p>` : '';
                 }
-                bullets.push({ icon, description, alt: '', link: '' });
+                bullets.push({ icon, alt, link: '' });
             }
         });
 
@@ -664,14 +666,6 @@ class MerchCardEditor extends LitElement {
             const iconPicker = this.querySelector('sp-field-group.toggle#whatsIncludedIconPicker');
             if (shared) shared.style.display = 'none';
             if (iconPicker) iconPicker.style.display = 'block';
-        }
-
-        // Mini-compare-chart-mweb: hide footer rows and quantity selection (Milo-managed)
-        if (variantValue === VARIANT_NAMES.MINI_COMPARE_CHART_MWEB) {
-            const footerRows = this.querySelector('sp-field-group.toggle#footerRows');
-            const quantitySelect = this.querySelector('sp-field-group.toggle#quantitySelect');
-            if (footerRows) footerRows.style.display = 'none';
-            if (quantitySelect) quantitySelect.style.display = 'none';
         }
 
         this.toggleSectionHeadings();
@@ -1521,6 +1515,7 @@ class MerchCardEditor extends LitElement {
     }
 
     createMnemonicList(value, isBullet) {
+        let merchIcon;
         const list = document.createElement('merch-mnemonic-list');
         const iconSlot = document.createElement('div');
         iconSlot.setAttribute('slot', 'icon');
@@ -1529,7 +1524,7 @@ class MerchCardEditor extends LitElement {
             icon.setAttribute('class', 'sp-icon');
             iconSlot.append(icon);
         } else if (value.icon) {
-            const merchIcon = document.createElement('merch-icon');
+            merchIcon = document.createElement('merch-icon');
             merchIcon.setAttribute('size', isBullet ? 'xs' : 's');
             merchIcon.setAttribute('src', value.icon);
             merchIcon.setAttribute('alt', value.alt || '');
@@ -1544,22 +1539,17 @@ class MerchCardEditor extends LitElement {
         }
         const descriptionEl = document.createElement('p');
         descriptionEl.setAttribute('slot', 'description');
-        const text = value.description || value.alt || '';
-        if (isBullet) {
-            const span = document.createElement('span');
-            if (text.startsWith('<p>')) {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                span.innerHTML = doc.querySelector('p').innerHTML;
-            } else {
-                span.textContent = text;
-            }
-            descriptionEl.append(span);
+        const text = value.alt || '';
+        const span = document.createElement('span');
+        if (text.startsWith('<p>')) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            span.innerHTML = doc.querySelector('p').innerHTML;
+            if (merchIcon) merchIcon.setAttribute('alt', doc.querySelector('p').textContent || '');
         } else {
-            const span = document.createElement('span');
             span.textContent = text;
-            descriptionEl.append(span);
         }
+        descriptionEl.append(span);
         list.append(iconSlot);
         list.append(descriptionEl);
         return list;
@@ -1595,11 +1585,11 @@ class MerchCardEditor extends LitElement {
         let values = [];
         let bullets = [];
         if (Array.isArray(event.target.value)) {
-            event.target.value.forEach(({ icon, description, alt, link }) => {
+            event.target.value.forEach(({ icon, alt, link }) => {
                 if (isBullet) {
-                    bullets.push({ icon, description, alt, link });
+                    bullets.push({ icon, alt, link });
                 } else {
-                    values.push({ icon, description, alt, link });
+                    values.push({ icon, alt, link });
                 }
             });
             label = this.whatsIncluded.label;

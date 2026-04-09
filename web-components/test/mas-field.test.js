@@ -34,7 +34,9 @@ describe('mas-field – ctas rendering', () => {
 
     afterEach(() => {
         sandbox.restore();
-        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
     });
 
     it('renders a <div slot="footer"> wrapper for ctas field', () => {
@@ -71,14 +73,20 @@ describe('mas-field – ctas rendering', () => {
     });
 
     it('applies fill class for primary without outline', () => {
-        const el = makeField('ctas', '<a data-wcs-osi="ABC" class="primary">Start trial</a>');
+        const el = makeField(
+            'ctas',
+            '<a data-wcs-osi="ABC" class="primary">Start trial</a>',
+        );
         const link = el.querySelector('[slot="footer"] a');
         expect(link.classList.contains('con-button')).to.be.true;
         expect(link.classList.contains('fill')).to.be.true;
     });
 
     it('does not apply fill for primary-outline', () => {
-        const el = makeField('ctas', '<a data-wcs-osi="ABC" class="primary-outline">Learn more</a>');
+        const el = makeField(
+            'ctas',
+            '<a data-wcs-osi="ABC" class="primary-outline">Learn more</a>',
+        );
         const link = el.querySelector('[slot="footer"] a');
         expect(link.classList.contains('con-button')).to.be.true;
         expect(link.classList.contains('fill')).to.be.false;
@@ -108,9 +116,15 @@ describe('mas-field – ctas rendering', () => {
 
     it('uses createCheckoutLink when checkout-link is registered', () => {
         const fakeLink = document.createElement('a');
-        fakeLink.innerHTML = '<span style="pointer-events: none;">Buy now</span>';
-        const CheckoutLinkMock = { createCheckoutLink: sinon.stub().returns(fakeLink) };
-        sandbox.stub(customElements, 'get').withArgs('checkout-link').returns(CheckoutLinkMock);
+        fakeLink.innerHTML =
+            '<span style="pointer-events: none;">Buy now</span>';
+        const CheckoutLinkMock = {
+            createCheckoutLink: sinon.stub().returns(fakeLink),
+        };
+        sandbox
+            .stub(customElements, 'get')
+            .withArgs('checkout-link')
+            .returns(CheckoutLinkMock);
 
         const el = makeField('ctas', CTA_HTML);
         expect(CheckoutLinkMock.createCheckoutLink.calledOnce).to.be.true;
@@ -127,6 +141,8 @@ describe('mas-field – ctas rendering', () => {
         const el = makeField('ctas', '<p>No links here</p>');
         const footer = el.querySelector('[slot="footer"]');
         expect(footer).to.be.null;
-        expect(el.querySelector('[data-role="mas-field-content"]').innerHTML).to.include('No links');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').innerHTML,
+        ).to.include('No links');
     });
 });

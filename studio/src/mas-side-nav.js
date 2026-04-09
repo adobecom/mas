@@ -643,7 +643,6 @@ class MasSideNav extends LitElement {
         }
     }
 
-
     async copyJsonLd() {
         const fragment = this.fragmentEditor?.fragment;
         if (!fragment) return;

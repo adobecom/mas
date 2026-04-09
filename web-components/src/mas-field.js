@@ -129,7 +129,8 @@ class MasField extends HTMLElement {
         const isCheckout = !!link.getAttribute('data-wcs-osi');
         if (!isCheckout) return link.cloneNode(true);
 
-        const styleMatch = CHECKOUT_STYLE_PATTERN.exec(link.className ?? '')?.[0] ?? 'accent';
+        const styleMatch =
+            CHECKOUT_STYLE_PATTERN.exec(link.className ?? '')?.[0] ?? 'accent';
         const isAccent = styleMatch.startsWith('accent');
         const isLinkStyle = styleMatch.includes('-link');
 
@@ -150,7 +151,11 @@ class MasField extends HTMLElement {
         if (!isLinkStyle) {
             button.classList.add('button', 'con-button');
             if (isAccent) button.classList.add('blue');
-            else if (styleMatch.startsWith('primary') && !styleMatch.includes('-outline')) button.classList.add('fill');
+            else if (
+                styleMatch.startsWith('primary') &&
+                !styleMatch.includes('-outline')
+            )
+                button.classList.add('fill');
         }
         return button;
     }

@@ -53,7 +53,9 @@ export function mergeCommerceCountryFromGeo(config = {}) {
 
     let geoFromUrl = null;
     try {
-        const raw = new URLSearchParams(window.location.search).get('akamaiLocale');
+        const raw = new URLSearchParams(window.location.search).get(
+            'akamaiLocale',
+        );
         if (raw?.trim()) geoFromUrl = raw.trim().toUpperCase();
     } catch {}
     if (geoFromUrl) {

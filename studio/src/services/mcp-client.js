@@ -15,10 +15,10 @@ import { MCP_SERVER_URL } from '../constants.js';
  */
 export async function executeMCPTool(toolName, params) {
     try {
-        const accessToken =
-            sessionStorage.getItem('masAccessToken') ??
-            window.adobeIMS?.getAccessToken()?.token ??
-            window.adobeid?.authorize?.();
+        const accessToken = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
+        if (typeof accessToken !== 'string' || accessToken.length === 0) {
+            throw new Error('Not authenticated: missing IMS access token');
+        }
         let aemBaseUrl = document.querySelector('meta[name="aem-base-url"]')?.getAttribute('content');
         if (aemBaseUrl?.includes('localhost')) {
             aemBaseUrl = document.querySelector('meta[name="aem-author-url"]')?.getAttribute('content') || aemBaseUrl;
@@ -26,13 +26,10 @@ export async function executeMCPTool(toolName, params) {
 
         const headers = {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+            'x-gw-ims-org-id': window.adobeIMS?.adobeIdData?.imsOrg || '',
+            'x-api-key': window.adobeIMS?.adobeIdData?.client_id || '',
         };
-
-        if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-            headers['x-gw-ims-org-id'] = window.adobeIMS?.adobeIdData?.imsOrg || '';
-            headers['x-api-key'] = window.adobeIMS?.adobeIdData?.client_id || '';
-        }
 
         const requestBody = {
             ...params,

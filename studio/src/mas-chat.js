@@ -8,7 +8,7 @@ import './mas-chat-session-selector.js';
 import Store from './store.js';
 import router from './router.js';
 import { createFragmentFromAIConfig, createFragmentDataForAEM } from './utils/ai-card-mapper.js';
-import { executeOperationWithFeedback } from './utils/ai-operations-executor.js';
+import { executeOperationWithFeedback, shouldRequireConfirmation } from './utils/ai-operations-executor.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, extractSurfaceFromPath as extractSurface } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING, SURFACES } from './constants.js';
@@ -393,10 +393,11 @@ export class MasChat extends LitElement {
                     }
                 }
 
+                const requiresConfirmation = shouldRequireConfirmation(response.mcpTool, response.confirmationRequired);
                 const messageData = {
                     role: 'assistant',
                     content: response.message || 'Processing your request...',
-                    confirmationRequired: response.confirmationRequired,
+                    confirmationRequired: requiresConfirmation,
                     timestamp: Date.now(),
                 };
 
@@ -414,7 +415,7 @@ export class MasChat extends LitElement {
                 this.messages = [...this.messages, messageData];
                 this.conversationHistory = response.conversationHistory || [];
 
-                if (!response.confirmationRequired) {
+                if (!requiresConfirmation) {
                     const operationToExecute =
                         response.type === 'mcp_operation'
                             ? {
@@ -971,9 +972,8 @@ export class MasChat extends LitElement {
 
     extractTitle(cardConfig) {
         if (!cardConfig.title) return 'AI Generated Card';
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = cardConfig.title;
-        return tempDiv.textContent || 'AI Generated Card';
+        const doc = new DOMParser().parseFromString(cardConfig.title, 'text/html');
+        return doc.body.textContent || 'AI Generated Card';
     }
 
     capitalize(str) {
@@ -1062,14 +1062,7 @@ export class MasChat extends LitElement {
     async executeOperation(operation) {
         this.isLoading = true;
 
-        const repository = this.repository;
-        if (!repository) {
-            showToast('Repository not found', 'negative');
-            this.isLoading = false;
-            return;
-        }
-
-        const operationType = operation.type === 'mcp_operation' ? operation.mcpTool : operation.operation;
+        const operationType = operation.mcpTool;
         const isPreviewOperation = ['preview_bulk_update', 'preview_bulk_publish', 'preview_bulk_delete'].includes(
             operationType,
         );
@@ -1080,7 +1073,7 @@ export class MasChat extends LitElement {
         } else if (isBulkOperation) {
             await this.executeBulkOperationWithProgress(operation, operationType);
         } else {
-            await this.executeRegularOperation(operation, repository, operationType);
+            await this.executeRegularOperation(operation, operationType);
         }
 
         this.isLoading = false;
@@ -1238,7 +1231,7 @@ export class MasChat extends LitElement {
         }
     }
 
-    async executeRegularOperation(operation, repository, operationType) {
+    async executeRegularOperation(operation, operationType) {
         const loadingMessage = this.getOperationLoadingMessage(operationType);
 
         const loadingMessageObj = {
@@ -1257,7 +1250,6 @@ export class MasChat extends LitElement {
 
         await executeOperationWithFeedback(
             operation,
-            repository,
             (res) => {
                 operationResult = res;
                 this.messages = this.messages.map((msg) =>
@@ -1320,7 +1312,7 @@ export class MasChat extends LitElement {
             })
             .join('\n');
 
-        const toolResultMessage = `[MCS product data retrieved via ${tool}]\n${summary}${products.length > 30 ? `\n...and ${products.length - 30} more` : ''}`;
+        const toolResultMessage = `[MCS product data retrieved via ${tool}]\n${summary}${products.length > 20 ? `\n...and ${products.length - 20} more` : ''}`;
 
         this.conversationHistory = [...this.conversationHistory, { role: 'user', content: toolResultMessage }];
 
@@ -1340,9 +1332,11 @@ export class MasChat extends LitElement {
             this.conversationHistory = response.conversationHistory || [];
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
+                const requiresConfirmation = shouldRequireConfirmation(response.mcpTool, response.confirmationRequired);
                 const messageData = {
                     role: 'assistant',
                     content: response.message,
+                    confirmationRequired: requiresConfirmation,
                     timestamp: Date.now(),
                 };
                 if (response.type === 'mcp_operation') {
@@ -1350,7 +1344,7 @@ export class MasChat extends LitElement {
                     messageData.operationType = 'mcp_operation';
                 }
                 this.messages = [...this.messages, messageData];
-                if (!response.confirmationRequired) {
+                if (!requiresConfirmation) {
                     const op =
                         response.type === 'mcp_operation'
                             ? { type: 'mcp_operation', mcpTool: response.mcpTool, mcpParams: response.mcpParams }

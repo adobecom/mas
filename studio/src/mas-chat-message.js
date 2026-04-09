@@ -327,9 +327,8 @@ export class MasChatMessage extends LitElement {
 
     extractTitle(cardConfig) {
         if (!cardConfig.title) return 'Untitled';
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = cardConfig.title;
-        return tempDiv.textContent || 'Untitled';
+        const doc = new DOMParser().parseFromString(cardConfig.title, 'text/html');
+        return doc.body.textContent || 'Untitled';
     }
 
     renderCollectionSelection() {

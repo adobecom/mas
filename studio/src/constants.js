@@ -129,17 +129,25 @@ export const PAGE_NAMES = {
 };
 
 const IO_DEV_NAMESPACE = '14257-merchatscale-axel';
-function getAIChatBaseURL() {
-    const params = new URLSearchParams(window.location.search);
-    const override = params.get('ai.chat');
-    if (override) return override;
+
+function isLocalhostHostname(hostname) {
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
+
+export function getAIChatBaseURL(location = window.location) {
+    if (isLocalhostHostname(location.hostname)) {
+        const override = new URLSearchParams(location.search).get('ai.chat');
+        if (override) return override;
+    }
     return `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
 }
 export const AI_CHAT_BASE_URL = getAIChatBaseURL();
-function getMCPServerURL() {
-    const params = new URLSearchParams(window.location.search);
-    const override = params.get('mcp.server');
-    if (override) return override;
+
+export function getMCPServerURL(location = window.location) {
+    if (isLocalhostHostname(location.hostname)) {
+        const override = new URLSearchParams(location.search).get('mcp.server');
+        if (override) return override;
+    }
     return `https://${IO_DEV_NAMESPACE}.adobeioruntime.net/api/v1/web/MerchAtScaleMCP`;
 }
 export const MCP_SERVER_URL = getMCPServerURL();

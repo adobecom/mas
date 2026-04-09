@@ -247,14 +247,16 @@ export function createFragmentFromAIConfig(aiConfig, variant, options = {}) {
 }
 
 /**
- * Extracts a title from AI config
+ * Extracts a title from AI config.
+ *
+ * Uses DOMParser (inert document) instead of innerHTML on a detached element
+ * so that <img> tags and other resource-loading elements in the HTML do not
+ * trigger network requests during text extraction. See audit finding M1.
  */
-function extractTitleFromConfig(config) {
-    // Try to extract plain text from title HTML
+export function extractTitleFromConfig(config) {
     if (config.title) {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = config.title;
-        return tempDiv.textContent || config.title;
+        const doc = new DOMParser().parseFromString(config.title, 'text/html');
+        return doc.body.textContent || config.title;
     }
 
     if (config.cardTitle) {

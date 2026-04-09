@@ -1287,9 +1287,6 @@ function buildOperationsPrompt(message, context) {
     return prompt;
 }
 
-/** @deprecated Use buildOperationsPrompt(message, context) instead */
-const OPERATIONS_SYSTEM_PROMPT = `${OPERATIONS_PREAMBLE}\n${PUBLISH_OPS}\n${CRUD_OPS}\n${BULK_OPS}\n${VARIATION_OPS}\n${OFFER_OPS}\n${ATTACHED_CARDS_SECTION}`;
-
 export {
     OPERATIONS_PREAMBLE,
     PUBLISH_OPS,
@@ -1299,5 +1296,4 @@ export {
     OFFER_OPS,
     ATTACHED_CARDS_SECTION,
     buildOperationsPrompt,
-    OPERATIONS_SYSTEM_PROMPT,
 };

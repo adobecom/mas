@@ -2,6 +2,59 @@ const STORAGE_KEY = 'mas-chat-sessions';
 const MAX_SESSIONS = 20;
 const DEBOUNCE_DELAY = 500;
 
+const DEFAULT_DATA = Object.freeze({ sessions: {}, activeSessionId: null });
+
+/**
+ * Sanitize a single message before exposing it to the UI.
+ * Strips execution metadata (mcpOperation, operationType, confirmationRequired)
+ * so that historical messages cannot be replayed as live operations. This is
+ * a defense against malicious localStorage writes (audit M3).
+ */
+function sanitizeMessage(message) {
+    if (!message || typeof message !== 'object') return null;
+    const { mcpOperation, operationType, confirmationRequired, operation, ...safe } = message;
+    return safe;
+}
+
+/**
+ * Validate that a session has the minimum shape required by the UI and
+ * return a sanitized copy. Returns null for invalid sessions.
+ *
+ * `messages` and `conversationHistory` may be missing on legitimate sessions
+ * (e.g. a freshly-created session that hasn't been saved with messages yet);
+ * those are coerced to empty arrays. Sessions with non-array `messages` are
+ * rejected as malformed.
+ */
+function sanitizeSession(session) {
+    if (!session || typeof session !== 'object') return null;
+    if (typeof session.id !== 'string' || session.id.length === 0) return null;
+    if (session.messages !== undefined && !Array.isArray(session.messages)) return null;
+    const messages = Array.isArray(session.messages) ? session.messages.map(sanitizeMessage).filter(Boolean) : [];
+    return {
+        ...session,
+        messages,
+        conversationHistory: Array.isArray(session.conversationHistory) ? session.conversationHistory : [],
+    };
+}
+
+/**
+ * Validate the top-level storage shape, drop invalid sessions, sanitize
+ * surviving sessions, and return a clean data object. Never throws.
+ */
+function sanitizeData(raw) {
+    if (!raw || typeof raw !== 'object' || !raw.sessions || typeof raw.sessions !== 'object') {
+        return { sessions: {}, activeSessionId: null };
+    }
+    const sessions = {};
+    for (const [key, value] of Object.entries(raw.sessions)) {
+        const safe = sanitizeSession(value);
+        if (safe) sessions[key] = safe;
+    }
+    const activeSessionId =
+        typeof raw.activeSessionId === 'string' && sessions[raw.activeSessionId] ? raw.activeSessionId : null;
+    return { sessions, activeSessionId };
+}
+
 export class ChatSessionManager {
     constructor() {
         this.debounceTimers = new Map();
@@ -11,20 +64,18 @@ export class ChatSessionManager {
     initializeStorage() {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (!stored) {
-            const initialData = {
-                sessions: {},
-                activeSessionId: null,
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
         }
     }
 
     getData() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!stored) return { sessions: {}, activeSessionId: null };
         try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            return stored ? JSON.parse(stored) : { sessions: {}, activeSessionId: null };
+            return sanitizeData(JSON.parse(stored));
         } catch {
-            localStorage.removeItem(STORAGE_KEY);
+            // Preserve corrupt data in storage so a developer can recover it
+            // manually; surface the default to the UI without destroying state.
             return { sessions: {}, activeSessionId: null };
         }
     }
@@ -154,6 +205,10 @@ export class ChatSessionManager {
         }
 
         return this.updateSession(sessionId, { name: newName.trim() });
+    }
+
+    clearSession(sessionId) {
+        return this.updateSession(sessionId, { messages: [], conversationHistory: [] });
     }
 
     getSessionCount() {

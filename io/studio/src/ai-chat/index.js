@@ -31,6 +31,20 @@ import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
 
 /**
+ * IMS client_id allowlist for the AI Chat action.
+ *
+ * Adobe IMS validates that a token is authentic but does NOT tell us which
+ * Adobe app the token was issued to. Without an allowlist, any valid IMS
+ * token from any Adobe app (Photoshop, Creative Cloud desktop, Experience
+ * Platform, etc.) would be accepted by this action. We restrict access to
+ * tokens issued specifically to MAS Studio (audit finding M4).
+ *
+ * The frontend studio.html declares `client_id: 'mas-studio'`. If new
+ * deployment environments use different IMS clients, add them here.
+ */
+const MAS_CLIENT_IDS = ['mas-studio'];
+
+/**
  * All known variant names for detection
  */
 const ALL_VARIANT_NAMES = Object.keys(VARIANT_METADATA);
@@ -203,9 +217,9 @@ async function generateSessionTitle(params) {
     } catch (error) {
         console.error('generateSessionTitle error:', error);
         return {
-            statusCode: 500,
+            statusCode: 502,
             headers: { ...getResponseHeaders() },
-            body: { error: error.message },
+            body: { error: 'Title generation failed' },
         };
     }
 }
@@ -290,7 +304,10 @@ async function authorize(headers) {
     if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.slice(7);
         if (token) {
-            const imsValidation = await new Ims('prod').validateToken(token);
+            // validateTokenAllowList rejects tokens whose client_id is not in
+            // MAS_CLIENT_IDS (audit finding M4 — prevents non-MAS Adobe apps
+            // from invoking this action and burning Bedrock budget).
+            const imsValidation = await new Ims('prod').validateTokenAllowList(token, MAS_CLIENT_IDS);
             return imsValidation.valid;
         }
     }
@@ -481,15 +498,14 @@ async function main(params) {
         );
 
         if (!response.success) {
+            console.error('Bedrock request failed', { errorType: response.errorType, error: response.error });
             return {
-                statusCode: 500,
+                statusCode: 502,
                 headers: {
                     ...getResponseHeaders(),
                 },
                 body: {
                     error: 'Failed to get AI response',
-                    details: response.error,
-                    errorType: response.errorType,
                 },
             };
         }
@@ -769,8 +785,6 @@ async function main(params) {
             },
             body: {
                 error: 'Internal server error',
-                details: error.message,
-                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
             },
         };
     }

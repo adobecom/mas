@@ -182,25 +182,38 @@ describe('mcp-client', () => {
             expect(options.headers['Authorization']).to.equal('Bearer ims-token-456');
         });
 
-        it('omits auth headers when no token is available', async () => {
+        it('throws Not authenticated when no token is available', async () => {
             sessionStorage.getItem.restore();
             sandbox.stub(sessionStorage, 'getItem').returns(null);
             window.adobeIMS = {
                 getAccessToken: () => null,
                 adobeIdData: {},
             };
-            window.adobeid = { authorize: () => undefined };
 
-            fetchStub.resolves({
-                ok: true,
-                json: () => Promise.resolve({ success: true }),
-            });
+            try {
+                await executeMCPTool('get_card', { id: 'frag-1' });
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.include('Not authenticated');
+            }
+            expect(fetchStub.called).to.be.false;
+        });
 
-            await executeMCPTool('get_card', { id: 'frag-1' });
+        it('throws Not authenticated when IMS getAccessToken returns undefined token', async () => {
+            sessionStorage.getItem.restore();
+            sandbox.stub(sessionStorage, 'getItem').returns(null);
+            window.adobeIMS = {
+                getAccessToken: () => ({ token: undefined }),
+                adobeIdData: {},
+            };
 
-            const [, options] = fetchStub.firstCall.args;
-            expect(options.headers['Authorization']).to.be.undefined;
-            expect(options.headers['x-gw-ims-org-id']).to.be.undefined;
+            try {
+                await executeMCPTool('publish_card', { id: 'frag-1' });
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.include('Not authenticated');
+            }
+            expect(fetchStub.called).to.be.false;
         });
     });
 

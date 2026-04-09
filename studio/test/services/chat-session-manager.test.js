@@ -19,6 +19,9 @@ describe('ChatSessionManager', () => {
         sandbox.stub(localStorage, 'setItem').callsFake((key, value) => {
             storage[key] = value;
         });
+        sandbox.stub(localStorage, 'removeItem').callsFake((key) => {
+            delete storage[key];
+        });
         manager = new ChatSessionManager();
     });
 
@@ -435,6 +438,113 @@ describe('ChatSessionManager', () => {
                 sessions: {},
                 activeSessionId: null,
             });
+        });
+
+        it('returns default structure when storage contains invalid JSON', () => {
+            storage[STORAGE_KEY] = '{not valid json';
+            const data = manager.getData();
+            expect(data).to.deep.equal({
+                sessions: {},
+                activeSessionId: null,
+            });
+        });
+
+        it('does NOT remove the storage entry on parse failure (preserves data for recovery)', () => {
+            storage[STORAGE_KEY] = '{not valid json';
+            manager.getData();
+            expect(storage[STORAGE_KEY]).to.equal('{not valid json');
+        });
+
+        it('drops sessions missing required fields and keeps the valid ones', () => {
+            storage[STORAGE_KEY] = JSON.stringify({
+                sessions: {
+                    'session-good': { id: 'session-good', name: 'Good', messages: [], conversationHistory: [] },
+                    'session-no-id': { name: 'Bad', messages: [] },
+                    'session-empty-id': { id: '', name: 'Bad', messages: [] },
+                    'session-not-an-object': 'not an object at all',
+                    'session-null-fixture': null,
+                },
+                activeSessionId: 'session-good',
+            });
+            const data = manager.getData();
+            expect(Object.keys(data.sessions)).to.deep.equal(['session-good']);
+            expect(data.activeSessionId).to.equal('session-good');
+        });
+
+        it('clears activeSessionId when it points at a dropped session', () => {
+            storage[STORAGE_KEY] = JSON.stringify({
+                sessions: {
+                    'session-bad': { name: 'Bad' },
+                },
+                activeSessionId: 'session-bad',
+            });
+            const data = manager.getData();
+            expect(data.activeSessionId).to.equal(null);
+        });
+
+        it('strips mcpOperation metadata from persisted message history (defense against replay)', () => {
+            storage[STORAGE_KEY] = JSON.stringify({
+                sessions: {
+                    'session-1': {
+                        id: 'session-1',
+                        name: 'Test',
+                        messages: [
+                            { role: 'user', content: 'do it' },
+                            {
+                                role: 'assistant',
+                                content: 'ok',
+                                mcpOperation: { mcpTool: 'bulk_delete_cards', mcpParams: { fragmentIds: ['x', 'y'] } },
+                                operationType: 'mcp_operation',
+                                confirmationRequired: false,
+                            },
+                        ],
+                        conversationHistory: [],
+                    },
+                },
+                activeSessionId: 'session-1',
+            });
+            const data = manager.getData();
+            const message = data.sessions['session-1'].messages[1];
+            expect(message.role).to.equal('assistant');
+            expect(message.content).to.equal('ok');
+            expect(message.mcpOperation).to.be.undefined;
+            expect(message.operationType).to.be.undefined;
+            expect(message.confirmationRequired).to.be.undefined;
+        });
+
+        it('preserves messages without mcpOperation metadata unchanged', () => {
+            storage[STORAGE_KEY] = JSON.stringify({
+                sessions: {
+                    'session-1': {
+                        id: 'session-1',
+                        name: 'Test',
+                        messages: [
+                            { role: 'user', content: 'hello' },
+                            { role: 'assistant', content: 'hi there', timestamp: 12345 },
+                        ],
+                        conversationHistory: [{ role: 'user', content: 'hello' }],
+                    },
+                },
+                activeSessionId: 'session-1',
+            });
+            const data = manager.getData();
+            const messages = data.sessions['session-1'].messages;
+            expect(messages).to.have.lengthOf(2);
+            expect(messages[0].content).to.equal('hello');
+            expect(messages[1].content).to.equal('hi there');
+            expect(messages[1].timestamp).to.equal(12345);
+        });
+
+        it('does not throw on sessions with non-array messages field', () => {
+            storage[STORAGE_KEY] = JSON.stringify({
+                sessions: {
+                    'session-bad': { id: 'session-bad', name: 'Bad', messages: 'not an array' },
+                },
+                activeSessionId: 'session-bad',
+            });
+            expect(() => manager.getData()).to.not.throw();
+            const data = manager.getData();
+            expect(data.sessions['session-bad']).to.be.undefined;
         });
     });
 });

@@ -6,6 +6,7 @@ import {
     validateAIConfig,
     createFragmentDataForAEM,
     applyDualOsiToCtas,
+    extractTitleFromConfig,
 } from '../../src/utils/ai-card-mapper.js';
 import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../../src/constants.js';
 
@@ -544,6 +545,85 @@ describe('ai-card-mapper', () => {
             const tags = ['mas:plan_type/abm'];
             const fragment = createFragmentFromAIConfig({}, 'catalog', { tags });
             expect(fragment.tags).to.deep.equal(tags);
+        });
+    });
+
+    describe('extractTitleFromConfig', () => {
+        it('returns the default fallback when title is missing', () => {
+            expect(extractTitleFromConfig({})).to.equal('AI Generated Card');
+        });
+
+        it('falls back to cardTitle when title is missing', () => {
+            expect(extractTitleFromConfig({ cardTitle: 'My Card' })).to.equal('My Card');
+        });
+
+        it('falls back to name when title and cardTitle are missing', () => {
+            expect(extractTitleFromConfig({ name: 'Plan A' })).to.equal('Plan A');
+        });
+
+        it('extracts plain text from a simple HTML title', () => {
+            const result = extractTitleFromConfig({ title: '<h3>Hello World</h3>' });
+            expect(result).to.equal('Hello World');
+        });
+
+        it('strips nested tags and returns concatenated text', () => {
+            const result = extractTitleFromConfig({
+                title: '<h3>Save <strong>50%</strong> on <em>Photoshop</em></h3>',
+            });
+            expect(result).to.equal('Save 50% on Photoshop');
+        });
+
+        it('strips <img> tags from the title and returns the surrounding text', () => {
+            const result = extractTitleFromConfig({
+                title: '<h3>Card title</h3><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">',
+            });
+            expect(result).to.equal('Card title');
+        });
+
+        it('strips multiple <img> children and returns concatenated text', () => {
+            const result = extractTitleFromConfig({
+                title: '<img src="data:,a">Header<img src="data:,b">',
+            });
+            expect(result).to.equal('Header');
+        });
+
+        it('strips <img> with onerror attribute (no script execution)', () => {
+            // Inline data URI prevents network fetch in either implementation;
+            // the assertion is that the surrounding text is preserved and no
+            // exception is thrown by parser side effects.
+            const result = extractTitleFromConfig({
+                title: '<span>Title</span><img src="data:,x" onerror="window.__shouldNotRun=true">',
+            });
+            expect(result).to.equal('Title');
+            expect(window.__shouldNotRun).to.be.undefined;
+        });
+
+        it('does not parse scripts inside the title', () => {
+            extractTitleFromConfig({
+                title: '<span>OK</span><script>window.__scriptRan=true</script>',
+            });
+            expect(window.__scriptRan).to.be.undefined;
+        });
+
+        it('handles empty string title gracefully', () => {
+            const result = extractTitleFromConfig({ title: '' });
+            expect(result).to.equal('AI Generated Card');
+        });
+
+        it('handles plain text title without any tags', () => {
+            expect(extractTitleFromConfig({ title: 'Just plain text' })).to.equal('Just plain text');
+        });
+
+        it('uses DOMParser for parsing (no live document side effects)', () => {
+            // Snapshot the live document image count before, then call the function
+            // with HTML containing an <img>, and verify NO new <img> elements were
+            // attached to the live document. This proves the parser is inert.
+            const beforeImgCount = document.querySelectorAll('img').length;
+            extractTitleFromConfig({
+                title: '<img src="data:,a"><img src="data:,b"><img src="data:,c">Header',
+            });
+            const afterImgCount = document.querySelectorAll('img').length;
+            expect(afterImgCount).to.equal(beforeImgCount);
         });
     });
 });

@@ -9,13 +9,76 @@
  * and formats them for MCP execution in the frontend.
  */
 
+const MAX_RESPONSE_LENGTH = 64 * 1024;
+
 /**
- * Parse operation request from AI response (supports both MCP and legacy formats)
+ * Walk brace depth from `startIdx` (which must point at a `{`) and return the
+ * substring that ends at the matching `}`, respecting string literals and
+ * escapes. Returns null if the braces never balance.
+ * @private
+ */
+function extractBalancedObject(text, startIdx) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = startIdx; i < text.length; i += 1) {
+        const ch = text[i];
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (inString) {
+            if (ch === '\\') escaped = true;
+            else if (ch === '"') inString = false;
+            continue;
+        }
+        if (ch === '"') {
+            inString = true;
+        } else if (ch === '{') {
+            depth += 1;
+        } else if (ch === '}') {
+            depth -= 1;
+            if (depth === 0) return text.slice(startIdx, i + 1);
+        }
+    }
+    return null;
+}
+
+/**
+ * Find a JSON object starting at any `{` in the text whose parsed form
+ * satisfies the predicate. Walks each `{` candidate, extracts the balanced
+ * object substring, attempts to parse it, and returns the first match.
+ * @private
+ */
+function findJSONObject(text, predicate) {
+    let cursor = 0;
+    while (cursor < text.length) {
+        const braceIdx = text.indexOf('{', cursor);
+        if (braceIdx === -1) return null;
+        const candidate = extractBalancedObject(text, braceIdx);
+        if (!candidate) return null;
+        try {
+            const parsed = JSON.parse(candidate);
+            if (predicate(parsed)) return parsed;
+        } catch (error) {
+            // not valid JSON at this position; advance and try the next `{`
+        }
+        cursor = braceIdx + 1;
+    }
+    return null;
+}
+
+/**
+ * Parse an MCP operation request from an AI response.
+ * Returns the parsed operation object or null if no MCP operation is detected.
+ * Legacy `{operation: "publish"}` format is no longer supported (audit M9).
+ *
  * @param {string} responseText - AI response text
- * @returns {Object|null} - Operation object or null
+ * @returns {Object|null}
  */
 export function parseOperationRequest(responseText) {
     if (!responseText) return null;
+    if (responseText.length > MAX_RESPONSE_LENGTH) return null;
 
     const jsonBlockMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
     let operationData = null;
@@ -29,32 +92,10 @@ export function parseOperationRequest(responseText) {
     }
 
     if (!operationData) {
-        const mcpMatch = responseText.match(/\{[\s\S]*"type"\s*:\s*"mcp_operation"[\s\S]*\}/);
-        if (mcpMatch) {
-            try {
-                operationData = JSON.parse(mcpMatch[0]);
-            } catch (error) {
-                console.error('Failed to parse MCP operation:', error);
-            }
-        }
+        operationData = findJSONObject(responseText, (obj) => obj?.type === 'mcp_operation');
     }
 
-    if (!operationData) {
-        const legacyMatch = responseText.match(/\{[\s\S]*"operation"\s*:\s*"[^"]+[\s\S]*\}/);
-        if (legacyMatch) {
-            try {
-                operationData = JSON.parse(legacyMatch[0]);
-            } catch (error) {
-                console.error('Failed to parse legacy operation:', error);
-            }
-        }
-    }
-
-    if (operationData?.type === 'mcp_operation' || operationData?.operation) {
-        return operationData;
-    }
-
-    return null;
+    return operationData?.type === 'mcp_operation' ? operationData : null;
 }
 
 /**
@@ -64,15 +105,35 @@ export function parseOperationRequest(responseText) {
  */
 export function extractOperationMessage(responseText) {
     if (!responseText) return '';
+    if (responseText.length > MAX_RESPONSE_LENGTH) return '';
 
     let text = responseText.replace(/```json[\s\S]*?```/g, '').trim();
-    text = text.replace(/\{[\s\S]*"operation"\s*:\s*"[^"]+[\s\S]*\}/, '').trim();
 
-    return text;
+    let cursor = 0;
+    while (cursor < text.length) {
+        const braceIdx = text.indexOf('{', cursor);
+        if (braceIdx === -1) break;
+        const candidate = extractBalancedObject(text, braceIdx);
+        if (!candidate) break;
+        try {
+            const parsed = JSON.parse(candidate);
+            if (parsed && parsed.type === 'mcp_operation') {
+                text = (text.slice(0, braceIdx) + text.slice(braceIdx + candidate.length)).trim();
+                continue;
+            }
+        } catch (error) {
+            // not JSON at this position; advance
+        }
+        cursor = braceIdx + 1;
+    }
+
+    return text.trim();
 }
 
 /**
- * Validate operation request (supports both MCP and legacy formats)
+ * Validate an MCP operation request from the AI.
+ * Legacy operation formats are no longer supported (audit M9).
+ *
  * @param {Object} operation - Operation object from AI
  * @returns {Object} - {valid: boolean, error?: string}
  */
@@ -80,12 +141,10 @@ export function validateOperation(operation) {
     if (!operation) {
         return { valid: false, error: 'No operation provided' };
     }
-
-    if (operation.type === 'mcp_operation') {
-        return validateMCPOperation(operation);
+    if (operation.type !== 'mcp_operation') {
+        return { valid: false, error: 'Only mcp_operation format is supported' };
     }
-
-    return validateLegacyOperation(operation);
+    return validateMCPOperation(operation);
 }
 
 /**
@@ -225,46 +284,6 @@ function validateMCPOperation(operation) {
 }
 
 /**
- * Validate legacy operation format (for backward compatibility)
- * @private
- */
-function validateLegacyOperation(operation) {
-    if (!operation.operation) {
-        return { valid: false, error: 'Operation type is required' };
-    }
-
-    const validOperations = ['publish', 'get', 'search', 'delete', 'copy', 'update'];
-    if (!validOperations.includes(operation.operation)) {
-        return { valid: false, error: `Invalid operation type: ${operation.operation}` };
-    }
-
-    switch (operation.operation) {
-        case 'publish':
-        case 'get':
-        case 'delete':
-        case 'copy':
-            if (!operation.fragmentId) {
-                return { valid: false, error: 'fragmentId is required for this operation' };
-            }
-            break;
-
-        case 'search':
-            if (!operation.params) {
-                return { valid: false, error: 'params object is required for search operation' };
-            }
-            break;
-
-        case 'update':
-            if (!operation.fragmentId || !operation.updates) {
-                return { valid: false, error: 'fragmentId and updates are required for update operation' };
-            }
-            break;
-    }
-
-    return { valid: true };
-}
-
-/**
  * Process operation request
  * This prepares the operation for frontend execution
  * @param {Object} operation - Parsed operation
@@ -281,22 +300,12 @@ export function processOperation(operation, message) {
         };
     }
 
-    if (operation.type === 'mcp_operation') {
-        return {
-            type: 'mcp_operation',
-            mcpTool: operation.mcpTool,
-            mcpParams: operation.mcpParams,
-            message: message || operation.message || `Executing ${operation.mcpTool} operation...`,
-            confirmationRequired: operation.confirmationRequired || operation.mcpTool === 'delete_card',
-        };
-    }
-
     return {
-        type: 'operation',
-        operation: operation.operation,
-        data: operation,
-        message: message || operation.message || `Executing ${operation.operation} operation...`,
-        confirmationRequired: operation.confirmationRequired || operation.operation === 'delete',
+        type: 'mcp_operation',
+        mcpTool: operation.mcpTool,
+        mcpParams: operation.mcpParams,
+        message: message || operation.message || `Executing ${operation.mcpTool} operation...`,
+        confirmationRequired: operation.confirmationRequired || operation.mcpTool === 'delete_card',
     };
 }
 

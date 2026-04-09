@@ -1,30 +1,17 @@
 const { Core } = require('@adobe/aio-sdk');
-const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils');
 const { Ims } = require('@adobe/aio-lib-ims');
-const {
-    fetchFragmentByPath,
-    fetchOdin,
-    getValue,
-    getValues,
-    getTargetPath,
-    getVariationParent,
-    patchToOdin,
-    postToOdinWithRetry,
-    processBatchWithConcurrency,
-    putToOdin,
-} = require('../common.js');
+const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils');
+const { buildSiblingActionName, fetchOdin, getInternalValue, getValue, getValues, invokeAsyncAction } = require('../common.js');
+const { putJobPayload, putProjectSummary, patchProjectSummary } = require('./state.js');
+const { enqueueJob } = require('./queue.js');
 
-const logger = Core.Logger('translation', { level: 'info' });
-const DEFAULT_BATCH_SIZE = 10;
-const ODIN_PATH = (surface, locale, fragmentPath) => `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
-const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
+const logger = Core.Logger('translation-starter', { level: 'info' });
+const DISPATCHER_ACTION_NAME = 'translation-project-dispatcher';
+const QUEUED_STATUS = 'QUEUED';
 
 async function main(params) {
-    const batchSize = params.batchSize || DEFAULT_BATCH_SIZE;
-
     try {
-        logger.info('Calling the main action');
-
+        const ims = new Ims('prod');
         const requiredHeaders = ['Authorization'];
         const requiredParams = ['projectId', 'surface'];
         const errorMessage = checkMissingRequestInputs(params, requiredParams, requiredHeaders);
@@ -33,461 +20,149 @@ async function main(params) {
         }
 
         const authToken = getBearerToken(params);
-        const allowed = await isAllowed(authToken, params.allowedClientId);
+        const allowed = await isAllowed(authToken, params.allowedClientId, ims);
         if (!allowed) {
             return errorResponse(401, 'Authorization failed', logger);
         }
 
-        const { projectCF, etag } = await getTranslationProject(params.projectId, authToken);
+        const { projectCF, etag } = await getTranslationProject(params, authToken);
+        const submissionDate = `${new Date().toISOString().split('.')[0]}Z`;
+        await updateSubmissionMetadata(params, projectCF, etag, authToken, submissionDate);
 
-        const translationData = await getTranslationData(authToken, projectCF, params.surface, params.translationMapping);
-        if (!translationData) {
-            return errorResponse(400, 'Translation project is incomplete (missing items or locales)', logger);
-        }
+        const jobId = projectCF.id;
+        const projectType = getValue(projectCF, 'projectType')?.value || 'translation';
+        const translationFlow = params.translationMapping?.[params.surface] || 'transcreation';
+        const requestedBy = getInternalValue(projectCF, 'modified.by') || getInternalValue(projectCF, 'created.by') || null;
 
-        /*const versioned = await versionTargetFragments(translationData, authToken);
-        if (!versioned) {
-            return errorResponse(500, 'Failed to version target fragments', logger);
-        }*/
+        logger.info(
+            `Project start context: projectType=${projectType}, translationFlow=${translationFlow}, requestedBy=${requestedBy}`,
+        );
 
-        const syncResult = await sendSyncRequests(translationData.itemsToSync, authToken);
-        if (!syncResult.success) {
-            return errorResponse(500, `Failed to sync: ${syncResult.error}`, logger);
-        }
+        await putJobPayload(
+            jobId,
+            {
+                jobId,
+                projectId: params.projectId,
+                surface: params.surface,
+                authToken,
+                projectType,
+                translationFlow,
+                requestedAt: submissionDate,
+                requestedBy,
+            },
+            { params },
+        );
 
-        let responseMessage = 'Translation project started';
-        const projectType = getValue(projectCF, 'projectType')?.value;
-        logger.info(`Project type: ${projectType}`);
-        if (projectType === 'rollout') {
-            responseMessage = 'Rollout project started';
-            const rolloutOnlyProject = await startRolloutOnlyProject(translationData, authToken);
-            if (!rolloutOnlyProject) {
-                return errorResponse(500, 'Failed to start rollout only project', logger);
-            }
-        } else {
-            const translationProject = await startTranslationProject(translationData, authToken);
-            if (!translationProject) {
-                return errorResponse(500, 'Failed to start translation project', logger);
-            }
-        }
+        await putProjectSummary(
+            params.projectId,
+            {
+                projectId: params.projectId,
+                jobId,
+                status: QUEUED_STATUS,
+                submissionDate,
+                queue: {
+                    state: QUEUED_STATUS,
+                    queuedAt: submissionDate,
+                    startedAt: null,
+                },
+                dispatcher: {
+                    invokedAt: null,
+                },
+                worker: {
+                    activationId: null,
+                    dispatchedAt: null,
+                    startedAt: null,
+                },
+                versioning: {
+                    startedAt: null,
+                    completedAt: null,
+                    durationMs: null,
+                    itemCount: 0,
+                    completedItemCount: 0,
+                    failedItemCount: 0,
+                },
+                lastError: null,
+            },
+            { params, updatedAt: submissionDate },
+        );
 
-        const updatedProjectCF = await updateTranslationDate(projectCF, etag, authToken);
-        if (!updatedProjectCF?.success) {
-            return errorResponse(500, 'Failed to update translation project submission date', logger);
-        }
+        await enqueueJob(jobId);
+        logger.info(`Enqueued job ${jobId}`);
+
+        const dispatcherActionName = buildSiblingActionName(params, DISPATCHER_ACTION_NAME, {
+            overrideParamName: 'translationProjectStartDispatcherActionName',
+        });
+        await invokeAsyncAction(dispatcherActionName, { jobId }, params);
+        await patchProjectSummary(
+            params.projectId,
+            {
+                dispatcher: {
+                    invokedAt: new Date().toISOString(),
+                },
+            },
+            { params },
+        );
+        logger.info(`Invoked dispatcher action ${dispatcherActionName} for job ${jobId}`);
 
         return {
-            statusCode: 200,
+            statusCode: 202,
             body: {
-                message: responseMessage,
-                submissionDate: updatedProjectCF.submissionDate,
+                jobId,
+                submissionDate,
             },
         };
     } catch (error) {
-        logger.error('Error calling the main action', error);
+        logger.error('Error queuing translation project start', error);
         return errorResponse(500, `Internal server error - ${error.message}`, logger);
-    }
-
-    async function isAllowed(token, allowedClientId) {
-        logger.info(`Validating IMS token for client ID: ${allowedClientId}`);
-        const ims = new Ims('prod');
-        const imsValidation = await ims.validateTokenAllowList(token, [allowedClientId]);
-
-        // Check if token is valid
-        if (!imsValidation || !imsValidation.valid) {
-            logger.error(`IMS token validation failed: ${JSON.stringify(imsValidation, null, 2)}`);
-            return false;
-        }
-
-        return true;
-    }
-
-    async function getTranslationProject(projectId, authToken) {
-        try {
-            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectId}`, authToken);
-            const projectCF = await response.json();
-            const etag = response.headers.get('etag');
-            return { projectCF, etag };
-        } catch (error) {
-            logger.error(`Error fetching translation project: ${error}`);
-            throw new Error(`Failed to fetch translation project: ${error.message || error.toString()}`);
-        }
-    }
-
-    async function getTranslationData(authToken, projectCF, surface, translationMapping = {}) {
-        const locales = getValues(projectCF, 'targetLocales')?.values;
-        if (!locales || locales.length === 0) {
-            logger.warn('No locales found in translation project');
-            return null;
-        }
-        const itemsToTranslate = getItemsToTranslate(projectCF, surface);
-        if (itemsToTranslate?.length === 0) {
-            logger.warn(`No items to translate found in translation project: ${projectCF.id}`);
-            return null;
-        }
-        const { items: itemsToSync, success } = await getItemsToSync(authToken, projectCF, locales, surface);
-        if (!success) {
-            logger.error('Failed to get items to sync');
-            return null;
-        }
-        // set translation flow
-        const translationFlow = translationMapping[surface];
-        logger.info(`Translation flow: ${translationFlow}`);
-
-        return {
-            title: getValue(projectCF, 'title')?.value || 'Untitled Project',
-            itemsToTranslate,
-            itemsToSync,
-            locales,
-            surface,
-            translationFlow: translationFlow
-                ? {
-                      [translationFlow]: true,
-                  }
-                : {},
-        };
-    }
-
-    function getPznVariations(projectCF) {
-        return getValues(projectCF, 'fragments')?.values?.filter((path) => path?.includes('/pzn/')) || [];
-    }
-
-    async function getItemsToSync(authToken, projectCF, locales, surface) {
-        const items = [];
-        const placeholders = getValues(projectCF, 'placeholders')?.values || [];
-        if (placeholders.length > 0) {
-            for (const locale of locales) {
-                const targetPlaceholders = placeholders.map((placeholder) => placeholder.replace('/en_US/', `/${locale}/`));
-                const path = ODIN_PATH(surface, locale, 'dictionary/index');
-                logger.info(`Placeholder: Adding ${path} to sync with entries=${targetPlaceholders}`);
-                items.push({
-                    path,
-                    update: {
-                        name: 'entries',
-                        value: targetPlaceholders,
-                    },
-                });
-            }
-        }
-
-        // for each grouped variation, add the parent fragments in target locales to the sync list
-        const variations = getPznVariations(projectCF);
-        if (variations.length === 0) {
-            return { items, success: true };
-        }
-        // map of parentPath -> Set of grouped variation paths
-        const newVariationsMap = new Map();
-        for (const variationPath of variations) {
-            try {
-                const { parentFragment, status } = await getVariationParent(params.odinEndpoint, variationPath, authToken);
-                if (status !== 200 || !parentFragment) {
-                    logger.error(`Grouped variation: Failed to get parent for ${variationPath}: ${status}`);
-                    return { items: [], success: false };
-                }
-                if (!newVariationsMap.has(parentFragment.path)) {
-                    newVariationsMap.set(parentFragment.path, new Set());
-                }
-                newVariationsMap.get(parentFragment.path).add(variationPath);
-            } catch (error) {
-                logger.error(`Grouped variation: Error finding parent for ${variationPath}: ${error.message}`);
-                return { items: [], success: false };
-            }
-        }
-
-        // For each parent fragment add items for all target locales
-        for (const [parentPath, variationPaths] of newVariationsMap.entries()) {
-            for (const locale of locales) {
-                const path = getTargetPath(parentPath, locale);
-                if (!path) continue;
-                const value = [...variationPaths].map((variation) => getTargetPath(variation, locale)).filter(Boolean);
-
-                if (value.length > 0) {
-                    logger.info(`Adding ${path} to sync with variations=${value}`);
-                    items.push({
-                        path,
-                        update: {
-                            name: 'variations',
-                            value,
-                        },
-                    });
-                }
-            }
-        }
-
-        return { items, success: true };
-    }
-
-    function getItemsToTranslate(projectCF) {
-        // Gather items from all three separate arrays
-        const fragments = getValues(projectCF, 'fragments')?.values || [];
-        const collections = getValues(projectCF, 'collections')?.values || [];
-        const placeholders = getValues(projectCF, 'placeholders')?.values || [];
-
-        // Combine all items into a single array
-        return [...fragments, ...collections, ...placeholders];
-    }
-
-    async function versionTargetFragment(fragmentToVersion, { authToken, title }) {
-        const { path } = fragmentToVersion;
-        try {
-            let id = fragmentToVersion.id;
-            if (!id) {
-                const { status, fragment } = await fetchFragmentByPath(params.odinEndpoint, path, authToken);
-                if (status === 404) {
-                    logger.info(`Fragment not found for path ${path}, skipping versioning`);
-                    return { success: true, item: path };
-                }
-                ({ id } = fragment);
-            }
-            await postToOdinWithRetry(params.odinEndpoint, `/adobe/sites/cf/fragments/${id}/versions`, authToken, {
-                label: 'Pre-translation version',
-                comment: `Pre-translation project "${title}" (${params.projectId})`,
-            });
-            return { success: true, item: path };
-        } catch (error) {
-            logger.error(`Error versioning fragment ${path}: ${error}`);
-            return { success: false, item: path, error: error.message || error.toString() };
-        }
-    }
-
-    async function versionTargetFragments(translationData, authToken) {
-        const { itemsToTranslate, itemsToSync, locales, title } = translationData;
-        const itemsToVersion = itemsToTranslate.flatMap((item) => {
-            const { surface, fragmentPath } = item.match(PATH_TOKENS)?.groups || {};
-            return locales.map((locale) => ({
-                path: `/content/dam/mas/${surface}/${locale}/${fragmentPath}`,
-            }));
-        });
-        itemsToVersion.push(...itemsToSync);
-        logger.info(`Versioning target items for ${itemsToVersion.length} items`);
-        const config = {
-            authToken,
-            title,
-            odinEndpoint: params.odinEndpoint,
-        };
-        // Process items in batches to respect RPS limit
-        const results = await processBatchWithConcurrency(itemsToVersion, batchSize, (item) =>
-            versionTargetFragment(item, config),
-        );
-
-        // Check if any requests failed
-        const failures = results.filter((result) => !result.success);
-        if (failures.length > 0) {
-            logger.error(`${failures.length} request(s) failed: ${failures.map((failure) => failure.item).join(', ')}`);
-            return false;
-        }
-        logger.info(`Successfully versioned ${results.length} target fragments`);
-        return true;
-    }
-
-    // Helper function to send a single request with retry logic
-    async function sendLocRequestWithRetry(config) {
-        try {
-            const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
-            logger.info('Sending loc request');
-            const success = await postToOdinWithRetry(
-                odinEndpoint,
-                '/bin/sendToLocalisationAsync',
-                authToken,
-                locPayload,
-                maxRetries,
-            );
-            return { success };
-        } catch (error) {
-            const lastError = error.message || error.toString();
-            logger.error(`Failed to send loc request after retries: ${lastError}`);
-            return { success: false, error: lastError };
-        }
-    }
-
-    async function sendSyncRequest({ path, update: { name, value } }, { authToken }) {
-        try {
-            const { fragment, status, etag } = await fetchFragmentByPath(params.odinEndpoint, path, authToken);
-            if (status !== 200 || !fragment) {
-                const errorMsg = `Failed to fetch fragment at ${path}: ${status}`;
-                logger.error(`Error syncing element ${path}: ${errorMsg}`);
-                return { success: false, path, error: errorMsg };
-            }
-
-            const { id } = fragment;
-            const existing = getValues(fragment, name);
-            const existingValues = existing?.values ?? [];
-            const merged = [...existingValues];
-            for (const v of value) {
-                if (!merged.includes(v)) merged.push(v);
-            }
-
-            // Variations fields are locked by live relationships and cannot be updated via PATCH
-            // Use PUT with full fragment instead
-            if (name === 'variations') {
-                if (merged.length === existingValues.length && merged.every((v, i) => v === existingValues[i])) {
-                    logger.info(`No change for variations at ${path}, skipping sync`);
-                    return { success: true };
-                }
-
-                // If variations field doesn't exist, add it; otherwise update the variations field in the fields array
-                const variationsField = fragment.fields.find((f) => f.name === 'variations');
-                const updatedFields = variationsField
-                    ? fragment.fields.map((field) => (field.name === 'variations' ? { ...field, values: merged } : field))
-                    : [
-                          ...fragment.fields,
-                          {
-                              name: 'variations',
-                              type: 'content-fragment',
-                              multiple: true,
-                              values: merged,
-                          },
-                      ];
-
-                // Send PUT request with full fragment
-                return await putToOdin(params.odinEndpoint, id, authToken, {
-                    title: fragment.title,
-                    description: fragment.description || '',
-                    fields: updatedFields,
-                    etag,
-                });
-            }
-
-            // For non-variations fields, use PATCH
-            const updatePath = existing?.path ? `${existing.path}/values` : null;
-            if (!updatePath) {
-                const errorMsg = `Field ${name} not found in fragment at ${path}`;
-                logger.error(`Error syncing element ${path}: ${errorMsg}`);
-                return { success: false, path, error: errorMsg };
-            }
-
-            const patchBody = [{ op: 'replace', path: updatePath, value: merged }];
-            return await patchToOdin(params.odinEndpoint, id, authToken, patchBody, etag);
-        } catch (error) {
-            logger.error(`Error syncing element: ${error}`);
-            const errorMsg = `${error.message || error.toString()}`;
-            return { success: false, path, error: errorMsg };
-        }
-    }
-
-    // Helper function to send a single request with retry logic
-    async function sendSyncRequests(itemsToSync, authToken) {
-        const config = { authToken };
-        // Process items in batches to respect RPS limit
-        const results = await processBatchWithConcurrency(itemsToSync, batchSize, (item) => sendSyncRequest(item, config));
-
-        // Check if any requests failed after all retries
-        const failures = results.filter((result) => !result.success);
-        if (failures.length > 0) {
-            const errorMsg = `${failures.length} request(s) failed: ${failures.map((failure) => failure.path || 'unknown').join(', ')}`;
-            return { success: false, error: errorMsg };
-        }
-
-        logger.info(`Successfully sent ${results.length} sync requests`);
-        return { success: true };
-    }
-
-    async function startTranslationProject(translationData = {}, authToken) {
-        const { itemsToTranslate, locales, surface, translationFlow } = translationData;
-        logger.info(`Starting translation project ${itemsToTranslate} for locales ${locales} and surface ${surface}`);
-
-        const locPayload = {
-            includeNestedCFs: false,
-            syncNestedCFs: false,
-            taskName: translationData.title,
-            cfPaths: itemsToTranslate,
-            targetLocales: locales,
-            ...(translationFlow || {}),
-        };
-
-        logger.info(`locPayload: ${JSON.stringify(locPayload)}`);
-
-        const config = {
-            authToken,
-            odinEndpoint: params.odinEndpoint,
-            locPayload,
-            maxRetries: 3,
-        };
-
-        const result = await sendLocRequestWithRetry(config);
-        if (!result.success) {
-            logger.error(`Failed to send loc request: ${result.error}`);
-            return false;
-        }
-
-        logger.info(`Successfully sent loc request`);
-        return true;
-    }
-
-    async function startRolloutOnlyProject(translationData, authToken) {
-        const { itemsToTranslate, locales, surface } = translationData;
-        logger.info(`Starting rollout only project ${itemsToTranslate} for locales ${locales} and surface ${surface}`);
-
-        const items = itemsToTranslate.map((item) => ({
-            contentPath: item,
-            targetLocales: locales,
-            syncNestedCFs: false,
-        }));
-
-        const locPayload = {
-            items,
-        };
-
-        logger.info(`locPayload: ${JSON.stringify(locPayload)}`);
-
-        const config = {
-            authToken,
-            odinEndpoint: params.odinEndpoint,
-            locPayload,
-            maxRetries: 3,
-        };
-
-        const result = await sendRolloutRequestWithRetry(config);
-        if (!result.success) {
-            logger.error(`Failed to send rollout request: ${result.error}`);
-            return false;
-        }
-
-        logger.info(`Successfully sent rollout request`);
-        return true;
-    }
-
-    async function sendRolloutRequestWithRetry(config) {
-        try {
-            const { authToken, odinEndpoint, locPayload, maxRetries = 3 } = config;
-            logger.info('Sending rollout request');
-            const success = await postToOdinWithRetry(odinEndpoint, '/bin/localeSync', authToken, locPayload, maxRetries);
-            return { success };
-        } catch (error) {
-            const lastError = error.message || error.toString();
-            logger.error(`Failed to send rollout request after retries: ${lastError}`);
-            return { success: false, error: lastError };
-        }
-    }
-
-    async function updateTranslationDate(projectCF, etag, authToken) {
-        try {
-            logger.info(`Updating translation project submission date for ${projectCF.id}`);
-
-            // find field index of submissionDate
-            const path = getValues(projectCF, 'submissionDate')?.path;
-            if (!path) {
-                logger.error('Submission date field not found in translation project');
-                throw new Error('Submission date field not found in translation project');
-            }
-
-            // save translation project
-            const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectCF.id}`, authToken, {
-                method: 'PATCH',
-                contentType: 'application/json-patch+json',
-                etag,
-                body: JSON.stringify([
-                    { op: 'replace', path: `${path}/values`, value: [`${new Date().toISOString().split('.')[0]}Z`] },
-                ]),
-            });
-            const updatedFragment = await response.json();
-            const submissionDate = getValue(updatedFragment, 'submissionDate')?.value;
-            return { success: true, submissionDate };
-        } catch (error) {
-            logger.error(`Error updating translation project submission date: ${error}`);
-            return false;
-        }
     }
 }
 
+async function isAllowed(token, allowedClientId, ims = new Ims('prod')) {
+    logger.info(`Validating IMS token for client ID: ${allowedClientId}`);
+    const imsValidation = await ims.validateTokenAllowList(token, [allowedClientId]);
+
+    if (!imsValidation || !imsValidation.valid) {
+        logger.error(`IMS token validation failed: ${JSON.stringify(imsValidation, null, 2)}`);
+        return false;
+    }
+
+    return true;
+}
+
+async function getTranslationProject(params, authToken) {
+    try {
+        const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${params.projectId}`, authToken);
+        const projectCF = await response.json();
+        const etag = response.headers.get('etag');
+        return { projectCF, etag };
+    } catch (error) {
+        logger.error(`Error fetching translation project: ${error}`);
+        throw new Error(`Failed to fetch translation project: ${error.message || error.toString()}`);
+    }
+}
+
+async function updateSubmissionMetadata(params, projectCF, etag, authToken, submissionDate) {
+    const submissionDateField = getValues(projectCF, 'submissionDate');
+    if (!submissionDateField?.path) {
+        throw new Error('Submission date field not found in translation project');
+    }
+
+    const operations = [{ op: 'replace', path: `${submissionDateField.path}/values`, value: [submissionDate] }];
+    const statusField = getValues(projectCF, 'status');
+    if (statusField?.path) {
+        operations.push({ op: 'replace', path: `${statusField.path}/values`, value: [QUEUED_STATUS] });
+    }
+
+    const response = await fetchOdin(params.odinEndpoint, `/adobe/sites/cf/fragments/${projectCF.id}`, authToken, {
+        method: 'PATCH',
+        contentType: 'application/json-patch+json',
+        etag,
+        body: JSON.stringify(operations),
+    });
+    logger.info(`Updated submission metadata for ${projectCF.id}`);
+
+    return response.json();
+}
+
 exports.main = main;
+exports.DISPATCHER_ACTION_NAME = DISPATCHER_ACTION_NAME;

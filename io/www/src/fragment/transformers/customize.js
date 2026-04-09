@@ -201,6 +201,46 @@ function mergeVariations(root, customizeContext) {
 }
 
 /**
+ * Rebuilds the referencesTree to match the cards/collections order and membership
+ * of the customized root fragment. Non-cards/collections entries (tags, variations)
+ * are preserved. New IDs not present in the original tree get a stub entry.
+ * @param {Array} referencesTree
+ * @param {Object} customizedRoot
+ * @returns {Array}
+ */
+function adaptReferencesTree(referencesTree, customizedRoot) {
+    const customizedCards = customizedRoot.fields?.cards;
+    const customizedCollections = customizedRoot.fields?.collections;
+    if (!Array.isArray(customizedCards) && !Array.isArray(customizedCollections)) {
+        return referencesTree;
+    }
+    const cardTreeMap = new Map();
+    const collectionTreeMap = new Map();
+    const otherEntries = [];
+    for (const entry of referencesTree) {
+        if (entry.fieldName === 'cards') {
+            cardTreeMap.set(entry.identifier, entry);
+        } else if (entry.fieldName === 'collections') {
+            collectionTreeMap.set(entry.identifier, entry);
+        } else {
+            otherEntries.push(entry);
+        }
+    }
+    const newTree = [...otherEntries];
+    if (Array.isArray(customizedCards)) {
+        for (const id of customizedCards) {
+            newTree.push(cardTreeMap.get(id) ?? { fieldName: 'cards', identifier: id, referencesTree: [] });
+        }
+    }
+    if (Array.isArray(customizedCollections)) {
+        for (const id of customizedCollections) {
+            newTree.push(collectionTreeMap.get(id) ?? { fieldName: 'collections', identifier: id, referencesTree: [] });
+        }
+    }
+    return newTree;
+}
+
+/**
  * will return customized fragment, and sub fragments (recursive)
  * @param {*} root
  * @param {*} referencesTree
@@ -211,8 +251,11 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
 
+    //adapt referencesTree to match the customized root's cards/collections
+    const adaptedTree = adaptReferencesTree(referencesTree, customizedRoot);
+
     //now we look into referenced fragments to customize them as well
-    for (const reference of referencesTree) {
+    for (const reference of adaptedTree) {
         //customize each card/collection
         if (reference.fieldName === 'cards' || reference.fieldName === 'collections') {
             const child = customizeContext.references[reference.identifier]?.value;
@@ -239,7 +282,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
             };
         }
     }
-    return { fragment: customizedRoot, references: customizeContext.references, referencesTree };
+    return { fragment: customizedRoot, references: customizeContext.references, referencesTree: adaptedTree };
 }
 
 /**

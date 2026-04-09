@@ -153,7 +153,11 @@ function replaceValues(input, dictionary, calls) {
     return replaced;
 }
 
-async function init() {}
+async function init(context) {
+    const fetchResult = await context?.promises?.fetchFragment;
+    const merged = fetchResult?.status === 200 ? { ...context, ...fetchResult } : context;
+    return await getDictionary(merged);
+}
 
 async function replace(context) {
     let body = context.body;

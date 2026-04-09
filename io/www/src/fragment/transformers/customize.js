@@ -1,7 +1,6 @@
-import { odinReferences, odinUrl } from '../utils/paths.js';
-import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { getRequestInfos } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
-import { getDefaultLocaleCode, getLocaleCode, getRegionLocales, parseLocaleCode } from '../locales.js';
+import { computeRegionLocale, getDefaultLanguageVariation } from './fetchFragment.js';
 
 const PZN_FOLDER = '/pzn/';
 
@@ -13,53 +12,16 @@ function skimFragmentFromReferences(fragment) {
     return skimmedFragment;
 }
 
-/**
- * get fragment associated to default language, just returning the body
- * @param {*} context
- *  - 'locale' comes from request parameter, so can be optional
- *  - 'parsedLocale' is the actual location of the fetched fragment
- * @returns null if something wrong, [] if not found, body if found
- */
-async function getDefaultLanguageVariation(context) {
-    let { body } = context;
-    const { surface, locale, fragmentPath, preview, parsedLocale } = context;
-    // if no 'locale' request parameter, serve fragment as is
-    if (!locale) {
-        context.defaultLocale = parsedLocale;
-        return { body, parsedLocale, status: 200 };
-    }
-    const defaultLocale = getDefaultLocaleCode(surface, locale);
-    if (!defaultLocale) {
-        return { status: 400, message: `Default locale not found for requested locale '${locale}'` };
-    }
-    if (defaultLocale !== parsedLocale) {
-        logDebug(() => `Looking for fragment id for ${surface}/${defaultLocale}/${fragmentPath}`, context);
-        const defaultLocaleIdUrl = odinUrl(surface, { locale: defaultLocale, fragmentPath, preview });
-        const { id: defaultLocaleId, status, message } = await getFragmentId(context, defaultLocaleIdUrl, 'default-locale-id');
-        if (status != 200) {
-            return { status, message };
-        }
-        const defaultLocaleUrl = odinReferences(defaultLocaleId, true, preview);
-        const response = await fetch(defaultLocaleUrl, context, 'default-locale-fragment');
-        if (response.status != 200 || !response.body) {
-            /* c8 ignore next */
-            const message = response.message || 'Error fetching default locale fragment';
-            /* c8 ignore next */
-            return { status: response.status || 503, message };
-        }
-        ({ body } = response);
-    }
-    context.defaultLocale = defaultLocale;
-    return { body, defaultLocale, status: 200 };
-}
-
 async function init(context) {
+    if (context?.promises?.fetchFragment) {
+        return await context.promises.fetchFragment;
+    }
     const { body, surface, fragmentPath, parsedLocale } = await getRequestInfos(context);
-    context = { ...context, surface, fragmentPath, parsedLocale, body };
+    const merged = { ...context, surface, fragmentPath, parsedLocale, body };
     if (!surface || !fragmentPath) {
         return { status: 400, message: 'Missing surface or fragmentPath' };
     }
-    return await getDefaultLanguageVariation(context);
+    return await getDefaultLanguageVariation(merged);
 }
 
 function deepMerge(...objects) {
@@ -242,37 +204,6 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     return { fragment: customizedRoot, references: customizeContext.references, referencesTree };
 }
 
-/**
- * Returns the locale used for regional paths and personalization.
- * If the request uses the default locale code but country differs from that locale's default country and maps to a
- * known region for that language on the surface, returns that regional code (e.g. fr_FR + CA → fr_CA).
- * If the requested locale is already a regional code, it is preserved when no country override applies.
- * @param {*} context
- * @returns {string}
- */
-export function computeRegionLocale(context) {
-    const { locale, defaultLocale: defaultLocaleCode, surface } = context;
-    const country = context.country?.toUpperCase();
-    const [, defaultCountry] = parseLocaleCode(defaultLocaleCode);
-    const defaultCountryUpper = defaultCountry?.toUpperCase();
-    const effectiveCountry = country && defaultCountryUpper != null && country !== defaultCountryUpper ? country : null;
-
-    let regionLocale = locale;
-    if (locale !== defaultLocaleCode || effectiveCountry != null) {
-        const regionObjects = getRegionLocales(surface, defaultLocaleCode, true);
-        const regionLocaleObject =
-            effectiveCountry != null ? regionObjects.find((r) => r.country?.toUpperCase() === effectiveCountry) : null;
-        const mapped = regionLocaleObject ? getLocaleCode(regionLocaleObject) : null;
-        regionLocale = mapped || locale;
-    }
-    logDebug(
-        () =>
-            `Computed region locale '${regionLocale}' for requested locale '${locale}' with country '${country}' on surface '${surface}'`,
-        context,
-    );
-    return regionLocale;
-}
-
 async function customize(context) {
     const { surface } = await getRequestInfos(context);
     const { body, defaultLocale, status, message } = await context.promises?.customize;
@@ -283,7 +214,7 @@ async function customize(context) {
     }
     const baseFragment = skimFragmentFromReferences(body);
     const { references, referencesTree } = body;
-    const regionLocale = computeRegionLocale({ ...context, defaultLocale, surface });
+    const regionLocale = context.regionLocale ?? computeRegionLocale({ ...context, defaultLocale, surface });
     const isRegionLocale = regionLocale !== defaultLocale;
     const customizeContext = {
         ...context,
@@ -315,3 +246,4 @@ export const transformer = {
     init,
 };
 export { deepMerge };
+export { computeRegionLocale, getDefaultLanguageVariation } from './fetchFragment.js';

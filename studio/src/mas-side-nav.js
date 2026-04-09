@@ -325,6 +325,7 @@ class MasSideNav extends LitElement {
         'promoText',
         'callout',
         'subtitle',
+        'ctas',
     ]);
 
     #getPreviewCard() {
@@ -641,6 +642,7 @@ class MasSideNav extends LitElement {
             Events.toast.emit({ variant: 'negative', content: 'Failed to copy field link' });
         }
     }
+
 
     async copyJsonLd() {
         const fragment = this.fragmentEditor?.fragment;

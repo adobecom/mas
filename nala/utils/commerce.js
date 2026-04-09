@@ -28,7 +28,10 @@ const DOCS_GALLERY_PATH = {
         AU: '/web-components/docs/ccd-mini.html?country=AU&language=en',
     },
     ADOBE_HOME: { US: '/web-components/docs/adobe-home.html' },
-    PLANS: '/web-components/docs/plans.html',
+    PLANS: {
+        US: '/web-components/docs/plans.html',
+        CA_VISITOR: '/web-components/docs/plans.html?country=CA&locale=en_US',
+    },
     MINICOMPARE: '/web-components/docs/minicompare.html',
     MINICOMPARE_MWEB: '/web-components/docs/minicomparemweb.html',
     PRODUCT: '/web-components/docs/product.html',

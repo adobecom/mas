@@ -1,0 +1,355 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            window.__swc = { warn: () => {} };
+        </script>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+
+            const originalFetch = window.fetch;
+            window.fetch = async function (args) {
+                try {
+                    const url = new URL(args);
+                    const { pathname, search } = url;
+                    if (/querybuilder\.json\?path=\/content\/cq:tags\/mas/.test(pathname + search)) {
+                        return originalFetch('/test/mocks/tags.json');
+                    }
+                    if (/querybuilder\.json\?path=\/content\/dam\/mas/.test(pathname + search)) {
+                        return originalFetch('/test/mocks/folders.json');
+                    }
+                    return originalFetch(...arguments);
+                } catch (e) {
+                    return originalFetch(...arguments);
+                }
+            };
+        </script>
+        <title>merch-card-collection-editor variation tests (full page)</title>
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../../style.css" />
+        <style>
+            body {
+                margin: 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background-color: white;
+            }
+            main {
+                width: 100%;
+                padding: 0 100px;
+            }
+            sp-theme {
+                display: contents;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { delay } from '../utils.js';
+
+            import '../../src/swc.js';
+            import '../../src/editors/merch-card-collection-editor.js';
+            import { Fragment } from '../../src/aem/fragment.js';
+            import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
+            import Store from '../../src/store.js';
+
+            const originalFetch = window.fetch;
+
+            const baseMockData = await originalFetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then((res) =>
+                res.json(),
+            );
+
+            // Parent collection with all text fields populated and cards/collections refs
+            const parentCollectionData = {
+                ...baseMockData,
+                path: '/content/dam/mas/nala/en_US/test-collection-parent',
+                id: 'test-collection-parent-id',
+                tags: [],
+                fields: [
+                    ...baseMockData.fields.map((field) => {
+                        if (field.name === 'label') return { ...field, values: ['Parent Label'] };
+                        return field;
+                    }),
+                    // Fields not present in the base mock — add them explicitly
+                    { type: 'text', name: 'queryLabel', multiple: false, values: ['Parent Query Label'] },
+                    { type: 'text', name: 'searchText', multiple: false, values: ['Parent Search Text'] },
+                    { type: 'text', name: 'tagFiltersTitle', multiple: false, values: ['Parent Tag Filters Title'] },
+                    { type: 'text', name: 'linksTitle', multiple: false, values: ['Parent Links Title'] },
+                    { type: 'text', name: 'link', multiple: false, values: ['https://parent.example.com'] },
+                    { type: 'text', name: 'linkText', multiple: false, values: ['Parent Link Text'] },
+                ],
+                // references from baseMockData contain hydrated card/collection refs with .fields
+            };
+
+            runTests(async () => {
+                const spTheme = document.querySelector('sp-theme');
+
+                describe('merch-card-collection-editor variation (full page props)', () => {
+                    let container, editor, fragmentStore;
+
+                    /**
+                     * Mounts merch-card-collection-editor with the same props that mas-fragment-editor
+                     * passes in full-page mode. overrides keys are field names with value arrays;
+                     * isVariation defaults to true.
+                     */
+                    async function setupEditor(overrides = {}) {
+                        const isVariation = overrides.isVariation !== undefined ? overrides.isVariation : true;
+
+                        const variationData = {
+                            ...baseMockData,
+                            path: '/content/dam/mas/nala/en_BE/test-collection-variation',
+                            title: 'Test Collection Variation',
+                            id: 'test-collection-variation-id',
+                            tags: [],
+                            fields: baseMockData.fields.map((field) => {
+                                if (overrides[field.name] !== undefined) {
+                                    return { ...field, values: overrides[field.name] };
+                                }
+                                return { ...field, values: [] }; // empty = inherited
+                            }),
+                            references: overrides.references || [],
+                        };
+
+                        const variationFragment = new Fragment(structuredClone(variationData));
+                        const parentFragment = new Fragment(structuredClone(parentCollectionData));
+                        fragmentStore = generateFragmentStore(variationFragment, parentFragment);
+
+                        // Disable preview resolution — collection editor doesn't need it
+                        Store.placeholders.preview.set(null);
+                        Store.fragments.list.data.set([fragmentStore]);
+
+                        const updateCalls = [];
+                        const updateFragment = ({ target, values }) => {
+                            const fieldName = target.dataset?.field;
+                            if (fieldName) {
+                                fragmentStore.updateField(fieldName, values);
+                                updateCalls.push({ fieldName, values });
+                            }
+                        };
+
+                        editor = document.createElement('merch-card-collection-editor');
+                        editor.fragmentStore = fragmentStore;
+                        editor.localeDefaultFragment = isVariation ? parentFragment : null;
+                        editor.isVariation = isVariation;
+                        editor.updateFragment = updateFragment;
+
+                        container = document.createElement('div');
+                        spTheme.appendChild(container);
+                        container.appendChild(editor);
+
+                        await editor.updateComplete;
+                        await delay(50);
+
+                        return { fragmentStore, editor, updateCalls };
+                    }
+
+                    afterEach(() => {
+                        container?.remove();
+                        container = null;
+                        Store.fragments.list.data.set([]);
+                    });
+
+                    // --- Renders ---
+
+                    it('renders the editor', async () => {
+                        await setupEditor();
+                        expect(editor).to.exist;
+                        expect(editor.shadowRoot.querySelector('.editor-container')).to.exist;
+                    });
+
+                    // --- Text field inheritance ---
+
+                    it('inherits label from parent when variation field is empty', async () => {
+                        await setupEditor();
+                        const labelField = editor.shadowRoot.querySelector('sp-textfield#label');
+                        expect(labelField).to.exist;
+                        expect(labelField.value).to.equal('Parent Label');
+                        expect(labelField.getAttribute('data-field-state')).to.equal('inherited');
+                    });
+
+                    it('shows own value when label is overridden', async () => {
+                        await setupEditor({ label: ['Belgium Label'] });
+                        const labelField = editor.shadowRoot.querySelector('sp-textfield#label');
+                        expect(labelField.value).to.equal('Belgium Label');
+                        expect(labelField.getAttribute('data-field-state')).to.equal('overridden');
+                    });
+
+                    it('inherits searchText from parent when variation field is empty', async () => {
+                        await setupEditor();
+                        const field = editor.shadowRoot.querySelector('sp-textfield#searchText');
+                        expect(field.value).to.equal('Parent Search Text');
+                        expect(field.getAttribute('data-field-state')).to.equal('inherited');
+                    });
+
+                    it('shows "Click to restore." for overridden text field', async () => {
+                        await setupEditor({ label: ['Belgium Label'] });
+                        const labelRow = [...editor.shadowRoot.querySelectorAll('.form-row')].find((row) =>
+                            row.querySelector('sp-textfield#label'),
+                        );
+                        const restoreLink = labelRow?.querySelector('.field-status-restore-link');
+                        expect(restoreLink).to.exist;
+                        expect(restoreLink.textContent.trim()).to.include('Click to restore.');
+                    });
+
+                    it('does not show field status indicator for inherited text field', async () => {
+                        // #renderTextFieldStatusIndicator only renders for 'overridden' state
+                        await setupEditor();
+                        const labelRow = [...editor.shadowRoot.querySelectorAll('.form-row')].find((row) =>
+                            row.querySelector('sp-textfield#label'),
+                        );
+                        expect(labelRow?.querySelector('.field-status-indicator')).to.not.exist;
+                    });
+
+                    it('restores overridden label to parent value on restore click', async () => {
+                        await setupEditor({ label: ['Belgium Label'] });
+                        const labelRow = [...editor.shadowRoot.querySelectorAll('.form-row')].find((row) =>
+                            row.querySelector('sp-textfield#label'),
+                        );
+                        labelRow.querySelector('.field-status-restore-link').click();
+
+                        await editor.updateComplete;
+                        const labelField = editor.shadowRoot.querySelector('sp-textfield#label');
+                        expect(labelField.getAttribute('data-field-state')).to.equal('inherited');
+                        expect(labelField.value).to.equal('Parent Label');
+                    });
+
+                    // --- Cards field inheritance / override ---
+
+                    it('shows "Click to override." for inherited cards field', async () => {
+                        await setupEditor();
+                        const cardsTitle = editor.shadowRoot.querySelector('[data-field-name="cards-section"] .section-title');
+                        expect(cardsTitle).to.exist;
+                        const overrideLink = cardsTitle.querySelector('.field-status-restore-link');
+                        expect(overrideLink).to.exist;
+                        expect(overrideLink.textContent.trim()).to.include('Click to override.');
+                    });
+
+                    it('renders inherited cards as dimmed items-container', async () => {
+                        await setupEditor();
+                        const itemsContainer = editor.shadowRoot.querySelector(
+                            '[data-field-name="cards-section"] .items-container',
+                        );
+                        expect(itemsContainer).to.exist;
+                        expect(itemsContainer.classList.contains('inherited')).to.be.true;
+                    });
+
+                    it('clicking "Click to override." on cards copies parent cards to variation', async () => {
+                        await setupEditor();
+                        const cardsTitle = editor.shadowRoot.querySelector('[data-field-name="cards-section"] .section-title');
+                        cardsTitle.querySelector('.field-status-restore-link').click();
+                        await editor.updateComplete;
+
+                        const parentCards = parentCollectionData.fields.find((f) => f.name === 'cards').values;
+                        const cardsField = fragmentStore.get().fields.find((f) => f.name === 'cards');
+                        expect(cardsField.values).to.deep.equal(parentCards);
+                    });
+
+                    it('shows "Click to restore." for overridden cards field', async () => {
+                        const parentCards = parentCollectionData.fields.find((f) => f.name === 'cards').values;
+                        await setupEditor({
+                            cards: [...parentCards],
+                            references: structuredClone(parentCollectionData.references),
+                        });
+                        const cardsTitle = editor.shadowRoot.querySelector('[data-field-name="cards-section"] .section-title');
+                        const restoreLink = cardsTitle?.querySelector('.field-status-restore-link');
+                        expect(restoreLink).to.exist;
+                        expect(restoreLink.textContent.trim()).to.include('Click to restore.');
+                    });
+
+                    it('clicking "Click to restore." on cards resets variation to inherited (empty)', async () => {
+                        const parentCards = parentCollectionData.fields.find((f) => f.name === 'cards').values;
+                        await setupEditor({
+                            cards: [...parentCards],
+                            references: structuredClone(parentCollectionData.references),
+                        });
+                        const cardsTitle = editor.shadowRoot.querySelector('[data-field-name="cards-section"] .section-title');
+                        cardsTitle.querySelector('.field-status-restore-link').click();
+                        await editor.updateComplete;
+
+                        const cardsField = fragmentStore.get().fields.find((f) => f.name === 'cards');
+                        expect(cardsField.values).to.deep.equal([]);
+                    });
+
+                    // --- Collections (categories) field inheritance / override ---
+
+                    it('shows "Click to override." for inherited collections field', async () => {
+                        await setupEditor();
+                        const collectionsSection = editor.shadowRoot.querySelector('[data-field-name="collections"]');
+                        expect(collectionsSection).to.exist;
+                        const overrideLink = collectionsSection.querySelector('.field-status-restore-link');
+                        expect(overrideLink).to.exist;
+                        expect(overrideLink.textContent.trim()).to.include('Click to override.');
+                    });
+
+                    it('renders inherited collections as dimmed items-container', async () => {
+                        await setupEditor();
+                        const collectionsSection = editor.shadowRoot.querySelector('[data-field-name="collections"]');
+                        const itemsContainer = collectionsSection?.querySelector('.items-container');
+                        expect(itemsContainer).to.exist;
+                        expect(itemsContainer.classList.contains('inherited')).to.be.true;
+                    });
+
+                    it('clicking "Click to override." on collections copies parent collections to variation', async () => {
+                        await setupEditor();
+                        const collectionsSection = editor.shadowRoot.querySelector('[data-field-name="collections"]');
+                        collectionsSection.querySelector('.field-status-restore-link').click();
+                        await editor.updateComplete;
+
+                        const parentCollections = parentCollectionData.fields.find((f) => f.name === 'collections').values;
+                        const collectionsField = fragmentStore.get().fields.find((f) => f.name === 'collections');
+                        expect(collectionsField.values).to.deep.equal(parentCollections);
+                    });
+
+                    // --- Non-variation mode ---
+
+                    it('shows no field status indicators when not a variation', async () => {
+                        await setupEditor({ isVariation: false });
+                        const indicators = editor.shadowRoot.querySelectorAll('.field-status-indicator');
+                        expect(indicators.length).to.equal(0);
+                    });
+
+                    it('shows no override/restore links in cards header when not a variation', async () => {
+                        await setupEditor({ isVariation: false });
+                        const cardsTitle = editor.shadowRoot.querySelector('[data-field-name="cards-section"] .section-title');
+                        // In non-variation mode the section-title only contains the h2, no override link
+                        expect(cardsTitle?.querySelector('.field-status-restore-link')).to.not.exist;
+                    });
+
+                    // --- Reference merging (parent refs loaded for inherited display) ---
+
+                    it('loads parent references to show inherited cards', async () => {
+                        // Variation has no own references; parent has hydrated card refs
+                        await setupEditor();
+                        const itemsContainer = editor.shadowRoot.querySelector(
+                            '[data-field-name="cards-section"] .items-container.inherited',
+                        );
+                        expect(itemsContainer).to.exist;
+                        const items = itemsContainer.querySelectorAll('.item-wrapper');
+                        const parentCardCount = parentCollectionData.fields.find((f) => f.name === 'cards').values.length;
+                        expect(items.length).to.equal(parentCardCount);
+                    });
+
+                    it('loads parent references to show inherited collections', async () => {
+                        await setupEditor();
+                        const collectionsSection = editor.shadowRoot.querySelector('[data-field-name="collections"]');
+                        const itemsContainer = collectionsSection?.querySelector('.items-container.inherited');
+                        expect(itemsContainer).to.exist;
+                        const items = itemsContainer.querySelectorAll('.item-wrapper');
+                        const parentCollectionCount = parentCollectionData.fields.find((f) => f.name === 'collections').values
+                            .length;
+                        expect(items.length).to.equal(parentCollectionCount);
+                    });
+                });
+            });
+        </script>
+        <main>
+            <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
+        </main>
+        <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
+    </body>
+</html>

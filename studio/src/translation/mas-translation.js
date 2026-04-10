@@ -36,6 +36,7 @@ class MasTranslation extends LitElement {
         this.confirmDialogConfig = null;
         this.columns = new Set([
             { key: 'title', label: 'Translation Project' },
+            { key: 'status', label: 'Status' },
             {
                 key: 'lastUpdatedBy',
                 label: 'Last updated by',
@@ -124,6 +125,7 @@ class MasTranslation extends LitElement {
                                 data-id=${translationProject.get().id}
                             >
                                 <sp-table-cell>${translationProject.get().title}</sp-table-cell>
+                                <sp-table-cell>${this.#formatProjectStatus(translationProject)}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
                                 <sp-table-cell>${this.#formatSubmissionDate(translationProject)}</sp-table-cell>
                                 <sp-table-cell class="action-cell">
@@ -271,6 +273,22 @@ class MasTranslation extends LitElement {
             year: 'numeric',
             timeZone: 'UTC',
         });
+    }
+
+    #formatProjectStatus(translationProject) {
+        const status = translationProject.get().getFieldValue('status');
+        switch (status) {
+            case 'QUEUED':
+                return 'Pending';
+            case 'RUNNING':
+                return 'Running';
+            case 'ASYNC_PROCESSING':
+                return 'Sent to loc';
+            case 'FAILED':
+                return 'Failed';
+            default:
+                return 'N/A';
+        }
     }
 
     #sortBySentOn({ detail: { sortKey, sortDirection } }) {

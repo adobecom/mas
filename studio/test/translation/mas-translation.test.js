@@ -14,10 +14,13 @@ import '../../src/translation/mas-translation.js';
 describe('MasTranslation', () => {
     let sandbox;
 
-    const createMockTranslationProject = (id, title, fullName = 'John Doe', submissionDate = null) => {
+    const createMockTranslationProject = (id, title, fullName = 'John Doe', submissionDate = null, status = null) => {
         const fields = [];
         if (submissionDate !== null && submissionDate !== undefined) {
             fields.push({ name: 'submissionDate', type: 'long', values: [submissionDate] });
+        }
+        if (status !== null && status !== undefined) {
+            fields.push({ name: 'status', type: 'text', values: [status] });
         }
         const fragment = new Fragment({
             id,
@@ -168,11 +171,12 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
-            expect(headers.length).to.equal(4);
+            expect(headers.length).to.equal(5);
             expect(headers[0].textContent.trim()).to.equal('Translation Project');
-            expect(headers[1].textContent.trim()).to.equal('Last updated by');
-            expect(headers[2].textContent.trim()).to.equal('Sent on');
-            expect(headers[3].textContent.trim()).to.equal('Actions');
+            expect(headers[1].textContent.trim()).to.equal('Status');
+            expect(headers[2].textContent.trim()).to.equal('Last updated by');
+            expect(headers[3].textContent.trim()).to.equal('Sent on');
+            expect(headers[4].textContent.trim()).to.equal('Actions');
         });
 
         it('should render table rows for each project', async () => {
@@ -199,7 +203,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[1].textContent).to.equal('Jane Smith');
+            expect(cells[2].textContent).to.equal('Jane Smith');
         });
 
         it('should render action menu for each row', async () => {
@@ -208,6 +212,22 @@ describe('MasTranslation', () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const actionMenu = el.shadowRoot.querySelector('sp-action-menu');
             expect(actionMenu).to.exist;
+        });
+
+        it('should display the mapped coarse project status in the table row', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1', 'John Doe', null, 'RUNNING')];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
+            expect(cells[1].textContent).to.equal('Running');
+        });
+
+        it('should display N/A when the coarse project status is missing', async () => {
+            const mockProjects = [createMockTranslationProject('1', 'Project 1')];
+            Store.translationProjects.list.data.value = mockProjects;
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
+            expect(cells[1].textContent).to.equal('N/A');
         });
 
         it('should render Edit menu item', async () => {
@@ -245,7 +265,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[2].textContent).to.equal('N/A');
+            expect(cells[3].textContent).to.equal('N/A');
         });
 
         it('should display N/A when submission date is undefined', async () => {
@@ -253,7 +273,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[2].textContent).to.equal('N/A');
+            expect(cells[3].textContent).to.equal('N/A');
         });
 
         it('should format date correctly when submission date exists', async () => {
@@ -262,7 +282,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[2].textContent).to.equal('Mar 15, 2024');
+            expect(cells[3].textContent).to.equal('Mar 15, 2024');
         });
 
         it('should format different dates correctly', async () => {
@@ -271,7 +291,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[2].textContent).to.equal('Dec 25, 2025');
+            expect(cells[3].textContent).to.equal('Dec 25, 2025');
         });
     });
 

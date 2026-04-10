@@ -252,6 +252,35 @@ describe('pipeline full use case', () => {
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
 
+    it('should return fully baked /content/dam/mas/sandbox/fr_CA/someFragment from fr_FR locale request, and country CA', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+            .returns(createResponse(404, {}, 'Not Found'));
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+            country: 'CA',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(result.body).to.deep.include({
+            path: '/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app',
+            id: 'some-fr-fr-fragment',
+        });
+        expect(result.headers).to.have.property('Last-Modified');
+        expect(result.headers).to.have.property('ETag');
+        expect(Object.keys(state.store).length).to.equal(1);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
+        expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
+        expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
+    });
+
     it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
         const fragmentId = '8ede258f-a996-43c4-8525-b52543925ab0';
 

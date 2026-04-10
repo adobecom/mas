@@ -8,6 +8,7 @@ export const styles = [
             display: flex;
             align-items: center;
             gap: 16px;
+            margin-bottom: 16px;
         }
 
         .dialog-header h2 {
@@ -25,6 +26,7 @@ export const styles = [
             display: flex;
             flex-direction: column;
             gap: 12px;
+            padding-top: 16px;
         }
 
         .container {

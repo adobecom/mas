@@ -512,6 +512,8 @@ class MasTranslationEditor extends LitElement {
             <sp-dialog-wrapper
                 class="add-items-dialog"
                 slot="click-content"
+                headline="Select items"
+                headline-visibility="none"
                 confirm-label="Add selected items"
                 cancel-label="Cancel"
                 underlay

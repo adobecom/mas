@@ -500,6 +500,14 @@ export class MasRepository extends LitElement {
      * later cursor pages.
      */
     static MIN_FILTERED_PAGE_RESULTS = 25;
+    /**
+     * Soft cap on the number of #fillPage rounds the refill loop will run before
+     * giving up. Mirrors MAX_EAGER_PZN_PAGES to keep the non-personalization
+     * refill path bounded when a filter matches very little in the catalog.
+     * When the cap is hit, hasMore stays true so loadNextPage can continue
+     * fetching on scroll.
+     */
+    static MAX_REFILL_ROUNDS = 20;
 
     async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal) {
         let added = 0;
@@ -553,10 +561,17 @@ export class MasRepository extends LitElement {
 
     async #refillBelowThreshold(cursorSnapshot, searchController) {
         const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        let rounds = 0;
+        Store.fragments.list.loading.set(true);
         try {
             while (this.#searchCursor === cursorSnapshot) {
                 const filtered = this.#filterStoresByPersonalizationEnabled(fragmentStores);
                 if (filtered.length >= MasRepository.MIN_FILTERED_PAGE_RESULTS) return;
+                if (rounds >= MasRepository.MAX_REFILL_ROUNDS) {
+                    Store.fragments.list.hasMore.set(true);
+                    return;
+                }
+                const beforeCount = fragmentStores.length;
                 const done = await this.#fillPage(
                     cursor,
                     variants,
@@ -565,7 +580,12 @@ export class MasRepository extends LitElement {
                     undefined,
                     searchController.signal,
                 );
+                rounds++;
                 if (this.#searchCursor !== cursorSnapshot) return;
+                if (fragmentStores.length === beforeCount && !done) {
+                    Store.fragments.list.hasMore.set(true);
+                    return;
+                }
                 Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
                 if (done) {
                     this.#searchCursor = null;
@@ -575,6 +595,10 @@ export class MasRepository extends LitElement {
             }
         } catch (error) {
             if (error.name === 'AbortError') return;
+        } finally {
+            if (this.#searchCursor === cursorSnapshot || this.#searchCursor === null) {
+                Store.fragments.list.loading.set(false);
+            }
         }
     }
 

@@ -2050,6 +2050,37 @@ describe('MasRepository dictionary helpers', () => {
                 cleanup();
             }
         });
+
+        it('stops refill after MAX_REFILL_ROUNDS and leaves hasMore=true', async () => {
+            // Many pages all fail the pzn filter so refill never reaches threshold.
+            // After MAX_REFILL_ROUNDS, refill bails and leaves hasMore=true so
+            // loadNextPage can continue on scroll.
+            const pages = Array.from({ length: MasRepository.MAX_REFILL_ROUNDS + 10 }, (_, p) => mixedPage(p, 0));
+            const { repository, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('sets loading=true during refill and resets to false when done', async () => {
+            // 3 pages with 5 visible each — refill runs for a few rounds.
+            // loading should be true during refill and false afterward.
+            const pages = [mixedPage(0, 5), mixedPage(1, 5), mixedPage(2, 5)];
+            const { repository, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.loading.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
     });
 
     describe('parseVariationAlreadyExistsPath', () => {

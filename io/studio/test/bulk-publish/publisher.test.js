@@ -62,7 +62,7 @@ describe('bulk-publish/publisher.js', () => {
         expect(opts.etag).to.equal('etag-1');
         const body = JSON.parse(opts.body);
         expect(body.paths).to.deep.equal(['/content/dam/mas/acom/en_US/nico']);
-        expect(body.workflowModelId).to.equal(publisher.WORKFLOW_MODEL_ID);
+        expect(body.workflowModelId).to.equal('/var/workflow/models/scheduled_activation_with_references');
     });
 
     it('skips a fragment that is already published', async () => {

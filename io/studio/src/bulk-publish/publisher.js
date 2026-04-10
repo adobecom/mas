@@ -58,4 +58,4 @@ async function publishPath({ path, odinEndpoint, authToken, logger, maxRetries =
     return { path, status: 'failed', reason: lastError, retries: maxRetries - 1 };
 }
 
-module.exports = { publishPath, PUBLISH_URI, WORKFLOW_MODEL_ID };
+module.exports = { publishPath };

@@ -8,6 +8,12 @@ const { enqueue } = require('./queue.js');
 
 const logger = Core.Logger('bulk-publish', { level: 'info' });
 const DEFAULT_CONCURRENCY = 5;
+const MAX_CONCURRENCY = 20;
+const MAX_PATHS = 500;
+const MAX_LOCALES = 50;
+const MAX_RESOLVED = 5000;
+const PATH_PREFIX = '/content/dam/mas/';
+const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
 
 async function main(params) {
     return enqueue(() => run(params));
@@ -27,8 +33,18 @@ async function run(params) {
         if (!Array.isArray(params.paths) || params.paths.length === 0) {
             return errorResponse(400, 'paths must be a non-empty array', logger);
         }
+        if (params.paths.length > MAX_PATHS) {
+            return errorResponse(400, `paths exceeds maximum of ${MAX_PATHS}`, logger);
+        }
+        const invalidPath = params.paths.find((p) => typeof p === 'string' && !p.startsWith(PATH_PREFIX));
+        if (invalidPath) {
+            return errorResponse(400, `path must start with ${PATH_PREFIX}: ${invalidPath}`, logger);
+        }
         if (params.locales !== undefined && !Array.isArray(params.locales)) {
             return errorResponse(400, 'locales must be an array when provided', logger);
+        }
+        if (Array.isArray(params.locales) && params.locales.length > MAX_LOCALES) {
+            return errorResponse(400, `locales exceeds maximum of ${MAX_LOCALES}`, logger);
         }
 
         const authToken = getBearerToken(params);
@@ -41,8 +57,11 @@ async function run(params) {
         if (resolved.length === 0) {
             return errorResponse(400, 'No valid paths after resolution', logger);
         }
+        if (resolved.length > MAX_RESOLVED) {
+            return errorResponse(400, `Resolved ${resolved.length} paths exceeds maximum of ${MAX_RESOLVED}`, logger);
+        }
 
-        const concurrency = Number(params.concurrencyLimit) || DEFAULT_CONCURRENCY;
+        const concurrency = Math.min(Number(params.concurrencyLimit) || DEFAULT_CONCURRENCY, MAX_CONCURRENCY);
         logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, concurrency }));
 
         const details = await processBatchWithConcurrency(resolved, concurrency, (path) =>
@@ -62,28 +81,28 @@ async function run(params) {
             body: { summary, details },
         };
     } catch (error) {
-        logger.error(`Error in bulk-publish main: ${error.message || error}`);
-        return errorResponse(500, `Internal server error - ${error.message || error}`, logger);
+        logger.error(JSON.stringify({ event: 'run-error', error: error.message || String(error) }));
+        return errorResponse(500, 'Internal server error', logger);
     }
 }
 
 function buildSummary(details) {
     const summary = { total: details.length, published: 0, skipped: 0, failed: 0 };
     for (const detail of details) {
-        if (detail.status === 'published') summary.published += 1;
-        else if (detail.status === 'skipped') summary.skipped += 1;
-        else if (detail.status === 'failed') summary.failed += 1;
+        if (detail.status === STATUS.PUBLISHED) summary.published += 1;
+        else if (detail.status === STATUS.SKIPPED) summary.skipped += 1;
+        else if (detail.status === STATUS.FAILED) summary.failed += 1;
     }
     return summary;
 }
 
 async function isAllowed(token, allowedClientId) {
     if (!token || !allowedClientId) return false;
-    logger.info(`Validating IMS token for client ID: ${allowedClientId}`);
+    logger.info(JSON.stringify({ event: 'ims-validate', allowedClientId }));
     const ims = new Ims('prod');
     const imsValidation = await ims.validateTokenAllowList(token, [allowedClientId]);
     if (!imsValidation || !imsValidation.valid) {
-        logger.error(`IMS token validation failed: ${JSON.stringify(imsValidation, null, 2)}`);
+        logger.error(JSON.stringify({ event: 'ims-validate-failed', allowedClientId }));
         return false;
     }
     return true;

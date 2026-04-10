@@ -68,6 +68,26 @@ describe('bulk-publish/index.js', () => {
         expect(result.error.statusCode).to.equal(400);
     });
 
+    it('returns 400 when a path does not start with /content/dam/mas/', async () => {
+        const result = await action.main({ ...baseParams, paths: ['/content/dam/internal/secrets'] });
+        expect(result.error.statusCode).to.equal(400);
+        expect(result.error.body.error).to.include('/content/dam/mas/');
+    });
+
+    it('returns 400 when paths exceeds maximum', async () => {
+        const paths = Array.from({ length: 501 }, (_, i) => `/content/dam/mas/acom/en_US/item-${i}`);
+        const result = await action.main({ ...baseParams, paths });
+        expect(result.error.statusCode).to.equal(400);
+        expect(result.error.body.error).to.include('500');
+    });
+
+    it('returns 400 when locales exceeds maximum', async () => {
+        const locales = Array.from({ length: 51 }, (_, i) => `locale_${i}`);
+        const result = await action.main({ ...baseParams, locales });
+        expect(result.error.statusCode).to.equal(400);
+        expect(result.error.body.error).to.include('50');
+    });
+
     it('returns 401 when IMS validation fails', async () => {
         imsValidateStub.resolves({ valid: false });
         fetchFragmentByPathStub.resolves({

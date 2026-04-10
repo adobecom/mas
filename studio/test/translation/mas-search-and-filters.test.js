@@ -203,11 +203,10 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('rendering', () => {
-        it('should render search input', async () => {
+        it('should render result count', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            expect(search).to.exist;
-            expect(search.placeholder).to.equal('Search fragments...');
+            const resultCount = el.shadowRoot.querySelector('.result-count');
+            expect(resultCount).to.exist;
         });
 
         it('should render progress circle when loading', async () => {
@@ -215,13 +214,6 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             const progressCircle = el.shadowRoot.querySelector('sp-progress-circle');
             expect(progressCircle).to.exist;
-        });
-
-        it('should disable search when loading', async () => {
-            Store.fragments.list.loading.set(true);
-            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            expect(search.disabled).to.be.true;
         });
     });
 
@@ -335,13 +327,12 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('search functionality', () => {
-        it('should update searchQuery on input', async () => {
+        it('should apply filters when searchQuery property is set', async () => {
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'Test Card' })]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'test query';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'test';
             await el.updateComplete;
-            expect(el.searchQuery).to.equal('test query');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
         it('should filter cards by title', async () => {
@@ -351,9 +342,7 @@ describe('MasSearchAndFilters', () => {
                 createMockFragment({ title: 'Another Photoshop' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'photoshop';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'photoshop';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(2);
         });
@@ -365,9 +354,7 @@ describe('MasSearchAndFilters', () => {
                 createMockFragment({ title: 'Illustrator Card' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'Photoshop';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'Photoshop';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(2);
         });
@@ -381,9 +368,7 @@ describe('MasSearchAndFilters', () => {
                 createMockFragment({ title: 'Card 2', tags: [] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'photoshop';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'photoshop';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -397,9 +382,7 @@ describe('MasSearchAndFilters', () => {
                 createMockFragment({ title: 'Card 2' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = '12345';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = '12345';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -410,9 +393,7 @@ describe('MasSearchAndFilters', () => {
                 createMockPlaceholder({ key: 'learn-more', value: 'Learn More' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="placeholders"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'buy';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'buy';
             await el.updateComplete;
             expect(Store.translationProjects.displayPlaceholders.get().length).to.equal(1);
         });
@@ -423,22 +404,20 @@ describe('MasSearchAndFilters', () => {
                 createMockPlaceholder({ key: 'cta-2', value: 'Learn More' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="placeholders"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'Learn';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'Learn';
             await el.updateComplete;
             expect(Store.translationProjects.displayPlaceholders.get().length).to.equal(1);
         });
 
-        it('should handle search submit event', async () => {
+        it('should apply filters when searchQuery changes', async () => {
             Store.translationProjects.allCards.set([createMockFragment({ title: 'Test Card' })]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'test';
-            const search = el.shadowRoot.querySelector('sp-search');
-            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-            search.dispatchEvent(submitEvent);
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+            el.searchQuery = 'nonexistent';
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
     });
 
@@ -567,8 +546,6 @@ describe('MasSearchAndFilters', () => {
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -584,8 +561,6 @@ describe('MasSearchAndFilters', () => {
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.marketSegmentFilter = ['mas:market_segment/com'];
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -601,8 +576,6 @@ describe('MasSearchAndFilters', () => {
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.customerSegmentFilter = ['mas:customer_segment/individual'];
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -618,8 +591,6 @@ describe('MasSearchAndFilters', () => {
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.productFilter = ['mas:product_code/photoshop'];
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -642,8 +613,6 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.marketSegmentFilter = ['mas:market_segment/com'];
             el.productFilter = ['mas:product_code/photoshop'];
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -656,8 +625,6 @@ describe('MasSearchAndFilters', () => {
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -670,8 +637,6 @@ describe('MasSearchAndFilters', () => {
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
@@ -684,8 +649,6 @@ describe('MasSearchAndFilters', () => {
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
@@ -868,7 +831,7 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="placeholders"></mas-search-and-filters>`);
             Store.placeholders.list.data.set([createMockPlaceholder()]);
             await el.updateComplete;
-            expect(el.shadowRoot.querySelector('sp-search')).to.exist;
+            expect(el.shadowRoot.querySelector('.result-count')).to.exist;
         });
     });
 
@@ -880,8 +843,6 @@ describe('MasSearchAndFilters', () => {
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = '';
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(2);
         });
@@ -892,9 +853,7 @@ describe('MasSearchAndFilters', () => {
                 createMockFragment({ title: 'Has Title' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'Has';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'Has';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -905,9 +864,7 @@ describe('MasSearchAndFilters', () => {
                 createMockPlaceholder({ key: 'has-key', value: 'has-value' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="placeholders"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'has';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'has';
             await el.updateComplete;
             expect(Store.translationProjects.displayPlaceholders.get().length).to.equal(1);
         });
@@ -918,9 +875,7 @@ describe('MasSearchAndFilters', () => {
                 createMockFragment({ offerData: { offerId: 'ABC123' } }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'ABC';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'ABC';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -929,8 +884,6 @@ describe('MasSearchAndFilters', () => {
             Store.translationProjects.allCards.set([]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'test';
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get()).to.deep.equal([]);
         });
@@ -987,9 +940,7 @@ describe('MasSearchAndFilters', () => {
                 createMockFragment({ title: 'Illustrator Collection' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
-            const search = el.shadowRoot.querySelector('sp-search');
-            search.value = 'photoshop';
-            search.dispatchEvent(new InputEvent('input', { bubbles: true }));
+            el.searchQuery = 'photoshop';
             await el.updateComplete;
             expect(Store.translationProjects.displayCollections.get().length).to.equal(1);
         });

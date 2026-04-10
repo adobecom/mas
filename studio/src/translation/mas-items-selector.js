@@ -20,11 +20,15 @@ class MasItemsSelector extends LitElement {
 
     static properties = {
         viewOnly: { type: Boolean, state: true },
+        searchQuery: { type: String, state: true },
     };
+
+    #searchDebounceTimer;
 
     constructor() {
         super();
         this.viewOnly = false;
+        this.searchQuery = '';
     }
 
     connectedCallback() {
@@ -54,6 +58,24 @@ class MasItemsSelector extends LitElement {
         Store.translationProjects.showSelected.set(!this.showSelected);
     }
 
+    #handleSearchInput({ target: { value } }) {
+        clearTimeout(this.#searchDebounceTimer);
+        this.#searchDebounceTimer = setTimeout(() => {
+            this.searchQuery = value;
+        }, 300);
+    }
+
+    #handleSearchSubmit(e) {
+        e.preventDefault();
+        clearTimeout(this.#searchDebounceTimer);
+        this.searchQuery = e.target.value;
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        clearTimeout(this.#searchDebounceTimer);
+    }
+
     #getTabLabel(tab) {
         if (this.viewOnly) {
             const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
@@ -73,6 +95,19 @@ class MasItemsSelector extends LitElement {
 
     render() {
         return html`
+            ${this.viewOnly
+                ? nothing
+                : html`
+                      <div class="dialog-header">
+                          <h2>Select items</h2>
+                          <sp-search
+                              size="m"
+                              placeholder="Search..."
+                              @input=${this.#handleSearchInput}
+                              @submit=${this.#handleSearchSubmit}
+                          ></sp-search>
+                      </div>
+                  `}
             <sp-tabs quiet selected="cards">
                 ${repeat(
                     TABS,
@@ -89,6 +124,7 @@ class MasItemsSelector extends LitElement {
                                 : html`
                                       <mas-search-and-filters
                                           .type=${tab.value}
+                                          .searchQuery=${this.searchQuery}
                                           .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                                       ></mas-search-and-filters>
                                   `}

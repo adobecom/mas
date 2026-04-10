@@ -4,6 +4,23 @@ import { ghostButtonStyles } from './translation-common-styles.css.js';
 export const styles = [
     ghostButtonStyles,
     css`
+        .dialog-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .dialog-header h2 {
+            margin: 0;
+            white-space: nowrap;
+            font-size: 18px;
+        }
+
+        .dialog-header sp-search {
+            flex: 1;
+            max-width: 400px;
+        }
+
         sp-tab-panel[selected] {
             display: flex;
             flex-direction: column;

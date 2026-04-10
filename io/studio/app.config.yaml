@@ -75,3 +75,12 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    bulk-publish:
+                        function: src/bulk-publish/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            concurrencyLimit: 5
+                        annotations:
+                            require-adobe-auth: false
+                            final: true

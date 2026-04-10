@@ -33,6 +33,10 @@ export const styles = [
                 sp-table-cell:last-child {
                     max-width: 100px;
                 }
+
+                sp-table-head-cell.align-right {
+                    text-align: right;
+                }
             }
 
             .action-cell {

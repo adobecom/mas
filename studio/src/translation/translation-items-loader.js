@@ -220,13 +220,18 @@ function parseFragmentsFromStore(allFragments) {
 
 /**
  * Processes and enriches cards with offer data and grouped variations, writes to store.
- * Skips concurrent invocations — if already processing, the new call returns immediately.
+ * Re-entrant: if a call arrives while one is already in flight, the new payload is
+ * stashed in state.pendingCards and processed when the current call settles. This
+ * preserves the latest snapshot rather than dropping it on the floor.
  * @param {Array<Object>} allCards - Array of card objects
  * @param {Object} repository - MasRepository instance
- * @param {Object} state - Mutable state { isProcessingCards, abortController }
+ * @param {Object} state - Mutable state { isProcessingCards, pendingCards, abortController }
  */
 async function processCardsData(allCards, repository, state) {
-    if (state.isProcessingCards) return;
+    if (state.isProcessingCards) {
+        state.pendingCards = allCards;
+        return;
+    }
     state.isProcessingCards = true;
     const signal = state.abortController?.signal;
 
@@ -303,6 +308,11 @@ async function processCardsData(allCards, repository, state) {
     } finally {
         state.isProcessingCards = false;
         performance.measure('processCardsData', 'processCardsData:start');
+        if (state.pendingCards && !signal?.aborted) {
+            const next = state.pendingCards;
+            state.pendingCards = null;
+            processCardsData(next, repository, state);
+        }
     }
 }
 

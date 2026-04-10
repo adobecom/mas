@@ -84,47 +84,35 @@ class MasTranslation extends LitElement {
         `;
     }
 
+    get translationProjectsTableHead() {
+        return html`<sp-table-head>
+            ${[...this.columns].map(
+                ({ key, label, align }) => html`
+                    <sp-table-head-cell
+                        class="${key}${align === 'right' ? ' align-right' : ''}"
+                        .sortable=${key === 'sentOn'}
+                        sort-direction="asc"
+                        sort-key="sentOn"
+                        @sorted=${this.#sortBySentOn}
+                    >
+                        ${label}
+                    </sp-table-head-cell>
+                `,
+            )}
+        </sp-table-head>`;
+    }
+
     get translationsProjectsContent() {
         const isLoading = Store.translationProjects?.list?.loading?.get();
         if (isLoading && !this.translationProjectsData.length) {
             return html` <sp-table emphasized .scroller=${true} class="translation-table">
-                <sp-table-head>
-                    ${[...this.columns].map(
-                        ({ key, label, align }) => html`
-                            <sp-table-head-cell
-                                class=${key}
-                                style="${align === 'right' ? 'text-align: right;' : ''}"
-                                .sortable=${key === 'sentOn'}
-                                sort-direction="asc"
-                                sort-key="sentOn"
-                                @sorted=${this.#sortBySentOn}
-                            >
-                                ${label}
-                            </sp-table-head-cell>
-                        `,
-                    )}
-                </sp-table-head>
+                ${this.translationProjectsTableHead}
                 <sp-table-body> ${Array.from({ length: 5 }, translationSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
         if (this.translationProjectsData.length) {
             return html` <sp-table emphasized .scroller=${true} class="translation-table">
-                <sp-table-head>
-                    ${[...this.columns].map(
-                        ({ key, label, align }) => html`
-                            <sp-table-head-cell
-                                class=${key}
-                                style="${align === 'right' ? 'text-align: right;' : ''}"
-                                .sortable=${key === 'sentOn'}
-                                sort-direction="asc"
-                                sort-key="sentOn"
-                                @sorted=${this.#sortBySentOn}
-                            >
-                                ${label}
-                            </sp-table-head-cell>
-                        `,
-                    )}
-                </sp-table-head>
+                ${this.translationProjectsTableHead}
                 <sp-table-body>
                     ${repeat(
                         this.translationProjectsData,

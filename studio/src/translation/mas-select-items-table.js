@@ -32,7 +32,7 @@ class MasSelectItemsTable extends LitElement {
         super();
         this.dataSubscription = null;
         this.processAbortController = null;
-        this.dataState = { isProcessingCards: false, abortController: new AbortController() };
+        this.dataState = { isProcessingCards: false, pendingCards: null, abortController: null };
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.displayCardsStoreController = null;
@@ -47,6 +47,9 @@ class MasSelectItemsTable extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.dataState.abortController = new AbortController();
+        this.dataState.isProcessingCards = false;
+        this.dataState.pendingCards = null;
         if (this.viewOnly) {
             if (this.type === TABLE_TYPE.PLACEHOLDERS) {
                 this.viewOnlyLoading = !!Store.translationProjects.selectedPlaceholders.value?.length;

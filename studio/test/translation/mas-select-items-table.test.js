@@ -646,6 +646,7 @@ describe('MasSelectItemsTable', () => {
             Store.translationProjects.selectedCards.set(['/path/card1']);
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            await row?.updateComplete;
             const checkbox = row?.shadowRoot?.querySelector('sp-checkbox');
             if (checkbox) {
                 checkbox.click();
@@ -805,6 +806,7 @@ describe('MasSelectItemsTable', () => {
             Store.translationProjects.selectedCards.set(['/path/card1', '/path/hidden-card']);
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            await row?.updateComplete;
             const checkbox = row?.shadowRoot?.querySelector('sp-checkbox');
             checkbox?.click();
             await el.updateComplete;
@@ -1203,6 +1205,7 @@ describe('MasSelectItemsTable', () => {
             setupCardsInStore(cards);
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            await row?.updateComplete;
             const checkbox = row?.shadowRoot?.querySelector('sp-checkbox');
             if (checkbox && !Store.translationProjects.selectedCards.get().includes('/path/card1')) {
                 checkbox.click();
@@ -1220,6 +1223,7 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('mas-collapsible-table-row');
             const card2Row = Array.from(rows).find((row) => row.getAttribute('value') === '/path/card2');
+            await card2Row?.updateComplete;
             const checkbox = card2Row?.shadowRoot?.querySelector('sp-checkbox');
             checkbox?.click();
             await el.updateComplete;

@@ -54,7 +54,7 @@
             let baseUrl;
             if (isLocal) {
                 const aemPort = parseInt(window.location.port || '3000', 10);
-                const proxyPort = params.get('proxy.port') || (aemPort + 5080);
+                const proxyPort = params.get('proxy.port') || aemPort + 5080;
                 baseUrl = `http://localhost:${proxyPort}`;
             } else {
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
@@ -99,9 +99,10 @@
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
-                redirect_uri: (location.port && location.port !== '3000'
-                    ? `http://localhost:3000/studio.html?relayPort=${location.port}`
-                    : location.href.substring(0, location.href.length - location.hash.length)),
+                redirect_uri:
+                    location.port && location.port !== '3000'
+                        ? `http://localhost:3000/studio.html?relayPort=${location.port}`
+                        : location.href.substring(0, location.href.length - location.hash.length),
                 response_type: 'id_token',
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_members',
                 useLocalStorage: true,

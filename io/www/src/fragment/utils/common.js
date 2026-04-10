@@ -186,14 +186,16 @@ async function getFragmentId(context, odinUrl, mark) {
 }
 
 /**
- * get default request information either from state cache, or from fetchFragment promise
+ * get default request information either from state cache, or from the early `requestInfos` promise (first fragment
+ * fetch + path parse), falling back to the full `fetchFragment` promise for backward compatibility.
  * @param {*} context
  * @returns parsedLocale, surface, fragmentPath
  */
 async function getRequestInfos(context) {
     let { body, parsedLocale, surface, fragmentPath } = context;
     if (!parsedLocale || !surface || !fragmentPath || !body) {
-        const fetchResult = await context.promises?.fetchFragment;
+        const earlyPromise = context.promises?.requestInfos ?? context.promises?.fetchFragment;
+        const fetchResult = await earlyPromise;
         if (fetchResult) {
             ({ parsedLocale, surface, fragmentPath, body } = fetchResult);
         }

@@ -75,25 +75,54 @@ export function computeRegionLocale(context) {
 
 const TRANSFORMER_NAME = 'fetchFragment';
 
-async function init(initContext) {
+/**
+ * First fragment fetch + path parse only. Resolves as soon as surface / parsedLocale / fragmentPath / body are known,
+ * without waiting on default-locale variation fetch. Shared via `promises.requestInfos` so dictionary/settings inits
+ * can proceed in parallel with that work.
+ */
+async function fetchRequestInfosPhase1(initContext) {
     const { id, locale, fragmentsIds, preview } = initContext;
+    if (!(id && locale)) {
+        return { status: 400, message: 'requested parameters id & locale are not present' };
+    }
+    const toFetchId = fragmentsIds?.['default-locale-id'] || id;
+    const path = odinReferences(toFetchId, true, preview);
+    const response = await fetch(path, initContext, 'fragment');
+    if (response?.status != 200) {
+        return await getErrorContext(response);
+    }
+    const match = response?.body?.path?.match(PATH_TOKENS);
+    if (!match) {
+        return {
+            status: 400,
+            message: 'source path is either not here or invalid',
+        };
+    }
+    const { parsedLocale, surface, fragmentPath } = match.groups;
+    return {
+        status: 200,
+        body: response.body,
+        parsedLocale,
+        surface,
+        fragmentPath,
+    };
+}
+
+async function init(initContext) {
+    const { id, locale, promises } = initContext;
     if (id && locale) {
-        const toFetchId = fragmentsIds?.['default-locale-id'] || id;
-        const path = odinReferences(toFetchId, true, preview);
-        const response = await fetch(path, initContext, 'fragment');
-        if (response?.status != 200) {
-            return await getErrorContext(response);
-        }
-        const match = response?.body?.path?.match(PATH_TOKENS);
-        if (!match) {
-            return {
-                status: 400,
-                message: 'source path is either not here or invalid',
-            };
+        const phase1Promise = fetchRequestInfosPhase1(initContext);
+        if (promises) {
+            promises.requestInfos = phase1Promise;
         }
 
-        const { parsedLocale, surface, fragmentPath } = match.groups;
-        let context = { ...initContext, body: response.body, parsedLocale, surface, fragmentPath };
+        const early = await phase1Promise;
+        if (early.status !== 200) {
+            return early;
+        }
+
+        const { body: earlyBody, parsedLocale, surface, fragmentPath } = early;
+        let context = { ...initContext, body: earlyBody, parsedLocale, surface, fragmentPath };
         const variationResult = await getDefaultLanguageVariation(context);
         /* c8 ignore next 3 — default-locale fetch errors are covered via customize / pipeline */
         if (variationResult.status != 200) {

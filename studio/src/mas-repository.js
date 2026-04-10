@@ -459,6 +459,9 @@ export class MasRepository extends LitElement {
                     this.#eagerLoadAllPznPages(cursorState, searchController);
                 } else {
                     this.#abortControllers.search = null;
+                    if (cursorState) {
+                        this.#refillBelowThreshold(cursorState, searchController);
+                    }
                 }
             }
 
@@ -480,7 +483,23 @@ export class MasRepository extends LitElement {
     }
 
     static MIN_PAGE_SIZE = 10;
-    static MAX_EAGER_PAGES = 20;
+    /**
+     * Soft cap on the eager personalization-page loop in #eagerLoadAllPznPages.
+     * Once the cap is hit, hasMore is set to true and the rest is delivered on
+     * demand by loadNextPage() (one page per scroll-trigger). Pagination is not
+     * lost — it simply stops being eager-prefetched after this many pages.
+     */
+    static MAX_EAGER_PZN_PAGES = 20;
+    /**
+     * Visible-row threshold for the post-filter refill loop in #refillBelowThreshold.
+     * When a cursor page, after #filterStoresByPersonalizationEnabled has been
+     * applied, has fewer than this many visible items AND the cursor is not
+     * exhausted, the loop fetches additional cursor pages until the threshold is
+     * met or the cursor runs out. Prevents the narrow-filter UX where a user sees
+     * "1 result" when the underlying catalog has many more matches spread across
+     * later cursor pages.
+     */
+    static MIN_FILTERED_PAGE_RESULTS = 25;
 
     async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal) {
         let added = 0;
@@ -504,7 +523,7 @@ export class MasRepository extends LitElement {
         let pagesLoaded = 0;
         try {
             while (this.#searchCursor === cursorSnapshot) {
-                if (pagesLoaded >= MasRepository.MAX_EAGER_PAGES) {
+                if (pagesLoaded >= MasRepository.MAX_EAGER_PZN_PAGES) {
                     Store.fragments.list.hasMore.set(true);
                     break;
                 }
@@ -529,6 +548,33 @@ export class MasRepository extends LitElement {
             if (this.#searchCursor === cursorSnapshot) {
                 Store.fragments.list.hasMore.set(true);
             }
+        }
+    }
+
+    async #refillBelowThreshold(cursorSnapshot, searchController) {
+        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        try {
+            while (this.#searchCursor === cursorSnapshot) {
+                const filtered = this.#filterStoresByPersonalizationEnabled(fragmentStores);
+                if (filtered.length >= MasRepository.MIN_FILTERED_PAGE_RESULTS) return;
+                const done = await this.#fillPage(
+                    cursor,
+                    variants,
+                    surface,
+                    fragmentStores,
+                    undefined,
+                    searchController.signal,
+                );
+                if (this.#searchCursor !== cursorSnapshot) return;
+                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                if (done) {
+                    this.#searchCursor = null;
+                    Store.fragments.list.hasMore.set(false);
+                    return;
+                }
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
         }
     }
 

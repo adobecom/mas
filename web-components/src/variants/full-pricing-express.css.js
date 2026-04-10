@@ -250,6 +250,11 @@ merch-card[variant="full-pricing-express"] [slot="price"] {
     justify-content: center;
 }
 
+merch-card[variant="full-pricing-express"] [slot="price"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
+merch-card[variant="full-pricing-express"] [slot="price"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+    display: none;
+}
+
 merch-card[variant="full-pricing-express"] [slot="price"] p strong {
     display: inline-flex;
     justify-content: center;

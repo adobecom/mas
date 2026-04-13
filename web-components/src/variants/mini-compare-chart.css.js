@@ -505,6 +505,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="body-m"] p:has(+ p) 
   margin-bottom: 8px;
 }
 
+merch-card[variant="mini-compare-chart"] [slot="footer-rows"] a.spectrum-Link.spectrum-Link--secondary,
 merch-card[variant="mini-compare-chart"] [slot="body-m"] a.spectrum-Link.spectrum-Link--secondary {
   color: inherit;
 }

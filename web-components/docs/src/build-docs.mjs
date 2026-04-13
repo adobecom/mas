@@ -75,6 +75,7 @@ const htmlTemplate = `
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://p.typekit.net/p.css?s=1&amp;k=hah7vzn&amp;ht=tk&amp;f=7180.7181.7182.7183.22474.22749.22750.22751.22753&amp;a=8634977&amp;app=typekit&amp;e=css">
     <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+    <link rel="stylesheet" href="/studio/con-button.css">
   
   <!-- Include your custom element script as an ES6 module -->
   <script type="module">

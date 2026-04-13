@@ -1,4 +1,4 @@
-import { test, expect, studio, fullPricingExpress, webUtil, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
+import { test, expect, studio, fullPricingExpress, miloLibs, setTestPage } from '../../../../libs/mas-test.js';
 import EXPRESSFullPricingSpec from '../specs/full_pricing_css.spec.js';
 
 const { features } = EXPRESSFullPricingSpec;
@@ -77,6 +77,77 @@ test.describe('M@S Studio EXPRESS Full Pricing card CSS test suite', () => {
 
             if (failures.length > 0) {
                 throw new Error(`\x1b[31m✘\x1b[0m Full pricing express card CSS validation failures:\n${failures.join('\n')}`);
+            }
+        });
+    });
+    // @studio-full-pricing-express-price-css - Validate CSS properties for full pricing express card price
+    test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[0];
+        const testPage = `${baseURL}${features[0].path}${miloLibs}${features[0].browserParams}${data.cardid}`;
+        const fullPricingExpressCard = await studio.getCard(data.cardid);
+        setTestPage(testPage);
+
+        const validationLabels = ['strikethrough price', 'tax label', 'recurrence label', 'unit label'];
+
+        await test.step('step-1: Go to MAS Studio test page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Wait for cards to fully render', async () => {
+            await studio.waitForCardsLoaded();
+            await expect(fullPricingExpressCard).toBeVisible();
+            await expect(fullPricingExpressCard).toHaveAttribute(
+                'variant',
+                /(full-pricing-express|simplified-pricing-express)/,
+            );
+        });
+
+        await test.step('step-3: Validate full pricing express card price CSS properties in parallel', async () => {
+            const results = await Promise.allSettled([
+                // Original test 1: Card structure validation
+                test.step('Validation-1: Validate strikethrough price is loaded', async () => {
+                    const stPriceCount = await fullPricingExpress.cardPriceStrikethrough.count();
+                    if (stPriceCount > 0) {
+                        await expect(fullPricingExpress.cardPriceStrikethrough).toBeVisible();
+                    }
+                }),
+
+                test.step('Validation-2: Validate strikethrough price tax label is hidden', async () => {
+                    const labelCount = await fullPricingExpress.cardPriceStrikethroughTaxLabel.count();
+                    if (labelCount > 0) {
+                        const labelElement = fullPricingExpress.cardPriceStrikethroughTaxLabel.first();
+                        await expect(labelElement).toHaveCSS('display', 'none');
+                    }
+                }),
+
+                test.step('Validation-3: Validate strikethrough price recurrence label is hidden', async () => {
+                    const labelCount = await fullPricingExpress.cardPriceStrikethroughRecurrenceLabel.count();
+                    if (labelCount > 0) {
+                        const labelElement = fullPricingExpress.cardPriceStrikethroughRecurrenceLabel.first();
+                        await expect(labelElement).toHaveCSS('display', 'none');
+                    }
+                }),
+
+                test.step('Validation-4: Validate strikethrough price unit label is hidden', async () => {
+                    const labelCount = await fullPricingExpress.cardPriceStrikethroughUnitLabel.count();
+                    if (labelCount > 0) {
+                        const labelElement = fullPricingExpress.cardPriceStrikethroughUnitLabel.first();
+                        await expect(labelElement).toHaveCSS('display', 'none');
+                    }
+                }),
+            ]);
+
+            // Check results and report any failures
+            const failures = results
+                .map((result, index) => ({ result, index }))
+                .filter(({ result }) => result.status === 'rejected')
+                .map(({ result, index }) => `🔍 Validation-${index + 1} (${validationLabels[index]}) failed: ${result.reason}`);
+
+            if (failures.length > 0) {
+                throw new Error(
+                    `\x1b[31m✘\x1b[0m Full pricing express card price CSS validation failures:\n${failures.join('\n')}`,
+                );
             }
         });
     });

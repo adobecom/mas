@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-select-items-table.css.js';
 import Store from '../store.js';
+import StoreController from '../reactivity/store-controller.js';
 import { TABLE_TYPE } from '../constants.js';
 import { renderFragmentStatusCell } from './translation-utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -23,6 +24,10 @@ class MasSelectItemsTable extends LitElement {
         viewOnlyFragments: { type: Array, state: true },
     };
 
+    hasMore = new StoreController(this, Store.fragments.list.hasMore);
+    loading = new StoreController(this, Store.fragments.list.loading);
+    firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
+
     constructor() {
         super();
         this.dataSubscription = null;
@@ -36,6 +41,8 @@ class MasSelectItemsTable extends LitElement {
         this.selectedCardsStoreController = null;
         this.selectedCollectionsStoreController = null;
         this.selectedPlaceholdersStoreController = null;
+        this.observedSentinel = null;
+        this.wasLoading = false;
     }
 
     connectedCallback() {
@@ -76,6 +83,17 @@ class MasSelectItemsTable extends LitElement {
                 this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState);
             }
         }
+        if (!this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
+            this.scrollObserver = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0]?.isIntersecting && this.hasMore.value && !this.loading.value) {
+                        this.repository?.loadNextPage();
+                    }
+                },
+                { rootMargin: '200px' },
+            );
+        }
+
         this[`selected${this.typeUppercased}StoreController`] = new ReactiveController(this, [
             Store.fragments.list.loading,
             Store.placeholders.list.loading,
@@ -95,6 +113,22 @@ class MasSelectItemsTable extends LitElement {
         ) {
             this.viewOnlyLoading = false;
         }
+
+        const loadingJustCompleted = this.wasLoading && !this.loading.value;
+        this.wasLoading = this.loading.value;
+
+        const sentinel = this.renderRoot.querySelector('.scroll-sentinel');
+        if (sentinel && sentinel !== this.observedSentinel) {
+            this.scrollObserver?.disconnect();
+            this.scrollObserver?.observe(sentinel);
+            this.observedSentinel = sentinel;
+        } else if (!sentinel) {
+            this.scrollObserver?.disconnect();
+            this.observedSentinel = null;
+        } else if (loadingJustCompleted && this.hasMore.value) {
+            this.scrollObserver?.unobserve(sentinel);
+            this.scrollObserver?.observe(sentinel);
+        }
     }
 
     disconnectedCallback() {
@@ -102,6 +136,8 @@ class MasSelectItemsTable extends LitElement {
         this.dataSubscription?.unsubscribe();
         this.processAbortController?.abort();
         this.processAbortController = null;
+        this.scrollObserver?.disconnect();
+        this.scrollObserver = null;
     }
 
     /** @type {MasRepository} */
@@ -266,6 +302,14 @@ class MasSelectItemsTable extends LitElement {
         }
     }
 
+    get loadingMoreIndicator() {
+        if (!this.loading.value || !this.firstPageLoaded.value) return nothing;
+        return html`<div class="loading-more">
+            <sp-progress-circle indeterminate size="s"></sp-progress-circle>
+            <span>Loading more items…</span>
+        </div>`;
+    }
+
     render() {
         return html`
             ${this.isLoading
@@ -286,7 +330,8 @@ class MasSelectItemsTable extends LitElement {
                             </sp-table-head>
                             <sp-table-body>${this.#renderTableBody()}</sp-table-body>
                         </sp-table>`
-                      : html`<p>No items found.</p>`}`}
+                      : html`<p>No items found.</p>`}
+                  ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}`}
         `;
     }
 }

@@ -267,29 +267,15 @@ export class MasLocalePicker extends LitElement {
         this.searchDisabled = this.searchDisabled ?? false;
         this.searchPlaceholder ??= 'Search language';
         this.surface ??= 'nala';
+        if (!this.isCheckboxSelection) this.locale ??= Store.localeOrRegion();
         this.selectedLocales = this.parseSelectedLocales(this.locale);
         if (this.displayMode === 'strong') {
             this.classList.add('strong');
         }
-        this.searchSubscriptions = Store.filters.subscribe(() => {
-            if (this.selection === 'checkbox') return;
-            if (this.disabled) return;
-            this.locale = Store.localeOrRegion();
-        });
-        this.regionSubscription = Store.search.subscribe(() => {
-            if (this.selection === 'checkbox') return;
-            if (this.disabled) return;
-            this.locale = Store.localeOrRegion();
-        });
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-
-        if (this.searchSubscriptions) {
-            this.searchSubscriptions.unsubscribe();
-        }
-        this.regionSubscription?.unsubscribe();
     }
 
     handleLocaleChange(locale, fragmentId) {

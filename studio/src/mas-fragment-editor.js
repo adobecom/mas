@@ -1590,6 +1590,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get missingVariationState() {
+        if (this.fragmentId && this.fragment?.id !== this.fragmentId) return null;
         const currentLocale = Store.localeOrRegion();
         const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
 

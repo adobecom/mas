@@ -135,6 +135,11 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] {
   flex-direction: column;
 }
 
+merch-card[variant="simplified-pricing-express"] [slot="price"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
+merch-card[variant="simplified-pricing-express"] [slot="price"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+    display: none;
+}
+
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"]:first-child {
   margin-inline-end: 8px;
 }

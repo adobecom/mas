@@ -65,7 +65,7 @@ export default class TranslationsPage {
         return texts;
     }
 
-    static parseSentOnText(text) {
+    parseSentOnText(text) {
         const t = (text || '').trim();
         if (!t || t === 'N/A') return 0;
         const d = new Date(t);

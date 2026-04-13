@@ -10,7 +10,10 @@ let webUtil;
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
 const workerSetup = createWorkerPageSetup({
-    pages: [{ name: 'US', url: DOCS_GALLERY_PATH.PLANS }],
+    pages: [
+        { name: 'US', url: DOCS_GALLERY_PATH.PLANS.US },
+        { name: 'CA_VISITOR', url: DOCS_GALLERY_PATH.PLANS.CA_VISITOR },
+    ],
 });
 
 test.describe('ACOM MAS cards feature test suite', () => {
@@ -37,7 +40,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
-            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS, expect);
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS.US, expect);
         });
 
         await test.step('step-2: Verify Plans Merch Card content', async () => {
@@ -77,7 +80,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
-            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS, expect);
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS.US, expect);
         });
 
         await test.step('step-2: Verify Plans Merch Card CSS', async () => {
@@ -107,6 +110,37 @@ test.describe('ACOM MAS cards feature test suite', () => {
         });
     });
 
+    // @MAS-Plans-CA-Visitor
+    test(`${features[3].name},${features[3].tags}`, async () => {
+        const { data } = features[3];
+
+        await test.step('step-1: Go to Plans CA Visitor Merch Card feature test page', async () => {
+            const page = workerSetup.getPage('CA_VISITOR');
+            acomPage = new MasPlans(page);
+            webUtil = new WebUtil(page);
+
+            await workerSetup.verifyPageURL('CA_VISITOR', DOCS_GALLERY_PATH.PLANS.CA_VISITOR, expect);
+        });
+
+        await test.step('step-2: Verify Plans CA Visitor Merch Card badge', async () => {
+            await expect(acomPage.getCard(data.id)).toBeVisible();
+            await expect(acomPage.getCardBadge(data.id)).toBeVisible();
+            await expect(acomPage.getCardBadge(data.id)).toContainText(data.badgeText);
+        });
+
+        await test.step('step-3: Verify Plans CA Visitor Merch Card price is in CAD', async () => {
+            await expect(await acomPage.getCardPrice(data.id)).toBeVisible();
+            await expect(await acomPage.getCardPrice(data.id)).toContainText(data.price);
+        });
+
+        await test.step('step-4: Verify Plans CA Visitor Merch Card CTA checkout URL targets CA', async () => {
+            await expect(await acomPage.getCardCTA(data.id)).toBeVisible();
+            const ctaHref = await (await acomPage.getCardCTA(data.id)).evaluate((el) => el.href);
+            expect(ctaHref).toContain('co=CA');
+            await expect(await acomPage.getCardCTA(data.id)).toHaveAttribute('data-analytics-id', /.*/);
+        });
+    });
+
     // @MAS-Plans-Students-CSS
     test(`${features[2].name},${features[2].tags}`, async () => {
         const { data } = features[2];
@@ -116,7 +150,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
             acomPage = new MasPlans(page);
             webUtil = new WebUtil(page);
 
-            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS, expect);
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PLANS.US, expect);
         });
 
         await test.step('step-2: Verify Plans Students Merch Card CSS', async () => {

@@ -701,6 +701,12 @@ export default class MasFragmentEditor extends LitElement {
 
         if (isVariationAfterContext && !skipVariation) {
             await this.#attachParentToCachedVariation(existingStore, fragmentPath);
+            const fragmentLocale = extractLocaleFromPath(fragmentPath);
+            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                await this.repository.loadPreviewPlaceholders();
+                existingStore.resolvePreviewFragment();
+            }
         } else {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
@@ -751,8 +757,6 @@ export default class MasFragmentEditor extends LitElement {
     // Initializes editor state for fragments that are not yet present in list store cache.
     async #initializeFromRepository(fragmentId) {
         try {
-            // Start loading placeholders early
-            const placeholdersPromise = this.repository.loadPreviewPlaceholders().catch(() => null);
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
             const fragment = new Fragment(fragmentData);
 
@@ -763,8 +767,14 @@ export default class MasFragmentEditor extends LitElement {
             const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
-            // Wait for placeholders before creating stores (needed for preview resolution)
-            await placeholdersPromise;
+            if (isVariationForStore) {
+                const fragmentLocale = extractLocaleFromPath(fragment.path);
+                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                }
+            }
+
+            await this.repository.loadPreviewPlaceholders();
 
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
             // Only add to main list if not a variation (variations appear under parent's variations panel)
@@ -774,16 +784,6 @@ export default class MasFragmentEditor extends LitElement {
 
             this.#activateEditorStore(fragmentStore);
             this.dispatchFragmentLoaded();
-
-            // Handle locale-specific placeholder reload for variations
-            if (isVariationForStore) {
-                const fragmentLocale = extractLocaleFromPath(fragment.path);
-                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
-                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-                    await this.repository.loadPreviewPlaceholders();
-                    fragmentStore.resolvePreviewFragment();
-                }
-            }
 
             Store.editor.resetChanges();
             this.updateTranslatedLocalesStore(isVariationForStore, fragment.path); // no need to await

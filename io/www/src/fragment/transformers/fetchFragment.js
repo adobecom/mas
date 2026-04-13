@@ -108,7 +108,11 @@ async function fetchRequestInfosPhase1(initContext) {
     };
 }
 
-async function init(initContext) {
+/**
+ * Full fragment fetch + default-locale variation + region locale. Exposed as `promises.fetchFragment` and aliased as
+ * `promises.customize` (same promise) so customize consumes the encapsulated result without a separate init.
+ */
+async function runFetchFragmentInit(initContext) {
     const { id, locale, promises } = initContext;
     if (id && locale) {
         const phase1Promise = fetchRequestInfosPhase1(initContext);
@@ -147,6 +151,15 @@ async function init(initContext) {
         status: 400,
         message: 'requested parameters id & locale are not present',
     };
+}
+
+function init(initContext) {
+    const p = runFetchFragmentInit(initContext);
+    const { promises } = initContext;
+    if (promises) {
+        promises.customize = p;
+    }
+    return p;
 }
 
 async function fetchFragment(context) {

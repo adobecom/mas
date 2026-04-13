@@ -839,9 +839,7 @@ describe('customize collections', function () {
 });
 
 async function process(context) {
-    const initContext = { ...context };
     context.promises = {};
-    context.promises.customize = customize.init(initContext);
     return await customize.process(context);
 }
 

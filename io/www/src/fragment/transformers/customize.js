@@ -12,9 +12,11 @@ function skimFragmentFromReferences(fragment) {
     return skimmedFragment;
 }
 
-async function init(context) {
-    if (context?.promises?.fetchFragment) {
-        return await context.promises.fetchFragment;
+/** Fragment + locale variation: in pipeline, same promise as `fetchFragment` (`promises.customize`); tests without pipeline hit the fallback. */
+async function resolveFragmentInit(context) {
+    const fragmentInit = context?.promises?.customize ?? context?.promises?.fetchFragment;
+    if (fragmentInit) {
+        return await fragmentInit;
     }
     const { body, surface, fragmentPath, parsedLocale } = await getRequestInfos(context);
     const merged = { ...context, surface, fragmentPath, parsedLocale, body };
@@ -249,7 +251,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
 
 async function customize(context) {
     const { surface } = await getRequestInfos(context);
-    const { body, defaultLocale, status, message } = await context.promises?.customize;
+    const { body, defaultLocale, status, message } = await resolveFragmentInit(context);
     const promos = await context.promises?.promotions;
 
     if (status != 200) {
@@ -286,7 +288,6 @@ async function customize(context) {
 export const transformer = {
     name: 'customize',
     process: customize,
-    init,
 };
 export { deepMerge };
 export { computeRegionLocale, getDefaultLanguageVariation } from './fetchFragment.js';

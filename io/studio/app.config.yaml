@@ -80,7 +80,7 @@ application:
                         web: 'yes'
                         runtime: nodejs:22
                         inputs:
-                            concurrencyLimit: 5
+                            concurrencyLimit: "5"
                         annotations:
                             require-adobe-auth: false
                             final: true

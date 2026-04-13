@@ -4,7 +4,7 @@ import '../src/mas-fragment-editor.js';
 import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
-import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
+import generateFragmentStore, { SourceFragmentStore } from '../src/reactivity/source-fragment-store.js';
 import { PAGE_NAMES, CARD_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
@@ -357,6 +357,7 @@ describe('MasFragmentEditor', () => {
 
         it('reloads locale placeholders for variations when active locale differs', async () => {
             const fragmentData = createFragmentData({ id: 'variation-id', locale: 'fr_FR', slug: 'variation' });
+            const resolvePreviewSpy = sandbox.spy(SourceFragmentStore.prototype, 'resolvePreviewFragment');
 
             Store.filters.value = { locale: 'tr_TR' };
             mockRepo.aem.sites.cf.fragments.getById.resolves(fragmentData);
@@ -366,7 +367,8 @@ describe('MasFragmentEditor', () => {
 
             await el.initFragment();
 
-            expect(mockRepo.loadPreviewPlaceholders.calledOnce).to.be.true;
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
+            expect(resolvePreviewSpy.calledOnce).to.be.true;
             expect(Store.search.get().region).to.equal('fr_FR');
         });
 

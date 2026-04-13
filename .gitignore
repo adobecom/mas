@@ -33,6 +33,7 @@ nala/.auth/
 /agents/
 reports/
 /.superpowers
+docs/superpowers/
 .logs
 
 # IO Runtime Config

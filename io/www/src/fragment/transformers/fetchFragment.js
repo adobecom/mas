@@ -154,12 +154,12 @@ async function runFetchFragmentInit(initContext) {
 }
 
 function init(initContext) {
-    const p = runFetchFragmentInit(initContext);
+    const fetchFragmentPromise = runFetchFragmentInit(initContext);
     const { promises } = initContext;
     if (promises) {
-        promises.customize = p;
+        promises.customize = fetchFragmentPromise;
     }
-    return p;
+    return fetchFragmentPromise;
 }
 
 async function fetchFragment(context) {

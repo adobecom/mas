@@ -5,14 +5,51 @@ const DEBOUNCE_DELAY = 500;
 const DEFAULT_DATA = Object.freeze({ sessions: {}, activeSessionId: null });
 
 /**
+ * Whitelist of safe `operationType` values that are display discriminators only,
+ * used by <mas-operation-result> to pick the right renderer for historical
+ * results. Any value outside this set is dropped during sanitization.
+ */
+const SAFE_OPERATION_TYPES = new Set([
+    'search',
+    'search_cards',
+    'publish',
+    'publish_card',
+    'unpublish',
+    'unpublish_card',
+    'copy',
+    'copy_card',
+    'delete',
+    'delete_card',
+    'update',
+    'update_card',
+    'get',
+    'get_card',
+    'bulk_update',
+    'bulk_update_cards',
+    'bulk_publish',
+    'bulk_publish_cards',
+    'bulk_delete',
+    'bulk_delete_cards',
+    'get_variations',
+    'resolve_offer_selector',
+    'create_release_cards',
+]);
+
+/**
  * Sanitize a single message before exposing it to the UI.
- * Strips execution metadata (mcpOperation, operationType, confirmationRequired)
- * so that historical messages cannot be replayed as live operations. This is
- * a defense against malicious localStorage writes (audit M3).
+ * Strips execution metadata (mcpOperation, confirmationRequired, operation) so
+ * historical messages cannot be replayed as live operations. `operationType` is
+ * preserved only when it is in the whitelist of safe render discriminators
+ * (needed so the "cards created" container and other result views survive
+ * session reload). This is a defense against malicious localStorage writes
+ * (audit M3).
  */
 function sanitizeMessage(message) {
     if (!message || typeof message !== 'object') return null;
     const { mcpOperation, operationType, confirmationRequired, operation, ...safe } = message;
+    if (typeof operationType === 'string' && SAFE_OPERATION_TYPES.has(operationType)) {
+        safe.operationType = operationType;
+    }
     return safe;
 }
 

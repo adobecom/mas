@@ -512,6 +512,59 @@ describe('ChatSessionManager', () => {
             expect(message.confirmationRequired).to.be.undefined;
         });
 
+        it('preserves whitelisted operationType values for historical result rendering', () => {
+            storage[STORAGE_KEY] = JSON.stringify({
+                sessions: {
+                    'session-1': {
+                        id: 'session-1',
+                        name: 'Test',
+                        messages: [
+                            {
+                                role: 'assistant',
+                                content: 'cards created',
+                                operationType: 'create_release_cards',
+                                result: { cards: [{ id: 'card-1' }] },
+                            },
+                            {
+                                role: 'assistant',
+                                content: 'search done',
+                                operationType: 'search_cards',
+                            },
+                        ],
+                        conversationHistory: [],
+                    },
+                },
+                activeSessionId: 'session-1',
+            });
+            const data = manager.getData();
+            const messages = data.sessions['session-1'].messages;
+            expect(messages[0].operationType).to.equal('create_release_cards');
+            expect(messages[0].result).to.deep.equal({ cards: [{ id: 'card-1' }] });
+            expect(messages[1].operationType).to.equal('search_cards');
+        });
+
+        it('drops operationType values that are not in the safe whitelist', () => {
+            storage[STORAGE_KEY] = JSON.stringify({
+                sessions: {
+                    'session-1': {
+                        id: 'session-1',
+                        name: 'Test',
+                        messages: [
+                            {
+                                role: 'assistant',
+                                content: 'sneaky',
+                                operationType: 'arbitrary_attacker_type',
+                            },
+                        ],
+                        conversationHistory: [],
+                    },
+                },
+                activeSessionId: 'session-1',
+            });
+            const data = manager.getData();
+            expect(data.sessions['session-1'].messages[0].operationType).to.be.undefined;
+        });
+
         it('preserves messages without mcpOperation metadata unchanged', () => {
             storage[STORAGE_KEY] = JSON.stringify({
                 sessions: {

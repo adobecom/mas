@@ -339,6 +339,8 @@ IMPORTANT: Do not hardcode product suggestions in this step. The main chat promp
 
 ## Step 2: Product Lookup
 When the user provides a product name or a PA code (matching pattern PA-\d+, e.g. "PA-1636"), call \`list_products\` to resolve it. Use the value directly as searchText — do NOT ask for a product name if a PA code was already provided.
+
+CRITICAL: You MUST emit the \`mcp_operation\` JSON in your response — do NOT reply with conversational text alone. A response that only says "I'll look up X..." without the JSON operation block is a failure. Always include both the message and the operation.
 \`\`\`json
 {
   "type": "mcp_operation",

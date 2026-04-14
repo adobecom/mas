@@ -550,18 +550,23 @@ export class MasChat extends LitElement {
             } else if (response.type === 'release_cards') {
                 await this.handleReleaseCardsResponse(response);
             } else {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: response.message || 'I processed your request but have nothing further to add.',
-                        type: response.type,
-                        sources: response.sources || [],
-                        fragmentIds: response.fragmentIds,
-                        suggestedTitle: response.suggestedTitle,
-                        timestamp: Date.now(),
-                    },
-                ];
+                const prevAssistant = [...this.messages].reverse().find((m) => m.role === 'assistant');
+                if (response.type === 'message' && prevAssistant?.buttonGroup?.label === 'Product') {
+                    await this.recoverProductLookup(message);
+                } else {
+                    this.messages = [
+                        ...this.messages,
+                        {
+                            role: 'assistant',
+                            content: response.message || 'I processed your request but have nothing further to add.',
+                            type: response.type,
+                            sources: response.sources || [],
+                            fragmentIds: response.fragmentIds,
+                            suggestedTitle: response.suggestedTitle,
+                            timestamp: Date.now(),
+                        },
+                    ];
+                }
             }
 
             if (response.type !== 'operation' && response.type !== 'mcp_operation') {
@@ -1489,6 +1494,46 @@ export class MasChat extends LitElement {
                 inputHint: response.buttonGroup?.inputHint || 'Or type a product name to search...',
             },
         };
+    }
+
+    async recoverProductLookup(searchText) {
+        try {
+            const result = await fetchProducts({ searchText }).catch(() => ({ products: [] }));
+            const products = (result.products || []).map((p) => this.mapProductToChatCard(p));
+            if (products.length) {
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: `Found ${products.length} product(s) matching "${searchText}". Pick one to continue.`,
+                        buttonGroup: {
+                            label: 'Product',
+                            inputHint: 'Or type a product name to search...',
+                        },
+                        productCards: products,
+                        timestamp: Date.now(),
+                    },
+                ];
+            } else {
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: `No products found matching "${searchText}". Please try a different name or check the spelling.`,
+                        timestamp: Date.now(),
+                    },
+                ];
+            }
+        } catch {
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: `Couldn't look up "${searchText}" right now. Please try again.`,
+                    timestamp: Date.now(),
+                },
+            ];
+        }
     }
 
     async enrichReleaseConfirmationSummary(summary) {

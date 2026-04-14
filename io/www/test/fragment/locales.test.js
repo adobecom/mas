@@ -205,51 +205,72 @@ describe('locales', function () {
     });
 
     describe('Chinese locales (HK as region under zh_TW)', function () {
-        const surfacesWithZh = ['acom', 'sandbox', 'nala', 'ccd', 'express', 'adobe-home', 'commerce'];
+        const allSurfacesWithZh = ['acom', 'sandbox', 'nala', 'ccd', 'express', 'adobe-home', 'commerce'];
+        const surfacesWithHKRegion = ['acom', 'sandbox', 'nala'];
+        const surfacesWithoutHKRegion = ['ccd', 'express', 'adobe-home', 'commerce'];
 
         it('should not have zh_HK as a standalone default locale', function () {
-            for (const surface of surfacesWithZh) {
+            for (const surface of allSurfacesWithZh) {
                 const defaults = getDefaultLocales(surface);
                 const zhHK = defaults.find((locale) => locale.lang === 'zh' && locale.country === 'HK');
                 expect(zhHK, surface).to.be.undefined;
             }
         });
 
-        it('should only define zh_CN and zh_TW as base Chinese defaults, with HK as a region of zh_TW', function () {
-            for (const surface of surfacesWithZh) {
+        it('should only define zh_CN and zh_TW as base Chinese defaults, with HK as a region of zh_TW only for acom/sandbox/nala', function () {
+            for (const surface of allSurfacesWithZh) {
                 const defaults = getDefaultLocales(surface);
                 const zhRows = defaults.filter((locale) => locale.lang === 'zh');
                 expect(zhRows.map((row) => row.country).sort(), surface).to.deep.equal(['CN', 'TW']);
-                const tw = zhRows.find((row) => row.country === 'TW');
+            }
+            for (const surface of surfacesWithHKRegion) {
+                const defaults = getDefaultLocales(surface);
+                const tw = defaults.find((locale) => locale.lang === 'zh' && locale.country === 'TW');
                 expect(tw?.regions, surface).to.include('HK');
+            }
+            for (const surface of surfacesWithoutHKRegion) {
+                const defaults = getDefaultLocales(surface);
+                const tw = defaults.find((locale) => locale.lang === 'zh' && locale.country === 'TW');
+                expect(tw?.regions, surface).to.be.undefined;
             }
         });
 
-        it('should expose zh_HK via getSurfaceLocales as a regional variant', function () {
-            for (const surface of surfacesWithZh) {
+        it('should expose zh_HK via getSurfaceLocales as a regional variant only for acom/sandbox/nala', function () {
+            for (const surface of surfacesWithHKRegion) {
                 const surfaceLocales = getSurfaceLocales(surface);
                 const codes = surfaceLocales.map((locale) => getLocaleCode(locale));
                 expect(codes, surface).to.include('zh_HK');
                 expect(codes.filter((c) => c === 'zh_HK').length, surface).to.equal(1);
             }
+            for (const surface of surfacesWithoutHKRegion) {
+                const surfaceLocales = getSurfaceLocales(surface);
+                const codes = surfaceLocales.map((locale) => getLocaleCode(locale));
+                expect(codes, surface).to.not.include('zh_HK');
+            }
         });
 
         it('should resolve getDefaultLocale for zh_HK to the zh_TW entry', function () {
-            const resolved = getDefaultLocale('sandbox', 'zh_HK');
-            expect(resolved.lang).to.equal('zh');
-            expect(resolved.country).to.equal('TW');
-            expect(resolved.regions).to.include('HK');
+            for (const surface of surfacesWithHKRegion) {
+                const resolved = getDefaultLocale(surface, 'zh_HK');
+                expect(resolved.lang, surface).to.equal('zh');
+                expect(resolved.country, surface).to.equal('TW');
+                expect(resolved.regions, surface).to.include('HK');
+            }
         });
 
-        it('should list HK under getRegionLocales for zh_TW', function () {
+        it('should list HK under getRegionLocales for zh_TW only for acom/sandbox/nala', function () {
             const regionsOnly = getRegionLocales('sandbox', 'zh_TW', false);
             expect(regionsOnly.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK']);
             const withDefault = getRegionLocales('sandbox', 'zh_TW', true);
             expect(withDefault.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK', 'zh_TW']);
+            for (const surface of surfacesWithoutHKRegion) {
+                const result = getRegionLocales(surface, 'zh_TW', false);
+                expect(result.length, surface).to.equal(0);
+            }
         });
 
-        it('should map zh_HK to zh_TW for every surface that defines Chinese locales', function () {
-            for (const surface of surfacesWithZh) {
+        it('should map zh_HK to zh_TW for acom/sandbox/nala', function () {
+            for (const surface of surfacesWithHKRegion) {
                 expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.equal('zh_TW');
             }
         });

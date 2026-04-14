@@ -362,6 +362,22 @@ async function processBatchWithConcurrency(items, batchSize, processor) {
     return allResults;
 }
 
+async function getFragmentWithEtag(odinEndpoint, fragmentId, authToken) {
+    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
+        method: 'GET',
+    });
+    const etag = response.headers.get('etag') || response.headers.get('Etag');
+    const fragment = await response.json();
+    return { fragment, etag };
+}
+
+async function deleteFragmentById(odinEndpoint, fragmentId, authToken, etag) {
+    await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
+        method: 'DELETE',
+        etag,
+    });
+}
+
 module.exports = {
     DEFAULT_PACKAGE_NAME,
     buildSiblingActionName,
@@ -379,4 +395,6 @@ module.exports = {
     postToOdinWithRetry,
     processBatchWithConcurrency,
     putToOdin,
+    getFragmentWithEtag,
+    deleteFragmentById,
 };

@@ -1443,8 +1443,9 @@ class MerchCardEditor extends LitElement {
                                 : this.renderSettingOverrideIndicator('quantitySelect')}
                             .fieldIndicatorTemplate=${this.renderQuantitySelectSettingOverrideIndicator}
                             value="${this.getEffectiveSettingValue(QUANTITY_MODEL)}"
-                            settingsDefaults="${this.globalSettingsDefaults[QUANTITY_MODEL]}"
-                            @input="${this.#handleFragmentUpdate}"
+                            settingsDefaults="${this.globalSettingsDefaults[QUANTITY_MODEL] === ''
+                                ? '<merch-quantity-select/>'
+                                : this.globalSettingsDefaults[QUANTITY_MODEL]}"
                             .handleQuantityFieldChange=${this.#handleQuantityFieldChange}
                         ></quantity-select-settings-field>
                     </sp-field-group>
@@ -1991,11 +1992,7 @@ class MerchCardEditor extends LitElement {
             min: this.#getQuantitySelectValue(component, 'min', parentValues, currentValues),
             step: this.#getQuantitySelectValue(component, 'step', parentValues, currentValues),
         });
-        if (parentHtml === html) {
-            this.fragmentStore.updateField(QUANTITY_MODEL, ['']);
-        } else {
-            this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
-        }
+        this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
         showToast('Field restored to parent value', 'positive');
     }

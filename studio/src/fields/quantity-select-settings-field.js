@@ -3,6 +3,7 @@ import { EVENT_INPUT } from '../constants.js';
 import { QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 
 const QUANTITY_EMPTY = `<${QUANTITY_SELECT_TAG}/>`;
+const QUANTITY_NOT_EMPTY = `<${QUANTITY_SELECT_TAG} title="" min="1" max="10" step="1"></${QUANTITY_SELECT_TAG}>`;
 
 export class QuantitySelectField extends LitElement {
     static properties = {
@@ -10,7 +11,6 @@ export class QuantitySelectField extends LitElement {
         label: { type: String },
         value: { type: String },
         settingsDefaults: { type: String },
-        checked: { type: Boolean, state: true },
         indicatorTemplate: { attribute: false },
         fieldIndicatorTemplate: { attribute: false },
         handleQuantityFieldChange: { type: Function, attribute: false },
@@ -23,7 +23,6 @@ export class QuantitySelectField extends LitElement {
         this.value = '';
         this.settingsDefaults = '';
         this.disabled = false;
-        this.checked = false;
         this.indicatorTemplate = nothing;
         this.fieldIndicatorTemplate = nothing;
         this.handleQuantityFieldChange = () => {};
@@ -33,23 +32,14 @@ export class QuantitySelectField extends LitElement {
         return this;
     }
 
-    updated(changedProperties) {
-        if (changedProperties.has('value')) {
-            this.checked = !!this.value && this.value !== QUANTITY_EMPTY;
-        }
-    }
-
     #handleToggle(e) {
-        this.checked = e.target.checked;
-        if (!this.checked) {
-            this.handleQuantityFieldChange({
-                detail: {
-                    value: QUANTITY_EMPTY,
-                },
-            });
-        } else {
-            this.dispatchInputEvent();
-        }
+        this.value = e.target.checked ? QUANTITY_NOT_EMPTY : QUANTITY_EMPTY;
+        this.handleQuantityFieldChange({
+            detail: {
+                value: this.value,
+            },
+        });
+        this.dispatchInputEvent();
     }
 
     dispatchInputEvent() {
@@ -61,8 +51,12 @@ export class QuantitySelectField extends LitElement {
         this.dispatchEvent(inputEvent);
     }
 
+    #isChecked() {
+        return !!this.value && this.value !== QUANTITY_EMPTY;
+    }
+
     get fields() {
-        if (!this.checked) return nothing;
+        if (!this.#isChecked()) return nothing;
         return html`
             <quantity-select-field
                 .value=${this.value}
@@ -77,7 +71,7 @@ export class QuantitySelectField extends LitElement {
         return html`
             <sp-field-group id="${this.id}">
                 <div class="field-row">
-                    <sp-switch id="${this.id}-toggle" size="m" .checked="${this.checked}" @change="${this.#handleToggle}"
+                    <sp-switch id="${this.id}-toggle" size="m" .checked="${this.#isChecked()}" @change="${this.#handleToggle}"
                         >${this.label}</sp-switch
                     >
                     ${this.indicatorTemplate}

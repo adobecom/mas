@@ -29,11 +29,7 @@ describe('MasItemSelector', () => {
     describe('TABS', () => {
         it('exports three tabs matching TABLE_TYPE', () => {
             expect(TABS).to.have.lengthOf(3);
-            expect(TABS.map((t) => t.value)).to.deep.equal([
-                TABLE_TYPE.CARDS,
-                TABLE_TYPE.COLLECTIONS,
-                TABLE_TYPE.PLACEHOLDERS,
-            ]);
+            expect(TABS.map((t) => t.value)).to.deep.equal([TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS, TABLE_TYPE.PLACEHOLDERS]);
         });
     });
 

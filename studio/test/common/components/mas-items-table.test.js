@@ -67,7 +67,11 @@ describe('MasItemsTable', () => {
 
         it('renders table for collections', async () => {
             const el = await fixture(html`
-                <mas-items-table type=${TABLE_TYPE.COLLECTIONS} .items=${[mockCollection]} .selectedPaths=${new Set()}></mas-items-table>
+                <mas-items-table
+                    type=${TABLE_TYPE.COLLECTIONS}
+                    .items=${[mockCollection]}
+                    .selectedPaths=${new Set()}
+                ></mas-items-table>
             `);
             expect(el.shadowRoot.querySelector('sp-table')).to.exist;
         });

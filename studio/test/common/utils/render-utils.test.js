@@ -1,10 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { nothing, render } from 'lit';
-import {
-    renderFragmentStatusCell,
-    getItemTypeLabel,
-    getItemTitle,
-} from '../../../src/common/utils/render-utils.js';
+import { renderFragmentStatusCell, getItemTypeLabel, getItemTitle } from '../../../src/common/utils/render-utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
 
 describe('render-utils', () => {

@@ -65,7 +65,11 @@ describe('MasItemsSearchFilters', () => {
             const onFiltered = sinon.spy();
             const items = [mockCard({ title: 'FindMe' }), mockCard({ title: 'Other' })];
             const el = await fixture(html`
-                <mas-items-search-filters type=${TABLE_TYPE.CARDS} .items=${items} @items-filtered=${onFiltered}></mas-items-search-filters>
+                <mas-items-search-filters
+                    type=${TABLE_TYPE.CARDS}
+                    .items=${items}
+                    @items-filtered=${onFiltered}
+                ></mas-items-search-filters>
             `);
             onFiltered.resetHistory();
             const search = el.shadowRoot.querySelector('sp-search');
@@ -80,7 +84,9 @@ describe('MasItemsSearchFilters', () => {
 
     describe('appliedFilters', () => {
         it('builds labels from template filter ids', async () => {
-            const el = await fixture(html`<mas-items-search-filters type=${TABLE_TYPE.CARDS} .searchOnly=${false}></mas-items-search-filters>`);
+            const el = await fixture(
+                html`<mas-items-search-filters type=${TABLE_TYPE.CARDS} .searchOnly=${false}></mas-items-search-filters>`,
+            );
             const firstTemplateId = el.templateOptions[0]?.id;
             if (!firstTemplateId) return;
             el.templateFilter = [firstTemplateId];
@@ -96,7 +102,9 @@ describe('MasItemsSearchFilters', () => {
                     tags: [{ id: 'mas:market_segment/us', title: 'US' }],
                 }),
             ];
-            const el = await fixture(html`<mas-items-search-filters type=${TABLE_TYPE.CARDS} .items=${items}></mas-items-search-filters>`);
+            const el = await fixture(
+                html`<mas-items-search-filters type=${TABLE_TYPE.CARDS} .items=${items}></mas-items-search-filters>`,
+            );
             await el.updateComplete;
             expect(el.marketSegmentOptions.some((o) => o.id === 'mas:market_segment/us')).to.be.true;
         });

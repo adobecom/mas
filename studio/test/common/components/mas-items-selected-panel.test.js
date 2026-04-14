@@ -18,7 +18,9 @@ describe('MasItemsSelectedPanel', () => {
     };
 
     it('renders nothing when not visible', async () => {
-        const el = await fixture(html`<mas-items-selected-panel .visible=${false} .items=${[item]}></mas-items-selected-panel>`);
+        const el = await fixture(
+            html`<mas-items-selected-panel .visible=${false} .items=${[item]}></mas-items-selected-panel>`,
+        );
         expect(el.shadowRoot.textContent.trim()).to.equal('');
         expect(el.shadowRoot.querySelector('ul.selected-items')).to.be.null;
     });

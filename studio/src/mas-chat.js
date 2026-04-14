@@ -511,13 +511,17 @@ export class MasChat extends LitElement {
                     },
                 ];
             } else if (response.type === 'open_ost') {
+                const searchParams = { ...response.searchParams };
+                if (response.searchParams?.expectedOffers === 2 || /base.*trial|trial.*base/i.test(response.message)) {
+                    searchParams.mode = 'plans-base-and-trial';
+                }
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
                         content: response.message,
                         openOst: true,
-                        ostSearchParams: response.searchParams,
+                        ostSearchParams: searchParams,
                         timestamp: Date.now(),
                     },
                 ];

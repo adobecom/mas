@@ -68,7 +68,7 @@ describe('ai-card-mapper', () => {
             expect(titleField.values).to.deep.equal(['<h3>Test</h3>']);
         });
 
-        it('should map description as long-text when mapping has tag/slot', () => {
+        it('should map description as long-text', () => {
             stubMerchCard();
             const fields = mapAIConfigToFragmentFields({ description: '<div>Some text</div>' }, 'catalog');
             const descField = fields.find((f) => f.name === 'description');
@@ -105,37 +105,11 @@ describe('ai-card-mapper', () => {
             expect(fields[0].name).to.equal('variant');
         });
 
-        it('should auto-inject showSecureLabel=true for plans variants', () => {
+        it('should not inject secureLabel or showSecureLabel (secure label is handled by settings, not fragment fields)', () => {
             stubMerchCard();
             const fields = mapAIConfigToFragmentFields({ title: '<h3>Creative Cloud</h3>' }, 'plans');
-            const secureLabelField = fields.find((f) => f.name === 'showSecureLabel');
-            expect(secureLabelField).to.deep.equal({
-                name: 'showSecureLabel',
-                type: 'text',
-                values: ['true'],
-            });
-        });
-
-        it('should auto-inject showSecureLabel=true for plans sub-variants (plans-education, plans-students)', () => {
-            stubMerchCard();
-            const eduFields = mapAIConfigToFragmentFields({}, 'plans-education');
-            const studentsFields = mapAIConfigToFragmentFields({}, 'plans-students');
-            expect(eduFields.find((f) => f.name === 'showSecureLabel')?.values).to.deep.equal(['true']);
-            expect(studentsFields.find((f) => f.name === 'showSecureLabel')?.values).to.deep.equal(['true']);
-        });
-
-        it('should not auto-inject showSecureLabel for non-plans variants', () => {
-            stubMerchCard();
-            const catalogFields = mapAIConfigToFragmentFields({ title: '<h3>Photoshop</h3>' }, 'catalog');
-            expect(catalogFields.find((f) => f.name === 'showSecureLabel')).to.be.undefined;
-        });
-
-        it('should respect an explicit showSecureLabel from aiConfig for plans variants', () => {
-            stubMerchCard({ ...MOCK_FRAGMENT_MAPPING, showSecureLabel: {} });
-            const fields = mapAIConfigToFragmentFields({ showSecureLabel: 'false' }, 'plans');
-            const secureLabelFields = fields.filter((f) => f.name === 'showSecureLabel');
-            expect(secureLabelFields).to.have.lengthOf(1);
-            expect(secureLabelFields[0].values).to.deep.equal(['false']);
+            expect(fields.find((f) => f.name === 'secureLabel')).to.be.undefined;
+            expect(fields.find((f) => f.name === 'showSecureLabel')).to.be.undefined;
         });
 
         it('should stamp distinct data-wcs-osi onto buy-now and free-trial anchors for plans variants', () => {
@@ -159,13 +133,13 @@ describe('ai-card-mapper', () => {
             );
         });
 
-        it('should emit both osi and trialOsi as top-level fields for plans variants', () => {
+        it('should emit osi but not trialOsi as a top-level field (trialOsi is not an AEM model field)', () => {
             stubMerchCard();
             const fields = mapAIConfigToFragmentFields({ osi: 'base-osi-123', trialOsi: 'trial-osi-456' }, 'plans');
             const osiField = fields.find((f) => f.name === 'osi');
             const trialOsiField = fields.find((f) => f.name === 'trialOsi');
             expect(osiField).to.deep.equal({ name: 'osi', type: 'text', values: ['base-osi-123'] });
-            expect(trialOsiField).to.deep.equal({ name: 'trialOsi', type: 'text', values: ['trial-osi-456'] });
+            expect(trialOsiField).to.be.undefined;
         });
 
         it('should drop the free-trial anchor entirely when trialOsi is missing for plans variants', () => {

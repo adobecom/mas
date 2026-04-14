@@ -18,21 +18,28 @@ const VARIANT_TO_AEM_FIELD_MAPPING = {
     title: 'cardTitle',
 };
 
+/** AEM card model fields that use 'long-text' type (HTML content). */
+const LONG_TEXT_FIELDS = new Set([
+    'badge',
+    'trialBadge',
+    'prices',
+    'shortDescription',
+    'description',
+    'ctas',
+    'callout',
+    'stockOffer',
+    'whatsIncluded',
+    'quantitySelect',
+    'promoText',
+]);
+
 /**
- * Determines the AEM field type based on variant mapping
+ * Determines the AEM field type for a given field name.
  * @param {string} fieldName - AEM field name
- * @param {Object} mappingConfig - Field mapping configuration
  * @returns {string} - 'long-text' for HTML fields, 'text' for plain text
  */
-function getFieldType(fieldName, mappingConfig) {
-    if (fieldName === 'cardTitle') {
-        return 'text';
-    }
-
-    if (mappingConfig?.tag || mappingConfig?.slot) {
-        return 'long-text';
-    }
-    return 'text';
+function getFieldType(fieldName) {
+    return LONG_TEXT_FIELDS.has(fieldName) ? 'long-text' : 'text';
 }
 
 /**
@@ -135,20 +142,16 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
         } else if (mappingConfig) {
             // Translate variant field name to AEM field name
             const aemFieldName = VARIANT_TO_AEM_FIELD_MAPPING[fieldName] || fieldName;
-            const fieldType = getFieldType(aemFieldName, mappingConfig);
+            const fieldType = getFieldType(aemFieldName);
             fields.push({ name: aemFieldName, type: fieldType, values: [value] });
         }
     }
 
-    // Re-emit osi and trialOsi as their own top-level fields so any consumer
-    // that reads the fragment-level fields (e.g. the merch-card render fallback)
-    // still sees them. The actual per-CTA targeting happens via the ctas HTML
-    // rewrite below.
+    // Re-emit osi as a top-level field so the merch-card render fallback sees it.
+    // trialOsi is NOT an AEM model field — the trial offer is already embedded in
+    // the ctas HTML via applyDualOsiToCtas below.
     if (baseOsi) {
         fields.push({ name: 'osi', type: 'text', values: [baseOsi] });
-    }
-    if (trialOsi) {
-        fields.push({ name: 'trialOsi', type: 'text', values: [trialOsi] });
     }
 
     // For plans variants, stamp distinct data-wcs-osi attributes onto the
@@ -159,13 +162,6 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
         if (ctasField && Array.isArray(ctasField.values) && ctasField.values.length > 0) {
             ctasField.values = [applyDualOsiToCtas(ctasField.values[0], baseOsi, trialOsi)];
         }
-    }
-
-    // Plans variants must render the secure transaction label by default.
-    // If the AI did not specify showSecureLabel, force it on so the generated
-    // card matches the expected Plans look-and-feel (POC feedback MWPW-183572).
-    if (variant?.startsWith('plans') && !fields.some((field) => field.name === 'showSecureLabel')) {
-        fields.push({ name: 'showSecureLabel', type: 'text', values: ['true'] });
     }
 
     return fields;

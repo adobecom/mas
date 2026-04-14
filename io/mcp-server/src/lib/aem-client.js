@@ -229,8 +229,9 @@ export class AEMClient {
         });
 
         if (!response.ok) {
-            const error = await response.json().catch(() => ({ message: response.statusText }));
-            throw new Error(`Failed to create fragment: ${error.message || response.statusText}`);
+            const errorBody = await response.json().catch(() => null);
+            const detail = errorBody?.detail || errorBody?.message || errorBody?.['o:errorCode'] || JSON.stringify(errorBody);
+            throw new Error(`Failed to create fragment: ${response.status} ${detail || response.statusText}`);
         }
 
         const fragment = await response.json();

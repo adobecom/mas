@@ -490,7 +490,7 @@ export class MasChatMessage extends LitElement {
 
         const {
             role,
-            content,
+            content: rawContent,
             type,
             cardConfig,
             collectionConfig,
@@ -504,6 +504,11 @@ export class MasChatMessage extends LitElement {
             operationLoading,
             fragmentId,
         } = this.message;
+
+        const content =
+            typeof rawContent === 'string'
+                ? rawContent.replace(/<use_mcp_tool>[\s\S]*?<\/use_mcp_tool>/g, '').trim()
+                : rawContent;
 
         const messageClass = `chat-message chat-message-${role}`;
         const isUser = role === 'user';

@@ -11,6 +11,26 @@ export class CardTools {
     }
 
     /**
+     * Normalize fields from flat key-value pairs into AEM CF API format.
+     * Handles mnemonics expansion and wraps plain values in {value} objects.
+     */
+    normalizeFields(fields) {
+        const normalized = {};
+        for (const [key, val] of Object.entries(fields)) {
+            if (key === 'mnemonics' && Array.isArray(val)) {
+                normalized.mnemonicIcon = { values: val.map((m) => m.icon || '') };
+                normalized.mnemonicAlt = { values: val.map((m) => m.alt || '') };
+                normalized.mnemonicLink = { values: val.map((m) => m.link || '') };
+            } else if (val && typeof val === 'object' && ('value' in val || 'values' in val)) {
+                normalized[key] = val;
+            } else {
+                normalized[key] = { value: val };
+            }
+        }
+        return normalized;
+    }
+
+    /**
      * Create a new merch card
      */
     async createCard(params) {
@@ -24,7 +44,7 @@ export class CardTools {
             fields: {
                 variant: { value: variant },
                 size: { value: size },
-                ...fields,
+                ...this.normalizeFields(fields),
             },
             tags,
         };

@@ -326,7 +326,7 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
             modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
             multiSelect: isMultiSelectRequested,
-            onMultiSelect: isMultiSelectRequested ? onMultiOfferSelect : undefined,
+            onMultiSelect: onMultiOfferSelect,
             onCancel: () => closeOfferSelectorTool(),
             onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });

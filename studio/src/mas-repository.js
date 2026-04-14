@@ -646,7 +646,9 @@ export class MasRepository extends LitElement {
     async loadPreviewPlaceholders() {
         if (!this.search.value.path) return;
 
-        const cacheKey = `${Store.localeOrRegion()}_${this.search.value.path}`;
+        const locale = Store.localeOrRegion();
+        const path = this.search.value.path;
+        const cacheKey = `${locale}_${path}`;
 
         // Return cached result if available
         if (this.dictionaryCache.has(cacheKey)) {
@@ -666,7 +668,7 @@ export class MasRepository extends LitElement {
         this.#abortControllers.placeholders = new AbortController();
 
         try {
-            const promise = this.fetchDictionary(this.#abortControllers.placeholders);
+            const promise = this.fetchDictionary(this.#abortControllers.placeholders, locale);
             this.inflightDictionaryRequest = { promise, cacheKey };
             const result = await promise;
 
@@ -674,7 +676,7 @@ export class MasRepository extends LitElement {
             const currentKey = `${Store.localeOrRegion()}_${this.search.value.path}`;
             if (currentKey === cacheKey) {
                 // If result is empty and locale isn't en_US, try fallback
-                if ((!result || Object.keys(result).length === 0) && Store.localeOrRegion() !== 'en_US') {
+                if ((!result || Object.keys(result).length === 0) && locale !== 'en_US') {
                     const fallbackContext = {
                         preview: {
                             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
@@ -702,12 +704,12 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async fetchDictionary(abortController) {
+    async fetchDictionary(abortController, locale = Store.localeOrRegion()) {
         const context = {
             preview: {
                 url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
             },
-            locale: Store.localeOrRegion(),
+            locale,
             surface: this.search.value.path,
             networkConfig: {
                 mainTimeout: 15000,

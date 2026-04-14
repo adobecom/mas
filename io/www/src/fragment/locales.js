@@ -130,8 +130,7 @@ const ACOM = [
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'HK' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const CCD = [

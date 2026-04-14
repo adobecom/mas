@@ -1363,8 +1363,10 @@ export default class MasFragmentEditor extends LitElement {
 
     #handlePreviewLocaleChange = (event) => {
         if (!this.fragmentStore?.previewStore) return;
-        this.fragmentStore.previewStore.resolved = false;
-        this.fragmentStore.resolvePreviewFragment(event.detail?.value ?? null);
+        const localeValue = event.detail?.value ?? null;
+        const changed = this.fragmentStore.previewStore.setPreviewLocaleOverride(localeValue);
+        if (!changed) return;
+        this.fragmentStore.previewStore.resolveFragment();
         this.requestUpdate();
     };
 

@@ -640,7 +640,7 @@ export class MerchCard extends LitElement {
         this.failed = true;
         this.#resolveHydration?.();
         this.#resolveHydration = undefined;
-        this.style.display = 'none';
+        if (!this.#service.isPreview()) this.style.display = 'none';
         if (!dispatch) return;
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_ERROR, {

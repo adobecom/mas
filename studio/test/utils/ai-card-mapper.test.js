@@ -8,6 +8,7 @@ import {
     applyDualOsiToCtas,
     extractTitleFromConfig,
     parseBadgeHtmlString,
+    enrichConfigWithMcsMnemonic,
 } from '../../src/utils/ai-card-mapper.js';
 import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../../src/constants.js';
 
@@ -683,6 +684,158 @@ describe('ai-card-mapper', () => {
             });
             const afterImgCount = document.querySelectorAll('img').length;
             expect(afterImgCount).to.equal(beforeImgCount);
+        });
+    });
+
+    describe('enrichConfigWithMcsMnemonic', () => {
+        afterEach(() => {
+            sinon.restore();
+        });
+
+        it('returns config unchanged when mnemonics already present', async () => {
+            const config = {
+                variant: 'plans',
+                mnemonics: [{ icon: 'https://existing.svg', alt: 'Adobe', link: '' }],
+            };
+            const result = await enrichConfigWithMcsMnemonic(config, null);
+            expect(result).to.equal(config);
+            expect(result.mnemonics[0].icon).to.equal('https://existing.svg');
+        });
+
+        it('injects mnemonics from selectedProduct without any MCS fetch', async () => {
+            const fetchStub = sinon.stub(window, 'fetch');
+            const product = {
+                assets: { icons: { svg: 'https://mcs.example/photoshop.svg' } },
+                copy: { name: 'Photoshop' },
+            };
+            const config = { variant: 'plans', arrangementCode: 'phsp' };
+            const result = await enrichConfigWithMcsMnemonic(config, product);
+            expect(fetchStub.called).to.be.false;
+            expect(result.mnemonics).to.deep.equal([{ icon: 'https://mcs.example/photoshop.svg', alt: 'Photoshop', link: '' }]);
+        });
+
+        it('falls back to fetchProductDetail when no selectedProduct', async () => {
+            sessionStorage.setItem('masAccessToken', 'test-token');
+            sinon.stub(window, 'fetch').resolves({
+                ok: true,
+                json: () =>
+                    Promise.resolve({
+                        product: {
+                            assets: { icons: { svg: 'https://mcs.example/acrobat.svg' } },
+                            copy: { name: 'Acrobat' },
+                        },
+                    }),
+            });
+            const config = { variant: 'catalog', arrangementCode: 'acrobat_direct' };
+            const result = await enrichConfigWithMcsMnemonic(config, null);
+            sessionStorage.removeItem('masAccessToken');
+            expect(result.mnemonics).to.deep.equal([{ icon: 'https://mcs.example/acrobat.svg', alt: 'Acrobat', link: '' }]);
+        });
+
+        it('uses product.icon as fallback when assets.icons.svg is missing', async () => {
+            const product = { icon: 'https://fallback.svg', name: 'Illustrator' };
+            const config = { variant: 'catalog' };
+            const result = await enrichConfigWithMcsMnemonic(config, product);
+            expect(result.mnemonics[0].icon).to.equal('https://fallback.svg');
+            expect(result.mnemonics[0].alt).to.equal('Illustrator');
+        });
+
+        it('returns config unchanged when product has no icon', async () => {
+            const product = { copy: { name: 'NoIcon' } };
+            const config = { variant: 'plans' };
+            const result = await enrichConfigWithMcsMnemonic(config, product);
+            expect(result.mnemonics).to.be.undefined;
+        });
+
+        it('returns config unchanged when fetchProductDetail throws', async () => {
+            sessionStorage.setItem('masAccessToken', 'test-token');
+            sinon.stub(window, 'fetch').rejects(new Error('network error'));
+            const config = { variant: 'plans', arrangementCode: 'bad-code' };
+            const result = await enrichConfigWithMcsMnemonic(config, null);
+            sessionStorage.removeItem('masAccessToken');
+            expect(result).to.equal(config);
+            expect(result.mnemonics).to.be.undefined;
+        });
+
+        it('returns config unchanged when neither selectedProduct nor arrangementCode', async () => {
+            const config = { variant: 'catalog' };
+            const result = await enrichConfigWithMcsMnemonic(config, null);
+            expect(result).to.equal(config);
+        });
+
+        it('returns input unchanged for non-object input', async () => {
+            expect(await enrichConfigWithMcsMnemonic(null, null)).to.equal(null);
+            expect(await enrichConfigWithMcsMnemonic(undefined, null)).to.equal(undefined);
+        });
+    });
+
+    describe('validateAIConfig — variant-specific required fields', () => {
+        it('plans: requires title, prices, description, ctas, osi', () => {
+            const result = validateAIConfig({ variant: 'plans' }, { requiredFields: [] });
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include('Required field missing: title');
+            expect(result.errors).to.include('Required field missing: prices');
+            expect(result.errors).to.include('Required field missing: description');
+            expect(result.errors).to.include('Required field missing: ctas');
+            expect(result.errors).to.include('Required field missing: osi');
+        });
+
+        it('plans: mnemonics is not required (injected from MCS)', () => {
+            const result = validateAIConfig(
+                {
+                    variant: 'plans',
+                    title: 't',
+                    prices: 'p',
+                    description: 'd',
+                    ctas: '<a>Buy</a>',
+                    osi: 'osi',
+                },
+                { requiredFields: [] },
+            );
+            expect(result.valid).to.be.true;
+            expect(result.errors.some((e) => e.includes('mnemonics'))).to.be.false;
+        });
+
+        it('catalog: requires title, description, ctas', () => {
+            const result = validateAIConfig({ variant: 'catalog' }, { requiredFields: [] });
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include('Required field missing: title');
+            expect(result.errors).to.include('Required field missing: description');
+            expect(result.errors).to.include('Required field missing: ctas');
+        });
+
+        it('catalog: errors when trialOsi present but ctas lacks free-trial anchor', () => {
+            const config = {
+                variant: 'catalog',
+                title: 't',
+                description: 'd',
+                ctas: '<p><a data-analytics-id="buy-now">Buy</a></p>',
+            };
+            const result = validateAIConfig(config, { requiredFields: [] }, { trialOsi: 'trial-123' });
+            expect(result.valid).to.be.false;
+            expect(result.errors.some((e) => e.includes('free-trial CTA anchor'))).to.be.true;
+        });
+
+        it('catalog: no free-trial error when trialOsi absent', () => {
+            const config = {
+                variant: 'catalog',
+                title: 't',
+                description: 'd',
+                ctas: '<p><a data-analytics-id="buy-now">Buy</a></p>',
+            };
+            const result = validateAIConfig(config, { requiredFields: [] });
+            expect(result.valid).to.be.true;
+        });
+
+        it('catalog: passes when trialOsi present and ctas includes free-trial anchor', () => {
+            const config = {
+                variant: 'catalog',
+                title: 't',
+                description: 'd',
+                ctas: '<p><a data-analytics-id="buy-now">Buy</a><a data-analytics-id="free-trial">Free trial</a></p>',
+            };
+            const result = validateAIConfig(config, { requiredFields: [] }, { trialOsi: 'trial-123' });
+            expect(result.valid).to.be.true;
         });
     });
 });

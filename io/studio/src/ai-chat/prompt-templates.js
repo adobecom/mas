@@ -137,6 +137,7 @@ When you have enough information, respond with:
    - Correct CTA button class
    - Checkout attributes present
    - **badge** is ALWAYS an object with "text" and "backgroundColor" keys — NEVER a pre-rendered HTML string like \`<merch-badge>...</merch-badge>\`
+   - **mnemonics** is injected automatically from MCS product data — you may include it with a placeholder icon URL for completeness, but the studio always overwrites it with the real product icon
 
 === REQUIRED FIELDS VALIDATION ===
 
@@ -180,6 +181,7 @@ If user asks about pricing without specifying card content, include:
 **PLANS Variant Placeholders**:
 {
   "variant": "plans",
+  "mnemonics": [{"icon": "<MCS icon URL — injected automatically, any URL is fine>", "alt": "[Product Name]", "link": ""}],
   "title": "<h3 slot=\\"heading-xs\\">[Plan Name]</h3>",
   "subtitle": "<p slot=\\"subtitle\\">[Tagline - e.g., Everything you need to create]</p>",
   "prices": "<p slot=\\"heading-m\\"><span class=\\"heading-xs\\">$XX.XX/mo</span></p>",
@@ -187,6 +189,7 @@ If user asks about pricing without specifying card content, include:
   "badge": {"text": "Best value", "backgroundColor": "spectrum-yellow-300-plans"},
   "ctas": "<p slot=\\"footer\\"><a href=\\"#\\" class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a href=\\"#\\" class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>"
 }
+Note: The secure-transaction logo is rendered automatically by the plans variant — do NOT include it in the card config.
 
 **MINI Variant Placeholders**:
 {
@@ -207,12 +210,14 @@ If user asks about pricing without specifying card content, include:
 **CATALOG Variant Placeholders**:
 {
   "variant": "catalog",
+  "mnemonics": [{"icon": "<MCS icon URL — injected automatically, any URL is fine>", "alt": "[Product Name]", "link": ""}],
   "title": "<h3 slot=\\"heading-xs\\">[Product Name]</h3>",
   "description": "<div slot=\\"body-xs\\"><p>[Short product description]</p></div>",
   "prices": "<p slot=\\"heading-xs\\"><span>$XX.XX/mo</span></p>",
-  "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a></p>",
+  "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>",
   "badge": {"text": "New", "backgroundColor": "spectrum-blue-300"}
 }
+Note: Include BOTH buy-now and free-trial anchors in ctas when a trial offer is available. If no trial offer, omit the free-trial anchor.
 
 **When User Says**: "Create a fries card"
 **You Should Generate**: Complete fries card with ALL placeholders populated
@@ -440,6 +445,7 @@ When user confirms (clicks "Create Card"), emit a \`release_cards\` response wit
   "cardConfigs": [
     {
       "variant": "plans",
+      "mnemonics": [{"icon": "<MCS icon URL>", "alt": "<product name>", "link": ""}],
       "title": "<h3 slot=\\"heading-xs\\"><product name></h3>",
       "subtitle": "<p slot=\\"subtitle\\"><tagline></p>",
       "prices": "<p slot=\\"heading-m\\"><span class=\\"heading-xs\\">$XX.XX/mo</span></p>",
@@ -450,9 +456,10 @@ When user confirms (clicks "Create Card"), emit a \`release_cards\` response wit
     },
     {
       "variant": "catalog",
+      "mnemonics": [{"icon": "<MCS icon URL>", "alt": "<product name>", "link": ""}],
       "title": "<h3 slot=\\"heading-xs\\"><product name></h3>",
       "description": "<div slot=\\"body-xs\\"><p>Catalog description...</p></div>",
-      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a></p>",
+      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>",
       "badge": {"text": "New", "backgroundColor": "spectrum-blue-300"},
       "osi": "<base offer selector ID from step 5 context>"
     }

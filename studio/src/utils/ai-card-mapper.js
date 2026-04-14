@@ -8,6 +8,7 @@
 import { Fragment } from '../aem/fragment.js';
 import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../constants.js';
 import { getFragmentMapping } from '../utils.js';
+import { fetchProductDetail } from '../services/product-api.js';
 
 /**
  * Maps variant field names to AEM field names
@@ -316,12 +317,71 @@ export function extractTitleFromConfig(config) {
 }
 
 /**
+ * Required fields enforced deterministically for each variant, independent of
+ * variantConfig.requiredFields which may lag behind prompt contract changes.
+ * `mnemonics` is intentionally absent — it is injected from MCS data by
+ * enrichConfigWithMcsMnemonic, so validating it here would cause spurious failures.
+ * `secureLabel` is already auto-injected for plans variants by mapAIConfigToFragmentFields.
+ */
+const VARIANT_REQUIRED_FIELDS = {
+    plans: ['title', 'prices', 'description', 'ctas', 'osi'],
+    'plans-students': ['title', 'prices', 'description', 'ctas', 'osi'],
+    'plans-education': ['title', 'prices', 'description', 'ctas', 'osi'],
+    catalog: ['title', 'description', 'ctas'],
+};
+
+/**
+ * Enriches an AI-generated card config with mnemonic data from MCS.
+ *
+ * The AI is not expected to supply correct icon URLs — they come from MCS.
+ * If `config.mnemonics` is already populated (non-empty array), the override
+ * is preserved and no MCS lookup is performed (allows AI to pass its own value
+ * for debugging, which the mapper will use directly).
+ *
+ * Resolution order:
+ *  1. `selectedProduct` argument (already resolved in release flow)
+ *  2. `fetchProductDetail(config.arrangementCode)` (fallback MCS fetch)
+ *
+ * Never throws — on MCS failure or missing icon the config is returned unchanged.
+ *
+ * @param {Object} config - AI-generated card config
+ * @param {Object|null} selectedProduct - Already-resolved MCS product (optional)
+ * @returns {Promise<Object>} - Enriched config (or original on failure)
+ */
+export async function enrichConfigWithMcsMnemonic(config, selectedProduct = null) {
+    if (!config || typeof config !== 'object') return config;
+    if (Array.isArray(config.mnemonics) && config.mnemonics.length > 0) return config;
+
+    let product = selectedProduct;
+    if (!product && config.arrangementCode) {
+        try {
+            const detail = await fetchProductDetail(config.arrangementCode);
+            product = detail?.product || detail;
+        } catch {
+            return config;
+        }
+    }
+    if (!product) return config;
+
+    const icon = product.assets?.icons?.svg || product.icon;
+    if (!icon) return config;
+
+    const alt = product.copy?.name || product.name || '';
+    return {
+        ...config,
+        mnemonics: [{ icon, alt, link: '' }],
+    };
+}
+
+/**
  * Validates AI-generated config against variant requirements
  * @param {Object} aiConfig - AI-generated card configuration
  * @param {Object} variantConfig - Variant configuration from variant-configs.js
+ * @param {Object} [options] - Optional validation options
+ * @param {string} [options.trialOsi] - Trial OSI from chat state; when present, catalog ctas must include a free-trial anchor
  * @returns {Object} - {valid: boolean, errors: string[], warnings: string[]}
  */
-export function validateAIConfig(aiConfig, variantConfig) {
+export function validateAIConfig(aiConfig, variantConfig, options = {}) {
     const errors = [];
     const warnings = [];
 
@@ -334,18 +394,30 @@ export function validateAIConfig(aiConfig, variantConfig) {
         return { valid: false, errors, warnings };
     }
 
-    // Check required fields
-    for (const field of variantConfig.requiredFields || []) {
+    // Deterministic per-variant required fields (superset of variantConfig.requiredFields)
+    const hardRequired = VARIANT_REQUIRED_FIELDS[aiConfig.variant] || [];
+    const variantRequired = variantConfig.requiredFields || [];
+    const allRequired = [...new Set([...hardRequired, ...variantRequired])];
+    for (const field of allRequired) {
         if (!aiConfig[field]) {
             errors.push(`Required field missing: ${field}`);
+        }
+    }
+
+    // Catalog cards must include a free-trial anchor when a trial offer is selected
+    if (aiConfig.variant === 'catalog' && options.trialOsi && typeof aiConfig.ctas === 'string') {
+        if (!aiConfig.ctas.includes('data-analytics-id="free-trial"')) {
+            errors.push('Catalog card with trial offer must include a free-trial CTA anchor');
         }
     }
 
     // Validate CTA style
     if (aiConfig.ctas && variantConfig.ctaStyle) {
         const expectedClass = variantConfig.ctaStyle;
-        if (!aiConfig.ctas.includes(expectedClass)) {
+        if (typeof aiConfig.ctas === 'string' && !aiConfig.ctas.includes(expectedClass)) {
             warnings.push(`CTA style mismatch. Expected "${expectedClass}" for ${aiConfig.variant}`);
+        } else if (typeof aiConfig.ctas !== 'string') {
+            warnings.push(`CTA field should be HTML string, received ${typeof aiConfig.ctas}`);
         }
     }
 
@@ -355,12 +427,10 @@ export function validateAIConfig(aiConfig, variantConfig) {
             const value = aiConfig[fieldName];
             if (!value || typeof value !== 'string') continue;
 
-            // Check for required slot
             if (mappingConfig.slot && !value.includes(`slot="${mappingConfig.slot}"`)) {
                 warnings.push(`Field "${fieldName}" should include slot="${mappingConfig.slot}"`);
             }
 
-            // Check for required tag
             if (mappingConfig.tag && !value.trim().startsWith(`<${mappingConfig.tag}`)) {
                 warnings.push(`Field "${fieldName}" should use <${mappingConfig.tag}> tag`);
             }

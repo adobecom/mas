@@ -561,11 +561,39 @@ async function main(params) {
             };
         }
 
-        const parsedResponse = parseAIResponse(response.message);
+        let parsedResponse = parseAIResponse(response.message);
+        let totalUsage = response.usage;
 
         if (parsedResponse.type === 'card' && parsedResponse.cardConfig) {
             const variantConfig = getVariantConfig(parsedResponse.cardConfig.variant);
-            const validation = validateAIConfig(parsedResponse.cardConfig, variantConfig);
+            let validation = validateAIConfig(parsedResponse.cardConfig, variantConfig);
+
+            if (!validation.valid) {
+                const correctiveMessage = buildCorrectivePrompt(parsedResponse.cardConfig, validation.errors);
+                const retryResponse = await bedrockClient.sendWithContext(
+                    [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                    correctiveMessage,
+                    systemPrompt,
+                    enrichedContext,
+                    2048,
+                );
+
+                if (retryResponse.success) {
+                    const retryParsed = parseAIResponse(retryResponse.message);
+                    if (retryParsed.type === 'card' && retryParsed.cardConfig) {
+                        parsedResponse = retryParsed;
+                        validation = validateAIConfig(parsedResponse.cardConfig, variantConfig);
+                        totalUsage = {
+                            inputTokens: (totalUsage?.inputTokens || 0) + (retryResponse.usage?.inputTokens || 0),
+                            outputTokens: (totalUsage?.outputTokens || 0) + (retryResponse.usage?.outputTokens || 0),
+                        };
+                    }
+                }
+            }
 
             return {
                 statusCode: 200,
@@ -582,7 +610,7 @@ async function main(params) {
                         errors: validation.errors,
                         warnings: validation.warnings,
                     },
-                    usage: response.usage,
+                    usage: totalUsage,
                     conversationHistory: [
                         ...conversationHistory,
                         { role: 'user', content: message },
@@ -788,6 +816,19 @@ async function main(params) {
             },
         };
     }
+}
+
+/**
+ * Builds a corrective follow-up message for a single-shot AI retry.
+ * Lists the specific validation errors so the AI can produce a corrected card.
+ *
+ * @param {Object} cardConfig - The invalid card config from the first AI response
+ * @param {string[]} errors - Validation errors from validateAIConfig
+ * @returns {string} - Corrective prompt to send as the next user turn
+ */
+export function buildCorrectivePrompt(cardConfig, errors) {
+    const errorList = errors.map((e) => `- ${e}`).join('\n');
+    return `Your previous card response for the "${cardConfig?.variant}" variant was missing required fields. Please generate a corrected card JSON that includes all required fields.\n\nMissing or invalid:\n${errorList}\n\nReturn only the corrected JSON code block, no additional explanation.`;
 }
 
 /**

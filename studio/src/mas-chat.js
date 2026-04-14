@@ -7,7 +7,7 @@ import './mas-operation-result.js';
 import './mas-chat-session-selector.js';
 import Store from './store.js';
 import router from './router.js';
-import { createFragmentFromAIConfig, createFragmentDataForAEM } from './utils/ai-card-mapper.js';
+import { createFragmentFromAIConfig, createFragmentDataForAEM, enrichConfigWithMcsMnemonic } from './utils/ai-card-mapper.js';
 import { executeOperationWithFeedback, shouldRequireConfirmation } from './utils/ai-operations-executor.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, extractSurfaceFromPath as extractSurface } from './utils.js';
@@ -512,9 +512,19 @@ export class MasChat extends LitElement {
                 ];
             } else if (response.type === 'open_ost') {
                 const searchParams = { ...response.searchParams };
-                if (response.searchParams?.expectedOffers === 2 || /base.*trial|trial.*base/i.test(response.message)) {
-                    searchParams.mode = 'plans-base-and-trial';
+                const backendMode = response.searchParams?.mode;
+                const msg = response.message || '';
+                let mode = backendMode;
+                if (!mode) {
+                    if (response.searchParams?.expectedOffers === 2 || /base.*trial|trial.*base|try.?buy/i.test(msg)) {
+                        mode = 'plans-base-and-trial';
+                    } else if (/\bbundle\b|soft.?bundle/i.test(msg)) {
+                        mode = 'plans-bundle';
+                    } else if (/\bconsult\b|contact.?sales/i.test(msg)) {
+                        mode = 'plans-consult';
+                    }
                 }
+                if (mode) searchParams.mode = mode;
                 this.messages = [
                     ...this.messages,
                     {
@@ -638,8 +648,9 @@ export class MasChat extends LitElement {
 
     async openInEditor(cardConfig) {
         try {
-            const fragment = createFragmentFromAIConfig(cardConfig, cardConfig.variant, {
-                title: this.extractTitle(cardConfig),
+            const enrichedConfig = await enrichConfigWithMcsMnemonic(cardConfig, this.selectedReleaseProduct);
+            const fragment = createFragmentFromAIConfig(enrichedConfig, enrichedConfig.variant, {
+                title: this.extractTitle(enrichedConfig),
             });
 
             const fragmentStore = new FragmentStore(fragment);
@@ -665,8 +676,9 @@ export class MasChat extends LitElement {
                 throw new Error('Repository not found');
             }
 
-            const title = this.extractTitle(cardConfig);
-            const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
+            const enrichedConfig = await enrichConfigWithMcsMnemonic(cardConfig, this.selectedReleaseProduct);
+            const title = this.extractTitle(enrichedConfig);
+            const fragmentData = createFragmentDataForAEM(enrichedConfig, enrichedConfig.variant, {
                 title,
                 parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
             });
@@ -723,7 +735,7 @@ export class MasChat extends LitElement {
         // AI did not already include them. This keeps the agentic release flow honest:
         // even if the AI omits trialOsi from the release_cards payload, the chat-side
         // value captured by the OST multi-select callback still flows through.
-        const enrichedConfig = { ...cardConfig };
+        let enrichedConfig = { ...cardConfig };
         if (enrichedConfig.variant?.startsWith('plans')) {
             if (!enrichedConfig.osi && this.selectedReleaseOsi) {
                 enrichedConfig.osi = this.selectedReleaseOsi;
@@ -734,6 +746,8 @@ export class MasChat extends LitElement {
         } else if (!enrichedConfig.osi && this.selectedReleaseOsi) {
             enrichedConfig.osi = this.selectedReleaseOsi;
         }
+
+        enrichedConfig = await enrichConfigWithMcsMnemonic(enrichedConfig, this.selectedReleaseProduct);
 
         const fragmentData = createFragmentDataForAEM(enrichedConfig, enrichedConfig.variant, {
             title,
@@ -939,7 +953,8 @@ export class MasChat extends LitElement {
             const savedCards = [];
             for (const [index, cardConfig] of collectionConfig.cards.entries()) {
                 const cardTitle = `${collectionTitle} - Card ${index + 1}`;
-                const fragmentData = createFragmentDataForAEM(cardConfig, cardConfig.variant, {
+                const enrichedConfig = await enrichConfigWithMcsMnemonic(cardConfig, this.selectedReleaseProduct);
+                const fragmentData = createFragmentDataForAEM(enrichedConfig, enrichedConfig.variant, {
                     title: cardTitle,
                     parentPath,
                 });

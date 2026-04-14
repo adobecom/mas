@@ -2272,6 +2272,236 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('duplicateGroupedVariation', () => {
+        const sourceFragment = {
+            id: 'source-grouped-1',
+            path: '/content/dam/mas/sandbox/en_US/pac/pzn/source-grouped',
+            title: 'Source title',
+            description: 'Source description',
+            model: { id: 'model-1' },
+            fields: [
+                { name: 'pznTags', values: ['mas:pzn/old-tag'] },
+                { name: 'promoCode', values: ['PROMO10'] },
+                { name: 'variations', values: ['/some/variation/path'] },
+            ],
+            tags: [{ id: 'mas:product/cc/photoshop' }],
+        };
+
+        const parentFragment = {
+            id: 'parent-fragment-1',
+            path: '/content/dam/mas/sandbox/en_US/pac/parent-fragment',
+            title: 'Parent title',
+            description: 'Parent description',
+            model: { id: 'model-1' },
+            fields: [{ name: 'variations', values: [] }],
+            tags: [],
+        };
+
+        it('duplicates a grouped variation and returns the created fragment', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = {
+                id: 'new-grouped-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped',
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves(createdDraft),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            const result = await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('source-grouped-1')).to.be.true;
+            expect(repository.resolveHydratedParentFragment.calledOnceWith(sourceFragment.path)).to.be.true;
+            expect(repository.updateParentVariations.calledOnceWith(parentFragment, createdFragment.path)).to.be.true;
+            expect(repository.refreshFragment.calledOnce).to.be.true;
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('clones fields excluding variations and replacing pznTags', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            const createArgs = createStub.firstCall.args[0];
+            const fieldNames = createArgs.fields.map((f) => f.name);
+            expect(fieldNames).not.to.include('variations');
+            const pznTagsField = createArgs.fields.find((f) => f.name === 'pznTags');
+            expect(pznTagsField.values).to.deep.equal(newPznTags);
+            const promoCodeField = createArgs.fields.find((f) => f.name === 'promoCode');
+            expect(promoCodeField.values).to.deep.equal(['PROMO10']);
+        });
+
+        it('throws when source fragment is not found', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(null),
+                },
+            });
+
+            try {
+                await repository.duplicateGroupedVariation('nonexistent-id', []);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to fetch source grouped variation');
+            }
+        });
+
+        it('throws when parent fragment cannot be resolved', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(null);
+
+            try {
+                await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to resolve parent fragment for grouped variation');
+            }
+        });
+
+        it('appends a random 4-char suffix when the generated name already exists', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped-abcd' };
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves({ id: 'existing-fragment' }),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            const createArgs = createStub.firstCall.args[0];
+            expect(createArgs.name).to.match(/^new-grouped-[a-z]{4}$/);
+        });
+
+        it('skips copyFragmentTags when source has no tags', async () => {
+            const repository = createRepository();
+            const sourceWithNoTags = { ...sourceFragment, tags: [] };
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const copyTagsStub = sandbox.stub().resolves();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceWithNoTags),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves(createdDraft),
+                    copyFragmentTags: copyTagsStub,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+
+            expect(copyTagsStub.called).to.be.false;
+        });
+
+        it('throws when pollCreatedFragment returns null', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves({ id: 'draft-id' }),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(null),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+
+            try {
+                await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to duplicate grouped variation');
+            }
+        });
+
+        it('skips refreshFragment when parent is not found in store', async () => {
+            const repository = createRepository();
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const refreshStub = sandbox.stub().resolves();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves({ id: 'draft-id' }),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').value(refreshStub);
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+
+            expect(refreshStub.called).to.be.false;
+        });
+    });
+
     describe('deleteFragment', () => {
         it('refreshes referencing list stores after deletion to prevent stale variation rows', async () => {
             const repository = createRepository();

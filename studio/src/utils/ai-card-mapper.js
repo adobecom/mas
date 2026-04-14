@@ -18,6 +18,13 @@ const VARIANT_TO_AEM_FIELD_MAPPING = {
     title: 'cardTitle',
 };
 
+/**
+ * Variants that render badges via element attributes (badge-text, badge-background-color)
+ * rather than projecting HTML into a slot. These expect the `badge` AEM field to hold
+ * plain text and `badgeBackgroundColor` as a separate field.
+ */
+const BADGE_ATTRIBUTE_VARIANTS = new Set(['catalog', 'ccd-slice', 'ccd-suggested']);
+
 /** AEM card model fields that use 'long-text' type (HTML content). */
 const LONG_TEXT_FIELDS = new Set([
     'badge',
@@ -76,13 +83,15 @@ export function applyDualOsiToCtas(ctasHtml, baseOsi, trialOsi) {
 
     if (!buyAnchor && !trialAnchor) return ctasHtml;
 
-    if (buyAnchor && baseOsi) {
-        buyAnchor.setAttribute('data-wcs-osi', baseOsi);
+    if (buyAnchor) {
+        if (baseOsi) buyAnchor.setAttribute('data-wcs-osi', baseOsi);
+        buyAnchor.className = 'con-button accent';
     }
 
     if (trialAnchor) {
         if (trialOsi) {
             trialAnchor.setAttribute('data-wcs-osi', trialOsi);
+            trialAnchor.className = 'con-button primary-outline';
         } else {
             // No trial offer picked — drop the anchor entirely so the card
             // only shows Buy now. Also strip a leading/trailing whitespace
@@ -138,7 +147,14 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
         if (fieldName === 'mnemonics' && Array.isArray(value)) {
             fields.push(...mapMnemonics(value, mappingConfig));
         } else if (fieldName === 'badge' && typeof value === 'object') {
-            fields.push(...mapBadge(value, mappingConfig));
+            fields.push(...mapBadge(value, mappingConfig, variant));
+        } else if (fieldName === 'badge' && typeof value === 'string') {
+            const parsed = parseBadgeHtmlString(value);
+            fields.push(
+                ...(parsed
+                    ? mapBadge(parsed, mappingConfig, variant)
+                    : [{ name: 'badge', type: 'long-text', values: [value] }]),
+            );
         } else if (mappingConfig) {
             // Translate variant field name to AEM field name
             const aemFieldName = VARIANT_TO_AEM_FIELD_MAPPING[fieldName] || fieldName;
@@ -183,22 +199,55 @@ function mapMnemonics(mnemonics, config) {
 }
 
 /**
- * Maps badge object to AEM fragment field
+ * Parses a pre-rendered `<merch-badge>` HTML string back into a badge object.
+ * Returns null if the input is not a merch-badge HTML string.
+ * @param {string} html
+ * @returns {{text: string, backgroundColor?: string} | null}
  */
-function mapBadge(badge, config) {
+export function parseBadgeHtmlString(html) {
+    if (typeof html !== 'string' || !html.includes('<merch-badge')) return null;
+    if (typeof DOMParser === 'undefined') return null;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const el = doc.querySelector('merch-badge');
+    if (!el) return null;
+    const text = el.textContent?.trim();
+    if (!text) return null;
+    return {
+        text,
+        backgroundColor: el.getAttribute('background-color') || undefined,
+    };
+}
+
+/**
+ * Maps badge object to AEM fragment fields.
+ * Attribute-mode variants (catalog, ccd-slice, ccd-suggested) render badges via
+ * element attributes, so they need plain text in `badge` + a separate
+ * `badgeBackgroundColor` field. Slot-based variants wrap the text as
+ * `<merch-badge>` HTML so hydrate.js can project it into the badge slot.
+ * @param {{text: string, backgroundColor?: string}} badge
+ * @param {object} config - variant mapping config for the badge field
+ * @param {string} variant - card variant name
+ */
+function mapBadge(badge, config, variant) {
     if (!badge || !badge.text) return [];
 
-    // Create badge HTML with background color
-    let badgeHTML = `<merch-badge`;
+    if (BADGE_ATTRIBUTE_VARIANTS.has(variant)) {
+        const fields = [{ name: 'badge', type: 'long-text', values: [badge.text] }];
+        const bgColor = badge.backgroundColor || config?.default;
+        if (bgColor) {
+            fields.push({ name: 'badgeBackgroundColor', type: 'text', values: [bgColor] });
+        }
+        return fields;
+    }
 
+    // Slot-based variants: wrap as merch-badge HTML for hydrate.js slot projection
+    let badgeHTML = `<merch-badge`;
     if (badge.backgroundColor) {
         badgeHTML += ` background-color="${badge.backgroundColor}"`;
     } else if (config?.default) {
         badgeHTML += ` background-color="${config.default}"`;
     }
-
     badgeHTML += `>${badge.text}</merch-badge>`;
-
     return [{ name: 'badge', type: 'long-text', values: [badgeHTML] }];
 }
 

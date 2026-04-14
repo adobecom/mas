@@ -63,7 +63,7 @@ recurring purchase offer, the trial CTA points to a separate free-trial offer.
 
 When generating ctas HTML for plans variants, always emit BOTH anchors and
 distinguish them with data-analytics-id:
-- Buy CTA: <a class="con-button primary-outline" data-analytics-id="buy-now">Buy now</a>
+- Buy CTA: <a class="con-button accent" data-analytics-id="buy-now">Buy now</a>
 - Trial CTA: <a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>
 
 DO NOT include data-wcs-osi attributes on these anchors. The studio client
@@ -136,6 +136,7 @@ When you have enough information, respond with:
    - Correct tags (h3, p, div, etc.)
    - Correct CTA button class
    - Checkout attributes present
+   - **badge** is ALWAYS an object with "text" and "backgroundColor" keys — NEVER a pre-rendered HTML string like \`<merch-badge>...</merch-badge>\`
 
 === REQUIRED FIELDS VALIDATION ===
 
@@ -184,7 +185,7 @@ If user asks about pricing without specifying card content, include:
   "prices": "<p slot=\\"heading-m\\"><span class=\\"heading-xs\\">$XX.XX/mo</span></p>",
   "description": "<div slot=\\"body-xs\\"><p>Key features and benefits:</p><ul><li>Feature 1</li><li>Feature 2</li><li>Feature 3</li></ul></div>",
   "badge": {"text": "Best value", "backgroundColor": "spectrum-yellow-300-plans"},
-  "ctas": "<p slot=\\"footer\\"><a href=\\"#\\" class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a href=\\"#\\" class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>"
+  "ctas": "<p slot=\\"footer\\"><a href=\\"#\\" class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a href=\\"#\\" class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>"
 }
 
 **MINI Variant Placeholders**:
@@ -200,6 +201,16 @@ If user asks about pricing without specifying card content, include:
   "variant": "ccd-slice",
   "description": "<div slot=\\"body-s\\"><p>[Add your description - e.g., Launch your creative projects faster with these tools]</p></div>",
   "ctas": "<p slot=\\"footer\\"><a href=\\"#\\" class=\\"con-button primary-outline\\">Get started</a></p>",
+  "badge": {"text": "New", "backgroundColor": "spectrum-blue-300"}
+}
+
+**CATALOG Variant Placeholders**:
+{
+  "variant": "catalog",
+  "title": "<h3 slot=\\"heading-xs\\">[Product Name]</h3>",
+  "description": "<div slot=\\"body-xs\\"><p>[Short product description]</p></div>",
+  "prices": "<p slot=\\"heading-xs\\"><span>$XX.XX/mo</span></p>",
+  "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a></p>",
   "badge": {"text": "New", "backgroundColor": "spectrum-blue-300"}
 }
 
@@ -433,7 +444,7 @@ When user confirms (clicks "Create Card"), emit a \`release_cards\` response wit
       "subtitle": "<p slot=\\"subtitle\\"><tagline></p>",
       "prices": "<p slot=\\"heading-m\\"><span class=\\"heading-xs\\">$XX.XX/mo</span></p>",
       "description": "<div slot=\\"body-xs\\"><p>Key features and benefits...</p></div>",
-      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>",
+      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>",
       "osi": "<base offer selector ID from step 5 context>",
       "trialOsi": "<trial offer selector ID from step 5 context, omit if user skipped>"
     },
@@ -441,7 +452,8 @@ When user confirms (clicks "Create Card"), emit a \`release_cards\` response wit
       "variant": "catalog",
       "title": "<h3 slot=\\"heading-xs\\"><product name></h3>",
       "description": "<div slot=\\"body-xs\\"><p>Catalog description...</p></div>",
-      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\">Learn more</a></p>",
+      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a></p>",
+      "badge": {"text": "New", "backgroundColor": "spectrum-blue-300"},
       "osi": "<base offer selector ID from step 5 context>"
     }
   ]

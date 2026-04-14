@@ -7,6 +7,7 @@ import {
     createFragmentDataForAEM,
     applyDualOsiToCtas,
     extractTitleFromConfig,
+    parseBadgeHtmlString,
 } from '../../src/utils/ai-card-mapper.js';
 import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../../src/constants.js';
 
@@ -116,7 +117,7 @@ describe('ai-card-mapper', () => {
             stubMerchCard();
             const ctas =
                 '<p slot="footer">' +
-                '<a class="con-button primary-outline" data-analytics-id="buy-now">Buy now</a>' +
+                '<a class="con-button accent" data-analytics-id="buy-now">Buy now</a>' +
                 '<a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>' +
                 '</p>';
             const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base-osi-123', trialOsi: 'trial-osi-456' }, 'plans');
@@ -131,6 +132,8 @@ describe('ai-card-mapper', () => {
             expect(html).to.match(
                 /data-analytics-id="free-trial"[^>]*data-wcs-osi="trial-osi-456"|data-wcs-osi="trial-osi-456"[^>]*data-analytics-id="free-trial"/,
             );
+            expect(html).to.include('class="con-button accent"');
+            expect(html).to.include('class="con-button primary-outline"');
         });
 
         it('should emit osi but not trialOsi as a top-level field (trialOsi is not an AEM model field)', () => {
@@ -146,7 +149,7 @@ describe('ai-card-mapper', () => {
             stubMerchCard();
             const ctas =
                 '<p slot="footer">' +
-                '<a class="con-button primary-outline" data-analytics-id="buy-now">Buy now</a> ' +
+                '<a class="con-button accent" data-analytics-id="buy-now">Buy now</a> ' +
                 '<a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>' +
                 '</p>';
             const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base-osi-only' }, 'plans');
@@ -193,6 +196,34 @@ describe('ai-card-mapper', () => {
                 const out = applyDualOsiToCtas(html, 'X', 'Y');
                 expect(out).to.include('data-wcs-osi="X"');
                 expect(out).to.include('data-wcs-osi="Y"');
+            });
+
+            it('rewrites buy-now class to accent and free-trial class to primary-outline', () => {
+                const html =
+                    '<p>' +
+                    '<a class="con-button primary-outline" data-analytics-id="buy-now">Buy</a>' +
+                    '<a class="con-button primary-outline" data-analytics-id="free-trial">Trial</a>' +
+                    '</p>';
+                const out = applyDualOsiToCtas(html, 'X', 'Y');
+                expect(out).to.include('class="con-button accent"');
+                expect(out).to.not.include('class="con-button accent" data-analytics-id="free-trial"');
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(out, 'text/html');
+                const buyAnchor = doc.querySelector('a[data-analytics-id="buy-now"]');
+                const trialAnchor = doc.querySelector('a[data-analytics-id="free-trial"]');
+                expect(buyAnchor.className).to.equal('con-button accent');
+                expect(trialAnchor.className).to.equal('con-button primary-outline');
+            });
+
+            it('rewrites buy-now class to accent when trialOsi is missing (trial anchor removed)', () => {
+                const html =
+                    '<p>' +
+                    '<a class="con-button primary-outline" data-analytics-id="buy-now">Buy</a>' +
+                    '<a class="con-button primary-outline" data-analytics-id="free-trial">Trial</a>' +
+                    '</p>';
+                const out = applyDualOsiToCtas(html, 'X');
+                expect(out).to.include('class="con-button accent"');
+                expect(out).to.not.include('free-trial');
             });
 
             it('removes the trial anchor when trialOsi is missing', () => {
@@ -262,46 +293,100 @@ describe('ai-card-mapper', () => {
     });
 
     describe('mapBadge (via mapAIConfigToFragmentFields)', () => {
-        it('should map badge with text and background color', () => {
-            stubMerchCard();
-            const config = {
-                badge: { text: 'Best Value', backgroundColor: '#FF0000' },
-            };
-            const fields = mapAIConfigToFragmentFields(config, 'catalog');
-            const badgeField = fields.find((f) => f.name === 'badge');
-            expect(badgeField).to.exist;
-            expect(badgeField.type).to.equal('long-text');
-            expect(badgeField.values[0]).to.include('Best Value');
-            expect(badgeField.values[0]).to.include('background-color="#FF0000"');
+        describe('attribute-mode variants (catalog, ccd-slice, ccd-suggested)', () => {
+            it('should emit plain text badge + separate badgeBackgroundColor for catalog', () => {
+                stubMerchCard();
+                const fields = mapAIConfigToFragmentFields(
+                    { badge: { text: 'Best Value', backgroundColor: '#FF0000' } },
+                    'catalog',
+                );
+                const badgeField = fields.find((f) => f.name === 'badge');
+                const bgField = fields.find((f) => f.name === 'badgeBackgroundColor');
+                expect(badgeField).to.exist;
+                expect(badgeField.type).to.equal('long-text');
+                expect(badgeField.values[0]).to.equal('Best Value');
+                expect(bgField).to.exist;
+                expect(bgField.values[0]).to.equal('#FF0000');
+            });
+
+            it('should emit plain text badge + separate badgeBackgroundColor for ccd-slice', () => {
+                stubMerchCard();
+                const fields = mapAIConfigToFragmentFields(
+                    { badge: { text: 'New', backgroundColor: 'spectrum-blue-300' } },
+                    'ccd-slice',
+                );
+                expect(fields.find((f) => f.name === 'badge').values[0]).to.equal('New');
+                expect(fields.find((f) => f.name === 'badgeBackgroundColor').values[0]).to.equal('spectrum-blue-300');
+            });
+
+            it('should use default background color from mapping config when none provided', () => {
+                stubMerchCard();
+                const fields = mapAIConfigToFragmentFields({ badge: { text: 'Popular' } }, 'catalog');
+                const bgField = fields.find((f) => f.name === 'badgeBackgroundColor');
+                expect(bgField).to.exist;
+                expect(bgField.values[0]).to.equal('#EDCC2D');
+            });
+
+            it('should produce no badge field when badge has no text', () => {
+                stubMerchCard();
+                const fields = mapAIConfigToFragmentFields({ badge: { backgroundColor: '#FF0000' } }, 'catalog');
+                expect(fields.find((f) => f.name === 'badge')).to.be.undefined;
+            });
+
+            it('should NOT wrap badge in merch-badge HTML for catalog', () => {
+                stubMerchCard();
+                const fields = mapAIConfigToFragmentFields({ badge: { text: 'New', backgroundColor: '#00FF00' } }, 'catalog');
+                const badgeField = fields.find((f) => f.name === 'badge');
+                expect(badgeField.values[0]).to.equal('New');
+                expect(badgeField.values[0]).to.not.include('<merch-badge');
+            });
+
+            it('should parse a pre-rendered merch-badge HTML string and emit correctly for catalog', () => {
+                stubMerchCard();
+                const fields = mapAIConfigToFragmentFields(
+                    { badge: '<merch-badge background-color="spectrum-blue-300">New</merch-badge>' },
+                    'catalog',
+                );
+                const badgeField = fields.find((f) => f.name === 'badge');
+                const bgField = fields.find((f) => f.name === 'badgeBackgroundColor');
+                expect(badgeField.values[0]).to.equal('New');
+                expect(bgField.values[0]).to.equal('spectrum-blue-300');
+            });
         });
 
-        it('should use default background color from mapping config when none provided', () => {
-            stubMerchCard();
-            const config = {
-                badge: { text: 'Popular' },
-            };
-            const fields = mapAIConfigToFragmentFields(config, 'catalog');
-            const badgeField = fields.find((f) => f.name === 'badge');
-            expect(badgeField.values[0]).to.include('background-color="#EDCC2D"');
+        describe('slot-mode variants (plans, fries, etc.)', () => {
+            it('should wrap badge in merch-badge HTML for plans', () => {
+                stubMerchCard();
+                const fields = mapAIConfigToFragmentFields(
+                    { badge: { text: 'Best value', backgroundColor: 'spectrum-yellow-300-plans' } },
+                    'plans',
+                );
+                const badgeField = fields.find((f) => f.name === 'badge');
+                expect(badgeField).to.exist;
+                expect(badgeField.values[0]).to.match(/^<merch-badge.*>Best value<\/merch-badge>$/);
+                expect(badgeField.values[0]).to.include('background-color="spectrum-yellow-300-plans"');
+                expect(fields.find((f) => f.name === 'badgeBackgroundColor')).to.be.undefined;
+            });
         });
 
-        it('should produce no badge field when badge has no text', () => {
-            stubMerchCard();
-            const config = {
-                badge: { backgroundColor: '#FF0000' },
-            };
-            const fields = mapAIConfigToFragmentFields(config, 'catalog');
-            expect(fields.find((f) => f.name === 'badge')).to.be.undefined;
-        });
+        describe('parseBadgeHtmlString helper', () => {
+            it('returns null for non-merch-badge strings', () => {
+                expect(parseBadgeHtmlString('<div>hello</div>')).to.be.null;
+                expect(parseBadgeHtmlString('plain text')).to.be.null;
+                expect(parseBadgeHtmlString('')).to.be.null;
+                expect(parseBadgeHtmlString(null)).to.be.null;
+            });
 
-        it('should produce merch-badge HTML element', () => {
-            stubMerchCard();
-            const config = {
-                badge: { text: 'New', backgroundColor: '#00FF00' },
-            };
-            const fields = mapAIConfigToFragmentFields(config, 'catalog');
-            const badgeField = fields.find((f) => f.name === 'badge');
-            expect(badgeField.values[0]).to.match(/^<merch-badge.*>New<\/merch-badge>$/);
+            it('extracts text and background-color from a merch-badge HTML string', () => {
+                const result = parseBadgeHtmlString('<merch-badge background-color="spectrum-blue-300">New</merch-badge>');
+                expect(result).to.deep.equal({ text: 'New', backgroundColor: 'spectrum-blue-300' });
+            });
+
+            it('returns undefined backgroundColor when attribute is absent', () => {
+                const result = parseBadgeHtmlString('<merch-badge>Popular</merch-badge>');
+                expect(result.text).to.equal('Popular');
+                expect(result.backgroundColor).to.be.undefined;
+            });
         });
     });
 

@@ -427,9 +427,8 @@ runTests(async () => {
             const aemFragment = customElements.get('aem-fragment');
             await collectionElement.checkReady();
             // card-a (in references) should render
-            expect(
-                collectionElement.querySelector('merch-card[id="card-a"]'),
-            ).to.exist;
+            expect(collectionElement.querySelector('merch-card[id="card-a"]'))
+                .to.exist;
             // card-b-missing (not in references) should be silently skipped
             expect(
                 collectionElement.querySelector(

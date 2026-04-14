@@ -55,17 +55,19 @@ function isNonCountryPznTagId(tagId) {
 const PERSONALIZATION_FIELD_NAMES = ['pznTags', 'tags'];
 
 /**
- * True when the fragment has any mas:pzn tag outside the country subtree (mas:pzn/country/…).
- * Drives **hide vs show** for the Studio personalization toggle (hide when toggle is off, for non-country PZN).
- * Country PZN alone does not count; **country + non-country** still counts (country tags do not cancel non-country PZN).
- * Checks AEM fragment metadata `tags` and CF fields `pznTags` and `tags` (not tagFilters).
+ * Non-country `mas:pzn/…` tag ids (metadata `tags` plus CF `pznTags` and `tags`). Same basis as fragmentHasPersonalizationTag; used for PZN checkbox OR-matching in mas-content.
  *
  * @param {{ tags?: ({ id?: string, path?: string } | string)[], fields?: { name?: string, values?: string[] }[], getFieldValues?: (name: string) => string[] } | null | undefined} fragment
+ * @returns {Set<string>}
  */
-export function fragmentHasPersonalizationTag(fragment) {
-    if (!fragment) return false;
-    const refHasNonCountryPzn = (ref) => isNonCountryPznTagId(tagRefToTagId(ref));
-    if (fragment.tags?.some(refHasNonCountryPzn)) return true;
+export function getFragmentNonCountryPznTagIds(fragment) {
+    const ids = new Set();
+    if (!fragment) return ids;
+    const add = (ref) => {
+        const id = tagRefToTagId(ref);
+        if (id && isNonCountryPznTagId(id)) ids.add(id);
+    };
+    for (const t of fragment.tags || []) add(t);
     for (const fieldName of PERSONALIZATION_FIELD_NAMES) {
         let fieldTagRefs;
         if (typeof fragment.getFieldValues === 'function') {
@@ -75,7 +77,19 @@ export function fragmentHasPersonalizationTag(fragment) {
             const field = (fragment.fields || []).find((f) => f?.name === fieldName);
             fieldTagRefs = Array.isArray(field?.values) ? field.values : [];
         }
-        if (fieldTagRefs.some(refHasNonCountryPzn)) return true;
+        for (const ref of fieldTagRefs) add(ref);
     }
-    return false;
+    return ids;
+}
+
+/**
+ * True when the fragment has any mas:pzn tag outside the country subtree (mas:pzn/country/…).
+ * Drives **hide vs show** for the Studio personalization toggle (hide when toggle is off, for non-country PZN).
+ * Country PZN alone does not count; **country + non-country** still counts (country tags do not cancel non-country PZN).
+ * Checks AEM fragment metadata `tags` and CF fields `pznTags` and `tags` (not tagFilters).
+ *
+ * @param {{ tags?: ({ id?: string, path?: string } | string)[], fields?: { name?: string, values?: string[] }[], getFieldValues?: (name: string) => string[] } | null | undefined} fragment
+ */
+export function fragmentHasPersonalizationTag(fragment) {
+    return getFragmentNonCountryPznTagIds(fragment).size > 0;
 }

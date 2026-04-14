@@ -3,6 +3,7 @@ import { Fragment } from '../src/aem/fragment.js';
 import { PZN_COUNTRY_TAG_PATH_PREFIX } from '../src/constants.js';
 import {
     fragmentHasPersonalizationTag,
+    getFragmentNonCountryPznTagIds,
     isPznCountryTagId,
     isPznCountryTagPath,
     PZN_TAG_ID_PREFIX,
@@ -55,6 +56,19 @@ describe('personalization-utils', () => {
 
         it('passes through mas id strings', () => {
             expect(tagRefToTagId('mas:pzn/country/fr_FR')).to.equal('mas:pzn/country/fr_FR');
+        });
+    });
+
+    describe('getFragmentNonCountryPznTagIds', () => {
+        it('collects non-country mas:pzn ids from metadata tags and pznTags field', () => {
+            const fragment = new Fragment({
+                id: 'c1',
+                path: '/content/dam/mas/acom/en_US/cards/x',
+                tags: [{ id: 'mas:pzn/general' }],
+                fields: [{ name: 'pznTags', values: ['mas:pzn/segment-a'] }],
+            });
+            const ids = getFragmentNonCountryPznTagIds(fragment);
+            expect([...ids].sort()).to.deep.equal(['mas:pzn/general', 'mas:pzn/segment-a'].sort());
         });
     });
 

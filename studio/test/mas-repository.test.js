@@ -1493,16 +1493,7 @@ describe('MasRepository dictionary helpers', () => {
                 tags: [],
                 fields: [{ name: 'tagFilters', values: ['mas:product/foo'] }],
             });
-            const mockCursor = {
-                [Symbol.asyncIterator]: async function* () {
-                    yield {
-                        [Symbol.asyncIterator]: async function* () {
-                            yield collectionWithPzn;
-                            yield plainCollection;
-                        },
-                    };
-                },
-            };
+            const mockCursor = createMockCursor([[collectionWithPzn, plainCollection]]);
             const searchStub = sandbox.stub().resolves(mockCursor);
             repository.aem = createAemMock({
                 fragments: {

@@ -474,7 +474,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
         } catch (error) {
-            if (error.name !== 'AbortError') {
+            if (error.name !== 'AbortError' || refilling) {
                 Store.fragments.list.loading.set(false);
             }
             this.processError(error, 'Could not load fragments.');

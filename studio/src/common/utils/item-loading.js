@@ -377,6 +377,7 @@ export async function loadCardVariationsByPath(
         ]),
     );
 }
+
 /**
  * Parses placeholder stores into a flat array of placeholders
  * @param {Array<{ value?: Object, get?: Function }>} placeholderStores

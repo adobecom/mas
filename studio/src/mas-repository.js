@@ -358,6 +358,7 @@ export class MasRepository extends LitElement {
             localSearch.status = STATUS_PUBLISHED;
         }
 
+        let refilling = false;
         try {
             if (this.#abortControllers.search) this.#abortControllers.search.abort();
             this.#searchCursor = null;
@@ -460,6 +461,7 @@ export class MasRepository extends LitElement {
                 } else {
                     this.#abortControllers.search = null;
                     if (cursorState) {
+                        refilling = true;
                         this.#refillBelowThreshold(cursorState, searchController);
                     }
                 }
@@ -479,7 +481,7 @@ export class MasRepository extends LitElement {
             return;
         }
 
-        Store.fragments.list.loading.set(false);
+        if (!refilling) Store.fragments.list.loading.set(false);
     }
 
     static MIN_PAGE_SIZE = 10;

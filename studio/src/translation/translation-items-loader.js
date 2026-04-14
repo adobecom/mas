@@ -311,7 +311,7 @@ async function processCardsData(allCards, repository, state) {
         if (state.pendingCards && !signal?.aborted) {
             const next = state.pendingCards;
             state.pendingCards = null;
-            processCardsData(next, repository, state);
+            await processCardsData(next, repository, state);
         }
     }
 }

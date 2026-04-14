@@ -8,6 +8,7 @@ import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
+import { debounce } from '../utils.js';
 
 export const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -21,14 +22,14 @@ class MasItemsSelector extends LitElement {
     static properties = {
         viewOnly: { type: Boolean, state: true },
         searchQuery: { type: String, state: true },
+        selectedTab: { type: String, state: true },
     };
-
-    #searchDebounceTimer;
 
     constructor() {
         super();
         this.viewOnly = false;
         this.searchQuery = '';
+        this.selectedTab = TABLE_TYPE.CARDS;
     }
 
     connectedCallback() {
@@ -58,22 +59,17 @@ class MasItemsSelector extends LitElement {
         Store.translationProjects.showSelected.set(!this.showSelected);
     }
 
-    #handleSearchInput({ target: { value } }) {
-        clearTimeout(this.#searchDebounceTimer);
-        this.#searchDebounceTimer = setTimeout(() => {
-            this.searchQuery = value;
-        }, 300);
-    }
+    #handleSearchInput = debounce(({ target: { value } }) => {
+        this.searchQuery = value;
+    }, 300);
 
     #handleSearchSubmit(e) {
         e.preventDefault();
-        clearTimeout(this.#searchDebounceTimer);
         this.searchQuery = e.target.value;
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        clearTimeout(this.#searchDebounceTimer);
+    #handleTabChange({ target: { selected } }) {
+        this.selectedTab = selected;
     }
 
     #getTabLabel(tab) {
@@ -108,7 +104,7 @@ class MasItemsSelector extends LitElement {
                           ></sp-search>
                       </div>
                   `}
-            <sp-tabs quiet selected="cards">
+            <sp-tabs quiet selected="cards" @change=${this.#handleTabChange}>
                 ${repeat(
                     TABS,
                     (tab) => tab.value,
@@ -124,7 +120,7 @@ class MasItemsSelector extends LitElement {
                                 : html`
                                       <mas-search-and-filters
                                           .type=${tab.value}
-                                          .searchQuery=${this.searchQuery}
+                                          .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
                                           .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                                       ></mas-search-and-filters>
                                   `}

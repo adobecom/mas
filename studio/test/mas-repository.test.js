@@ -2072,12 +2072,9 @@ describe('MasRepository dictionary helpers', () => {
 
         it('prefers default-locale parent when locale copies also have the variation in their variations field', async () => {
             const repository = createRepository();
-            const sourcePath =
-                '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
-            const koKrParentPath =
-                '/content/dam/mas/sandbox/ko_KR/pac/default-fragment';
-            const enUsParentPath =
-                '/content/dam/mas/sandbox/en_US/pac/default-fragment';
+            const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
+            const koKrParentPath = '/content/dam/mas/sandbox/ko_KR/pac/default-fragment';
+            const enUsParentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
 
             const koKrParent = {
                 id: 'ko-kr-id',
@@ -2113,8 +2110,7 @@ describe('MasRepository dictionary helpers', () => {
             const result = await repository.resolveHydratedParentFragment(sourcePath);
 
             // Must return the en_US parent, not the ko_KR one
-            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('en-us-id')).to.be
-                .true;
+            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('en-us-id')).to.be.true;
             expect(result).to.deep.equal(hydratedEnUsParent);
         });
     });

@@ -17,6 +17,7 @@ const ODIN_PATH = (surface, locale, fragmentPath) => `/content/dam/mas/${surface
 const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 const logger = Core.Logger('translation', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 10;
+const DEFAULT_RPS_LIMIT = 10;
 
 async function prepareProjectStart(params, options = {}) {
     logger.info('Calling the main action');
@@ -48,6 +49,7 @@ async function prepareProjectStart(params, options = {}) {
         responseMessage,
         translationData,
         batchSize: Number(params.batchSize) || DEFAULT_BATCH_SIZE,
+        rpsLimit: Number(params.rpsLimit) || DEFAULT_RPS_LIMIT,
     };
 }
 
@@ -61,6 +63,7 @@ async function runPostVersioningStage(context) {
         context.authToken,
         context.batchSize,
         context.params,
+        context.rpsLimit,
     );
     if (!syncResult.success) {
         throw createProjectStartError(500, `Failed to sync: ${syncResult.error} target fragments`);
@@ -280,7 +283,7 @@ async function versionTargetFragment(fragmentToVersion, { authToken, title, para
 }
 
 async function versionTargetFragments(context, options = {}) {
-    const { translationData, authToken, batchSize, params } = context;
+    const { translationData, authToken, batchSize, rpsLimit, params } = context;
     const itemsToVersion = getVersioningTargets(translationData);
     const onBatchCompleted = options.onBatchCompleted;
     logger.info(`Versioning target items for ${itemsToVersion.length} items`);
@@ -293,8 +296,10 @@ async function versionTargetFragments(context, options = {}) {
     const results = [];
     let completedItemCount = 0;
     let failedItemCount = 0;
+    const minBatchMs = rpsLimit ? (batchSize / rpsLimit) * 1000 : 0;
 
     for (let i = 0; i < itemsToVersion.length; i += batchSize) {
+        const batchStart = Date.now();
         const batch = itemsToVersion.slice(i, i + batchSize);
         logger.info(`Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(itemsToVersion.length / batchSize)}`);
 
@@ -310,6 +315,11 @@ async function versionTargetFragments(context, options = {}) {
                 failedItemCount,
                 itemCount: itemsToVersion.length,
             });
+        }
+
+        if (minBatchMs > 0) {
+            const wait = minBatchMs - (Date.now() - batchStart);
+            if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
         }
     }
 
@@ -411,9 +421,14 @@ async function sendSyncRequest({ path, update: { name, value } }, { authToken, p
     }
 }
 
-async function sendSyncRequests(itemsToSync, authToken, batchSize, params = {}) {
+async function sendSyncRequests(itemsToSync, authToken, batchSize, params = {}, rpsLimit = null) {
     const config = { authToken, params };
-    const results = await processBatchWithConcurrency(itemsToSync, batchSize, (item) => sendSyncRequest(item, config));
+    const results = await processBatchWithConcurrency(
+        itemsToSync,
+        batchSize,
+        (item) => sendSyncRequest(item, config),
+        rpsLimit,
+    );
 
     const failures = results.filter((result) => !result.success);
     if (failures.length > 0) {

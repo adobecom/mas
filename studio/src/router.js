@@ -474,10 +474,6 @@ export class Router extends EventTarget {
             if (!path && Store.search.value.path) {
                 this.currentParams.set('path', Store.search.value.path);
             }
-            const locale = this.currentParams.get('locale');
-            if (!locale && Store.filters.value.locale && Store.filters.value.locale !== 'en_US') {
-                this.currentParams.set('locale', Store.filters.value.locale);
-            }
             const normalizedSettingsRoute = this.#normalizeSettingsEditorRoute();
             const redirectedSettingsRoute = this.#enforceSettingsAccessFromParams();
             if (normalizedSettingsRoute || redirectedSettingsRoute) {

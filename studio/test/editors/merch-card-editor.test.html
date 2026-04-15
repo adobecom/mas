@@ -294,7 +294,8 @@
                         const [, rootPath, sourceLocale, fragmentPath] =
                             sourceFragment.path.match(/^(\/content\/dam\/mas\/[^/]+)\/([^/]+)\/(.+)$/) || [];
 
-                        const localeCodes = ['en_AU', 'fr_FR', 'de_DE', 'es_ES', 'it_IT'];
+                        // Locales in the same default-locale family as en_US on ACOM/nala (see getRegionLocales + isVariationPathInParentLocaleFamily)
+                        const localeCodes = ['en_CA', 'en_AE', 'en_BE', 'en_NZ', 'en_SG', 'en_IE', 'en_PH'];
                         const variationPaths = [];
                         const references = [];
 
@@ -669,7 +670,7 @@
                             promo: 0,
                             grouped: 2,
                             includeReferences: true,
-                            includeCurrentGroupedPath: true,
+                            includeCurrentGroupedPath: false,
                         });
 
                         const source = fragmentEditor.localeDefaultFragment;

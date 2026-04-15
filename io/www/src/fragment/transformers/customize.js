@@ -1,6 +1,5 @@
 import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
-import { computeRegionLocale, getDefaultLanguageVariation } from './defaultLanguage.js';
 
 const PZN_FOLDER = '/pzn/';
 
@@ -13,25 +12,19 @@ function skimFragmentFromReferences(fragment) {
 }
 
 /**
- * Pipeline: await `defaultLanguage` init (after `fetchFragment` phase 1). Fallback: same helpers as that transformer.
- * @param {object} [requestInfosCached] - Result of `getRequestInfos(context)` from `customize`; avoids a second call on the fallback path.
+ * Resolves the same fragment-init payload as the `defaultLanguage` transformer (`body`, `defaultLocale`, `regionLocale`, etc.)
+ * by awaiting `context.promises.defaultLanguage`. Validates `surface` and `fragmentPath` from `requestInfos` first.
+ *
+ * @param {*} context - Request context; must include `promises.defaultLanguage` when run inside the fragment pipeline.
+ * @param {{ surface?: string, fragmentPath?: string }} requestInfos - Parsed request/fragment location (same object returned by `getRequestInfos`).
+ * @returns {Promise<{ status: number, body?: *, defaultLocale?: string, locale?: string, regionLocale?: string, message?: string, [key: string]: * }>}
  */
-async function resolveFragmentInit(context, requestInfosCached) {
-    if (context?.promises?.defaultLanguage) {
-        return await context.promises.defaultLanguage;
-    }
-    const { body, surface, fragmentPath, parsedLocale } = requestInfosCached ?? (await getRequestInfos(context));
-    const variationContext = { ...context, surface, fragmentPath, parsedLocale, body };
+async function resolveFragmentInit(context, requestInfos) {
+    const { surface, fragmentPath } = requestInfos;
     if (!surface || !fragmentPath) {
         return { status: 400, message: 'Missing surface or fragmentPath' };
     }
-    const result = await getDefaultLanguageVariation(variationContext);
-    if (result.status !== 200) {
-        return result;
-    }
-    const defaultLocale = variationContext.defaultLocale;
-    const regionLocale = computeRegionLocale({ ...variationContext, defaultLocale });
-    return { ...result, regionLocale };
+    return await context.promises.defaultLanguage;
 }
 
 function deepMerge(...objects) {

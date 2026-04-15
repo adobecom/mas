@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
+import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
@@ -839,7 +840,18 @@ describe('customize collections', function () {
 });
 
 async function process(context) {
-    context.promises = {};
+    const phase1 = {
+        status: 200,
+        body: context.body,
+        parsedLocale: context.parsedLocale,
+        surface: context.surface,
+        fragmentPath: context.fragmentPath,
+    };
+    const promises = {
+        fetchFragment: Promise.resolve(phase1),
+    };
+    promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
+    context.promises = promises;
     return await customize.process(context);
 }
 

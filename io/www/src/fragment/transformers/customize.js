@@ -296,4 +296,3 @@ export const transformer = {
     process: customize,
 };
 export { deepMerge };
-export { computeRegionLocale, getDefaultLanguageVariation } from './fetchFragment.js';

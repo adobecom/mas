@@ -31,50 +31,6 @@ function getLocaleSettings({
     return { locale, country, language };
 }
 
-function parseAkamaiSessionCountry() {
-    try {
-        const raw = window.sessionStorage?.getItem('akamai');
-        if (!raw) return null;
-        const data = JSON.parse(raw);
-        const c =
-            data?.country ??
-            data?.country_iso ??
-            data?.countryCode ??
-            data?.country_code;
-        return c ? String(c).toUpperCase() : null;
-    } catch {
-        return null;
-    }
-}
-
-/** Merges `akamaiLocale` / session geo into `country` so commerce and `/fragment` stay aligned with WCS. */
-export function mergeCommerceCountryFromGeo(config = {}) {
-    if (typeof window === 'undefined') return config;
-
-    let geoFromUrl = null;
-    try {
-        const raw = new URLSearchParams(window.location.search).get(
-            'akamaiLocale',
-        );
-        if (raw?.trim()) geoFromUrl = raw.trim().toUpperCase();
-    } catch {}
-    if (geoFromUrl) {
-        return { ...config, country: geoFromUrl };
-    }
-
-    const geoFromStorage = parseAkamaiSessionCountry();
-    if (!geoFromStorage) return config;
-
-    const localeCountry = config.locale?.split('_')?.[1]?.toUpperCase();
-    const current = config.country?.toUpperCase();
-    const looksPathDerived =
-        !current || (localeCountry && current === localeCountry);
-    if (looksPathDerived) {
-        return { ...config, country: geoFromStorage };
-    }
-    return config;
-}
-
 function getPreviewSurface(wcsApiKey, previewParam) {
     for (const [key, value] of Object.entries(PREVIEW_REGISTERED_SURFACE)) {
         const pattern = new RegExp(key);
@@ -170,7 +126,7 @@ function getSettings(config = {}, service) {
         `https://www${env === Env.STAGE ? '.stage' : ''}.adobe.com/mas/io`;
     const preselectPlan = getParameter('preselect-plan') ?? undefined;
     return {
-        ...getLocaleSettings(mergeCommerceCountryFromGeo(config)),
+        ...getLocaleSettings(config),
         ...previewSettings,
         displayOldPrice,
         checkoutClientId,

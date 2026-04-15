@@ -29,6 +29,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
 } from './constants.js';
@@ -1638,7 +1639,7 @@ export class MasRepository extends LitElement {
      */
     generateGroupedVariationName(fragment, pznTags) {
         const parts = [];
-        const product = fragment.getTagTitle('mas:product/');
+        const product = fragment.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment.getTagTitle?.('mas:product/');
         if (product) parts.push(product);
 
         const customerSegment = fragment.getTagTitle('customer_segment');

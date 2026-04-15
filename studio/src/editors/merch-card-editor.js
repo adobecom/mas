@@ -530,7 +530,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #handleCommerceReady = (event) => {
-        this.#registerCommercePriceProviders(event.detail || event.target);
+        this.#registerCommercePriceProviders(event.detail);
     };
 
     #registerCommercePriceProviders(service = document.querySelector('mas-commerce-service')) {
@@ -721,17 +721,14 @@ class MerchCardEditor extends LitElement {
     async updated(changedProperties) {
         super.updated(changedProperties);
         if (changedProperties.has('previewLocaleOverride')) {
-            const oldValue = changedProperties.get('previewLocaleOverride');
-            if (oldValue !== this.previewLocaleOverride) {
-                this.refreshRenderedPrices();
-                this.dispatchEvent(
-                    new CustomEvent('preview-locale-change', {
-                        bubbles: true,
-                        composed: true,
-                        detail: { value: this.previewLocaleOverride },
-                    }),
-                );
-            }
+            this.refreshRenderedPrices();
+            this.dispatchEvent(
+                new CustomEvent('preview-locale-change', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { value: this.previewLocaleOverride },
+                }),
+            );
         }
         if (!this.fieldsReady && this.fragment) {
             await this.updateComplete;

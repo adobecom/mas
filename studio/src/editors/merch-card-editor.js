@@ -1444,7 +1444,7 @@ class MerchCardEditor extends LitElement {
                             .fieldIndicatorTemplate=${this.renderQuantitySelectSettingOverrideIndicator}
                             value="${this.getEffectiveSettingValue(QUANTITY_MODEL)}"
                             settingsDefaults="${this.globalSettingsDefaults[QUANTITY_MODEL] === ''
-                                ? '<merch-quantity-select/>'
+                                ? QUANTITY_EMPTY
                                 : this.globalSettingsDefaults[QUANTITY_MODEL]}"
                             .handleQuantityFieldChange=${this.#handleQuantityFieldChange}
                         ></quantity-select-settings-field>

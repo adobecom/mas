@@ -6,6 +6,7 @@ import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
 import { extractLocaleFromPath } from './utils.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
 
@@ -167,6 +168,17 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.SETTINGS_EDITOR;
     }
 
+    get topNavLocale() {
+        if (this.isFragmentEditorPage) {
+            const fragmentId = this.inEdit.get()?.get()?.id;
+            if (this.editorContext.isVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
+                return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
+            }
+        }
+        const locale = Store.localeOrRegion();
+        return getDefaultLocaleCode(Store.surface(), locale) || locale;
+    }
+
     get isLocalePickerDisabled() {
         if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage) {
             return false;
@@ -182,16 +194,6 @@ class MasTopNav extends LitElement {
 
     get isDraftLandscape() {
         return this.landscape.value === WCS_LANDSCAPE_DRAFT;
-    }
-
-    get currentFragmentLocale() {
-        if (this.isFragmentEditorPage && this.inEdit.value) {
-            const currentFragment = this.inEdit.value.get();
-            if (currentFragment?.path) {
-                return extractLocaleFromPath(currentFragment.path);
-            }
-        }
-        return null;
     }
 
     async onLocaleChanged(e) {
@@ -373,7 +375,7 @@ class MasTopNav extends LitElement {
                                   @locale-changed=${this.onLocaleChanged}
                                   ?disabled=${this.isLocalePickerDisabled}
                                   surface=${Store.surface()}
-                                  locale=${Store.localeOrRegion()}
+                                  locale=${this.topNavLocale}
                               ></mas-locale-picker>
                               <sp-switch
                                   class="landscape-switch"

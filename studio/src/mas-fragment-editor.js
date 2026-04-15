@@ -822,6 +822,7 @@ export default class MasFragmentEditor extends LitElement {
         const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
 
         if (existingStore) {
+            this.groupedVariationOrphanMessage = null;
             await this.#initializeFromCachedStore(fragmentId, existingStore);
             return;
         }

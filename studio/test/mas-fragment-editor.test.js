@@ -291,6 +291,7 @@ describe('MasFragmentEditor', () => {
             expect(el.updateTranslatedLocalesStore.calledOnceWith(false, existingData.path)).to.be.true;
             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
             expect(Store.fragmentEditor.loading.get()).to.equal(false);
+            expect(existingStore.previewStore.resolved).to.equal(false);
         });
 
         it('reattaches parent for existing variation when resolved parent changes', async () => {

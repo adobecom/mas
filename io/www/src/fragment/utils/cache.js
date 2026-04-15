@@ -1,14 +1,6 @@
 import { getJsonFromState, mark, measureTiming } from './common.js';
 import { log } from './log.js';
-function getRequestMetadataKey(context) {
-    const id = context.id;
-    const locale = (context.requestLocale ?? context.locale) || 'no-locale';
-    const raw = context.country;
-    if (raw != null && String(raw).trim() !== '') {
-        return `req-${id}-${locale}-${String(raw).trim().toUpperCase()}`;
-    }
-    return `req-${id}-${locale}`;
-}
+const getRequestMetadataKey = (context) => `req-${context.id}-${context.locale}`;
 
 async function getRequestMetadata(context) {
     const requestKey = getRequestMetadataKey(context);

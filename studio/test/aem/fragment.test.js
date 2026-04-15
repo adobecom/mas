@@ -1,5 +1,6 @@
 import { expect } from '@open-wc/testing';
 import { Fragment } from '../../src/aem/fragment.js';
+import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 
 describe('Fragment', () => {
@@ -39,8 +40,8 @@ describe('Fragment', () => {
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
                     references: [
-                        { id: 'ref-1', path: '/content/dam/mas/sandbox/fr_FR/my-fragment' }, // valid
-                        { id: 'ref-2', path: '/content/dam/mas/sandbox/de_DE/my-fragment' }, // valid
+                        { id: 'ref-1', path: '/content/dam/mas/sandbox/en_BE/my-fragment' }, // valid
+                        { id: 'ref-2', path: '/content/dam/mas/sandbox/en_CA/my-fragment' }, // valid
                         { id: 'ref-3', path: '/content/dam/mas/sandbox/en_US/different-fragment' }, // different fragment
                         { id: 'ref-4', path: '/content/dam/mas/acom/en_US/my-fragment' }, // different surface
                         { id: 'ref-5', path: '/invalid/path' }, // invalid path
@@ -72,8 +73,8 @@ describe('Fragment', () => {
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/folder/subfolder/my-fragment',
                     references: [
-                        { id: 'ref-1', path: '/content/dam/mas/sandbox/fr_FR/folder/subfolder/my-fragment' },
-                        { id: 'ref-2', path: '/content/dam/mas/sandbox/fr_FR/folder/my-fragment' },
+                        { id: 'ref-1', path: '/content/dam/mas/sandbox/en_CA/folder/subfolder/my-fragment' },
+                        { id: 'ref-2', path: '/content/dam/mas/sandbox/en_CA/folder/my-fragment' },
                     ],
                 }),
             );
@@ -109,13 +110,13 @@ describe('Fragment', () => {
             const fragment = new Fragment(
                 createFragmentConfig({
                     path: '/content/dam/mas/sandbox/en_US/my-fragment',
-                    references: [{ id: 'ref-1', path: '/content/dam/mas/sandbox/fr_FR/my-fragment' }],
+                    references: [{ id: 'ref-1', path: '/content/dam/mas/sandbox/en_BE/my-fragment' }],
                     fields: [
                         {
                             name: 'variations',
                             values: [
-                                '/content/dam/mas/sandbox/fr_FR/my-fragment',
-                                '/content/dam/mas/sandbox/de_DE/my-fragment',
+                                '/content/dam/mas/sandbox/en_BE/my-fragment',
+                                '/content/dam/mas/sandbox/en_CA/my-fragment',
                             ],
                         },
                     ],
@@ -124,7 +125,7 @@ describe('Fragment', () => {
 
             const variations = fragment.listLocaleVariations();
             expect(variations).to.have.lengthOf(1);
-            expect(variations[0].path).to.equal('/content/dam/mas/sandbox/fr_FR/my-fragment');
+            expect(variations[0].path).to.equal('/content/dam/mas/sandbox/en_BE/my-fragment');
         });
     });
 
@@ -171,6 +172,47 @@ describe('Fragment', () => {
             const groupedVariations = fragment.listGroupedVariations();
             expect(groupedVariations).to.have.lengthOf(1);
             expect(groupedVariations[0].path).to.equal('/content/dam/mas/sandbox/en_US/pzn/my-fragment-a');
+        });
+
+        it('includes grouped paths in the parent locale family even when the reference has promotion tags', () => {
+            const groupedPath = '/content/dam/mas/sandbox/en_US/pzn/my-fragment';
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [
+                        {
+                            id: 'ref-grouped-promo',
+                            path: groupedPath,
+                            tags: [{ id: `${TAG_PROMOTION_PREFIX}summer-sale` }],
+                        },
+                    ],
+                }),
+            );
+
+            expect(fragment.listGroupedVariations().map((reference) => reference.id)).to.deep.equal(['ref-grouped-promo']);
+            expect(fragment.getPromoVariationCount()).to.equal(0);
+            expect(fragment.listLocaleVariations()).to.have.lengthOf(0);
+        });
+
+        it('does not classify out-of-family grouped paths as promo or locale', () => {
+            const outOfFamilyGroupedPath = '/content/dam/mas/sandbox/fr_FR/pzn/my-fragment';
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    path: '/content/dam/mas/sandbox/en_US/my-fragment',
+                    references: [
+                        {
+                            id: 'ref-out-of-family',
+                            path: outOfFamilyGroupedPath,
+                            tags: [{ id: `${TAG_PROMOTION_PREFIX}misclassified-without-fix` }],
+                        },
+                    ],
+                }),
+            );
+
+            expect(fragment.listGroupedVariations()).to.have.lengthOf(0);
+            expect(fragment.getPromoVariationCount()).to.equal(0);
+            expect(fragment.listLocaleVariations()).to.have.lengthOf(0);
+            expect(fragment.getTotalVariationCount()).to.equal(0);
         });
     });
 

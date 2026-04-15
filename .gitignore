@@ -28,7 +28,10 @@ nala/.auth/
 .CLAUDE.md
 **/CLAUDE.md
 .claude/
+.logs/
 .specify/
+.worktrees/
+.pids
 /specs/
 /agents/
 reports/

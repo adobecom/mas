@@ -794,6 +794,24 @@ describe('common.js - processBatchWithConcurrency', () => {
         expect(setTimeoutStub).not.to.have.been.called;
     });
 
+    it('should call onBatchCompleted with the current batch results after each batch', async () => {
+        const items = [1, 2, 3, 4];
+        const processor = (item) => Promise.resolve({ value: item, success: true });
+        const onBatchCompleted = sinon.stub().resolves();
+
+        await common.processBatchWithConcurrency(items, 2, processor, null, onBatchCompleted);
+
+        expect(onBatchCompleted).to.have.been.calledTwice;
+        expect(onBatchCompleted.firstCall.args[0]).to.deep.equal([
+            { value: 1, success: true },
+            { value: 2, success: true },
+        ]);
+        expect(onBatchCompleted.secondCall.args[0]).to.deep.equal([
+            { value: 3, success: true },
+            { value: 4, success: true },
+        ]);
+    });
+
     it('should throttle once per batch across multiple batches', async () => {
         // 4 items, batchSize=2, rpsLimit=10 → minBatchMs = 200ms
         // batch 1: elapsed=50ms → wait=150ms; batch 2: elapsed=50ms → wait=150ms

@@ -10,6 +10,7 @@ jobs:
         if: github.event.pull_request.merged == true
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
+            batch_size: 10
             rps_limit: 20
         secrets:
             ENV: ${{ secrets.AIO_STUDIO_ENV_STAGE }}
@@ -26,6 +27,7 @@ jobs:
         needs: test_stage
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
+            batch_size: 10
             rps_limit: 20
         secrets:
             ENV: ${{ secrets.AIO_STUDIO_ENV_PROD }}

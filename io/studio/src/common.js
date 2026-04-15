@@ -350,7 +350,8 @@ async function patchToOdin(odinEndpoint, fragmentId, authToken, patchBody, etag)
 // Helper function to process items in batches with concurrency limit and optional RPS throttle.
 // rpsLimit enforces a minimum batch cycle time of (batchSize / rpsLimit) seconds so that the
 // sustained request rate never exceeds rpsLimit, regardless of individual request latency.
-async function processBatchWithConcurrency(items, batchSize, processor, rpsLimit = null) {
+// onBatchCompleted(batchResults) is called after each batch completes (before the throttle wait).
+async function processBatchWithConcurrency(items, batchSize, processor, rpsLimit = null, onBatchCompleted = null) {
     const allResults = [];
     const minBatchMs = rpsLimit ? (batchSize / rpsLimit) * 1000 : 0;
 
@@ -361,6 +362,8 @@ async function processBatchWithConcurrency(items, batchSize, processor, rpsLimit
 
         const batchResults = await Promise.all(batch.map(processor));
         allResults.push(...batchResults);
+
+        if (onBatchCompleted) await onBatchCompleted(batchResults);
 
         if (minBatchMs > 0) {
             const wait = minBatchMs - (Date.now() - batchStart);

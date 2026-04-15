@@ -287,44 +287,33 @@ async function versionTargetFragments(context, options = {}) {
     const itemsToVersion = getVersioningTargets(translationData);
     const onBatchCompleted = options.onBatchCompleted;
     logger.info(`Versioning target items for ${itemsToVersion.length} items`);
-    const config = {
-        authToken,
-        title: translationData.title,
-        params,
-    };
+    const config = { authToken, title: translationData.title, params };
 
-    const results = [];
-    let completedItemCount = 0;
-    let failedItemCount = 0;
-    const minBatchMs = rpsLimit ? (batchSize / rpsLimit) * 1000 : 0;
+    let runningCompleted = 0;
+    let runningFailed = 0;
 
-    for (let i = 0; i < itemsToVersion.length; i += batchSize) {
-        const batchStart = Date.now();
-        const batch = itemsToVersion.slice(i, i + batchSize);
-        logger.info(`Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(itemsToVersion.length / batchSize)}`);
+    const results = await processBatchWithConcurrency(
+        itemsToVersion,
+        batchSize,
+        (item) => versionTargetFragment(item, config),
+        rpsLimit,
+        onBatchCompleted &&
+            (async (batchResults) => {
+                runningCompleted += batchResults.filter((r) => r.success).length;
+                runningFailed += batchResults.filter((r) => !r.success).length;
+                await onBatchCompleted({
+                    completedItemCount: runningCompleted,
+                    failedItemCount: runningFailed,
+                    itemCount: itemsToVersion.length,
+                });
+            }),
+    );
 
-        const batchResults = await Promise.all(batch.map((item) => versionTargetFragment(item, config)));
-        results.push(...batchResults);
-
-        completedItemCount += batchResults.filter((result) => result.success).length;
-        failedItemCount += batchResults.filter((result) => !result.success).length;
-
-        if (onBatchCompleted) {
-            await onBatchCompleted({
-                completedItemCount,
-                failedItemCount,
-                itemCount: itemsToVersion.length,
-            });
-        }
-
-        if (minBatchMs > 0) {
-            const wait = minBatchMs - (Date.now() - batchStart);
-            if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
-        }
-    }
+    const failures = results.filter((result) => !result.success);
+    const completedItemCount = results.length - failures.length;
+    const failedItemCount = failures.length;
 
     if (failedItemCount > 0) {
-        const failures = results.filter((result) => !result.success);
         logger.error(`${failures.length} request(s) failed: ${failures.map((failure) => failure.item).join(', ')}`);
     }
 

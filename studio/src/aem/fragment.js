@@ -1,4 +1,6 @@
-import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX, MAS_PRODUCT_CODE_PREFIX } from '../constants.js';
+import { getCachedTagTitle } from './tag-cache.js';
+import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
 
 export class Fragment {
     path = '';
@@ -49,6 +51,41 @@ export class Fragment {
     getTagTitle(id) {
         const tags = this.tags.filter((tag) => tag.id.includes(id));
         return tags[0]?.title;
+    }
+
+    getCurrentTagTitle(id) {
+        const fieldTagValues = this.getField('tags')?.values;
+        const rawTagIds = this.newTags ?? (fieldTagValues?.length ? fieldTagValues : null) ?? this.tags ?? [];
+        const tagIds = rawTagIds.map(normalizeTagId).filter(Boolean);
+
+        const matchingIds = tagIds.filter((tagId) => tagId.includes(id));
+        if (!matchingIds.length) return undefined;
+
+        const matchingId = [...matchingIds].sort((a, b) => b.length - a.length)[0];
+        const tags = Array.isArray(this.tags) ? this.tags : [];
+
+        const exactTag = tags.find((tag) => normalizeTagId(tag) === matchingId);
+        const cachedTitle = getCachedTagTitle(matchingId);
+        const fallbackTag = tags.find((tag) => {
+            const tagId = normalizeTagId(tag);
+            return tagId && (tagId.includes(matchingId) || matchingId.includes(tagId));
+        });
+
+        const title = exactTag?.title || cachedTitle || fallbackTag?.title;
+
+        if (id === MAS_PRODUCT_CODE_PREFIX) {
+            const nestedTitle = formatProductCodeNestedTitle(title, matchingId);
+            if (nestedTitle) return nestedTitle;
+        }
+
+        if (title) return title;
+
+        const fallback = matchingId.split('/').filter(Boolean).pop();
+        return fallback
+            ?.split(/[-_]/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
     }
 
     get locale() {

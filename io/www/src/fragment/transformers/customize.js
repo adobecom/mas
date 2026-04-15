@@ -1,5 +1,5 @@
 import { getRequestInfos } from '../utils/common.js';
-import { log, logDebug } from '../utils/log.js';
+import { logDebug } from '../utils/log.js';
 import { computeRegionLocale, getDefaultLanguageVariation } from './fetchFragment.js';
 
 const PZN_FOLDER = '/pzn/';
@@ -12,12 +12,15 @@ function skimFragmentFromReferences(fragment) {
     return skimmedFragment;
 }
 
-/** Pipeline: await `fetchFragment` init. Fallback: non-pipeline tests call `getRequestInfos` then `getDefaultLanguageVariation`, and mirror `regionLocale` like `runFetchFragmentInit`. */
-async function resolveFragmentInit(context) {
+/**
+ * Pipeline: await `fetchFragment` init. Fallback: `getDefaultLanguageVariation` + `regionLocale` like `runFetchFragmentInit`.
+ * @param {object} [requestInfosCached] - Result of `getRequestInfos(context)` from `customize`; avoids a second call on the fallback path.
+ */
+async function resolveFragmentInit(context, requestInfosCached) {
     if (context?.promises?.fetchFragment) {
         return await context.promises.fetchFragment;
     }
-    const { body, surface, fragmentPath, parsedLocale } = await getRequestInfos(context);
+    const { body, surface, fragmentPath, parsedLocale } = requestInfosCached ?? (await getRequestInfos(context));
     const variationContext = { ...context, surface, fragmentPath, parsedLocale, body };
     if (!surface || !fragmentPath) {
         return { status: 400, message: 'Missing surface or fragmentPath' };
@@ -255,8 +258,9 @@ function customizeTree(root, referencesTree = [], customizeContext) {
 }
 
 async function customize(context) {
-    const { surface } = await getRequestInfos(context);
-    const fragmentInit = await resolveFragmentInit(context);
+    const requestInfos = await getRequestInfos(context);
+    const { surface } = requestInfos;
+    const fragmentInit = await resolveFragmentInit(context, requestInfos);
     const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
     const promos = await context.promises?.promotions;
 

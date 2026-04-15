@@ -4,11 +4,13 @@ import { PATH_TOKENS, odinReferences, odinUrl } from '../utils/paths.js';
 import { getDefaultLocaleCode, getLocaleCode, getRegionLocales, parseLocaleCode } from '../locales.js';
 
 /**
- * get fragment associated to default language, just returning the body
- * @param {*} context
- *  - 'locale' comes from request parameter, so can be optional
- *  - 'parsedLocale' is the actual location of the fetched fragment
- * @returns null if something wrong, [] if not found, body if found
+ * Resolves the fragment body for the default language of the requested locale.
+ * Sets `context.defaultLocale` on success (and when `locale` is omitted, to `parsedLocale`).
+ *
+ * @param {*} context - Must include `surface`, `fragmentPath`, `body`, `parsedLocale`. `locale` is optional (request param).
+ * @returns {Promise<{ status: number, body?: *, defaultLocale?: string, parsedLocale?: string, message?: string }>}
+ *   `status: 200` with `body` and `defaultLocale` (or `parsedLocale` when no `locale` param).
+ *   Non-200 returns `{ status, message }` from validation, fragment-id lookup, or default-locale fetch errors.
  */
 export async function getDefaultLanguageVariation(context) {
     let { body } = context;
@@ -109,8 +111,8 @@ async function fetchRequestInfosPhase1(initContext) {
 }
 
 /**
- * Full fragment fetch + default-locale variation + region locale. Exposed as `promises.fetchFragment` and aliased as
- * `promises.customize` (same promise) so customize consumes the encapsulated result without a separate init.
+ * Full fragment fetch + default-locale variation + region locale. Result is the value of `promises.fetchFragment`
+ * (pipeline registers this via the transformer `init` return). Phase 1 is also exposed as `promises.requestInfos`.
  */
 async function runFetchFragmentInit(initContext) {
     const { id, locale, promises } = initContext;
@@ -154,12 +156,7 @@ async function runFetchFragmentInit(initContext) {
 }
 
 function init(initContext) {
-    const fetchFragmentPromise = runFetchFragmentInit(initContext);
-    const { promises } = initContext;
-    if (promises) {
-        promises.customize = fetchFragmentPromise;
-    }
-    return fetchFragmentPromise;
+    return runFetchFragmentInit(initContext);
 }
 
 async function fetchFragment(context) {

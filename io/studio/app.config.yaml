@@ -79,6 +79,8 @@ application:
                         function: src/bulk-publish/index.js
                         web: 'yes'
                         runtime: nodejs:22
+                        limits:
+                            timeout: 300000
                         inputs:
                             concurrencyLimit: "5"
                         annotations:

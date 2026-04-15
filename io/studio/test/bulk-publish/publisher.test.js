@@ -162,4 +162,44 @@ describe('bulk-publish/publisher.js', () => {
         expect(result.reason).to.equal('not-found');
         expect(fetchOdinStub).to.not.have.been.called;
     });
+
+    it('does not retry on a non-retryable 401 error and fails after one attempt', async () => {
+        fetchFragmentByPathStub.resolves({
+            fragment: {
+                id: 'frag-1',
+                path: '/content/dam/mas/acom/en_US/nico',
+                modified: { at: '2026-04-05T00:00:00.000Z' },
+            },
+            status: 200,
+            etag: 'etag-1',
+        });
+        fetchOdinStub.rejects(new Error('POST /adobe/sites/cf/fragments/publish failed with status 401: Unauthorized'));
+
+        const result = await publisher.publishPath({
+            path: '/content/dam/mas/acom/en_US/nico',
+            odinEndpoint,
+            authToken,
+            logger,
+            maxRetries: 3,
+        });
+
+        expect(result.status).to.equal('failed');
+        expect(fetchOdinStub).to.have.been.calledOnce;
+    });
+
+    it('returns a structured failed result when fetchFragmentByPath rejects unexpectedly', async () => {
+        fetchFragmentByPathStub.rejects(new Error('DNS resolution failure'));
+
+        const result = await publisher.publishPath({
+            path: '/content/dam/mas/acom/en_US/nico',
+            odinEndpoint,
+            authToken,
+            logger,
+        });
+
+        expect(result.status).to.equal('failed');
+        expect(result.reason).to.equal('unexpected-error');
+        expect(result.retries).to.equal(0);
+        expect(fetchOdinStub).to.not.have.been.called;
+    });
 });

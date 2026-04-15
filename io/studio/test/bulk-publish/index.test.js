@@ -74,6 +74,12 @@ describe('bulk-publish/index.js', () => {
         expect(result.error.body.error).to.include('/content/dam/mas/');
     });
 
+    it('returns 400 with a clear message when paths contains a non-string entry', async () => {
+        const result = await action.main({ ...baseParams, paths: [null, '/content/dam/mas/acom/en_US/nico'] });
+        expect(result.error.statusCode).to.equal(400);
+        expect(result.error.body.error).to.include('/content/dam/mas/');
+    });
+
     it('returns 400 when paths exceeds maximum', async () => {
         const paths = Array.from({ length: 501 }, (_, i) => `/content/dam/mas/acom/en_US/item-${i}`);
         const result = await action.main({ ...baseParams, paths });

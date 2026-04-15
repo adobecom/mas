@@ -36,9 +36,9 @@ async function run(params) {
         if (params.paths.length > MAX_PATHS) {
             return errorResponse(400, `paths exceeds maximum of ${MAX_PATHS}`, logger);
         }
-        const invalidPath = params.paths.find((p) => typeof p === 'string' && !p.startsWith(PATH_PREFIX));
-        if (invalidPath) {
-            return errorResponse(400, `path must start with ${PATH_PREFIX}: ${invalidPath}`, logger);
+        const invalidPath = params.paths.find((p) => typeof p !== 'string' || !p.startsWith(PATH_PREFIX));
+        if (invalidPath !== undefined) {
+            return errorResponse(400, `path must be a non-empty string starting with ${PATH_PREFIX}: ${invalidPath}`, logger);
         }
         if (params.locales !== undefined && !Array.isArray(params.locales)) {
             return errorResponse(400, 'locales must be an array when provided', logger);

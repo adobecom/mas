@@ -162,14 +162,10 @@ describe('MasItemsSelector', () => {
             expect(tabPanels.length).to.equal(3);
         });
 
-        it('should render mas-search-and-filters only for the active tab', async () => {
+        it('should render mas-search-and-filters in each tab panel when not viewOnly', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            expect(el.shadowRoot.querySelectorAll('mas-search-and-filters').length).to.equal(1);
-            el.selectedTab = TABLE_TYPE.COLLECTIONS;
-            await el.updateComplete;
-            expect(el.shadowRoot.querySelectorAll('mas-search-and-filters').length).to.equal(1);
-            const filter = el.shadowRoot.querySelector('mas-search-and-filters');
-            expect(filter.type).to.equal(TABLE_TYPE.COLLECTIONS);
+            const searchFilters = el.shadowRoot.querySelectorAll('mas-search-and-filters');
+            expect(searchFilters.length).to.equal(3);
         });
 
         it('should render mas-select-items-table in each tab panel', async () => {
@@ -381,34 +377,32 @@ describe('MasItemsSelector', () => {
     describe('search and filters configuration', () => {
         it('should set searchOnly to true for placeholders tab', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            el.selectedTab = TABLE_TYPE.PLACEHOLDERS;
-            await el.updateComplete;
-            const filter = el.shadowRoot.querySelector('mas-search-and-filters');
-            expect(filter.searchOnly).to.be.true;
+            const searchFilters = el.shadowRoot.querySelectorAll('mas-search-and-filters');
+            const placeholdersFilter = Array.from(searchFilters).find((sf) => sf.type === TABLE_TYPE.PLACEHOLDERS);
+            expect(placeholdersFilter.searchOnly).to.be.true;
         });
 
         it('should set searchOnly to true for collections tab', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            el.selectedTab = TABLE_TYPE.COLLECTIONS;
-            await el.updateComplete;
-            const filter = el.shadowRoot.querySelector('mas-search-and-filters');
-            expect(filter.searchOnly).to.be.true;
+            const searchFilters = el.shadowRoot.querySelectorAll('mas-search-and-filters');
+            const collectionsFilter = Array.from(searchFilters).find((sf) => sf.type === TABLE_TYPE.COLLECTIONS);
+            expect(collectionsFilter.searchOnly).to.be.true;
         });
 
         it('should set searchOnly to false for cards tab', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            const filter = el.shadowRoot.querySelector('mas-search-and-filters');
-            expect(filter.searchOnly).to.be.false;
+            const searchFilters = el.shadowRoot.querySelectorAll('mas-search-and-filters');
+            const cardsFilter = Array.from(searchFilters).find((sf) => sf.type === TABLE_TYPE.CARDS);
+            expect(cardsFilter.searchOnly).to.be.false;
         });
 
         it('should pass correct type to mas-search-and-filters', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            for (const tab of [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS, TABLE_TYPE.PLACEHOLDERS]) {
-                el.selectedTab = tab;
-                await el.updateComplete;
-                const filter = el.shadowRoot.querySelector('mas-search-and-filters');
-                expect(filter.type).to.equal(tab);
-            }
+            const searchFilters = el.shadowRoot.querySelectorAll('mas-search-and-filters');
+            const types = Array.from(searchFilters).map((sf) => sf.type);
+            expect(types).to.include(TABLE_TYPE.CARDS);
+            expect(types).to.include(TABLE_TYPE.COLLECTIONS);
+            expect(types).to.include(TABLE_TYPE.PLACEHOLDERS);
         });
     });
 
@@ -485,13 +479,13 @@ describe('MasItemsSelector', () => {
 
         it('should handle switching between viewOnly modes', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
-            expect(el.shadowRoot.querySelectorAll('mas-search-and-filters').length).to.equal(1);
+            expect(el.shadowRoot.querySelectorAll('mas-search-and-filters').length).to.equal(3);
             el.viewOnly = true;
             await el.updateComplete;
             expect(el.shadowRoot.querySelectorAll('mas-search-and-filters').length).to.equal(0);
             el.viewOnly = false;
             await el.updateComplete;
-            expect(el.shadowRoot.querySelectorAll('mas-search-and-filters').length).to.equal(1);
+            expect(el.shadowRoot.querySelectorAll('mas-search-and-filters').length).to.equal(3);
         });
     });
 });

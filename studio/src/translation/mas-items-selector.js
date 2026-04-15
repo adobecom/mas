@@ -115,12 +115,12 @@ class MasItemsSelector extends LitElement {
                     (tab) => tab.value,
                     (tab) => html`
                         <sp-tab-panel value=${tab.value} class=${this.viewOnly ? 'view-only' : ''}>
-                            ${this.viewOnly || tab.value !== this.selectedTab
+                            ${this.viewOnly
                                 ? nothing
                                 : html`
                                       <mas-search-and-filters
                                           .type=${tab.value}
-                                          .searchQuery=${this.searchQuery}
+                                          .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
                                           .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                                       ></mas-search-and-filters>
                                   `}

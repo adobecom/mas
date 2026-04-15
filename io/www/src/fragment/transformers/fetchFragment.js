@@ -5,12 +5,13 @@ import { getDefaultLocaleCode, getLocaleCode, getRegionLocales, parseLocaleCode 
 
 /**
  * Resolves the fragment body for the default language of the requested locale.
- * Sets `context.defaultLocale` on success (and when `locale` is omitted, to `parsedLocale`).
+ * On success, sets `context.defaultLocale` (when `locale` is omitted, to `parsedLocale`).
  *
  * @param {*} context - Must include `surface`, `fragmentPath`, `body`, `parsedLocale`. `locale` is optional (request param).
- * @returns {Promise<{ status: number, body?: *, defaultLocale?: string, parsedLocale?: string, message?: string }>}
- *   `status: 200` with `body` and `defaultLocale` (or `parsedLocale` when no `locale` param).
- *   Non-200 returns `{ status, message }` from validation, fragment-id lookup, or default-locale fetch errors.
+ * @returns {Promise<object>} Success and error shapes:
+ *   - No `locale` param: `{ body, parsedLocale, status: 200 }`. `defaultLocale` is not on the return value; read `context.defaultLocale` (set to `parsedLocale`).
+ *   - Normal success after resolving default language: `{ body, defaultLocale, status: 200 }` (also `context.defaultLocale`).
+ *   - Failure: `{ status, message }` from unknown locale, fragment-id lookup, or default-locale fetch errors.
  */
 export async function getDefaultLanguageVariation(context) {
     let { body } = context;
@@ -130,7 +131,7 @@ async function runFetchFragmentInit(initContext) {
         const { body: earlyBody, parsedLocale, surface, fragmentPath } = early;
         let context = { ...initContext, body: earlyBody, parsedLocale, surface, fragmentPath };
         const variationResult = await getDefaultLanguageVariation(context);
-        /* c8 ignore next 3 — default-locale fetch errors are covered via customize / pipeline */
+        /* c8 ignore next 3 — default-locale fetch errors are covered via pipeline */
         if (variationResult.status != 200) {
             return variationResult;
         }

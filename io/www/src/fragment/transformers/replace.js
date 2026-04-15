@@ -154,10 +154,10 @@ function replaceValues(input, dictionary, calls) {
 }
 
 async function init(context) {
-    // Dictionary cache key needs merged `locale` (region) from defaultLanguageVariation init (after fetchFragment).
+    // Dictionary cache key needs merged `locale` (region) from defaultLanguage init (after fetchFragment).
     // Parallelism for dictionary id is via `getRequestInfos` → `requestInfos` inside getDictionaryId, not here.
-    const fetchResult = await context?.promises?.defaultLanguageVariation;
-    // If defaultLanguageVariation is missing or non-200, we keep `context` only: dictionary id/cache use request `locale`, not
+    const fetchResult = await context?.promises?.defaultLanguage;
+    // If defaultLanguage is missing or non-200, we keep `context` only: dictionary id/cache use request `locale`, not
     // the regional locale from init. That matches a degraded path (pipeline already failed or no init promise).
     const merged = fetchResult?.status === 200 ? { ...context, ...fetchResult } : context;
     return await getDictionary(merged);

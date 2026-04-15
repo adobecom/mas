@@ -8,13 +8,13 @@ import { logDebug, logError } from '../../io/www/src/fragment/utils/log.js';
 import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
-import { transformer as defaultLanguageVariation } from '../../io/www/src/fragment/transformers/defaultLanguageVariation.js';
+import { transformer as defaultLanguage } from '../../io/www/src/fragment/transformers/defaultLanguage.js';
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
 import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 
-const PIPELINE = [fetchFragment, defaultLanguageVariation, promotions, customize, settings, replace, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, customize, settings, replace, corrector];
 class LocaleStorageState {
     constructor() {        
     }
@@ -125,7 +125,7 @@ async function previewStudioFragment(body, options) {
     };
     const initPromises = {
         fetchFragment: Promise.resolve(phase1),
-        defaultLanguageVariation: Promise.resolve({
+        defaultLanguage: Promise.resolve({
             ...phase1,
             defaultLocale: locale,
             locale,

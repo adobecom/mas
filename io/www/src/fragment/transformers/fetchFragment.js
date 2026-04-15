@@ -39,7 +39,7 @@ async function fetchRequestInfosPhase1(initContext) {
 
 /**
  * Phase 1 only: first fragment fetch + path parse. Result is `promises.fetchFragment` (and `promises.requestInfos`).
- * Default-language variation + region locale run in the `defaultLanguageVariation` transformer (before promotions).
+ * Default-language variation + region locale run in the `defaultLanguage` transformer (before promotions).
  */
 function init(initContext) {
     const { promises } = initContext;

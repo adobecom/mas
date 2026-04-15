@@ -1,6 +1,6 @@
 import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
-import { computeRegionLocale, getDefaultLanguageVariation } from './defaultLanguageVariation.js';
+import { computeRegionLocale, getDefaultLanguageVariation } from './defaultLanguage.js';
 
 const PZN_FOLDER = '/pzn/';
 
@@ -13,12 +13,12 @@ function skimFragmentFromReferences(fragment) {
 }
 
 /**
- * Pipeline: await `defaultLanguageVariation` init (after `fetchFragment` phase 1). Fallback: same helpers as that transformer.
+ * Pipeline: await `defaultLanguage` init (after `fetchFragment` phase 1). Fallback: same helpers as that transformer.
  * @param {object} [requestInfosCached] - Result of `getRequestInfos(context)` from `customize`; avoids a second call on the fallback path.
  */
 async function resolveFragmentInit(context, requestInfosCached) {
-    if (context?.promises?.defaultLanguageVariation) {
-        return await context.promises.defaultLanguageVariation;
+    if (context?.promises?.defaultLanguage) {
+        return await context.promises.defaultLanguage;
     }
     const { body, surface, fragmentPath, parsedLocale } = requestInfosCached ?? (await getRequestInfos(context));
     const variationContext = { ...context, surface, fragmentPath, parsedLocale, body };

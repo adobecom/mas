@@ -76,11 +76,11 @@ export function computeRegionLocale(context) {
     return regionLocale;
 }
 
-const TRANSFORMER_NAME = 'defaultLanguageVariation';
+const TRANSFORMER_NAME = 'defaultLanguage';
 
 /**
  * Runs after `fetchFragment` init. Awaits `promises.fetchFragment` (phase 1), then default-language variation +
- * `computeRegionLocale`. Result is `promises.defaultLanguageVariation`.
+ * `computeRegionLocale`. Result is `promises.defaultLanguage`.
  */
 async function init(initContext) {
     const early = await initContext.promises?.fetchFragment;
@@ -113,7 +113,7 @@ async function init(initContext) {
     };
 }
 
-async function defaultLanguageVariation(context) {
+async function defaultLanguageProcess(context) {
     const response = await context.promises?.[TRANSFORMER_NAME];
     if (response?.status !== 200) {
         return response;
@@ -133,5 +133,5 @@ async function defaultLanguageVariation(context) {
 export const transformer = {
     name: TRANSFORMER_NAME,
     init,
-    process: defaultLanguageVariation,
+    process: defaultLanguageProcess,
 };

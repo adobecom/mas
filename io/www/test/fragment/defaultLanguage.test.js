@@ -1,8 +1,5 @@
 import { expect } from 'chai';
-import {
-    computeRegionLocale,
-    transformer as defaultLanguageVariation,
-} from '../../src/fragment/transformers/defaultLanguageVariation.js';
+import { computeRegionLocale, transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 
 describe('computeRegionLocale', function () {
     it('should compute well typical use cases', function () {
@@ -22,9 +19,9 @@ describe('computeRegionLocale', function () {
     });
 });
 
-describe('defaultLanguageVariation transformer', function () {
+describe('defaultLanguage transformer', function () {
     it('init returns 400 when fetchFragment promise is missing', async function () {
-        const result = await defaultLanguageVariation.init({ promises: {} });
+        const result = await defaultLanguage.init({ promises: {} });
         expect(result.status).to.equal(400);
         expect(result.message).to.match(/fetchFragment/i);
     });
@@ -33,14 +30,14 @@ describe('defaultLanguageVariation transformer', function () {
         const promises = {
             fetchFragment: Promise.resolve({ status: 503, message: 'upstream unavailable' }),
         };
-        const result = await defaultLanguageVariation.init({ promises, locale: 'en_US' });
+        const result = await defaultLanguage.init({ promises, locale: 'en_US' });
         expect(result.status).to.equal(503);
         expect(result.message).to.equal('upstream unavailable');
     });
 
     it('exposes name and process', function () {
-        expect(defaultLanguageVariation.name).to.equal('defaultLanguageVariation');
-        expect(defaultLanguageVariation.init).to.be.a('function');
-        expect(defaultLanguageVariation.process).to.be.a('function');
+        expect(defaultLanguage.name).to.equal('defaultLanguage');
+        expect(defaultLanguage.init).to.be.a('function');
+        expect(defaultLanguage.process).to.be.a('function');
     });
 });

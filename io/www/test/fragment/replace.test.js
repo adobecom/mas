@@ -100,7 +100,7 @@ describe('replace', () => {
         clearDictionaryCache();
     });
 
-    it('replace init merges defaultLanguageVariation into context for getDictionary', async () => {
+    it('replace init merges defaultLanguage into context for getDictionary', async () => {
         mockDictionary(false, fetchStub, true);
         const context = {
             surface: DEFAULT_SURFACE,
@@ -108,7 +108,7 @@ describe('replace', () => {
             loggedTransformer: 'replace',
             requestId: 'mas-replace-ut',
             promises: {
-                defaultLanguageVariation: Promise.resolve({
+                defaultLanguage: Promise.resolve({
                     status: 200,
                     locale: DEFAULT_LOCALE,
                     regionLocale: DEFAULT_LOCALE,

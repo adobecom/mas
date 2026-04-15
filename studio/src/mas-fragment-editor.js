@@ -5,7 +5,14 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    MAS_PRODUCT_CODE_PREFIX,
+    ODIN_PREVIEW_ORIGIN,
+    PAGE_NAMES,
+    TAG_PROMOTION_PREFIX,
+} from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
@@ -567,7 +574,7 @@ export default class MasFragmentEditor extends LitElement {
         // Analytics ID (from tags with mas:product_code/ prefix)
         const productCodeTag = fragment.tags?.find((tag) => tag.id?.startsWith('mas:product_code/'));
         if (productCodeTag) {
-            const analyticsId = productCodeTag.id.replace('mas:product_code/', '');
+            const analyticsId = productCodeTag.id.replace(MAS_PRODUCT_CODE_PREFIX, '');
             if (analyticsId) attrs.analyticsId = analyticsId;
         }
 
@@ -1478,13 +1485,16 @@ export default class MasFragmentEditor extends LitElement {
 
         const variantCode = this.fragment.getField('variant')?.values[0];
         const variantLabel = VARIANTS.find((v) => v.value === variantCode)?.label || '';
-        const customerSegment = this.fragment.getTagTitle('customer_segment') || '';
-        const marketSegment = this.fragment.getTagTitle('market_segment') || '';
-        const product = this.fragment.getTagTitle('mas:product/') || '';
-        const promotion = this.fragment.getTagTitle(TAG_PROMOTION_PREFIX) || '';
+        const customerSegment = this.fragment.getCurrentTagTitle('customer_segment') || '';
+        const marketSegment = this.fragment.getCurrentTagTitle('market_segment') || '';
+        const productCode =
+            this.fragment.getCurrentTagTitle(MAS_PRODUCT_CODE_PREFIX) ||
+            this.fragment.getTagTitle(MAS_PRODUCT_CODE_PREFIX) ||
+            '';
+        const promotion = this.fragment.getCurrentTagTitle(TAG_PROMOTION_PREFIX) || '';
 
         const buildPart = (part) => (part ? ` / ${part}` : '');
-        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(product)}${buildPart(promotion)}`;
+        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(productCode)}${buildPart(promotion)}`;
 
         return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
     }

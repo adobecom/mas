@@ -522,4 +522,33 @@ describe('Fragment', () => {
             expect(store.value.getFieldValues('title')).to.deep.equal([]);
         });
     });
+    describe('getCurrentTagTitle (product_code / Tag Path)', () => {
+        it('uses product_code title alone when only the product_code segment is present, and adds PAC when a nested PA segment exists', () => {
+            const productCodeOnly = new Fragment(
+                createFragmentConfig({
+                    tags: [{ id: 'mas:product_code/cc', title: 'CC Parent' }],
+                    fields: [{ name: 'tags', values: ['mas:product_code/cc'], multiple: true }],
+                }),
+            );
+            expect(productCodeOnly.getCurrentTagTitle('mas:product_code/')).to.equal('CC Parent');
+
+            const withNestedPa = new Fragment(
+                createFragmentConfig({
+                    tags: [{ id: 'mas:product_code/cc/frameio', title: 'Frame.io Plus' }],
+                    fields: [{ name: 'tags', values: ['mas:product_code/cc/frameio'], multiple: true }],
+                }),
+            );
+            expect(withNestedPa.getCurrentTagTitle('mas:product_code/')).to.equal('Frame.io Plus (FRAMEIO)');
+        });
+
+        it('falls back to prettified segment when no tag title is available', () => {
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    tags: [],
+                    fields: [{ name: 'tags', values: ['mas:product_code/my_custom_code'], multiple: true }],
+                }),
+            );
+            expect(fragment.getCurrentTagTitle('mas:product_code/')).to.equal('My Custom Code');
+        });
+    });
 });

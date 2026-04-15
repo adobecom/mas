@@ -612,6 +612,18 @@
             "excerpt": "",
             "name": "edu",
             "title": "EDU"
+        },
+        {
+            "path": "/content/cq:tags/mas/product_code/apptype",
+            "excerpt": "",
+            "name": "apptype",
+            "title": "App Type"
+        },
+        {
+            "path": "/content/cq:tags/mas/product_code/apptype/mypac",
+            "excerpt": "",
+            "name": "mypac",
+            "title": "My PAC"
         }
     ]
 }

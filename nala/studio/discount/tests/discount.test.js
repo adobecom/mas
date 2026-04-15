@@ -1,4 +1,4 @@
-import { test, expect, studio, editor, plans, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import DiscountSpec from '../specs/discount.spec.js';
 
 const { features } = DiscountSpec;
@@ -55,10 +55,9 @@ test.describe('M@S Studio Discount Badge test suite', () => {
 
         await test.step('step-3: Clear badge field', async () => {
             await editor.badge.click();
-            await page.waitForTimeout(500);
+            await expect(editor.badge).toBeFocused();
             await page.keyboard.press('ControlOrMeta+A');
             await page.keyboard.press('Backspace');
-            await page.waitForTimeout(1000);
         });
 
         await test.step('step-4: Validate badge is removed from card', async () => {

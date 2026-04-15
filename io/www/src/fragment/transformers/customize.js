@@ -12,18 +12,23 @@ function skimFragmentFromReferences(fragment) {
     return skimmedFragment;
 }
 
-/** Fragment + locale variation: in pipeline, same promise as `fetchFragment` (`promises.customize`); tests without pipeline hit the fallback. */
+/** Pipeline: await `fetchFragment` init. Fallback: non-pipeline tests call `getRequestInfos` then `getDefaultLanguageVariation`, and mirror `regionLocale` like `runFetchFragmentInit`. */
 async function resolveFragmentInit(context) {
-    const fragmentInit = context?.promises?.customize ?? context?.promises?.fetchFragment;
-    if (fragmentInit) {
-        return await fragmentInit;
+    if (context?.promises?.fetchFragment) {
+        return await context.promises.fetchFragment;
     }
     const { body, surface, fragmentPath, parsedLocale } = await getRequestInfos(context);
-    const merged = { ...context, surface, fragmentPath, parsedLocale, body };
+    const variationContext = { ...context, surface, fragmentPath, parsedLocale, body };
     if (!surface || !fragmentPath) {
         return { status: 400, message: 'Missing surface or fragmentPath' };
     }
-    return await getDefaultLanguageVariation(merged);
+    const result = await getDefaultLanguageVariation(variationContext);
+    if (result.status !== 200) {
+        return result;
+    }
+    const defaultLocale = variationContext.defaultLocale;
+    const regionLocale = computeRegionLocale({ ...variationContext, defaultLocale });
+    return { ...result, regionLocale };
 }
 
 function deepMerge(...objects) {
@@ -251,7 +256,8 @@ function customizeTree(root, referencesTree = [], customizeContext) {
 
 async function customize(context) {
     const { surface } = await getRequestInfos(context);
-    const { body, defaultLocale, status, message } = await resolveFragmentInit(context);
+    const fragmentInit = await resolveFragmentInit(context);
+    const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
     const promos = await context.promises?.promotions;
 
     if (status != 200) {
@@ -259,7 +265,7 @@ async function customize(context) {
     }
     const baseFragment = skimFragmentFromReferences(body);
     const { references, referencesTree } = body;
-    const regionLocale = context.regionLocale ?? computeRegionLocale({ ...context, defaultLocale, surface });
+    const regionLocale = context.regionLocale ?? regionLocaleFromInit;
     const isRegionLocale = regionLocale !== defaultLocale;
     const customizeContext = {
         ...context,

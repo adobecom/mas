@@ -123,14 +123,10 @@ export const styles = `
     margin-left: auto;
 }
 
-mas-fragment-variations sp-underlay:not([open]) + sp-dialog {
-    display: none;
-}
-
 mas-fragment-variations sp-underlay + sp-dialog {
     position: fixed;
     border-radius: 16px;
-    z-index: 1;
+    z-index: 1000;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);

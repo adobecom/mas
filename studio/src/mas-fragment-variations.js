@@ -147,7 +147,6 @@ class MasFragmentVariations extends LitElement {
 
     get duplicateDialogTemplate() {
         if (!this.duplicateSource) return nothing;
-        const sourceTags = this.getGroupedVariationTagsValue(this.duplicateSource);
         return html`
             <sp-underlay open @click=${() => this.closeDuplicateDialog()}></sp-underlay>
             <sp-dialog size="s" no-divider>
@@ -162,7 +161,7 @@ class MasFragmentVariations extends LitElement {
                             display-value
                             top="locale,pzn"
                             multiple
-                            value="${sourceTags}"
+                            .value=${this.duplicatePznTags}
                             ?disabled=${this.duplicateLoading}
                             @change=${this.handleDuplicatePznTagsChange}
                         ></aem-tag-picker-field>

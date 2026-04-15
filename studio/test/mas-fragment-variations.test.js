@@ -231,5 +231,21 @@ describe('MasFragmentVariations', () => {
             const dialog = el.querySelector('sp-dialog');
             expect(dialog).to.exist;
         });
+
+        it('passes reactive duplicatePznTags to tag picker on rerender', async () => {
+            const variation = createVariationFragment();
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            el.openDuplicateDialog(variation);
+            await el.updateComplete;
+
+            const newTags = ['mas:locale/en-US', 'mas:pzn/tag-c'];
+            el.handleDuplicatePznTagsChange({ target: { value: newTags } });
+            await el.updateComplete;
+
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker.value).to.deep.equal(newTags);
+        });
     });
 });

@@ -247,5 +247,22 @@ describe('MasFragmentVariations', () => {
             const picker = el.querySelector('aem-tag-picker-field');
             expect(picker.value).to.deep.equal(newTags);
         });
+
+        it('disables the tag picker while duplicateLoading is true', async () => {
+            const variation = createVariationFragment();
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            el.openDuplicateDialog(variation);
+            el.duplicateLoading = true;
+            await el.updateComplete;
+
+            const picker = el.querySelector('aem-tag-picker-field');
+            expect(picker.disabled).to.be.true;
+
+            el.duplicateLoading = false;
+            await el.updateComplete;
+            expect(picker.disabled).to.be.false;
+        });
     });
 });

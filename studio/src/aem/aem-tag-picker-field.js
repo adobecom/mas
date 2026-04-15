@@ -54,6 +54,8 @@ class AemTagPickerField extends LitElement {
         personalizationToggle: { type: Boolean, attribute: 'personalization-toggle' },
         /** Personalization switch state; when false, list is grayed out and disabled. */
         personalizationEnabled: { type: Boolean, attribute: 'personalization-enabled' },
+        /** When true, all interactive controls (trigger, search, checkboxes, reset/apply) are locked. */
+        disabled: { type: Boolean, reflect: true },
     };
 
     static styles = css`
@@ -190,6 +192,7 @@ class AemTagPickerField extends LitElement {
         this.displayValue = false;
         this.personalizationToggle = false;
         this.personalizationEnabled = false;
+        this.disabled = false;
     }
 
     async #getOfferProductArrangementCode(offerSelectorId, offer) {
@@ -732,7 +735,7 @@ class AemTagPickerField extends LitElement {
     }
 
     get #checkboxListDisabled() {
-        return this.personalizationToggle && !this.personalizationEnabled;
+        return this.disabled || (this.personalizationToggle && !this.personalizationEnabled);
     }
 
     #handlePersonalizationToggleChange(event) {
@@ -850,6 +853,7 @@ class AemTagPickerField extends LitElement {
                               name="tag-picker-search"
                               @input=${this.#handleSearchInput}
                               placeholder="Search"
+                              ?disabled=${this.disabled}
                           ></sp-search>
                       `
                     : nothing}
@@ -904,7 +908,12 @@ class AemTagPickerField extends LitElement {
         const selectCount = !this.isCheckboxTagsMode && currentValues.length > 0 ? html`(${currentValues.length})` : '';
         const trigger = html`
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
-                <sp-action-button slot="trigger" ?quiet=${!this.isCheckboxTagsMode} aria-label=${this.triggerLabel}>
+                <sp-action-button
+                    slot="trigger"
+                    ?quiet=${!this.isCheckboxTagsMode}
+                    aria-label=${this.triggerLabel}
+                    ?disabled=${this.disabled}
+                >
                     ${this.isCheckboxTagsMode ? nothing : html`${this.triggerLabel} ${selectCount}`}
                     ${this.isCheckboxTagsMode
                         ? html`<sp-icon-add size="m" slot="icon"></sp-icon-add>`
@@ -954,7 +963,7 @@ class AemTagPickerField extends LitElement {
             <sp-tags>
                 ${this.tags}
                 <overlay-trigger placement="bottom">
-                    <sp-action-button slot="trigger" aria-label=${this.triggerLabel}>
+                    <sp-action-button slot="trigger" aria-label=${this.triggerLabel} ?disabled=${this.disabled}>
                         <sp-icon-add size="m" slot="icon"></sp-icon-add>
                     </sp-action-button>
                     <sp-popover slot="click-content">

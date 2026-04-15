@@ -1,6 +1,7 @@
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_PROMOTION_PREFIX } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
+import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 
 /**
  * @param {string} input
@@ -111,7 +112,20 @@ export function debounce(fn, delay) {
     };
 }
 
+/**
+ * Shared UUID pattern used for fragment-id searches.
+ */
+export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export class UserFriendlyError extends Error {}
+
+/**
+ * @param {string} value
+ * @returns {boolean}
+ */
+export function isUUID(value) {
+    return UUID_REGEX.test(value);
+}
 
 /**
  * Deeply compares two values for equality
@@ -229,9 +243,103 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
 
     const code = `<${webComponentName}><aem-fragment fragment="${fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
     const authorPath = `${webComponentName}: ${fragmentParts}`;
-    const href = `https://mas.adobe.com/studio.html#content-type=${webComponentName}&page=${page}&path=${path}&query=${fragment?.id}`;
+    const href = buildStudioFragmentHref({
+        webComponentName,
+        fragmentId: fragment?.id,
+        page,
+        path,
+    });
     const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
     return { authorPath, code, richText, href };
+}
+
+function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
+    const params = new URLSearchParams();
+    params.set('content-type', webComponentName);
+    if (page) params.set('page', page);
+    if (path) params.set('path', path);
+    if (fragmentId) params.set('query', fragmentId);
+    if (fieldName) params.set('field', fieldName);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
+/**
+ * Generates a rich link for a single fragment field.
+ * Used by the "Copy Field" sidebar button to produce a clipboard entry
+ * that pastes as a clickable "alias → fieldName" link in SharePoint.
+ * @param {object} fragment - The AEM content fragment
+ * @param {string} path - The current surface path (e.g. "/acom")
+ * @param {string} page - The current Studio page (e.g. "content")
+ * @param {string} fieldName - The field to link to (e.g. "prices", "description")
+ * @returns {{ displayText: string, href: string, richText: string } | null}
+ */
+export function generateFieldLink(fragment, path, page, fieldName) {
+    const resolvedFieldName = fieldName ?? page;
+    const resolvedPage = fieldName ? page : 'content';
+    const { fragmentParts } = getFragmentPartsToUse(fragment, path);
+    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    if (!webComponentName) return null;
+    const displayText = `mas-field: ${fragmentParts} → ${resolvedFieldName}`;
+    const href = buildStudioFragmentHref({
+        webComponentName,
+        fragmentId: fragment?.id,
+        page: resolvedPage,
+        path,
+        fieldName: resolvedFieldName,
+    });
+    const richText = `<a href="${href}" target="_blank">${displayText}</a>`;
+    return { displayText, href, richText };
+}
+
+export function generateJsonLdLink(fragment, path, page) {
+    const { fragmentParts } = getFragmentPartsToUse(fragment, path);
+    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    if (!webComponentName) return null;
+    const displayText = `mas-field: ${fragmentParts} → jsonLdSchema`;
+    const baseHref = buildStudioFragmentHref({
+        webComponentName,
+        fragmentId: fragment?.id,
+        page: page ?? 'content',
+        path,
+    });
+    const href = `${baseHref}&jsonld=on`;
+    const richText = `<a href="${href}" target="_blank">${displayText}</a>`;
+    return { displayText, href, richText };
+}
+
+// --- Copy Field display helpers ---
+
+/**
+ * Converts a camelCase field name to Title Case.
+ * e.g. "cardTitle" → "Card Title", "borderColor" → "Border Color"
+ * @param {string} name
+ * @returns {string}
+ */
+export function camelToTitle(name) {
+    return name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+}
+
+/**
+ * Strips HTML tags from a string, returning the text content.
+ * @param {string} value
+ * @returns {string}
+ */
+export function stripHtml(value) {
+    return new DOMParser().parseFromString(value, 'text/html').body.textContent || '';
+}
+
+/**
+ * Returns a preview of the first value in an array.
+ * HTML is stripped except {@html <s>} tags (strikethrough prices).
+ * @param {any[]} values
+ * @returns {string}
+ */
+export function previewValue(values) {
+    const raw = values?.[0] ?? '';
+    if (!raw) return '';
+    if (typeof raw !== 'string' || !raw.includes('<')) return String(raw);
+    // Strip all HTML except <s> tags used for strikethrough prices.
+    return raw.replace(/<(?!\/?s\b)[^>]+>/g, '');
 }
 
 /*
@@ -247,6 +355,18 @@ export function showToast(message, variant = 'info') {
 }
 
 /**
+ * Extracts the surface from a fragment path
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @returns {string | null} - The surface (e.g., 'acom') or null if not found
+ */
+export function extractSurfaceFromPath(fragmentPath) {
+    if (!fragmentPath) return null;
+    const match = fragmentPath.match(PATH_TOKENS);
+    return match?.groups?.surface ?? null;
+}
+
+/**
  * Extracts the locale code from a fragment path
  * Path format: /content/dam/mas/{surface}/{locale}/{fragment-name}
  * @param {string} fragmentPath - The full AEM fragment path
@@ -254,7 +374,26 @@ export function showToast(message, variant = 'info') {
  */
 export function extractLocaleFromPath(fragmentPath) {
     if (!fragmentPath) return null;
-    const parts = fragmentPath.split('/');
-    const localePattern = /^[a-z]{2}_[A-Z]{2,}$/;
-    return parts.find((part) => localePattern.test(part)) || null;
+    const match = fragmentPath.match(PATH_TOKENS);
+    return match?.groups?.parsedLocale ?? null;
+}
+
+/**
+ * Builds a fragment path with the locale segment replaced (e.g. for fil_PH check).
+ * Uses PATH_TOKENS from paths.js so the path shape is the single source of truth.
+ * Path format: /content/dam/mas/{surface}/{locale}/{fragment-path}
+ * @param {string} fragmentPath - The full AEM fragment path
+ * @param {string} newLocale - The new locale code (e.g. 'fil_PH')
+ * @returns {string | null} - The path with locale replaced, or null if path does not match PATH_TOKENS
+ */
+export function replaceLocaleInPath(fragmentPath, newLocale) {
+    if (!fragmentPath || !newLocale) return null;
+    const match = fragmentPath.match(PATH_TOKENS);
+    if (!match?.groups) return null;
+    const { surface, fragmentPath: fragmentPathSuffix } = match.groups;
+    return `${MAS_ROOT}/${surface}/${newLocale}/${fragmentPathSuffix}`;
+}
+
+export function deepEquals(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
 }

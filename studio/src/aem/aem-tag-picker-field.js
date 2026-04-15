@@ -2,12 +2,14 @@ import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
 import { EVENT_OST_OFFER_SELECT } from '../constants.js';
+import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
 
 const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
 const namespaces = {};
 const SELECTION_CHECKBOX = 'checkbox';
+const SELECTION_CHECKBOX_TAGS = 'checkbox-tags';
 
 /**
  * Converts from attribute (tag format) to property (path format).
@@ -32,9 +34,11 @@ export function fromAttribute(value) {
  * e.g. "/content/cq:tags/mas/product/photoshop" --> "mas:product/photoshop"
  */
 export function toAttribute(value) {
-    if (!value || value.length === 0) return '';
-    return value
+    const tags = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+    if (tags.length === 0) return '';
+    return tags
         .map((path) => {
+            if (AEM_TAG_PATTERN.test(path)) return path;
             const match = path.match(/\/content\/cq:tags\/([^/]+)\/(.+)$/);
             return match ? `${match[1]}:${match[2]}` : '';
         })
@@ -47,7 +51,7 @@ class AemTagPickerField extends LitElement {
         baseUrl: { type: String, attribute: 'base-url' },
         label: { type: String },
         bucket: { type: String },
-        // Controls whether popover is open in 'checkbox' mode
+        // Controls whether popover is open in checkbox-like modes
         open: { type: Boolean, state: true },
         // The actual selected tag paths (e.g., ["/content/cq:tags/namespace/top/foo"])
         value: {
@@ -61,14 +65,28 @@ class AemTagPickerField extends LitElement {
         hierarchicalTags: { type: Object, state: true },
         selected: { type: String },
         ready: { type: Boolean, state: true },
-        selection: { type: String }, // 'checkbox' | default-hierarchy
+        selection: { type: String }, // 'checkbox' | 'checkbox-tags' | default-hierarchy
         flatTags: { type: Array, state: true },
+        // When true, display tag value/name instead of tag label/title
+        displayValue: { type: Boolean, attribute: 'display-value' },
 
         // Temporary selections in 'checkbox' mode (before Apply)
         tempValue: { type: Array, state: true },
 
         searchQuery: { type: String, state: true },
         parentTags: { type: Array, attribute: false },
+        /**
+         * Optional function to provide custom icons for tags.
+         * Receives the tag path and should return an icon (e.g., country flag emoji) or nothing.
+         * @type {(path: string) => string | typeof nothing}
+         */
+        iconProvider: { type: Function, attribute: false },
+        /** When true, renders tags in readonly mode without picker controls */
+        readonly: { type: Boolean },
+        /** Personalization-only mode: show a top switch instead of search. */
+        personalizationToggle: { type: Boolean, attribute: 'personalization-toggle' },
+        /** Personalization switch state; when false, list is grayed out and disabled. */
+        personalizationEnabled: { type: Boolean, attribute: 'personalization-enabled' },
     };
 
     static styles = css`
@@ -76,6 +94,7 @@ class AemTagPickerField extends LitElement {
             display: flex;
             align-items: center;
             flex-direction: column;
+            min-height: 40px;
         }
 
         :host([selection='checkbox']) {
@@ -124,6 +143,10 @@ class AemTagPickerField extends LitElement {
             flex-direction: row-reverse;
         }
 
+        sp-action-button[slot='trigger'] {
+            --mod-actionbutton-border-radius: 16px;
+        }
+
         sp-popover.checkbox-popover {
             min-width: 248px;
             border-radius: 10px;
@@ -152,6 +175,30 @@ class AemTagPickerField extends LitElement {
             --mod-tag-background-color: var(--spectrum-blue-100);
             border-width: 2px;
         }
+
+        .no-tags {
+            color: var(--spectrum-gray-600);
+            font-style: italic;
+        }
+
+        .toggle-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spectrum-spacing-100);
+            padding-block-end: var(--spectrum-spacing-100);
+            padding-inline-start: 4px;
+        }
+
+        .toggle-divider {
+            height: 1px;
+            background-color: var(--spectrum-gray-300);
+            margin-block-end: var(--spectrum-spacing-100);
+        }
+
+        .checkbox-list--disabled {
+            opacity: 0.45;
+            pointer-events: none;
+        }
     `;
 
     #aem;
@@ -168,9 +215,14 @@ class AemTagPickerField extends LitElement {
         this.tempValue = [];
         this.#aem = null;
         this.ready = false;
-        this.selection = ''; // e.g., 'checkbox' | ''
+        this.selection = ''; // e.g., 'checkbox' | 'checkbox-tags' | ''
         this.searchQuery = '';
         this.parentTags = [];
+        this.iconProvider = null;
+        this.readonly = false;
+        this.displayValue = false;
+        this.personalizationToggle = false;
+        this.personalizationEnabled = false;
     }
 
     #onOstSelect = ({ detail: { offer } }) => {
@@ -193,7 +245,7 @@ class AemTagPickerField extends LitElement {
 
         const categoriesToUpdate = new Set(['offer_type', 'plan_type', 'customer_segment', 'market_segments', 'product_code']);
 
-        const existingTags = this.value.filter((tagPath) => {
+        const existingTags = this.#asValueArray().filter((tagPath) => {
             for (const category of categoriesToUpdate) {
                 if (tagPath.includes(`/content/cq:tags/mas/${category}/`)) {
                     return false; // Exclude this tagPath if it contains any of the categories
@@ -216,22 +268,39 @@ class AemTagPickerField extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.multiple = this.multiple ?? this.selection === SELECTION_CHECKBOX;
+        this.multiple = this.multiple || [SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection);
         this.#aem = new AEM(this.bucket, this.baseUrl);
         this.loadTags();
         if (!this.top) {
             document.addEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
         }
+        this.addEventListener('keydown', this.#stopEscapePropagation);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
+        this.removeEventListener('keydown', this.#stopEscapePropagation);
     }
 
-    get #tagsRoot() {
-        if (this.top) return `${this.namespace}/${this.top}/`;
-        return `${this.namespace}/`;
+    #stopEscapePropagation = (event) => {
+        if (event.key === 'Escape') {
+            event.stopPropagation();
+        }
+    };
+
+    get #tagRoots() {
+        const base = this.namespace.endsWith('/') ? this.namespace : `${this.namespace}/`;
+        if (!this.top) return [base];
+        return this.top
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .map((segment) => `${this.namespace}/${segment}/`);
+    }
+
+    #rootForPath(path) {
+        return this.#tagRoots.find((root) => path.startsWith(root)) || '';
     }
 
     // Returns the cached data for this namespace (if loaded)
@@ -244,7 +313,7 @@ class AemTagPickerField extends LitElement {
     }
 
     get selectedTags() {
-        return this.value.map((path) => this.#data.get(path));
+        return this.#asValueArray().map((path) => this.#data.get(path));
     }
 
     clear() {
@@ -284,13 +353,21 @@ class AemTagPickerField extends LitElement {
             await this.#data;
         }
 
-        const allTags = [...this.#data.values()].filter((tag) => tag.path.startsWith(this.#tagsRoot));
+        let allTags = [...this.#data.values()].filter((tag) => this.#tagRoots.some((root) => tag.path.startsWith(root)));
+        if (this.top === 'pzn') {
+            allTags = allTags.filter((tag) => !isPznCountryTagPath(tag.path));
+        }
 
-        if (this.selection === SELECTION_CHECKBOX) {
-            this.flatTags = allTags
-                .filter((tag) => tag.title)
+        if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
+            let tagsForCheckboxList = allTags.filter((tag) => this.#getTagTextByMode(tag));
+
+            if (this.isCheckboxTagsMode) {
+                tagsForCheckboxList = this.#filterOutParentsWithChildren(tagsForCheckboxList);
+            }
+
+            this.flatTags = tagsForCheckboxList
                 .sort((a, b) =>
-                    a.title.localeCompare(b.title, undefined, {
+                    this.#getTagTextByMode(a).localeCompare(this.#getTagTextByMode(b), undefined, {
                         sensitivity: 'base',
                     }),
                 )
@@ -304,11 +381,32 @@ class AemTagPickerField extends LitElement {
         this.ready = true;
     }
 
+    #filterOutParentsWithChildren(tags) {
+        const paths = new Set(tags.map((tag) => tag.path));
+        const parentPaths = new Set();
+
+        for (const path of paths) {
+            const root = this.#rootForPath(path);
+            if (!root) continue;
+            let slashIndex = path.lastIndexOf('/');
+            while (slashIndex > 0) {
+                const parentPath = path.slice(0, slashIndex);
+                if (!parentPath.startsWith(root) || parentPath.length < root.length) break;
+                if (paths.has(parentPath)) parentPaths.add(parentPath);
+                slashIndex = parentPath.lastIndexOf('/');
+            }
+        }
+
+        return tags.filter((tag) => !parentPaths.has(tag.path));
+    }
+
     buildHierarchy(tags) {
         const root = new Map();
         tags.forEach((tag) => {
-            const path = tag.path.replace(this.#tagsRoot, '');
-            const parts = path.split('/');
+            const prefix = this.#rootForPath(tag.path);
+            if (!prefix) return;
+            const path = tag.path.slice(prefix.length);
+            const parts = path.split('/').filter(Boolean);
             let currentLevel = root;
 
             parts.forEach((part, index) => {
@@ -327,20 +425,24 @@ class AemTagPickerField extends LitElement {
     // For hierarchical or single-click modes
     async toggleTag(path) {
         await this.#data; // ensure data is loaded first
-        const currentValue = [...(this.value || [])];
-        const index = currentValue.indexOf(path);
+        let currentValue = [...this.#asValueArray()];
+        const storedPath = this.#toStoredValue(path);
+        const equivalentPath = this.#toPath(path);
+        const equivalentValues = new Set([storedPath, equivalentPath].filter(Boolean));
+        const isMultiSelection = this.multiple || this.isCheckboxTagsMode;
 
-        if (!this.multiple) {
+        if (!isMultiSelection) {
             // single select
-            this.value = [path];
+            this.value = [storedPath];
             await this.#notifyChange();
             return;
         }
         // multi select
-        if (index === -1) {
-            currentValue.push(path);
+        const hasEquivalent = currentValue.some((value) => equivalentValues.has(value));
+        if (!hasEquivalent) {
+            currentValue.push(storedPath);
         } else {
-            currentValue.splice(index, 1);
+            currentValue = currentValue.filter((value) => !equivalentValues.has(value));
         }
         this.value = currentValue;
         await this.#notifyChange();
@@ -359,10 +461,71 @@ class AemTagPickerField extends LitElement {
         this.toggleTag(pathToDelete);
     }
 
-    // Convert a path to a tag's friendly title
-    #resolveTagTitle(path) {
+    #toPath(tagOrPath) {
+        if (!tagOrPath) return '';
+        if (tagOrPath.startsWith('/content/cq:tags/')) return tagOrPath;
+        return fromAttribute(tagOrPath)?.[0] || '';
+    }
+
+    #toTagId(pathOrTag) {
+        if (!pathOrTag) return '';
+        if (AEM_TAG_PATTERN.test(pathOrTag)) return pathOrTag;
+        return toAttribute([pathOrTag]);
+    }
+
+    #toStoredValue(path) {
+        return this.isCheckboxTagsMode ? this.#toTagId(path) : path;
+    }
+
+    #asValueArray(values = this.value) {
+        if (Array.isArray(values)) return values;
+        if (typeof values === 'string') {
+            return values
+                .split(',')
+                .map((entry) => entry.trim())
+                .filter(Boolean);
+        }
+        return [];
+    }
+
+    #selectedPaths(values = this.value) {
+        return this.#asValueArray(values)
+            .map((entry) => this.#toPath(entry))
+            .filter(Boolean);
+    }
+
+    #getTagTextByMode(tag) {
+        if (!tag) return '';
+        if (this.displayValue) return tag.name || tag.title || '';
+        return tag.title || tag.name || '';
+    }
+
+    // Convert a path to a tag's display text based on mode
+    #resolveTagText(path, fallback = '') {
         const tag = this.#data.get(path);
-        return tag ? tag.title : '';
+        if (tag) return this.#getTagTextByMode(tag);
+        if (fallback) return fallback;
+        return path?.split('/').pop() || '';
+    }
+
+    /**
+     * Returns the icon for a sidenav item.
+     * Uses iconProvider if available for leaf nodes, otherwise returns default icons.
+     * @param {string} path - The tag path
+     * @param {boolean} hasChildren - Whether the item has children
+     * @returns {TemplateResult}
+     */
+    #getSidenavIcon(path, hasChildren) {
+        if (hasChildren) {
+            return html`<sp-icon-add slot="icon"></sp-icon-add>`;
+        }
+        if (this.iconProvider) {
+            const icon = this.iconProvider(path);
+            if (icon) {
+                return html`<span slot="icon">${icon}</span>`;
+            }
+        }
+        return html`<sp-icon-label slot="icon"></sp-icon-label>`;
     }
 
     // Recursively render <sp-sidenav-item> for hierarchical tags
@@ -370,22 +533,36 @@ class AemTagPickerField extends LitElement {
         return [...node.entries()].map(([key, item]) => {
             const hasChildren = item.__children__.size > 0;
             const info = item.__info__;
-            const label = info ? this.#resolveTagTitle(info.path) : key;
+            const label = info ? this.#resolveTagText(info.path, key) : key;
             const value = info ? info.path : `${parentPath}/${key}`;
             return html`
                 <sp-sidenav-item label="${label}" value="${value}">
                     ${hasChildren ? this.renderSidenavItems(item.__children__, value) : nothing}
-                    ${hasChildren
-                        ? html`<sp-icon-add slot="icon"></sp-icon-add>`
-                        : html`<sp-icon-label slot="icon"></sp-icon-label>`}
+                    ${this.#getSidenavIcon(value, hasChildren)}
                 </sp-sidenav-item>
             `;
         });
     }
 
-    // In hierarchical mode, only keep tags that start under #tagsRoot
+    // In hierarchical mode, only keep tags that start under a configured root
     get tagsInHierarchy() {
-        return this.value.filter((path) => path.startsWith(this.#tagsRoot));
+        return this.#selectedPaths().filter((path) => this.#tagRoots.some((root) => path.startsWith(root)));
+    }
+
+    /**
+     * Returns the icon for a tag path.
+     * Uses iconProvider if available, otherwise returns the default icon.
+     * @param {string} path - The tag path
+     * @returns {TemplateResult}
+     */
+    #getTagIcon(path) {
+        if (this.iconProvider) {
+            const icon = this.iconProvider(path);
+            if (icon) {
+                return html`<span slot="icon">${icon}</span>`;
+            }
+        }
+        return html`<sp-icon-label slot="icon"></sp-icon-label>`;
     }
 
     // Renders the chosen tags for hierarchical or checkbox mode
@@ -403,10 +580,10 @@ class AemTagPickerField extends LitElement {
             (path) => path,
             (path) => {
                 const fieldState = getItemFieldState(path, parentTagPaths);
+                const title = this.#resolveTagText(path);
                 return html`
                     <sp-tag deletable @delete=${this.#deleteTag} data-path=${path} data-field-state="${fieldState}">
-                        ${this.#resolveTagTitle(path)}
-                        <sp-icon-label slot="icon"></sp-icon-label>
+                        ${title} ${this.#getTagIcon(path)}
                     </sp-tag>
                 `;
             },
@@ -416,7 +593,8 @@ class AemTagPickerField extends LitElement {
     // Keep the internal state & notify on changes
     updated(changedProperties) {
         if (changedProperties.has('value')) {
-            this.tempValue = [...this.value];
+            const currentValue = this.#asValueArray();
+            this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths(currentValue) : [...currentValue];
         }
         this.#updateMargin();
     }
@@ -457,15 +635,55 @@ class AemTagPickerField extends LitElement {
         return this.multiple ? 'Select tags' : 'Select a tag';
     }
 
-    #handleCheckboxToggle(event) {
+    get isCheckboxTagsMode() {
+        return this.selection === SELECTION_CHECKBOX_TAGS;
+    }
+
+    get #checkboxListDisabled() {
+        return this.personalizationToggle && !this.personalizationEnabled;
+    }
+
+    #handlePersonalizationToggleChange(event) {
         event.stopPropagation();
-        const checkboxes = this.shadowRoot.querySelectorAll('sp-checkbox');
-        this.tempValue = [...checkboxes]
-            .filter((checkbox) => checkbox.checked)
-            .map((checkbox) => checkbox.getAttribute('value'));
+        const checked = event.target.checked;
+        this.personalizationEnabled = checked;
+        if (!checked) {
+            this.tempValue = [];
+            this.value = [];
+            void this.#notifyChange();
+        }
+        this.dispatchEvent(
+            new CustomEvent('personalization-toggle-change', {
+                bubbles: true,
+                composed: true,
+                detail: { enabled: checked },
+            }),
+        );
+    }
+
+    async #handleCheckboxToggle(event) {
+        event.stopPropagation();
+        if (this.#checkboxListDisabled) return;
+        const checkbox = event.composedPath?.()[0] || event.target;
+        const path = checkbox?.value || checkbox?.getAttribute?.('value');
+        if (!path) return;
+
+        const currentValue = [...(this.tempValue || [])];
+        const index = currentValue.indexOf(path);
+        if (checkbox.checked && index === -1) {
+            currentValue.push(path);
+        } else if (!checkbox.checked && index !== -1) {
+            currentValue.splice(index, 1);
+        }
+        this.tempValue = currentValue;
+        if (this.personalizationToggle) {
+            this.value = [...this.tempValue];
+            void this.#notifyChange();
+        }
     }
 
     resetSelection() {
+        if (this.#checkboxListDisabled) return;
         this.tempValue = [];
         this.shadowRoot.querySelectorAll('sp-checkbox').forEach((checkbox) => {
             checkbox.checked = this.tempValue.includes(checkbox.value);
@@ -473,52 +691,111 @@ class AemTagPickerField extends LitElement {
     }
 
     async applySelection() {
+        if (this.#checkboxListDisabled) return;
         this.value = [...this.tempValue];
         this.tempValue = [];
         this.overlayTrigger.open = false;
         this.#notifyChange();
     }
 
+    #hasSameSelections(a, b) {
+        if (a.length !== b.length) return false;
+        const bSet = new Set(b);
+        return a.every((value) => bSet.has(value));
+    }
+
     #handleCheckoxMenuClose() {
-        this.tempValue = [...this.value];
+        if (this.isCheckboxTagsMode) {
+            const nextValue = this.tempValue.map((path) => this.#toStoredValue(path)).filter(Boolean);
+            const currentValue = [...this.#asValueArray()];
+            const changed = !this.#hasSameSelections(nextValue, currentValue);
+            this.value = nextValue;
+            if (changed) this.#notifyChange();
+            return;
+        }
+        this.tempValue = [...this.#asValueArray()];
+    }
+
+    #handleSearchInput(event) {
+        const eventTarget = event.composedPath?.()[0] || event.target;
+        this.searchQuery = eventTarget?.value || '';
     }
 
     get checkboxMenu() {
         if (!this.ready) return nothing;
 
+        const showSearch = !this.personalizationToggle && this.flatTags.length > 7;
         let filteredTags = this.flatTags;
-        if (this.flatTags.length > 7) {
+        if (showSearch) {
             filteredTags = this.flatTags.filter((path) =>
-                this.#resolveTagTitle(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
+                this.#resolveTagText(path).toLowerCase().includes(this.searchQuery.toLowerCase()),
             );
         }
 
+        const listDisabled = this.#checkboxListDisabled;
+        const toggleHeader = this.personalizationToggle
+            ? html`
+                  <div class="toggle-header">
+                      <sp-switch
+                          id="aem-tag-picker-toggle"
+                          size="m"
+                          .checked=${this.personalizationEnabled}
+                          @change=${this.#handlePersonalizationToggleChange}
+                      >
+                          ${this.label}
+                      </sp-switch>
+                  </div>
+                  <div class="toggle-divider" role="separator"></div>
+              `
+            : nothing;
+
         return html`
             <div id="content">
-                ${this.flatTags.length > 7
-                    ? html` <sp-search @input=${(e) => (this.searchQuery = e.target.value)} placeholder="Search"></sp-search> `
+                ${toggleHeader}
+                ${showSearch
+                    ? html`
+                          <sp-search
+                              name="tag-picker-search"
+                              @input=${this.#handleSearchInput}
+                              placeholder="Search"
+                          ></sp-search>
+                      `
                     : nothing}
-                <div class="checkbox-list">
+                <div class="checkbox-list ${listDisabled ? 'checkbox-list--disabled' : ''}">
                     ${repeat(
                         filteredTags,
                         (path) => path, // Unique key for each item
                         (path) => {
                             const checked = this.tempValue.includes(path);
+                            const icon = this.iconProvider ? this.iconProvider(path) : null;
                             return html`
-                                <sp-checkbox value="${path}" ?checked=${checked} @change=${this.#handleCheckboxToggle}>
-                                    ${this.#resolveTagTitle(path)}
+                                <sp-checkbox
+                                    value="${path}"
+                                    ?checked=${checked}
+                                    ?disabled=${listDisabled}
+                                    @change=${this.#handleCheckboxToggle}
+                                >
+                                    ${icon ? html`${icon} ` : nothing}${this.#resolveTagText(path)}
                                 </sp-checkbox>
                             `;
                         },
                     )}
                 </div>
-                <div id="footer">
-                    <span> ${this.selectedText} </span>
-                    <sp-button size="s" @click=${this.resetSelection} variant="secondary" treatment="outline">
-                        Reset
-                    </sp-button>
-                    <sp-button size="s" @click=${this.applySelection}> Apply </sp-button>
-                </div>
+                ${this.isCheckboxTagsMode || this.personalizationToggle
+                    ? nothing
+                    : html`<div id="footer">
+                          <span> ${this.selectedText} </span>
+                          <sp-button
+                              size="s"
+                              @click=${this.resetSelection}
+                              variant="secondary"
+                              treatment="outline"
+                              ?disabled=${listDisabled}
+                          >
+                              Reset
+                          </sp-button>
+                          <sp-button size="s" @click=${this.applySelection} ?disabled=${listDisabled}> Apply </sp-button>
+                      </div>`}
             </div>
         `;
     }
@@ -526,33 +803,67 @@ class AemTagPickerField extends LitElement {
     /**
      * - Clicking the action button toggles the popover.
      * - The list of sp-checkbox is scrollable if too large.
-     * - The footer shows # selected, plus Reset/Apply.
+     * - In 'checkbox' mode, the footer shows # selected, plus Reset/Apply.
+     * - In 'checkbox-tags' mode, selections apply when the popover closes and footer is hidden.
+     * - With personalization-toggle, no footer; each checkbox change updates value immediately.
      */
     get checkboxMode() {
-        const selectCount = this.value.length > 0 ? html`(${this.value.length})` : '';
-        return html`
+        const currentValues = this.#asValueArray();
+        const selectCount = !this.isCheckboxTagsMode && currentValues.length > 0 ? html`(${currentValues.length})` : '';
+        const trigger = html`
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
-                <sp-action-button slot="trigger" quiet>
-                    ${this.triggerLabel} ${selectCount}
-                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                <sp-action-button slot="trigger" ?quiet=${!this.isCheckboxTagsMode} aria-label=${this.triggerLabel}>
+                    ${this.isCheckboxTagsMode ? nothing : html`${this.triggerLabel} ${selectCount}`}
+                    ${this.isCheckboxTagsMode
+                        ? html`<sp-icon-add size="m" slot="icon"></sp-icon-add>`
+                        : html`<sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>`}
                 </sp-action-button>
 
                 <sp-popover slot="click-content" class="checkbox-popover"> ${this.checkboxMenu} </sp-popover>
             </overlay-trigger>
         `;
+
+        if (this.isCheckboxTagsMode) {
+            return html` <sp-tags> ${this.tags} ${trigger} </sp-tags> `;
+        }
+
+        return html` ${trigger} `;
+    }
+
+    get readonlyTags() {
+        if (!this.ready) return nothing;
+        if (this.tagsInHierarchy.length === 0) {
+            return html`<span class="no-tags">No tags</span>`;
+        }
+        return html`
+            <sp-tags>
+                ${repeat(
+                    this.tagsInHierarchy,
+                    (path) => path,
+                    (path) => {
+                        const icon = this.iconProvider ? this.iconProvider(path) : nothing;
+                        const title = this.#resolveTagText(path);
+                        return html`<sp-tag readonly>${icon} ${title}</sp-tag>`;
+                    },
+                )}
+            </sp-tags>
+        `;
     }
 
     render() {
-        if (this.selection === 'checkbox') {
+        if (this.readonly) {
+            return this.readonlyTags;
+        }
+        if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
             return this.checkboxMode;
         }
         if (!this.ready) return nothing;
         return html`
             <sp-tags>
+                ${this.tags}
                 <overlay-trigger placement="bottom">
-                    <sp-action-button slot="trigger">
-                        ${this.triggerLabel}
-                        <sp-icon-add slot="icon"></sp-icon-add>
+                    <sp-action-button slot="trigger" aria-label=${this.triggerLabel}>
+                        <sp-icon-add size="m" slot="icon"></sp-icon-add>
                     </sp-action-button>
                     <sp-popover slot="click-content">
                         <sp-dialog size="s" no-divider>
@@ -562,7 +873,6 @@ class AemTagPickerField extends LitElement {
                         </sp-dialog>
                     </sp-popover>
                 </overlay-trigger>
-                ${this.tags}
             </sp-tags>
         `;
     }

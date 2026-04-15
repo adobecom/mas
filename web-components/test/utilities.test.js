@@ -1,4 +1,4 @@
-import { selectOffers } from '../src/utilities.js';
+import { selectOffers, sumOffers } from '../src/utilities.js';
 
 import { expect } from './utilities.js';
 
@@ -90,5 +90,208 @@ describe('function "selectWcsOffers"', () => {
             { country: 'GB' },
         );
         expect(offers[0].offerId).to.equal('3'); // second best match - MULT, without term
+    });
+});
+
+describe('function "sumOffers"', () => {
+    it('returns null for empty array', () => {
+        expect(sumOffers([])).to.be.null;
+        expect(sumOffers(null)).to.be.null;
+        expect(sumOffers(undefined)).to.be.null;
+    });
+
+    it('returns single offer unchanged', () => {
+        const offer = {
+            offerId: '1',
+            priceDetails: { price: 10.99 },
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+        };
+        const result = sumOffers([offer]);
+        expect(result).to.equal(offer);
+    });
+
+    it('sums prices from multiple offers', () => {
+        const offers = [
+            {
+                offerId: '1',
+                offerSelectorIds: ['osi1'],
+                priceDetails: {
+                    price: 19.99,
+                    priceWithoutTax: 19.99,
+                    formatString: "'US$'#,##0.00",
+                    usePrecision: true,
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            },
+            {
+                offerId: '2',
+                offerSelectorIds: ['osi2'],
+                priceDetails: {
+                    price: 24.99,
+                    priceWithoutTax: 24.99,
+                    formatString: "'US$'#,##0.00",
+                    usePrecision: true,
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            },
+        ];
+        const result = sumOffers(offers);
+        expect(result.priceDetails.price).to.equal(44.98);
+        expect(result.priceDetails.priceWithoutTax).to.equal(44.98);
+        expect(result.offerSelectorIds).to.deep.equal(['osi1', 'osi2']);
+        expect(result.commitment).to.equal('YEAR');
+        expect(result.term).to.equal('MONTHLY');
+    });
+
+    it('sums priceWithoutDiscount when present', () => {
+        const offers = [
+            {
+                offerId: '1',
+                offerSelectorIds: ['osi1'],
+                priceDetails: {
+                    price: 15.99,
+                    priceWithoutDiscount: 19.99,
+                    formatString: "'US$'#,##0.00",
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            },
+            {
+                offerId: '2',
+                offerSelectorIds: ['osi2'],
+                priceDetails: {
+                    price: 20.99,
+                    priceWithoutDiscount: 24.99,
+                    formatString: "'US$'#,##0.00",
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            },
+        ];
+        const result = sumOffers(offers);
+        expect(result.priceDetails.price).to.equal(36.98);
+        expect(result.priceDetails.priceWithoutDiscount).to.equal(44.98);
+    });
+
+    it('uses first offer metadata for combined offer', () => {
+        const offers = [
+            {
+                offerId: '1',
+                offerSelectorIds: ['osi1'],
+                priceDetails: {
+                    price: 10.0,
+                    formatString: "'US$'#,##0.00",
+                    taxDisplay: 'TAX_EXCLUSIVE',
+                    taxTerm: 'TAX',
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                customerSegment: 'INDIVIDUAL',
+            },
+            {
+                offerId: '2',
+                offerSelectorIds: ['osi2'],
+                priceDetails: {
+                    price: 20.0,
+                    formatString: "'US$'#,##0.00",
+                    taxDisplay: 'TAX_EXCLUSIVE',
+                    taxTerm: 'TAX',
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                customerSegment: 'TEAM',
+            },
+        ];
+        const result = sumOffers(offers);
+        expect(result.customerSegment).to.equal('INDIVIDUAL');
+        expect(result.priceDetails.formatString).to.equal("'US$'#,##0.00");
+    });
+
+    it('rounds summed prices to 2 decimal places', () => {
+        const offers = [
+            {
+                offerId: '1',
+                offerSelectorIds: ['osi1'],
+                priceDetails: { price: 10.333 },
+            },
+            {
+                offerId: '2',
+                offerSelectorIds: ['osi2'],
+                priceDetails: { price: 20.666 },
+            },
+        ];
+        const result = sumOffers(offers);
+        expect(result.priceDetails.price).to.equal(31.0);
+    });
+
+    it('sums annualized prices when present', () => {
+        const offers = [
+            {
+                offerId: '1',
+                offerSelectorIds: ['osi1'],
+                priceDetails: {
+                    price: 31.99,
+                    priceWithoutTax: 29.08,
+                    annualized: {
+                        annualizedPrice: 383.88,
+                        annualizedPriceWithoutTax: 348.96,
+                    },
+                    formatString: "'A$'#,##0.00",
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            },
+            {
+                offerId: '2',
+                offerSelectorIds: ['osi2'],
+                priceDetails: {
+                    price: 39.99,
+                    priceWithoutTax: 36.35,
+                    annualized: {
+                        annualizedPrice: 479.88,
+                        annualizedPriceWithoutTax: 436.2,
+                    },
+                    formatString: "'A$'#,##0.00",
+                },
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+            },
+        ];
+        const result = sumOffers(offers);
+        expect(result.priceDetails.price).to.equal(71.98);
+        expect(result.priceDetails.priceWithoutTax).to.equal(65.43);
+        expect(result.priceDetails.annualized.annualizedPrice).to.equal(863.76);
+        expect(
+            result.priceDetails.annualized.annualizedPriceWithoutTax,
+        ).to.equal(785.16);
+    });
+
+    it('handles mixed offers with and without annualized prices', () => {
+        const offers = [
+            {
+                offerId: '1',
+                offerSelectorIds: ['osi1'],
+                priceDetails: {
+                    price: 10.0,
+                    annualized: {
+                        annualizedPrice: 120.0,
+                    },
+                },
+            },
+            {
+                offerId: '2',
+                offerSelectorIds: ['osi2'],
+                priceDetails: {
+                    price: 20.0,
+                    // No annualized object
+                },
+            },
+        ];
+        const result = sumOffers(offers);
+        expect(result.priceDetails.price).to.equal(30.0);
+        expect(result.priceDetails.annualized.annualizedPrice).to.equal(120.0);
     });
 });

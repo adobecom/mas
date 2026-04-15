@@ -1,0 +1,46 @@
+name: IO Studio PR Check
+on:
+    pull_request:
+        types: [opened, synchronize, reopened]
+        paths:
+            - 'io/studio/**'
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: io/studio
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js 22
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run tests
+              run: npm test
+
+    deploy:
+        needs: tests
+        uses: ./.github/workflows/io-studio-deploy.yaml
+        with:
+            run_tests: false
+        secrets:
+            ENV: ${{ secrets[format('AIO_STUDIO_ENV_{0}', github.actor)] || secrets.AIO_STUDIO_ENV_QA }}
+            AIO: ${{ secrets[format('AIO_STUDIO_AIO_{0}', github.actor)] || secrets.AIO_STUDIO_AIO_QA }}
+            ODIN_BUCKET: ${{ secrets.ODIN_BUCKET_QA }}
+
+    test-deployed:
+        needs: deploy
+        uses: ./.github/workflows/io-studio-tests.yaml
+        secrets:
+            workspace: ${{ secrets[format('AIO_STUDIO_NS_{0}', github.actor)] || secrets.AIO_STUDIO_NS_QA }}

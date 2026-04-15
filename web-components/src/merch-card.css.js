@@ -126,6 +126,10 @@ export const styles = css`
         border-radius: 0 5px 5px 0;
     }
 
+    :host([variant='mini-compare-chart']) div[class$='-badge'] {
+        font-size: 14px;
+    }
+
     .detail-bg-container {
         right: 0;
         padding: var(--consonant-merch-spacing-xs);
@@ -140,7 +144,7 @@ export const styles = css`
         height: 32px;
         position: absolute;
         top: 16px;
-        right: 16px;
+        inset-inline-end: 16px;
         background-color: #f6f6f6;
         background-repeat: no-repeat;
         background-position: center;

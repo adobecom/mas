@@ -35,8 +35,16 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
     expect(heading).toBe('Enter your password');
     await page.locator('#PasswordPage-PasswordField').fill(process.env.IMS_PASS);
     await page.locator('[data-id=PasswordPage-ContinueButton]').click();
-    await page.waitForURL(`${baseURL}/studio.html#path=acom`);
-    await expect(page).toHaveURL(`${baseURL}/studio.html#path=acom`);
+
+    const skipPasskey = page.locator('button:has-text("Skip"), [data-id="PasskeyNudgePage-SkipButton"]');
+    try {
+        await skipPasskey.click({ timeout: 5000 });
+    } catch {
+        // Passkey dialog may not appear — continue
+    }
+
+    await page.waitForURL(`${baseURL}/studio.html#page=welcome&path=sandbox`);
+    await expect(page).toHaveURL(`${baseURL}/studio.html#page=welcome&path=sandbox`);
 
     await expect(async () => {
         const response = await page.request.get(`${baseURL}/studio.html`);

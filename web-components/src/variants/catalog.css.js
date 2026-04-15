@@ -47,6 +47,11 @@ merch-sidenav.catalog merch-sidenav-list:not(:first-of-type) {
     --merch-card-collection-card-width: var(--consonant-merch-card-catalog-width);
 }
 
+merch-card[variant="catalog"][size="wide"],
+merch-card[variant="catalog"][size="super-wide"] {
+    width: auto;
+}
+
 .collection-container.catalog merch-sidenav {
     --merch-sidenav-gap: 10px;
 }
@@ -70,7 +75,7 @@ merch-card-collection-header.catalog {
 
 @media screen and ${DESKTOP_UP} {
     :root {
-        --consonant-merch-card-catalog-width: 276px;
+        --consonant-merch-card-catalog-width: 300px;
     }
 
     merch-card-collection-header.catalog {

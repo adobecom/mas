@@ -282,6 +282,67 @@ describe('processCTAs', async () => {
         expect(link.tagName.toLowerCase()).to.equal('a');
         expect(link.getAttribute('is')).to.be.null;
     });
+
+    it('should filter free-trial CTA when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<a href="#" data-analytics-id="buy-now" class="accent">Buy now</a><a href="#" data-analytics-id="free-trial" class="primary-outline">Free trial</a>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        expect(footer.firstChild.className).to.include('accent');
+    });
+
+    it('should filter start-free-trial CTA when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<a href="#" data-analytics-id="buy-now" class="accent">Buy now</a><a href="#" data-analytics-id="start-free-trial" class="primary-outline">Start free trial</a>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        expect(footer.firstChild.className).to.include('accent');
+    });
+
+    it('should filter seven-day-trial CTA when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<a href="#" data-analytics-id="buy-now" class="accent">Buy now</a><a href="#" data-analytics-id="seven-day-trial" class="primary-outline">Start 7-day free trial</a>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        expect(footer.firstChild.className).to.include('accent');
+    });
+
+    it('should remove CTA post-resolution when offerType is TRIAL', async () => {
+        const fields = {
+            ctas: `<a href="#" data-wcs-osi="abm" data-analytics-id="buy-now" class="accent">Buy now</a><a href="#" data-wcs-osi="stock-m2m-mult" data-analytics-id="buy-now" class="primary-outline">Try it</a>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(2);
+        const trialButton = footer.children[1];
+        await trialButton.onceSettled();
+        expect(footer.children).to.have.lengthOf(1);
+    });
+
+    it('should keep all CTAs when hideTrialCTAs is false', async () => {
+        const fields = {
+            ctas: `<a href="#" data-analytics-id="buy-now" class="accent">Buy now</a><a href="#" data-analytics-id="free-trial" class="primary-outline">Free trial</a>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: false,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(2);
+    });
 });
 
 describe('processSubtitle', () => {
@@ -515,6 +576,58 @@ describe('hydrate', () => {
         expect(ctaButton).to.exist;
         expect(ctaButton.getAttribute('daa-ll')).to.equal('buy-now-1');
     });
+
+    it('sets variation-id when fragment includes variationId', async () => {
+        const fragment = {
+            variationId: 'ccd-variation-42',
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: ['test/mocks/img/photoshop.svg'],
+                mnemonicAlt: [],
+                mnemonicLink: ['www.adobe.com'],
+                backgroundImage: 'test/mocks/img/photoshop.svg',
+                ctas: '<a is="checkout-link" data-wcs-osi="abm" class="accent" data-analytics-id="buy-now">Click me</a>',
+                tags: ['mas:term/montly', 'mas:product_code/ccsn'],
+            },
+            settings: {
+                secureLabel: 'Secure Label',
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.getAttribute('variation-id')).to.equal(
+            'ccd-variation-42',
+        );
+    });
+
+    it('hydrates MerchCard with variationId and merch-addon for plans variant', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+
+        const addonHtml = `<p><strong>Add-on</strong></p><p>Add for <span is="inline-price" data-template="price" data-wcs-osi="puf"></span></p><p>Add for <span is="inline-price" data-template="price" data-wcs-osi="abm"></span></p><p>Add for <span is="inline-price" data-template="price" data-wcs-osi="m2m"></span></p>`;
+        const fragment = {
+            id: 'plan-card-variation',
+            variationId: 'plans-variation-99',
+            fields: {
+                variant: 'plans',
+                cardTitle: 'Creative Cloud',
+                prices: '<p><span is="inline-price" data-template="price" data-wcs-osi="main"></span></p>',
+                ctas: '<a class="accent" data-wcs-osi="main" data-analytics-id="buy">Buy</a>',
+                addon: addonHtml,
+            },
+        };
+        await hydrate(fragment, litCard);
+        expect(litCard.getAttribute('variation-id')).to.equal(
+            'plans-variation-99',
+        );
+        expect(litCard.addon).to.exist;
+        expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
+        expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
 });
 
 describe('processDescription', async () => {
@@ -634,6 +747,29 @@ describe('processAddon', async () => {
         expect(puf.getAttribute('data-plan-type')).to.equal('PUF');
         expect(abm.getAttribute('data-plan-type')).to.equal('ABM');
         expect(m2m.getAttribute('data-plan-type')).to.equal('M2M');
+    });
+
+    it('should fall back to settings addon when the field is not provided', () => {
+        processAddon({}, merchCard, PLANS_AEM_FRAGMENT_MAPPING, {
+            addon: '<p>Resolved settings addon</p>',
+        });
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.innerHTML).to.equal('<p>Resolved settings addon</p>');
+    });
+
+    it('should prefer fragment addon over settings addon', () => {
+        processAddon(
+            { addon: '<p>Fragment addon</p>' },
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+            { addon: '<p>Settings addon</p>' },
+        );
+
+        const addon = merchCard.querySelector('merch-addon');
+        expect(addon).to.exist;
+        expect(addon.innerHTML).to.equal('<p>Fragment addon</p>');
     });
 });
 

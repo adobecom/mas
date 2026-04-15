@@ -12,6 +12,13 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
+const TRIAL_ANALYTICS_IDS = new Set([
+    'free-trial',
+    'start-free-trial',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
+]);
 
 /**
  * Normalizes variant names for consistency.
@@ -50,10 +57,13 @@ export function appendSlot(fieldName, fields, el, mapping) {
 }
 
 export function processMnemonics(fields, merchCard, mnemonicsConfig) {
-    const mnemonics = fields.mnemonicIcon?.map((icon, index) => ({
+    // Filter out empty string sentinel values (indicates explicitly cleared)
+    const icons = (fields.mnemonicIcon || []).filter((icon) => icon);
+
+    const mnemonics = icons.map((icon, index) => ({
         icon,
-        alt: fields.mnemonicAlt[index] ?? '',
-        link: fields.mnemonicLink[index] ?? '',
+        alt: fields.mnemonicAlt?.[index] ?? '',
+        link: fields.mnemonicLink?.[index] ?? '',
     }));
 
     mnemonics?.forEach(({ icon: src, alt, link: href }) => {
@@ -225,7 +235,9 @@ export function processBorderColor(fields, merchCard, variantMapping) {
             specialValue?.includes('gradient') ||
             /-gradient/.test(fields.borderColor);
         // Check if it's a spectrum color that needs attribute-based styling
-        const isSpectrumColor = /^spectrum-.*-plans$/.test(fields.borderColor);
+        const isSpectrumColor = /^spectrum-.*-(plans|special-offers)$/.test(
+            fields.borderColor,
+        );
 
         if (isGradient) {
             // For gradients, set both attributes needed for CSS selectors
@@ -350,6 +362,7 @@ function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
             isLinkStyle,
             isPrimary,
             isSecondary,
+            aemFragmentMapping?.ctas?.size,
         );
     } else if (isLinkStyle) {
         newButtonElement = linkElement;
@@ -429,9 +442,10 @@ export function processDescription(fields, merchCard, mapping) {
     appendSlot('whatsIncluded', fields, merchCard, mapping);
 }
 
-export function processAddon(fields, merchCard, mapping) {
+export function processAddon(fields, merchCard, mapping, settings = {}) {
     if (!mapping.addon) return;
-    const addonField = fields.addon?.replace(/[{}]/g, '');
+    const addonSource = fields.addon ?? settings.addon;
+    const addonField = addonSource?.replace(/[{}]/g, '');
     if (!addonField) return;
     if (/disabled/.test(addonField)) return;
     const addon = createTag('merch-addon', { slot: 'addon' }, addonField);
@@ -449,12 +463,7 @@ export function processAddonConfirmation(fields, merchCard, mapping) {
     }
 }
 
-export function processStockOffersAndSecureLabel(
-    fields,
-    merchCard,
-    aemFragmentMapping,
-    settings,
-) {
+function processSecureLabel(fields, merchCard, aemFragmentMapping, settings) {
     if (settings?.secureLabel && aemFragmentMapping?.secureLabel) {
         merchCard.setAttribute('secure-label', settings.secureLabel);
     }
@@ -639,14 +648,28 @@ function createConsonantButton(
     isLinkStyle,
     isPrimary,
     isSecondary,
+    size,
 ) {
     let button = cta;
     if (isCheckout) {
-        const CheckoutLink = customElements.get('checkout-link');
-        button = CheckoutLink.createCheckoutLink(cta.dataset, cta.innerHTML);
+        try {
+            const CheckoutLink = customElements.get('checkout-link');
+            if (CheckoutLink) {
+                button =
+                    CheckoutLink.createCheckoutLink(
+                        cta.dataset,
+                        cta.innerHTML,
+                    ) ?? cta;
+            }
+        } catch {
+            // Fall back to regular button if checkout-link creation fails
+        }
     }
     if (!isLinkStyle) {
         button.classList.add('button', 'con-button');
+        if (size && size !== 'm') {
+            button.classList.add(`button-${size}`);
+        }
         if (isAccent) {
             button.classList.add('blue');
         }
@@ -660,32 +683,69 @@ function createConsonantButton(
     return button;
 }
 
-export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
+export function processCTAs(
+    fields,
+    merchCard,
+    aemFragmentMapping,
+    variant,
+    settings,
+) {
     if (fields.ctas) {
-        // Process tooltips in CTAs
         fields.ctas = processMnemonicElements(fields.ctas);
 
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
-        const ctas = [...footer.querySelectorAll('a')].map((cta) => {
-            const checkoutButton = transformLinkToButton(
-                cta,
-                merchCard,
-                aemFragmentMapping,
-            );
-            return checkoutButton;
-        });
+        const allCtaLinks = [...footer.querySelectorAll('a')];
+        const filteredLinks = settings?.hideTrialCTAs
+            ? allCtaLinks.filter(
+                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),
+              )
+            : allCtaLinks;
+        const ctas = (
+            filteredLinks.length > 0 ? filteredLinks : allCtaLinks
+        ).map((cta) =>
+            transformLinkToButton(cta, merchCard, aemFragmentMapping),
+        );
 
-        footer.innerHTML = '';
+        footer.textContent = '';
         footer.append(...ctas);
         merchCard.append(footer);
+
+        if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
+            ctas.forEach((cta) => {
+                const checkout = cta.source ?? cta;
+                if (!checkout.onceSettled) return;
+                cta.hidden = true;
+                checkout
+                    .onceSettled()
+                    .then(() => {
+                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                            const othersVisible = ctas.some(
+                                (c) => c !== cta && !c.hidden,
+                            );
+                            if (othersVisible) {
+                                cta.remove();
+                            } else {
+                                cta.hidden = false;
+                            }
+                        } else {
+                            cta.hidden = false;
+                        }
+                    })
+                    .catch(() => {
+                        cta.hidden = false;
+                    });
+            });
+        }
     }
 }
 
 export function processAnalytics(fields, merchCard) {
     const { tags } = fields;
     const cardAnalyticsId = tags
-        ?.find((tag) => tag.startsWith(ANALYTICS_TAG))
+        ?.find(
+            (tag) => typeof tag === 'string' && tag.startsWith(ANALYTICS_TAG),
+        )
         ?.split('/')
         .pop();
     if (!cardAnalyticsId) return;
@@ -773,6 +833,8 @@ export async function hydrate(fragment, merchCard) {
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
     merchCard.id ??= fragment.id;
+    if (fragment.variationId)
+        merchCard.setAttribute('variation-id', fragment.variationId ?? '');
     merchCard.variant = variant;
     await merchCard.updateComplete;
 
@@ -784,11 +846,11 @@ export async function hydrate(fragment, merchCard) {
         merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);
-    processBadge(fields, merchCard, mapping);
     processTrialBadge(fields, merchCard, mapping);
     processSize(fields, merchCard, mapping.size);
     processCardName(fields, merchCard);
     processTitle(fields, merchCard, mapping.title);
+    processBadge(fields, merchCard, mapping);
     processSubtitle(fields, merchCard, mapping);
     processPrices(fields, merchCard, mapping);
     processBackgroundImage(fields, merchCard, mapping.backgroundImage);
@@ -800,11 +862,16 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping);
-    processAddon(fields, merchCard, mapping);
+    processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
-    processStockOffersAndSecureLabel(fields, merchCard, mapping, settings);
-    processUptLinks(fields, merchCard);
-    processCTAs(fields, merchCard, mapping, variant);
+    processSecureLabel(fields, merchCard, mapping, settings);
+    try {
+        processUptLinks(fields, merchCard);
+    } catch {
+        // UptLink construction may fail (customized built-in element timing);
+        // must not block remaining hydration steps.
+    }
+    processCTAs(fields, merchCard, mapping, variant, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

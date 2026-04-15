@@ -27,12 +27,13 @@ export const CSS = `
 merch-card[variant="plans-v2"] {
     width: var(--consonant-merch-card-plans-v2-width);
     height: var(--consonant-merch-card-plans-v2-height);
-    border: 1px solid var(--consonant-merch-card-border-color, var(--consonant-merch-card-plans-v2-border-color));
     border-radius: var(--consonant-merch-card-plans-v2-border-radius);
     background-color: var(--spectrum-gray-50, #FFFFFF);
     overflow: visible;
     position: relative;
     z-index: 1;
+    background: linear-gradient(var(--spectrum-gray-50, #FFFFFF), var(--spectrum-gray-50, #FFFFFF)) padding-box, var(--consonant-merch-card-border-color, var(--consonant-merch-card-plans-v2-border-color)) border-box;
+    border: 1px solid transparent;
 }
 
 merch-card[variant="plans-v2"]:has(merch-quantity-select:not([closed])) {
@@ -354,7 +355,7 @@ merch-card[variant="plans-v2"] [slot="quantity-select"] merch-quantity-select {
     --radius: 4px;
     --button-width: 29px;
     --qs-input-width: 59px;
-    --picker-button-border-left: none;
+    --picker-button-border-inline-start: none;
     --label-color: var(--spectrum-gray-700, #4B4B4B);
 }
 

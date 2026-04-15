@@ -2,12 +2,16 @@ import { test } from '@playwright/test';
 
 const MILO_LIBS = process.env.MILO_LIBS || '';
 const MAS_LIBS = process.env.MAS_LIBS || '';
+const MAS_IO_URL = process.env.MAS_IO_URL || '';
 
 const PRICE_PATTERN = {
     US: {
         mo: /US\$\d+\.\d\d\/mo/,
         yr: /US\$\d+\.\d\d\/yr/,
     },
+    AU: { mo: /A\$\d+\.\d\d\/mo/ },
+    CA: { mo: /CAD\s\$\d+\.\d\d\/mo/ },
+    EG: { mo: /LE\s+\d+\.\d\d\/.+/ },
     FR: { mo: /\d+,\d\d\s€\/mois/ },
 };
 
@@ -21,9 +25,20 @@ const DOCS_GALLERY_PATH = {
     CCD_MINI: {
         US: '/web-components/docs/ccd-mini.html',
         FR: '/web-components/docs/ccd-mini.html?country=FR&language=fr',
+        AU: '/web-components/docs/ccd-mini.html?country=AU&language=en',
     },
     ADOBE_HOME: { US: '/web-components/docs/adobe-home.html' },
-    PLANS: '/web-components/docs/plans.html',
+    PLANS: {
+        US: '/web-components/docs/plans.html',
+        CA_VISITOR: '/web-components/docs/plans.html?country=CA&locale=en_US',
+    },
+    MINICOMPARE: '/web-components/docs/minicompare.html',
+    MINICOMPARE_MWEB: '/web-components/docs/minicomparemweb.html',
+    PRODUCT: '/web-components/docs/product.html',
+    SEGMENT: '/web-components/docs/segment.html',
+    SPECIALOFFER: '/web-components/docs/specialoffer.html',
+    IMAGE: '/web-components/docs/image.html',
+    CATALOG: '/web-components/docs/catalog.html',
     CHECKOUT_LINK: '/web-components/docs/checkout-link.html',
     MERCH_CARD: '/web-components/docs/merch-card.html',
     EXPRESS: '/web-components/docs/express.html',
@@ -180,7 +195,7 @@ function validateCommerceUrl(url, options = {}) {
 
 /**
  * Helper function to construct test URLs with proper query parameter handling
- * Includes MILO_LIBS and MAS_LIBS environment variables
+ * Includes MAS_IO_URL, MILO_LIBS and MAS_LIBS environment variables
  * @param {string} baseURL - The base URL from Playwright test context
  * @param {string} path - The path to append to the base URL
  * @param {string} browserParams - Browser parameters to append (optional, may start with ? or &)
@@ -189,6 +204,7 @@ function validateCommerceUrl(url, options = {}) {
 function constructTestUrl(baseURL, path, browserParams = '') {
     let fullUrl = `${baseURL}${path}`;
     fullUrl = addUrlQueryParams(fullUrl, browserParams);
+    fullUrl = addUrlQueryParams(fullUrl, MAS_IO_URL);
     fullUrl = addUrlQueryParams(fullUrl, MILO_LIBS);
     fullUrl = addUrlQueryParams(fullUrl, MAS_LIBS);
     return fullUrl;
@@ -309,6 +325,7 @@ function createWorkerPageSetup(config = {}) {
             const { name, url } = pageConfig;
 
             let fullUrl = `${baseURL}${url}`;
+            fullUrl = addUrlQueryParams(fullUrl, MAS_IO_URL);
             fullUrl = addUrlQueryParams(fullUrl, MILO_LIBS);
             fullUrl = addUrlQueryParams(fullUrl, MAS_LIBS);
 

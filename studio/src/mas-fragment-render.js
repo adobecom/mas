@@ -2,18 +2,47 @@ import { LitElement, html, nothing } from 'lit';
 import Store, { toggleSelection } from './store.js';
 import './mas-fragment-status.js';
 import { CARD_MODEL_PATH } from './constants.js';
+import { getSpectrumVersion } from './constants/icon-library.js';
 import ReactiveController from './reactivity/reactive-controller.js';
+import { cardSkeleton } from './mas-content.js';
 
 class MasFragmentRender extends LitElement {
     static properties = {
         selected: { type: Boolean, attribute: true },
         fragmentStore: { type: Object, attribute: false },
+        visible: { type: Boolean, state: true },
     };
 
     #reactiveControllers = new ReactiveController(this);
+    #observer = null;
 
     createRenderRoot() {
         return this;
+    }
+
+    firstUpdated() {
+        const root = this.closest('.main-container') ?? document.querySelector('.main-container');
+        this.#observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    this.visible = true;
+                    this.#observer.disconnect();
+                    this.#observer = null;
+                    this.fragmentStore?.resolvePreviewFragment?.();
+                }
+            },
+            {
+                root,
+                rootMargin: '200px',
+            },
+        );
+        this.#observer.observe(this);
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#observer?.disconnect();
+        this.#observer = null;
     }
 
     update(changedProperties) {
@@ -90,6 +119,10 @@ class MasFragmentRender extends LitElement {
         </merch-card>`;
     }
 
+    get placeholder() {
+        return cardSkeleton();
+    }
+
     get unknown() {
         const label = this.fragment.fields.find((field) => field.name === 'label')?.values[0];
         return html`<div class="unknown-fragment" slot="trigger">
@@ -99,6 +132,7 @@ class MasFragmentRender extends LitElement {
     }
 
     render() {
+        if (!this.visible) return this.placeholder;
         if (!this.fragment || !this.fragment.model) {
             return nothing;
         }
@@ -116,12 +150,14 @@ class MasFragmentRender extends LitElement {
                 aria-grabbed="${this.isDragging}"
                 aria-label="Draggable fragment ${this.fragment?.title || ''}"
             >
-                <overlay-trigger placement="top">
-                    ${this.fragment.model.path === CARD_MODEL_PATH ? this.merchCard : this.unknown}
+                <sp-theme color="light" scale="medium" system="${getSpectrumVersion(this.fragment?.variant)}">
+                    <overlay-trigger placement="top">
+                        ${this.fragment.model.path === CARD_MODEL_PATH ? this.merchCard : this.unknown}
 
-                    <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
-                </overlay-trigger>
-                ${this.selectionOverlay}
+                        <sp-tooltip slot="hover-content" placement="top">Double click the card to start editing.</sp-tooltip>
+                    </overlay-trigger>
+                    ${this.selectionOverlay}
+                </sp-theme>
             </div>
         </div>`;
     }

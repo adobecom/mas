@@ -194,6 +194,7 @@ class RteField extends LitElement {
         maxLength: { type: Number, attribute: 'max-length' },
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
+        hideFormatButtons: { type: Boolean, attribute: 'hide-format-buttons' },
         osi: { type: String },
         value: { type: String },
     };
@@ -222,6 +223,18 @@ class RteField extends LitElement {
                     font-size: var(--spectrum-font-size-200);
                 }
 
+                :host([hide-format-buttons]) {
+                    gap: 0;
+                }
+
+                :host([hide-format-buttons]) #editor {
+                    height: 32px;
+                    min-height: 32px;
+                    padding: 0;
+                    display: flex;
+                    align-items: center;
+                }
+
                 :host([focused]) #editor {
                     outline: 2px solid;
                     outline-color: var(--spectrum-blue-900);
@@ -237,6 +250,16 @@ class RteField extends LitElement {
                         .map(([mark]) => `span.${mark}`)
                         .join(',\n')} { background-color: rgba(250, 50, 50, 0.1); }`,
                 )}
+
+                #editor-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                #editor-row #editor {
+                    flex: 1;
+                }
 
                 #editor {
                     padding: 8px 4px 4px 4px;
@@ -1037,6 +1060,8 @@ class RteField extends LitElement {
 
         const icon = document.createElement('span');
         icon.setAttribute('class', 'icon-button');
+        icon.setAttribute('tabindex', '0');
+        icon.setAttribute('role', 'button');
         if (tooltipText) {
             icon.dataset.tooltip = tooltipText;
         }
@@ -1126,6 +1151,7 @@ class RteField extends LitElement {
             const parser = DOMParser.fromSchema(this.#editorSchema);
             const doc = parser.parse(container);
             const tr = this.editorView.state.tr.replaceWith(0, this.editorView.state.doc.content.size, doc.content);
+            tr.setMeta('initialize', true);
             this.editorView.dispatch(tr);
         } catch (error) {
             console.error('Error setting editor value:', error);
@@ -1189,7 +1215,7 @@ class RteField extends LitElement {
                 this.#boundHandlers.updateLength();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
-                const isFirstChange = this.value === null;
+                const isFirstChange = transaction.getMeta('initialize');
                 if (value !== this.value) {
                     this.#isInternalUpdate = true;
                     this.value = value === '<p></p>' ? '' : value;
@@ -1712,13 +1738,22 @@ class RteField extends LitElement {
     render() {
         const lengthExceeded = this.length > this.maxLength;
         return html`
-            <sp-action-group quiet size="m" aria-label="RTE toolbar actions">
-                ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
-                ${this.#unlinkEditorButton} ${this.#offerSelectorToolButton} ${this.#iconsButton} ${this.#uptLinkButton}
-                ${this.#mnemonicButton} ${this.#dividerButton}
-            </sp-action-group>
-            <div id="editor"></div>
-            <p id="counter"><span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}</p>
+            ${this.hideFormatButtons
+                ? nothing
+                : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
+                      ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
+                      ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton}
+                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton}
+                  </sp-action-group>`}
+            <div id="editor-row">
+                <div id="editor"></div>
+                ${this.hideFormatButtons ? this.#offerSelectorToolButton : nothing}
+            </div>
+            ${this.hideFormatButtons
+                ? nothing
+                : html`<p id="counter">
+                      <span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}
+                  </p>`}
             ${this.linkEditor} ${this.iconEditor} ${this.mnemonicEditor}
         `;
     }
@@ -1750,10 +1785,24 @@ class RteField extends LitElement {
         `;
     }
 
-    get #offerSelectorToolButton() {
+    get #toolbarOfferSelectorButton() {
         if (this.hideOfferSelector) return nothing;
         return html`
             <sp-divider size="s" vertical></sp-divider>
+            <sp-action-button
+                emphasized
+                id="offerSelectorToolButton"
+                @click=${this.handleOpenOfferSelector}
+                title="Offer Selector Tool"
+            >
+                <sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>
+            </sp-action-button>
+        `;
+    }
+
+    get #offerSelectorToolButton() {
+        if (this.hideOfferSelector) return nothing;
+        return html`
             <sp-action-button
                 emphasized
                 id="offerSelectorToolButton"
@@ -1781,6 +1830,7 @@ class RteField extends LitElement {
     }
 
     get #formatButtons() {
+        if (this.hideFormatButtons) return nothing;
         return html`
             <sp-action-button
                 @click=${this.#handleToolbarAction('strong')}

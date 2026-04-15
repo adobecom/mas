@@ -1,14 +1,23 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
+import { isPowerUser } from './groups.js';
 
 export class Router extends EventTarget {
+    #settingsAccessRouteWatcher = () => {
+        this.#resolveSettingsAccessRoute();
+    };
+
     constructor(location = window.location) {
         super();
         this.location = location;
         this.updateHistory = debounce(this.updateHistory.bind(this), 50);
         this.linkedStores = [];
         this.isNavigating = false;
+    }
+
+    #hashValue() {
+        return this.location.hash?.startsWith('#') ? this.location.hash.slice(1) : this.location.hash || '';
     }
 
     updateHistory() {
@@ -25,6 +34,44 @@ export class Router extends EventTarget {
         this.currentParams = undefined;
     }
 
+    translationEditorHasUnsavedChanges() {
+        const inEdit = Store.translationProjects.inEdit?.get()?.get();
+        if (!inEdit) return false;
+        if (inEdit.hasChanges) return true;
+
+        const savedData = {
+            selectedCards: inEdit.getFieldValues('fragments'),
+            selectedCollections: inEdit.getFieldValues('collections'),
+            selectedPlaceholders: inEdit.getFieldValues('placeholders'),
+            targetLocales: inEdit.getFieldValues('targetLocales'),
+        };
+
+        const fieldsToCompare = ['selectedCards', 'selectedCollections', 'selectedPlaceholders', 'targetLocales'];
+
+        for (const field of fieldsToCompare) {
+            const currentValues = Store.translationProjects[field].value || [];
+            const savedValues = savedData[field] || [];
+
+            if (currentValues.length !== savedValues.length) {
+                return true;
+            }
+
+            const currentSet = new Set(currentValues);
+            const savedSet = new Set(savedValues);
+
+            if (currentSet.size !== savedSet.size) {
+                return true;
+            }
+
+            for (const item of currentSet) {
+                if (!savedSet.has(item)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /**
      * Gets the active editor element and its hasChanges state based on the current page
      * @returns {{ editor: Element|null, hasChanges: boolean }}
@@ -38,16 +85,26 @@ export class Router extends EventTarget {
                 return {
                     editor,
                     hasChanges: editor && Store.editor.hasChanges,
-                    shouldCheckUnsavedChanges: editor && !editor.isLoading && Store.editor.hasChanges,
+                    shouldCheckUnsavedChanges: editor && Store.editor.hasChanges,
                 };
             }
             case PAGE_NAMES.TRANSLATION_EDITOR: {
                 const editor = document.querySelector('mas-translation-editor');
+                const hasUnsavedChanges = this.translationEditorHasUnsavedChanges();
                 return {
                     editor,
-                    hasChanges: editor && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
-                    shouldCheckUnsavedChanges:
-                        editor && !editor.isLoading && !!Store.translationProjects.inEdit.get()?.get()?.hasChanges,
+                    hasChanges: editor && hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
+                };
+            }
+            case PAGE_NAMES.SETTINGS:
+            case PAGE_NAMES.SETTINGS_EDITOR: {
+                const editor = document.querySelector('mas-settings');
+                const hasUnsavedChanges = editor && editor.hasUnsavedChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
                 };
             }
             default:
@@ -62,34 +119,47 @@ export class Router extends EventTarget {
      */
     navigateToPage(value) {
         return async () => {
-            if (Store.page.value === value) return;
+            const targetPage = this.#getAuthorizedPage(value);
+            if (Store.page.value === targetPage) return;
 
             this.isNavigating = true;
             try {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
                 const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
                 if (confirmed) {
+                    Store.fragmentEditor.translatedLocales.set(null);
                     if (
                         (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION) &&
-                        value !== PAGE_NAMES.FRAGMENT_EDITOR &&
-                        value !== PAGE_NAMES.VERSION
+                        targetPage !== PAGE_NAMES.FRAGMENT_EDITOR &&
+                        targetPage !== PAGE_NAMES.VERSION
                     ) {
                         Store.fragmentEditor.fragmentId.set(null);
+                        Store.fragmentEditor.loading.set(false);
                         Store.version.fragmentId.set(null);
                     }
-                    if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && value !== PAGE_NAMES.TRANSLATION_EDITOR) {
+                    if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && targetPage !== PAGE_NAMES.TRANSLATION_EDITOR) {
                         Store.translationProjects.translationProjectId.set(null);
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
                     }
+                    if (targetPage === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
+                        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+                    }
                     Store.fragments.inEdit.set();
-                    if (value !== PAGE_NAMES.CONTENT) {
+                    if (targetPage !== PAGE_NAMES.CONTENT) {
                         Store.fragments.list.data.set([]);
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
                         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
                     }
+                    if (
+                        (Store.page.value === PAGE_NAMES.SETTINGS || Store.page.value === PAGE_NAMES.SETTINGS_EDITOR) &&
+                        targetPage !== PAGE_NAMES.SETTINGS_EDITOR
+                    ) {
+                        Store.settings.creating.set(false);
+                        Store.settings.fragmentId.set(null);
+                    }
                     Store.viewMode.set('default');
-                    Store.page.set(value);
+                    Store.page.set(targetPage);
                 }
             } finally {
                 this.isNavigating = false;
@@ -120,6 +190,7 @@ export class Router extends EventTarget {
 
             // Clear fragment editor state
             Store.fragmentEditor.fragmentId.set(null);
+            Store.fragmentEditor.loading.set(false);
             Store.fragments.inEdit.set();
 
             // Navigate to content page in table view
@@ -188,6 +259,44 @@ export class Router extends EventTarget {
     }
 
     /**
+     * Navigate to the translation editor with optional pre-fill data
+     * @param {Object} options - Navigation options
+     * @param {string} options.targetLocale - Optional target locale to pre-fill
+     * @param {string} options.fragmentPath - Optional fragment path to pre-fill
+     */
+    async navigateToTranslationEditor(options = {}) {
+        const { targetLocale, fragmentPath } = options;
+
+        this.isNavigating = true;
+        try {
+            // Check for unsaved changes
+            const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+            const confirmed = !shouldCheckUnsavedChanges || (editor ? await editor.promptDiscardChanges() : true);
+
+            if (!confirmed) return;
+
+            // Clear fragment editor state
+            Store.fragmentEditor.fragmentId.set(null);
+            Store.fragments.inEdit.set();
+            Store.viewMode.set('default');
+
+            // Reset locale to default
+            Store.search.set((prev) => ({ ...prev, region: null }));
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
+            // Store pre-fill data for the translation editor to consume
+            if (targetLocale || fragmentPath) {
+                Store.translationProjects.prefill.set({ targetLocale, fragmentPath });
+            }
+
+            // Set the page - the store subscription will update the URL
+            Store.page.set(PAGE_NAMES.TRANSLATION_EDITOR);
+        } finally {
+            this.isNavigating = false;
+        }
+    }
+
+    /**
      * Syncs a store with the current URL hash parameters
      * @param {ReactiveStore} store - The store to sync
      * @param {any} currentValue - The current value of the store
@@ -197,9 +306,8 @@ export class Router extends EventTarget {
      * @returns {boolean} Whether the store was updated
      */
     syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
-        this.currentParams ??= new URLSearchParams(this.location.hash.slice(1));
+        this.currentParams ??= new URLSearchParams(this.#hashValue());
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
-        const hashUpdated = false;
 
         for (const key of keysArray) {
             if (this.currentParams.has(key)) {
@@ -225,11 +333,6 @@ export class Router extends EventTarget {
                     newValue = defaultVal;
                 }
             }
-        }
-
-        // Update hash if invalid parameters were removed
-        if (hashUpdated) {
-            this.updateHistory();
         }
 
         if (JSON.stringify(store.value) !== JSON.stringify(newValue)) {
@@ -263,9 +366,10 @@ export class Router extends EventTarget {
 
         const self = this;
         store.subscribe((value) => {
-            self.currentParams ??= new URLSearchParams(self.location.hash.slice(1));
+            self.currentParams ??= new URLSearchParams(self.#hashValue());
 
             for (const key of keysArray) {
+                const hadParamBeforeUpdate = self.currentParams.has(key);
                 const storeValue = isObject ? value?.[key] : value;
 
                 if (Array.isArray(storeValue) && storeValue.length === 0) {
@@ -290,7 +394,8 @@ export class Router extends EventTarget {
 
                 const defaultValue = getDefaultValue();
                 const defaultValueToCompare = isObject ? defaultValue?.[key] : defaultValue;
-                if (self.currentParams.get(key) === defaultValueToCompare) {
+                const currentParamValue = self.currentParams.get(key);
+                if (currentParamValue === String(defaultValueToCompare) && currentParamValue !== PAGE_NAMES.WELCOME) {
                     self.currentParams.delete(key);
                 }
             }
@@ -299,7 +404,7 @@ export class Router extends EventTarget {
                     self.currentParams.delete(key);
                 }
             }
-            if (self.currentParams.toString() === self.location.hash.slice(1)) {
+            if (self.currentParams.toString() === self.#hashValue()) {
                 return;
             }
             self.updateHistory();
@@ -307,12 +412,18 @@ export class Router extends EventTarget {
     }
 
     start() {
-        this.currentParams = new URLSearchParams(this.location.hash.slice(1));
+        this.currentParams = new URLSearchParams(this.#hashValue());
+        const normalizedOnStart = this.#normalizeSettingsEditorRoute();
+        const redirectedOnStart = this.#enforceSettingsAccessFromParams();
+        if (normalizedOnStart || redirectedOnStart) {
+            this.updateHistory();
+        }
         this.previousHash = this.location.hash;
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, ['path', 'query'], {});
-        this.linkStoreToHash(Store.filters, ['locale', 'tags'], {
+        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled'], {
             locale: 'en_US',
+            personalizationFilterEnabled: false,
         });
         this.linkStoreToHash(Store.sort, ['sortBy', 'sortDirection'], getSortDefaultValue);
         this.linkStoreToHash(Store.placeholders.search, 'search');
@@ -321,6 +432,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
+        this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
@@ -349,12 +461,13 @@ export class Router extends EventTarget {
             }
 
             /* fix hash when missing params(e.g: manual edit) */
-            this.currentParams = new URLSearchParams(this.location.hash.slice(1));
+            this.currentParams = new URLSearchParams(this.#hashValue());
             if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
             const page = this.currentParams.get('page');
-            if (!page && Store.page.value) {
+            const isSandboxRouteWithoutPage = !page && this.currentParams.get('path') === 'sandbox';
+            if (!page && Store.page.value && !isSandboxRouteWithoutPage) {
                 this.currentParams.set('page', Store.page.value);
             }
             const path = this.currentParams.get('path');
@@ -365,6 +478,11 @@ export class Router extends EventTarget {
             if (!locale && Store.filters.value.locale && Store.filters.value.locale !== 'en_US') {
                 this.currentParams.set('locale', Store.filters.value.locale);
             }
+            const normalizedSettingsRoute = this.#normalizeSettingsEditorRoute();
+            const redirectedSettingsRoute = this.#enforceSettingsAccessFromParams();
+            if (normalizedSettingsRoute || redirectedSettingsRoute) {
+                this.updateHistory();
+            }
 
             if (page === PAGE_NAMES.FRAGMENT_EDITOR) {
                 Store.viewMode.set('editing');
@@ -373,8 +491,11 @@ export class Router extends EventTarget {
                     Store.search.set((prev) => ({ ...prev, query: undefined }));
                     this.updateHistory();
                 }
-            } else if (Store.viewMode.value === 'editing') {
-                Store.viewMode.set('default');
+            } else {
+                Store.fragmentEditor.loading.set(false);
+                if (Store.viewMode.value === 'editing') {
+                    Store.viewMode.set('default');
+                }
             }
 
             Store.removeRegionOverride();
@@ -396,6 +517,67 @@ export class Router extends EventTarget {
                 return '';
             }
         });
+    }
+
+    #isSettingsPage(page) {
+        return page === PAGE_NAMES.SETTINGS || page === PAGE_NAMES.SETTINGS_EDITOR;
+    }
+
+    #getAuthorizedPage(page) {
+        if (!this.#isSettingsPage(page)) return page;
+        if (!Store.users.getMeta('loaded')) return page;
+        if (isPowerUser()) return page;
+        Store.settings.creating.set(false);
+        Store.settings.fragmentId.set(null);
+        return PAGE_NAMES.WELCOME;
+    }
+
+    #normalizeSettingsEditorRoute() {
+        if (this.currentParams.get('page') !== PAGE_NAMES.SETTINGS_EDITOR) return false;
+        if (this.currentParams.get('fragmentId')) return false;
+        if (Store.settings.creating.get()) return false;
+        this.currentParams.set('page', PAGE_NAMES.SETTINGS);
+        return true;
+    }
+
+    #enforceSettingsAccessFromParams() {
+        const page = this.currentParams.get('page');
+        if (!this.#isSettingsPage(page)) return false;
+        if (!Store.users.getMeta('loaded')) {
+            this.#startWatchingSettingsAccessRoute();
+            return false;
+        }
+        this.#stopWatchingSettingsAccessRoute();
+        if (isPowerUser()) return false;
+        this.currentParams.set('page', PAGE_NAMES.WELCOME);
+        this.currentParams.delete('fragmentId');
+        Store.page.set(PAGE_NAMES.WELCOME);
+        Store.settings.creating.set(false);
+        Store.settings.fragmentId.set(null);
+        return true;
+    }
+
+    #startWatchingSettingsAccessRoute() {
+        Store.profile.subscribe(this.#settingsAccessRouteWatcher);
+        Store.users.subscribe(this.#settingsAccessRouteWatcher);
+    }
+
+    #stopWatchingSettingsAccessRoute() {
+        Store.profile.unsubscribe(this.#settingsAccessRouteWatcher);
+        Store.users.unsubscribe(this.#settingsAccessRouteWatcher);
+    }
+
+    #resolveSettingsAccessRoute() {
+        this.currentParams ??= new URLSearchParams(this.#hashValue());
+        if (!this.#isSettingsPage(this.currentParams.get('page'))) {
+            this.#stopWatchingSettingsAccessRoute();
+            return false;
+        }
+        const redirected = this.#enforceSettingsAccessFromParams();
+        if (redirected) {
+            this.updateHistory();
+        }
+        return redirected;
     }
 }
 

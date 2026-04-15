@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
+import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 
@@ -18,8 +19,10 @@ const EMPTY_TAGS = {
     market_segments: [],
     customer_segment: [],
     product_code: [],
+    pzn: [], // personalization namespace from AEM
     status: [],
     'studio/content-type': [],
+    custom: [],
     variant: [],
 };
 
@@ -58,7 +61,10 @@ class MasFilterPanel extends LitElement {
         }
     `;
 
-    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users]);
+    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users, Store.filters]);
+
+    /** @type {() => void} */
+    #onRouterChange = () => this.#initializeTagFilters();
 
     constructor() {
         super();
@@ -73,12 +79,12 @@ class MasFilterPanel extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        router.addEventListener('change', () => this.#initializeTagFilters());
+        router.addEventListener('change', this.#onRouterChange);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        router.removeEventListener('change', () => this.#initializeTagFilters());
+        router.removeEventListener('change', this.#onRouterChange);
     }
 
     #initializeTagFilters() {
@@ -146,6 +152,33 @@ class MasFilterPanel extends LitElement {
             },
             { ...EMPTY_TAGS },
         );
+        const hasNonCountryPzn = (this.tagsByType.pzn || []).some((t) => !isPznCountryTagPath(t.path));
+        if (hasNonCountryPzn) {
+            Store.filters.set((prev) => ({
+                ...prev,
+                personalizationFilterEnabled: true,
+            }));
+        }
+    }
+
+    get #personalizationFilterEnabled() {
+        return Store.filters.get().personalizationFilterEnabled === true;
+    }
+
+    #onPersonalizationToggleEnabled(e) {
+        const enabled = e.detail.enabled;
+        Store.filters.set((prev) => ({
+            ...prev,
+            personalizationFilterEnabled: enabled,
+        }));
+        if (!enabled) {
+            const pznTags = this.tagsByType.pzn || [];
+            this.tagsByType = {
+                ...this.tagsByType,
+                pzn: pznTags.filter((t) => isPznCountryTagPath(t.path)),
+            };
+            this.#updateFiltersParams();
+        }
     }
 
     #updateFiltersParams() {
@@ -183,6 +216,7 @@ class MasFilterPanel extends LitElement {
         Store.filters.set((prev) => ({
             ...prev,
             tags: '',
+            personalizationFilterEnabled: false,
         }));
 
         Store.createdByUsers.set([]);
@@ -277,7 +311,7 @@ class MasFilterPanel extends LitElement {
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="variant"
-                    label="Variant"
+                    label="Template"
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.variant)}
@@ -302,6 +336,29 @@ class MasFilterPanel extends LitElement {
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType['studio/content-type'])}
                     @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="custom"
+                    label="Tag"
+                    multiple
+                    selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.custom)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="pzn"
+                    label="Personalization"
+                    multiple
+                    selection="checkbox"
+                    personalization-toggle
+                    .personalizationEnabled=${this.#personalizationFilterEnabled}
+                    value=${pathsToTagIds(this.tagsByType.pzn)}
+                    @change=${this.#handleTagChange}
+                    @personalization-toggle-change=${this.#onPersonalizationToggleEnabled}
                 ></aem-tag-picker-field>
 
                 <mas-user-picker

@@ -51,5 +51,10 @@ export default {
     ],
     nodeResolve: true,
     port: 2023,
+    testFramework: {
+        config: {
+            timeout: 5000,
+        },
+    },
     testRunnerHtml,
 };

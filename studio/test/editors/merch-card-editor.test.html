@@ -1,0 +1,1314 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+
+            // Set up fetch mock before any components are loaded
+            const originalFetch = window.fetch;
+            // Load offers for WCS mock
+            const offersPromise = originalFetch('/test/mocks/offers.json').then((r) => r.json());
+
+            window.fetch = async function (args) {
+                try {
+                    const url = new URL(args);
+                    const { pathname, search } = url;
+                    const fullPath = pathname + search;
+
+                    if (/querybuilder\.json\?path=\/content\/cq:tags\/mas/.test(fullPath)) {
+                        return originalFetch('/test/mocks/tags.json');
+                    }
+                    if (/querybuilder\.json\?path=\/content\/dam\/mas/.test(fullPath)) {
+                        return originalFetch('/test/mocks/folders.json');
+                    }
+                    // Mock WCS offer fetch
+                    if (pathname.includes('web_commerce_artifact')) {
+                        const offers = await offersPromise;
+                        const osi = url.searchParams.get('offer_selector_ids');
+                        const language = url.searchParams.get('language')?.toLowerCase() || 'mult';
+                        const offerKey = `${osi}-${language}`;
+                        const offerData = offers[offerKey] || offers[osi];
+                        if (offerData) {
+                            return new Response(
+                                JSON.stringify({
+                                    resolvedOffers: offerData.map((offer) => ({
+                                        ...offer,
+                                        offerSelectorIds: [osi],
+                                    })),
+                                }),
+                                { status: 200, headers: { 'Content-Type': 'application/json' } },
+                            );
+                        }
+                        return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+                    }
+                    return originalFetch(...arguments);
+                } catch (e) {
+                    return originalFetch(...arguments);
+                }
+            };
+        </script>
+        <title>merch-card-editor mnemonic tests</title>
+        <meta name="nofollow-links" content="on" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../../style.css" />
+        <style>
+            body {
+                margin: 32px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            sp-theme {
+                display: block;
+                width: 100%;
+            }
+            mas-fragment-editor {
+                display: block;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { html } from 'lit';
+            // Import actual components
+            import '../../src/swc.js';
+            import '../../src/rte/rte-field.js';
+            import '../../src/aem/aem-tag-picker-field.js';
+            import '../../src/mas-fragment-editor.js';
+            import '../../src/mas-repository.js';
+            import '../../src/mas-side-nav.js';
+            // Import aem-fragment, mas-commerce-service, and merch-card from web-components
+            import '../../../web-components/src/mas-commerce-service.js';
+            import '../../../web-components/src/aem-fragment.js';
+            import '../../../web-components/src/merch-card.js';
+            // Import data classes
+            import { Fragment } from '../../src/aem/fragment.js';
+            import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
+            import Store from '../../src/store.js';
+            import { PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
+            import { delay } from '../utils.js';
+
+            // Load the existing mock data for a merch card
+            const baseMockData = await fetch('/test/mocks/adobe/sites/cf/fragments/cc-all-apps').then((res) => res.json());
+
+            const createSettingRow = ({
+                name,
+                value,
+                valueType = 'boolean',
+                booleanValue = valueType === 'boolean' ? Boolean(value) : true,
+                templateIds = ['plans'],
+                locales = [],
+                tags = [],
+                overrides = [],
+            }) => ({
+                value: {
+                    id: `setting-${name}`,
+                    name,
+                    locales,
+                    templateIds,
+                    value,
+                    booleanValue,
+                    valueType,
+                    tags,
+                    overrides,
+                },
+            });
+
+            const createDefaultSettingsRows = () => [
+                createSettingRow({
+                    name: 'displayPlanType',
+                    value: true,
+                    overrides: [
+                        {
+                            id: 'setting-display-plan-type-fr',
+                            locales: ['fr_FR'],
+                            templateIds: ['plans'],
+                            value: false,
+                            booleanValue: false,
+                            valueType: 'boolean',
+                            tags: [],
+                        },
+                    ],
+                }),
+                createSettingRow({
+                    name: 'secureLabel',
+                    value: '{{secure-label-default}}',
+                    valueType: 'optional-text',
+                    booleanValue: true,
+                }),
+                createSettingRow({
+                    name: 'addon',
+                    value: '',
+                    valueType: 'optional-text',
+                    booleanValue: false,
+                }),
+            ];
+
+            runTests(async () => {
+                const spTheme = document.querySelector('sp-theme');
+
+                describe('merch-card-editor inheritance and overrides', () => {
+                    // Parent fragment with values for all testable fields
+                    const parentWithAllFields = {
+                        ...baseMockData,
+                        path: '/content/dam/mas/nala/en_US/test-parent',
+                        id: 'test-parent-id',
+                        tags: [{ id: 'mas:product/photoshop', title: 'Photoshop' }],
+                        fields: baseMockData.fields.map((field) => {
+                            if (field.name === 'variant') return { ...field, values: ['plans'] };
+                            if (field.name === 'cardTitle') return { ...field, values: ['<p>Parent Title</p>'] };
+                            if (field.name === 'cardName') return { ...field, values: ['Parent Card Name'] };
+                            if (field.name === 'subtitle') return { ...field, values: ['Parent Subtitle'] };
+                            if (field.name === 'size') return { ...field, values: ['wide'] };
+                            if (field.name === 'description') return { ...field, values: ['<p>Parent Description</p>'] };
+                            if (field.name === 'shortDescription') return { ...field, values: ['<p>Parent Short Desc</p>'] };
+                            if (field.name === 'prices') return { ...field, values: ['<p>Parent Prices</p>'] };
+                            if (field.name === 'promoCode') return { ...field, values: ['PARENTPROMO'] };
+                            if (field.name === 'promoText') return { ...field, values: ['<p>Parent Promo</p>'] };
+                            if (field.name === 'callout') return { ...field, values: ['<p>Parent Callout</p>'] };
+                            if (field.name === 'ctas') return { ...field, values: ['<p>Parent CTAs</p>'] };
+                            if (field.name === 'mnemonicIcon')
+                                return { ...field, values: ['/test/mocks/img/creative-cloud.svg'], multiple: true };
+                            if (field.name === 'mnemonicAlt') return { ...field, values: ['Parent Alt'], multiple: true };
+                            if (field.name === 'mnemonicLink')
+                                return { ...field, values: ['https://parent.com'], multiple: true };
+                            if (field.name === 'backgroundImage') return { ...field, values: ['/parent-bg.jpg'] };
+                            if (field.name === 'backgroundImageAltText') return { ...field, values: ['Parent BG Alt'] };
+                            if (field.name === 'badge')
+                                return {
+                                    ...field,
+                                    values: [
+                                        '<merch-badge background-color=\"color-yellow-300-variation\" border-color=\"color-yellow-300-variation\" icon=\"sp-icon-star\" variant=\"ccd-slice\">badge text</merch-badge>',
+                                    ],
+                                };
+                            if (field.name === 'osi') return { ...field, values: ['parent-osi'] };
+                            return field;
+                        }),
+                    };
+
+                    let layoutContainer, sideNav, fragmentEditor, editor, saveNavItem, fragmentStore;
+
+                    async function setupTestEnvironment(overrides = {}, testId = 'default') {
+                        const isVariation = overrides.isVariation !== undefined ? overrides.isVariation : true;
+                        const variationPath = overrides.path || `/content/dam/mas/nala/en_AU/test-variation-${testId}`;
+                        const variationLocale = variationPath.match(/^\/content\/dam\/mas\/[^/]+\/([^/]+)\//)?.[1] || 'en_US';
+                        const variationData = {
+                            ...baseMockData,
+                            path: variationPath,
+                            title: `Test Variation ${testId}`,
+                            id: `test-variation-${testId}`,
+                            tags: overrides.tags || [],
+                            fields: baseMockData.fields.map((field) => {
+                                if (field.name === 'variant') return { ...field, values: ['plans'] };
+                                if (overrides[field.name] !== undefined) {
+                                    return { ...field, values: overrides[field.name], multiple: field.multiple };
+                                }
+                                return { ...field, values: [] }; // Empty = inherit
+                            }),
+                        };
+
+                        const variationFragment = new Fragment(structuredClone(variationData));
+                        const parentFragment = new Fragment(structuredClone(parentWithAllFields));
+                        fragmentStore = generateFragmentStore(variationFragment, parentFragment);
+
+                        Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
+                        Store.fragmentEditor.fragmentId.set(`test-variation-${testId}`);
+                        Store.fragments.inEdit.set(fragmentStore);
+                        Store.fragments.list.data.set([fragmentStore]);
+                        Store.placeholders.preview.set({});
+                        Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
+                        Store.viewMode.set('editing');
+                        Store.settings.rows.set(createDefaultSettingsRows());
+
+                        layoutContainer = document.createElement('div');
+                        layoutContainer.style.cssText = 'display: flex; width: 100%;';
+
+                        sideNav = document.createElement('mas-side-nav');
+                        layoutContainer.appendChild(sideNav);
+
+                        fragmentEditor = document.createElement('mas-fragment-editor');
+                        fragmentEditor.style.cssText = 'flex: 1;';
+                        const repository = document.querySelector('mas-repository');
+                        repository.refreshFragment = async () => {};
+                        repository.loadPreviewPlaceholders = async () => {};
+
+                        fragmentEditor.editorContextStore = {
+                            localeDefaultFragment: null,
+                            loadFragmentContext: async () => {},
+                            isVariation: () => isVariation,
+                            getLocaleDefaultFragmentAsync: async () => structuredClone(parentWithAllFields),
+                            getDefaultLocaleId: () => 'test-parent-id',
+                            getLocaleDefaultFragment: () => structuredClone(parentWithAllFields),
+                            setParent(parentData) {
+                                if (!parentData) return;
+                                this.localeDefaultFragment = parentData;
+                            },
+                        };
+                        fragmentEditor.localeDefaultFragment = parentFragment;
+                        fragmentEditor.initState = 'ready';
+                        fragmentStore.previewStore.resolved = true;
+
+                        const AemFragment = customElements.get('aem-fragment');
+                        if (AemFragment?.cache) {
+                            AemFragment.cache.add(fragmentStore.previewStore.value);
+                        }
+
+                        sideNav.reactiveController.updateStores([
+                            Store.page,
+                            Store.search,
+                            Store.viewMode,
+                            Store.fragmentEditor.editorContext,
+                            Store.fragments.inEdit,
+                            fragmentStore,
+                        ]);
+
+                        layoutContainer.appendChild(fragmentEditor);
+                        spTheme.appendChild(layoutContainer);
+
+                        await fragmentEditor.updateComplete;
+                        await sideNav.updateComplete;
+                        await delay(200);
+
+                        editor = fragmentEditor.querySelector('merch-card-editor');
+                        saveNavItem = sideNav.shadowRoot.querySelector('mas-side-nav-item[label="Save"]');
+
+                        fragmentStore.get().hasChanges = false;
+                        fragmentStore.notify();
+                        await sideNav.updateComplete;
+
+                        return { fragmentStore, editor, sideNav, saveNavItem };
+                    }
+
+                    function setSourceVariationCounts({
+                        locale = 0,
+                        promo = 0,
+                        grouped = 0,
+                        includeReferences = true,
+                        includeCurrentGroupedPath = false,
+                    }) {
+                        const sourceFragment = fragmentEditor.localeDefaultFragment;
+                        const [, rootPath, sourceLocale, fragmentPath] =
+                            sourceFragment.path.match(/^(\/content\/dam\/mas\/[^/]+)\/([^/]+)\/(.+)$/) || [];
+
+                        const localeCodes = ['en_AU', 'fr_FR', 'de_DE', 'es_ES', 'it_IT'];
+                        const variationPaths = [];
+                        const references = [];
+
+                        for (let i = 0; i < locale; i += 1) {
+                            const localeCode = localeCodes[i] || `x${i}_XX`;
+                            const path = `${rootPath}/${localeCode}/${fragmentPath}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [] });
+                            }
+                        }
+
+                        for (let i = 0; i < promo; i += 1) {
+                            const path = `${rootPath}/${sourceLocale}/promo-${i}-${fragmentPath}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [{ id: `${TAG_PROMOTION_PREFIX}test-${i}` }] });
+                            }
+                        }
+
+                        if (includeCurrentGroupedPath && grouped > 0) {
+                            const currentPath = fragmentEditor.fragment.path;
+                            variationPaths.push(currentPath);
+                            if (includeReferences) {
+                                references.push({ path: currentPath, tags: [] });
+                            }
+                        }
+
+                        for (let i = includeCurrentGroupedPath ? 1 : 0; i < grouped; i += 1) {
+                            const path = `${rootPath}/${sourceLocale}/pzn/${fragmentPath}-${i}`;
+                            variationPaths.push(path);
+                            if (includeReferences) {
+                                references.push({ path, tags: [] });
+                            }
+                        }
+
+                        sourceFragment.references = includeReferences ? references : [];
+                        const variationsField = sourceFragment.fields.find((f) => f.name === 'variations');
+                        if (variationsField) {
+                            variationsField.values = variationPaths;
+                        } else {
+                            sourceFragment.fields.push({ name: 'variations', values: variationPaths, multiple: true });
+                        }
+                    }
+
+                    afterEach(() => {
+                        if (layoutContainer) {
+                            layoutContainer.remove();
+                            layoutContainer = null;
+                        }
+                        Store.settings.rows.set([]);
+                        Store.editor.resetChanges();
+                    });
+
+                    it('removes inherited mnemonic and restores it via override indicator', async () => {
+                        await setupTestEnvironment();
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+
+                        const multifield = editor.querySelector('mas-multifield#mnemonics');
+                        const mnemonicField = multifield.shadowRoot.querySelector('mas-mnemonic-field');
+                        mnemonicField.dispatchEvent(new CustomEvent('delete-field', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('overridden');
+                        expect(editor.mnemonics).to.have.length(0);
+
+                        const indicator = editor.querySelector('#mnemonics .field-status-indicator');
+                        expect(indicator.querySelector('.field-status-label')?.textContent.trim()).to.equal('Overridden.');
+                        const restoreLink = indicator.querySelector('.field-status-restore-link');
+                        expect(restoreLink?.textContent.replace(/\s+/g, ' ').trim()).to.equal('Overridden. Click to restore.');
+                        expect(restoreLink?.querySelector('.field-status-restore-link-text')?.textContent.trim()).to.equal(
+                            'Click to restore.',
+                        );
+                        restoreLink.click();
+
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+                    });
+
+                    it('removes inherited badge values and restores it via override indicator', async () => {
+                        await setupTestEnvironment();
+                        expect(editor.getFieldState('badge')).to.equal('inherited');
+                        expect(editor.getFieldState('badgeColor')).to.equal('inherited');
+                        expect(editor.getFieldState('badgeBorderColor')).to.equal('inherited');
+                        expect(editor.getFieldState('borderColor')).to.equal('inherited');
+
+                        const badgeTextEl = editor.querySelector('rte-field#card-badge');
+                        expect(badgeTextEl).to.exist;
+                        badgeTextEl.value = 'updated badge text';
+                        badgeTextEl.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+
+                        const badgeColorPicker = editor.querySelector('sp-picker#badgeColor');
+                        expect(badgeColorPicker).to.exist;
+                        badgeColorPicker.value = 'color-green-900-variation';
+                        badgeColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const badgeBorderColorPicker = editor.querySelector('sp-picker#badgeBorderColor');
+                        expect(badgeBorderColorPicker).to.exist;
+                        badgeBorderColorPicker.value = 'color-green-900-variation';
+                        badgeBorderColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        const borderColorPicker = editor.querySelector('sp-picker#border-color');
+                        expect(borderColorPicker).to.exist;
+                        borderColorPicker.value = 'color-green-900-variation';
+                        borderColorPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+
+                        expect(editor.getBadgeComponentState('badge', 'text')).to.equal('overridden');
+                        expect(editor.querySelector('sp-picker#badgeColor').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+                        expect(editor.querySelector('sp-picker#badgeBorderColor').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+                        expect(editor.querySelector('sp-picker#border-color').getAttribute('data-field-state')).to.equal(
+                            'overridden',
+                        );
+
+                        editor.querySelector('sp-field-group#badge .field-status-indicator .field-status-restore-link').click();
+                        editor
+                            .querySelector('sp-field-group#badgeColor .field-status-indicator .field-status-restore-link')
+                            .click();
+                        editor
+                            .querySelector('sp-field-group#badgeBorderColor .field-status-indicator .field-status-restore-link')
+                            .click();
+                        editor
+                            .querySelector('sp-field-group#border-color .field-status-indicator .field-status-restore-link')
+                            .click();
+
+                        await editor.updateComplete;
+
+                        expect(editor.getBadgeComponentState('badge', 'text')).to.equal('inherited');
+                        expect(editor.querySelector('sp-picker#badgeColor').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
+                        expect(editor.querySelector('sp-picker#badgeBorderColor').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
+                        expect(editor.querySelector('sp-picker#border-color').getAttribute('data-field-state')).to.equal(
+                            'inherited',
+                        );
+                    });
+
+                    it('maintains inherited state after add visual then cancel', async () => {
+                        // This test reproduces the bug where:
+                        // 1. Click "Restore override" on Visuals (resets to inherit from parent)
+                        // 2. Click "Add visual"
+                        // 3. Click "Cancel" on the modal
+                        // Result: inherited visual incorrectly remains marked as overridden
+
+                        await setupTestEnvironment();
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+
+                        // Simulate restore override (already inherited, but ensures clean state)
+                        await editor.resetMnemonicsToParent();
+                        await editor.updateComplete;
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+
+                        // Simulate add visual - this adds an empty field and opens modal
+                        const multifield = editor.querySelector('mas-multifield#mnemonics');
+                        multifield.addField();
+                        await delay(100);
+                        await editor.updateComplete;
+
+                        // Simulate cancel (delete the empty field that was just added)
+                        // This is what happens when modal closes with no icon selected
+                        const fields = multifield.shadowRoot.querySelectorAll('.field-wrapper');
+                        const lastField = fields[fields.length - 1];
+                        const mnemonicField = lastField.querySelector('mas-mnemonic-field');
+                        mnemonicField.dispatchEvent(new CustomEvent('delete-field', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+                        await delay(100);
+
+                        // After cancel, state should return to inherited (not same-as-parent or overridden)
+                        expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');
+                        expect(editor.mnemonics).to.have.length(1);
+                    });
+
+                    const restoreTests = [
+                        { name: 'text field (cardName)', field: 'cardName', selector: '#cardName', value: ['Overridden Name'] },
+                        {
+                            name: 'RTE field (description)',
+                            field: 'description',
+                            selector: '#description',
+                            value: ['<p>Overridden Description</p>'],
+                        },
+                        { name: 'dropdown field (size)', field: 'size', selector: '#size', value: ['super-wide'] },
+                        { name: 'multifield (mnemonics)', field: 'mnemonicIcon', selector: '#mnemonics', value: [''] },
+                    ];
+
+                    restoreTests.forEach(({ name, field, selector, value }) => {
+                        it(`restoring ${name} activates save button`, async () => {
+                            await setupTestEnvironment({ [field]: value }, field);
+                            expect(editor.getFieldState(field)).to.equal('overridden');
+                            expect(saveNavItem.disabled).to.be.true;
+
+                            const indicator = editor.querySelector(
+                                `${selector} .field-status-indicator .field-status-restore-link`,
+                            );
+                            indicator.click();
+                            await editor.updateComplete;
+                            await sideNav.updateComplete;
+
+                            expect(Store.editor.hasChanges).to.be.true;
+                            expect(saveNavItem.disabled).to.be.false;
+                        });
+                    });
+
+                    it('tags field restore activates save', async () => {
+                        await setupTestEnvironment({ tags: [{ id: 'mas:product/illustrator', title: 'Illustrator' }] }, 'tags');
+                        editor.fragment.newTags = ['mas:product/illustrator'];
+                        await editor.updateComplete;
+
+                        const indicator = editor.querySelector('#tags .field-status-indicator .field-status-restore-link');
+                        indicator.click();
+                        await editor.updateComplete;
+                        await sideNav.updateComplete;
+
+                        expect(Store.editor.hasChanges).to.be.true;
+                        expect(saveNavItem.disabled).to.be.false;
+                    });
+
+                    it('renders grouped-variation-tags as readonly in non en_US locales', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-readonly' },
+                            'grouped-variation-readonly',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+                        expect(groupedTagsPicker.readonly).to.be.true;
+                    });
+
+                    it('renders grouped-variation-tags as editable in en_US locale', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-editable' },
+                            'grouped-variation-editable',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+                        expect(groupedTagsPicker.readonly).to.be.false;
+                    });
+
+                    it('updates grouped locale tags without splitting values into characters', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-tags-array' },
+                            'grouped-variation-tags-array',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+
+                        groupedTagsPicker.value = ['mas:locale/AR/es_AR', 'mas:locale/es_CL'];
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('pznTags')).to.deep.equal([
+                            'mas:locale/AR/es_AR',
+                            'mas:locale/es_CL',
+                        ]);
+
+                        groupedTagsPicker.value = ['mas:locale/es_CL'];
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        const pznTags = fragmentStore.get().getFieldValues('pznTags');
+                        expect(pznTags).to.deep.equal(['mas:locale/es_CL']);
+                        expect(pznTags.every((tag) => tag.startsWith('mas:'))).to.be.true;
+                    });
+
+                    it('normalizes comma-delimited grouped locale tags payloads', async () => {
+                        await setupTestEnvironment(
+                            { path: '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-tags-string' },
+                            'grouped-variation-tags-string',
+                        );
+
+                        const groupedTagsPicker = editor.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        expect(groupedTagsPicker).to.exist;
+
+                        groupedTagsPicker.value = 'mas:locale/AR/es_AR,mas:locale/es_CL';
+                        groupedTagsPicker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValues('pznTags')).to.deep.equal([
+                            'mas:locale/AR/es_AR',
+                            'mas:locale/es_CL',
+                        ]);
+                    });
+
+                    it('displays grouped sibling variation count for grouped variations', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-counts',
+                            },
+                            'grouped-variation-counts',
+                        );
+                        setSourceVariationCounts({ locale: 0, promo: 0, grouped: 3 });
+                        expect(fragmentEditor.localeDefaultFragment.references).to.have.length(3);
+                        expect(fragmentEditor.localeDefaultFragment.getGroupedVariationCount()).to.equal(3);
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['2 grouped sibling variations']);
+                    });
+
+                    it('displays regional sibling variation count for locale variations', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/test-locale-variation-counts',
+                            },
+                            'locale-variation-counts',
+                        );
+                        setSourceVariationCounts({ locale: 4, promo: 0, grouped: 0 });
+                        expect(fragmentEditor.localeDefaultFragment.references).to.have.length(4);
+                        expect(fragmentEditor.localeDefaultFragment.getLocaleVariationCount()).to.equal(4);
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['3 Regional sibling variations']);
+                    });
+
+                    it('does not display sibling counts when source has variations but no references', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-no-references',
+                            },
+                            'grouped-variation-no-references',
+                        );
+                        setSourceVariationCounts({
+                            locale: 2,
+                            promo: 0,
+                            grouped: 5,
+                            includeReferences: false,
+                            includeCurrentGroupedPath: true,
+                        });
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.not.exist;
+                    });
+
+                    it('shows 5 regional + 1 grouped sibling counts when variations contains stale paths not present in references', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_AU/pzn/test-grouped-variation-stale-paths',
+                            },
+                            'grouped-variation-stale-paths',
+                        );
+
+                        setSourceVariationCounts({
+                            locale: 5,
+                            promo: 0,
+                            grouped: 2,
+                            includeReferences: true,
+                            includeCurrentGroupedPath: true,
+                        });
+
+                        const source = fragmentEditor.localeDefaultFragment;
+                        const variationsField = source.fields.find((f) => f.name === 'variations');
+                        variationsField.values.push(
+                            '/content/dam/mas/nala/en_IE/test-grouped-variation-stale-paths',
+                            '/content/dam/mas/nala/en_US/pzn/test-grouped-variation-stale-paths-stale',
+                        );
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.exist;
+
+                        const counts = [...relatedVariations.querySelectorAll('.related-variations-count')].map((el) =>
+                            el.textContent.trim().replace(/\s+/g, ' '),
+                        );
+                        expect(counts).to.deep.equal(['5 Regional sibling variations', '1 grouped sibling variation']);
+                    });
+
+                    it('does not render related variations container for source fragments when references are empty', async () => {
+                        await setupTestEnvironment(
+                            {
+                                path: '/content/dam/mas/nala/en_US/test-source-variation-container',
+                                isVariation: false,
+                            },
+                            'source-variation-container',
+                        );
+
+                        const sourceFragment = fragmentEditor.fragment;
+                        sourceFragment.references = [];
+                        const sourceVariationsField = sourceFragment.fields.find((f) => f.name === 'variations');
+                        const variationPath = '/content/dam/mas/nala/fr_FR/test-source-variation-container';
+                        if (sourceVariationsField) {
+                            sourceVariationsField.values = [variationPath];
+                        } else {
+                            sourceFragment.fields.push({ name: 'variations', values: [variationPath], multiple: true });
+                        }
+
+                        fragmentEditor.requestUpdate();
+                        await fragmentEditor.updateComplete;
+
+                        const relatedVariations = fragmentEditor.querySelector('.related-variations-container');
+                        expect(relatedVariations).to.not.exist;
+                    });
+
+                    describe('Options and settings override behavior', () => {
+                        const SETTINGS_FIELD_DEFS = [
+                            { name: 'showSecureLabel', type: 'text', multiple: false, locked: false, values: [] },
+                            { name: 'showPlanType', type: 'text', multiple: false, locked: false, values: [] },
+                            { name: 'addon', type: 'text', multiple: false, locked: false, values: [] },
+                        ];
+
+                        const settingsMockFields = [...baseMockData.fields, ...SETTINGS_FIELD_DEFS];
+                        const SETTINGS_OVERRIDE_FIELDS = ['addon', 'showPlanType', 'showSecureLabel'];
+                        const SETTINGS_OVERRIDE_INDICATOR_SELECTORS = {
+                            addon: '#addon .setting-override-indicator',
+                            showPlanType: '#planType .setting-override-indicator',
+                            showSecureLabel: '#secureLabel .setting-override-indicator',
+                        };
+                        const SETTINGS_OVERRIDE_COMPONENT_SELECTORS = {
+                            addon: '#addon mas-addon-field',
+                            showPlanType: '#planType mas-plan-type-field',
+                            showSecureLabel: '#secureLabel secure-text-field',
+                        };
+                        const SETTINGS_OVERRIDE_INDICATORS_QUERY = Object.values(SETTINGS_OVERRIDE_INDICATOR_SELECTORS).join(
+                            ', ',
+                        );
+
+                        function getSettingOverrideIndicator(fieldName) {
+                            return editor.querySelector(SETTINGS_OVERRIDE_INDICATOR_SELECTORS[fieldName]);
+                        }
+
+                        function expectSettingOverrideIndicators(expectedFields) {
+                            for (const fieldName of SETTINGS_OVERRIDE_FIELDS) {
+                                const indicator = getSettingOverrideIndicator(fieldName);
+                                if (expectedFields.includes(fieldName)) {
+                                    expect(indicator).to.exist;
+                                } else {
+                                    expect(indicator).to.not.exist;
+                                }
+                            }
+                        }
+
+                        function expectSettingOverrideFieldState(expectedState, fieldNames = SETTINGS_OVERRIDE_FIELDS) {
+                            for (const fieldName of fieldNames) {
+                                expect(
+                                    editor
+                                        .querySelector(SETTINGS_OVERRIDE_COMPONENT_SELECTORS[fieldName])
+                                        ?.getAttribute('data-field-state'),
+                                ).to.equal(expectedState);
+                            }
+                        }
+
+                        function buildSettingsFragment(overrides = {}) {
+                            return {
+                                ...baseMockData,
+                                fields: settingsMockFields.map((field) => {
+                                    if (field.name === 'variant') return { ...field, values: ['plans'] };
+                                    if (overrides[field.name] !== undefined) {
+                                        return { ...field, values: overrides[field.name] };
+                                    }
+                                    return { ...field, values: [] };
+                                }),
+                            };
+                        }
+
+                        async function setupSettingsTest({
+                            variationOverrides = {},
+                            parentOverrides = {},
+                            isVariation = true,
+                            testId = 'settings',
+                            settingsRows = createDefaultSettingsRows(),
+                        } = {}) {
+                            const parentData = {
+                                ...buildSettingsFragment(parentOverrides),
+                                path: '/content/dam/mas/nala/en_US/test-settings-parent',
+                                id: 'test-settings-parent-id',
+                                tags: [],
+                            };
+                            const variationData = {
+                                ...buildSettingsFragment(variationOverrides),
+                                path: `/content/dam/mas/nala/en_AU/test-settings-${testId}`,
+                                title: `Test Settings ${testId}`,
+                                id: `test-settings-${testId}`,
+                                tags: [],
+                            };
+
+                            const variationFragment = new Fragment(structuredClone(variationData));
+                            const parentFragment = new Fragment(structuredClone(parentData));
+                            const store = isVariation
+                                ? generateFragmentStore(variationFragment, parentFragment)
+                                : generateFragmentStore(variationFragment);
+
+                            Store.page.set(PAGE_NAMES.FRAGMENT_EDITOR);
+                            Store.fragmentEditor.fragmentId.set(`test-settings-${testId}`);
+                            Store.fragments.inEdit.set(store);
+                            Store.fragments.list.data.set([store]);
+                            Store.placeholders.preview.set({});
+                            Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: 'en_AU' }));
+                            Store.viewMode.set('editing');
+                            Store.settings.rows.set(settingsRows);
+
+                            layoutContainer = document.createElement('div');
+                            layoutContainer.style.cssText = 'display: flex; width: 100%;';
+
+                            sideNav = document.createElement('mas-side-nav');
+                            layoutContainer.appendChild(sideNav);
+
+                            fragmentEditor = document.createElement('mas-fragment-editor');
+                            fragmentEditor.style.cssText = 'flex: 1;';
+                            const repository = document.querySelector('mas-repository');
+                            repository.refreshFragment = async () => {};
+                            repository.loadPreviewPlaceholders = async () => {};
+
+                            fragmentEditor.editorContextStore = {
+                                localeDefaultFragment: null,
+                                loadFragmentContext: async () => {},
+                                isVariation: () => isVariation,
+                                getLocaleDefaultFragmentAsync: async () => structuredClone(parentData),
+                                getDefaultLocaleId: () => 'test-settings-parent-id',
+                                getLocaleDefaultFragment: () => structuredClone(parentData),
+                                setParent(data) {
+                                    if (!data) return;
+                                    this.localeDefaultFragment = data;
+                                },
+                            };
+                            fragmentEditor.localeDefaultFragment = isVariation ? parentFragment : null;
+                            fragmentEditor.initState = 'ready';
+                            store.previewStore.resolved = true;
+
+                            const AemFragment = customElements.get('aem-fragment');
+                            if (AemFragment?.cache) {
+                                AemFragment.cache.add(store.previewStore.value);
+                            }
+
+                            sideNav.reactiveController.updateStores([
+                                Store.page,
+                                Store.search,
+                                Store.viewMode,
+                                Store.fragmentEditor.editorContext,
+                                Store.fragments.inEdit,
+                                store,
+                            ]);
+
+                            layoutContainer.appendChild(fragmentEditor);
+                            spTheme.appendChild(layoutContainer);
+
+                            await fragmentEditor.updateComplete;
+                            await sideNav.updateComplete;
+                            await delay(200);
+
+                            editor = fragmentEditor.querySelector('merch-card-editor');
+                            fragmentStore = store;
+
+                            store.get().hasChanges = false;
+                            store.notify();
+                            await sideNav.updateComplete;
+
+                            return { store, editor };
+                        }
+
+                        it('shows global defaults when no card-level override exists', async () => {
+                            await setupSettingsTest({ isVariation: false, testId: 'global-shown' });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.false;
+
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('true');
+                            expect(`${editor.getEffectiveSettingValue('showSecureLabel')}`).to.equal(
+                                '{{secure-label-default}}',
+                            );
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.not.exist;
+
+                            const indicators = editor.querySelectorAll(SETTINGS_OVERRIDE_INDICATORS_QUERY);
+                            expect(indicators.length).to.equal(0);
+                        });
+
+                        it('shows override indicator when card overrides a global setting', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'card-override',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.exist;
+
+                            expectSettingOverrideIndicators(['showPlanType']);
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('false');
+                        });
+
+                        it('treats explicit false secure label as an override on top-level cards', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showSecureLabel: [false] },
+                                testId: 'card-secure-false-override',
+                            });
+
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.true;
+
+                            expectSettingOverrideIndicators(['showSecureLabel']);
+                        });
+
+                        it('restores card-level setting to global default', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'], showSecureLabel: ['true'] },
+                                testId: 'card-restore',
+                            });
+
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isAnySettingOverridden).to.be.false;
+                        });
+
+                        it('shows override indicator when variation overrides a global setting (parent has no override)', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-overrides-global',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            expectSettingOverrideIndicators(['showPlanType']);
+                        });
+
+                        it('restores variation-level override to inherit from parent (global default)', async () => {
+                            const { store } = await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-restore-global',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+
+                            editor.resetSettingToDefault('showPlanType');
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(`${editor.getEffectiveSettingValue('showPlanType')}`).to.equal('true');
+                        });
+
+                        it('shows override indicator when variation overrides parent setting', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'] },
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-overrides-parent',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isAnySettingOverridden).to.be.true;
+
+                            expectSettingOverrideIndicators(['showPlanType']);
+                        });
+
+                        it('restores variation-level override to inherit parent setting value', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'] },
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'variation-restore-parent',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+
+                            editor.resetSettingToDefault('showPlanType');
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                        });
+
+                        it('shows parent visual override styling when variation inherits explicit parent settings', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {
+                                    showPlanType: ['true'],
+                                    showSecureLabel: ['true'],
+                                    addon: ['{{addon-mili-test}}'],
+                                },
+                                variationOverrides: {},
+                                testId: 'variation-inherits-parent-visual-overrides',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.isSettingOverridden('addon')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('addon')).to.equal('{{addon-mili-test}}');
+
+                            expect(editor.isSettingVisuallyOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingVisuallyOverridden('showSecureLabel')).to.be.true;
+                            expect(editor.isSettingVisuallyOverridden('addon')).to.be.true;
+
+                            const restoreAllLink = editor.querySelector('.restore-all-link');
+                            expect(restoreAllLink).to.exist;
+
+                            expectSettingOverrideIndicators(SETTINGS_OVERRIDE_FIELDS);
+                            expectSettingOverrideFieldState('overridden');
+                        });
+
+                        it('resolves global settings for variations that inherit variant from the parent', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: {},
+                                variationOverrides: { variant: [] },
+                                testId: 'variation-inherits-variant-for-settings',
+                            });
+
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal(true);
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('{{secure-label-default}}');
+                        });
+
+                        it('Restore all resets only overridden variation settings to parent values', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                parentOverrides: { showPlanType: ['true'], showSecureLabel: ['true'] },
+                                variationOverrides: { showPlanType: ['false'], showSecureLabel: ['false'] },
+                                testId: 'variation-restore-all',
+                            });
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.true;
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                            expect(editor.isSettingOverridden('showSecureLabel')).to.be.false;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('true');
+                            expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                        });
+
+                        it('re-applies override state when toggling a setting after Restore all', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                variationOverrides: { showPlanType: ['false'] },
+                                testId: 'toggle-after-restore-all',
+                            });
+
+                            editor.resetAllSettings();
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+
+                            const planTypeField = editor.querySelector('#planType mas-plan-type-field');
+                            const toggle = planTypeField.querySelector('sp-switch');
+                            toggle.checked = false;
+                            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                            await editor.updateComplete;
+
+                            expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                            expect(editor.getEffectiveSettingValue('showPlanType')).to.equal('false');
+                            expectSettingOverrideIndicators(['showPlanType']);
+                            expectSettingOverrideFieldState('overridden', ['showPlanType']);
+                        });
+                    });
+
+                    describe('getWhatsIncludedProps', () => {
+                        it('extracts icon, alt, and description from a merch-icon element', async () => {
+                            await setupTestEnvironment({}, 'gwip-merch-icon');
+
+                            const el = document.createElement('div');
+                            const iconEl = document.createElement('merch-icon');
+                            iconEl.setAttribute('src', 'https://example.com/icon.svg');
+                            iconEl.setAttribute('alt', 'Test description');
+                            const descEl = document.createElement('span');
+                            descEl.setAttribute('slot', 'description');
+                            const span = document.createElement('span');
+                            span.textContent = 'Test description';
+                            descEl.append(span);
+                            el.append(iconEl, descEl);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.icon).to.equal('https://example.com/icon.svg');
+                            expect(result.alt).to.equal('Test description');
+                            expect(result.link).to.equal('');
+                        });
+
+                        it('extracts href from [slot="icon"] a when merch-icon is present', async () => {
+                            await setupTestEnvironment({}, 'gwip-merch-icon-link');
+
+                            const el = document.createElement('div');
+                            const iconEl = document.createElement('merch-icon');
+                            iconEl.setAttribute('src', 'https://example.com/icon.svg');
+                            iconEl.setAttribute('alt', '');
+                            const iconSlot = document.createElement('span');
+                            iconSlot.setAttribute('slot', 'icon');
+                            const linkEl = document.createElement('a');
+                            linkEl.setAttribute('href', 'https://example.com/link');
+                            iconSlot.append(linkEl);
+                            el.append(iconEl, iconSlot);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.link).to.equal('https://example.com/link');
+                        });
+
+                        it('falls back to sp-icon tagName when no merch-icon is present', async () => {
+                            await setupTestEnvironment({}, 'gwip-sp-icon');
+
+                            const el = document.createElement('div');
+                            const spIcon = document.createElement('span');
+                            spIcon.className = 'sp-icon';
+                            spIcon.id = 'sp-icon-star';
+                            el.append(spIcon);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            expect(result.icon).to.equal('span');
+                            expect(result.alt).to.equal('');
+                            expect(result.link).to.equal('');
+                        });
+
+                        it('returns empty values when no icon elements are found', async () => {
+                            await setupTestEnvironment({}, 'gwip-no-icon');
+
+                            const el = document.createElement('div');
+                            const descEl = document.createElement('span');
+                            descEl.setAttribute('slot', 'description');
+                            descEl.textContent = 'No icon here';
+                            el.append(descEl);
+
+                            const result = editor.getWhatsIncludedProps(el);
+                            // The no-icon fallback returns empty strings for all fields
+                            expect(result.icon).to.equal('');
+                            expect(result.alt).to.equal('');
+                            expect(result.link).to.equal('');
+                        });
+                    });
+
+                    describe('whatsIncluded getter contentBullets', () => {
+                        it('parses contentBullets with merch-icon and includes bullets with icon', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-icon');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <merch-icon src="https://example.com/icon.svg" alt="Bullet with icon"></merch-icon>
+                                        <span slot="description"><span>Bullet with icon</span></span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].icon).to.equal('https://example.com/icon.svg');
+                            expect(result.bullets[0].alt).to.equal('Bullet with icon');
+                        });
+
+                        it('parses contentBullets with no merch-icon, desc innerHTML equals text', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-desc-text');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <span slot="description"><span>Plain text bullet</span></span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].alt).to.be.a('string');
+                        });
+
+                        it('parses contentBullets with no merch-icon, desc innerHTML differs from text', async () => {
+                            const { fragmentStore: store } = await setupTestEnvironment({}, 'wi-bullets-desc-html');
+
+                            const html = `<merch-whats-included>
+                                <div slot="contentBullets">
+                                    <merch-mnemonic-list>
+                                        <span slot="description"><span><b>Bold</b> text</span></span>
+                                    </merch-mnemonic-list>
+                                </div>
+                            </merch-whats-included>`;
+
+                            store.get().fields.push({ name: 'whatsIncluded', values: [html], multiple: false });
+
+                            const result = editor.whatsIncluded;
+                            expect(result.bullets).to.have.length(1);
+                            expect(result.bullets[0].alt).to.include('<p>');
+                        });
+
+                        it('generates whats-included element', async () => {
+                            const label = 'what is included label';
+                            const values = [
+                                {
+                                    icon: 'https://www.adobe.com/icon.svg',
+                                    alt: 'alt text 1',
+                                    link: 'https://www.adobe.com/1.html',
+                                    description: 'desc 1',
+                                },
+                            ];
+                            const bullets = [
+                                {
+                                    icon: 'sp-icon-all',
+                                    alt: '<p>alt text 2</p>',
+                                    link: 'https://www.adobe.com/2.html',
+                                    description: 'desc 2',
+                                },
+                                {
+                                    icon: 'sp-icon-web',
+                                    alt: 'alt text 3',
+                                    link: 'https://www.adobe.com/3.html',
+                                    description: 'desc 3',
+                                },
+                            ];
+                            const element = editor.createIncludedElement(label, values, bullets);
+                            expect(element.getAttribute('has-bullets')).to.equal('true');
+                            expect(element.querySelector('[slot="heading"]').textContent).to.equal(label);
+                            expect(element.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').length).to.equal(2);
+                            expect(element.querySelectorAll('[slot="content"] merch-mnemonic-list').length).to.equal(1);
+                            expect(
+                                element.querySelector('[slot="content"] merch-mnemonic-list a merch-icon').getAttribute('alt'),
+                            ).to.equal('alt text 1');
+                        });
+                    });
+
+                    describe('description field inheritance logic', () => {
+                        it('correctly handles inheritance and overrides for RTE fields', async () => {
+                            const parent = new Fragment(structuredClone(parentWithAllFields));
+
+                            // 1. Inherited (Empty values)
+                            const variationInherited = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [] } : f)),
+                            });
+                            expect(variationInherited.getFieldState('description', parent, true)).to.equal('inherited');
+                            expect(variationInherited.getEffectiveFieldValues('description', parent, true)).to.deep.equal([
+                                '<p>Parent Description</p>',
+                            ]);
+
+                            // 2. Inherited (AEM default [""])
+                            const variationAemDefault = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [''] } : f)),
+                            });
+                            expect(variationAemDefault.getFieldState('description', parent, true)).to.equal('inherited');
+
+                            // 3. Overridden
+                            const variationOverridden = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) =>
+                                    f.name === 'description' ? { ...f, values: ['<p>New</p>'] } : f,
+                                ),
+                            });
+                            expect(variationOverridden.getFieldState('description', parent, true)).to.equal('overridden');
+
+                            // 4. Same as parent
+                            const variationSame = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) =>
+                                    f.name === 'description' ? { ...f, values: ['<p>Parent Description</p>'] } : f,
+                                ),
+                            });
+                            expect(variationSame.getFieldState('description', parent, true)).to.equal('same-as-parent');
+                        });
+
+                        it('source store is not contaminated after preview resolution', async () => {
+                            const variation = new Fragment({
+                                ...baseMockData,
+                                fields: baseMockData.fields.map((f) => (f.name === 'description' ? { ...f, values: [] } : f)),
+                            });
+                            const parent = new Fragment(structuredClone(parentWithAllFields));
+                            const store = generateFragmentStore(variation, parent);
+
+                            store.previewStore.value.getField('description').values = ['<p>Resolved</p>'];
+                            expect(store.value.getFieldValues('description')).to.deep.equal([]);
+                        });
+                    });
+                });
+            });
+        </script>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+        <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
+        <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
+    </body>
+</html>

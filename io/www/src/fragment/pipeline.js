@@ -62,8 +62,10 @@ async function main(params) {
         if (!cachedConfiguration) {
             const result = await getJsonFromState('configuration', context);
             configuration = result.json;
-            cachedConfiguration = configuration;
-            configurationTimestamp = now;
+            if (configuration) {
+                cachedConfiguration = configuration;
+                configurationTimestamp = now;
+            }
             logDebug(() => 'Configuration cache empty, fetched from state', context);
         } else if (cacheExpired) {
             try {
@@ -73,9 +75,14 @@ async function main(params) {
                     createTimeoutPromise(configTimeout, () => {}),
                 ]);
                 configuration = result.json;
-                cachedConfiguration = configuration;
-                configurationTimestamp = now;
-                logDebug(() => 'Configuration cache expired, refreshed from state', context);
+                if (configuration) {
+                    cachedConfiguration = configuration;
+                    configurationTimestamp = now;
+                    logDebug(() => 'Configuration cache expired, refreshed from state', context);
+                } else {
+                    configuration = cachedConfiguration;
+                    logDebug(() => 'Configuration refresh returned null, using stale cache', context);
+                }
             } catch (error) {
                 if (error.isTimeout) {
                     configuration = cachedConfiguration;
@@ -94,12 +101,7 @@ async function main(params) {
         const initTime = measureTiming(context, 'init', 'start').duration;
         let timeout = context.networkConfig?.mainTimeout || 5000;
         timeout = Math.max(timeout - initTime, 0);
-        returnValue = await Promise.race([
-            mainProcess(context),
-            createTimeoutPromise(timeout, () => {
-                context.timedOut = true;
-            }),
-        ]);
+        returnValue = await Promise.race([mainProcess(context), createTimeoutPromise(timeout)]);
     } catch (error) {
         logError(`Error occurred while processing request: ${error.message} ${error.stack}`, context);
         if (error.isTimeout) {
@@ -141,8 +143,6 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
-    const originalContext = context;
-
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
@@ -167,12 +167,6 @@ async function mainProcess(context) {
 
     for (const transformer of PIPELINE) {
         logDebug(() => `starting transformer ${transformer.name}`, context);
-        /* c8 ignore next 5*/
-        if (originalContext.timedOut) {
-            context.status = 504;
-            logError(`Pipeline timed out during ${transformer.name}, aborting...`, context);
-            break;
-        }
         if (context.status != 200) {
             logError(context.message, context);
             break;

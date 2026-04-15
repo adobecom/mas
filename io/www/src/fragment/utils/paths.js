@@ -32,12 +32,14 @@ function odinReferences(id, allHydrated = false, preview) {
 /**
  * builds a full fetchable url to the fragment
  * @param {*} surface surface of the fragment,
- * @param {*} locale locale of the fragment,
- * @param {*} fragmentPath subpath of the fragment from the locale root
- * @param {boolean} preview preview object if to be used
+ * @param {*} options options
+ * @param {*} options.locale locale of the fragment, if any
+ * @param {*} otpions.fragmentPath subpath of the fragment from the locale root
+ * @param {boolean} options.preview preview object if to be used
  * @returns full fetchable path to the fragment
  */
-function odinUrl(surface, locale, fragmentPath, preview) {
+function odinUrl(surface, { locale, fragmentPath, preview }) {
+    if (!locale) return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${fragmentPath}`;
     return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 

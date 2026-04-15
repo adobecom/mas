@@ -33,6 +33,11 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
         maxCount: 3000,
         withSuffix: false,
     },
+    callout: {
+        tag: 'div',
+        slot: 'callout-content',
+        editorLabel: 'Price description',
+    },
     prices: {
         tag: 'div',
         slot: 'price',
@@ -59,6 +64,8 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
                 'linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)',
         },
     },
+    showAllSpectrumColors: true,
+    multiWhatsIncluded: 'true',
     disabledAttributes: [],
 };
 
@@ -93,32 +100,48 @@ export class FullPricingExpress extends VariantLayout {
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
 
-        const shortDescriptionSlot = this.card.querySelector(
-            '[slot="short-description"]',
-        );
-        if (shortDescriptionSlot) {
+        ['short-description', 'cta'].forEach((slot) =>
             this.updateCardElementMinHeight(
-                shortDescriptionSlot,
-                'short-description',
-            );
-        }
+                this.card.querySelector(`[slot="${slot}"]`),
+                slot,
+            ),
+        );
 
-        const priceSlot = this.card.querySelector('[slot="price"]');
-        if (priceSlot) {
-            this.updateCardElementMinHeight(priceSlot, 'price');
-        }
-
-        const ctaSlot = this.card.querySelector('[slot="cta"]');
-        if (ctaSlot) {
-            this.updateCardElementMinHeight(ctaSlot, 'cta');
-        }
+        this.updateCardElementMinHeight(
+            this.card.shadowRoot?.querySelector('.price-container'),
+            'price',
+        );
     }
 
     async postCardUpdateHook() {
         if (!this.card.isConnected) return;
 
         await this.card.updateComplete;
-        await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        if (this.card.prices?.length) {
+            await Promise.all(
+                this.card.prices.map((price) => price.onceSettled()),
+            );
+        }
+
+        const container = this.getContainer();
+        if (container) {
+            const cards = container.querySelectorAll(
+                `merch-card[variant="${this.card.variant}"]`,
+            );
+            const CTA_LONG_TEXT_CHAR_THRESHOLD = 49;
+            cards.forEach((card) => {
+                card.classList.remove('small-font-size-button');
+                const ctas = card.querySelectorAll(
+                    '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]',
+                );
+                ctas.forEach((cta) => {
+                    const isLong =
+                        cta.textContent.trim().length >
+                        CTA_LONG_TEXT_CHAR_THRESHOLD;
+                    cta.classList.toggle('small-font-size-button', isLong);
+                });
+            });
+        }
 
         if (window.matchMedia('(min-width: 1025px)').matches) {
             const container = this.getContainer();
@@ -162,6 +185,7 @@ export class FullPricingExpress extends VariantLayout {
                 <div class="price-container">
                     <slot name="trial-badge"></slot>
                     <slot name="price"></slot>
+                    <slot name="callout-content"></slot>
                 </div>
                 <div class="cta">
                     <slot name="cta"></slot>
@@ -182,6 +206,9 @@ export class FullPricingExpress extends VariantLayout {
             --merch-card-full-pricing-express-padding: 24px;
             --merch-card-full-pricing-express-padding-mobile: 20px;
             --merch-card-full-pricing-express-section-gap: 24px;
+            --express-custom-gray-500: #8f8f8f;
+            --express-custom-gray-400: #d5d5d5;
+            --express-custom-price-border: #e0e2ff;
 
             /* Price container specific */
             --merch-card-full-pricing-express-price-bg: #f8f8f8;
@@ -197,6 +224,11 @@ export class FullPricingExpress extends VariantLayout {
             --merch-card-full-pricing-express-cta-font-size: 18px;
             --merch-card-full-pricing-express-cta-font-weight: 700;
             --merch-card-full-pricing-express-cta-line-height: 23.4px;
+
+            /* Accent color */
+            --spectrum-express-accent: #5258e4;
+            --spectrum-express-indigo-300: #d3d5ff;
+            --spectrum-express-white: #ffffff;
 
             /* Gradient definitions (reused) */
             --gradient-purple-blue: linear-gradient(
@@ -263,11 +295,7 @@ export class FullPricingExpress extends VariantLayout {
         :host([variant='full-pricing-express']:not([gradient-border='true']))
             .card-content {
             background: var(--spectrum-gray-50);
-            border: 1px solid
-                var(
-                    --consonant-merch-card-border-color,
-                    var(--spectrum-gray-100)
-                );
+            border: 1px solid #d5d5d5;
         }
 
         /* When badge exists, adjust card content border radius */
@@ -326,7 +354,7 @@ export class FullPricingExpress extends VariantLayout {
             left: 1px;
             right: 1px;
             bottom: 1px;
-            background: var(--spectrum-gray-50);
+            background: var(--spectrum-express-white, #ffffff);
             border-radius: 7px;
             z-index: 0;
             pointer-events: none;
@@ -413,14 +441,27 @@ export class FullPricingExpress extends VariantLayout {
             background: var(--merch-card-full-pricing-express-price-bg);
             padding: 24px 16px;
             border-radius: var(--merch-card-full-pricing-express-price-radius);
-            border: 1px solid #e0e2ff;
+            border: 1px solid var(--express-custom-price-border);
             display: flex;
             flex-direction: column;
             position: relative;
             overflow: visible;
             margin-bottom: var(--merch-card-full-pricing-express-section-gap);
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
+            min-height: var(
+                --consonant-merch-card-full-pricing-express-price-height
+            );
+        }
+
+        :host([variant='full-pricing-express']) [slot='callout-content'] {
+            font-size: 12px;
+            font-weight: 400;
+            font-style: normal;
+            line-height: 18px;
+            color: var(--spectrum-gray-800);
+            text-align: center;
+            background: transparent;
         }
 
         /* CTA styling */
@@ -430,22 +471,20 @@ export class FullPricingExpress extends VariantLayout {
             display: block;
         }
 
-        /* Mobile styles */
-        @media (max-width: 1024px) {
+        /* Mobile and tablet styles */
+        @media (max-width: 1199px) {
             :host([variant='full-pricing-express']) {
-                width: var(--merch-card-full-pricing-express-mobile-width);
-                max-width: var(--merch-card-full-pricing-express-mobile-width);
+                width: 100%;
+                max-width: 100%;
             }
 
             :host([variant='full-pricing-express']) .card-content {
-                padding: var(--merch-card-full-pricing-express-padding-mobile);
+                padding: 24px 16px;
             }
 
             :host([variant='full-pricing-express'][gradient-border='true'])
                 .card-content {
-                padding: calc(
-                    var(--merch-card-full-pricing-express-padding-mobile) + 2px
-                );
+                padding: 26px 18px;
             }
 
             :host([variant='full-pricing-express']) .short-description {
@@ -463,23 +502,11 @@ export class FullPricingExpress extends VariantLayout {
                 flex: 1;
             }
 
-            :host([variant='full-pricing-express']) .price-container {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-price-height
-                );
-            }
-
             :host([variant='full-pricing-express']) .cta {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-cta-height
-                );
                 margin-bottom: 24px;
             }
 
             :host([variant='full-pricing-express']) .short-description {
-                height: var(
-                    --consonant-merch-card-full-pricing-express-short-description-height
-                );
                 margin-bottom: 24px;
             }
         }

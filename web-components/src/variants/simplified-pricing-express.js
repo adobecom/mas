@@ -32,6 +32,11 @@ export const SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
         tag: 'div',
         slot: 'price',
     },
+    callout: {
+        tag: 'div',
+        slot: 'callout-content',
+        editorLabel: 'Price description',
+    },
     ctas: {
         slot: 'cta',
         size: 'XL',
@@ -88,6 +93,11 @@ export class SimplifiedPricingExpress extends VariantLayout {
             this.updateCardElementMinHeight(priceSlot, 'price');
         }
 
+        const calloutSlot = this.card.querySelector('[slot="callout-content"]');
+        if (calloutSlot) {
+            this.updateCardElementMinHeight(calloutSlot, 'callout');
+        }
+
         const iconRow = this.card.querySelector(
             '[slot="body-xs"] p:has(mas-mnemonic)',
         );
@@ -105,15 +115,29 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 this.card.prices.map((price) => price.onceSettled?.()),
             );
         }
+        const container = this.getContainer();
+        if (!container) return;
+        const cards = container.querySelectorAll(
+            `merch-card[variant="${this.card.variant}"]`,
+        );
+
+        /* Set small font size button class if button text is too long */
+        const CTA_LONG_TEXT_CHAR_THRESHOLD = 34;
+        cards.forEach((card) => {
+            card.classList.remove('small-font-size-button');
+            const ctas = card.querySelectorAll(
+                '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]',
+            );
+            ctas.forEach((cta) => {
+                const isLong =
+                    cta.textContent.trim().length >
+                    CTA_LONG_TEXT_CHAR_THRESHOLD;
+                cta.classList.toggle('small-font-size-button', isLong);
+            });
+        });
 
         if (Media.isDesktopOrUp) {
-            const container = this.getContainer();
-            if (!container) return;
-
             requestAnimationFrame(() => {
-                const cards = container.querySelectorAll(
-                    `merch-card[variant="${this.card.variant}"]`,
-                );
                 cards.forEach((card) => card.variantLayout?.syncHeights?.());
             });
         }
@@ -230,8 +254,9 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 <div class="description">
                     <slot name="body-xs"></slot>
                 </div>
-                <div class="price">
+                <div class="price-container">
                     <slot name="price"></slot>
+                    <slot name="callout-content"></slot>
                 </div>
                 <div class="cta">
                     <slot name="cta"></slot>
@@ -246,9 +271,9 @@ export class SimplifiedPricingExpress extends VariantLayout {
             --merch-card-simplified-pricing-express-width: 365px;
             --merch-card-simplified-pricing-express-padding: 24px;
             --merch-card-simplified-pricing-express-padding-mobile: 16px;
-            --merch-card-simplified-pricing-express-price-font-size: 28px;
+            --merch-card-simplified-pricing-express-price-font-size: 22px;
             --merch-card-simplified-pricing-express-price-font-weight: 700;
-            --merch-card-simplified-pricing-express-price-line-height: 36.4px;
+            --merch-card-simplified-pricing-express-price-line-height: 28.6px;
             --merch-card-simplified-pricing-express-price-currency-font-size: 22px;
             --merch-card-simplified-pricing-express-price-currency-font-weight: 700;
             --merch-card-simplified-pricing-express-price-currency-line-height: 28.6px;
@@ -292,11 +317,11 @@ export class SimplifiedPricingExpress extends VariantLayout {
         }
 
         :host([variant='simplified-pricing-express']) .badge-wrapper {
-            padding: 4px 12px;
+            padding: 4px 24px;
             border-radius: 8px 8px 0 0;
             text-align: center;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 700;
             line-height: 15.6px;
             color: var(--spectrum-gray-800);
             position: relative;
@@ -370,7 +395,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
             .badge-wrapper {
             border: none;
             margin-bottom: -6px;
-            padding-bottom: 6px;
+            padding-bottom: 10px;
         }
 
         :host([variant='simplified-pricing-express'][gradient-border='true'])
@@ -465,11 +490,21 @@ export class SimplifiedPricingExpress extends VariantLayout {
             flex-direction: column;
         }
 
-        :host([variant='simplified-pricing-express']) .price {
+        :host([variant='simplified-pricing-express']) .price-container {
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
             margin-top: auto;
+        }
+
+        :host([variant='simplified-pricing-express']) [slot='callout-content'] {
+            font-size: 12px;
+            font-weight: 400;
+            font-style: normal;
+            line-height: 18px;
+            color: var(--spectrum-gray-800);
+            background: transparent;
+            margin-top: 2px;
         }
 
         /* Desktop only - Fixed heights for alignment */
@@ -564,7 +599,6 @@ export class SimplifiedPricingExpress extends VariantLayout {
             :host([variant='simplified-pricing-express']) .header {
                 position: relative;
                 justify-content: space-between;
-                align-items: center;
                 gap: 8px;
             }
 

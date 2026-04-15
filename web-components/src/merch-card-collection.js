@@ -19,12 +19,24 @@ import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
-const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 20000;
+const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 30000;
 
 const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
     plans: ['four-merch-cards'],
     plansThreeColumns: ['three-merch-cards'],
+    product: ['four-merch-cards'],
+    productTwoColumns: ['two-merch-cards'],
+    productThreeColumns: ['three-merch-cards'],
+    segment: ['four-merch-cards'],
+    segmentTwoColumns: ['two-merch-cards'],
+    segmentThreeColumns: ['three-merch-cards'],
+    'special-offers': ['three-merch-cards'],
+    image: ['three-merch-cards'],
+    'mini-compare-chart': ['three-merch-cards'],
+    'mini-compare-chartTwoColumns': ['two-merch-cards'],
+    'mini-compare-chart-mweb': ['three-merch-cards'],
+    'mini-compare-chart-mwebTwoColumns': ['two-merch-cards'],
 };
 
 const SIDENAV_AUTOCLOSE = {
@@ -149,7 +161,7 @@ export class MerchCardCollection extends LitElement {
             window.scrollY || document.documentElement.scrollTop;
 
         const children = [...this.children].filter(
-            (child) => child.tagName === 'MERCH-CARD',
+            (child) => child.tagName === 'MERCH-CARD' && !child.failed,
         );
 
         if (children.length === 0) return;
@@ -314,7 +326,7 @@ export class MerchCardCollection extends LitElement {
     }
 
     #fail(error, details = {}, dispatch = true) {
-        this.#log.error(`merch-card-collection: ${error}`, details);
+        this.#log?.error(`merch-card-collection: ${error}`, details);
         this.failed = true;
         if (!dispatch) return;
         this.dispatchEvent(
@@ -400,6 +412,12 @@ export class MerchCardCollection extends LitElement {
                             ) !== -1
                         )
                             continue;
+                        if (!fragment.references[reference.identifier]?.value) {
+                            self.#log?.error(
+                                `Reference not found for card: ${reference.identifier}`,
+                            );
+                            continue;
+                        }
                         payload.cards.push(
                             fragment.references[reference.identifier].value,
                         );
@@ -420,6 +438,11 @@ export class MerchCardCollection extends LitElement {
                                 ...fragment.references,
                                 ...data.references,
                             };
+                        } else {
+                            self.#log?.error(
+                                `Override fragment ${overrideId} not found or invalid:`,
+                            );
+                            continue;
                         }
                     }
                     if (!value?.fields) continue;
@@ -460,6 +483,10 @@ export class MerchCardCollection extends LitElement {
         aemFragment.addEventListener(EVENT_AEM_LOAD, async (event) => {
             this.limit = 27; // number of cards per "page"
             this.data = normalizePayload(event.detail, this.#overrideMap);
+            if (event.detail.variationId) {
+                this.setAttribute('variation-id', event.detail.variationId);
+            }
+
             const { cards, hierarchy } = this.data;
 
             const rootDefaultChild =
@@ -546,8 +573,22 @@ export class MerchCardCollection extends LitElement {
                 variant === 'plans' &&
                 cards.length === 3 &&
                 !cards.some((card) => card.fields?.size?.includes('wide'))
-            )
+            ) {
                 nmbOfColumns = 'ThreeColumns';
+            } else if (
+                (variant === 'segment' || variant === 'product') &&
+                (cards.length === 2 || cards.length === 3)
+            ) {
+                nmbOfColumns =
+                    cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
+            } else if (
+                (variant === 'mini-compare-chart' ||
+                    variant === 'mini-compare-chart-mweb') &&
+                cards.length <= 2
+            ) {
+                nmbOfColumns = cards.length === 1 ? '' : 'TwoColumns';
+            }
+
             if (variant) {
                 this.classList.add(
                     'merch-card-collection',

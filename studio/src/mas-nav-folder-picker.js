@@ -120,7 +120,6 @@ export class MasNavFolderPicker extends LitElement {
             this.disabledFolders.add('ccd');
             this.disabledFolders.add('commerce');
             this.disabledFolders.add('docs');
-            this.disabledFolders.add('nala');
         } else {
             this.disabledFolders.delete('adobe-home');
             this.disabledFolders.delete('ccd');

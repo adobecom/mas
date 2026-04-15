@@ -16,6 +16,11 @@ export const CHECKOUT_CTA_TEXTS = {
     select: 'Select',
     'see-all-plans-and-pricing': 'See all plans & pricing details',
     'get-for-free': 'Get for free',
+    'seven-day-trial': 'Start 7-day free trial',
+    'fourteen-day-trial': 'Start 14-day free trial',
+    'thirty-day-trial': 'Start 30-day free trial',
+    'six-month-free': 'Get 6-months Premium free',
+    'save-today': 'Save today',
 };
 export const WCS_LANDSCAPE_PUBLISHED = 'PUBLISHED';
 export const WCS_LANDSCAPE_DRAFT = 'DRAFT';
@@ -39,6 +44,11 @@ export const ANALYTICS_LINK_IDS = [
     'upgrade-now',
     'what-is-included',
     'get-for-free',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
+    'six-month-free',
+    'save-today',
 ];
 
 export const CONSUMER_FEATURE_FLAGS = {
@@ -105,6 +115,8 @@ export const STATUS_MODIFIED = 'MODIFIED';
 export const PAGE_NAMES = {
     WELCOME: 'welcome',
     PLACEHOLDERS: 'placeholders',
+    SETTINGS: 'settings',
+    SETTINGS_EDITOR: 'settings-editor',
     CONTENT: 'content',
     VERSION: 'version',
     FRAGMENT_EDITOR: 'fragment-editor',
@@ -163,7 +175,13 @@ export const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedL
 
 export const VARIATION_TYPES = {
     LOCALE: 'Locale',
+    GROUPED: 'Grouped variation',
 };
+
+export const PZN_FOLDER = 'pzn';
+
+/** CQ tag path for the country root under pzn (exception: not “personalization-only” for filters). */
+export const PZN_COUNTRY_TAG_PATH_PREFIX = '/content/cq:tags/mas/pzn/country';
 
 export const SURFACES = {
     ACOM: {
@@ -200,9 +218,35 @@ export const QUICK_ACTION = {
     SAVE: 'save',
     DUPLICATE: 'duplicate',
     PUBLISH: 'publish',
+    UNPUBLISH: 'unpublish',
     CANCEL: 'cancel',
     COPY: 'copy',
     LOCK: 'lock',
     DISCARD: 'discard',
     DELETE: 'delete',
+    LOC: 'loc',
 };
+
+export const FILTER_TYPE = {
+    TEMPLATE: 'template',
+    MARKET_SEGMENT: 'marketSegment',
+    CUSTOMER_SEGMENT: 'customerSegment',
+    PRODUCT: 'product',
+};
+
+export const FRAGMENT_STATUS = {
+    PUBLISHED: 'PUBLISHED',
+    DRAFT: 'DRAFT',
+    MODIFIED: 'MODIFIED',
+};
+
+export const TABLE_TYPE = {
+    CARDS: 'cards',
+    COLLECTIONS: 'collections',
+    PLACEHOLDERS: 'placeholders',
+};
+
+export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];
+
+/** Base URL for Odin preview fragment-by-path checks (e.g. fil_PH .json endpoint). */
+export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';

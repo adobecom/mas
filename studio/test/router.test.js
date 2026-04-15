@@ -2,8 +2,10 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { Router } from '../src/router.js';
 import Store from '../src/store.js';
-import { PAGE_NAMES } from '../src/constants.js';
+import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
+import { ReactiveStore } from '../src/reactivity/reactive-store.js';
+import { Fragment } from '../src/aem/fragment.js';
 
 describe('Router', () => {
     let sandbox;
@@ -12,15 +14,39 @@ describe('Router', () => {
     let originalPageValue;
     let originalFragmentsInEdit;
     let originalTranslationProjectsInEdit;
+    let originalSelectedCards;
+    let originalSelectedCollections;
+    let originalSelectedPlaceholders;
+    let originalTargetLocales;
+    let originalSearch;
+    let originalFilters;
+    let originalViewMode;
+    let originalFragmentEditorLoading;
+    let originalFragmentEditorId;
+    let originalSettingsCreating;
+    let originalSettingsFragmentId;
+    let originalProfile;
+    let originalUsers;
+    let originalUsersLoadedMeta;
 
     const createMockFragment = (hasChanges = false) => {
-        const fragment = { id: 'test-id', fields: [], hasChanges };
+        const fragment = new Fragment({ id: 'test-id', fields: [] });
+        fragment.hasChanges = hasChanges;
         const store = new FragmentStore(fragment);
         return store;
     };
 
-    const createTranslationProjectStore = (hasChanges = false) => {
-        const fragment = { id: 'test-translation-id', fields: [], hasChanges };
+    const createTranslationProjectStore = (hasChanges = false, fieldValues = {}) => {
+        const fragment = new Fragment({
+            id: 'test-translation-id',
+            fields: [
+                { name: 'fragments', values: fieldValues.fragments || [] },
+                { name: 'placeholders', values: fieldValues.placeholders || [] },
+                { name: 'collections', values: fieldValues.collections || [] },
+                { name: 'targetLocales', values: fieldValues.targetLocales || [] },
+            ],
+        });
+        fragment.hasChanges = hasChanges;
         const store = new FragmentStore(fragment);
         return store;
     };
@@ -34,8 +60,27 @@ describe('Router', () => {
         originalPageValue = Store.page.value;
         originalFragmentsInEdit = Store.fragments.inEdit.get();
         originalTranslationProjectsInEdit = Store.translationProjects.inEdit.get();
+        originalSelectedCards = Store.translationProjects.selectedCards.value;
+        originalSelectedCollections = Store.translationProjects.selectedCollections.value;
+        originalSelectedPlaceholders = Store.translationProjects.selectedPlaceholders.value;
+        originalTargetLocales = Store.translationProjects.targetLocales.value;
+        originalSearch = structuredClone(Store.search.get());
+        originalFilters = structuredClone(Store.filters.get());
+        originalViewMode = Store.viewMode.get();
+        originalFragmentEditorLoading = Store.fragmentEditor.loading.get();
+        originalFragmentEditorId = Store.fragmentEditor.fragmentId.get();
+        originalSettingsCreating = Store.settings.creating.get();
+        originalSettingsFragmentId = Store.settings.fragmentId.get();
+        originalProfile = structuredClone(Store.profile.get());
+        originalUsers = structuredClone(Store.users.get());
+        originalUsersLoadedMeta = Store.users.getMeta('loaded');
+        Store.users.setMeta('loaded', true);
         Store.fragments.inEdit.set(null);
         Store.translationProjects.inEdit.set(null);
+        Store.translationProjects.selectedCards.set([]);
+        Store.translationProjects.selectedCollections.set([]);
+        Store.translationProjects.selectedPlaceholders.set([]);
+        Store.translationProjects.targetLocales.set([]);
     });
 
     afterEach(() => {
@@ -43,7 +88,21 @@ describe('Router', () => {
         Store.page.value = originalPageValue;
         Store.fragments.inEdit.set(originalFragmentsInEdit);
         Store.translationProjects.inEdit.set(originalTranslationProjectsInEdit);
-        document.querySelectorAll('mas-fragment-editor, mas-translation-editor').forEach((el) => el.remove());
+        Store.translationProjects.selectedCards.set(originalSelectedCards);
+        Store.translationProjects.selectedCollections.set(originalSelectedCollections);
+        Store.translationProjects.selectedPlaceholders.set(originalSelectedPlaceholders);
+        Store.translationProjects.targetLocales.set(originalTargetLocales);
+        Store.search.set(originalSearch);
+        Store.filters.set(originalFilters);
+        Store.viewMode.set(originalViewMode);
+        Store.fragmentEditor.loading.set(originalFragmentEditorLoading);
+        Store.fragmentEditor.fragmentId.set(originalFragmentEditorId);
+        Store.settings.creating.set(originalSettingsCreating);
+        Store.settings.fragmentId.set(originalSettingsFragmentId);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
+        Store.users.setMeta('loaded', originalUsersLoadedMeta);
+        document.querySelectorAll('mas-fragment-editor, mas-translation-editor, mas-settings').forEach((el) => el.remove());
     });
 
     describe('getActiveEditor', () => {
@@ -79,16 +138,17 @@ describe('Router', () => {
             expect(result.shouldCheckUnsavedChanges).to.be.true;
         });
 
-        it('should return shouldCheckUnsavedChanges false when fragment editor is loading', () => {
+        it('should return shouldCheckUnsavedChanges true when fragment editor has changes even while loading', () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.fragments.inEdit.set(createMockFragment(true));
+            Store.fragmentEditor.loading.set(true);
             const mockEditor = document.createElement('mas-fragment-editor');
-            mockEditor.isLoading = true;
             document.body.appendChild(mockEditor);
             const result = router.getActiveEditor();
             expect(result.editor).to.equal(mockEditor);
             expect(result.hasChanges).to.be.true;
-            expect(result.shouldCheckUnsavedChanges).to.be.false;
+            expect(result.shouldCheckUnsavedChanges).to.be.true;
+            Store.fragmentEditor.loading.set(false);
         });
 
         it('should return translation editor when on translation editor page', () => {
@@ -98,6 +158,7 @@ describe('Router', () => {
             mockEditor.isLoading = false;
             document.body.appendChild(mockEditor);
             const result = router.getActiveEditor();
+            expect(result.editor).to.equal(mockEditor);
             expect(result.hasChanges).to.be.false;
             expect(result.shouldCheckUnsavedChanges).to.be.false;
         });
@@ -154,6 +215,138 @@ describe('Router', () => {
             expect(result.editor).to.be.null;
             expect(result.hasChanges).to.be.null;
             expect(result.shouldCheckUnsavedChanges).to.be.null;
+        });
+    });
+
+    describe('translationEditorHasUnsavedChanges', () => {
+        it('should return false when inEdit is null', () => {
+            Store.translationProjects.inEdit.set(null);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.false;
+        });
+
+        it('should return true when inEdit.hasChanges is true', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(true));
+            Store.translationProjects.selectedCards.set([]);
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set([]);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
+        });
+
+        it('should return true when selectedCards length differs from saved fragments', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(false, { fragments: ['card1'] }));
+            Store.translationProjects.selectedCards.set(['card1', 'card2']);
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set([]);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
+        });
+
+        it('should return true when selectedCollections length differs from saved collections', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(false, { collections: [] }));
+            Store.translationProjects.selectedCards.set([]);
+            Store.translationProjects.selectedCollections.set(['col1']);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set([]);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
+        });
+
+        it('should return true when selectedPlaceholders length differs from saved placeholders', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(false, { placeholders: ['ph1', 'ph2'] }));
+            Store.translationProjects.selectedCards.set([]);
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set(['ph1']);
+            Store.translationProjects.targetLocales.set([]);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
+        });
+
+        it('should return true when targetLocales length differs from saved targetLocales', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(false, { targetLocales: [] }));
+            Store.translationProjects.selectedCards.set([]);
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set(['de_DE']);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
+        });
+
+        it('should return true when set sizes differ due to duplicates in current values', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(false, { fragments: ['card1', 'card2'] }));
+            Store.translationProjects.selectedCards.set(['card1', 'card1']);
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set([]);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
+        });
+
+        it('should return true when an item in current set is not in saved set', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(false, { fragments: ['card1', 'card2'] }));
+            Store.translationProjects.selectedCards.set(['card1', 'card3']);
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set([]);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
+        });
+
+        it('should return false when all values match saved data', () => {
+            Store.translationProjects.inEdit.set(
+                createTranslationProjectStore(false, {
+                    fragments: ['card1', 'card2'],
+                    collections: ['col1'],
+                    placeholders: ['ph1'],
+                    targetLocales: ['de_DE', 'fr_FR'],
+                }),
+            );
+            Store.translationProjects.selectedCards.set(['card1', 'card2']);
+            Store.translationProjects.selectedCollections.set(['col1']);
+            Store.translationProjects.selectedPlaceholders.set(['ph1']);
+            Store.translationProjects.targetLocales.set(['de_DE', 'fr_FR']);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.false;
+        });
+
+        it('should return false when all values are empty and match', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(false));
+            Store.translationProjects.selectedCards.set([]);
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set([]);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.false;
+        });
+
+        it('should handle null/undefined current values gracefully', () => {
+            Store.translationProjects.inEdit.set(createTranslationProjectStore(false, { fragments: ['card1'] }));
+            Store.translationProjects.selectedCards.value = null;
+            Store.translationProjects.selectedCollections.set([]);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set([]);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
+        });
+
+        it('should detect changes in multiple fields simultaneously', () => {
+            Store.translationProjects.inEdit.set(
+                createTranslationProjectStore(false, {
+                    fragments: ['card1'],
+                    collections: ['col1'],
+                    placeholders: [],
+                    targetLocales: ['en_US'],
+                }),
+            );
+            Store.translationProjects.selectedCards.set(['card1', 'card2']); // Changed
+            Store.translationProjects.selectedCollections.set(['col1']);
+            Store.translationProjects.selectedPlaceholders.set([]);
+            Store.translationProjects.targetLocales.set(['en_US']);
+            const result = router.translationEditorHasUnsavedChanges();
+            expect(result).to.be.true;
         });
     });
 
@@ -224,17 +417,18 @@ describe('Router', () => {
             expect(Store.page.value).to.equal(PAGE_NAMES.TRANSLATION_EDITOR);
         });
 
-        it('should skip unsaved changes check when editor is loading', async () => {
+        it('should prompt for unsaved changes even when editor is loading', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.fragments.inEdit.set(createMockFragment(true));
+            Store.fragmentEditor.loading.set(true);
             const mockEditor = {
-                isLoading: true,
-                promptDiscardChanges: sandbox.stub().resolves(false),
+                promptDiscardChanges: sandbox.stub().resolves(true),
             };
             sandbox.stub(document, 'querySelector').withArgs('mas-fragment-editor').returns(mockEditor);
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
-            expect(mockEditor.promptDiscardChanges.called).to.be.false;
+            expect(mockEditor.promptDiscardChanges.calledOnce).to.be.true;
             expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
+            Store.fragmentEditor.loading.set(false);
         });
 
         it('should clear fragmentId when leaving fragment editor', async () => {
@@ -299,6 +493,51 @@ describe('Router', () => {
         });
     });
 
+    describe('navigateToVariationsTable', () => {
+        it('should navigate to variations table', async () => {
+            await router.navigateToVariationsTable('test-id');
+            expect(Store.fragments.expandedId.get()).to.equal('test-id');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+            expect(Store.renderMode.get()).to.equal('table');
+        });
+
+        it('should error if no fragmentId provided', async () => {
+            const consoleSpy = sandbox.stub(console, 'error');
+            await router.navigateToVariationsTable(null);
+            expect(consoleSpy.calledWith('Fragment ID is required for navigation')).to.be.true;
+        });
+    });
+
+    describe('navigateToFragmentEditor', () => {
+        it('should navigate to fragment editor', async () => {
+            await router.navigateToFragmentEditor('test-id');
+            expect(Store.fragmentEditor.fragmentId.get()).to.equal('test-id');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+            expect(Store.viewMode.get()).to.equal('editing');
+        });
+
+        it('should set locale if provided', async () => {
+            Store.filters.value = { locale: 'en_US' };
+            await router.navigateToFragmentEditor('test-id', { locale: 'fr_FR' });
+            expect(Store.search.get().region).to.equal('fr_FR');
+        });
+    });
+
+    describe('navigateToTranslationEditor', () => {
+        it('should navigate to translation editor', async () => {
+            await router.navigateToTranslationEditor();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATION_EDITOR);
+        });
+
+        it('should set prefill data if provided', async () => {
+            await router.navigateToTranslationEditor({ targetLocale: 'de_DE', fragmentPath: '/path' });
+            expect(Store.translationProjects.prefill.get()).to.deep.equal({
+                targetLocale: 'de_DE',
+                fragmentPath: '/path',
+            });
+        });
+    });
+
     describe('isNavigating flag', () => {
         it('should set isNavigating to true during navigation', async () => {
             Store.page.value = PAGE_NAMES.WELCOME;
@@ -332,6 +571,69 @@ describe('Router', () => {
             sandbox.stub(document, 'querySelector').withArgs('mas-fragment-editor').returns(mockEditor);
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
             expect(router.isNavigating).to.be.false;
+        });
+    });
+
+    describe('settings route and editor branches', () => {
+        it('should return settings editor metadata on settings page', () => {
+            Store.page.value = PAGE_NAMES.SETTINGS;
+            const settingsEditor = document.createElement('mas-settings');
+            settingsEditor.hasUnsavedChanges = true;
+            document.body.appendChild(settingsEditor);
+
+            const result = router.getActiveEditor();
+            expect(result.editor).to.equal(settingsEditor);
+            expect(result.hasChanges).to.equal(true);
+            expect(result.shouldCheckUnsavedChanges).to.equal(true);
+        });
+
+        it('should return settings editor metadata on settings-editor page', () => {
+            Store.page.value = PAGE_NAMES.SETTINGS_EDITOR;
+            const settingsEditor = document.createElement('mas-settings');
+            settingsEditor.hasUnsavedChanges = false;
+            document.body.appendChild(settingsEditor);
+
+            const result = router.getActiveEditor();
+            expect(result.editor).to.equal(settingsEditor);
+            expect(result.hasChanges).to.equal(false);
+            expect(result.shouldCheckUnsavedChanges).to.equal(false);
+        });
+
+        it('should clear settings route state when returning from settings-editor to settings', async () => {
+            Store.profile.set({ email: 'power@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-POWERUSERS'] }]);
+            Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
+            Store.settings.creating.set(true);
+            Store.settings.fragmentId.set('setting-id');
+
+            await router.navigateToPage(PAGE_NAMES.SETTINGS)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.SETTINGS);
+            expect(Store.settings.creating.get()).to.equal(false);
+            expect(Store.settings.fragmentId.get()).to.equal(null);
+        });
+
+        it('should clear settings route state when leaving settings pages', async () => {
+            Store.page.set(PAGE_NAMES.SETTINGS);
+            Store.settings.creating.set(true);
+            Store.settings.fragmentId.set('setting-id');
+
+            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+            expect(Store.settings.creating.get()).to.equal(false);
+            expect(Store.settings.fragmentId.get()).to.equal(null);
+        });
+
+        it('should block unauthorized settings page navigation', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            Store.profile.set({});
+            Store.users.set([]);
+            Store.settings.creating.set(true);
+            Store.settings.fragmentId.set('setting-id');
+
+            await router.navigateToPage(PAGE_NAMES.SETTINGS)();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            expect(Store.settings.creating.get()).to.equal(false);
+            expect(Store.settings.fragmentId.get()).to.equal(null);
         });
     });
 });

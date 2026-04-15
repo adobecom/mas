@@ -1,6 +1,7 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_DRAFT, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import { ReactiveStore } from './reactivity/reactive-store.js';
 import { EditorContextStore } from './reactivity/editor-context-store.js';
+import { SettingsStore } from './settings/settings-store.js';
 
 let editorContextInstance = null;
 
@@ -11,6 +12,7 @@ const Store = {
             loading: new ReactiveStore(true),
             firstPageLoaded: new ReactiveStore(false),
             data: new ReactiveStore([]),
+            hasMore: new ReactiveStore(false),
         },
         recentlyUpdated: {
             loading: new ReactiveStore(true),
@@ -22,6 +24,8 @@ const Store = {
     },
     fragmentEditor: {
         fragmentId: new ReactiveStore(null),
+        translatedLocales: new ReactiveStore(null), // Array of locale codes like ['en_US', 'fr_FR'] or null
+        loading: new ReactiveStore(false),
         get editorContext() {
             if (!editorContextInstance) {
                 editorContextInstance = new EditorContextStore(null);
@@ -46,7 +50,7 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+    filters: new ReactiveStore({ locale: 'en_US', personalizationFilterEnabled: false }, filtersValidator),
     sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     viewMode: new ReactiveStore('default'),
@@ -69,7 +73,8 @@ const Store = {
         },
         preview: new ReactiveStore(null),
     },
-    profile: new ReactiveStore(),
+    settings: new SettingsStore(),
+    profile: new ReactiveStore({}),
     createdByUsers: new ReactiveStore([]),
     users: new ReactiveStore([]),
     confirmDialogOptions: new ReactiveStore(null),
@@ -112,9 +117,29 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         translationProjectId: new ReactiveStore(null),
-        allFragments: new ReactiveStore([]),
-        fragmentsByPaths: new ReactiveStore(new Map()),
+        prefill: new ReactiveStore(null),
+
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()), // should not be modified directly, use setCardVariationsByPaths to modify
+        groupedVariationsData: new ReactiveStore(new Map()),
+
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+
+        targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
+        projectType: new ReactiveStore(null),
     },
 };
 
@@ -125,8 +150,12 @@ const Store = {
  * @returns {object}
  */
 function filtersValidator(value) {
-    if (!value) return { locale: 'en_US', tags: undefined };
+    if (!value) return { locale: 'en_US', tags: undefined, personalizationFilterEnabled: false };
     if (!value.locale) value.locale = 'en_US';
+
+    const rawPzn = value.personalizationFilterEnabled;
+    value.personalizationFilterEnabled =
+        rawPzn === true || rawPzn === 'true' || (typeof rawPzn === 'string' && rawPzn.toLowerCase() === 'true');
 
     // Ensure tags is always a string
     if (!value.tags) {
@@ -148,6 +177,8 @@ function pageValidator(value) {
         PAGE_NAMES.WELCOME,
         PAGE_NAMES.CONTENT,
         PAGE_NAMES.PLACEHOLDERS,
+        PAGE_NAMES.SETTINGS,
+        PAGE_NAMES.SETTINGS_EDITOR,
         PAGE_NAMES.VERSION,
         PAGE_NAMES.FRAGMENT_EDITOR,
         PAGE_NAMES.PROMOTIONS,
@@ -207,9 +238,12 @@ export function toggleSelection(id) {
  */
 export function editFragment(store, x = 0) {
     const fragmentId = store.get().id;
+    const fragmentPath = store.get().path;
     const storeFragments = Store.fragments.list.data.get();
     const defaultInStore = storeFragments.includes(store);
-    const variationInStore = storeFragments.find((s) => s.get().references?.find((r) => r.id === fragmentId));
+    const variationInStore = storeFragments.find((s) =>
+        s.get().references?.find((r) => r.id === fragmentId || (fragmentPath && r.path === fragmentPath)),
+    );
     if (!defaultInStore && !variationInStore) {
         Store.fragments.list.data.set((prev) => [store, ...prev]);
     }

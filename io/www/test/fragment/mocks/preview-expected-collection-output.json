@@ -12,7 +12,8 @@
             "d5b3180a-41e3-4df1-adb4-73daa8f392b5",
             "1c0b2890-567a-4771-933c-84b032c8e51d",
             "/content/dam/mas/sandbox/en_US/individual-plans-cloud"
-        ]
+        ],
+        "variations": []
     },
     "variations": [],
     "tags": [],
@@ -188,6 +189,10 @@
                     "icon": "https://main--milo--adobecom.hlx.page/drafts/astatescu/icons/camera.svg",
                     "cards": ["049231fd-0c45-4ef5-8792-7fa2dcd5005a", "c6727147-7992-4ca4-b566-819c52b0a585"],
                     "collections": []
+                },
+                "settings": {
+                    "secureLabel": "Secure transaction",
+                    "displayPlanType": true
                 }
             }
         },
@@ -206,6 +211,10 @@
                     "label": "All",
                     "cards": ["c6727147-7992-4ca4-b566-819c52b0a585", "049231fd-0c45-4ef5-8792-7fa2dcd5005a"],
                     "collections": []
+                },
+                "settings": {
+                    "secureLabel": "Secure transaction",
+                    "displayPlanType": true
                 }
             }
         }
@@ -334,6 +343,11 @@
                     ]
                 }
             ]
+        },
+        {
+            "fieldName": "collections",
+            "identifier": "/content/dam/mas/sandbox/en_US/individual-plans-cloud",
+            "referencesTree": []
         }
     ],
     "priceLiterals": {},

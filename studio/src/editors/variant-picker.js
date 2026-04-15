@@ -8,6 +8,8 @@ export const VARIANT_NAMES = {
     PLANS_V2: 'plans-v2',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
+    PRODUCT: 'product',
+    SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
     SUGGESTED: 'ccd-suggested',
@@ -15,7 +17,13 @@ export const VARIANT_NAMES = {
     PROMOTED_PLANS: 'ah-promoted-plans',
     FRIES: 'fries',
     MINI: 'mini',
+    IMAGE: 'image',
+    MINI_COMPARE_CHART: 'mini-compare-chart',
+    MINI_COMPARE_CHART_MWEB: 'mini-compare-chart-mweb',
     SIMPLIFIED_PRICING_EXPRESS: 'simplified-pricing-express',
+    FULL_PRICING_EXPRESS: 'full-pricing-express',
+    HEADLESS: 'headless',
+    MEDIA: 'media',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -38,6 +46,13 @@ export const VARIANTS = [
         value: VARIANT_NAMES.PLANS_EDUCATION,
         surface: SURFACES.ACOM.name,
     },
+    {
+        label: 'Product',
+        value: VARIANT_NAMES.PRODUCT,
+        surface: SURFACES.ACOM.name,
+    },
+    { label: 'Segment', value: VARIANT_NAMES.SEGMENT, surface: SURFACES.ACOM.name },
+    { label: 'Media', value: VARIANT_NAMES.MEDIA, surface: SURFACES.ACOM.name },
     { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: SURFACES.CCD.name },
     {
         label: 'Special offers',
@@ -71,11 +86,43 @@ export const VARIANTS = [
         surface: SURFACES.CCD.name,
     },
     {
+        label: 'Image',
+        value: VARIANT_NAMES.IMAGE,
+        surface: SURFACES.ACOM.name,
+    },
+    {
         label: 'Full Pricing Express',
         value: 'full-pricing-express',
         surface: SURFACES.EXPRESS.name,
     },
+    {
+        label: 'Headless',
+        value: VARIANT_NAMES.HEADLESS,
+        surface: SURFACES.SANDBOX.name,
+    },
+    {
+        label: 'Mini Compare Chart',
+        value: VARIANT_NAMES.MINI_COMPARE_CHART,
+        surface: SURFACES.ACOM.name,
+    },
+    {
+        label: 'Mini Compare Chart Mweb',
+        value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
+        surface: SURFACES.ACOM.name,
+    },
 ];
+
+/** Flat tree-picker-compatible list of allowed variants, optionally filtered by surface. */
+export const getVariantTreeData = (surface) =>
+    VARIANTS.filter((v) => {
+        if (v.value === VARIANT_NAMES.ALL) return false;
+        if (!surface) return true;
+        if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
+        return v.surface === surface;
+    }).map((v) => ({
+        name: v.value,
+        label: v.label,
+    }));
 
 class VariantPicker extends LitElement {
     static styles = css`
@@ -117,7 +164,7 @@ class VariantPicker extends LitElement {
 
     render() {
         return html`<sp-picker
-            label="Card Variant"
+            label="Card Template"
             size="m"
             value=${this.value ?? this.defaultValue}
             .value=${this.value ?? this.defaultValue}

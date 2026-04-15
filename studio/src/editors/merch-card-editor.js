@@ -1963,15 +1963,6 @@ class MerchCardEditor extends LitElement {
         return ownValue === parentValue ? 'inherited' : 'overridden';
     }
 
-    renderQuantityOverrideIndicator() {
-        const qsOpeningTag = `<${QUANTITY_SELECT_TAG} `;
-        const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
-        const ownHtml = this.fragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
-        if (!ownHtml) return nothing;
-        if (ownHtml.startsWith(qsOpeningTag) && parentHtml.startsWith(qsOpeningTag)) return nothing;
-        return null;
-    }
-
     #getQuantitySelectValue(component, field, parentValues, currentValues) {
         return !component || component === field ? parentValues[field] : currentValues[field];
     }

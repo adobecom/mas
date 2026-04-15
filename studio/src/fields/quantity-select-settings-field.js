@@ -5,7 +5,7 @@ import { QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 const QUANTITY_EMPTY = `<${QUANTITY_SELECT_TAG}/>`;
 const QUANTITY_NOT_EMPTY = `<${QUANTITY_SELECT_TAG} title="" min="1" max="10" step="1"></${QUANTITY_SELECT_TAG}>`;
 
-export class QuantitySelectField extends LitElement {
+export class QuantitySelectSettingsField extends LitElement {
     static properties = {
         id: { type: String },
         label: { type: String },
@@ -22,7 +22,6 @@ export class QuantitySelectField extends LitElement {
         this.label = '';
         this.value = '';
         this.settingsDefaults = '';
-        this.disabled = false;
         this.indicatorTemplate = nothing;
         this.fieldIndicatorTemplate = nothing;
         this.handleQuantityFieldChange = () => {};
@@ -82,4 +81,4 @@ export class QuantitySelectField extends LitElement {
     }
 }
 
-customElements.define('quantity-select-settings-field', QuantitySelectField);
+customElements.define('quantity-select-settings-field', QuantitySelectSettingsField);

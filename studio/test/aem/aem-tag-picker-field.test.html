@@ -31,7 +31,10 @@
             import { expect } from '@esm-bundle/chai';
             import { fixture, oneEvent } from '@open-wc/testing-helpers/pure';
 
-            import { fromAttribute, toAttribute } from '../../src/aem/aem-tag-picker-field.js';
+            import '../../src/aem/aem-tag-picker-field.js';
+            import { fromAttribute, toAttribute } from '../../src/aem/tag-path-utils.js';
+            import { getCachedTagTitle } from '../../src/aem/tag-cache.js';
+            import { EVENT_OST_OFFER_SELECT } from '../../src/constants.js';
 
             import { delay, initElementFromTemplate } from '../utils.js';
 
@@ -512,6 +515,222 @@
                         expect(overlayTrigger.open).to.be.true;
                     });
                 });
+
+                describe('aem-tag-picker-field: product_code & OST', async () => {
+                    it('normalizes nested product_code leaf to include parent tag paths', async function () {
+                        const picker = initElementFromTemplate('tagPickerProductCode', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        const leaf = '/content/cq:tags/mas/product_code/apptype/mypac';
+                        const parent = '/content/cq:tags/mas/product_code/apptype';
+
+                        await picker.toggleTag(leaf);
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.have.members([parent, leaf]);
+                    });
+
+                    it('clears nested product_code selection when toggling leaf off again', async function () {
+                        const picker = initElementFromTemplate('tagPickerProductCode', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        const leaf = '/content/cq:tags/mas/product_code/apptype/mypac';
+
+                        await picker.toggleTag(leaf);
+                        await picker.updateComplete;
+                        await picker.toggleTag(leaf);
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.deep.equal([]);
+                    });
+
+                    it('applies OST offer with PAC paths when productArrangementCode matches taxonomy', async function () {
+                        const picker = initElementFromTemplate('tagPickerOstNoTop', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        const changePromise = oneEvent(picker, 'change');
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_OFFER_SELECT, {
+                                bubbles: true,
+                                detail: {
+                                    offerSelectorId: 'test-osi',
+                                    offer: {
+                                        product_code: 'apptype',
+                                        productArrangementCode: 'mypac',
+                                        offer_type: 'base',
+                                    },
+                                },
+                            }),
+                        );
+
+                        await changePromise;
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.include('/content/cq:tags/mas/product_code/apptype/mypac');
+                        expect(picker.value).to.include('/content/cq:tags/mas/offer_type/base');
+                    });
+
+                    it('uses product_code parent only when PAC has no matching tag', async function () {
+                        const picker = initElementFromTemplate('tagPickerOstNoTop', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        const changePromise2 = oneEvent(picker, 'change');
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_OFFER_SELECT, {
+                                bubbles: true,
+                                detail: {
+                                    offerSelectorId: 'test-osi',
+                                    offer: {
+                                        product_code: 'apptype',
+                                        productArrangementCode: 'nonexistent_pac',
+                                        offer_type: 'base',
+                                    },
+                                },
+                            }),
+                        );
+
+                        await changePromise2;
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.include('/content/cq:tags/mas/product_code/apptype');
+                        expect(picker.value).to.not.include('/content/cq:tags/mas/product_code/apptype/mypac');
+                    });
+
+                    it('getCachedTagTitle returns AEM title after tags load', async function () {
+                        const picker = initElementFromTemplate('tagPicker2', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        expect(getCachedTagTitle('/content/cq:tags/mas/status/draft')).to.equal('DRAFT');
+                    });
+
+                    it('OST: resolves tags when mas-commerce-service is missing (getService null, no inline PAC)', async function () {
+                        document.querySelectorAll('mas-commerce-service').forEach((el) => el.remove());
+
+                        const picker = initElementFromTemplate('tagPickerOstNoTop', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        const changePromise = oneEvent(picker, 'change');
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_OFFER_SELECT, {
+                                bubbles: true,
+                                detail: {
+                                    offerSelectorId: 'needs-service-for-pac',
+                                    offer: {
+                                        product_code: 'apptype',
+                                        offer_type: 'base',
+                                    },
+                                },
+                            }),
+                        );
+
+                        await changePromise;
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.include('/content/cq:tags/mas/offer_type/base');
+                        expect(picker.value).to.include('/content/cq:tags/mas/product_code/apptype');
+                        expect(picker.value).to.not.include('/content/cq:tags/mas/product_code/apptype/mypac');
+                    });
+
+                    it('OST: ignores incomplete commerce service (no resolveOfferSelectors)', async function () {
+                        document.querySelectorAll('mas-commerce-service').forEach((el) => el.remove());
+                        const incomplete = document.createElement('mas-commerce-service');
+                        incomplete.collectPriceOptions = () => [];
+                        document.body.appendChild(incomplete);
+
+                        const picker = initElementFromTemplate('tagPickerOstNoTop', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        const changePromise = oneEvent(picker, 'change');
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_OFFER_SELECT, {
+                                bubbles: true,
+                                detail: {
+                                    offerSelectorId: 'osi-incomplete-service',
+                                    offer: {
+                                        product_code: 'apptype',
+                                        offer_type: 'base',
+                                    },
+                                },
+                            }),
+                        );
+
+                        await changePromise;
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.include('/content/cq:tags/mas/product_code/apptype');
+                        incomplete.remove();
+                    });
+
+                    it('OST: survives collectPriceOptions throwing (catch path in PAC resolution)', async function () {
+                        document.querySelectorAll('mas-commerce-service').forEach((el) => el.remove());
+                        const throwingSvc = document.createElement('mas-commerce-service');
+                        throwingSvc.collectPriceOptions = () => {
+                            throw new Error('commerce unavailable');
+                        };
+                        throwingSvc.resolveOfferSelectors = () => [];
+                        document.body.appendChild(throwingSvc);
+
+                        const picker = initElementFromTemplate('tagPickerOstNoTop', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        const changePromise = oneEvent(picker, 'change');
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_OFFER_SELECT, {
+                                bubbles: true,
+                                detail: {
+                                    offerSelectorId: 'osi-throws',
+                                    offer: {
+                                        product_code: 'apptype',
+                                        offer_type: 'base',
+                                    },
+                                },
+                            }),
+                        );
+
+                        await changePromise;
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.include('/content/cq:tags/mas/offer_type/base');
+                        expect(picker.value).to.include('/content/cq:tags/mas/product_code/apptype');
+                        throwingSvc.remove();
+                    });
+
+                    it('OST: empty product_code adds no product_code tag paths', async function () {
+                        document.querySelectorAll('mas-commerce-service').forEach((el) => el.remove());
+
+                        const picker = initElementFromTemplate('tagPickerOstNoTop', this.test.title);
+                        await picker.loadTags();
+                        await picker.updateComplete;
+
+                        const changePromise = oneEvent(picker, 'change');
+                        document.dispatchEvent(
+                            new CustomEvent(EVENT_OST_OFFER_SELECT, {
+                                bubbles: true,
+                                detail: {
+                                    offerSelectorId: 'osi-empty-pc',
+                                    offer: {
+                                        product_code: '',
+                                        offer_type: 'promo',
+                                    },
+                                },
+                            }),
+                        );
+
+                        await changePromise;
+                        await picker.updateComplete;
+
+                        expect(picker.value).to.include('/content/cq:tags/mas/offer_type/promo');
+                        expect(picker.value.filter((p) => p.includes('/content/cq:tags/mas/product_code/'))).to.have.length(0);
+                    });
+                });
             });
         </script>
         <main>
@@ -583,6 +802,17 @@
                 selection="checkbox-tags"
                 display-value
             ></aem-tag-picker-field>
+        </template>
+        <template id="tagPickerProductCode">
+            <aem-tag-picker-field
+                namespace="/content/cq:tags/mas"
+                top="product_code"
+                label="Product code"
+                multiple
+            ></aem-tag-picker-field>
+        </template>
+        <template id="tagPickerOstNoTop">
+            <aem-tag-picker-field namespace="/content/cq:tags/mas" label="Tags"></aem-tag-picker-field>
         </template>
     </body>
 </html>

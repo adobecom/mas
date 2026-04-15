@@ -66,17 +66,20 @@ function getFieldType(fieldName) {
  *
  * @param {string} baseOsi - Base offer selector ID
  * @param {string|null|undefined} trialOsi - Trial offer selector ID (omit for single-CTA)
+ * @param {Object} [options]
+ * @param {boolean} [options.includeTrial=true] - Whether to include the trial CTA
+ * @param {string} [options.buyNowLabel='Buy now'] - Label for the primary CTA
  * @returns {string} - `<p slot="footer">…</p>` HTML
  */
-export function buildReleaseCtas(baseOsi, trialOsi) {
+export function buildReleaseCtas(baseOsi, trialOsi, { includeTrial = true, buyNowLabel = 'Buy now' } = {}) {
     const parts = [];
-    if (trialOsi) {
+    if (trialOsi && includeTrial) {
         parts.push(
             `<a is="checkout-link" data-wcs-osi="${trialOsi}" data-analytics-id="free-trial" class="secondary">Free trial</a>`,
         );
     }
     if (baseOsi) {
-        parts.push(`<a is="checkout-link" data-wcs-osi="${baseOsi}" data-analytics-id="buy-now">Buy now</a>`);
+        parts.push(`<a is="checkout-link" data-wcs-osi="${baseOsi}" data-analytics-id="buy-now">${buyNowLabel}</a>`);
     }
     return `<p slot="footer">${parts.join('')}</p>`;
 }
@@ -89,7 +92,7 @@ export function buildReleaseCtas(baseOsi, trialOsi) {
  * @returns {string}
  */
 export function buildReleasePrice(osi) {
-    return `<p><span is="inline-price" data-wcs-osi="${osi}"></span></p>`;
+    return `<span is="inline-price" data-wcs-osi="${osi}"></span>`;
 }
 
 /**

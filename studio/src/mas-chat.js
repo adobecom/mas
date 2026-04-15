@@ -752,9 +752,15 @@ export class MasChat extends LitElement {
 
         enrichedConfig = await enrichConfigWithMcsMnemonic(enrichedConfig, this.selectedReleaseProduct);
 
-        enrichedConfig.ctas = buildReleaseCtas(enrichedConfig.osi, enrichedConfig.trialOsi);
+        const isCatalog = enrichedConfig.variant === 'catalog';
+        const isPlans = enrichedConfig.variant === 'plans' || enrichedConfig.variant === 'plans-students' || enrichedConfig.variant === 'plans-education';
 
-        if (enrichedConfig.osi) {
+        enrichedConfig.ctas = buildReleaseCtas(enrichedConfig.osi, enrichedConfig.trialOsi, {
+            includeTrial: !isPlans,
+            buyNowLabel: isPlans ? 'Select' : 'Buy now',
+        });
+
+        if (enrichedConfig.osi && !isCatalog) {
             enrichedConfig.prices = buildReleasePrice(enrichedConfig.osi);
         }
 
@@ -852,6 +858,7 @@ export class MasChat extends LitElement {
                         title: newFragment.title,
                         path: newFragment.path,
                         variant: cardConfig.variant,
+                        fragmentData: newFragment,
                     },
                 });
             } catch (error) {

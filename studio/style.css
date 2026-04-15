@@ -1359,17 +1359,43 @@ span[is='inline-price'].placeholder-failed .price-error-content {
 }
 
 .product-catalog-filters .filter-menu {
-    --mod-actionbutton-background-color-default: var(--spectrum-gray-50, #ffffff);
-    --mod-actionbutton-border-color-default: var(--spectrum-gray-300);
-    --mod-actionbutton-edge-to-visual-only: 16px;
-    --mod-actionbutton-height: 36px;
-    --mod-actionbutton-border-radius: 8px;
-    --mod-actionbutton-font-size: 14px;
-    border-radius: 8px;
+    border: 1px solid var(--spectrum-gray-300);
+    border-radius: 12px;
+    justify-content: start;
+}
+
+.product-catalog-filters .filter-menu sp-icon-chevron-down {
+    order: 2;
 }
 
 .product-catalog-filters .filter-menu.filter-menu-active {
     --mod-actionbutton-border-color-default: var(--spectrum-blue-700, #1473e6);
+    border-color: var(--spectrum-blue-700, #1473e6);
+}
+
+.filter-popover {
+    padding: 12px;
+}
+
+.checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 150px;
+    padding-inline-start: 4px;
+}
+
+.checkbox-list sp-checkbox {
+    display: flex;
+    white-space: nowrap;
+}
+
+.filter-popover-empty {
+    color: var(--spectrum-gray-600);
+    font-size: 14px;
+    margin: 0;
 }
 
 .product-catalog-active-filters {

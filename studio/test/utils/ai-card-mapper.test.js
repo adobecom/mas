@@ -792,11 +792,24 @@ describe('ai-card-mapper', () => {
             expect(html.startsWith('<p slot="footer">')).to.be.true;
             expect(html.endsWith('</p>')).to.be.true;
         });
+
+        it('plans: omits trial CTA and uses "Select" label', () => {
+            const html = buildReleaseCtas('base-osi', 'trial-osi', { includeTrial: false, buyNowLabel: 'Select' });
+            expect(html).to.not.include('free-trial');
+            expect(html).to.include('>Select<');
+            expect(html).to.not.include('>Buy now<');
+        });
+
+        it('catalog: omits trial CTA when includeTrial is false', () => {
+            const html = buildReleaseCtas('base-osi', 'trial-osi', { includeTrial: false });
+            expect(html).to.not.include('free-trial');
+            expect(html).to.include('>Buy now<');
+        });
     });
 
     describe('buildReleasePrice', () => {
-        it('builds OST-faithful inline-price HTML', () => {
-            expect(buildReleasePrice('A1B2C3')).to.equal('<p><span is="inline-price" data-wcs-osi="A1B2C3"></span></p>');
+        it('builds inline-price span without outer p wrapper', () => {
+            expect(buildReleasePrice('A1B2C3')).to.equal('<span is="inline-price" data-wcs-osi="A1B2C3"></span>');
         });
 
         it('emits no data-template attribute', () => {

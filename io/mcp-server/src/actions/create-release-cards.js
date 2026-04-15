@@ -59,14 +59,16 @@ async function fetchMCSProduct(arrangementCode, aosUrl, aosApiKey, locale = 'en_
 
 function generateCtaHtml(product, osi, variant) {
     const checkoutAttrs = `is="checkout-link" data-wcs-osi="${osi}" data-checkout-workflow="UCv2" data-checkout-workflow-step="email"`;
+    const isPlans = variant === 'plans' || variant === 'plans-students' || variant === 'plans-education';
     const ctaStyle = variant === 'catalog' ? 'accent' : 'primary';
-    if (product.hasTrial && product.hasBuy) {
-        return `<a ${checkoutAttrs} class="con-button secondary">Free trial</a> <a ${checkoutAttrs} class="con-button ${ctaStyle}">Buy now</a>`;
+    const buyLabel = isPlans ? 'Select' : 'Buy now';
+    if (!isPlans && product.hasTrial && product.hasBuy) {
+        return `<a ${checkoutAttrs} class="con-button secondary">Free trial</a> <a ${checkoutAttrs} class="con-button ${ctaStyle}">${buyLabel}</a>`;
     }
-    if (product.hasTrial) {
+    if (!isPlans && product.hasTrial) {
         return `<a ${checkoutAttrs} class="con-button ${ctaStyle}">Start free trial</a>`;
     }
-    return `<a ${checkoutAttrs} class="con-button ${ctaStyle}">Buy now</a>`;
+    return `<a ${checkoutAttrs} class="con-button ${ctaStyle}">${buyLabel}</a>`;
 }
 
 async function main(params) {
@@ -129,8 +131,6 @@ async function main(params) {
 
         if (osi) {
             baseFields.osi = osi;
-            const perUnit = product.customer_segment === 'TEAM' ? 'true' : 'false';
-            baseFields.prices = `<span is="inline-price" data-wcs-osi="${osi}" data-display-per-unit="${perUnit}" data-display-recurrence="true" data-display-tax="false"></span>`;
         }
 
         // Deterministic tag mapping from AOS offer data
@@ -147,6 +147,11 @@ async function main(params) {
         const results = [];
         for (const variant of variants) {
             const fields = { ...baseFields };
+            const isCatalog = variant === 'catalog';
+            const perUnit = product.customer_segment === 'TEAM' ? 'true' : 'false';
+            if (osi && !isCatalog) {
+                fields.prices = `<span is="inline-price" data-wcs-osi="${osi}" data-display-per-unit="${perUnit}" data-display-recurrence="true" data-display-tax="false"></span>`;
+            }
             if (osi) {
                 fields.ctas = generateCtaHtml(product, osi, variant);
             }

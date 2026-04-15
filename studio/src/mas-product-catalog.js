@@ -424,32 +424,32 @@ class MasProductCatalog extends LitElement {
     }
 
     facetMenuTemplate(facetState, label, facet, options) {
-        const isActive = this[facetState].size > 0;
+        const active = this[facetState];
+        const isActive = active.size > 0;
+        const buttonLabel = isActive ? `${label} (${active.size})` : label;
         return html`
-            <sp-action-menu
-                size="m"
-                placement="bottom-start"
-                label=${label}
-                class="filter-menu ${isActive ? 'filter-menu-active' : ''}"
-            >
-                <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
-                <span slot="label">${label}</span>
-                ${options.length === 0
-                    ? html`<sp-menu-item disabled>No values</sp-menu-item>`
-                    : options.map(
-                          (value) => html`
-                              <sp-menu-item
-                                  ?selected=${this[facetState].has(value)}
-                                  @click=${(event) => {
-                                      event.stopPropagation();
-                                      this.toggleFilter(facetState, value);
-                                  }}
-                              >
-                                  ${value}
-                              </sp-menu-item>
-                          `,
-                      )}
-            </sp-action-menu>
+            <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
+                <sp-action-button slot="trigger" class="filter-menu ${isActive ? 'filter-menu-active' : ''}">
+                    ${buttonLabel}
+                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                </sp-action-button>
+                <sp-popover slot="click-content" class="filter-popover">
+                    <div class="checkbox-list">
+                        ${options.length === 0
+                            ? html`<p class="filter-popover-empty">No values</p>`
+                            : options.map(
+                                  (value) => html`
+                                      <sp-checkbox
+                                          value=${value}
+                                          ?checked=${active.has(value)}
+                                          @change=${() => this.toggleFilter(facetState, value)}
+                                          >${value}</sp-checkbox
+                                      >
+                                  `,
+                              )}
+                    </div>
+                </sp-popover>
+            </overlay-trigger>
         `;
     }
 

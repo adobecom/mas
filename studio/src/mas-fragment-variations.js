@@ -6,7 +6,6 @@ import { createPreviewDataWithParent } from './reactivity/source-fragment-store.
 import { styles } from './mas-fragment-variations.css.js';
 import { extractLocaleFromPath } from './utils.js';
 import router from './router.js';
-import ReactiveController from './reactivity/reactive-controller.js';
 import './aem/aem-tag-picker-field.js';
 
 const styleElement = document.createElement('style');

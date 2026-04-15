@@ -10,6 +10,7 @@ import {
     getSurfaceLocales,
     getRegionLocales,
     getLanguageName,
+    isVariationPathInParentLocaleFamily,
 } from '../../src/fragment/locales.js';
 
 describe('locales', function () {
@@ -273,6 +274,43 @@ describe('locales', function () {
             for (const surface of surfacesWithHKRegion) {
                 expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.equal('zh_TW');
             }
+        });
+    });
+
+    describe('isVariationPathInParentLocaleFamily', function () {
+        const basePath = (localeSegment, rest = 'folder/fragment') => `/content/dam/mas/acom/${localeSegment}/${rest}`;
+
+        it('should return true when variation path uses the same locale as selected', function () {
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_US', basePath('en_US'))).to.equal(true);
+        });
+
+        it('should return true when variation path uses a regional variant of the selected default locale', function () {
+            // en_US on acom includes en_AE, en_CA, etc. (see ACOM en + US regions)
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_US', basePath('en_AE'))).to.equal(true);
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_US', basePath('en_CA'))).to.equal(true);
+        });
+
+        it('should return true for en_GB regional paths when en_GB is selected', function () {
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_GB', basePath('en_AU'))).to.equal(true);
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_GB', basePath('en_IN'))).to.equal(true);
+        });
+
+        it('should return false when variation locale is not in the selected locale family', function () {
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_US', basePath('fr_FR'))).to.equal(false);
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_GB', basePath('en_US'))).to.equal(false);
+        });
+
+        it('should return false when surface or variation path is missing', function () {
+            expect(isVariationPathInParentLocaleFamily('', 'en_US', basePath('en_US'))).to.equal(false);
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_US', '')).to.equal(false);
+        });
+
+        it('should return false when selectedLocale cannot be parsed as a locale code', function () {
+            expect(isVariationPathInParentLocaleFamily('acom', 'invalid', basePath('en_US'))).to.equal(false);
+        });
+
+        it('should return false when variation path does not match DAM path shape', function () {
+            expect(isVariationPathInParentLocaleFamily('acom', 'en_US', 'not-a-dam-path')).to.equal(false);
         });
     });
 });

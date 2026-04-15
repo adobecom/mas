@@ -26,6 +26,26 @@ export default class StudioPage {
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');
         this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);
+        this.groupedVariationsTab = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab[value="grouped"]`,
+            );
+        this.groupedVariationsTabPanel = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"]`,
+            );
+        this.localeVariationsTabPanel = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="locale"]`,
+            );
+        this.regionalVariationsTable = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="locale"] mas-fragment-table`,
+            );
+        this.groupedVariationsTable = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"] mas-fragment-table`,
+            );
         this.tableViewRowByFragmentId = (fragmentId) => this.tableView.locator(`sp-table-row[value="${fragmentId}"]`);
         this.tableViewPathCell = (row) => row.locator('sp-table-cell.name');
         this.tableViewTitleCell = (row) => row.locator('sp-table-cell.title');

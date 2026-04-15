@@ -724,3 +724,108 @@ describe('common.js - fetchOdin', () => {
         });
     });
 });
+
+describe('common.js - processBatchWithConcurrency', () => {
+    let common;
+    let setTimeoutStub;
+
+    beforeEach(function () {
+        this.timeout(5000);
+
+        const mockLogger = {
+            info: sinon.stub(),
+            error: sinon.stub(),
+            warn: sinon.stub(),
+        };
+
+        setTimeoutStub = sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+
+        common = proxyquire('../src/common.js', {
+            '@adobe/aio-sdk': {
+                Core: {
+                    Logger: sinon.stub().returns(mockLogger),
+                },
+            },
+        });
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should process all items across batches and return results in order', async () => {
+        const items = [10, 20, 30, 40, 50];
+        const processor = (item) => Promise.resolve(item * 2);
+
+        const results = await common.processBatchWithConcurrency(items, 2, processor);
+
+        expect(results).to.deep.equal([20, 40, 60, 80, 100]);
+    });
+
+    it('should not throttle when rpsLimit is not provided', async () => {
+        await common.processBatchWithConcurrency([1, 2, 3], 3, (item) => Promise.resolve(item));
+
+        expect(setTimeoutStub).not.to.have.been.called;
+    });
+
+    it('should sleep the remaining time when a batch completes before minBatchMs', async () => {
+        // batchSize=5, rpsLimit=10 → minBatchMs = 500ms; elapsed = 100ms → wait = 400ms
+        const dateNowStub = sinon.stub(Date, 'now');
+        dateNowStub.onCall(0).returns(0); // batchStart
+        dateNowStub.onCall(1).returns(100); // after Promise.all
+
+        await common.processBatchWithConcurrency([1, 2, 3, 4, 5], 5, (item) => Promise.resolve(item), 10);
+
+        expect(setTimeoutStub).to.have.been.calledOnce;
+        expect(setTimeoutStub.firstCall.args[1]).to.equal(400);
+    });
+
+    it('should not sleep when a batch takes longer than minBatchMs', async () => {
+        // batchSize=5, rpsLimit=10 → minBatchMs = 500ms; elapsed = 600ms → no sleep needed
+        const dateNowStub = sinon.stub(Date, 'now');
+        dateNowStub.onCall(0).returns(0); // batchStart
+        dateNowStub.onCall(1).returns(600); // after Promise.all
+
+        await common.processBatchWithConcurrency([1, 2, 3, 4, 5], 5, (item) => Promise.resolve(item), 10);
+
+        expect(setTimeoutStub).not.to.have.been.called;
+    });
+
+    it('should call onBatchCompleted with the current batch results after each batch', async () => {
+        const items = [1, 2, 3, 4];
+        const processor = (item) => Promise.resolve({ value: item, success: true });
+        const onBatchCompleted = sinon.stub().resolves();
+
+        await common.processBatchWithConcurrency(items, 2, processor, null, onBatchCompleted);
+
+        expect(onBatchCompleted).to.have.been.calledTwice;
+        expect(onBatchCompleted.firstCall.args[0]).to.deep.equal([
+            { value: 1, success: true },
+            { value: 2, success: true },
+        ]);
+        expect(onBatchCompleted.secondCall.args[0]).to.deep.equal([
+            { value: 3, success: true },
+            { value: 4, success: true },
+        ]);
+    });
+
+    it('should throttle once per batch across multiple batches', async () => {
+        // 4 items, batchSize=2, rpsLimit=10 → minBatchMs = 200ms
+        // batch 1: elapsed=50ms → wait=150ms; batch 2: elapsed=50ms → wait=150ms
+        const dateNowStub = sinon.stub(Date, 'now');
+        dateNowStub.onCall(0).returns(0); // batch 1 start
+        dateNowStub.onCall(1).returns(50); // batch 1 end
+        dateNowStub.onCall(2).returns(300); // batch 2 start
+        dateNowStub.onCall(3).returns(350); // batch 2 end
+
+        const results = await common.processBatchWithConcurrency([1, 2, 3, 4], 2, (item) => Promise.resolve(item), 10);
+
+        expect(results).to.deep.equal([1, 2, 3, 4]);
+        expect(setTimeoutStub).to.have.been.calledTwice;
+        expect(setTimeoutStub.firstCall.args[1]).to.equal(150);
+        expect(setTimeoutStub.secondCall.args[1]).to.equal(150);
+    });
+});

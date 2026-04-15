@@ -112,52 +112,16 @@ async function fetchRequestInfosPhase1(initContext) {
 }
 
 /**
- * Full fragment fetch + default-locale variation + region locale. Result is the value of `promises.fetchFragment`
- * (pipeline registers this via the transformer `init` return). Phase 1 is also exposed as `promises.requestInfos`.
+ * Phase 1 only: first fragment fetch + path parse. Result is `promises.fetchFragment` (and `promises.requestInfos`).
+ * Default-language variation + region locale run in the `defaultLanguageVariation` transformer (before promotions).
  */
-async function runFetchFragmentInit(initContext) {
-    const { id, locale, promises } = initContext;
-    if (id && locale) {
-        const phase1Promise = fetchRequestInfosPhase1(initContext);
-        if (promises) {
-            promises.requestInfos = phase1Promise;
-        }
-
-        const early = await phase1Promise;
-        if (early.status !== 200) {
-            return early;
-        }
-
-        const { body: earlyBody, parsedLocale, surface, fragmentPath } = early;
-        let context = { ...initContext, body: earlyBody, parsedLocale, surface, fragmentPath };
-        const variationResult = await getDefaultLanguageVariation(context);
-        /* c8 ignore next 3 — default-locale fetch errors are covered via pipeline */
-        if (variationResult.status != 200) {
-            return variationResult;
-        }
-        context = { ...context, body: variationResult.body };
-        const defaultLocale = context.defaultLocale;
-        const regionLocale = computeRegionLocale({ ...context, defaultLocale });
-        return {
-            ...initContext,
-            status: 200,
-            body: variationResult.body,
-            parsedLocale,
-            surface,
-            fragmentPath,
-            defaultLocale,
-            locale: regionLocale,
-            regionLocale,
-        };
-    }
-    return {
-        status: 400,
-        message: 'requested parameters id & locale are not present',
-    };
-}
-
 function init(initContext) {
-    return runFetchFragmentInit(initContext);
+    const { promises } = initContext;
+    const phase1Promise = fetchRequestInfosPhase1(initContext);
+    if (promises) {
+        promises.requestInfos = phase1Promise;
+    }
+    return phase1Promise;
 }
 
 async function fetchFragment(context) {
@@ -171,9 +135,6 @@ async function fetchFragment(context) {
         parsedLocale: response.parsedLocale,
         surface: response.surface,
         fragmentPath: response.fragmentPath,
-        defaultLocale: response.defaultLocale,
-        locale: response.locale,
-        regionLocale: response.regionLocale,
     };
 }
 

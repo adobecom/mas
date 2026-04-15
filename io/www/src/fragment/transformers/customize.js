@@ -13,12 +13,12 @@ function skimFragmentFromReferences(fragment) {
 }
 
 /**
- * Pipeline: await `fetchFragment` init. Fallback: `getDefaultLanguageVariation` + `regionLocale` like `runFetchFragmentInit`.
+ * Pipeline: await `defaultLanguageVariation` init (after `fetchFragment` phase 1). Fallback: same helpers as that transformer.
  * @param {object} [requestInfosCached] - Result of `getRequestInfos(context)` from `customize`; avoids a second call on the fallback path.
  */
 async function resolveFragmentInit(context, requestInfosCached) {
-    if (context?.promises?.fetchFragment) {
-        return await context.promises.fetchFragment;
+    if (context?.promises?.defaultLanguageVariation) {
+        return await context.promises.defaultLanguageVariation;
     }
     const { body, surface, fragmentPath, parsedLocale } = requestInfosCached ?? (await getRequestInfos(context));
     const variationContext = { ...context, surface, fragmentPath, parsedLocale, body };

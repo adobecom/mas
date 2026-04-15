@@ -115,7 +115,7 @@ async function previewFragment(id, options) {
 async function previewStudioFragment(body, options) {
     let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
     const { locale, surface } = options;
-    const fragmentPath = options.fragmentPath || '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app';
+    const fragmentPath = options.fragmentPath ?? body?.path;
     const phase1 = {
         status: 200,
         body: context.body,

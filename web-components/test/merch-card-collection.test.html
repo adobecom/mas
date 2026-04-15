@@ -4932,5 +4932,20 @@
                 <aem-fragment fragment="fragment-individual-plans-collection" />
             </merch-card-collection>
         </template>
+        <template
+            id="override-failing-category"
+            title="Collection category override failing"
+        >
+            <merch-card-collection
+                overrides="1c0b2890-567a-4771-933c-84b032c8e51d:nonexistent-uuid"
+            >
+                <aem-fragment fragment="fragment-individual-plans-collection" />
+            </merch-card-collection>
+        </template>
+        <template id="collection-missing-ref" title="Collection missing ref">
+            <merch-card-collection>
+                <aem-fragment fragment="collection-missing-ref" />
+            </merch-card-collection>
+        </template>
     </body>
 </html>

@@ -161,7 +161,7 @@ export class MerchCardCollection extends LitElement {
             window.scrollY || document.documentElement.scrollTop;
 
         const children = [...this.children].filter(
-            (child) => child.tagName === 'MERCH-CARD',
+            (child) => child.tagName === 'MERCH-CARD' && !child.failed,
         );
 
         if (children.length === 0) return;
@@ -326,7 +326,7 @@ export class MerchCardCollection extends LitElement {
     }
 
     #fail(error, details = {}, dispatch = true) {
-        this.#log.error(`merch-card-collection: ${error}`, details);
+        this.#log?.error(`merch-card-collection: ${error}`, details);
         this.failed = true;
         if (!dispatch) return;
         this.dispatchEvent(
@@ -412,6 +412,12 @@ export class MerchCardCollection extends LitElement {
                             ) !== -1
                         )
                             continue;
+                        if (!fragment.references[reference.identifier]?.value) {
+                            self.#log?.error(
+                                `Reference not found for card: ${reference.identifier}`,
+                            );
+                            continue;
+                        }
                         payload.cards.push(
                             fragment.references[reference.identifier].value,
                         );
@@ -432,6 +438,11 @@ export class MerchCardCollection extends LitElement {
                                 ...fragment.references,
                                 ...data.references,
                             };
+                        } else {
+                            self.#log?.error(
+                                `Override fragment ${overrideId} not found or invalid:`,
+                            );
+                            continue;
                         }
                     }
                     if (!value?.fields) continue;

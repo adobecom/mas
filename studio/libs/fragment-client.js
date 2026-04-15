@@ -104,7 +104,7 @@ async function previewFragment(id, options) {
     // Use Freyja endpoint with token if explicitly provided
     if (context.freyjaToken) {
         context.preview = {
-            url: FREYJA_PREVIEW_URL,
+            url: freyjaUrl(aemEnv),
             authToken: context.freyjaToken,
         };
     }

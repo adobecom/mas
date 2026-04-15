@@ -222,6 +222,12 @@ describe('locales', function () {
             const acomCcLocales = getSurfaceLocales('acom-cc');
             expect(acomCcLocales.length).to.equal(acomLocales.length);
         });
+
+        it('should return same locales for acom-dc as acom', function () {
+            const acomLocales = getSurfaceLocales('acom');
+            const acomDcLocales = getSurfaceLocales('acom-dc');
+            expect(acomDcLocales.length).to.equal(acomLocales.length);
+        });
     });
 
     describe('getLanguageName', function () {

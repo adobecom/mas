@@ -1,6 +1,6 @@
 import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
-import { computeRegionLocale, getDefaultLanguageVariation } from './fetchFragment.js';
+import { computeRegionLocale, getDefaultLanguageVariation } from './defaultLanguageVariation.js';
 
 const PZN_FOLDER = '/pzn/';
 

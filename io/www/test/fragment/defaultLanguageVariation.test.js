@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { computeRegionLocale } from '../../src/fragment/transformers/fetchFragment.js';
+import { computeRegionLocale } from '../../src/fragment/transformers/defaultLanguageVariation.js';
 
 describe('computeRegionLocale', function () {
     it('should compute well typical use cases', function () {

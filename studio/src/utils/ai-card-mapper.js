@@ -51,65 +51,45 @@ function getFieldType(fieldName) {
 }
 
 /**
- * Rewrites a `ctas` HTML blob so the Buy and Trial anchors carry distinct
- * `data-wcs-osi` attributes. The plans web component already supports per-anchor
- * OSIs at render time; this helper just ensures the right value lands on each
- * anchor before the fragment is created.
+ * Returns the text label for a release CTA anchor, mirroring OST's path-based
+ * placeholder logic from `studio/src/rte/ost.js:153-157`.
+ * On acom/sandbox/nala surfaces the RTE placeholder token is used (resolved at
+ * render time by commerce-service); on all other surfaces literal text is used.
  *
- * Anchors are matched by `data-analytics-id`:
- *   - `data-analytics-id="buy-now"` → `baseOsi`
- *   - `data-analytics-id="free-trial"` → `trialOsi`
- *
- * If `trialOsi` is missing/empty, the trial anchor is removed entirely (along
- * with any whitespace-only siblings) so the rendered card has only the Buy CTA
- * — no orphaned Free trial button pointing at the wrong offer.
- *
- * Anchors with neither analytics id are left untouched. Non-string inputs return
- * the input as-is.
- *
- * @param {string} ctasHtml - The original ctas HTML value
- * @param {string} baseOsi - OSI to stamp onto the buy-now anchor
- * @param {string} [trialOsi] - OSI to stamp onto the free-trial anchor
- * @returns {string} - Rewritten ctas HTML (or the original if no rewrite was needed)
+ * @param {'buy-now'|'free-trial'} analyticsId
+ * @param {string} currentPath - surface path (e.g. 'acom', 'sandbox', 'nala')
+ * @returns {string}
  */
-export function applyDualOsiToCtas(ctasHtml, baseOsi, trialOsi) {
-    if (typeof ctasHtml !== 'string' || !ctasHtml) return ctasHtml;
-    if (typeof DOMParser === 'undefined') return ctasHtml;
-
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = ctasHtml;
-
-    const buyAnchor = wrapper.querySelector('a[data-analytics-id="buy-now"]');
-    const trialAnchor = wrapper.querySelector('a[data-analytics-id="free-trial"]');
-
-    if (!buyAnchor && !trialAnchor) return ctasHtml;
-
-    if (buyAnchor) {
-        if (baseOsi) buyAnchor.setAttribute('data-wcs-osi', baseOsi);
-        buyAnchor.className = 'con-button accent';
+/**
+ * Builds the `ctas` HTML for a release card.
+ * Free trial anchor comes first (if present) with secondary style, Buy now second.
+ *
+ * @param {string} baseOsi - Base offer selector ID
+ * @param {string|null|undefined} trialOsi - Trial offer selector ID (omit for single-CTA)
+ * @returns {string} - `<p slot="footer">…</p>` HTML
+ */
+export function buildReleaseCtas(baseOsi, trialOsi) {
+    const parts = [];
+    if (trialOsi) {
+        parts.push(
+            `<a is="checkout-link" data-wcs-osi="${trialOsi}" data-analytics-id="free-trial" class="secondary">Free trial</a>`,
+        );
     }
-
-    if (trialAnchor) {
-        if (trialOsi) {
-            trialAnchor.setAttribute('data-wcs-osi', trialOsi);
-            trialAnchor.className = 'con-button primary-outline';
-        } else {
-            // No trial offer picked — drop the anchor entirely so the card
-            // only shows Buy now. Also strip a leading/trailing whitespace
-            // text node so we don't leave a stray space behind.
-            const prev = trialAnchor.previousSibling;
-            const next = trialAnchor.nextSibling;
-            if (prev && prev.nodeType === Node.TEXT_NODE && !prev.textContent.trim()) {
-                prev.remove();
-            }
-            if (next && next.nodeType === Node.TEXT_NODE && !next.textContent.trim()) {
-                next.remove();
-            }
-            trialAnchor.remove();
-        }
+    if (baseOsi) {
+        parts.push(`<a is="checkout-link" data-wcs-osi="${baseOsi}" data-analytics-id="buy-now">Buy now</a>`);
     }
+    return `<p slot="footer">${parts.join('')}</p>`;
+}
 
-    return wrapper.innerHTML;
+/**
+ * Builds the `prices` HTML for a release card, byte-identical to what OST
+ * would emit — no data-template attribute (OST omits it for the default price type).
+ *
+ * @param {string} osi - Base offer selector ID
+ * @returns {string}
+ */
+export function buildReleasePrice(osi) {
+    return `<p><span is="inline-price" data-wcs-osi="${osi}"></span></p>`;
 }
 
 /**
@@ -130,10 +110,7 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
     // Map variant
     fields.push({ name: 'variant', type: 'text', values: [variant] });
 
-    // Pull the OSI pair out up-front so the loop below can leave them alone
-    // and the ctas rewrite has access to both values.
     const baseOsi = aiConfig.osi;
-    const trialOsi = aiConfig.trialOsi;
 
     // Map each field based on AI config and Milo mapping
     for (const [fieldName, value] of Object.entries(aiConfig)) {
@@ -165,20 +142,8 @@ export function mapAIConfigToFragmentFields(aiConfig, variant) {
     }
 
     // Re-emit osi as a top-level field so the merch-card render fallback sees it.
-    // trialOsi is NOT an AEM model field — the trial offer is already embedded in
-    // the ctas HTML via applyDualOsiToCtas below.
     if (baseOsi) {
         fields.push({ name: 'osi', type: 'text', values: [baseOsi] });
-    }
-
-    // For plans variants, stamp distinct data-wcs-osi attributes onto the
-    // buy-now and free-trial anchors inside the ctas HTML so each CTA resolves
-    // to its own offer at render time.
-    if (variant?.startsWith('plans') && baseOsi) {
-        const ctasField = fields.find((field) => field.name === 'ctas');
-        if (ctasField && Array.isArray(ctasField.values) && ctasField.values.length > 0) {
-            ctasField.values = [applyDualOsiToCtas(ctasField.values[0], baseOsi, trialOsi)];
-        }
     }
 
     return fields;
@@ -350,7 +315,6 @@ const VARIANT_REQUIRED_FIELDS = {
  */
 export async function enrichConfigWithMcsMnemonic(config, selectedProduct = null) {
     if (!config || typeof config !== 'object') return config;
-    if (Array.isArray(config.mnemonics) && config.mnemonics.length > 0) return config;
 
     let product = selectedProduct;
     if (!product && config.arrangementCode) {

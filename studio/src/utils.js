@@ -397,3 +397,15 @@ export function replaceLocaleInPath(fragmentPath, newLocale) {
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
 }
+
+export function normalizeFragmentForCache(fragmentData) {
+    if (!fragmentData) return fragmentData;
+    const { fields, ...rest } = fragmentData;
+    if (Array.isArray(fields)) return fragmentData;
+    const normalizedFields = Object.entries(fields || {}).map(([name, value]) => ({
+        name,
+        multiple: Array.isArray(value),
+        values: Array.isArray(value) ? value : [value],
+    }));
+    return { ...rest, fields: normalizedFields };
+}

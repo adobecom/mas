@@ -14,12 +14,21 @@
 export function extractJSON(responseText) {
     if (!responseText) return null;
 
-    const jsonBlockMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (jsonBlockMatch) {
         try {
             return JSON.parse(jsonBlockMatch[1]);
         } catch (error) {
             console.error('Failed to parse JSON from code block:', error);
+        }
+    }
+
+    const bareMatch = responseText.match(/(\{[\s\S]*\})/);
+    if (bareMatch) {
+        try {
+            return JSON.parse(bareMatch[1]);
+        } catch (error) {
+            // not valid JSON, fall through
         }
     }
 

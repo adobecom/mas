@@ -7,10 +7,16 @@ import './mas-operation-result.js';
 import './mas-chat-session-selector.js';
 import Store from './store.js';
 import router from './router.js';
-import { createFragmentFromAIConfig, createFragmentDataForAEM, enrichConfigWithMcsMnemonic } from './utils/ai-card-mapper.js';
+import {
+    createFragmentFromAIConfig,
+    createFragmentDataForAEM,
+    enrichConfigWithMcsMnemonic,
+    buildReleaseCtas,
+    buildReleasePrice,
+} from './utils/ai-card-mapper.js';
 import { executeOperationWithFeedback, shouldRequireConfirmation } from './utils/ai-operations-executor.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { showToast, getHashParam, extractSurfaceFromPath as extractSurface } from './utils.js';
+import { showToast, getHashParam, extractSurfaceFromPath as extractSurface, normalizeFragmentForCache } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING, SURFACES } from './constants.js';
 import { getDamPath } from './mas-repository.js';
 import { openOfferSelectorTool } from './rte/ost.js';
@@ -736,23 +742,32 @@ export class MasChat extends LitElement {
         const parentPath =
             options.parentPath || `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
 
-        // Stamp the latest dual-OSI selections from chat state onto the cardConfig if the
-        // AI did not already include them. This keeps the agentic release flow honest:
-        // even if the AI omits trialOsi from the release_cards payload, the chat-side
-        // value captured by the OST multi-select callback still flows through.
         let enrichedConfig = { ...cardConfig };
-        if (enrichedConfig.variant?.startsWith('plans')) {
-            if (!enrichedConfig.osi && this.selectedReleaseOsi) {
-                enrichedConfig.osi = this.selectedReleaseOsi;
-            }
-            if (!enrichedConfig.trialOsi && this.selectedReleaseTrialOsi) {
-                enrichedConfig.trialOsi = this.selectedReleaseTrialOsi;
-            }
-        } else if (!enrichedConfig.osi && this.selectedReleaseOsi) {
-            enrichedConfig.osi = this.selectedReleaseOsi;
-        }
+
+        // Studio is the sole author of all release card content. OSI values come
+        // unconditionally from chat state; all visible fields are built deterministically
+        // from MCS data and OST-faithful builders — the AI only supplies the variant.
+        enrichedConfig.osi = this.selectedReleaseOsi;
+        enrichedConfig.trialOsi = this.selectedReleaseTrialOsi;
 
         enrichedConfig = await enrichConfigWithMcsMnemonic(enrichedConfig, this.selectedReleaseProduct);
+
+        enrichedConfig.ctas = buildReleaseCtas(enrichedConfig.osi, enrichedConfig.trialOsi);
+
+        if (enrichedConfig.osi) {
+            enrichedConfig.prices = buildReleasePrice(enrichedConfig.osi);
+        }
+
+        const mcsDescription = this.getPreferredProductDescription(this.selectedReleaseProduct);
+        if (mcsDescription) {
+            enrichedConfig.description = mcsDescription;
+        }
+
+        const mcsName =
+            this.selectedReleaseProduct?.copy?.name || this.selectedReleaseProduct?.name || this.selectedReleaseProduct?.label;
+        if (mcsName) {
+            enrichedConfig.title = `<h3 slot="heading-xs">${mcsName}</h3>`;
+        }
 
         const fragmentData = createFragmentDataForAEM(enrichedConfig, enrichedConfig.variant, {
             title,
@@ -764,7 +779,7 @@ export class MasChat extends LitElement {
 
         const AemFragmentElement = customElements.get('aem-fragment');
         if (AemFragmentElement && newFragment) {
-            AemFragmentElement.cache.add(newFragment);
+            AemFragmentElement.cache.add(normalizeFragmentForCache(newFragment));
         }
 
         return newFragment;
@@ -787,6 +802,7 @@ export class MasChat extends LitElement {
         const productName =
             this.selectedReleaseProduct?.copy?.name ||
             this.selectedReleaseProduct?.name ||
+            this.selectedReleaseProduct?.label ||
             this.extractTitle(cardConfigs[0]) ||
             '';
 
@@ -806,13 +822,26 @@ export class MasChat extends LitElement {
         const parentPath =
             response.parentPath || `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
 
+        const RELEASE_FIELDS_TO_STRIP = [
+            'subtitle',
+            'badge',
+            'prices',
+            'description',
+            'title',
+            'mnemonics',
+            'ctas',
+            'osi',
+            'trialOsi',
+        ];
         const results = [];
         for (const cardConfig of cardConfigs) {
-            const title = `${productName || this.extractTitle(cardConfig)} - ${
-                cardConfig.variant?.charAt(0).toUpperCase() + cardConfig.variant?.slice(1)
+            const strippedConfig = { ...cardConfig };
+            for (const field of RELEASE_FIELDS_TO_STRIP) delete strippedConfig[field];
+            const title = `${productName || this.extractTitle(strippedConfig)} - ${
+                strippedConfig.variant?.charAt(0).toUpperCase() + strippedConfig.variant?.slice(1)
             }`;
             try {
-                const newFragment = await this.saveDraftToAEM(cardConfig, {
+                const newFragment = await this.saveDraftToAEM(strippedConfig, {
                     title,
                     parentPath,
                 });
@@ -1537,85 +1566,62 @@ export class MasChat extends LitElement {
     }
 
     async enrichReleaseConfirmationSummary(summary) {
-        const selectedProductDescription = this.getPreferredProductDescription(this.selectedReleaseProduct);
-        const selectedSegment = this.getPreferredReleaseSegment(summary);
-        if (selectedProductDescription) {
-            return {
-                ...summary,
-                product: {
-                    ...(this.selectedReleaseProduct || {}),
-                    ...(summary?.product || {}),
-                    description: selectedProductDescription,
-                },
-                segment: selectedSegment,
-            };
-        }
-
-        const arrangementCode =
-            summary?.product?.arrangement_code ?? summary?.product?.arrangementCode ?? summary?.product?.value ?? '';
-
-        if (!arrangementCode) {
-            return summary;
-        }
-
-        try {
-            const preferredDescriptionFromSummary = this.getPreferredProductDescription(summary.product);
-            if (preferredDescriptionFromSummary) {
-                return {
-                    ...summary,
-                    product: {
-                        ...summary.product,
-                        description: preferredDescriptionFromSummary,
-                    },
-                    segment: selectedSegment,
-                };
-            }
-
-            const productCatalog = await fetchProducts().catch(() => ({ products: [] }));
-            const matchingProduct = (productCatalog.products || []).find((product) => {
-                const productArrangementCode = product?.arrangement_code ?? product?.arrangementCode ?? product?.value;
-                return productArrangementCode === arrangementCode;
-            });
-
-            const catalogDescription = this.getPreferredProductDescription(matchingProduct, matchingProduct?.copy);
-            if (catalogDescription) {
-                return {
-                    ...summary,
-                    product: {
-                        ...summary.product,
-                        description: catalogDescription,
-                    },
-                    segment: selectedSegment,
-                };
-            }
-
-            const productDetail = await fetchProductDetail(arrangementCode).catch(() => null);
-            const mcsProduct = productDetail?.product;
-            if (mcsProduct) {
-                const mcsDescription = this.getPreferredProductDescription(mcsProduct, mcsProduct?.copy);
-                if (mcsDescription) {
-                    return {
-                        ...summary,
-                        product: {
-                            ...summary.product,
-                            description: mcsDescription,
-                        },
-                        segment: selectedSegment,
-                    };
+        if (!this.selectedReleaseProduct) {
+            const arrangementCode = summary?.product?.arrangement_code || summary?.product?.arrangementCode;
+            if (arrangementCode) {
+                const cached = this.recentReleaseProductsCache.find((p) => (p.arrangement_code || p.value) === arrangementCode);
+                if (cached) {
+                    this.selectedReleaseProduct = cached;
+                } else {
+                    try {
+                        const detail = await fetchProductDetail(arrangementCode);
+                        const raw = detail?.product || detail;
+                        if (raw) {
+                            this.selectedReleaseProduct = this.mapProductToChatCard(raw);
+                        }
+                    } catch {
+                        // best-effort — leave selectedReleaseProduct null
+                    }
                 }
             }
-
-            return {
-                ...summary,
-                segment: selectedSegment,
-            };
-        } catch (error) {
-            console.error('Failed to enrich release confirmation summary:', error);
-            return {
-                ...summary,
-                segment: selectedSegment,
-            };
         }
+
+        let description = this.getPreferredProductDescription(this.selectedReleaseProduct);
+
+        // The bulk product list (ost-products-read) omits description for some products.
+        // Fall back to the per-product detail endpoint which always includes full MCS copy.
+        if (!description) {
+            const arrangementCode =
+                this.selectedReleaseProduct?.arrangement_code ||
+                this.selectedReleaseProduct?.value ||
+                summary?.product?.arrangement_code ||
+                summary?.product?.arrangementCode;
+            if (arrangementCode) {
+                try {
+                    const detail = await fetchProductDetail(arrangementCode);
+                    const raw = detail?.product || detail;
+                    if (raw) {
+                        description = this.getPreferredProductDescription(raw, raw.copy);
+                        if (description && this.selectedReleaseProduct) {
+                            this.selectedReleaseProduct = { ...this.selectedReleaseProduct, description };
+                        }
+                    }
+                } catch {
+                    // best-effort
+                }
+            }
+        }
+
+        const segment = this.getPreferredReleaseSegment(summary);
+        return {
+            ...summary,
+            product: {
+                ...(this.selectedReleaseProduct || {}),
+                ...(summary?.product || {}),
+                description,
+            },
+            segment,
+        };
     }
 
     isProductSelectionStep(response) {
@@ -1775,7 +1781,15 @@ export class MasChat extends LitElement {
             }
         }
 
-        return candidates.sort((left, right) => right.length - left.length)[0] || '';
+        if (candidates.length === 0) return '';
+
+        const textLength = (html) => {
+            if (typeof DOMParser === 'undefined') return html.length;
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            return (doc.body.textContent || '').trim().length;
+        };
+
+        return candidates.sort((left, right) => textLength(right) - textLength(left))[0];
     }
 
     getPreferredReleaseSegment(summary) {

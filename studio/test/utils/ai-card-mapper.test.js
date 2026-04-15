@@ -5,10 +5,11 @@ import {
     createFragmentFromAIConfig,
     validateAIConfig,
     createFragmentDataForAEM,
-    applyDualOsiToCtas,
     extractTitleFromConfig,
     parseBadgeHtmlString,
     enrichConfigWithMcsMnemonic,
+    buildReleaseCtas,
+    buildReleasePrice,
 } from '../../src/utils/ai-card-mapper.js';
 import { TAG_MODEL_ID_MAPPING, CARD_MODEL_PATH } from '../../src/constants.js';
 
@@ -114,29 +115,6 @@ describe('ai-card-mapper', () => {
             expect(fields.find((f) => f.name === 'showSecureLabel')).to.be.undefined;
         });
 
-        it('should stamp distinct data-wcs-osi onto buy-now and free-trial anchors for plans variants', () => {
-            stubMerchCard();
-            const ctas =
-                '<p slot="footer">' +
-                '<a class="con-button accent" data-analytics-id="buy-now">Buy now</a>' +
-                '<a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>' +
-                '</p>';
-            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base-osi-123', trialOsi: 'trial-osi-456' }, 'plans');
-            const ctasField = fields.find((f) => f.name === 'ctas');
-            expect(ctasField).to.exist;
-            const html = ctasField.values[0];
-            expect(html).to.include('data-analytics-id="buy-now"');
-            expect(html).to.include('data-analytics-id="free-trial"');
-            expect(html).to.match(
-                /data-analytics-id="buy-now"[^>]*data-wcs-osi="base-osi-123"|data-wcs-osi="base-osi-123"[^>]*data-analytics-id="buy-now"/,
-            );
-            expect(html).to.match(
-                /data-analytics-id="free-trial"[^>]*data-wcs-osi="trial-osi-456"|data-wcs-osi="trial-osi-456"[^>]*data-analytics-id="free-trial"/,
-            );
-            expect(html).to.include('class="con-button accent"');
-            expect(html).to.include('class="con-button primary-outline"');
-        });
-
         it('should emit osi but not trialOsi as a top-level field (trialOsi is not an AEM model field)', () => {
             stubMerchCard();
             const fields = mapAIConfigToFragmentFields({ osi: 'base-osi-123', trialOsi: 'trial-osi-456' }, 'plans');
@@ -146,94 +124,14 @@ describe('ai-card-mapper', () => {
             expect(trialOsiField).to.be.undefined;
         });
 
-        it('should drop the free-trial anchor entirely when trialOsi is missing for plans variants', () => {
-            stubMerchCard();
-            const ctas =
-                '<p slot="footer">' +
-                '<a class="con-button accent" data-analytics-id="buy-now">Buy now</a> ' +
-                '<a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>' +
-                '</p>';
-            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base-osi-only' }, 'plans');
-            const ctasField = fields.find((f) => f.name === 'ctas');
-            const html = ctasField.values[0];
-            expect(html).to.include('data-analytics-id="buy-now"');
-            expect(html).to.not.include('data-analytics-id="free-trial"');
-            expect(html).to.not.include('Free trial');
-            expect(fields.find((f) => f.name === 'trialOsi')).to.be.undefined;
-        });
-
-        it('should leave anchors without data-analytics-id untouched', () => {
-            stubMerchCard();
-            const ctas = '<p slot="footer"><a class="con-button">Click me</a></p>';
-            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base', trialOsi: 'trial' }, 'plans');
-            const html = fields.find((f) => f.name === 'ctas').values[0];
-            expect(html).to.equal(ctas);
-        });
-
-        it('should not rewrite ctas for non-plans variants even when trialOsi is provided', () => {
+        it('should not rewrite ctas for non-plans non-catalog variants even when trialOsi is provided', () => {
             stubMerchCard();
             const ctas =
                 '<p slot="footer"><a data-analytics-id="buy-now">Buy</a><a data-analytics-id="free-trial">Trial</a></p>';
-            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base', trialOsi: 'trial' }, 'catalog');
+            const fields = mapAIConfigToFragmentFields({ ctas, osi: 'base', trialOsi: 'trial' }, 'fries');
             const html = fields.find((f) => f.name === 'ctas').values[0];
             expect(html).to.equal(ctas);
             expect(html).to.not.include('data-wcs-osi');
-        });
-
-        describe('applyDualOsiToCtas helper', () => {
-            it('returns the input unchanged for non-string values', () => {
-                expect(applyDualOsiToCtas(null, 'a', 'b')).to.equal(null);
-                expect(applyDualOsiToCtas(undefined, 'a', 'b')).to.equal(undefined);
-                expect(applyDualOsiToCtas('', 'a', 'b')).to.equal('');
-            });
-
-            it('returns the input unchanged when no recognised anchors are present', () => {
-                const html = '<p><a>Click</a></p>';
-                expect(applyDualOsiToCtas(html, 'a', 'b')).to.equal(html);
-            });
-
-            it('stamps both OSIs when both anchors are present', () => {
-                const html = '<p><a data-analytics-id="buy-now">Buy</a><a data-analytics-id="free-trial">Trial</a></p>';
-                const out = applyDualOsiToCtas(html, 'X', 'Y');
-                expect(out).to.include('data-wcs-osi="X"');
-                expect(out).to.include('data-wcs-osi="Y"');
-            });
-
-            it('rewrites buy-now class to accent and free-trial class to primary-outline', () => {
-                const html =
-                    '<p>' +
-                    '<a class="con-button primary-outline" data-analytics-id="buy-now">Buy</a>' +
-                    '<a class="con-button primary-outline" data-analytics-id="free-trial">Trial</a>' +
-                    '</p>';
-                const out = applyDualOsiToCtas(html, 'X', 'Y');
-                expect(out).to.include('class="con-button accent"');
-                expect(out).to.not.include('class="con-button accent" data-analytics-id="free-trial"');
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(out, 'text/html');
-                const buyAnchor = doc.querySelector('a[data-analytics-id="buy-now"]');
-                const trialAnchor = doc.querySelector('a[data-analytics-id="free-trial"]');
-                expect(buyAnchor.className).to.equal('con-button accent');
-                expect(trialAnchor.className).to.equal('con-button primary-outline');
-            });
-
-            it('rewrites buy-now class to accent when trialOsi is missing (trial anchor removed)', () => {
-                const html =
-                    '<p>' +
-                    '<a class="con-button primary-outline" data-analytics-id="buy-now">Buy</a>' +
-                    '<a class="con-button primary-outline" data-analytics-id="free-trial">Trial</a>' +
-                    '</p>';
-                const out = applyDualOsiToCtas(html, 'X');
-                expect(out).to.include('class="con-button accent"');
-                expect(out).to.not.include('free-trial');
-            });
-
-            it('removes the trial anchor when trialOsi is missing', () => {
-                const html = '<p><a data-analytics-id="buy-now">Buy</a> <a data-analytics-id="free-trial">Trial</a></p>';
-                const out = applyDualOsiToCtas(html, 'X');
-                expect(out).to.include('data-analytics-id="buy-now"');
-                expect(out).to.not.include('free-trial');
-                expect(out).to.not.include('Trial');
-            });
         });
 
         it('should map a complete config with multiple fields', () => {
@@ -499,6 +397,33 @@ describe('ai-card-mapper', () => {
             expect(result.valid).to.be.true;
             expect(result.warnings).to.have.lengthOf(0);
         });
+
+        it('should error when catalog config has trialOsi but ctas lacks a free-trial anchor', () => {
+            const config = {
+                variant: 'catalog',
+                title: '<h3 slot="heading-xs">Photoshop</h3>',
+                description: '<div slot="body-xs"><p>Edit photos.</p></div>',
+                ctas: '<p slot="footer"><a class="con-button accent" data-analytics-id="buy-now">Buy now</a></p>',
+            };
+            const result = validateAIConfig(config, { requiredFields: [] }, { trialOsi: 'trial-osi-xyz' });
+            expect(result.valid).to.be.false;
+            expect(result.errors.some((e) => e.includes('free-trial'))).to.be.true;
+        });
+
+        it('should pass when catalog config has trialOsi and ctas includes a free-trial anchor', () => {
+            const config = {
+                variant: 'catalog',
+                title: '<h3 slot="heading-xs">Photoshop</h3>',
+                description: '<div slot="body-xs"><p>Edit photos.</p></div>',
+                ctas:
+                    '<p slot="footer">' +
+                    '<a class="con-button accent" data-analytics-id="buy-now">Buy now</a>' +
+                    '<a class="con-button primary-outline" data-analytics-id="free-trial">Free trial</a>' +
+                    '</p>',
+            };
+            const result = validateAIConfig(config, { requiredFields: [] }, { trialOsi: 'trial-osi-xyz' });
+            expect(result.errors.some((e) => e.includes('free-trial'))).to.be.false;
+        });
     });
 
     describe('createFragmentDataForAEM', () => {
@@ -692,16 +617,6 @@ describe('ai-card-mapper', () => {
             sinon.restore();
         });
 
-        it('returns config unchanged when mnemonics already present', async () => {
-            const config = {
-                variant: 'plans',
-                mnemonics: [{ icon: 'https://existing.svg', alt: 'Adobe', link: '' }],
-            };
-            const result = await enrichConfigWithMcsMnemonic(config, null);
-            expect(result).to.equal(config);
-            expect(result.mnemonics[0].icon).to.equal('https://existing.svg');
-        });
-
         it('injects mnemonics from selectedProduct without any MCS fetch', async () => {
             const fetchStub = sinon.stub(window, 'fetch');
             const product = {
@@ -836,6 +751,76 @@ describe('ai-card-mapper', () => {
             };
             const result = validateAIConfig(config, { requiredFields: [] }, { trialOsi: 'trial-123' });
             expect(result.valid).to.be.true;
+        });
+    });
+
+    describe('buildReleaseCtas', () => {
+        it('builds dual-CTA HTML with free-trial first and buy-now second', () => {
+            const html = buildReleaseCtas('base-osi', 'trial-osi');
+            expect(html).to.equal(
+                '<p slot="footer">' +
+                    '<a is="checkout-link" data-wcs-osi="trial-osi" data-analytics-id="free-trial" class="secondary">Free trial</a>' +
+                    '<a is="checkout-link" data-wcs-osi="base-osi" data-analytics-id="buy-now">Buy now</a>' +
+                    '</p>',
+            );
+        });
+
+        it('builds single buy-now CTA when trialOsi is absent', () => {
+            const html = buildReleaseCtas('base-osi', null);
+            expect(html).to.equal(
+                '<p slot="footer">' +
+                    '<a is="checkout-link" data-wcs-osi="base-osi" data-analytics-id="buy-now">Buy now</a>' +
+                    '</p>',
+            );
+            expect(html).to.not.include('free-trial');
+        });
+
+        it('always uses plain text labels (no placeholders)', () => {
+            const html = buildReleaseCtas('base-osi', 'trial-osi');
+            expect(html).to.include('>Buy now<');
+            expect(html).to.include('>Free trial<');
+            expect(html).to.not.include('{{');
+        });
+
+        it('emits no data-checkout-workflow attributes', () => {
+            const html = buildReleaseCtas('base-osi', 'trial-osi');
+            expect(html).to.not.include('data-checkout-workflow');
+        });
+
+        it('wraps anchors in p[slot="footer"]', () => {
+            const html = buildReleaseCtas('base-osi', null);
+            expect(html.startsWith('<p slot="footer">')).to.be.true;
+            expect(html.endsWith('</p>')).to.be.true;
+        });
+    });
+
+    describe('buildReleasePrice', () => {
+        it('builds OST-faithful inline-price HTML', () => {
+            expect(buildReleasePrice('A1B2C3')).to.equal('<p><span is="inline-price" data-wcs-osi="A1B2C3"></span></p>');
+        });
+
+        it('emits no data-template attribute', () => {
+            expect(buildReleasePrice('some-osi')).to.not.include('data-template');
+        });
+    });
+
+    describe('enrichConfigWithMcsMnemonic — MCS always wins', () => {
+        afterEach(() => {
+            sinon.restore();
+        });
+
+        it('overwrites existing mnemonics with MCS data when selectedProduct is provided', async () => {
+            const product = {
+                assets: { icons: { svg: 'https://mcs.example/new.svg' } },
+                copy: { name: 'New Product' },
+            };
+            const config = {
+                variant: 'plans',
+                mnemonics: [{ icon: 'https://old.svg', alt: 'Old', link: '' }],
+            };
+            const result = await enrichConfigWithMcsMnemonic(config, product);
+            expect(result.mnemonics[0].icon).to.equal('https://mcs.example/new.svg');
+            expect(result.mnemonics[0].alt).to.equal('New Product');
         });
     });
 });

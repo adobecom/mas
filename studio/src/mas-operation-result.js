@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { openPreview, closePreview } from './mas-card-preview.js';
-import { buildStudioFragmentHref, showToast } from './utils.js';
+import { buildStudioFragmentHref, showToast, normalizeFragmentForCache } from './utils.js';
 
 /**
  * Operation Result Display Component
@@ -29,25 +29,8 @@ export class MasOperationResult extends LitElement {
 
         fragments.forEach((card) => {
             const fragmentData = card.fragmentData || card;
-            const normalizedData = this.normalizeFragmentData(fragmentData);
-            AemFragmentElement.cache.add(normalizedData);
+            AemFragmentElement.cache.add(normalizeFragmentForCache(fragmentData));
         });
-    }
-
-    normalizeFragmentData(fragmentData) {
-        const { fields, ...rest } = fragmentData;
-
-        if (Array.isArray(fields)) {
-            return fragmentData;
-        }
-
-        const normalizedFields = Object.entries(fields || {}).map(([name, value]) => ({
-            name,
-            multiple: Array.isArray(value),
-            values: Array.isArray(value) ? value : [value],
-        }));
-
-        return { ...rest, fields: normalizedFields };
     }
 
     renderSearchResults() {

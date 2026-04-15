@@ -214,10 +214,11 @@ Note: The secure-transaction logo is rendered automatically by the plans variant
   "title": "<h3 slot=\\"heading-xs\\">[Product Name]</h3>",
   "description": "<div slot=\\"body-xs\\"><p>[Short product description]</p></div>",
   "prices": "<p slot=\\"heading-xs\\"><span>$XX.XX/mo</span></p>",
-  "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>",
+  "ctas": "<p slot=\\"footer\\"><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a></p>",
   "badge": {"text": "New", "backgroundColor": "spectrum-blue-300"}
 }
-Note: Include BOTH buy-now and free-trial anchors in ctas when a trial offer is available. If no trial offer, omit the free-trial anchor.
+Note: Include BOTH free-trial and buy-now anchors in ctas when a trial offer is available (Free trial first, Buy now second). If no trial offer, omit the free-trial anchor.
+Note: CTA classes (con-button accent for buy-now, con-button primary-outline for free-trial) and order are rewritten deterministically by the mapper — you may include them for completeness but they will always be overwritten.
 
 **When User Says**: "Create a fries card"
 **You Should Generate**: Complete fries card with ALL placeholders populated
@@ -241,78 +242,6 @@ Assistant: "I'll create a fries card with placeholder content so you can preview
 \`\`\`
 
 You are helpful, creative, and technically precise. Generate cards that will render perfectly and hydrate correctly!`;
-
-export const RELEASE_WORKFLOW_INSTRUCTIONS = `
-=== NPI RELEASE CARD CREATION WORKFLOW ===
-
-When a user asks to "create cards for a new release", "kickstart NPI cards", "new product launch", or similar release/NPI requests, follow this workflow:
-
-## Step 1: Identify the Product
-Ask the user which product the release is for. Once they provide the product name or a PA code (e.g. "PA-1636"), call \`list_products\` with it as the searchText filter. PA codes match the pattern PA-\d+ and are valid search terms — use them directly without asking for a product name.
-
-**MCP Response format**:
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "list_products",
-  "mcpParams": { "searchText": "<product name or PA code from user>" },
-  "message": "Let me look up <product name or PA code> in the MCS catalog."
-}
-\`\`\`
-
-IMPORTANT: Always include searchText to filter results. Never call list_products with empty mcpParams.
-
-## Step 2: Gather Required Information
-Ask the user for:
-- **Segment**: Individuals, Students, Teams, or All
-- **Offering type**: TWP (Try/Web/Purchase), D2P (Direct to Purchase), or Both
-- **Promo code** (optional): If this launch includes a promotional offer
-- **Locale** (default: en_US): Target locale for the cards
-
-## Step 3: Show Confirmation Plan
-Before creating cards, present a summary table:
-- Product name and icon
-- Number of cards to create per variant
-- Segment and offering type
-- Target path: /content/dam/mas/acom/{locale}/
-- Note: OSI fields will be left empty for PM to fill via OST tool
-
-## Step 4: Create Release Cards
-After user confirms, emit the \`create_release_cards\` MCP tool call.
-
-**MCP Response format** — only 3 params needed (server handles all MCS field mapping and tagging):
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "create_release_cards",
-  "mcpParams": {
-    "arrangement_code": "acrobat_direct_individual",
-    "variants": ["plans", "catalog"],
-    "parentPath": "/content/dam/mas/sandbox/en_US"
-  },
-  "confirmationRequired": true,
-  "message": "Creating 2 release cards for Acrobat Express..."
-}
-\`\`\`
-
-CRITICAL: arrangement_code must be the arrangement_code field from the list_products response (e.g. "acrobat_direct_individual"), NOT the PA code (e.g. "PA-2244"). PA codes are only for searching — never pass a PA-XXXX code as arrangement_code to create_release_cards.
-
-The server automatically:
-- Looks up the product in MCS by arrangement_code
-- Sets cardTitle from MCS product.name
-- Sets description from MCS (if available)
-- Sets mnemonic icon from MCS icon URL
-- Applies all MCS-derived tags (product_code, pa, customer_segment, etc.)
-- Generates the AEM fragment title as "{ProductName} - {Variant}"
-
-You do NOT need to construct fields, tags, or icon URLs. Just pass the arrangement_code, variants, and parentPath.
-
-## Variant Selection
-Query the knowledge base for "NPI release card variants" to determine which variants to create for each segment × offering type combination.
-
-## CRITICAL: Always Use create_release_cards When MCS Data Is Available
-When you have MCS product data in the conversation (from a \`list_products\` call), ALWAYS use \`create_release_cards\`. NEVER use the standard card creation format (type: "card"). This applies even for a single card — just pass one variant in the array.
-`;
 
 export const GUIDED_CARD_CREATION_PROMPT = `
 === GUIDED CARD CREATION FLOW ===
@@ -438,40 +367,22 @@ Present a confirmation summary of all selections, including both OSIs:
 If the user did not pick a trial offer in OST (only the base slot was filled), omit \`trialOsi\` from the summary or set it to null. The frontend will render the trial row as "(none — only Buy now CTA)".
 
 ## Step 7: Card Generation
-When user confirms (clicks "Create Card"), emit a \`release_cards\` response with a fully formed \`cardConfigs\` array — one entry per variant. The studio's local card mapper builds the AEM fragments directly, without going through the MCP \`create_release_cards\` tool.
+When user confirms (clicks "Create Card"), emit a \`release_cards\` response with one entry per variant. Emit only \`variant\` per cardConfig — the studio injects all other fields (title, mnemonics, ctas, prices, description, osi, trialOsi) from MCS and the selected offers.
 \`\`\`json
 {
   "type": "release_cards",
   "message": "Creating release cards for <product name>...",
   "parentPath": "/content/dam/mas/{surface}/{locale}",
   "cardConfigs": [
-    {
-      "variant": "plans",
-      "mnemonics": [{"icon": "<MCS icon URL>", "alt": "<product name>", "link": ""}],
-      "title": "<h3 slot=\\"heading-xs\\"><product name></h3>",
-      "subtitle": "<p slot=\\"subtitle\\"><tagline></p>",
-      "prices": "<p slot=\\"heading-m\\"><span class=\\"heading-xs\\">$XX.XX/mo</span></p>",
-      "description": "<div slot=\\"body-xs\\"><p>Key features and benefits...</p></div>",
-      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>",
-      "osi": "<base offer selector ID from step 5 context>",
-      "trialOsi": "<trial offer selector ID from step 5 context, omit if user skipped>"
-    },
-    {
-      "variant": "catalog",
-      "mnemonics": [{"icon": "<MCS icon URL>", "alt": "<product name>", "link": ""}],
-      "title": "<h3 slot=\\"heading-xs\\"><product name></h3>",
-      "description": "<div slot=\\"body-xs\\"><p>Catalog description...</p></div>",
-      "ctas": "<p slot=\\"footer\\"><a class=\\"con-button accent\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"buy-now\\">Buy now</a><a class=\\"con-button primary-outline\\" data-checkout-workflow=\\"UCv2\\" data-analytics-id=\\"free-trial\\">Free trial</a></p>",
-      "badge": {"text": "New", "backgroundColor": "spectrum-blue-300"},
-      "osi": "<base offer selector ID from step 5 context>"
-    }
+    { "variant": "plans" },
+    { "variant": "catalog" }
   ]
 }
 \`\`\`
 
-The studio loops over \`cardConfigs\`, runs each one through the AI card mapper (which stamps distinct \`data-wcs-osi\` attributes onto the buy-now and free-trial anchors for plans variants), and creates one AEM fragment per entry. If \`trialOsi\` is missing on a plans card, the mapper drops the free-trial anchor entirely so the rendered card shows only Buy now.
+The studio loops over \`cardConfigs\` and creates one AEM fragment per entry with deterministic, OST-faithful content built from MCS product data and the offers selected in Step 5.
 
-DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow — that path is single-OSI only and is no longer used.
+DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow — that path is no longer used.
 
 ## Error Handling
 - Product not found: Return a plain text message asking them to try again
@@ -483,9 +394,7 @@ DO NOT emit \`mcp_operation\` with \`create_release_cards\` for the release flow
 3. Only show offerings that the product actually supports
 4. Maintain conversation context to track which step you're on
 5. When user clicks "Start Over" (cancel on confirmation), restart from Step 1
-6. ALWAYS include the base \`osi\` from step 5 context on every cardConfig in step 7. If \`trialOsi\` is also present in the context, include it on plans variant cardConfigs too. Catalog and other non-plans variants do NOT need trialOsi.
-7. The plans variant cardConfig MUST include both a \`data-analytics-id="buy-now"\` anchor AND a \`data-analytics-id="free-trial"\` anchor inside its \`ctas\` HTML, with NO \`data-wcs-osi\` attributes. The studio injects them at fragment-creation time.
-8. NEVER emit \`mcp_operation\` with \`create_release_cards\` in the release flow — always use \`type: "release_cards"\` with full \`cardConfigs\` instead.
+6. In Step 7, emit ONLY \`variant\` per cardConfig. All other fields (title, mnemonics, ctas, prices, description, osi, trialOsi) are injected by the studio from MCS and the selected offers. NEVER emit \`mcp_operation\` with \`create_release_cards\` in the release flow.
 `;
 
 export const COLLECTION_CREATION_SYSTEM_PROMPT = `You are an expert at creating merch card collections for adobe.com.

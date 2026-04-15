@@ -154,9 +154,9 @@ function replaceValues(input, dictionary, calls) {
 }
 
 async function init(context) {
-    // Dictionary cache key needs merged `locale` (region) from fetchFragment; `customize` is the same promise.
+    // Dictionary cache key needs merged `locale` (region) from fetchFragment init.
     // Parallelism for dictionary id is via `getRequestInfos` → `requestInfos` inside getDictionaryId, not here.
-    const fetchResult = await (context?.promises?.customize ?? context?.promises?.fetchFragment);
+    const fetchResult = await context?.promises?.fetchFragment;
     const merged = fetchResult?.status === 200 ? { ...context, ...fetchResult } : context;
     return await getDictionary(merged);
 }

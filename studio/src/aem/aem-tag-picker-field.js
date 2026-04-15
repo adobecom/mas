@@ -1,50 +1,17 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { AEM } from './aem.js';
-import { EVENT_OST_OFFER_SELECT } from '../constants.js';
+import { AEM_TAG_PATH_PRODUCT_CODE_ROOT, EVENT_OST_OFFER_SELECT } from '../constants.js';
 import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import { getItemFieldState } from '../utils/field-state.js';
+import { getService } from '../utils.js';
+import { AEM_TAG_PATTERN, fromAttribute, toAttribute } from './tag-path-utils.js';
+import { getNamespaceCache, setNamespaceCache } from './tag-cache.js';
 
-const AEM_TAG_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*:/;
-const namespaces = {};
+const PRODUCT_CODE_TAG_PREFIX = `${AEM_TAG_PATH_PRODUCT_CODE_ROOT}/`;
 const SELECTION_CHECKBOX = 'checkbox';
 const SELECTION_CHECKBOX_TAGS = 'checkbox-tags';
-
-/**
- * Converts from attribute (tag format) to property (path format).
- * e.g. "mas:product/photoshop" --> "/content/cq:tags/mas/product/photoshop"
- */
-export function fromAttribute(value) {
-    if (!value) return [];
-    const tags = value.split(',');
-    return tags
-        .map((tag) => tag.trim())
-        .map((tag) => {
-            if (AEM_TAG_PATTERN.test(tag) === false) return false;
-            const [namespace, path] = tag.split(':');
-            if (!namespace || !path) return '';
-            return path ? `/content/cq:tags/${namespace}/${path}` : '';
-        })
-        .filter(Boolean);
-}
-
-/**
- * Converts from property (path format) to attribute (tag format).
- * e.g. "/content/cq:tags/mas/product/photoshop" --> "mas:product/photoshop"
- */
-export function toAttribute(value) {
-    const tags = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
-    if (tags.length === 0) return '';
-    return tags
-        .map((path) => {
-            if (AEM_TAG_PATTERN.test(path)) return path;
-            const match = path.match(/\/content\/cq:tags\/([^/]+)\/(.+)$/);
-            return match ? `${match[1]}:${match[2]}` : '';
-        })
-        .filter(Boolean)
-        .join(',');
-}
 
 class AemTagPickerField extends LitElement {
     static properties = {
@@ -225,13 +192,73 @@ class AemTagPickerField extends LitElement {
         this.personalizationEnabled = false;
     }
 
-    #onOstSelect = ({ detail: { offer } }) => {
+    async #getOfferProductArrangementCode(offerSelectorId, offer) {
+        if (offer?.productArrangementCode) {
+            return offer.productArrangementCode;
+        }
+
+        if (!offerSelectorId) {
+            return undefined;
+        }
+
+        try {
+            const service = getService();
+            if (!service?.collectPriceOptions || !service?.resolveOfferSelectors) {
+                return undefined;
+            }
+
+            const priceOptions = service.collectPriceOptions({ wcsOsi: offerSelectorId });
+            const [offersPromise] = service.resolveOfferSelectors(priceOptions);
+            const [resolvedOffer] = (await offersPromise) || [];
+
+            return resolvedOffer?.productArrangementCode;
+        } catch {
+            return undefined;
+        }
+    }
+
+    #getProductCodeTagPaths(productCode, productArrangementCode) {
+        const normalizedProductCode = String(productCode || '').toLowerCase();
+        const normalizedPac = String(productArrangementCode || '').toLowerCase();
+
+        if (normalizedPac && this.#data?.values) {
+            const pacTag = [...this.#data.values()].find(
+                (tag) => tag.path.startsWith(PRODUCT_CODE_TAG_PREFIX) && tag.path.toLowerCase().endsWith(`/${normalizedPac}`),
+            );
+
+            if (pacTag) {
+                const relativePath = pacTag.path.replace(PRODUCT_CODE_TAG_PREFIX, '');
+                const parts = relativePath.split('/').filter(Boolean);
+
+                let currentPath = AEM_TAG_PATH_PRODUCT_CODE_ROOT;
+                return parts.reduce((paths, part) => {
+                    currentPath += `/${part}`;
+                    paths.push(currentPath);
+                    return paths;
+                }, []);
+            }
+        }
+
+        if (!normalizedProductCode) {
+            return [];
+        }
+
+        const parentTagPath = `${AEM_TAG_PATH_PRODUCT_CODE_ROOT}/${normalizedProductCode}`;
+        return [parentTagPath];
+    }
+
+    #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
+        if (this.#data instanceof Promise) {
+            await this.#data;
+        }
+        const productArrangementCode = await this.#getOfferProductArrangementCode(offerSelectorId, offer);
         const extractedOffer = {
             offer_type: offer.offer_type,
             planType: offer.planType,
             customer_segment: offer.customer_segment,
             product_code: offer.product_code,
+            product_arrangement_code: productArrangementCode,
             market_segments:
                 Array.isArray(offer.market_segments) && offer.market_segments.length > 0
                     ? offer.market_segments[0]
@@ -248,21 +275,24 @@ class AemTagPickerField extends LitElement {
         const existingTags = this.#asValueArray().filter((tagPath) => {
             for (const category of categoriesToUpdate) {
                 if (tagPath.includes(`/content/cq:tags/mas/${category}/`)) {
-                    return false; // Exclude this tagPath if it contains any of the categories
+                    return false;
                 }
             }
             return true;
         });
 
         const newTagPaths = Object.entries(extractedOffer)
-            .filter(([_, value]) => value != null) // Filter out null/undefined values
-            .map(([key, value]) => {
+            .filter(([key, value]) => value != null && key !== 'product_arrangement_code')
+            .flatMap(([key, value]) => {
                 const formattedKey = convertCamelToSnake(key);
+                if (formattedKey === 'product_code') {
+                    return this.#getProductCodeTagPaths(value, extractedOffer.product_arrangement_code);
+                }
                 const formattedValue = String(value).toLowerCase();
-                return `/content/cq:tags/mas/${formattedKey}/${formattedValue}`;
+                return [`/content/cq:tags/mas/${formattedKey}/${formattedValue}`];
             });
 
-        this.value = [...existingTags, ...newTagPaths].filter(Boolean);
+        this.value = this.#normalizeProductCodeTags([...existingTags, ...newTagPaths].filter(Boolean));
         this.#notifyChange();
     };
 
@@ -305,11 +335,11 @@ class AemTagPickerField extends LitElement {
 
     // Returns the cached data for this namespace (if loaded)
     get #data() {
-        return namespaces[this.namespace];
+        return getNamespaceCache(this.namespace);
     }
 
     get allTags() {
-        return namespaces[this.namespace];
+        return getNamespaceCache(this.namespace);
     }
 
     get selectedTags() {
@@ -337,16 +367,16 @@ class AemTagPickerField extends LitElement {
 
     async loadTags() {
         if (!this.#data) {
-            // Not loaded yet, create a placeholder Promise
             let resolveNamespace;
-            namespaces[this.namespace] = new Promise((resolve) => {
-                resolveNamespace = resolve;
-            });
-            // Fetch from AEM
+            setNamespaceCache(
+                this.namespace,
+                new Promise((resolve) => {
+                    resolveNamespace = resolve;
+                }),
+            );
             const rawTags = await this.#aem.tags.list(this.namespace);
             if (!rawTags) return;
-            // Store as a Map keyed by tag path
-            namespaces[this.namespace] = new Map(rawTags.hits.map((tag) => [tag.path, tag]));
+            setNamespaceCache(this.namespace, new Map(rawTags.hits.map((tag) => [tag.path, tag])));
             resolveNamespace();
         } else if (this.#data instanceof Promise) {
             // If still loading, wait
@@ -361,7 +391,9 @@ class AemTagPickerField extends LitElement {
         if ([SELECTION_CHECKBOX, SELECTION_CHECKBOX_TAGS].includes(this.selection)) {
             let tagsForCheckboxList = allTags.filter((tag) => this.#getTagTextByMode(tag));
 
-            if (this.isCheckboxTagsMode) {
+            if (this.top === 'product_code') {
+                tagsForCheckboxList = this.#filterToParentProductCodeTags(tagsForCheckboxList);
+            } else if (this.isCheckboxTagsMode) {
                 tagsForCheckboxList = this.#filterOutParentsWithChildren(tagsForCheckboxList);
             }
 
@@ -400,6 +432,16 @@ class AemTagPickerField extends LitElement {
         return tags.filter((tag) => !parentPaths.has(tag.path));
     }
 
+    #filterToParentProductCodeTags(tags) {
+        return tags.filter((tag) => {
+            const root = this.#rootForPath(tag.path);
+            if (!root) return false;
+
+            const relativePath = tag.path.slice(root.length);
+            return relativePath && !relativePath.includes('/');
+        });
+    }
+
     buildHierarchy(tags) {
         const root = new Map();
         tags.forEach((tag) => {
@@ -432,19 +474,44 @@ class AemTagPickerField extends LitElement {
         const isMultiSelection = this.multiple || this.isCheckboxTagsMode;
 
         if (!isMultiSelection) {
-            // single select
-            this.value = [storedPath];
+            this.value = this.#normalizeProductCodeTags([storedPath]);
             await this.#notifyChange();
             return;
         }
         // multi select
-        const hasEquivalent = currentValue.some((value) => equivalentValues.has(value));
+        const hasEquivalent = currentValue.some((value) => {
+            const valuePath = this.#toPath(value);
+            return equivalentValues.has(value) || equivalentValues.has(valuePath);
+        });
         if (!hasEquivalent) {
             currentValue.push(storedPath);
         } else {
-            currentValue = currentValue.filter((value) => !equivalentValues.has(value));
+            currentValue = currentValue.filter((value) => {
+                const valuePath = this.#toPath(value);
+
+                if (equivalentValues.has(value) || equivalentValues.has(valuePath)) {
+                    return false;
+                }
+
+                if (equivalentPath.startsWith(PRODUCT_CODE_TAG_PREFIX) && valuePath.startsWith(PRODUCT_CODE_TAG_PREFIX)) {
+                    const selectedParts = equivalentPath.replace(PRODUCT_CODE_TAG_PREFIX, '').split('/').filter(Boolean);
+
+                    const valueParts = valuePath.replace(PRODUCT_CODE_TAG_PREFIX, '').split('/').filter(Boolean);
+
+                    const isParentOfSelected =
+                        selectedParts.length > 1 &&
+                        valueParts.length < selectedParts.length &&
+                        valueParts.every((part, index) => part === selectedParts[index]);
+
+                    if (isParentOfSelected) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
         }
-        this.value = currentValue;
+        this.value = this.#normalizeProductCodeTags(currentValue);
         await this.#notifyChange();
     }
 
@@ -486,6 +553,31 @@ class AemTagPickerField extends LitElement {
                 .filter(Boolean);
         }
         return [];
+    }
+
+    #normalizeProductCodeTags(values) {
+        const normalizedPaths = new Set();
+        this.#asValueArray(values)
+            .map((value) => this.#toPath(value))
+            .filter(Boolean)
+            .forEach((path) => {
+                normalizedPaths.add(path);
+                if (!path.startsWith(PRODUCT_CODE_TAG_PREFIX)) {
+                    return;
+                }
+                const relativePath = path.replace(PRODUCT_CODE_TAG_PREFIX, '');
+                const parts = relativePath.split('/').filter(Boolean);
+                if (parts.length < 2) {
+                    return;
+                }
+                let currentPath = AEM_TAG_PATH_PRODUCT_CODE_ROOT;
+                parts.slice(0, -1).forEach((part) => {
+                    currentPath += `/${part}`;
+                    normalizedPaths.add(currentPath);
+                });
+            });
+
+        return [...normalizedPaths].map((path) => this.#toStoredValue(path));
     }
 
     #selectedPaths(values = this.value) {

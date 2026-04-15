@@ -753,7 +753,10 @@ export class MasChat extends LitElement {
         enrichedConfig = await enrichConfigWithMcsMnemonic(enrichedConfig, this.selectedReleaseProduct);
 
         const isCatalog = enrichedConfig.variant === 'catalog';
-        const isPlans = enrichedConfig.variant === 'plans' || enrichedConfig.variant === 'plans-students' || enrichedConfig.variant === 'plans-education';
+        const isPlans =
+            enrichedConfig.variant === 'plans' ||
+            enrichedConfig.variant === 'plans-students' ||
+            enrichedConfig.variant === 'plans-education';
 
         enrichedConfig.ctas = buildReleaseCtas(enrichedConfig.osi, enrichedConfig.trialOsi, {
             includeTrial: !isPlans,

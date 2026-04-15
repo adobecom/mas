@@ -5,6 +5,7 @@ import {
     FRAGMENT_URL_PREFIX,
     FREYJA_PREVIEW_URL,
     ODIN_PREVIEW_URL,
+    freyjaUrl,
 } from '../../src/fragment/utils/paths.js';
 
 describe('PATH_TOKENS', () => {
@@ -43,5 +44,20 @@ describe('FREYJA_PREVIEW_URL', () => {
 describe('ODIN_PREVIEW_URL', () => {
     it('should point to Odin preview fragments endpoint', () => {
         expect(ODIN_PREVIEW_URL).to.equal('https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments');
+    });
+});
+
+describe('freyjaUrl', () => {
+    it('defaults to prod when no env given', () => {
+        expect(freyjaUrl()).to.include('e59433');
+    });
+    it('returns stage URL for stage env', () => {
+        expect(freyjaUrl('stage')).to.include('e59471');
+    });
+    it('returns qa URL for qa env', () => {
+        expect(freyjaUrl('qa')).to.include('e155390');
+    });
+    it('falls back to prod for unknown env', () => {
+        expect(freyjaUrl('dev')).to.include('e59433');
     });
 });

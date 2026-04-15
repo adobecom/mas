@@ -2,7 +2,18 @@ const MAS_ROOT = '/content/dam/mas';
 
 const FRAGMENT_URL_PREFIX = 'https://odin.adobe.com/adobe/sites/fragments';
 
-const FREYJA_PREVIEW_URL = 'https://preview-p22655-e59433.adobeaemcloud.com/adobe/contentFragments';
+const FREYJA_ENV_IDS = {
+    qa: 'e155390',
+    stage: 'e59471',
+    prod: 'e59433',
+};
+
+function freyjaUrl(env) {
+    const id = FREYJA_ENV_IDS[env] ?? FREYJA_ENV_IDS.prod;
+    return `https://preview-p22655-${id}.adobeaemcloud.com/adobe/contentFragments`;
+}
+
+const FREYJA_PREVIEW_URL = freyjaUrl('prod');
 
 const ODIN_PREVIEW_URL = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
 
@@ -47,4 +58,14 @@ function odinUrl(surface, { locale, fragmentPath, preview }) {
     return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
-export { PATH_TOKENS, FRAGMENT_URL_PREFIX, FREYJA_PREVIEW_URL, ODIN_PREVIEW_URL, MAS_ROOT, odinUrl, odinId, odinReferences };
+export {
+    PATH_TOKENS,
+    FRAGMENT_URL_PREFIX,
+    FREYJA_PREVIEW_URL,
+    ODIN_PREVIEW_URL,
+    MAS_ROOT,
+    odinUrl,
+    odinId,
+    odinReferences,
+    freyjaUrl,
+};

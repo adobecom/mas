@@ -6,7 +6,7 @@
 // Import the modules
 import { logDebug, logError } from '../../io/www/src/fragment/utils/log.js';
 import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
-import { FREYJA_PREVIEW_URL, ODIN_PREVIEW_URL } from '../../io/www/src/fragment/utils/paths.js';
+import { freyjaUrl, ODIN_PREVIEW_URL } from '../../io/www/src/fragment/utils/paths.js';
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
@@ -36,15 +36,17 @@ class LocaleStorageState {
 }
 
 let backendMode = 'default';
+let aemEnv = 'prod';
 
 if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
     backendMode = params.get('preview.backend') || 'default';
+    aemEnv = params.get('aem.env') || 'prod';
 }
 
 function getPreviewUrl() {
     if (backendMode === 'odin') return ODIN_PREVIEW_URL;
-    return FREYJA_PREVIEW_URL;
+    return freyjaUrl(aemEnv);
 }
 
 function getPreviewToken() {

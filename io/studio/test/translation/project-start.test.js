@@ -625,6 +625,86 @@ describe('Translation project-start', () => {
             expect(result.statusCode).to.equal(200);
             expect(callCounts['/bin/sendToLocalisationAsync']).to.equal(3);
         });
+
+        it('should call onBatchCompleted with cumulative counts after each versioning batch', async () => {
+            // 15 fragments × 1 locale = 15 items to version → 2 batches (10 + 5) with batchSize=10
+            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
+            const mockProjectCF = setProjectFields(createMockProjectCF(), { fragments: items });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
+                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
+                '/versions': { ok: true },
+            });
+
+            const context = await projectStartService.prepareProjectStart(baseParams);
+            const onBatchCompleted = sinon.stub().resolves();
+
+            await projectStartService.runVersioningStage(context, { onBatchCompleted });
+
+            expect(onBatchCompleted).to.have.been.calledTwice;
+            expect(onBatchCompleted.firstCall.args[0]).to.deep.equal({
+                completedItemCount: 10,
+                failedItemCount: 0,
+                itemCount: 15,
+            });
+            expect(onBatchCompleted.secondCall.args[0]).to.deep.equal({
+                completedItemCount: 15,
+                failedItemCount: 0,
+                itemCount: 15,
+            });
+        });
+
+        it('should apply default rpsLimit of 10 when not provided in params', async () => {
+            // 15 fragments × 1 locale = 15 items to version → 2 batches (batchSize=10)
+            // default rpsLimit=10 → minBatchMs = 10/10*1000 = 1000ms
+            // With Date.now stubbed to 0, elapsed=0 → wait=1000ms per batch
+            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
+            const mockProjectCF = setProjectFields(createMockProjectCF(), { fragments: items });
+
+            sinon.stub(Date, 'now').returns(0);
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
+                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
+                '/versions': { ok: true },
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const result = await executeProjectStart(projectStartService, baseParams);
+
+            expect(result.statusCode).to.equal(200);
+            // 2 versioning batches → 2 throttle sleeps at 1000ms each
+            const throttleCalls = global.setTimeout.args.filter(([, delay]) => delay === 1000);
+            expect(throttleCalls).to.have.lengthOf(2);
+        });
+
+        it('should use rpsLimit from params when provided', async () => {
+            // 15 fragments × 1 locale = 15 items to version → 3 batches (batchSize=5)
+            // rpsLimit=10 → minBatchMs = 5/10*1000 = 500ms (batchSize≤rpsLimit: burst stays within limit)
+            // With Date.now stubbed to 0, elapsed=0 → wait=500ms per batch
+            const items = Array.from({ length: 15 }, (_, i) => `/content/dam/mas/foo/en_US/fragment${i + 1}`);
+            const mockProjectCF = setProjectFields(createMockProjectCF(), { fragments: items });
+
+            sinon.stub(Date, 'now').returns(0);
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+                '/adobe/sites/cf/fragments?path=': (url, options, callCount) =>
+                    responses.ok({ items: [{ id: `version-target-${callCount}` }] }),
+                '/versions': { ok: true },
+                '/bin/sendToLocalisationAsync': { ok: true },
+            });
+
+            const result = await executeProjectStart(projectStartService, { ...baseParams, batchSize: 5, rpsLimit: 10 });
+
+            expect(result.statusCode).to.equal(200);
+            // 3 versioning batches → 3 throttle sleeps at 500ms each
+            const throttleCalls = global.setTimeout.args.filter(([, delay]) => delay === 500);
+            expect(throttleCalls).to.have.lengthOf(3);
+        });
     });
 
     describe('Localization request payload', () => {

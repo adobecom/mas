@@ -45,7 +45,11 @@ describe('FragmentClient', () => {
         globalThis.localStorage = localStorageStub;
         objectKeysStub = sinon.stub(Object, 'keys').callThrough();
         objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
-        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            // eslint-disable-next-line no-console
+            console.warn('[test] unmatched fetch stub:', url);
+            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
+        });
         fetchStub
             .withArgs(`${baseUrl}/${mockCardFragment.id}?references=all-hydrated`)
             .returns(createResponse(200, mockCardFragment));
@@ -197,6 +201,7 @@ describe('FragmentClient', () => {
             surface: 'sandbox',
             locale: 'en_US',
             fullContext: true,
+            networkConfig: { retries: 1, retryDelay: 1 },
         });
         expect([500, 503]).to.include(result.status);
         expect(result).to.have.property('message');

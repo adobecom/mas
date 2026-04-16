@@ -7,7 +7,12 @@ import { isUUID } from './utils.js';
 import './mas-fragment.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
-import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
+import {
+    fragmentHasPersonalizationTag,
+    getFragmentNonCountryPznTagIds,
+    isPznCountryTagId,
+    PZN_TAG_ID_PREFIX,
+} from './common/utils/personalization-utils.js';
 
 const variantValues = VARIANTS.map((v) => v.value);
 
@@ -169,12 +174,12 @@ class MasContent extends LitElement {
             .filter((id) => id.startsWith(PZN_TAG_ID_PREFIX) && !isPznCountryTagId(id));
     }
 
-    /** When no PZN tags are checked, all personalization-tagged rows appear; otherwise OR match on selected ids. */
+    /** When no PZN tags are checked, all personalization-tagged rows appear; otherwise OR match on selected ids (same tag sources as fragmentHasPersonalizationTag). */
     #fragmentMatchesPznCheckboxFilter(frag, selectedPznIds) {
-        if (!fragmentHasPersonalizationTag(frag)) return false;
+        const fragPznIds = getFragmentNonCountryPznTagIds(frag);
+        if (fragPznIds.size === 0) return false;
         if (!selectedPznIds.length) return true;
-        const fragTagIds = new Set((frag.tags || []).map((t) => t.id).filter(Boolean));
-        return selectedPznIds.some((id) => fragTagIds.has(id));
+        return selectedPznIds.some((id) => fragPznIds.has(id));
     }
 
     #renderTableBodyGrouped(fragmentStores) {

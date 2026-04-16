@@ -1470,6 +1470,60 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('excludes merch-card-collection with PZN on fragment tags when personalization filter is off', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: false,
+                },
+            };
+            const collectionWithPzn = createFragment({
+                id: 'coll-pzn',
+                path: `${ROOT_PATH}/acom/en_US/collections/c1`,
+                tags: [{ id: 'mas:pzn/general' }],
+                fields: [{ name: 'tagFilters', values: ['mas:types/desktop'] }],
+            });
+            const plainCollection = createFragment({
+                id: 'coll-plain',
+                path: `${ROOT_PATH}/acom/en_US/collections/c2`,
+                tags: [],
+                fields: [{ name: 'tagFilters', values: ['mas:product/foo'] }],
+            });
+            const mockCursor = createMockCursor([[collectionWithPzn, plainCollection]]);
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(mockDataStore.set.called).to.be.true;
+                const passedStores = mockDataStore.set.lastCall.args[0];
+                expect(passedStores).to.have.lengthOf(1);
+                expect(passedStores[0].get().id).to.equal('coll-plain');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('handles published tag filter by setting status', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };

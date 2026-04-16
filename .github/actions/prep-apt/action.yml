@@ -1,9 +1,9 @@
 name: Install Playwright system dependencies
 description: >
-  Stops background apt services, waits for dpkg/apt locks to clear, then
-  installs Playwright system dependencies with retry logic. Intended for
-  self-hosted Linux runners where unattended-upgrades can cause intermittent
-  apt lock contention or mirror-sync failures.
+    Stops background apt services, waits for dpkg/apt locks to clear, then
+    installs Playwright system dependencies with retry logic. Intended for
+    self-hosted Linux runners where unattended-upgrades can cause intermittent
+    apt lock contention or mirror-sync failures.
 
 runs:
     using: composite

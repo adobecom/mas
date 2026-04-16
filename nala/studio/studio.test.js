@@ -396,4 +396,69 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(studio.contentTableBody.getByText(/All other fragments\s*\(/)).toHaveCount(0);
         });
     });
+
+    // @studio-variations-locale-filter — Locale and grouped variation visibility per studio locale (Nala)
+    test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[13];
+        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.query}`;
+        setTestPage(testPage);
+
+        /**
+         * The default en_US card is translated to en_GB and de_DE. It has one locale variation (en_QA), and
+         * two grouped variations: de_DE, and pl_PL, both not translated.
+         */
+
+        await test.step('step-1: en_US — locale and grouped variations are displayed', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+            const rootRow = studio.tableViewFragmentTable(data.usCardId);
+            await expect(rootRow).toBeVisible({ timeout: 15000 });
+            await rootRow.locator('button.expand-button').click();
+            await expect(studio.regionalVariationsTable(data.usCardId)).toHaveCount(1, { timeout: 15000 });
+            await expect(studio.tableViewFragmentTable(data.localeVariationEnQaId)).toBeVisible({ timeout: 15000 });
+            await studio.groupedVariationsTab(data.usCardId).click();
+            await expect(studio.groupedVariationsTable(data.usCardId)).toHaveCount(2, { timeout: 15000 });
+            await expect(studio.tableViewFragmentTable(data.groupedVariationDeDeId)).toBeVisible({ timeout: 15000 });
+            await expect(studio.tableViewFragmentTable(data.groupedVariationPlPlId)).toBeVisible({ timeout: 15000 });
+        });
+
+        await test.step('step-2: en_GB — locale or grouped variations are not displayed', async () => {
+            await studio.selectLocale(data.localeEnglishGb.label);
+            await expect(studio.localePicker).toHaveAttribute('value', data.localeEnglishGb.value);
+            await page.waitForLoadState('domcontentloaded');
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+            const fragmentRow = studio.tableViewRowByFragmentId(data.gbCardId);
+            await expect(fragmentRow).toBeVisible();
+            await fragmentRow.locator('button.expand-button').click();
+            await expect(studio.localeVariationsTabPanel(data.gbCardId).getByText('No locale variations found')).toBeVisible({
+                timeout: 15000,
+            });
+            await studio.groupedVariationsTab(data.gbCardId).click();
+            await expect(studio.groupedVariationsTabPanel(data.gbCardId).getByText('No grouped variations found')).toBeVisible({
+                timeout: 15000,
+            });
+        });
+
+        await test.step('step-3: de_DE — locale or grouped variations are not displayed', async () => {
+            await studio.selectLocale(data.localeGermanDe.label);
+            await expect(studio.localePicker).toHaveAttribute('value', data.localeGermanDe.value);
+            await page.waitForLoadState('domcontentloaded');
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+            const fragmentRow = studio.tableViewRowByFragmentId(data.deCardId);
+            await expect(fragmentRow).toBeVisible();
+            await fragmentRow.locator('button.expand-button').click();
+            await expect(studio.localePicker).toHaveAttribute('value', data.localeGermanDe.value);
+            await expect(studio.localeVariationsTabPanel(data.deCardId).getByText('No locale variations found')).toBeVisible({
+                timeout: 15000,
+            });
+            await studio.groupedVariationsTab(data.deCardId).click();
+            await expect(studio.groupedVariationsTabPanel(data.deCardId).getByText('No grouped variations found')).toBeVisible({
+                timeout: 15000,
+            });
+        });
+    });
 });

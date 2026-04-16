@@ -20,7 +20,12 @@ runs:
                   echo "  apt lock held, retrying in 5s..."
                   sleep 5
                 done
-              ' || echo "Lock wait timed out, proceeding anyway"
+              ' || {
+                echo "Lock wait timed out — force-killing lock holders"
+                sudo fuser -k /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend \
+                              /var/lib/apt/lists/lock /var/cache/apt/archives/lock 2>/dev/null || true
+                sudo dpkg --configure -a 2>/dev/null || true
+              }
 
         - name: Install Playwright system dependencies (with retry)
           shell: bash

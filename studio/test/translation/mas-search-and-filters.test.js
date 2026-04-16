@@ -276,6 +276,19 @@ describe('MasSearchAndFilters', () => {
                 expect(trigger.disabled).to.be.true;
             });
         });
+
+        it('should stop filter checkbox change events from bubbling to ancestors', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.templateOptions = [{ id: 'plans', title: 'Plans' }];
+            await el.updateComplete;
+            let ancestorSawChange = false;
+            el.addEventListener('change', () => {
+                ancestorSawChange = true;
+            });
+            const checkbox = el.shadowRoot.querySelector('sp-checkbox');
+            checkbox.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+            expect(ancestorSawChange).to.be.false;
+        });
     });
 
     describe('applied filters rendering', () => {

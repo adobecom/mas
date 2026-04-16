@@ -40,4 +40,14 @@ describe('defaultLanguage transformer', function () {
         expect(defaultLanguage.init).to.be.a('function');
         expect(defaultLanguage.process).to.be.a('function');
     });
+
+    it('process returns non-200 defaultLanguage result without merging context', async function () {
+        const err = { status: 503, message: 'variation failed' };
+        const result = await defaultLanguage.process({
+            foo: 'bar',
+            promises: { defaultLanguage: Promise.resolve(err) },
+        });
+        expect(result).to.equal(err);
+        expect(result.status).to.equal(503);
+    });
 });

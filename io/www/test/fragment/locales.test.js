@@ -11,9 +11,21 @@ import {
     getRegionLocales,
     getLanguageName,
     isVariationPathInParentLocaleFamily,
+    parseLocaleCode,
 } from '../../src/fragment/locales.js';
 
 describe('locales', function () {
+    describe('parseLocaleCode', function () {
+        it('returns empty array when locale code is null or undefined', function () {
+            expect(parseLocaleCode(null)).to.deep.equal([]);
+            expect(parseLocaleCode(undefined)).to.deep.equal([]);
+        });
+
+        it('splits locale code on underscore', function () {
+            expect(parseLocaleCode('en_US')).to.deep.equal(['en', 'US']);
+        });
+    });
+
     describe('getLocaleCode', function () {
         it('should return locale code from locale object', function () {
             const locale = { lang: 'en', country: 'US' };

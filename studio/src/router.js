@@ -532,7 +532,7 @@ export class Router extends EventTarget {
     #getAuthorizedPage(page) {
         if (!this.#isSettingsPage(page)) return page;
         if (!Store.users.getMeta('loaded')) return page;
-        if (canAccessSettings(Store.surface() || '')) return page;
+        if (canAccessSettings(Store.surface())) return page;
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
         return PAGE_NAMES.WELCOME;
@@ -554,7 +554,7 @@ export class Router extends EventTarget {
             return false;
         }
         this.#stopWatchingSettingsAccessRoute();
-        if (canAccessSettings(Store.surface() || '')) return false;
+        if (canAccessSettings(Store.surface())) return false;
         this.currentParams.set('page', PAGE_NAMES.WELCOME);
         this.currentParams.delete('fragmentId');
         Store.page.set(PAGE_NAMES.WELCOME);

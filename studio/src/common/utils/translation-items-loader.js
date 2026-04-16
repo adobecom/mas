@@ -1,8 +1,9 @@
-import Store from '../store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../constants.js';
-import { Fragment } from '../aem/fragment.js';
-import { getFragmentName } from './translation-utils.js';
-import { getService } from '../utils.js';
+import Store from '../../store.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../../constants.js';
+import { Fragment } from '../../aem/fragment.js';
+import { getFragmentName } from '../../translation/translation-utils.js';
+import { getService } from '../../utils.js';
 
 const OFFER_DATA_CONCURRENCY_LIMIT = 5;
 const VARIATIONS_CONCURRENCY_LIMIT = 5;
@@ -58,11 +59,11 @@ async function processConcurrently(items, asyncFn, concurrencyLimit, batchSize =
  * Loads offer data for a fragment using its OSI field
  * @param {Object} fragment - Fragment object with fields
  * @param {AbortSignal} signal - Optional abort signal for cancellation
- * @param {Number} timeoutMs - Timeout in milliseconds (default: 10000)
+ * @param {Number} timeoutMs - Timeout in milliseconds
  * @returns {Promise<Object|null>} Offer data or null if not found/failed
  */
 async function loadOfferData(fragment, signal, timeoutMs = 10000) {
-    const cache = Store.translationProjects.offerDataCache;
+    const cache = getItemsSelectionStore().offerDataCache;
     const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0];
     if (!wcsOsi) return null;
 
@@ -166,7 +167,7 @@ export async function fetchVariationByPath(variationPath, repository) {
             offerData,
         };
 
-        const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
+        const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
         const innerMap = new Map(existing.get(parentCardPath) || []);
         innerMap.set(variationPath, enriched);
         const merged = new Map(existing);
@@ -180,19 +181,18 @@ export async function fetchVariationByPath(variationPath, repository) {
 }
 
 /**
- * Updates groupedVariationsByParent and keeps groupedVariationsData (flattened map) in sync.
- * Call this instead of Store.translationProjects.groupedVariationsByParent.set() to avoid rebuilding the flattened map on every render.
+ * Updates groupedVariationsByParent.
  * @param {Map} groupedVariationsByParentValue - Map of cardPath -> Map of variationPath -> variation
  */
 export function setCardVariationsByPaths(groupedVariationsByParentValue) {
-    Store.translationProjects.groupedVariationsByParent.set(groupedVariationsByParentValue);
+    getItemsSelectionStore().groupedVariationsByParent.set(groupedVariationsByParentValue);
     const flattened = new Map();
     for (const variationsMap of groupedVariationsByParentValue.values()) {
         for (const [path, variation] of variationsMap) {
             flattened.set(path, variation);
         }
     }
-    Store.translationProjects.groupedVariationsData.set(flattened);
+    getItemsSelectionStore().groupedVariationsData.set(flattened);
 }
 
 /**
@@ -234,7 +234,7 @@ async function processCardsData(allCards, repository, state) {
     const { signal: currentSignal } = state.processAbortController;
 
     try {
-        const existingCards = Store.translationProjects.allCards.get() || [];
+        const existingCards = getItemsSelectionStore().allCards.get() || [];
         const existingOfferDataByPath = new Map(
             existingCards.filter((card) => card.offerData !== undefined).map((card) => [card.path, card.offerData]),
         );
@@ -292,16 +292,16 @@ async function processCardsData(allCards, repository, state) {
                 .map((card) => [card.path, new Map(card.groupedVariations.map((v) => [v.path, v]))]),
         );
         if (prefetchedVariations.size > 0) {
-            const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
+            const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
             const merged = new Map(existing);
             for (const [cardPath, varMap] of prefetchedVariations) {
                 merged.set(cardPath, varMap);
             }
             setCardVariationsByPaths(merged);
         }
-        Store.translationProjects.displayCards.set(enrichedCards);
-        Store.translationProjects.allCards.set(enrichedCards);
-        Store.translationProjects.cardsByPaths.set(cardsByPaths);
+        getItemsSelectionStore().displayCards.set(enrichedCards);
+        getItemsSelectionStore().allCards.set(enrichedCards);
+        getItemsSelectionStore().cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;
     }
@@ -312,10 +312,10 @@ async function processCardsData(allCards, repository, state) {
  * @param {Array<Object>} allCollections - Array of collection objects
  */
 function processCollectionsData(allCollections) {
-    Store.translationProjects.displayCollections.set(allCollections);
-    Store.translationProjects.allCollections.set(allCollections);
+    getItemsSelectionStore().displayCollections.set(allCollections);
+    getItemsSelectionStore().allCollections.set(allCollections);
     const collectionsByPaths = new Map(allCollections.map((f) => [f.path, f]));
-    Store.translationProjects.collectionsByPaths.set(collectionsByPaths);
+    getItemsSelectionStore().collectionsByPaths.set(collectionsByPaths);
 }
 
 /**
@@ -323,15 +323,15 @@ function processCollectionsData(allCollections) {
  * @returns {{ unsubscribe: () => void }}
  */
 export function loadAllPlaceholders() {
-    if (Store.translationProjects.allPlaceholders.get()?.length) {
+    if (getItemsSelectionStore().allPlaceholders.get()?.length) {
         return { unsubscribe: () => {} };
     }
     const callback = () => {
         const placeholderValues = Store.placeholders.list.data.get().map((placeholder) => placeholder.value);
         const placeholdersByPaths = new Map(placeholderValues.map((p) => [p.path, p]));
-        Store.translationProjects.displayPlaceholders.set(placeholderValues);
-        Store.translationProjects.allPlaceholders.set(placeholderValues);
-        Store.translationProjects.placeholdersByPaths.set(placeholdersByPaths);
+        getItemsSelectionStore().displayPlaceholders.set(placeholderValues);
+        getItemsSelectionStore().allPlaceholders.set(placeholderValues);
+        getItemsSelectionStore().placeholdersByPaths.set(placeholdersByPaths);
     };
     Store.placeholders.list.data.subscribe(callback);
     return { unsubscribe: () => Store.placeholders.list.data.unsubscribe(callback) };
@@ -346,7 +346,7 @@ export function loadAllPlaceholders() {
  */
 export function loadAllFragments(type, repository, state = {}) {
     const typeUppercased = type.charAt(0).toUpperCase() + type.slice(1);
-    if (Store.translationProjects[`all${typeUppercased}`].get()?.length) {
+    if (getItemsSelectionStore()[`all${typeUppercased}`].get()?.length) {
         return { unsubscribe: () => {} };
     }
     const callback = async () => {
@@ -498,7 +498,7 @@ export async function fetchUnresolvedVariations(selectedCards, cardsByPaths, gro
  * @returns {Promise<void>}
  */
 export async function loadCardVariations(cardPath, variationPaths, repository) {
-    const hadPath = Store.translationProjects.groupedVariationsByParent.value?.has(cardPath);
+    const hadPath = getItemsSelectionStore().groupedVariationsByParent.value?.has(cardPath);
     if (!variationPaths?.length || hadPath || !repository) return;
 
     try {
@@ -536,7 +536,7 @@ export async function loadCardVariations(cardPath, variationPaths, repository) {
             ]),
         );
 
-        const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
+        const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
         const merged = new Map(existing);
         merged.set(cardPath, variationsByPaths);
         setCardVariationsByPaths(merged);

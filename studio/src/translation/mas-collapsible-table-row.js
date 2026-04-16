@@ -4,8 +4,8 @@ import { styles } from './mas-collapsible-table-row.css.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
 import { renderFragmentStatusCell } from './translation-utils.js';
 import { Fragment } from '../aem/fragment.js';
-import Store from '../store.js';
-import { loadCardVariations, fetchVariationByPath } from './translation-items-loader.js';
+import { getItemsSelectionStore } from '../common/items-selection-store.js';
+import { loadCardVariations, fetchVariationByPath } from '../common/utils/translation-items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
 export class MasCollapsibleTableRow extends LitElement {
@@ -41,8 +41,8 @@ export class MasCollapsibleTableRow extends LitElement {
         this.isTopLevelExpanded = false;
         this.expandedVariationsPaths = new Set();
         this.resizeObserver = null;
-        this.variationsController = new ReactiveController(this, [Store.translationProjects.groupedVariationsByParent]);
-        this.selectedCardsController = new ReactiveController(this, [Store.translationProjects.selectedCards]);
+        this.variationsController = new ReactiveController(this, [getItemsSelectionStore().groupedVariationsByParent]);
+        this.selectedCardsController = new ReactiveController(this, [getItemsSelectionStore().selectedCards]);
     }
 
     connectedCallback() {
@@ -77,11 +77,11 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get topLevelCardVariationsByPaths() {
-        return Store.translationProjects.groupedVariationsByParent.value.get(this.topLevelCard.path) || new Map();
+        return getItemsSelectionStore().groupedVariationsByParent.value.get(this.topLevelCard.path) || new Map();
     }
 
     get selectedCards() {
-        return Store.translationProjects.selectedCards.value || [];
+        return getItemsSelectionStore().selectedCards.value || [];
     }
 
     get cells() {
@@ -303,11 +303,11 @@ export class MasCollapsibleTableRow extends LitElement {
 
     #toggleSelect(e, path) {
         e.stopPropagation();
-        const current = Store.translationProjects.selectedCards.value || [];
+        const current = getItemsSelectionStore().selectedCards.value || [];
         if (current.includes(path)) {
-            Store.translationProjects.selectedCards.set(current.filter((p) => p !== path));
+            getItemsSelectionStore().selectedCards.set(current.filter((p) => p !== path));
         } else {
-            Store.translationProjects.selectedCards.set([...current, path]);
+            getItemsSelectionStore().selectedCards.set([...current, path]);
         }
     }
 
@@ -315,14 +315,14 @@ export class MasCollapsibleTableRow extends LitElement {
         e.stopPropagation();
         this.isTopLevelExpanded = !this.isTopLevelExpanded;
         if (this.isGroupedVariation) {
-            if (Store.translationProjects.groupedVariationsData.value?.get(this.topLevelCard.path)) return;
+            if (getItemsSelectionStore().groupedVariationsData.value?.get(this.topLevelCard.path)) return;
             this.isLoadingVariations = true;
             fetchVariationByPath(this.topLevelCard.path, this.repository).finally(() => {
                 this.isLoadingVariations = false;
             });
         } else {
             if (
-                Store.translationProjects.groupedVariationsByParent.value?.has(this.topLevelCard.path) ||
+                getItemsSelectionStore().groupedVariationsByParent.value?.has(this.topLevelCard.path) ||
                 !this.variationPaths.length
             )
                 return;
@@ -359,9 +359,9 @@ export class MasCollapsibleTableRow extends LitElement {
             : html`<sp-table-row class="variation-details-row">
                   <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
                   <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
-                  ${this.renderPromoCode(Store.translationProjects.groupedVariationsData.value?.get(variationPath))}
+                  ${this.renderPromoCode(getItemsSelectionStore().groupedVariationsData.value?.get(variationPath))}
                   <sp-table-cell></sp-table-cell>
-                  ${this.renderTags(Store.translationProjects.groupedVariationsData.value?.get(variationPath))}
+                  ${this.renderTags(getItemsSelectionStore().groupedVariationsData.value?.get(variationPath))}
                   <sp-table-cell></sp-table-cell>
                   <sp-table-cell></sp-table-cell>
               </sp-table-row>`;

@@ -6,12 +6,13 @@ import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Fragment } from '../aem/fragment.js';
 import { MasRepository, getFromFragmentCache } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
-import './mas-items-selector.js';
+import '../common/components/mas-items-selector.js';
 import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../constants.js';
+import { setItemsSelectionStore } from '../common/items-selection-store.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -61,6 +62,7 @@ class MasTranslationEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
+        setItemsSelectionStore(Store.translationProjects);
 
         if (this.repository?.searchFragments) {
             this.repository.searchFragments();

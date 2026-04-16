@@ -1,18 +1,19 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-select-items-table.css.js';
-import Store from '../store.js';
-import StoreController from '../reactivity/store-controller.js';
-import { TABLE_TYPE } from '../constants.js';
-import { renderFragmentStatusCell } from './translation-utils.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
-import { MasCollapsibleTableRow } from './mas-collapsible-table-row.js';
+import Store from '../../store.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
+import StoreController from '../../reactivity/store-controller.js';
+import { TABLE_TYPE } from '../../constants.js';
+import { renderFragmentStatusCell } from '../../translation/translation-utils.js';
+import ReactiveController from '../../reactivity/reactive-controller.js';
 import {
     loadAllPlaceholders,
     loadAllFragments,
     loadSelectedPlaceholders,
     loadSelectedFragments,
-} from './translation-items-loader.js';
+} from '../utils/translation-items-loader.js';
+import '../../translation/mas-collapsible-table-row.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -49,9 +50,9 @@ class MasSelectItemsTable extends LitElement {
         super.connectedCallback();
         if (this.viewOnly) {
             if (this.type === TABLE_TYPE.PLACEHOLDERS) {
-                this.viewOnlyLoading = !!Store.translationProjects.selectedPlaceholders.value?.length;
+                this.viewOnlyLoading = !!getItemsSelectionStore().selectedPlaceholders.value?.length;
                 this.dataSubscription = loadSelectedPlaceholders(
-                    Store.translationProjects.selectedPlaceholders.value,
+                    getItemsSelectionStore().selectedPlaceholders.value,
                     (items) => {
                         this.viewOnlyFragments = items;
                         if (!Store.placeholders.list.loading.get()) {
@@ -60,10 +61,10 @@ class MasSelectItemsTable extends LitElement {
                     },
                 );
             } else {
-                this.viewOnlyLoading = !!Store.translationProjects[`selected${this.typeUppercased}`].value?.length;
+                this.viewOnlyLoading = !!getItemsSelectionStore()[`selected${this.typeUppercased}`].value?.length;
                 this.processAbortController = new AbortController();
                 loadSelectedFragments(
-                    Store.translationProjects[`selected${this.typeUppercased}`].value,
+                    getItemsSelectionStore()[`selected${this.typeUppercased}`].value,
                     this.type,
                     this.repository,
                     {
@@ -97,10 +98,10 @@ class MasSelectItemsTable extends LitElement {
         this[`selected${this.typeUppercased}StoreController`] = new ReactiveController(this, [
             Store.fragments.list.loading,
             Store.placeholders.list.loading,
-            Store.translationProjects[`selected${this.typeUppercased}`],
+            getItemsSelectionStore()[`selected${this.typeUppercased}`],
         ]);
         this[`display${this.typeUppercased}StoreController`] = new ReactiveController(this, [
-            Store.translationProjects[`display${this.typeUppercased}`],
+            getItemsSelectionStore()[`display${this.typeUppercased}`],
         ]);
     }
 
@@ -165,11 +166,11 @@ class MasSelectItemsTable extends LitElement {
         if (this.viewOnly) {
             return this.viewOnlyFragments;
         }
-        return Store.translationProjects[`display${this.typeUppercased}`].value;
+        return getItemsSelectionStore()[`display${this.typeUppercased}`].value;
     }
 
     get selectedInTable() {
-        return new Set(Store.translationProjects[`selected${this.typeUppercased}`].value);
+        return new Set(getItemsSelectionStore()[`selected${this.typeUppercased}`].value);
     }
 
     get tableColumns() {
@@ -229,7 +230,7 @@ class MasSelectItemsTable extends LitElement {
         const newSelected = this.selectedInTable.has(path)
             ? [...this.selectedInTable].filter((p) => p !== path)
             : [...this.selectedInTable, path];
-        Store.translationProjects[`selected${this.typeUppercased}`].set(newSelected);
+        getItemsSelectionStore()[`selected${this.typeUppercased}`].set(newSelected);
     }
 
     #renderTableBody() {

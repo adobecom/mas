@@ -5,8 +5,8 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { TABLE_TYPE } from '../../src/constants.js';
 import '../../src/swc.js';
-import '../../src/translation/mas-items-selector.js';
-import { TABS } from '../../src/translation/mas-items-selector.js';
+import '../../src/common/components/mas-items-selector.js';
+import { TABS } from '../../src/common/components/mas-items-selector.js';
 
 describe('MasItemsSelector', () => {
     let sandbox;

@@ -12,7 +12,7 @@ import {
     fetchUnresolvedVariations,
     fetchVariationByPath,
     setCardVariationsByPaths,
-} from '../../src/translation/translation-items-loader.js';
+} from '../../src/common/utils/translation-items-loader.js';
 
 describe('translation-items-loader', () => {
     let sandbox;

@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { TABLE_TYPE, FILTER_TYPE } from '../../src/constants.js';
 import '../../src/swc.js';
-import '../../src/translation/mas-search-and-filters.js';
+import '../../src/common/components/mas-search-and-filters.js';
 
 describe('MasSearchAndFilters', () => {
     let sandbox;

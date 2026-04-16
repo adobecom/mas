@@ -1,9 +1,9 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import Store from '../store.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
-import { TABLE_TYPE } from '../constants.js';
-import { toggleSidebarIcon } from '../icons.js';
+import ReactiveController from '../../reactivity/reactive-controller.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
+import { TABLE_TYPE } from '../../constants.js';
+import { toggleSidebarIcon } from '../../icons.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
@@ -29,35 +29,33 @@ class MasItemsSelector extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        const s = getItemsSelectionStore();
         this.storeController = new ReactiveController(this, [
-            Store.translationProjects.inEdit,
-            Store.translationProjects.showSelected,
-            Store.translationProjects.selectedCards,
-            Store.translationProjects.selectedCollections,
-            Store.translationProjects.selectedPlaceholders,
+            s.inEdit,
+            s.showSelected,
+            s.selectedCards,
+            s.selectedCollections,
+            s.selectedPlaceholders,
         ]);
     }
 
     get showSelected() {
-        return Store.translationProjects.showSelected.value;
+        return getItemsSelectionStore().showSelected.value;
     }
 
     get selectedCount() {
-        return [
-            ...Store.translationProjects.selectedCards.value,
-            ...Store.translationProjects.selectedPlaceholders.value,
-            ...Store.translationProjects.selectedCollections.value,
-        ].length;
+        const s = getItemsSelectionStore();
+        return [...s.selectedCards.value, ...s.selectedPlaceholders.value, ...s.selectedCollections.value].length;
     }
 
     #toggleShowSelected() {
-        Store.translationProjects.showSelected.set(!this.showSelected);
+        getItemsSelectionStore().showSelected.set(!this.showSelected);
     }
 
     #getTabLabel(tab) {
         if (this.viewOnly) {
             const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            return `${tab.label} (${Store.translationProjects[`selected${valueUppercase}`].value.length})`;
+            return `${tab.label} (${getItemsSelectionStore()[`selected${valueUppercase}`].value.length})`;
         }
         return tab.label;
     }

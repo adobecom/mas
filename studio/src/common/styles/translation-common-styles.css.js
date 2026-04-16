@@ -7,13 +7,7 @@ export const ghostButtonStyles = css`
     }
 `;
 
-export const loadingContainerStyles = css`
-    .loading-container--flex {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
+export const loadingContainerCenteredStyles = css`
     .loading-container--absolute {
         position: absolute;
         top: 50%;
@@ -22,34 +16,58 @@ export const loadingContainerStyles = css`
     }
 `;
 
-export const tableHeaderStyles = css`
-    .items-table {
+export const loadingContainerFlexStyles = css`
+    .loading-container--flex {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+`;
+
+export const tableHeaderBaseStyles = css`
+    .translation-table {
         --mod-table-header-background-color: var(--spectrum-gray-50);
         --mod-table-border-radius: 0;
     }
 
-    .items-table sp-table-head {
+    .translation-table sp-table-head {
         border-top: 1px solid var(--spectrum-gray-300);
         border-left: 1px solid var(--spectrum-gray-300);
         border-right: 1px solid var(--spectrum-gray-300);
         border-radius: 12px 12px 0 0;
     }
 
-    .items-table sp-table-head-cell {
+    .translation-table sp-table-head-cell {
         align-content: center;
     }
 
-    .items-table sp-table-head-cell:first-of-type {
+    .translation-table sp-table-head-cell:first-of-type {
         border-top-left-radius: 12px;
     }
 
-    .items-table sp-table-head-cell:last-of-type {
+    .translation-table sp-table-head-cell:last-of-type {
         border-top-right-radius: 12px;
     }
 `;
 
-export const tableCellStyles = css`
-    .items-table sp-table-cell,
+export const tableColumnIconStyles = css`
+    .translation-table-icon-cell {
+        display: flex;
+        align-items: center;
+        flex: 0;
+    }
+
+    .translation-table-icon-cell--chevron {
+        padding: 29px;
+    }
+
+    .translation-table-icon-cell--checkbox {
+        padding: 22px;
+    }
+`;
+
+export const tableCellBaseStyles = css`
+    .translation-table sp-table-cell,
     sp-table-cell {
         display: flex;
         align-items: center;
@@ -74,22 +92,6 @@ export const tableCellStyles = css`
         .status-dot.blue {
             background-color: var(--spectrum-blue-800);
         }
-    }
-`;
-
-export const tableIconCellStyles = css`
-    .icon-cell {
-        display: flex;
-        align-items: center;
-        flex: 0;
-    }
-
-    .icon-cell--chevron {
-        padding: 29px;
-    }
-
-    .icon-cell--checkbox {
-        padding: 22px;
     }
 `;
 

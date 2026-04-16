@@ -1,11 +1,12 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-selected-items.css.js';
-import Store from '../store.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
-import { Fragment } from '../aem/fragment.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
-import { fetchUnresolvedVariations } from './translation-items-loader.js';
+import Store from '../../store.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
+import ReactiveController from '../../reactivity/reactive-controller.js';
+import { Fragment } from '../../aem/fragment.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
+import { fetchUnresolvedVariations } from '../utils/translation-items-loader.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
@@ -15,17 +16,17 @@ class MasSelectedItems extends LitElement {
     constructor() {
         super();
         this.storeController = new ReactiveController(this, [
-            Store.translationProjects.showSelected,
-            Store.translationProjects.selectedCards,
-            Store.translationProjects.selectedCollections,
-            Store.translationProjects.selectedPlaceholders,
-            Store.translationProjects.groupedVariationsByParent,
+            getItemsSelectionStore().showSelected,
+            getItemsSelectionStore().selectedCards,
+            getItemsSelectionStore().selectedCollections,
+            getItemsSelectionStore().selectedPlaceholders,
+            getItemsSelectionStore().groupedVariationsByParent,
             Store.fragments.list.loading,
             Store.placeholders.list.loading,
         ]);
         this.fetchController = new ReactiveController(
             this,
-            [Store.translationProjects.showSelected, Store.translationProjects.selectedCards],
+            [getItemsSelectionStore().showSelected, getItemsSelectionStore().selectedCards],
             this.maybeFetchUnresolvedVariations.bind(this),
         );
     }
@@ -35,15 +36,15 @@ class MasSelectedItems extends LitElement {
     maybeFetchUnresolvedVariations() {
         if (!this.showSelected || !this.repository) return;
 
-        const selectedCards = Store.translationProjects.selectedCards.value || [];
+        const selectedCards = getItemsSelectionStore().selectedCards.value || [];
         const selectedCardsKey = [...selectedCards].sort().join('\0');
         if (selectedCardsKey === this.#lastFetchedSelectedCardsKey) return;
 
         this.#lastFetchedSelectedCardsKey = selectedCardsKey;
         fetchUnresolvedVariations(
             selectedCards,
-            Store.translationProjects.cardsByPaths.value,
-            Store.translationProjects.groupedVariationsByParent.value,
+            getItemsSelectionStore().cardsByPaths.value,
+            getItemsSelectionStore().groupedVariationsByParent.value,
             this.repository,
         );
     }
@@ -54,28 +55,28 @@ class MasSelectedItems extends LitElement {
     }
 
     get selectedItems() {
-        const cards = Store.translationProjects.selectedCards.value
-            ?.map(
+        const cards = getItemsSelectionStore()
+            .selectedCards.value?.map(
                 (path) =>
-                    Store.translationProjects.cardsByPaths.value?.get(path) ??
-                    Store.translationProjects.groupedVariationsData.value?.get(path),
+                    getItemsSelectionStore().cardsByPaths.value?.get(path) ??
+                    getItemsSelectionStore().groupedVariationsData.value?.get(path),
             )
             .filter(Boolean);
-        const collections = Store.translationProjects.selectedCollections.value
-            ?.map((path) => {
-                return Store.translationProjects.collectionsByPaths.value.get(path);
+        const collections = getItemsSelectionStore()
+            .selectedCollections.value?.map((path) => {
+                return getItemsSelectionStore().collectionsByPaths.value.get(path);
             })
             .filter(Boolean);
-        const placeholders = Store.translationProjects.selectedPlaceholders.value
-            ?.map((path) => {
-                return Store.translationProjects.placeholdersByPaths.value.get(path);
+        const placeholders = getItemsSelectionStore()
+            .selectedPlaceholders.value?.map((path) => {
+                return getItemsSelectionStore().placeholdersByPaths.value.get(path);
             })
             .filter(Boolean);
         return [...cards, ...collections, ...placeholders];
     }
 
     get showSelected() {
-        return Store.translationProjects.showSelected.value;
+        return getItemsSelectionStore().showSelected.value;
     }
 
     get isLoadingItems() {
@@ -120,8 +121,8 @@ class MasSelectedItems extends LitElement {
                 type = 'Placeholders';
                 break;
         }
-        Store.translationProjects[`selected${type}`].set(
-            Store.translationProjects[`selected${type}`].value?.filter((selectedPath) => selectedPath !== item.path),
+        getItemsSelectionStore()[`selected${type}`].set(
+            getItemsSelectionStore()[`selected${type}`].value?.filter((selectedPath) => selectedPath !== item.path),
         );
     }
 

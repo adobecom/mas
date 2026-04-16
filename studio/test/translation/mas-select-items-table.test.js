@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE, FRAGMENT_STATUS } from '../../src/constants.js';
 import '../../src/swc.js';
-import '../../src/translation/mas-select-items-table.js';
+import '../../src/common/components/mas-select-items-table.js';
 
 describe('MasSelectItemsTable', () => {
     let sandbox;

@@ -3,7 +3,7 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
-import { setCardVariationsByPaths } from '../../src/translation/translation-items-loader.js';
+import { setCardVariationsByPaths } from '../../src/common/utils/translation-items-loader.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-collapsible-table-row.js';

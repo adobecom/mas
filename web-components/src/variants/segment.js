@@ -75,7 +75,7 @@ export class Segment extends VariantLayout {
     }
 
     async adjustLegal() {
-        if (this.legalAdjusted) return;
+        if (this.legalAdjusted || !this.card.id) return;
 
         try {
             this.legalAdjusted = true;

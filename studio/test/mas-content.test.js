@@ -120,4 +120,33 @@ describe('MasContent table + personalization grouping', () => {
         expect(text).to.include('Personalization fragments (1)');
         expect(text).to.include('All other fragments (0)');
     });
+
+    it('narrows personalization group using pznTags field when metadata tags are empty', async () => {
+        const withGeneralOnField = makeFragment({
+            id: 'pf',
+            path: '/content/dam/mas/acom/en_US/cards/pf',
+            tags: [],
+            fields: [{ name: 'pznTags', values: ['mas:pzn/general'] }],
+        });
+        const withSegmentOnField = makeFragment({
+            id: 'sf',
+            path: '/content/dam/mas/acom/en_US/cards/sf',
+            tags: [],
+            fields: [{ name: 'pznTags', values: ['mas:pzn/segment-only'] }],
+        });
+        Store.filters.set({
+            locale: 'en_US',
+            personalizationFilterEnabled: true,
+            tags: 'mas:pzn/general',
+        });
+        Store.renderMode.set('table');
+        Store.fragments.list.data.value = [makeStore(withGeneralOnField), makeStore(withSegmentOnField)];
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        await el.updateComplete;
+
+        const text = el.textContent ?? '';
+        expect(text).to.include('Personalization fragments (1)');
+        expect(text).to.include('All other fragments (0)');
+    });
 });

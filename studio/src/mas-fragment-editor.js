@@ -5,7 +5,14 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    MAS_PRODUCT_CODE_PREFIX,
+    ODIN_PREVIEW_ORIGIN,
+    PAGE_NAMES,
+    TAG_PROMOTION_PREFIX,
+} from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
@@ -478,7 +485,10 @@ export default class MasFragmentEditor extends LitElement {
 
     // Returns true when editor should lazily initialize the fragment for the current route.
     #shouldInitFragment() {
-        return this.fragmentId && !this.inEdit.get() && this.initState !== MasFragmentEditor.INIT_STATE.LOADING;
+        if (!this.fragmentId || this.initState === MasFragmentEditor.INIT_STATE.LOADING) return false;
+        const currentInEdit = this.inEdit.get();
+        if (!currentInEdit) return true;
+        return currentInEdit.get()?.id !== this.fragmentId;
     }
 
     get previewSkeleton() {
@@ -567,7 +577,7 @@ export default class MasFragmentEditor extends LitElement {
         // Analytics ID (from tags with mas:product_code/ prefix)
         const productCodeTag = fragment.tags?.find((tag) => tag.id?.startsWith('mas:product_code/'));
         if (productCodeTag) {
-            const analyticsId = productCodeTag.id.replace('mas:product_code/', '');
+            const analyticsId = productCodeTag.id.replace(MAS_PRODUCT_CODE_PREFIX, '');
             if (analyticsId) attrs.analyticsId = analyticsId;
         }
 
@@ -689,17 +699,27 @@ export default class MasFragmentEditor extends LitElement {
     // Initializes editor state when the fragment already exists in the list store cache.
     async #initializeFromCachedStore(fragmentId, existingStore) {
         const fragmentPath = existingStore.get().path;
-        this.#updateLocaleIfNeeded(fragmentPath);
 
-        // Reload context to correctly determine if this fragment is a variation
+        const fragmentLocale = extractLocaleFromPath(fragmentPath);
+        const pathDetection = this.editorContextStore.detectVariationFromPath(fragmentPath);
+        if (pathDetection.isVariation && fragmentLocale) {
+            Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+        }
+
+        this.#updateLocaleIfNeeded(fragmentPath);
         await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
         const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
 
-        // Consume store-level skip flag (set after copy operation)
         const skipVariation = existingStore.skipVariationDetection;
         if (skipVariation) existingStore.skipVariationDetection = false;
 
         if (isVariationAfterContext && !skipVariation) {
+            const localeChanged = fragmentLocale && fragmentLocale !== Store.localeOrRegion();
+            if (localeChanged) {
+                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                await this.repository.loadPreviewPlaceholders();
+                existingStore.resolvePreviewFragment();
+            }
             await this.#attachParentToCachedVariation(existingStore, fragmentPath);
             const fragmentLocale = extractLocaleFromPath(fragmentPath);
             if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
@@ -711,9 +731,8 @@ export default class MasFragmentEditor extends LitElement {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
 
-        this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath); // no need to await
+        this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath);
 
-        // Use existing store - just refresh it
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
         }
@@ -785,6 +804,19 @@ export default class MasFragmentEditor extends LitElement {
             this.#activateEditorStore(fragmentStore);
             this.dispatchFragmentLoaded();
 
+            // Handle locale-specific placeholder reload for variations
+            if (isVariationForStore) {
+                const fragmentLocale = extractLocaleFromPath(fragment.path);
+                if (fragmentLocale) {
+                    const localeChanged = fragmentLocale !== Store.localeOrRegion();
+                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                    if (localeChanged) {
+                        await this.repository.loadPreviewPlaceholders();
+                        fragmentStore.resolvePreviewFragment();
+                    }
+                }
+            }
+
             Store.editor.resetChanges();
             this.updateTranslatedLocalesStore(isVariationForStore, fragment.path); // no need to await
             this.#markInitReady();
@@ -804,18 +836,18 @@ export default class MasFragmentEditor extends LitElement {
             return;
         }
 
+        const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+
+        if (existingStore) {
+            this.groupedVariationOrphanMessage = null;
+            await this.#initializeFromCachedStore(fragmentId, existingStore);
+            return;
+        }
+
         this.groupedVariationOrphanMessage = null;
         this.previewResolved = false;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
         Store.fragmentEditor.loading.set(true);
-
-        // Check for existing store first
-        const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
-
-        if (existingStore) {
-            await this.#initializeFromCachedStore(fragmentId, existingStore);
-            return;
-        }
 
         await this.#initializeFromRepository(fragmentId);
     }
@@ -1478,13 +1510,16 @@ export default class MasFragmentEditor extends LitElement {
 
         const variantCode = this.fragment.getField('variant')?.values[0];
         const variantLabel = VARIANTS.find((v) => v.value === variantCode)?.label || '';
-        const customerSegment = this.fragment.getTagTitle('customer_segment') || '';
-        const marketSegment = this.fragment.getTagTitle('market_segment') || '';
-        const product = this.fragment.getTagTitle('mas:product/') || '';
-        const promotion = this.fragment.getTagTitle(TAG_PROMOTION_PREFIX) || '';
+        const customerSegment = this.fragment.getCurrentTagTitle('customer_segment') || '';
+        const marketSegment = this.fragment.getCurrentTagTitle('market_segment') || '';
+        const productCode =
+            this.fragment.getCurrentTagTitle(MAS_PRODUCT_CODE_PREFIX) ||
+            this.fragment.getTagTitle(MAS_PRODUCT_CODE_PREFIX) ||
+            '';
+        const promotion = this.fragment.getCurrentTagTitle(TAG_PROMOTION_PREFIX) || '';
 
         const buildPart = (part) => (part ? ` / ${part}` : '');
-        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(product)}${buildPart(promotion)}`;
+        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(productCode)}${buildPart(promotion)}`;
 
         return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
     }
@@ -1576,6 +1611,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get missingVariationState() {
+        if (this.fragmentId && this.fragment?.id !== this.fragmentId) return null;
         const currentLocale = Store.localeOrRegion();
         const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
 
@@ -1651,7 +1687,7 @@ export default class MasFragmentEditor extends LitElement {
             `;
         }
 
-        if (this.fragmentStore?.loading || this.isLoading) {
+        if (this.initState === MasFragmentEditor.INIT_STATE.LOADING) {
             return html`
                 ${this.styles}
                 <div id="fragment-editor">

@@ -81,14 +81,15 @@ function deepMerge(...objects) {
     return result;
 }
 
-function extractVariationBasedOnPath(variations, references, pathSegment) {
+function extractVariationBasedOnPath(variations, references, pattern) {
     return variations
-        .filter((variationId) => references[variationId]?.value?.path?.includes(pathSegment))
+        .filter((variationId) => pattern.test(references[variationId]?.value?.path))
         .map((variationId) => references[variationId].value);
 }
 
 function findRegionalVariation(variations, references, prefix) {
-    const regionalVariations = extractVariationBasedOnPath(variations, references, prefix);
+    const pattern = new RegExp(`/content/dam/mas/${prefix}/.+`);
+    const regionalVariations = extractVariationBasedOnPath(variations, references, pattern);
     return regionalVariations.length > 0 ? regionalVariations[0] : null;
 }
 
@@ -140,8 +141,9 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
 }
 
 function findPersonalizationVariation(variations, customizeContext) {
-    const { country, pzn, references, regionLocale } = customizeContext;
-    const personalizationVariations = extractVariationBasedOnPath(variations, references, PZN_FOLDER);
+    const { country, pzn, references, regionLocale, prefix } = customizeContext;
+    const pattern = new RegExp(`/content/dam/mas/${prefix}/([^/]+)${PZN_FOLDER}.+`);
+    const personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
         return null;

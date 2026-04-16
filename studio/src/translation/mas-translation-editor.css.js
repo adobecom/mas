@@ -113,9 +113,22 @@ export const styles = [
             border-radius: 10px;
         }
 
-        .add-langs-dialog,
-        .add-items-dialog {
+        .add-langs-dialog {
             --mod-dialog-confirm-buttongroup-padding-top: 82px;
+        }
+
+        .selected-items-footer-button {
+            min-width: 156px;
+            font-weight: 500;
+        }
+
+        .selected-items-footer-button sp-icon {
+            transform: scaleX(1);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .selected-items-footer-button sp-icon.flipped {
+            transform: scaleX(-1);
         }
 
         .selected-langs,

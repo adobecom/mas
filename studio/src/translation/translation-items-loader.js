@@ -235,7 +235,6 @@ async function processCardsData(allCards, repository, state) {
     state.isProcessingCards = true;
     const signal = state.abortController?.signal;
 
-    performance.mark('processCardsData:start');
     try {
         const existingCards = Store.translationProjects.allCards.get() || [];
         const existingOfferDataByPath = new Map(
@@ -307,7 +306,6 @@ async function processCardsData(allCards, repository, state) {
         Store.translationProjects.cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;
-        performance.measure('processCardsData', 'processCardsData:start');
         if (state.pendingCards && !signal?.aborted) {
             const next = state.pendingCards;
             state.pendingCards = null;

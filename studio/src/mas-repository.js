@@ -598,6 +598,9 @@ export class MasRepository extends LitElement {
             }
         } catch (error) {
             if (error.name === 'AbortError') return;
+            if (this.#searchCursor === cursorSnapshot) {
+                Store.fragments.list.hasMore.set(true);
+            }
         } finally {
             if (this.#searchCursor === cursorSnapshot || this.#searchCursor === null) {
                 Store.fragments.list.loading.set(false);

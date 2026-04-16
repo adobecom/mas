@@ -11,7 +11,8 @@ import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
-import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../constants.js';
+import { toggleSidebarIcon } from '../icons.js';
+import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -96,6 +97,7 @@ class MasTranslationEditor extends LitElement {
             Store.translationProjects.selectedPlaceholders,
             Store.translationProjects.targetLocales,
             Store.translationProjects.projectType,
+            Store.translationProjects.showSelected,
         ]);
         this.isProjectReadonly = !!this.translationProject?.getFieldValue('submissionDate');
         if (this.isProjectReadonly) {
@@ -476,6 +478,22 @@ class MasTranslationEditor extends LitElement {
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
         this.#collectionsSnapshot = Store.translationProjects.selectedCollections.value;
+
+        const selector = this.renderRoot.querySelector('mas-items-selector');
+        if (selector) {
+            selector.searchQuery = '';
+            selector.selectedTab = TABLE_TYPE.CARDS;
+            const searchAndFilters = selector.renderRoot.querySelector('mas-search-and-filters');
+            if (searchAndFilters) {
+                searchAndFilters.templateFilter = [];
+                searchAndFilters.marketSegmentFilter = [];
+                searchAndFilters.customerSegmentFilter = [];
+                searchAndFilters.productFilter = [];
+            }
+        }
+        Store.translationProjects.displayCards.set(Store.translationProjects.allCards.get());
+        Store.translationProjects.displayCollections.set(Store.translationProjects.allCollections.get());
+        Store.translationProjects.displayPlaceholders.set(Store.translationProjects.allPlaceholders.get());
     }
 
     #openAddLanguagesOverlay() {
@@ -508,6 +526,22 @@ class MasTranslationEditor extends LitElement {
     };
 
     renderAddItemsDialog() {
+        const showSelected = Store.translationProjects.showSelected.value;
+        const hasSelection = this.selectedCount > 0;
+        const label = showSelected && hasSelection ? 'Hide selection' : 'Selected items';
+        const footerContent = html`
+            <sp-button
+                variant="secondary"
+                @click=${this.#toggleShowSelectedItems}
+                ?disabled=${!hasSelection}
+                class="ghost-button selected-items-footer-button"
+            >
+                <sp-icon slot="icon" label=${label} class=${showSelected && hasSelection ? 'flipped' : ''}>
+                    ${toggleSidebarIcon}
+                </sp-icon>
+                ${label} (${this.selectedCount})
+            </sp-button>
+        `;
         return html`
             <sp-dialog-wrapper
                 class="add-items-dialog"
@@ -516,9 +550,9 @@ class MasTranslationEditor extends LitElement {
                 headline-visibility="none"
                 confirm-label="Add selected items"
                 cancel-label="Cancel"
+                .footer=${footerContent}
                 underlay
                 no-divider
-                dismissable
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
             >
@@ -526,6 +560,10 @@ class MasTranslationEditor extends LitElement {
             </sp-dialog-wrapper>
         `;
     }
+
+    #toggleShowSelectedItems = () => {
+        Store.translationProjects.showSelected.set(!Store.translationProjects.showSelected.value);
+    };
 
     renderAddLanguagesDialog() {
         return html`

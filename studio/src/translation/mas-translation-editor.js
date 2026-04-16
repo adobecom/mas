@@ -11,7 +11,6 @@ import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
-import { toggleSidebarIcon } from '../icons.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
 
 class MasTranslationEditor extends LitElement {
@@ -35,6 +34,7 @@ class MasTranslationEditor extends LitElement {
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
+    #itemsConfirmed = false;
 
     constructor() {
         super();
@@ -460,6 +460,7 @@ class MasTranslationEditor extends LitElement {
         this.#cardsSnapshot = [];
         this.#collectionsSnapshot = [];
         this.#placeholdersSnapshot = [];
+        this.#itemsConfirmed = true;
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -470,6 +471,7 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
         Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
         this.showSelectedEmptyState = this.selectedCount === 0;
+        this.#itemsConfirmed = true;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
@@ -526,21 +528,11 @@ class MasTranslationEditor extends LitElement {
     };
 
     renderAddItemsDialog() {
-        const showSelected = Store.translationProjects.showSelected.value;
-        const hasSelection = this.selectedCount > 0;
-        const label = showSelected && hasSelection ? 'Hide selection' : 'Selected items';
         const footerContent = html`
-            <sp-button
-                variant="secondary"
-                @click=${this.#toggleShowSelectedItems}
-                ?disabled=${!hasSelection}
-                class="ghost-button selected-items-footer-button"
-            >
-                <sp-icon slot="icon" label=${label} class=${showSelected && hasSelection ? 'flipped' : ''}>
-                    ${toggleSidebarIcon}
-                </sp-icon>
-                ${label} (${this.selectedCount})
-            </sp-button>
+            <sp-button-group>
+                <sp-button variant="secondary" treatment="outline" @click=${this.#dispatchCancelItems}>Cancel</sp-button>
+                <sp-button variant="accent" @click=${this.#dispatchConfirmItems}>Add selected items</sp-button>
+            </sp-button-group>
         `;
         return html`
             <sp-dialog-wrapper
@@ -548,21 +540,47 @@ class MasTranslationEditor extends LitElement {
                 slot="click-content"
                 headline="Select items"
                 headline-visibility="none"
-                confirm-label="Add selected items"
-                cancel-label="Cancel"
                 .footer=${footerContent}
                 underlay
+                dismissable
                 no-divider
+                @sp-opened=${this.#alignItemsDialogFooter}
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
+                @close=${this.#restoreItemsSnapshot}
             >
                 <mas-items-selector></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
 
-    #toggleShowSelectedItems = () => {
-        Store.translationProjects.showSelected.set(!Store.translationProjects.showSelected.value);
+    #alignItemsDialogFooter = ({ target }) => {
+        const slotDiv = target?.shadowRoot?.querySelector('div[slot="footer"]');
+        if (!slotDiv) return;
+        slotDiv.style.width = '100%';
+        slotDiv.style.display = 'flex';
+        slotDiv.style.justifyContent = 'flex-end';
+    };
+
+    #restoreItemsSnapshot = () => {
+        if (this.#itemsConfirmed) {
+            this.#itemsConfirmed = false;
+            return;
+        }
+        Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
+        Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
+        Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
+        this.showSelectedEmptyState = this.selectedCount === 0;
+    };
+
+    #dispatchConfirmItems = () => {
+        const wrapper = this.renderRoot.querySelector('.add-items-dialog');
+        wrapper?.dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+    };
+
+    #dispatchCancelItems = () => {
+        const wrapper = this.renderRoot.querySelector('.add-items-dialog');
+        wrapper?.dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
     };
 
     renderAddLanguagesDialog() {

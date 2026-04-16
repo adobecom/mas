@@ -51,6 +51,7 @@ export const styles = [
             flex: 1;
             min-height: 0;
             width: 100%;
+            padding-bottom: 48px;
         }
 
         mas-select-items-table {
@@ -62,6 +63,7 @@ export const styles = [
 
         .container.view-only {
             width: 100%;
+            padding-bottom: 0;
         }
 
         sp-tab-panel.view-only {
@@ -74,6 +76,36 @@ export const styles = [
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
+        }
+
+        .selected-items-count {
+            position: fixed;
+            bottom: 95px;
+            right: 42px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 6px;
+
+            sp-button {
+                min-width: 156px;
+                font-weight: 500;
+            }
+
+            sp-button[disabled] {
+                sp-icon {
+                    opacity: 0.2;
+                }
+            }
+
+            sp-icon {
+                transform: scaleX(1);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            sp-icon.flipped {
+                transform: scaleX(-1);
+            }
         }
     `,
 ];

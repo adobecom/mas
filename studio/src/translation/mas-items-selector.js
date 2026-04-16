@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { TABLE_TYPE } from '../constants.js';
+import { toggleSidebarIcon } from '../icons.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
@@ -35,10 +36,27 @@ class MasItemsSelector extends LitElement {
         super.connectedCallback();
         this.storeController = new ReactiveController(this, [
             Store.translationProjects.inEdit,
+            Store.translationProjects.showSelected,
             Store.translationProjects.selectedCards,
             Store.translationProjects.selectedCollections,
             Store.translationProjects.selectedPlaceholders,
         ]);
+    }
+
+    get showSelected() {
+        return Store.translationProjects.showSelected.value;
+    }
+
+    get selectedCount() {
+        return [
+            ...Store.translationProjects.selectedCards.value,
+            ...Store.translationProjects.selectedPlaceholders.value,
+            ...Store.translationProjects.selectedCollections.value,
+        ].length;
+    }
+
+    #toggleShowSelected() {
+        Store.translationProjects.showSelected.set(!this.showSelected);
     }
 
     #handleSearchInput = debounce(({ target: { value } }) => {
@@ -119,6 +137,29 @@ class MasItemsSelector extends LitElement {
                     `,
                 )}
             </sp-tabs>
+
+            ${this.viewOnly
+                ? nothing
+                : html`
+                      <div class="selected-items-count">
+                          <sp-button
+                              variant="secondary"
+                              @click=${this.#toggleShowSelected}
+                              ?disabled=${!this.selectedCount}
+                              class="ghost-button"
+                          >
+                              <sp-icon
+                                  slot="icon"
+                                  label=${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected items'}
+                                  class=${this.showSelected && this.selectedCount ? 'flipped' : ''}
+                              >
+                                  ${toggleSidebarIcon}
+                              </sp-icon>
+                              ${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected items'}
+                              (${this.selectedCount})
+                          </sp-button>
+                      </div>
+                  `}
         `;
     }
 }

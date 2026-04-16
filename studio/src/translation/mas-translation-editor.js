@@ -476,7 +476,8 @@ class MasTranslationEditor extends LitElement {
         target.dispatchEvent(closeEvent);
     };
 
-    #openAddItemsOverlay() {
+    #openAddItemsOverlay(e) {
+        if (e && e.target !== e.currentTarget) return;
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
         this.#collectionsSnapshot = Store.translationProjects.selectedCollections.value;

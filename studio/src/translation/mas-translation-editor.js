@@ -123,11 +123,11 @@ class MasTranslationEditor extends LitElement {
     }
 
     get selectedCount() {
-        return [
-            ...Store.translationProjects.selectedCards.value,
-            ...Store.translationProjects.selectedPlaceholders.value,
-            ...Store.translationProjects.selectedCollections.value,
-        ].length;
+        return (
+            Store.translationProjects.selectedCards.value.length +
+            Store.translationProjects.selectedPlaceholders.value.length +
+            Store.translationProjects.selectedCollections.value.length
+        );
     }
 
     get targetLocalesCount() {
@@ -532,8 +532,10 @@ class MasTranslationEditor extends LitElement {
     renderAddItemsDialog() {
         const footerContent = html`
             <sp-button-group>
-                <sp-button variant="secondary" treatment="outline" @click=${this.#dispatchCancelItems}>Cancel</sp-button>
-                <sp-button variant="accent" @click=${this.#dispatchConfirmItems}>Add selected items</sp-button>
+                <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchDialogEvent('cancel')}
+                    >Cancel</sp-button
+                >
+                <sp-button variant="accent" @click=${() => this.#dispatchDialogEvent('confirm')}>Add selected items</sp-button>
             </sp-button-group>
         `;
         return html`
@@ -564,6 +566,8 @@ class MasTranslationEditor extends LitElement {
         slotDiv.style.justifyContent = 'flex-end';
     };
 
+    // Flag stays sticky across the duplicate close event sp-dialog-wrapper emits after confirm/cancel;
+    // it's cleared on the next #openAddItemsOverlay so a re-opened dialog starts fresh.
     #restoreItemsSnapshot = () => {
         if (this.#itemsConfirmed) return;
         Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
@@ -572,14 +576,9 @@ class MasTranslationEditor extends LitElement {
         this.showSelectedEmptyState = this.selectedCount === 0;
     };
 
-    #dispatchConfirmItems = () => {
+    #dispatchDialogEvent = (name) => {
         const wrapper = this.renderRoot.querySelector('.add-items-dialog');
-        wrapper?.dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
-    };
-
-    #dispatchCancelItems = () => {
-        const wrapper = this.renderRoot.querySelector('.add-items-dialog');
-        wrapper?.dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
+        wrapper?.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
     };
 
     renderAddLanguagesDialog() {

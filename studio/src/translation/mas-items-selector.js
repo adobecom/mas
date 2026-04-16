@@ -48,11 +48,11 @@ class MasItemsSelector extends LitElement {
     }
 
     get selectedCount() {
-        return [
-            ...Store.translationProjects.selectedCards.value,
-            ...Store.translationProjects.selectedPlaceholders.value,
-            ...Store.translationProjects.selectedCollections.value,
-        ].length;
+        return (
+            Store.translationProjects.selectedCards.value.length +
+            Store.translationProjects.selectedPlaceholders.value.length +
+            Store.translationProjects.selectedCollections.value.length
+        );
     }
 
     #toggleShowSelected() {
@@ -90,6 +90,9 @@ class MasItemsSelector extends LitElement {
     }
 
     render() {
+        const count = this.selectedCount;
+        const showingSelection = this.showSelected && count;
+        const toggleLabel = showingSelection ? 'Hide selection' : 'Selected items';
         return html`
             ${this.viewOnly
                 ? nothing
@@ -145,18 +148,13 @@ class MasItemsSelector extends LitElement {
                           <sp-button
                               variant="secondary"
                               @click=${this.#toggleShowSelected}
-                              ?disabled=${!this.selectedCount}
+                              ?disabled=${!count}
                               class="ghost-button"
                           >
-                              <sp-icon
-                                  slot="icon"
-                                  label=${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected items'}
-                                  class=${this.showSelected && this.selectedCount ? 'flipped' : ''}
-                              >
+                              <sp-icon slot="icon" label=${toggleLabel} class=${showingSelection ? 'flipped' : ''}>
                                   ${toggleSidebarIcon}
                               </sp-icon>
-                              ${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected items'}
-                              (${this.selectedCount})
+                              ${toggleLabel} (${count})
                           </sp-button>
                       </div>
                   `}

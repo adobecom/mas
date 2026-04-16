@@ -29,6 +29,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
 } from './constants.js';
@@ -1638,7 +1639,7 @@ export class MasRepository extends LitElement {
      */
     generateGroupedVariationName(fragment, pznTags) {
         const parts = [];
-        const product = fragment.getTagTitle('mas:product/');
+        const product = fragment.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment.getTagTitle?.('mas:product/');
         if (product) parts.push(product);
 
         const customerSegment = fragment.getTagTitle('customer_segment');
@@ -1767,6 +1768,68 @@ export class MasRepository extends LitElement {
         const createdFragment = await this.aem.sites.cf.fragments.pollCreatedFragment(newFragment);
         if (!createdFragment) {
             throw new Error('Failed to create grouped variation');
+        }
+
+        await this.updateParentVariations(parentFragment, createdFragment.path);
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === parentFragment.id);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
+
+        return createdFragment;
+    }
+
+    /**
+     * Duplicates an existing grouped variation with new pznTags.
+     * Copies all fields (except variations) from the source, applies new pznTags,
+     * and registers the copy with the parent fragment.
+     * @param {string} sourceVariationId - The ID of the grouped variation to duplicate
+     * @param {string[]} pznTags - New pznTags for the duplicate
+     * @returns {Promise<Object>} The created duplicate fragment
+     */
+    async duplicateGroupedVariation(sourceVariationId, pznTags) {
+        const sourceFragment = await this.aem.sites.cf.fragments.getById(sourceVariationId);
+        if (!sourceFragment) {
+            throw new Error('Failed to fetch source grouped variation');
+        }
+
+        const parentFragment = await this.resolveHydratedParentFragment(sourceFragment.path);
+        if (!parentFragment) {
+            throw new Error('Failed to resolve parent fragment for grouped variation');
+        }
+
+        const parent = new Fragment(parentFragment);
+        const targetFolder = sourceFragment.path.split('/').slice(0, -1).join('/');
+
+        let fragmentName = this.generateGroupedVariationName(parent, pznTags);
+        const existingFragment = await this.aem.sites.cf.fragments
+            .getByPath(`${targetFolder}/${fragmentName}`)
+            .catch(() => null);
+        if (existingFragment) {
+            const suffix = Array.from({ length: 4 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('');
+            fragmentName = `${fragmentName}-${suffix}`;
+        }
+
+        const fieldsToClone = sourceFragment.fields
+            .filter((field) => field.name !== 'variations')
+            .map((field) => (field.name === 'pznTags' ? { ...field, values: pznTags } : field));
+
+        const newFragment = await this.aem.sites.cf.fragments.create({
+            title: sourceFragment.title,
+            description: sourceFragment.description,
+            modelId: sourceFragment.model.id,
+            parentPath: targetFolder,
+            name: fragmentName,
+            fields: fieldsToClone,
+        });
+
+        if (sourceFragment.tags?.length) {
+            await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, sourceFragment.tags);
+        }
+
+        const createdFragment = await this.aem.sites.cf.fragments.pollCreatedFragment(newFragment);
+        if (!createdFragment) {
+            throw new Error('Failed to duplicate grouped variation');
         }
 
         await this.updateParentVariations(parentFragment, createdFragment.path);

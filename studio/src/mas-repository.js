@@ -2091,7 +2091,7 @@ export class MasRepository extends LitElement {
         try {
             await this.loadPreviewPlaceholders();
             const dictionary = Store.previewDictionary();
-            if (dictionary) {
+            if (Store.previewDictionaryReady()) {
                 const addonFragments = Object.keys(dictionary)
                     .filter((key) => /^addon-/.test(key))
                     .map((key) => ({ value: key, itemText: key }));

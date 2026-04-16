@@ -106,6 +106,11 @@ const Store = {
         const locale = Store.localeOrRegion();
         return Store.placeholders.previewByLocale.value[locale];
     },
+    /** True when the active locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
+    previewDictionaryReady: function () {
+        const d = Store.previewDictionary();
+        return d != null && Object.keys(d).length > 0;
+    },
     removeRegionOverride: function () {
         if (Store.search.value.region) {
             Store.search.set((prev) => ({ ...prev, region: null }));

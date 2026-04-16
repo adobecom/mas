@@ -74,7 +74,7 @@ export class PreviewFragmentStore extends FragmentStore {
         this.lazy = lazy;
 
         this.placeholderUnsubscribe = Store.placeholders.previewByLocale.subscribe(() => {
-            if (!this.lazy && !this.resolved && Store.previewDictionary()) {
+            if (!this.lazy && !this.resolved && Store.previewDictionaryReady()) {
                 this.resolveFragment(true);
             }
         });
@@ -171,7 +171,7 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
-        if (this.isCollection || !Store.previewDictionary()) {
+        if (this.isCollection || !Store.previewDictionaryReady()) {
             this.resolved = true;
             this.refreshAemFragment(true);
             this.notify();

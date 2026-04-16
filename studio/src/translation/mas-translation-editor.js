@@ -478,6 +478,7 @@ class MasTranslationEditor extends LitElement {
 
     #openAddItemsOverlay(e) {
         if (e && e.target !== e.currentTarget) return;
+        this.#itemsConfirmed = false;
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
         this.#collectionsSnapshot = Store.translationProjects.selectedCollections.value;
@@ -564,10 +565,7 @@ class MasTranslationEditor extends LitElement {
     };
 
     #restoreItemsSnapshot = () => {
-        if (this.#itemsConfirmed) {
-            this.#itemsConfirmed = false;
-            return;
-        }
+        if (this.#itemsConfirmed) return;
         Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
         Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
         Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);

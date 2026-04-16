@@ -116,7 +116,11 @@ const runOnFilledState = async (fetchStub, entry, headers) => {
 
 describe('pipeline full use case', () => {
     beforeEach(() => {
-        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            // eslint-disable-next-line no-console
+            console.warn('[test] unmatched fetch stub:', url);
+            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
+        });
         mockDictionary(false, fetchStub);
         resetCache();
         clearSettingsCache();
@@ -335,7 +339,11 @@ describe('pipeline full use case', () => {
 
 describe('collection placeholders', () => {
     beforeEach(function () {
-        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            // eslint-disable-next-line no-console
+            console.warn('[test] unmatched fetch stub:', url);
+            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
+        });
         clearSettingsCache();
     });
 
@@ -373,7 +381,11 @@ describe('collection placeholders', () => {
 
 describe('pipeline corner cases', () => {
     beforeEach(() => {
-        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            // eslint-disable-next-line no-console
+            console.warn('[test] unmatched fetch stub:', url);
+            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
+        });
         mockDictionary(false, fetchStub);
         resetCache();
         clearSettingsCache();
@@ -574,7 +586,11 @@ describe('pipeline corner cases', () => {
 
 describe('caching headers', () => {
     beforeEach(() => {
-        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            // eslint-disable-next-line no-console
+            console.warn('[test] unmatched fetch stub:', url);
+            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
+        });
         resetCache();
         clearSettingsCache();
     });
@@ -623,9 +639,9 @@ describe('caching headers', () => {
     });
 
     it('should include Cache-Control header in error responses', async () => {
-        fetchStub.restore();
+        mockSettings(fetchStub);
         fetchStub
-            .withArgs('https://odin.adobe.com/some-en-us-fragment?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/test-fragment?references=all-hydrated')
             .returns(createResponse(404, { message: 'Fragment not found' }));
 
         const result = await getFragment({

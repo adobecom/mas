@@ -2543,13 +2543,13 @@ describe('MasRepository dictionary helpers', () => {
         beforeEach(() => {
             previousSearch = structuredClone(Store.search.get());
             previousFilters = structuredClone(Store.filters.get());
-            previousPreview = Store.placeholders.preview.get();
+            previousPreview = Store.placeholders.previewByLocale.get();
         });
 
         afterEach(() => {
             Store.search.value = previousSearch;
             Store.filters.value = previousFilters;
-            Store.placeholders.preview.value = previousPreview;
+            Store.placeholders.previewByLocale.value = previousPreview;
         });
 
         it('uses Store.localeOrRegion() for cache key and fetchDictionary locale', async () => {
@@ -2569,7 +2569,7 @@ describe('MasRepository dictionary helpers', () => {
             expect(fetchStub.calledOnce).to.be.true;
             expect(fetchStub.firstCall.args[1]).to.equal('fr_FR');
             expect(repository.dictionaryCache.has('fr_FR_sandbox')).to.be.true;
-            expect(Store.placeholders.preview.get()).to.deep.equal({ dictKey: 'dictVal' });
+            expect(Store.placeholders.previewByLocale.get().fr_FR).to.deep.equal({ dictKey: 'dictVal' });
         });
     });
 });

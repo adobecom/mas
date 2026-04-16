@@ -215,6 +215,7 @@ describe('MasFragmentEditor', () => {
             mockRepo = {
                 refreshFragment: sandbox.stub().resolves(),
                 loadPreviewPlaceholders: sandbox.stub().resolves(),
+                search: { value: { path: 'sandbox' } },
                 aem: {
                     sites: {
                         cf: {
@@ -240,7 +241,7 @@ describe('MasFragmentEditor', () => {
                 search: structuredClone(Store.search.get()),
                 filters: structuredClone(Store.filters.get()),
                 translatedLocales: Store.fragmentEditor.translatedLocales.get(),
-                placeholdersPreview: Store.placeholders.preview.get(),
+                placeholdersPreview: Store.placeholders.previewByLocale.get(),
             };
 
             Store.fragments.list.data.value = [];
@@ -250,7 +251,7 @@ describe('MasFragmentEditor', () => {
             Store.search.value = {};
             Store.filters.value = { locale: 'en_US' };
             Store.fragmentEditor.translatedLocales.value = null;
-            Store.placeholders.preview.value = null;
+            Store.placeholders.previewByLocale.value = {};
         });
 
         afterEach(() => {
@@ -264,7 +265,7 @@ describe('MasFragmentEditor', () => {
             Store.search.value = originalStoreState.search;
             Store.filters.value = originalStoreState.filters;
             Store.fragmentEditor.translatedLocales.value = originalStoreState.translatedLocales;
-            Store.placeholders.preview.value = originalStoreState.placeholdersPreview;
+            Store.placeholders.previewByLocale.value = originalStoreState.placeholdersPreview;
         });
 
         it('returns early when no fragment ID exists', async () => {
@@ -330,7 +331,7 @@ describe('MasFragmentEditor', () => {
 
             await el.initFragment();
 
-            expect(mockRepo.loadPreviewPlaceholders.calledOnce).to.be.true;
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
             expect(el.editorContextStore.loadFragmentContext.calledOnceWith('new-id', fragmentData.path)).to.be.true;
             expect(Store.fragments.list.data.get()).to.have.lengthOf(1);
             expect(Store.fragments.list.data.get()[0].id).to.equal('new-id');
@@ -369,14 +370,14 @@ describe('MasFragmentEditor', () => {
             Store.fragmentEditor.fragmentId.value = 'variation-id';
 
             mockRepo.loadPreviewPlaceholders.callsFake(async () => {
-                Store.placeholders.preview.set({ testDictionary: true });
+                Store.placeholders.previewByLocale.set((prev) => ({ ...prev, fr_FR: { testDictionary: true } }));
             });
 
             await el.initFragment();
 
-            expect(mockRepo.loadPreviewPlaceholders.calledOnce).to.be.true;
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
             expect(Store.search.get().region).to.equal('fr_FR');
-            expect(Store.placeholders.preview.get()).to.deep.equal({ testDictionary: true });
+            expect(Store.previewDictionary()).to.deep.equal({ testDictionary: true });
         });
 
         it('reloads locale placeholders for cached variation when locale differs from Store.localeOrRegion()', async () => {
@@ -386,7 +387,7 @@ describe('MasFragmentEditor', () => {
             sandbox.spy(sourceStore, 'resolvePreviewFragment');
 
             mockRepo.loadPreviewPlaceholders.callsFake(async () => {
-                Store.placeholders.preview.set({ fromCachedVariation: true });
+                Store.placeholders.previewByLocale.set((prev) => ({ ...prev, fr_FR: { fromCachedVariation: true } }));
             });
 
             el.editorContextStore.isVariation.returns(true);
@@ -399,9 +400,9 @@ describe('MasFragmentEditor', () => {
 
             await el.initFragment();
 
-            expect(mockRepo.loadPreviewPlaceholders.calledOnce).to.be.true;
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
             expect(Store.search.get().region).to.equal('fr_FR');
-            expect(Store.placeholders.preview.get()).to.deep.equal({ fromCachedVariation: true });
+            expect(Store.previewDictionary()).to.deep.equal({ fromCachedVariation: true });
             expect(sourceStore.resolvePreviewFragment.calledOnce).to.be.true;
         });
 
@@ -420,7 +421,7 @@ describe('MasFragmentEditor', () => {
 
             await el.initFragment();
 
-            expect(mockRepo.loadPreviewPlaceholders.called).to.be.false;
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(1);
         });
 
         it('uses pending parent from create variation event when context is not ready', async () => {

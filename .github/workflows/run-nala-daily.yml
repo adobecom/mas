@@ -45,12 +45,16 @@ jobs:
             - name: Cache Playwright browsers
               uses: actions/cache@v4
               id: playwright-cache
+              continue-on-error: true
               with:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
-            - name: Install Playwright dependencies
-              run: npx playwright install --with-deps
+            - name: Install Playwright system dependencies
+              uses: ./.github/actions/prep-apt
+
+            - name: Install Playwright browsers
+              run: npx playwright install
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh

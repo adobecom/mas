@@ -142,6 +142,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #handleCheckboxChange(filterType, optionId, e) {
+        e.stopPropagation();
         let currentValues;
         switch (filterType) {
             case FILTER_TYPE.TEMPLATE:

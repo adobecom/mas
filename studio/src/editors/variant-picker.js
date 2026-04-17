@@ -49,15 +49,15 @@ export const VARIANTS = [
     {
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
-        surface: SURFACES.ACOM.name,
+        surface: SURFACES.ACOM_CC.name,
     },
-    { label: 'Segment', value: VARIANT_NAMES.SEGMENT, surface: SURFACES.ACOM.name },
+    { label: 'Segment', value: VARIANT_NAMES.SEGMENT, surface: SURFACES.ACOM_CC.name },
     { label: 'Media', value: VARIANT_NAMES.MEDIA, surface: SURFACES.ACOM.name },
     { label: 'Slice', value: VARIANT_NAMES.SLICES, surface: SURFACES.CCD.name },
     {
         label: 'Special offers',
         value: VARIANT_NAMES.SPECIAL_OFFERS,
-        surface: SURFACES.ACOM.name,
+        surface: SURFACES.ACOM_CC.name,
     },
     { label: 'Suggested', value: VARIANT_NAMES.SUGGESTED, surface: SURFACES.CCD.name },
     {
@@ -88,7 +88,7 @@ export const VARIANTS = [
     {
         label: 'Image',
         value: VARIANT_NAMES.IMAGE,
-        surface: SURFACES.ACOM.name,
+        surface: SURFACES.ACOM_CC.name,
     },
     {
         label: 'Full Pricing Express',
@@ -103,7 +103,7 @@ export const VARIANTS = [
     {
         label: 'Mini Compare Chart',
         value: VARIANT_NAMES.MINI_COMPARE_CHART,
-        surface: SURFACES.ACOM.name,
+        surface: SURFACES.ACOM_CC.name,
     },
     {
         label: 'Mini Compare Chart Mweb',
@@ -112,12 +112,29 @@ export const VARIANTS = [
     },
 ];
 
+const ACOM_CC_TEMPLATES = new Set([
+    VARIANT_NAMES.PRODUCT,
+    VARIANT_NAMES.SEGMENT,
+    VARIANT_NAMES.MINI_COMPARE_CHART,
+    VARIANT_NAMES.IMAGE,
+    VARIANT_NAMES.SPECIAL_OFFERS,
+]);
+
+const ACOM_DC_TEMPLATES = new Set([
+    VARIANT_NAMES.PRODUCT,
+    VARIANT_NAMES.SEGMENT,
+    VARIANT_NAMES.MINI_COMPARE_CHART,
+    VARIANT_NAMES.IMAGE,
+]);
+
 /** Flat tree-picker-compatible list of allowed variants, optionally filtered by surface. */
 export const getVariantTreeData = (surface) =>
     VARIANTS.filter((v) => {
         if (v.value === VARIANT_NAMES.ALL) return false;
         if (!surface) return true;
         if ([SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface)) return true;
+        if (surface === SURFACES.ACOM_CC.name) return ACOM_CC_TEMPLATES.has(v.value);
+        if (surface === SURFACES.ACOM_DC.name) return ACOM_DC_TEMPLATES.has(v.value);
         return v.surface === surface;
     }).map((v) => ({
         name: v.value,

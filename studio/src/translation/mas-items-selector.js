@@ -59,13 +59,17 @@ class MasItemsSelector extends LitElement {
         Store.translationProjects.showSelected.set(!this.showSelected);
     }
 
-    #handleSearchInput = debounce(({ target: { value } }) => {
+    #setSearchQuery = debounce((value) => {
         this.searchQuery = value;
     }, 300);
 
+    #handleSearchInput(e) {
+        this.#setSearchQuery(e.currentTarget?.value ?? '');
+    }
+
     #handleSearchSubmit(e) {
         e.preventDefault();
-        this.searchQuery = e.target.value;
+        this.searchQuery = e.currentTarget?.value ?? '';
     }
 
     #handleTabChange({ target: { selected } }) {

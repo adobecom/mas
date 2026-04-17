@@ -5,7 +5,6 @@ import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import StoreController from '../../reactivity/store-controller.js';
 import { TABLE_TYPE } from '../../constants.js';
-import { renderFragmentStatusCell } from '../../translation/translation-utils.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import {
     loadAllPlaceholders,
@@ -13,7 +12,6 @@ import {
     loadSelectedPlaceholders,
     loadSelectedFragments,
 } from '../utils/translation-items-loader.js';
-import '../../translation/mas-collapsible-table-row.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -23,6 +21,8 @@ class MasSelectItemsTable extends LitElement {
         viewOnly: { type: Boolean },
         viewOnlyLoading: { type: Boolean, state: true },
         viewOnlyFragments: { type: Array, state: true },
+        getDisplayName: { type: Function },
+        renderFragmentStatusCell: { type: Function },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -44,6 +44,8 @@ class MasSelectItemsTable extends LitElement {
         this.selectedPlaceholdersStoreController = null;
         this.observedSentinel = null;
         this.wasLoading = false;
+        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.renderFragmentStatusCell = () => nothing;
     }
 
     connectedCallback() {
@@ -72,6 +74,7 @@ class MasSelectItemsTable extends LitElement {
                         onItems: (items) => {
                             this.viewOnlyFragments = items;
                         },
+                        getDisplayName: this.getDisplayName,
                     },
                 ).finally(() => {
                     this.viewOnlyLoading = false;
@@ -81,7 +84,9 @@ class MasSelectItemsTable extends LitElement {
             if (this.type === TABLE_TYPE.PLACEHOLDERS) {
                 this.dataSubscription = loadAllPlaceholders();
             } else {
-                this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState);
+                this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState, {
+                    getDisplayName: this.getDisplayName,
+                });
             }
         }
         if (!this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
@@ -243,6 +248,8 @@ class MasSelectItemsTable extends LitElement {
                         html`<mas-collapsible-table-row
                             .topLevelCard=${fragment}
                             .viewOnly=${this.viewOnly}
+                            .getDisplayName=${this.getDisplayName}
+                            .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:
@@ -268,7 +275,7 @@ class MasSelectItemsTable extends LitElement {
                                 : nothing}
                             <sp-table-cell> ${fragment.title || '-'} </sp-table-cell>
                             <sp-table-cell>${fragment.studioPath}</sp-table-cell>
-                            ${renderFragmentStatusCell(fragment.status)}
+                            ${this.renderFragmentStatusCell(fragment.status)}
                         </sp-table-row>`,
                 )}`;
             case TABLE_TYPE.PLACEHOLDERS:
@@ -294,7 +301,7 @@ class MasSelectItemsTable extends LitElement {
                             <sp-table-cell>
                                 ${fragment.value?.length > 100 ? `${fragment.value.slice(0, 100)}...` : fragment.value || '-'}
                             </sp-table-cell>
-                            ${renderFragmentStatusCell(fragment.status)}
+                            ${this.renderFragmentStatusCell(fragment.status)}
                         </sp-table-row>`,
                 )}`;
 

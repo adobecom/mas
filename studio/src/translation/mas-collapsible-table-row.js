@@ -2,7 +2,6 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
-import { renderFragmentStatusCell } from './translation-utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath } from '../common/utils/translation-items-loader.js';
@@ -20,10 +19,14 @@ export class MasCollapsibleTableRow extends LitElement {
         isLoadingVariations: { type: Boolean, state: true },
         resizeObserver: { type: Object },
         repository: { type: Object, state: true },
+        getDisplayName: { type: Function },
+        renderFragmentStatusCell: { type: Function },
     };
 
     constructor() {
         super();
+        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.renderFragmentStatusCell = () => nothing;
         if (!this.tabs) {
             this.tabs = [
                 {
@@ -226,7 +229,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderStatus(item) {
-        return renderFragmentStatusCell(item?.status);
+        return this.renderFragmentStatusCell(item?.status);
     }
 
     renderItemType(item) {
@@ -317,7 +320,9 @@ export class MasCollapsibleTableRow extends LitElement {
         if (this.isGroupedVariation) {
             if (getItemsSelectionStore().groupedVariationsData.value?.get(this.topLevelCard.path)) return;
             this.isLoadingVariations = true;
-            fetchVariationByPath(this.topLevelCard.path, this.repository).finally(() => {
+            fetchVariationByPath(this.topLevelCard.path, this.repository, {
+                getDisplayName: this.getDisplayName,
+            }).finally(() => {
                 this.isLoadingVariations = false;
             });
         } else {
@@ -327,7 +332,9 @@ export class MasCollapsibleTableRow extends LitElement {
             )
                 return;
             this.isLoadingVariations = true;
-            loadCardVariations(this.topLevelCard.path, this.variationPaths, this.repository).finally(() => {
+            loadCardVariations(this.topLevelCard.path, this.variationPaths, this.repository, {
+                getDisplayName: this.getDisplayName,
+            }).finally(() => {
                 this.isLoadingVariations = false;
             });
         }

@@ -10,11 +10,15 @@ import { fetchUnresolvedVariations } from '../utils/translation-items-loader.js'
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
+    static properties = {
+        getDisplayName: { type: Function },
+    };
 
     #lastFetchedSelectedCardsKey = null;
 
     constructor() {
         super();
+        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.storeController = new ReactiveController(this, [
             getItemsSelectionStore().showSelected,
             getItemsSelectionStore().selectedCards,
@@ -46,6 +50,7 @@ class MasSelectedItems extends LitElement {
             getItemsSelectionStore().cardsByPaths.value,
             getItemsSelectionStore().groupedVariationsByParent.value,
             this.repository,
+            { getDisplayName: this.getDisplayName },
         );
     }
 

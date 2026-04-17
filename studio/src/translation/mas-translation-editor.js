@@ -12,7 +12,9 @@ import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../constants.js';
-import { setItemsSelectionStore } from '../common/items-selection-store.js';
+import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
+import { getFragmentName, renderFragmentStatusCell } from './translation-utils.js';
+import './mas-collapsible-table-row.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -35,6 +37,7 @@ class MasTranslationEditor extends LitElement {
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
+    #itemsSelectionStoreSnapshot = null;
 
     constructor() {
         super();
@@ -62,6 +65,7 @@ class MasTranslationEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
+        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore();
         setItemsSelectionStore(Store.translationProjects);
 
         if (this.repository?.searchFragments) {
@@ -102,6 +106,14 @@ class MasTranslationEditor extends LitElement {
         this.isProjectReadonly = !!this.translationProject?.getFieldValue('submissionDate');
         if (this.isProjectReadonly) {
             this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
+        }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this.#itemsSelectionStoreSnapshot != null) {
+            setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
+            this.#itemsSelectionStoreSnapshot = null;
         }
     }
 
@@ -522,7 +534,10 @@ class MasTranslationEditor extends LitElement {
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
             >
-                <mas-items-selector></mas-items-selector>
+                <mas-items-selector
+                    .getDisplayName=${getFragmentName}
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
@@ -779,7 +794,11 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                               ${this.isSelectedItemsOpen
-                                  ? html`<mas-items-selector .viewOnly=${true}></mas-items-selector>`
+                                  ? html`<mas-items-selector
+                                        .viewOnly=${true}
+                                        .getDisplayName=${getFragmentName}
+                                        .renderFragmentStatusCell=${renderFragmentStatusCell}
+                                    ></mas-items-selector>`
                                   : nothing}
                           </div>`
                 }

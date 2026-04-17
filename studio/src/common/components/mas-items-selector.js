@@ -20,11 +20,16 @@ class MasItemsSelector extends LitElement {
 
     static properties = {
         viewOnly: { type: Boolean, state: true },
+        /** @type {(fragmentData: object) => string} */
+        getDisplayName: { type: Function },
+        renderFragmentStatusCell: { type: Function },
     };
 
     constructor() {
         super();
         this.viewOnly = false;
+        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.renderFragmentStatusCell = () => nothing;
     }
 
     connectedCallback() {
@@ -94,9 +99,13 @@ class MasItemsSelector extends LitElement {
                                 <mas-select-items-table
                                     .viewOnly=${this.viewOnly}
                                     .type=${tab.value}
+                                    .getDisplayName=${this.getDisplayName}
+                                    .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                                     @show-toast=${this.#showToast}
                                 ></mas-select-items-table>
-                                ${this.viewOnly ? nothing : html`<mas-selected-items></mas-selected-items>`}
+                                ${this.viewOnly
+                                    ? nothing
+                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>

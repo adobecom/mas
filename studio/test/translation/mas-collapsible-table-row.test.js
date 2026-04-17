@@ -5,6 +5,7 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setCardVariationsByPaths } from '../../src/common/utils/translation-items-loader.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
+import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-collapsible-table-row.js';
 
@@ -424,7 +425,10 @@ describe('MasCollapsibleTableRow', () => {
         it('should render published status with green class', async () => {
             const topLevelCard = createMockTopLevelCard({ status: FRAGMENT_STATUS.PUBLISHED });
             const el = await fixture(
-                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-collapsible-table-row>`,
             );
             const statusDot = el.shadowRoot.querySelector('.status-dot.green');
             expect(statusDot).to.exist;
@@ -433,7 +437,10 @@ describe('MasCollapsibleTableRow', () => {
         it('should render modified status with blue class', async () => {
             const topLevelCard = createMockTopLevelCard({ status: FRAGMENT_STATUS.MODIFIED });
             const el = await fixture(
-                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-collapsible-table-row>`,
             );
             const statusDot = el.shadowRoot.querySelector('.status-dot.blue');
             expect(statusDot).to.exist;

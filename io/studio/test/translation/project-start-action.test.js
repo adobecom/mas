@@ -65,7 +65,7 @@ describe('Translation project-start action', function () {
             { name: 'targetLocales', values: ['de_DE'] },
             { name: 'submissionDate', values: [] },
             { name: 'status', values: ['DRAFT'] },
-            { name: 'title', values: ['Test Project'] },
+            { name: 'title', values: ['Test-Project'] },
             { name: 'projectType', values: ['translation'] },
         ],
     };

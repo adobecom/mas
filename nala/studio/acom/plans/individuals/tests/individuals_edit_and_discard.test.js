@@ -679,7 +679,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-6: Restore values from settings', async () => {
             await editor.quantitySelectorFields.locator('.setting-override-indicator').first().click();
-        });        
+        });
 
         await test.step('step-7: Edit quantity selector start value', async () => {
             await expect(await editor.quantitySelectorStart).toBeVisible();

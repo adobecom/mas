@@ -29,13 +29,13 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
-    COLLECTION_MODEL_PATH,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
 } from './constants.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
+import { getFragmentName } from './translation/translation-utils.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
@@ -743,13 +743,17 @@ export class MasRepository extends LitElement {
             };
 
             const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.collections);
-            const collections = fragments
-                .filter(({ model }) => model?.path === COLLECTION_MODEL_PATH)
-                .map((fragment) => ({ ...fragment, studioPath: fragment.path }));
+            const collections = [];
+            const collectionsByPath = new Map();
+            for (const fragment of fragments) {
+                const collection = { ...fragment, studioPath: getFragmentName(fragment) };
+                collections.push(collection);
+                collectionsByPath.set(fragment.path, collection);
+            }
 
             Store.translationProjects.allCollections.set(collections);
             Store.translationProjects.displayCollections.set(collections);
-            Store.translationProjects.collectionsByPaths.set(new Map(collections.map((c) => [c.path, c])));
+            Store.translationProjects.collectionsByPaths.set(collectionsByPath);
         } catch (error) {
             if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load collections.');

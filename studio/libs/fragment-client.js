@@ -5,7 +5,6 @@
 
 // Import the modules
 import { logDebug, logError } from '../../io/www/src/fragment/utils/log.js';
-import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
@@ -14,52 +13,43 @@ import { transformer as customize } from '../../io/www/src/fragment/transformers
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
-class LocaleStorageState {
-    constructor() {        
-    }
-
-    async get(key) {
-        return new Promise((resolve) => {
-            resolve({
-                value: window.localStorage.getItem(key),
-            });
-        });
-    }
-
-    async put(key, value) {
-        return new Promise((resolve) => {
-            window.localStorage.setItem(key, value);
-            resolve();
-        });
-    }
-}
 
 const DEFAULT_CONTEXT = {
     status: 200,
     preview:{
-        url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+        url: '/preview-proxy/adobe/sites/cf/fragments',
     },
     requestId: 'preview',
-    state: new LocaleStorageState(),
     networkConfig: {
         mainTimeout: 20000,
         fetchTimeout: 15000,
         retries: 3,
     },
     locale: 'en_US',
+    DEFAULT_HEADERS: { 'Cache-Control': 'max-age=15' },
 };
 
 if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
-    DEFAULT_CONTEXT.debugLogs = params.has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
+    DEFAULT_CONTEXT.debugLogs = params.has('debug.io');
     if (params.has('clearCaches.io')) {
         clearCaches();
     }
+    const isLocalMaslibs =
+        window.location.hostname === 'localhost' ||
+        params.get('maslibs')?.trim().toLowerCase() === 'local';
+    if (isLocalMaslibs) {
+        DEFAULT_CONTEXT.preview.url = 'http://localhost:3030/adobe/sites/cf/fragments';
+    }
 }
 
+// Studio settings cache keyed by surface — avoids re-fetching on every keystroke
+const studioSettingsCache = {};
+
 function clearCaches() {
-    clearDictionaryCache(true);
-    clearSettingsCache(true);
+    clearDictionaryCache();
+    clearSettingsCache();
+    Object.keys(studioSettingsCache).forEach((k) => delete studioSettingsCache[k]);
 }
 
 async function previewFragment(id, options) {
@@ -67,10 +57,7 @@ async function previewFragment(id, options) {
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
     let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'fragment-client' };
-    const initPromises = {};    
-    const cachedMetadata = await getRequestMetadata(context);
-    const metadataContext = extractContextFromMetadata(cachedMetadata);
-    context = { ...context, ...metadataContext };
+    const initPromises = {};
     context.fragmentsIds = context.fragmentsIds || {};
     try {    
         for (const transformer of PIPELINE) {
@@ -104,16 +91,22 @@ async function previewFragment(id, options) {
         const { message } = context;
         logError(message, context);
         context.body = { message };
-    } else {
-        await storeRequestMetadata(context, cachedMetadata, 'nohash');
     }
     return options.fullContext ? context : context.body;
 }
 
-/* c8 ignore next 38 */
+/* c8 ignore next 1 */
 async function previewStudioFragment(body, options) {
-    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
     const { locale, surface } = options;
+    let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
+
+    // Inject cached settings so the settings transformer skips network fetches on every call
+    const cachedSettings = studioSettingsCache[surface];
+    if (cachedSettings) {
+        context.hasExternalSettings = true;
+        context.settings = cachedSettings;
+    }
+
     const initPromises = {
         fetchFragment: Promise.resolve({
             status: 200,
@@ -143,6 +136,15 @@ async function previewStudioFragment(body, options) {
         context.transformer = transformer.name;
         context = await transformer.process(context);
     }
+
+    // Populate cache after first successful settings fetch
+    if (!cachedSettings) {
+        const resolvedSettings = await initPromises.settings;
+        if (resolvedSettings) {
+            studioSettingsCache[surface] = resolvedSettings;
+        }
+    }
+
     if (context.status != 200) {
         const { message } = context;
         logError(message, context);

@@ -22,17 +22,8 @@ export const SETTING_NAME_BY_VALUE = new Map(SETTING_NAME_DEFINITIONS.map((defin
 
 let settingsCache;
 
-export function clearSettingsCache(preview = false) {
-    if (preview) {
-        console.log('Clearing settings preview cache');
-        Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('settings-')) {
-                localStorage.removeItem(key);
-            }
-        });
-    } else {
-        settingsCache = undefined;
-    }
+export function clearSettingsCache() {
+    settingsCache = undefined;
 }
 
 async function cacheKey(context) {
@@ -41,8 +32,9 @@ async function cacheKey(context) {
 }
 
 async function getCachedSettings(context) {
+    if (context.preview) return null;
     const key = await cacheKey(context);
-    const cacheEntry = context.preview ? JSON.parse(localStorage.getItem(key)) : settingsCache?.[key];
+    const cacheEntry = settingsCache?.[key];
     if (cacheEntry) {
         cacheEntry.isExpired = Date.now() - cacheEntry.timestamp > CONFIG_CACHE_TTL;
         return cacheEntry;
@@ -51,17 +43,13 @@ async function getCachedSettings(context) {
 }
 
 async function cache(context, settings) {
+    if (context.preview) return settings;
     const key = await cacheKey(context);
-    const cacheEntry = {
+    settingsCache = settingsCache || {};
+    settingsCache[key] = {
         settings,
         timestamp: Date.now(),
     };
-    if (context.preview) {
-        localStorage.setItem(key, JSON.stringify(cacheEntry));
-    } else {
-        settingsCache = settingsCache || {};
-        settingsCache[key] = cacheEntry;
-    }
     return settings;
 }
 

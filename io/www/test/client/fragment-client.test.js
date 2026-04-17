@@ -17,19 +17,8 @@ function createResponse(status, data, statusText = 'OK') {
     });
 }
 
-// Create a mock localStorage
-const storage = {};
-const localStorageStub = {
-    getItem: sinon.stub().callsFake((key) => storage[key] || null),
-    removeItem: sinon.stub().callsFake((key) => delete storage[key]),
-    setItem: sinon.stub().callsFake((key, value) => {
-        storage[key] = value.toString();
-    }),
-};
-let objectKeysStub;
-
 describe('FragmentClient', () => {
-    const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
+    const baseUrl = 'https://preview.mas.corp.adobe.com/adobe/contentFragments';
     let fetchStub;
 
     before(() => {
@@ -39,12 +28,6 @@ describe('FragmentClient', () => {
                 head: { querySelector: () => null },
             };
         }
-        // Stub window.localStorage
-        globalThis.window = globalThis.window || { localStorage: {} };
-        sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
-        globalThis.localStorage = localStorageStub;
-        objectKeysStub = sinon.stub(Object, 'keys').callThrough();
-        objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
             // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
@@ -102,11 +85,6 @@ describe('FragmentClient', () => {
 
     after(() => {
         fetchStub.restore();
-        objectKeysStub.restore();
-        delete globalThis.localStorage;
-        if (globalThis.window?.localStorage) {
-            sinon.restore();
-        }
     });
 
     it('should fetch and transform card fragment for preview', async () => {
@@ -141,9 +119,7 @@ describe('FragmentClient', () => {
         });
         expect(output.references).deep.equal(expectedOutput.references);
         expect(output.referencesTree).deep.equal(expectedOutput.referencesTree);
-        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.exist;
         clearCaches();
-        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
     });
 
     it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {

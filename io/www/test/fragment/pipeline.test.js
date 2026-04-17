@@ -161,13 +161,6 @@ describe('pipeline full use case', () => {
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from preview too', async () => {
-        const previewStorage = {};
-        globalThis.localStorage = {
-            getItem: (key) => previewStorage[key] ?? null,
-            setItem: (key, value) => {
-                previewStorage[key] = value;
-            },
-        };
         setupFragmentMocks(
             fetchStub,
             {
@@ -202,7 +195,6 @@ describe('pipeline full use case', () => {
             },
             hash: EXPECTED_BODY_HASH,
         });
-        delete globalThis.localStorage;
     });
 
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {

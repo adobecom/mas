@@ -493,7 +493,7 @@ const createPromoPriceWithAnnualTemplate =
                     { ...value, price: value.priceWithoutDiscount },
                     attributes,
                 ) +
-                renderSpan(cssClassNames.containerAnnualPrefix, '&nbsp;(') +
+                renderSpan(cssClassNames.containerAnnualPrefix, ' (') +
                 createPriceTemplate({
                     displayAnnual: true,
                     instant,
@@ -518,7 +518,7 @@ const createPromoPriceWithAnnualTemplate =
                       displayStrikethrough: true,
                   })(ctxStAnnual, value, attributes) + '&nbsp;'
                 : ''
-        }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, '&nbsp;(')}${createPriceTemplate(
+        }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, ' (')}${createPriceTemplate(
             {
                 displayAnnual: true,
                 instant,
@@ -536,7 +536,7 @@ const createPriceWithAnnualTemplate = () => (context, value, attributes) => {
         displayTax: false,
         displayPerUnit: false,
     };
-    return `${createPriceTemplate({ isAlternativePrice: context.displayOldPrice })(context, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, '&nbsp;(')}${createPriceTemplate(
+    return `${createPriceTemplate({ isAlternativePrice: context.displayOldPrice })(context, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, ' (')}${createPriceTemplate(
         {
             displayAnnual: true,
         },

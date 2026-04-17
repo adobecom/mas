@@ -26,6 +26,26 @@ export default class StudioPage {
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');
         this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);
+        this.groupedVariationsTab = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab[value="grouped"]`,
+            );
+        this.groupedVariationsTabPanel = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"]`,
+            );
+        this.localeVariationsTabPanel = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="locale"]`,
+            );
+        this.regionalVariationsTable = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="locale"] mas-fragment-table`,
+            );
+        this.groupedVariationsTable = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"] mas-fragment-table`,
+            );
         this.tableViewRowByFragmentId = (fragmentId) => this.tableView.locator(`sp-table-row[value="${fragmentId}"]`);
         this.tableViewPathCell = (row) => row.locator('sp-table-cell.name');
         this.tableViewTitleCell = (row) => row.locator('sp-table-cell.title');
@@ -61,7 +81,7 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:has-text("Fragments")');
+        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:not([hidden]):has-text("Fragments")').first();
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
@@ -747,7 +767,7 @@ export default class StudioPage {
         await expect(this.variationDialogLocalePicker).toBeEnabled();
         await this.variationDialogLocalePicker.scrollIntoViewIfNeeded();
         await this.page.waitForTimeout(200);
-        await this.variationDialogLocalePicker.click({ timeout: 5000 });
+        await this.variationDialogLocalePicker.click({ force: true, timeout: 5000 });
         await this.page.waitForTimeout(300);
 
         const localeOption = this.page.locator(`sp-menu-item[value="${locale}"]:visible`).first();

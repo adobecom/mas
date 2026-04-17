@@ -1,8 +1,9 @@
 import { css } from 'lit';
-import { loadingContainerCenteredStyles, tableHeaderBaseStyles, tableCellBaseStyles } from './translation-common-styles.css.js';
+import { tableHeaderBaseStyles, tableCellBaseStyles } from './translation-common-styles.css.js';
+import { skeletonStyles } from '../common/skeleton-styles.css.js';
 
 export const styles = [
-    loadingContainerCenteredStyles,
+    skeletonStyles,
     tableHeaderBaseStyles,
     tableCellBaseStyles,
     css`
@@ -31,6 +32,10 @@ export const styles = [
                 sp-table-head-cell:last-child,
                 sp-table-cell:last-child {
                     max-width: 100px;
+                }
+
+                sp-table-head-cell.align-right {
+                    text-align: right;
                 }
             }
 

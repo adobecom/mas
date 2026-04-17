@@ -5,18 +5,6 @@ export const styles = css`
         display: block;
     }
 
-    .search {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 32px 0 20px 0;
-    }
-
-    .search sp-search {
-        flex: 1;
-        max-width: 400px;
-    }
-
     .result-count {
         color: var(--spectrum-gray-700);
         font-size: 14px;
@@ -25,6 +13,7 @@ export const styles = css`
 
     .filters {
         display: flex;
+        align-items: center;
         gap: 12px;
         margin-bottom: 8px;
         flex-wrap: wrap;

@@ -186,6 +186,14 @@ export class MasCommerceService extends HTMLElement {
         this.log.debug('Flushed WCS cache');
     }
 
+    isPreview() {
+        const previewAttribute = this.getAttribute('preview');
+        return (
+            previewAttribute != null &&
+            ['true', 'on', true].includes(previewAttribute)
+        );
+    }
+
     refreshOffers() {
         this.flushWcsCacheInternal();
         document

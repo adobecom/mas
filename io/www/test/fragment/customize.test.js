@@ -666,6 +666,141 @@ describe('customize collections', function () {
         expect(result.body.variationId).to.equal(validId);
     });
 
+    it('should adapt referencesTree to match merged cards list (drop removed card, reorder)', async function () {
+        // Default fragment has 4 cards in referencesTree but the variation (en_BE) only has 3 cards in a different order
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/coll-adapt-test',
+            id: 'coll-root',
+            title: 'Adapt test collection',
+            fields: {
+                cards: ['card-a', 'card-b', 'card-c', 'card-d'],
+                collections: [],
+                variations: ['coll-root-be'],
+            },
+            references: {
+                'coll-root-be': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_BE/coll-adapt-test',
+                        id: 'coll-root-be',
+                        fields: {
+                            // variation removes card-b and reorders
+                            cards: ['card-c', 'card-a', 'card-d'],
+                            collections: [],
+                        },
+                    },
+                },
+                'card-a': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-a',
+                        id: 'card-a',
+                        fields: { title: 'Card A', variations: [] },
+                    },
+                },
+                'card-b': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-b',
+                        id: 'card-b',
+                        fields: { title: 'Card B', variations: [] },
+                    },
+                },
+                'card-c': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-c',
+                        id: 'card-c',
+                        fields: { title: 'Card C', variations: [] },
+                    },
+                },
+                'card-d': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-d',
+                        id: 'card-d',
+                        fields: { title: 'Card D', variations: [] },
+                    },
+                },
+            },
+            referencesTree: [
+                { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },
+                { fieldName: 'cards', identifier: 'card-b', referencesTree: [] },
+                { fieldName: 'cards', identifier: 'card-c', referencesTree: [] },
+                { fieldName: 'cards', identifier: 'card-d', referencesTree: [] },
+                { fieldName: 'variations', identifier: 'coll-root-be', referencesTree: [] },
+            ],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'coll-adapt-test',
+            locale: 'en_BE',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+
+        // merged fragment cards should follow the variation order
+        expect(result.body.fields.cards).to.deep.equal(['card-c', 'card-a', 'card-d']);
+
+        // referencesTree should reflect the merged cards: card-b removed, order updated
+        const cardEntries = result.body.referencesTree.filter((e) => e.fieldName === 'cards');
+        expect(cardEntries.map((e) => e.identifier)).to.deep.equal(['card-c', 'card-a', 'card-d']);
+    });
+
+    it('should create stub referencesTree entry for a card added by a variation that had no entry in original tree', async function () {
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/coll-new-card-test',
+            id: 'coll-new-card-root',
+            title: 'New card stub test',
+            fields: {
+                cards: ['card-a'],
+                collections: [],
+                variations: ['coll-new-card-be'],
+            },
+            references: {
+                'coll-new-card-be': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_BE/coll-new-card-test',
+                        id: 'coll-new-card-be',
+                        fields: { cards: ['card-a', 'card-new'], collections: [] },
+                    },
+                },
+                'card-a': {
+                    type: 'content-fragment',
+                    value: { path: '/content/dam/mas/sandbox/en_US/card-a', id: 'card-a', fields: { variations: [] } },
+                },
+                'card-new': {
+                    type: 'content-fragment',
+                    value: { path: '/content/dam/mas/sandbox/en_US/card-new', id: 'card-new', fields: { variations: [] } },
+                },
+            },
+            referencesTree: [
+                { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },
+                // card-new has no entry in the original referencesTree
+                { fieldName: 'variations', identifier: 'coll-new-card-be', referencesTree: [] },
+            ],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'coll-new-card-test',
+            locale: 'en_BE',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.cards).to.deep.equal(['card-a', 'card-new']);
+        const cardEntries = result.body.referencesTree.filter((e) => e.fieldName === 'cards');
+        expect(cardEntries.map((e) => e.identifier)).to.deep.equal(['card-a', 'card-new']);
+        // stub entry for card-new should have empty referencesTree
+        expect(cardEntries[1].referencesTree).to.deep.equal([]);
+    });
+
     it('should not merge personalization variation when no pznTags match regionLocale', async function () {
         const pznVariationId = 'pzn-var-other';
         const bodyWithPzn = {

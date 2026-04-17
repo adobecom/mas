@@ -233,6 +233,7 @@ class RteField extends LitElement {
                     padding: 0;
                     display: flex;
                     align-items: center;
+                    font-size: var(--spectrum-font-size-100);
                 }
 
                 :host([focused]) #editor {

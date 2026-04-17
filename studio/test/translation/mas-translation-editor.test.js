@@ -1366,6 +1366,41 @@ describe('MasTranslationEditor', () => {
             expect(closeEventFired).to.be.true;
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['card1']);
         });
+
+        it('should keep confirmed selection when sp-dialog-wrapper emits a duplicate close event', async () => {
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.showSelectedEmptyState = true;
+            await el.updateComplete;
+            const overlayTrigger = el.shadowRoot.querySelector('#add-items-overlay');
+            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
+            await el.updateComplete;
+            Store.translationProjects.selectedCards.set(['card-new']);
+            const dialogWrapper = el.shadowRoot.querySelector('.add-items-dialog');
+            dialogWrapper.dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            // Spectrum dispatches an additional close event after confirm; the sticky
+            // #itemsConfirmed guard must not let it wipe the newly-committed selection.
+            dialogWrapper.dispatchEvent(new CustomEvent('close'));
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['card-new']);
+        });
+
+        it('should ignore sp-opened events bubbling from nested overlay-triggers', async () => {
+            Store.translationProjects.selectedCards.set(['card-outer']);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.showSelectedEmptyState = true;
+            await el.updateComplete;
+            const overlayTrigger = el.shadowRoot.querySelector('#add-items-overlay');
+            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            // Now emit a bubbling sp-opened from a nested descendant (simulating a filter
+            // popover opening). The outer handler must early-return, not reset state.
+            const innerSource = el.shadowRoot.querySelector('mas-items-selector') ?? overlayTrigger;
+            innerSource.dispatchEvent(new CustomEvent('sp-opened', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['card-outer']);
+        });
     });
 
     describe('language selection dialog', () => {

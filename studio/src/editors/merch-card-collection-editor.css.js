@@ -152,6 +152,12 @@ export const styles = css`
         margin-bottom: 8px;
     }
 
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
     .hide-cards-control {
         display: flex;
         align-items: center;
@@ -185,6 +191,12 @@ export const styles = css`
         flex-direction: column;
         gap: 8px;
         padding: 16px 0;
+    }
+
+    .items-container.inherited {
+        opacity: 0.5;
+        pointer-events: none;
+        cursor: default;
     }
 
     .item-wrapper {
@@ -352,5 +364,70 @@ export const styles = css`
 
     .item-wrapper:hover sp-icon-preview {
         display: block;
+    }
+
+    sp-textfield[data-field-state='overridden'] {
+        --mod-textfield-border-color: #accffd;
+        --mod-textfield-background-color: #f5f9ff;
+    }
+
+    aem-tag-picker-field[data-field-state='overridden'] {
+        outline: 2px solid #accffd;
+        border-radius: 4px;
+        background-color: #f5f9ff;
+    }
+
+    mas-mnemonic-field[data-field-state='overridden'] {
+        outline: 2px solid #accffd;
+        border-radius: 4px;
+        background-color: #f5f9ff;
+    }
+
+    .field-status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        line-height: 18px;
+        color: var(--spectrum-accent-content-color-default, #3b63fb);
+    }
+
+    .field-status-icon {
+        color: inherit;
+        flex: none;
+    }
+
+    .field-status-inherited-link {
+        cursor: pointer;
+    }
+
+    .field-status-restore-link {
+        position: relative;
+        color: inherit;
+        font: inherit;
+        line-height: inherit;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .field-status-restore-link-prefix {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .field-status-restore-link:hover {
+        color: var(--spectrum-accent-content-color-hover, #2f55e0);
+    }
+
+    .field-status-restore-link:focus-visible {
+        outline: 2px solid var(--spectrum-accent-content-color-key-focus, #2f55e0);
+        outline-offset: 2px;
     }
 `;

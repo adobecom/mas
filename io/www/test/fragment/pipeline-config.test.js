@@ -147,13 +147,13 @@ describe('pipeline configuration caching', () => {
             });
 
             const state = new MockState();
-            await state.put('configuration', '{"networkConfig":{"configTimeout": 50}}');
+            await state.put('configuration', '{"networkConfig":{"configTimeout": 5}}');
 
             const originalGet = state.get.bind(state);
             stateGetStub = sinon.stub(state, 'get');
             stateGetStub.callsFake(async (key) => {
                 if (key === 'configuration') {
-                    await new Promise((resolve) => setTimeout(resolve, 100));
+                    await new Promise((resolve) => setTimeout(resolve, 10));
                 }
                 return originalGet(key);
             });

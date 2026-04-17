@@ -1,6 +1,23 @@
 import { EVENT_AEM_LOAD } from './constants.js';
 
 const MAS_FIELD_TAG = 'mas-field';
+const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
+
+const MAS_FIELD_STYLES = `
+mas-field div[slot="footer"] {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+`;
+
+if (!document.querySelector('style[data-mas-field]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-mas-field', '');
+    style.textContent = MAS_FIELD_STYLES;
+    document.head.append(style);
+}
 
 /**
  * Renders a single field from an AEM fragment inline on the page.
@@ -90,10 +107,72 @@ class MasField extends HTMLElement {
         const content = this.#ensureContentElement();
         const html = this.#unwrapSingleParagraph(fieldValue);
         if (typeof html === 'string') {
+            if (this.#field === 'ctas') {
+                const ctaEl = this.#renderCtaField(html);
+                if (ctaEl) {
+                    content.replaceChildren(ctaEl);
+                    return;
+                }
+            }
             content.innerHTML = html;
             return;
         }
         content.textContent = html == null ? '' : String(html);
+    }
+
+    /**
+     * Converts a single CTA anchor from the AEM fragment into a checkout-button
+     * (or styled anchor for non-commerce links) using the same Spectrum CSS
+     * classes that merch-card hydration applies.
+     */
+    #buildCtaButton(link) {
+        const isCheckout = !!link.getAttribute('data-wcs-osi');
+        if (!isCheckout) return link.cloneNode(true);
+
+        const styleMatch =
+            CHECKOUT_STYLE_PATTERN.exec(link.className ?? '')?.[0] ?? 'accent';
+        const isAccent = styleMatch.startsWith('accent');
+        const isLinkStyle = styleMatch.includes('-link');
+
+        const CheckoutLink = customElements.get('checkout-link');
+        const button =
+            CheckoutLink?.createCheckoutLink(link.dataset, link.textContent) ??
+            (() => {
+                const el = document.createElement('a', { is: 'checkout-link' });
+                el.innerHTML = `<span style="pointer-events: none;">${link.textContent}</span>`;
+                return el;
+            })();
+
+        for (const { name, value } of link.attributes) {
+            if (['class', 'is', 'href'].includes(name)) continue;
+            button.setAttribute(name, value);
+        }
+        button.firstElementChild?.classList.add('spectrum-Button-label');
+        if (!isLinkStyle) {
+            button.classList.add('button', 'con-button');
+            if (isAccent) button.classList.add('blue');
+            else if (
+                styleMatch.startsWith('primary') &&
+                !styleMatch.includes('-outline')
+            )
+                button.classList.add('fill');
+        }
+        return button;
+    }
+
+    /**
+     * Parses the raw CTA field HTML, converts each anchor to a hydrated
+     * checkout-button, and returns a <div slot="footer"> ready to render.
+     * Returns null if there are no anchor elements in the field value.
+     */
+    #renderCtaField(html) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const links = [...doc.body.querySelectorAll('a')];
+        if (!links.length) return null;
+        const footer = document.createElement('div');
+        footer.setAttribute('slot', 'footer');
+        footer.append(...links.map((link) => this.#buildCtaButton(link)));
+        return footer;
     }
 
     /** Strips <p> wrapper from single-paragraph AEM rich text so it renders inline. */

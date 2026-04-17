@@ -151,6 +151,20 @@
                 </div></merch-card
             >
         </template>
+        <template id="plans-without-heading-m">
+            <mas-commerce-service
+                env="stage"
+                country="CA"
+                language="en"
+            ></mas-commerce-service>
+            <merch-card variant="plans" consonant="true">
+                <p slot="heading-xs">Photoshop</p>
+                <div slot="body-xs"><p>No heading-m slot present.</p></div>
+                <div slot="footer">
+                    <a is="checkout-link" class="con-button blue">Buy now</a>
+                </div>
+            </merch-card>
+        </template>
         <template id="plans-education-with-body-prices">
             <mas-commerce-service env="stage"></mas-commerce-service>
             <merch-card consonant="true" variant="plans-education">
@@ -254,6 +268,15 @@
                             photoshopWithAddon,
                         );
                         expect(photoshopWithAddon).to.exist;
+                    });
+                    it('should return undefined mainPrice when heading-m slot is missing', async () => {
+                        const [masCommerceService, plansCard] =
+                            getTemplateContent('plans-without-heading-m');
+                        container.append(masCommerceService, plansCard);
+                        await plansCard.checkReady();
+                        expect(plansCard.variantLayout.headingM).to.be.null;
+                        expect(plansCard.variantLayout.mainPrice).to.be
+                            .undefined;
                     });
                     it('should render addon checkbox', async () => {
                         const [masCommerceService, educationWithBodyPrices] =

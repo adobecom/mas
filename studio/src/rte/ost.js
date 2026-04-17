@@ -279,7 +279,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             language: masCommerceService.settings.language,
             defaultPlaceholderOptions: ostDefaultSettings(),
             offerSelectorPlaceholderOptions,
-            modalsAndEntitlements: ['acom', 'sandbox', 'nala'].includes(Store.search.get().path),
+            modalsAndEntitlements: ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
             onCancel: () => closeOfferSelectorTool(),
             onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,

@@ -111,10 +111,15 @@ class MasFilterPanel extends LitElement {
                 }
                 // Get values after the type
                 const values = parts.slice(typeIndex);
-                // Construct the full path
-                const fullPath = `/content/cq:tags/mas/${tagPath}`;
-                // Get the title from the last value
-                const title = values.length > 0 ? values[values.length - 1].toUpperCase() : '';
+                let fullPath = `/content/cq:tags/mas/${tagPath}`;
+                let title = values.length > 0 ? values[values.length - 1].toUpperCase() : '';
+                // For product_code, collapse child selections
+                // back to the parent product for display in the filter chips
+                if (type === 'product_code' && values.length > 1) {
+                    const parentValue = values[0];
+                    fullPath = `/content/cq:tags/mas/${type}/${parentValue}`;
+                    title = parentValue.toUpperCase();
+                }
 
                 const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
                 picker?.allTags.then?.(() => {
@@ -138,16 +143,18 @@ class MasFilterPanel extends LitElement {
                     }
                 });
 
+                const nextTag = {
+                    path: fullPath,
+                    title: selectedTagTitle || title,
+                    top: type,
+                };
+
+                const existingTags = acc[type] || [];
+                const alreadyExists = existingTags.some((tag) => tag.path === nextTag.path);
+
                 return {
                     ...acc,
-                    [type]: [
-                        ...(acc[type] || []),
-                        {
-                            path: fullPath,
-                            title: selectedTagTitle || title,
-                            top: type,
-                        },
-                    ],
+                    [type]: alreadyExists ? existingTags : [...existingTags, nextTag],
                 };
             },
             { ...EMPTY_TAGS },
@@ -181,8 +188,38 @@ class MasFilterPanel extends LitElement {
         }
     }
 
+    #expandProductCodeTags(tags) {
+        const picker = this.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+        const allTags = picker?.allTags;
+
+        if (!picker || !allTags || allTags instanceof Promise) {
+            return tags;
+        }
+
+        const rootPath = `${picker.namespace}/${picker.top}/`;
+        const availableTags = [...allTags.values()].filter((tag) => tag.path.startsWith(rootPath));
+
+        return tags.flatMap((tag) => {
+            const descendants = availableTags.filter((candidate) => candidate.path.startsWith(`${tag.path}/`));
+
+            const leafDescendants = descendants.filter(
+                (candidate) =>
+                    !availableTags.some(
+                        (other) => other.path !== candidate.path && other.path.startsWith(`${candidate.path}/`),
+                    ),
+            );
+
+            return leafDescendants.length ? leafDescendants : [tag];
+        });
+    }
+
     #updateFiltersParams() {
-        const tagValues = Object.values(this.tagsByType ?? EMPTY_TAGS)
+        const expandedTagsByType = {
+            ...this.tagsByType,
+            product_code: this.#expandProductCodeTags(this.tagsByType.product_code || []),
+        };
+
+        const tagValues = Object.values(expandedTagsByType)
             .flat()
             .map((tag) => pathToTagId(tag.path))
             .filter(Boolean);

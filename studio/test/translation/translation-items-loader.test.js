@@ -115,7 +115,8 @@ describe('translation-items-loader', () => {
     });
 
     describe('loadAllFragments', () => {
-        it('should subscribe and process collections when fragments list updates', async () => {
+        it('should not subscribe for collections (loaded via repository.loadAllCollections)', async () => {
+            const before = Store.translationProjects.allCollections.get();
             const result = loadAllFragments(TABLE_TYPE.COLLECTIONS, null, {});
 
             const mockCollection = {
@@ -128,8 +129,8 @@ describe('translation-items-loader', () => {
             Store.fragments.list.data.set([mockCollection]);
             await new Promise((r) => setTimeout(r, 50));
 
-            expect(Store.translationProjects.allCollections.get()).to.have.lengthOf(1);
-            expect(Store.translationProjects.displayCollections.get()).to.have.lengthOf(1);
+            // Collections store is NOT touched by the shared fragment stream anymore.
+            expect(Store.translationProjects.allCollections.get()).to.equal(before);
 
             result.unsubscribe();
         });

@@ -1,5 +1,5 @@
 import Store from '../store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../constants.js';
+import { CARD_MODEL_PATH, TABLE_TYPE } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { getFragmentName } from './translation-utils.js';
 import { getService } from '../utils.js';
@@ -196,26 +196,18 @@ export function setCardVariationsByPaths(groupedVariationsByParentValue) {
 }
 
 /**
- * Parses fragments from store into cards and collections with studioPath
+ * Extracts card fragments from the shared fragment store, decorating each with studioPath.
+ * Collections come from repository.loadAllCollections() — not this stream.
  * @param {Array} allFragments - Array of fragment store objects
- * @returns {{ allCards: Array, allCollections: Array }}
+ * @returns {Array} Array of card objects
  */
-function parseFragmentsFromStore(allFragments) {
-    return (allFragments || []).reduce(
-        (acc, fragment) => {
-            const withPath = {
-                ...fragment.value,
-                studioPath: getFragmentName(fragment.value),
-            };
-            if (fragment.value.model.path === CARD_MODEL_PATH) {
-                acc.allCards.push(withPath);
-            } else if (fragment.value.model.path === COLLECTION_MODEL_PATH) {
-                acc.allCollections.push(withPath);
-            }
-            return acc;
-        },
-        { allCards: [], allCollections: [] },
-    );
+function parseCardsFromStore(allFragments) {
+    return (allFragments || [])
+        .filter((fragment) => fragment.value.model.path === CARD_MODEL_PATH)
+        .map((fragment) => ({
+            ...fragment.value,
+            studioPath: getFragmentName(fragment.value),
+        }));
 }
 
 /**
@@ -315,17 +307,6 @@ async function processCardsData(allCards, repository, state) {
 }
 
 /**
- * Processes collections and writes to store
- * @param {Array<Object>} allCollections - Array of collection objects
- */
-function processCollectionsData(allCollections) {
-    Store.translationProjects.displayCollections.set(allCollections);
-    Store.translationProjects.allCollections.set(allCollections);
-    const collectionsByPaths = new Map(allCollections.map((f) => [f.path, f]));
-    Store.translationProjects.collectionsByPaths.set(collectionsByPaths);
-}
-
-/**
  * Loads all placeholders. Subscribes to placeholders list and populates store.
  * @returns {{ unsubscribe: () => void }}
  */
@@ -352,17 +333,19 @@ export function loadAllPlaceholders() {
  * @returns {{ unsubscribe: () => void }}
  */
 export function loadAllFragments(type, repository, state = {}) {
+    // Collections load via repository.loadAllCollections() with a dedicated model-filtered
+    // query; partitioning the shared card stream misses collections that sit deep in the
+    // cursor on large surfaces (acom, nala) where cards dominate the first pages.
+    if (type === TABLE_TYPE.COLLECTIONS) {
+        return { unsubscribe: () => {} };
+    }
     if (state.subscribed) {
         return { unsubscribe: () => {} };
     }
     state.subscribed = true;
     const callback = async () => {
-        const { allCards, allCollections } = parseFragmentsFromStore(Store.fragments.list.data.get() || []);
-        if (type === TABLE_TYPE.CARDS) {
-            await processCardsData(allCards, repository, state);
-        } else {
-            processCollectionsData(allCollections);
-        }
+        const allCards = parseCardsFromStore(Store.fragments.list.data.get() || []);
+        await processCardsData(allCards, repository, state);
     };
     Store.fragments.list.data.subscribe(callback);
     return {

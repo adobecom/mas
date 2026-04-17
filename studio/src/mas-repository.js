@@ -29,6 +29,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
@@ -102,6 +103,7 @@ export class MasRepository extends LitElement {
             placeholders: null,
             promotions: null,
             translations: null,
+            collections: null,
         };
         this.dictionaryCache = new Map();
         this.inflightDictionaryRequest = null;
@@ -723,6 +725,34 @@ export class MasRepository extends LitElement {
             this.processError(error, 'Could not load placeholders.');
         } finally {
             Store.placeholders.list.loading.set(false);
+        }
+    }
+
+    async loadAllCollections() {
+        if (!this.search.value.path) return;
+        try {
+            if (this.#abortControllers.collections) this.#abortControllers.collections.abort();
+            this.#abortControllers.collections = new AbortController();
+
+            const damPath = getDamPath(this.search.value.path);
+            const locale = this.filters.value.locale;
+            const searchOptions = {
+                path: `${damPath}/${locale}`,
+                modelIds: [TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection']],
+                sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+            };
+
+            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.collections);
+            const collections = fragments
+                .filter(({ model }) => model?.path === COLLECTION_MODEL_PATH)
+                .map((fragment) => ({ ...fragment, studioPath: fragment.path }));
+
+            Store.translationProjects.allCollections.set(collections);
+            Store.translationProjects.displayCollections.set(collections);
+            Store.translationProjects.collectionsByPaths.set(new Map(collections.map((c) => [c.path, c])));
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            this.processError(error, 'Could not load collections.');
         }
     }
 

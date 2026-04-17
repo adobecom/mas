@@ -69,6 +69,9 @@ class MasTranslationEditor extends LitElement {
         if (this.repository?.loadPlaceholders) {
             this.repository.loadPlaceholders();
         }
+        if (this.repository?.loadAllCollections) {
+            this.repository.loadAllCollections();
+        }
 
         // reset locale to default
         Store.search.set((prev) => ({ ...prev, region: null }));

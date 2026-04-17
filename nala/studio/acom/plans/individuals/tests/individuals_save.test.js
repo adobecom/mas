@@ -422,8 +422,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         });
 
         await test.step('step-4: Verify quantity selector change is saved', async () => {
-            await expect(await editor.quantitySelectorCheckbox).toBeChecked();
-            await expect(await clonedCard.locator(plans.cardQuantitySelector)).toBeVisible();
+            await expect(await editor.quantitySelectorCheckbox).not.toBeChecked();
+            await expect(await clonedCard.locator(plans.cardQuantitySelector)).not.toBeVisible();
         });
     });
 

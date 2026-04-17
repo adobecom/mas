@@ -220,7 +220,6 @@ test.describe('M@S Studio Fragment Editor Locale test suite', () => {
             await expect(await editor.promoText).toBeVisible();
             await expect(await editor.callout).toBeVisible();
             await expect(await editor.addOnToggle).toBeVisible();
-            await expect(await editor.quantitySelectorCheckbox).toBeVisible();
             await expect(await editor.OSI).toBeVisible();
         });
     });

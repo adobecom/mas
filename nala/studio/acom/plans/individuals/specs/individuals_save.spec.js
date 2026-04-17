@@ -87,7 +87,7 @@ export default {
             name: '@studio-plans-individuals-save-edited-quantity-selector',
             path: '/studio.html',
             data: {
-                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                cardid: 'e8364315-f3d0-45c3-ab1d-8fc6455f1fe2',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',

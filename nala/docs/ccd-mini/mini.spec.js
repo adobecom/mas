@@ -177,7 +177,7 @@ export const features = [
             planTypeText: 'Annuel, facturé mensuellement',
             recurrenceText: '/mois',
             seeTerms: {
-                text: 'Voir les conditions',
+                text: 'Conditions d’utilisation',
                 analyticsId: 'see-terms',
                 href: 'https://www.adobe.com/offers/promo-terms.html?locale=fr_FR&country=FR&offer_id=7B3FB5E4F8662A207A960BAFB6B1C21C',
             },

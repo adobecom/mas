@@ -46,12 +46,9 @@ export default class TranslationsPage {
         return titles;
     }
 
-    async waitForListToLoad(timeout = 30000) {
-        await this.loadingIndicator.waitFor({ state: 'hidden', timeout }).catch(() => {});
-        await Promise.race([
-            this.translationTable.waitFor({ state: 'visible', timeout }),
-            this.emptyState.waitFor({ state: 'visible', timeout }),
-        ]);
+    async waitForListToLoad(timeout = 15000) {
+        const dataRow = this.translationTable.locator('sp-table-row:not(.skeleton-row)').first();
+        await dataRow.or(this.emptyState).waitFor({ state: 'visible', timeout });
     }
 
     async getSentOnColumnTexts() {

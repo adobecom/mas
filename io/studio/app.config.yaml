@@ -47,6 +47,8 @@ application:
                         inputs:
                             translationMapping:
                                 acom: transcreation
+                                acom-cc: transcreation
+                                acom-dc: transcreation
                                 express: transcreation
                                 sandbox: machineTranslation
                         annotations:

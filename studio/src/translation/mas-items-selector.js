@@ -8,6 +8,7 @@ import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
+import { debounce } from '../utils.js';
 
 export const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -20,11 +21,15 @@ class MasItemsSelector extends LitElement {
 
     static properties = {
         viewOnly: { type: Boolean, state: true },
+        searchQuery: { type: String, state: true },
+        selectedTab: { type: String, state: true },
     };
 
     constructor() {
         super();
         this.viewOnly = false;
+        this.searchQuery = '';
+        this.selectedTab = TABLE_TYPE.CARDS;
     }
 
     connectedCallback() {
@@ -43,15 +48,32 @@ class MasItemsSelector extends LitElement {
     }
 
     get selectedCount() {
-        return [
-            ...Store.translationProjects.selectedCards.value,
-            ...Store.translationProjects.selectedPlaceholders.value,
-            ...Store.translationProjects.selectedCollections.value,
-        ].length;
+        return (
+            Store.translationProjects.selectedCards.value.length +
+            Store.translationProjects.selectedPlaceholders.value.length +
+            Store.translationProjects.selectedCollections.value.length
+        );
     }
 
     #toggleShowSelected() {
         Store.translationProjects.showSelected.set(!this.showSelected);
+    }
+
+    #setSearchQuery = debounce((value) => {
+        this.searchQuery = value;
+    }, 300);
+
+    #handleSearchInput(e) {
+        this.#setSearchQuery(e.currentTarget?.value ?? '');
+    }
+
+    #handleSearchSubmit(e) {
+        e.preventDefault();
+        this.searchQuery = e.currentTarget?.value ?? '';
+    }
+
+    #handleTabChange({ target: { selected } }) {
+        this.selectedTab = selected;
     }
 
     #getTabLabel(tab) {
@@ -72,8 +94,24 @@ class MasItemsSelector extends LitElement {
     }
 
     render() {
+        const count = this.selectedCount;
+        const showingSelection = this.showSelected && count;
+        const toggleLabel = showingSelection ? 'Hide selection' : 'Selected items';
         return html`
-            <sp-tabs quiet selected="cards">
+            ${this.viewOnly
+                ? nothing
+                : html`
+                      <div class="dialog-header">
+                          <h2>Select items</h2>
+                          <sp-search
+                              size="m"
+                              placeholder="Search..."
+                              @input=${this.#handleSearchInput}
+                              @submit=${this.#handleSearchSubmit}
+                          ></sp-search>
+                      </div>
+                  `}
+            <sp-tabs quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
                 ${repeat(
                     TABS,
                     (tab) => tab.value,
@@ -89,6 +127,7 @@ class MasItemsSelector extends LitElement {
                                 : html`
                                       <mas-search-and-filters
                                           .type=${tab.value}
+                                          .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
                                           .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
                                       ></mas-search-and-filters>
                                   `}
@@ -113,18 +152,13 @@ class MasItemsSelector extends LitElement {
                           <sp-button
                               variant="secondary"
                               @click=${this.#toggleShowSelected}
-                              ?disabled=${!this.selectedCount}
+                              ?disabled=${!count}
                               class="ghost-button"
                           >
-                              <sp-icon
-                                  slot="icon"
-                                  label=${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected items'}
-                                  class=${this.showSelected && this.selectedCount ? 'flipped' : ''}
-                              >
+                              <sp-icon slot="icon" label=${toggleLabel} class=${showingSelection ? 'flipped' : ''}>
                                   ${toggleSidebarIcon}
                               </sp-icon>
-                              ${this.showSelected && this.selectedCount ? 'Hide selection' : 'Selected items'}
-                              (${this.selectedCount})
+                              ${toggleLabel} (${count})
                           </sp-button>
                       </div>
                   `}

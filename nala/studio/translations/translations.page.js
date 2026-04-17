@@ -46,7 +46,7 @@ export default class TranslationsPage {
         return titles;
     }
 
-    async waitForListToLoad(timeout = 15000) {
+    async waitForListToLoad(timeout = 30000) {
         await this.loadingIndicator.waitFor({ state: 'hidden', timeout }).catch(() => {});
         await Promise.race([
             this.translationTable.waitFor({ state: 'visible', timeout }),

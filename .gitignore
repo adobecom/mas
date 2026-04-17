@@ -47,6 +47,9 @@ masStudio-*.json
 .cursor
 .superpowers/
 
+# Worktree documentation (per-ticket, not committed)
+docs/
+
 # web-components specific
 !web-components/dist
 web-components/commerce.json

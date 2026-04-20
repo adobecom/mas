@@ -13,6 +13,17 @@ import { confirmation } from '../mas-confirm-dialog.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 
+const placeholdersSkeletonRow = () =>
+    html`<sp-table-row class="skeleton-row">
+        <sp-table-cell class="key"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="value"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="status"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="locale"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="updated-by"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="updated-at"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="action"></sp-table-cell>
+    </sp-table-row>`;
+
 class MasPlaceholders extends LitElement {
     static styles = styles;
 
@@ -324,7 +335,7 @@ class MasPlaceholders extends LitElement {
                     </div>
                 </div>
 
-                <div class="placeholders-content">${this.loadingIndicator()}${this.renderTable()}</div>
+                <div class="placeholders-content">${this.renderTable()}</div>
 
                 ${this.showCreationModal
                     ? html`<mas-placeholders-creation-modal
@@ -340,11 +351,6 @@ class MasPlaceholders extends LitElement {
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>
         `;
-    }
-
-    loadingIndicator() {
-        if (!this.loading) return nothing;
-        return html`<sp-progress-circle class="loading-indicator" indeterminate size="l"></sp-progress-circle>`;
     }
 
     // #region Table
@@ -399,26 +405,28 @@ class MasPlaceholders extends LitElement {
                     )}
                 </sp-table-head>
                 <sp-table-body>
-                    ${repeat(
-                        this.internalPlaceholders,
-                        (placeholderStore) => placeholderStore.get().key,
-                        (placeholderStore) => {
-                            const placeholder = placeholderStore.get();
-                            return html`
-                                <mas-placeholders-item
-                                    key=${placeholder.key}
-                                    .placeholderStore=${placeholderStore}
-                                    .editing=${this.editing === placeholder.key}
-                                    .disabled=${this.pending}
-                                    .activeDropdown=${this.activeDropdown === placeholder.key}
-                                    .toggleEditing=${this.toggleEditing}
-                                    .toggleDropdown=${this.toggleDropdown}
-                                    .updatePending=${this.updatePending}
-                                ></mas-placeholders-item>
-                            `;
-                        },
-                    )}
-                    ${this.internalPlaceholders.length === 0 && !this.loading
+                    ${this.loading
+                        ? Array.from({ length: 5 }, placeholdersSkeletonRow)
+                        : repeat(
+                              this.internalPlaceholders,
+                              (placeholderStore) => placeholderStore.get().key,
+                              (placeholderStore) => {
+                                  const placeholder = placeholderStore.get();
+                                  return html`
+                                      <mas-placeholders-item
+                                          key=${placeholder.key}
+                                          .placeholderStore=${placeholderStore}
+                                          .editing=${this.editing === placeholder.key}
+                                          .disabled=${this.pending}
+                                          .activeDropdown=${this.activeDropdown === placeholder.key}
+                                          .toggleEditing=${this.toggleEditing}
+                                          .toggleDropdown=${this.toggleDropdown}
+                                          .updatePending=${this.updatePending}
+                                      ></mas-placeholders-item>
+                                  `;
+                              },
+                          )}
+                    ${!this.loading && this.internalPlaceholders.length === 0
                         ? html`<p class="no-placeholders-label">No placeholders found</p>`
                         : nothing}
                 </sp-table-body>

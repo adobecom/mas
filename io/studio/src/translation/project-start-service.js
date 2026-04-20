@@ -53,9 +53,6 @@ async function prepareProjectStart(params, options = {}) {
     const authToken = getBearerToken(params);
     const { projectCF, etag } = await getTranslationProject(params.projectId, authToken, params);
     const translationTitle = (getValue(projectCF, 'title')?.value ?? '').trim();
-    if (!translationTitle) {
-        throw createProjectStartError(400, 'Translation project title is required.');
-    }
     const taskNameError = getOdinLocTaskNameValidationError(translationTitle);
     if (taskNameError) {
         throw createProjectStartError(400, taskNameError);

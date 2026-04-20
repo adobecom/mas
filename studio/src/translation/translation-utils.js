@@ -6,7 +6,7 @@ import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../editor-pa
 export const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
 
 /**
- * Returns an error message when `value` is not a valid.
+ * Returns an error message when `value` is not a valid task name.
  * Rules: non-empty after trim, at least one alphanumeric character, only `A–Z`, `a–z`, `0–9`, `-`, `_`, `.`,
  * no consecutive dots, max {@link ODIN_LOC_TASK_NAME_MAX_LENGTH} characters.
  * @param {string} value - Project title

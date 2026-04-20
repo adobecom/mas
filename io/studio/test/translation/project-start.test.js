@@ -307,7 +307,7 @@ describe('Translation project-start', () => {
             const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.error.statusCode).to.equal(400);
-            expect(result.error.body.error).to.include('title is required');
+            expect(result.error.body.error).to.include('Project title cannot be empty');
         });
 
         it('should return 400 if translation project title is only whitespace', async () => {
@@ -323,7 +323,7 @@ describe('Translation project-start', () => {
             const result = await executeProjectStart(projectStartService, baseParams);
 
             expect(result.error.statusCode).to.equal(400);
-            expect(result.error.body.error).to.include('title is required');
+            expect(result.error.body.error).to.include('Project title cannot be empty');
         });
 
         it('should return 400 if translation project title does not respect the name rules', async () => {

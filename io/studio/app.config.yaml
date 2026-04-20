@@ -71,6 +71,15 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    cleanup-variations:
+                        function: src/cleanup-variations/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 3600000
+                        annotations:
+                            require-adobe-auth: true
+                            final: true
                     health-check:
                         function: src/health-check/index.js
                         web: 'yes'

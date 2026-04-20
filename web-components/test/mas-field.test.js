@@ -153,7 +153,9 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2">Free trial</a>';
 
     afterEach(() => {
-        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
     });
 
     function makeIndexedField(index, ctasHtml) {
@@ -205,7 +207,9 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
 
     it('renders nothing when index is out of bounds', () => {
         const el = makeIndexedField(99, TWO_CTAS);
-        expect(el.querySelector('[data-role="mas-field-content"]').innerHTML).to.equal('');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').innerHTML,
+        ).to.equal('');
     });
 
     it('renders nothing when ctas field is absent', () => {
@@ -220,7 +224,9 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
                 detail: { fields: { cardTitle: 'CC' } },
             }),
         );
-        expect(el.querySelector('[data-role="mas-field-content"]').innerHTML).to.equal('');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').innerHTML,
+        ).to.equal('');
     });
 
     it('handles anchors nested inside <p><strong>', () => {

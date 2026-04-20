@@ -353,9 +353,17 @@ async function listFragmentPaths(odinEndpoint, surface, locale, authToken) {
 
     do {
         const qs = cursor ? `path=${folderPath}&cursor=${encodeURIComponent(cursor)}` : `path=${folderPath}`;
-        const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments?${qs}`, authToken, {
-            ignoreErrors: [400, 404],
-        });
+        let response;
+        let delay = 1000;
+        for (let attempt = 0; attempt <= 3; attempt++) {
+            response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments?${qs}`, authToken, {
+                ignoreErrors: [400, 404, 429],
+            });
+            if (response.status !== 429) break;
+            logger.warn(`Rate limited listing ${surface}/${locale}, retrying in ${delay}ms (attempt ${attempt + 1}/3)`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            delay *= 2;
+        }
         if (!response.ok) break;
         const data = await response.json();
         for (const item of data.items ?? []) {
@@ -369,6 +377,26 @@ async function listFragmentPaths(odinEndpoint, surface, locale, authToken) {
 }
 
 /**
+ * Fetches a fragment by path with exponential backoff retry on 429 rate-limit responses.
+ * @param {string} odinEndpoint
+ * @param {string} fragmentPath
+ * @param {string} authToken
+ * @param {number} [maxRetries=3]
+ * @returns {Promise<{ fragment: object|null, status: number, etag: string|null }>}
+ */
+async function fetchFragmentWithRetry(odinEndpoint, fragmentPath, authToken, maxRetries = 3) {
+    let delay = 1000;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const result = await fetchFragmentByPath(odinEndpoint, fragmentPath, authToken);
+        if (result.status !== 429 && result.status !== 500) return result;
+        if (attempt === maxRetries) return result;
+        logger.warn(`Rate limited fetching ${fragmentPath}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay *= 2;
+    }
+}
+
+/**
  * Processes a single fragment path: fetches it, finds invalid variation paths, removes them via PUT.
  * Uses PUT (not PATCH) because the variations field is locked by live relationships.
  * @param {string} odinEndpoint
@@ -379,7 +407,7 @@ async function listFragmentPaths(odinEndpoint, surface, locale, authToken) {
  * @returns {Promise<{ path: string, removed: string[] }|null>} null if no changes needed
  */
 async function processFragmentPath(odinEndpoint, fragmentPath, surface, authToken, dryRun) {
-    const { fragment, status, etag } = await fetchFragmentByPath(odinEndpoint, fragmentPath, authToken);
+    const { fragment, status, etag } = await fetchFragmentWithRetry(odinEndpoint, fragmentPath, authToken);
     if (status !== 200 || !fragment) {
         logger.warn(`Fragment not found at ${fragmentPath}: ${status}`);
         return null;
@@ -473,7 +501,7 @@ async function main(params) {
 
             logger.info(`Found ${fragmentPaths.length} fragment(s) in ${surface}/${locale}`);
 
-            const results = await processBatchWithConcurrency(fragmentPaths, 10, async (fragmentPath) => {
+            const results = await processBatchWithConcurrency(fragmentPaths, 3, async (fragmentPath) => {
                 try {
                     return await processFragmentPath(odinEndpoint, fragmentPath, surface, authToken, dryRun);
                 } catch (err) {

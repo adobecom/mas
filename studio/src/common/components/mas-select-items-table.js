@@ -33,7 +33,7 @@ class MasSelectItemsTable extends LitElement {
         super();
         this.dataSubscription = null;
         this.processAbortController = null;
-        this.dataState = { isProcessingCards: false, processAbortController: null };
+        this.dataState = { isProcessingCards: false, pendingCards: null, abortController: null };
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.displayCardsStoreController = null;
@@ -50,6 +50,9 @@ class MasSelectItemsTable extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.dataState.abortController = new AbortController();
+        this.dataState.isProcessingCards = false;
+        this.dataState.pendingCards = null;
         if (this.viewOnly) {
             if (this.type === TABLE_TYPE.PLACEHOLDERS) {
                 this.viewOnlyLoading = !!getItemsSelectionStore().selectedPlaceholders.value?.length;
@@ -89,17 +92,6 @@ class MasSelectItemsTable extends LitElement {
                 });
             }
         }
-        if (!this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
-            this.scrollObserver = new IntersectionObserver(
-                (entries) => {
-                    if (entries[0]?.isIntersecting && this.hasMore.value && !this.loading.value) {
-                        this.repository?.loadNextPage();
-                    }
-                },
-                { rootMargin: '200px' },
-            );
-        }
-
         this[`selected${this.typeUppercased}StoreController`] = new ReactiveController(this, [
             Store.fragments.list.loading,
             Store.placeholders.list.loading,
@@ -124,6 +116,17 @@ class MasSelectItemsTable extends LitElement {
         this.wasLoading = this.loading.value;
 
         const sentinel = this.renderRoot.querySelector('.scroll-sentinel');
+        const scrollRoot = this.renderRoot.querySelector('sp-table');
+        if (!this.scrollObserver && scrollRoot && !this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
+            this.scrollObserver = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0]?.isIntersecting && this.hasMore.value && !this.loading.value) {
+                        this.repository?.loadNextPage();
+                    }
+                },
+                { root: scrollRoot, rootMargin: '200px' },
+            );
+        }
         if (sentinel && sentinel !== this.observedSentinel) {
             this.scrollObserver?.disconnect();
             this.scrollObserver?.observe(sentinel);
@@ -133,13 +136,14 @@ class MasSelectItemsTable extends LitElement {
             this.observedSentinel = null;
         } else if (loadingJustCompleted && this.hasMore.value) {
             this.scrollObserver?.unobserve(sentinel);
-            this.scrollObserver?.observe(sentinel);
+            requestAnimationFrame(() => this.scrollObserver?.observe(sentinel));
         }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.dataSubscription?.unsubscribe();
+        this.dataState.abortController?.abort();
         this.processAbortController?.abort();
         this.processAbortController = null;
         this.scrollObserver?.disconnect();
@@ -337,9 +341,10 @@ class MasSelectItemsTable extends LitElement {
                                 )}
                             </sp-table-head>
                             <sp-table-body>${this.#renderTableBody()}</sp-table-body>
+                            ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing}
+                            ${this.loadingMoreIndicator}
                         </sp-table>`
-                      : html`<p>No items found.</p>`}
-                  ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}`}
+                      : html`<p>No items found.</p>`}`}
         `;
     }
 }

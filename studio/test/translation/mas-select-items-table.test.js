@@ -124,100 +124,128 @@ describe('MasSelectItemsTable', () => {
 
     describe('initialization', () => {
         it('should initialize with default values', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.selectedInTable).to.deep.equal(new Set());
             expect(el.viewOnly).to.not.equal(true);
         });
 
         it('should accept type property for cards', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.type).to.equal('cards');
         });
 
         it('should accept type property for collections', async () => {
-            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
             const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
+            await el.updateComplete;
             expect(el.type).to.equal('collections');
         });
 
         it('should accept type property for placeholders', async () => {
-            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
             const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
+            await el.updateComplete;
             expect(el.type).to.equal('placeholders');
         });
 
         it('should accept viewOnly property', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             const card = createMockCard('/path/card1', 'Card 1');
             setupCardsInStore([card]);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.viewOnly).to.be.true;
         });
     });
 
     describe('typeUppercased getter', () => {
         it('should return Cards for cards type', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.typeUppercased).to.equal('Cards');
         });
 
         it('should return Collections for collections type', async () => {
-            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
             const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
+            await el.updateComplete;
             expect(el.typeUppercased).to.equal('Collections');
         });
 
         it('should return Placeholders for placeholders type', async () => {
-            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
             const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
+            await el.updateComplete;
             expect(el.typeUppercased).to.equal('Placeholders');
         });
     });
 
     describe('isLoading getter', () => {
         it('should return true for cards when firstPageLoaded is false', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             Store.fragments.list.firstPageLoaded.set(false);
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.isLoading).to.be.true;
         });
 
         it('should return false for cards when firstPageLoaded is true', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             Store.fragments.list.firstPageLoaded.set(true);
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.isLoading).to.be.false;
         });
 
         it('should return true for collections when firstPageLoaded is false', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             Store.fragments.list.firstPageLoaded.set(false);
             setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.isLoading).to.be.true;
         });
 
         it('should return true for placeholders when placeholders are loading', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             Store.placeholders.list.loading.set(true);
             setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.isLoading).to.be.true;
         });
 
         it('should return false for placeholders when not loading', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             Store.placeholders.list.loading.set(false);
             setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.isLoading).to.be.false;
         });
 
         it('should return viewOnlyLoading for cards when viewOnly is true', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             const card = createMockCard('/path/card1', 'Card 1');
             setupCardsInStore([card]);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             el.viewOnlyLoading = true;
             expect(el.isLoading).to.be.true;
             el.viewOnlyLoading = false;
@@ -225,12 +253,14 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should return viewOnlyLoading for collections when viewOnly is true', async () => {
-            const collection = createMockCollection('/path/collection1', 'Collection 1');
-            setupCollectionsInStore([collection]);
-            Store.translationProjects.selectedCollections.set(['/path/collection1']);
             const el = await fixture(
                 html`<mas-select-items-table type="collections" .viewOnly=${true}></mas-select-items-table>`,
             );
+            await el.updateComplete;
+            const collection = createMockCollection('/path/collection1', 'Collection 1');
+            setupCollectionsInStore([collection]);
+            Store.translationProjects.selectedCollections.set(['/path/collection1']);
+            await el.updateComplete;
             el.viewOnlyLoading = true;
             expect(el.isLoading).to.be.true;
         });
@@ -238,25 +268,31 @@ describe('MasSelectItemsTable', () => {
 
     describe('itemsToDisplay getter', () => {
         it('should return displayCards from store when not viewOnly', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.itemsToDisplay.length).to.equal(1);
             expect(el.itemsToDisplay[0].path).to.equal('/path/card1');
         });
 
         it('should return displayCollections from store when not viewOnly', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const collections = [createMockCollection('/path/collection1', 'Collection 1')];
             setupCollectionsInStore(collections);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.itemsToDisplay.length).to.equal(1);
             expect(el.itemsToDisplay[0].path).to.equal('/path/collection1');
         });
 
         it('should return displayPlaceholders from store when not viewOnly', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'key1', 'value1')];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.itemsToDisplay.length).to.equal(1);
             expect(el.itemsToDisplay[0].path).to.equal('/path/placeholder1');
         });
@@ -280,9 +316,11 @@ describe('MasSelectItemsTable', () => {
 
     describe('rendering - loading state', () => {
         it('should render loading indicator when loading', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             Store.fragments.list.firstPageLoaded.set(false);
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const loadingContainer = el.shadowRoot.querySelector('.loading-container--flex');
             const progressCircle = el.shadowRoot.querySelector('sp-progress-circle');
             expect(loadingContainer).to.exist;
@@ -290,9 +328,11 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should not render loading indicator when not loading', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             Store.fragments.list.firstPageLoaded.set(true);
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const loadingContainer = el.shadowRoot.querySelector('.loading-container--flex');
             expect(loadingContainer).to.be.null;
         });
@@ -300,8 +340,10 @@ describe('MasSelectItemsTable', () => {
 
     describe('rendering - empty state', () => {
         it('should render "No items found" when no items to display', async () => {
-            setupCardsInStore([]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([]);
+            await el.updateComplete;
             const emptyMessage = el.shadowRoot.querySelector('p');
             expect(emptyMessage).to.exist;
             expect(emptyMessage.textContent).to.equal('No items found.');
@@ -310,17 +352,21 @@ describe('MasSelectItemsTable', () => {
 
     describe('rendering - table structure', () => {
         it('should render table when items exist', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const table = el.shadowRoot.querySelector('sp-table');
             expect(table).to.exist;
         });
 
         it('should render table headers for cards', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
             expect(headers.length).to.equal(7);
             expect(headers[2].textContent.trim()).to.include('Offer');
@@ -331,9 +377,11 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should render table headers for collections', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const collections = [createMockCollection('/path/collection1', 'Collection 1')];
             setupCollectionsInStore(collections);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
             expect(headers.length).to.equal(4);
             expect(headers[1].textContent.trim()).to.include('Collection title');
@@ -342,9 +390,11 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should render table headers for placeholders', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'key1', 'value1')];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
             expect(headers.length).to.equal(4);
             expect(headers[1].textContent.trim()).to.include('Key');
@@ -355,6 +405,8 @@ describe('MasSelectItemsTable', () => {
 
     describe('rendering - cards table body', () => {
         it('should render card rows with correct data', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [
                 createMockCard('/path/card1', 'Test Card', {
                     tags: [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }],
@@ -363,7 +415,7 @@ describe('MasSelectItemsTable', () => {
                 }),
             ];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             expect(collapsibleRow).to.exist;
             const cells = collapsibleRow.shadowRoot.querySelectorAll('sp-table-cell');
@@ -372,9 +424,11 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should display placeholder when no product tag exists', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Test Card')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const cells = collapsibleRow.shadowRoot.querySelectorAll('sp-table-cell');
             const offerCell = cells[2]?.textContent?.trim() || '';
@@ -382,22 +436,26 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should render copy button when offer data exists', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [
                 createMockCard('/path/card1', 'Test Card', {
                     offerData: { offerId: 'offer-123' },
                 }),
             ];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const copyButton = collapsibleRow.shadowRoot.querySelector('sp-action-button');
             expect(copyButton).to.exist;
         });
 
         it('should display "no offer data" when offerData is null', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Test Card')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const cells = collapsibleRow.shadowRoot.querySelectorAll('sp-table-cell');
             expect(cells[4].textContent).to.include('no offer data');
@@ -406,13 +464,15 @@ describe('MasSelectItemsTable', () => {
 
     describe('rendering - collections table body', () => {
         it('should render collection rows with correct data', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const collections = [
                 createMockCollection('/path/collection1', 'Test Collection', {
                     studioPath: 'merch-card-collection: ACOM / Test Collection',
                 }),
             ];
             setupCollectionsInStore(collections);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             expect(rows.length).to.equal(1);
             const cells = rows[0].querySelectorAll('sp-table-cell');
@@ -420,9 +480,11 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should display "-" for collection with no title', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const collections = [createMockCollection('/path/collection1', null)];
             setupCollectionsInStore(collections);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             const cells = rows[0].querySelectorAll('sp-table-cell');
             expect(cells[1].textContent.trim()).to.equal('-');
@@ -431,9 +493,11 @@ describe('MasSelectItemsTable', () => {
 
     describe('rendering - placeholders table body', () => {
         it('should render placeholder rows with correct data', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'test-key', 'test-value')];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             expect(rows.length).to.equal(1);
             const cells = rows[0].querySelectorAll('sp-table-cell');
@@ -442,28 +506,34 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should display "-" for placeholder with no key', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [createMockPlaceholder('/path/placeholder1', null, 'test-value')];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             const cells = rows[0].querySelectorAll('sp-table-cell');
             expect(cells[1].textContent.trim()).to.equal('-');
         });
 
         it('should truncate long placeholder values to 100 characters', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const longValue = 'A'.repeat(150);
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'key', longValue)];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             const cells = rows[0].querySelectorAll('sp-table-cell');
             expect(cells[2].textContent.trim()).to.equal(`${'A'.repeat(100)}...`);
         });
 
         it('should display "-" for placeholder with no value', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'key', null)];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             const cells = rows[0].querySelectorAll('sp-table-cell');
             expect(cells[2].textContent.trim()).to.equal('-');
@@ -480,6 +550,7 @@ describe('MasSelectItemsTable', () => {
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                 ></mas-select-items-table>`,
             );
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const statusCell = collapsibleRow.shadowRoot.querySelector('.status-cell');
             const statusDot = statusCell.querySelector('.status-dot');
@@ -496,6 +567,7 @@ describe('MasSelectItemsTable', () => {
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                 ></mas-select-items-table>`,
             );
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const statusCell = collapsibleRow.shadowRoot.querySelector('.status-cell');
             const statusDot = statusCell.querySelector('.status-dot');
@@ -512,6 +584,7 @@ describe('MasSelectItemsTable', () => {
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                 ></mas-select-items-table>`,
             );
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const statusCell = collapsibleRow.shadowRoot.querySelector('.status-cell');
             const statusDot = statusCell.querySelector('.status-dot');
@@ -523,17 +596,20 @@ describe('MasSelectItemsTable', () => {
 
     describe('table selection behavior', () => {
         it('should render checkboxes when not viewOnly', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const checkbox = row?.shadowRoot?.querySelector('sp-checkbox');
             expect(checkbox).to.exist;
         });
 
         it('should not render checkboxes when viewOnly', async () => {
-            const card = createMockCard('/path/card1', 'Card 1');
             const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
+            const card = createMockCard('/path/card1', 'Card 1');
             el.viewOnlyFragments = [card];
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
@@ -542,10 +618,11 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should reflect store selection in selectedInTable', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1'), createMockCard('/path/card2', 'Card 2')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             expect(el.selectedInTable).to.include('/path/card1');
         });
@@ -553,19 +630,21 @@ describe('MasSelectItemsTable', () => {
 
     describe('selection preselection', () => {
         it('should preselect items that are in the store selection', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1'), createMockCard('/path/card2', 'Card 2')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             expect(el.selectedInTable).to.include('/path/card1');
         });
 
         it('should reflect store selection in selectedInTable', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set(['/path/card1', '/path/card2']);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             expect(el.selectedInTable).to.include('/path/card1');
             expect(el.selectedInTable).to.include('/path/card2');
@@ -574,12 +653,14 @@ describe('MasSelectItemsTable', () => {
 
     describe('selection updates', () => {
         it('should update store when checkbox selection changes', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1'), createMockCard('/path/card2', 'Card 2')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            await row?.updateComplete;
             const checkbox = row?.shadowRoot?.querySelector('sp-checkbox');
             if (checkbox) {
                 checkbox.click();
@@ -591,6 +672,8 @@ describe('MasSelectItemsTable', () => {
 
     describe('copy to clipboard', () => {
         it('should dispatch show-toast event on successful copy', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
             const cards = [
                 createMockCard('/path/card1', 'Test Card', {
@@ -598,7 +681,7 @@ describe('MasSelectItemsTable', () => {
                 }),
             ];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
 
             let toastEvent = null;
             el.addEventListener('show-toast', (e) => {
@@ -617,6 +700,8 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should dispatch negative toast on copy failure', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('Copy failed'));
             const cards = [
                 createMockCard('/path/card1', 'Test Card', {
@@ -624,7 +709,7 @@ describe('MasSelectItemsTable', () => {
                 }),
             ];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
 
             let toastEvent = null;
             el.addEventListener('show-toast', (e) => {
@@ -644,8 +729,10 @@ describe('MasSelectItemsTable', () => {
 
     describe('disconnectedCallback', () => {
         it('should unsubscribe from data subscription on disconnect', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             const unsubscribeSpy = sandbox.spy();
             el.dataSubscription = { unsubscribe: unsubscribeSpy };
 
@@ -655,8 +742,10 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should abort process controller on disconnect', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             const abortSpy = sandbox.spy();
             el.processAbortController = { abort: abortSpy };
 
@@ -666,8 +755,10 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should set processAbortController to null on disconnect', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             el.processAbortController = { abort: () => {} };
 
             el.disconnectedCallback();
@@ -678,46 +769,58 @@ describe('MasSelectItemsTable', () => {
 
     describe('store controllers', () => {
         it('should initialize display store controller when not viewOnly', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.displayCardsStoreController).to.exist;
         });
 
         it('should initialize selected store controller for cards', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.selectedCardsStoreController).to.exist;
         });
 
         it('should initialize selected store controller for collections', async () => {
-            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
             const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
+            await el.updateComplete;
             expect(el.selectedCollectionsStoreController).to.exist;
         });
 
         it('should initialize selected store controller for placeholders', async () => {
-            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
             const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
+            await el.updateComplete;
             expect(el.selectedPlaceholdersStoreController).to.exist;
         });
 
         it('should initialize display store controller when viewOnly (for consistent reactivity)', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             const card = createMockCard('/path/card1', 'Card 1');
             setupCardsInStore([card]);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.displayCardsStoreController).to.exist;
         });
     });
 
     describe('hidden selection preservation', () => {
         it('should preserve hidden selections when deselecting visible item', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set(['/path/card1', '/path/hidden-card']);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            await row?.updateComplete;
             const checkbox = row?.shadowRoot?.querySelector('sp-checkbox');
             checkbox?.click();
             await el.updateComplete;
@@ -728,35 +831,41 @@ describe('MasSelectItemsTable', () => {
 
     describe('multiple rows rendering', () => {
         it('should render multiple card rows', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [
                 createMockCard('/path/card1', 'Card 1'),
                 createMockCard('/path/card2', 'Card 2'),
                 createMockCard('/path/card3', 'Card 3'),
             ];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('mas-collapsible-table-row');
             expect(rows.length).to.equal(3);
         });
 
         it('should render multiple collection rows', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const collections = [
                 createMockCollection('/path/collection1', 'Collection 1'),
                 createMockCollection('/path/collection2', 'Collection 2'),
             ];
             setupCollectionsInStore(collections);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             expect(rows.length).to.equal(2);
         });
 
         it('should render multiple placeholder rows', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [
                 createMockPlaceholder('/path/placeholder1', 'key1', 'value1'),
                 createMockPlaceholder('/path/placeholder2', 'key2', 'value2'),
             ];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             expect(rows.length).to.equal(2);
         });
@@ -764,18 +873,22 @@ describe('MasSelectItemsTable', () => {
 
     describe('row value attribute', () => {
         it('should set row value attribute to fragment path for cards', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const row = collapsibleRow?.shadowRoot?.querySelector('sp-table-row');
             expect(row?.getAttribute('value')).to.equal('/path/card1');
         });
 
         it('should set row value attribute to fragment path for placeholders', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'key1', 'value1')];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const row = el.shadowRoot.querySelector('sp-table-row');
             expect(row.getAttribute('value')).to.equal('/path/placeholder1');
         });
@@ -783,40 +896,48 @@ describe('MasSelectItemsTable', () => {
 
     describe('edge cases', () => {
         it('should handle empty value in placeholder gracefully', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'key', '')];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const row = el.shadowRoot.querySelector('sp-table-row');
             const cells = row?.querySelectorAll('sp-table-cell');
             expect(cells?.[2]?.textContent.trim()).to.equal('-');
         });
 
         it('should handle undefined status gracefully', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [{ ...createMockCard('/path/card1', 'Card 1'), status: undefined }];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             expect(collapsibleRow).to.exist;
         });
 
         it('should handle placeholder value exactly 100 characters', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const exactValue = 'B'.repeat(100);
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'key', exactValue)];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const row = el.shadowRoot.querySelector('sp-table-row');
             const cells = row?.querySelectorAll('sp-table-cell');
             expect(cells?.[2]?.textContent.trim()).to.equal(exactValue);
         });
 
         it('should handle card with only non-product tags', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [
                 createMockCard('/path/card1', 'Card 1', {
                     tags: [{ id: 'mas:other/tag', title: 'Other' }],
                 }),
             ];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const cells = collapsibleRow?.shadowRoot?.querySelectorAll('sp-table-cell');
             const offerCell = Array.from(cells || []).find((c) => c.textContent.includes('no offer') || c.textContent === '-');
@@ -824,6 +945,8 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should handle card with multiple tags including product code', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [
                 createMockCard('/path/card1', 'Card 1', {
                     tags: [
@@ -833,7 +956,7 @@ describe('MasSelectItemsTable', () => {
                 }),
             ];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const cells = collapsibleRow?.shadowRoot?.querySelectorAll('sp-table-cell');
             expect(cells?.[2]?.textContent.trim()).to.equal('Illustrator');
@@ -875,13 +998,15 @@ describe('MasSelectItemsTable', () => {
 
     describe('studioPath display', () => {
         it('should display studioPath for cards', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [
                 createMockCard('/path/card1', 'Card 1', {
                     studioPath: 'merch-card: ACOM / Plans / Consumer',
                 }),
             ];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const cells = row?.shadowRoot?.querySelectorAll('sp-table-cell');
             const pathCell = Array.from(cells || []).find((c) => c.textContent.includes('merch-card: ACOM'));
@@ -889,13 +1014,15 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should display studioPath for collections', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const collections = [
                 createMockCollection('/path/collection1', 'Collection 1', {
                     studioPath: 'merch-card-collection: ACOM / Collection 1',
                 }),
             ];
             setupCollectionsInStore(collections);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const row = el.shadowRoot.querySelector('sp-table-row');
             const cells = row?.querySelectorAll('sp-table-cell');
             expect(cells?.[2]?.textContent.trim()).to.equal('merch-card-collection: ACOM / Collection 1');
@@ -904,25 +1031,31 @@ describe('MasSelectItemsTable', () => {
 
     describe('data loading early returns', () => {
         it('should not create real subscription when allPlaceholders already has data', async () => {
+            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             const placeholders = [createMockPlaceholder('/path/placeholder1', 'key1', 'value1')];
             setupPlaceholdersInStore(placeholders);
-            const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.dataSubscription).to.exist;
             expect(el.dataSubscription.unsubscribe).to.be.a('function');
         });
 
         it('should not create real subscription when allCards already has data', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.dataSubscription).to.exist;
             expect(el.dataSubscription.unsubscribe).to.be.a('function');
         });
 
         it('should not create real subscription when allCollections already has data', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             const collections = [createMockCollection('/path/collection1', 'Collection 1')];
             setupCollectionsInStore(collections);
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.dataSubscription).to.exist;
             expect(el.dataSubscription.unsubscribe).to.be.a('function');
         });
@@ -950,10 +1083,11 @@ describe('MasSelectItemsTable', () => {
 
     describe('preselection edge cases', () => {
         it('should handle preselection when selectedInTable equals visible selections', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             Store.translationProjects.displayCards.set([...cards]);
             await el.updateComplete;
@@ -961,10 +1095,11 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should not update selectedInTable when already equal', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             const initialSelected = el.selectedInTable;
             Store.translationProjects.displayCards.set([...cards]);
@@ -1006,38 +1141,48 @@ describe('MasSelectItemsTable', () => {
 
     describe('display store controller', () => {
         it('should initialize displayCardsStoreController when not viewOnly for cards', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.displayCardsStoreController).to.not.be.null;
         });
 
         it('should initialize displayCollectionsStoreController when not viewOnly for collections', async () => {
-            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
             const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
+            await el.updateComplete;
             expect(el.displayCollectionsStoreController).to.not.be.null;
         });
 
         it('should initialize displayPlaceholdersStoreController when not viewOnly for placeholders', async () => {
-            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
             const el = await fixture(html`<mas-select-items-table type="placeholders"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupPlaceholdersInStore([createMockPlaceholder('/path/placeholder1', 'key1', 'value1')]);
+            await el.updateComplete;
             expect(el.displayPlaceholdersStoreController).to.not.be.null;
         });
     });
 
     describe('dataState', () => {
         it('should have dataState with isProcessingCards false by default', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.dataState?.isProcessingCards).to.be.false;
         });
     });
 
     describe('rendering with different statuses', () => {
         it('should render null status gracefully', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [{ ...createMockCard('/path/card1', 'Card 1'), status: null }];
             setupCardsInStore(cards);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const statusCell = el.shadowRoot.querySelector('.status-cell');
             expect(statusCell).to.be.null;
         });
@@ -1045,10 +1190,11 @@ describe('MasSelectItemsTable', () => {
 
     describe('fallback value handling', () => {
         it('should render without error when selectedCards is empty array', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set([]);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             expect(el.selectedInTable).to.deep.equal(new Set());
         });
@@ -1056,8 +1202,10 @@ describe('MasSelectItemsTable', () => {
 
     describe('constructor default values', () => {
         it('should initialize with correct default values', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.selectedInTable).to.be.an('Set');
             expect(el.dataState).to.exist;
         });
@@ -1065,11 +1213,13 @@ describe('MasSelectItemsTable', () => {
 
     describe('multiple selection scenarios', () => {
         it('should add item to selection when checkbox is clicked', async () => {
-            const cards = [createMockCard('/path/card1', 'Card 1'), createMockCard('/path/card2', 'Card 2')];
-            setupCardsInStore(cards);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
+            const cards = [createMockCard('/path/card1', 'Card 1'), createMockCard('/path/card2', 'Card 2')];
+            setupCardsInStore(cards);
+            await el.updateComplete;
             const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            await row?.updateComplete;
             const checkbox = row?.shadowRoot?.querySelector('sp-checkbox');
             if (checkbox && !Store.translationProjects.selectedCards.get().includes('/path/card1')) {
                 checkbox.click();
@@ -1079,13 +1229,15 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should remove item from selection when checkbox is clicked', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1'), createMockCard('/path/card2', 'Card 2')];
             setupCardsInStore(cards);
             Store.translationProjects.selectedCards.set(['/path/card1', '/path/card2']);
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('mas-collapsible-table-row');
             const card2Row = Array.from(rows).find((row) => row.getAttribute('value') === '/path/card2');
+            await card2Row?.updateComplete;
             const checkbox = card2Row?.shadowRoot?.querySelector('sp-checkbox');
             checkbox?.click();
             await el.updateComplete;
@@ -1107,30 +1259,34 @@ describe('MasSelectItemsTable', () => {
 
     describe('repository getter', () => {
         it('should return null when mas-repository does not exist', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.repository).to.be.null;
         });
     });
 
     describe('fetchSelectedFragments early returns', () => {
         it('should return early when repository is not available', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             const card = createMockCard('/path/card1', 'Card 1');
             setupCardsInStore([card]);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
             await el.updateComplete;
             // Since repository is null, it returns early and viewOnlyLoading stays false
             expect(el.viewOnlyLoading).to.be.false;
         });
 
         it('should not fetch for placeholders in viewOnly mode', async () => {
-            const placeholder = createMockPlaceholder('/path/placeholder1', 'key1', 'value1');
-            setupPlaceholdersInStore([placeholder]);
-            Store.translationProjects.selectedPlaceholders.set(['/path/placeholder1']);
             const el = await fixture(
                 html`<mas-select-items-table type="placeholders" .viewOnly=${true}></mas-select-items-table>`,
             );
+            await el.updateComplete;
+            const placeholder = createMockPlaceholder('/path/placeholder1', 'key1', 'value1');
+            setupPlaceholdersInStore([placeholder]);
+            Store.translationProjects.selectedPlaceholders.set(['/path/placeholder1']);
             await el.updateComplete;
             // Placeholders don't trigger fetchSelectedFragments
             expect(el.viewOnlyLoading).to.be.false;
@@ -1139,17 +1295,62 @@ describe('MasSelectItemsTable', () => {
 
     describe('viewOnlyLoading property', () => {
         it('should initialize viewOnlyLoading to false', async () => {
-            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
             expect(el.viewOnlyLoading).to.be.false;
         });
 
         it('should affect isLoading in viewOnly mode', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             const card = createMockCard('/path/card1', 'Card 1');
             setupCardsInStore([card]);
             Store.translationProjects.selectedCards.set(['/path/card1']);
-            const el = await fixture(html`<mas-select-items-table type="cards" .viewOnly=${true}></mas-select-items-table>`);
+            await el.updateComplete;
             expect(el.isLoading).to.equal(el.viewOnlyLoading);
+        });
+    });
+
+    describe('scroll sentinel', () => {
+        it('should not render sentinel when items list is empty even if hasMore is true', async () => {
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.translationProjects.displayCards.set([]);
+
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
+            expect(sentinel).to.be.null;
+        });
+
+        it('should render sentinel when items are present and hasMore is true', async () => {
+            Store.fragments.list.hasMore.set(true);
+            Store.fragments.list.firstPageLoaded.set(true);
+
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            // Set displayCards after initial subscription fires (which overwrites with empty data)
+            setupCardsInStore([createMockCard('/card/1', 'Card 1')]);
+            await el.updateComplete;
+
+            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
+            expect(sentinel).to.not.be.null;
+        });
+
+        it('should not render sentinel when hasMore is false even if items are present', async () => {
+            Store.fragments.list.hasMore.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            setupCardsInStore([createMockCard('/card/1', 'Card 1')]);
+
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
+            expect(sentinel).to.be.null;
         });
     });
 });

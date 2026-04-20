@@ -113,8 +113,7 @@ export const styles = [
             border-radius: 10px;
         }
 
-        .add-langs-dialog,
-        .add-items-dialog {
+        .add-langs-dialog {
             --mod-dialog-confirm-buttongroup-padding-top: 82px;
         }
 

@@ -147,9 +147,10 @@ export function setCardVariationsByPaths(groupedVariationsByParentValue) {
 }
 
 /**
- * Parses fragments from store into cards and collections with studioPath
+ * Extracts card fragments from the shared fragment store, decorating each with studioPath.
+ * Collections come from repository.loadAllCollections() — not this stream.
  * @param {Array} allFragments - Array of fragment store objects
- * @returns {{ allCards: Array, allCollections: Array }}
+ * @returns {Array} Array of card objects
  */
 function parseFragmentsFromStore(allFragments, getDisplayName) {
     return (allFragments || []).reduce(
@@ -170,19 +171,21 @@ function parseFragmentsFromStore(allFragments, getDisplayName) {
 }
 
 /**
- * Processes and enriches cards with offer data and grouped variations, writes to store
+ * Processes and enriches cards with offer data and grouped variations, writes to store.
+ * Re-entrant: if a call arrives while one is already in flight, the new payload is
+ * stashed in state.pendingCards and processed when the current call settles. This
+ * preserves the latest snapshot rather than dropping it on the floor.
  * @param {Array<Object>} allCards - Array of card objects
  * @param {Object} repository - MasRepository instance
- * @param {AbortSignal} signal - Abort signal for cancellation
- * @param {Object} state - Mutable state { isProcessingCards, processAbortController }
+ * @param {Object} state - Mutable state { isProcessingCards, pendingCards, abortController }
  */
 async function processCardsData(allCards, repository, state, getDisplayName) {
     if (state.isProcessingCards) {
-        state.processAbortController?.abort();
+        state.pendingCards = allCards;
+        return;
     }
     state.isProcessingCards = true;
-    state.processAbortController = new AbortController();
-    const { signal: currentSignal } = state.processAbortController;
+    const signal = state.abortController?.signal;
 
     try {
         const existingCards = getItemsSelectionStore().allCards.get() || [];
@@ -199,10 +202,10 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (cardsNeedingOfferData.length > 0) {
             const offerDataResults = await processConcurrently(
                 cardsNeedingOfferData,
-                (card) => loadOfferData(card, currentSignal),
+                (card) => loadOfferData(card, signal),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
-            if (currentSignal.aborted) return;
+            if (signal?.aborted) return;
             await yieldToMain();
             cardsNeedingOfferData.forEach((card, i) => {
                 existingOfferDataByPath.set(card.path, offerDataResults[i]);
@@ -213,17 +216,17 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (cardsNeedingGroupedVariations.length > 0 && repository) {
             const groupedVariationsResults = await processConcurrently(
                 cardsNeedingGroupedVariations,
-                (card) => loadGroupedVariations(card, repository, currentSignal, getDisplayName),
+                (card) => loadGroupedVariations(card, repository, signal, getDisplayName),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
-            if (currentSignal.aborted) return;
+            if (signal?.aborted) return;
             await yieldToMain();
             cardsNeedingGroupedVariations.forEach((card, i) => {
                 existingGroupedVariationsByPath.set(card.path, groupedVariationsResults[i] ?? []);
             });
         }
 
-        if (currentSignal.aborted) return;
+        if (signal?.aborted) return;
 
         const enrichedCards = allCards.map((card) => ({
             ...card,
@@ -234,7 +237,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (enrichedCards.length > 50) {
             await yieldToMain();
         }
-        if (currentSignal.aborted) return;
+        if (signal?.aborted) return;
 
         const cardsByPaths = new Map(enrichedCards.map((card) => [card.path, card]));
         const prefetchedVariations = new Map(
@@ -255,18 +258,12 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         getItemsSelectionStore().cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;
+        if (state.pendingCards && !signal?.aborted) {
+            const next = state.pendingCards;
+            state.pendingCards = null;
+            await processCardsData(next, repository, state, getDisplayName);
+        }
     }
-}
-
-/**
- * Processes collections and writes to store
- * @param {Array<Object>} allCollections - Array of collection objects
- */
-function processCollectionsData(allCollections) {
-    getItemsSelectionStore().displayCollections.set(allCollections);
-    getItemsSelectionStore().allCollections.set(allCollections);
-    const collectionsByPaths = new Map(allCollections.map((f) => [f.path, f]));
-    getItemsSelectionStore().collectionsByPaths.set(collectionsByPaths);
 }
 
 /**
@@ -296,21 +293,33 @@ export function loadAllPlaceholders() {
  * @param {Function} options.getDisplayName - Display label for raw fragment data
  * @returns {{ unsubscribe: () => void }}
  */
+
 export function loadAllFragments(type, repository, state = {}, { getDisplayName } = {}) {
+    // Collections load via repository.loadAllCollections() with a dedicated model-filtered
+    // query; partitioning the shared card stream misses collections that sit deep in the
+    // cursor on large surfaces (acom, nala) where cards dominate the first pages.
+    if (type === TABLE_TYPE.COLLECTIONS) {
+        return { unsubscribe: () => {} };
+    }
     const typeUppercased = type.charAt(0).toUpperCase() + type.slice(1);
     if (getItemsSelectionStore()[`all${typeUppercased}`].get()?.length) {
         return { unsubscribe: () => {} };
     }
+    if (state.subscribed) {
+        return { unsubscribe: () => {} };
+    }
+    state.subscribed = true;
     const callback = async () => {
-        const { allCards, allCollections } = parseFragmentsFromStore(Store.fragments.list.data.get() || [], getDisplayName);
-        if (type === TABLE_TYPE.CARDS) {
-            await processCardsData(allCards, repository, state, getDisplayName);
-        } else {
-            processCollectionsData(allCollections);
-        }
+        const { allCards } = parseFragmentsFromStore(Store.fragments.list.data.get() || [], getDisplayName);
+        await processCardsData(allCards, repository, state, getDisplayName);
     };
     Store.fragments.list.data.subscribe(callback);
-    return { unsubscribe: () => Store.fragments.list.data.unsubscribe(callback) };
+    return {
+        unsubscribe: () => {
+            Store.fragments.list.data.unsubscribe(callback);
+            state.subscribed = false;
+        },
+    };
 }
 
 /**

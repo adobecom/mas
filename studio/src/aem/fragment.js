@@ -1,6 +1,7 @@
 import { PATH_TOKENS, PZN_FOLDER, TAG_PROMOTION_PREFIX, MAS_PRODUCT_CODE_PREFIX } from '../constants.js';
 import { getCachedTagTitle } from './tag-cache.js';
 import { formatProductCodeNestedTitle, normalizeTagId } from './tag-id-utils.js';
+import { isVariationPathInParentLocaleFamily } from '../../../io/www/src/fragment/locales.js';
 
 export class Fragment {
     path = '';
@@ -369,7 +370,9 @@ export class Fragment {
             if (!reference) continue;
 
             if (Fragment.isGroupedVariationPath(path)) {
-                grouped.push(reference);
+                if (isVariationPathInParentLocaleFamily(surface, currentLocale, path)) {
+                    grouped.push(reference);
+                }
                 continue;
             }
 
@@ -383,7 +386,12 @@ export class Fragment {
                 const refMatch = path.match(PATH_TOKENS);
                 if (refMatch?.groups) {
                     const r = refMatch.groups;
-                    if (r.surface === surface && r.fragmentPath === fragmentPath && r.parsedLocale !== currentLocale) {
+                    if (
+                        r.surface === surface &&
+                        r.fragmentPath === fragmentPath &&
+                        r.parsedLocale !== currentLocale &&
+                        isVariationPathInParentLocaleFamily(surface, currentLocale, path)
+                    ) {
                         locale.push(reference);
                     }
                 }

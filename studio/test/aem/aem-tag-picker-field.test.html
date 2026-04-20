@@ -514,6 +514,75 @@
 
                         expect(overlayTrigger.open).to.be.true;
                     });
+
+                    it('disables trigger, search and checkboxes when disabled is true', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker10', this.test.title);
+                        await aemTagPicker.loadTags();
+                        aemTagPicker.disabled = true;
+                        await aemTagPicker.updateComplete;
+
+                        const trigger = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+                        expect(trigger.hasAttribute('disabled')).to.be.true;
+
+                        trigger.click();
+                        await delay(50);
+
+                        const checkboxList = aemTagPicker.shadowRoot.querySelector('.checkbox-list');
+                        expect(checkboxList.classList.contains('checkbox-list--disabled')).to.be.true;
+
+                        const firstCheckbox = checkboxList.querySelector('sp-checkbox');
+                        expect(firstCheckbox.hasAttribute('disabled')).to.be.true;
+
+                        const spSearch = aemTagPicker.shadowRoot.querySelector('sp-search');
+                        if (spSearch) {
+                            expect(spSearch.hasAttribute('disabled')).to.be.true;
+                        }
+                    });
+
+                    it('ignores selection changes while disabled', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker9', this.test.title);
+                        await aemTagPicker.loadTags();
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.disabled = true;
+                        await aemTagPicker.updateComplete;
+
+                        const beforeValue = [...aemTagPicker.value];
+                        const beforeTempValue = [...aemTagPicker.tempValue];
+
+                        const draftPath = '/content/cq:tags/mas/status/draft';
+                        const draftCheckbox = aemTagPicker.shadowRoot.querySelector(`sp-checkbox[value="${draftPath}"]`);
+                        draftCheckbox.checked = true;
+                        draftCheckbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        await aemTagPicker.updateComplete;
+
+                        expect(aemTagPicker.value).to.deep.equal(beforeValue);
+                        expect(aemTagPicker.tempValue).to.deep.equal(beforeTempValue);
+
+                        aemTagPicker.applySelection();
+                        aemTagPicker.resetSelection();
+                        expect(aemTagPicker.value).to.deep.equal(beforeValue);
+                        expect(aemTagPicker.tempValue).to.deep.equal(beforeTempValue);
+                    });
+
+                    it('becomes interactive again when disabled flips back to false', async function () {
+                        const aemTagPicker = initElementFromTemplate('tagPicker10', this.test.title);
+                        await aemTagPicker.loadTags();
+                        aemTagPicker.disabled = true;
+                        await aemTagPicker.updateComplete;
+
+                        aemTagPicker.disabled = false;
+                        await aemTagPicker.updateComplete;
+
+                        const trigger = aemTagPicker.shadowRoot.querySelector('sp-action-button[slot="trigger"]');
+                        expect(trigger.hasAttribute('disabled')).to.be.false;
+
+                        trigger.click();
+                        await delay(50);
+
+                        const checkboxList = aemTagPicker.shadowRoot.querySelector('.checkbox-list');
+                        expect(checkboxList.classList.contains('checkbox-list--disabled')).to.be.false;
+                    });
                 });
 
                 describe('aem-tag-picker-field: product_code & OST', async () => {

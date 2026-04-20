@@ -1,4 +1,5 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, html, nextFrame } from '@open-wc/testing';
+import sinon from 'sinon';
 import '../src/swc.js';
 import { Fragment } from '../src/aem/fragment.js';
 import Store from '../src/store.js';
@@ -94,6 +95,36 @@ describe('MasContent table + personalization grouping', () => {
         expect(text).to.include('All other fragments (1)');
     });
 
+    it('uses requestAnimationFrame to re-observe sentinel after a page load completes', async () => {
+        Store.fragments.list.loading.set(true);
+        Store.fragments.list.firstPageLoaded.set(true);
+        Store.fragments.list.hasMore.set(true);
+        Store.fragments.list.data.value = [];
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        await el.updateComplete;
+
+        // Capture RAF callbacks without executing them — proves observe() is deferred
+        const rafCallbacks = [];
+        const rafStub = sinon.stub(window, 'requestAnimationFrame').callsFake((cb) => {
+            rafCallbacks.push(cb);
+            return rafCallbacks.length;
+        });
+
+        try {
+            Store.fragments.list.loading.set(false);
+            await el.updateComplete;
+
+            // RAF was scheduled
+            expect(rafStub.called).to.be.true;
+            // Callback was NOT yet executed (observe is deferred)
+            expect(rafCallbacks).to.have.length(1);
+        } finally {
+            rafStub.restore();
+            Store.fragments.list.hasMore.set(false);
+        }
+    });
+
     it('narrows the personalization group when selected filter tags are non-country PZN ids', async () => {
         const withGeneral = makeFragment({
             id: 'g',
@@ -112,6 +143,35 @@ describe('MasContent table + personalization grouping', () => {
         });
         Store.renderMode.set('table');
         Store.fragments.list.data.value = [makeStore(withGeneral), makeStore(withSegment)];
+
+        const el = await fixture(html`<mas-content></mas-content>`);
+        await el.updateComplete;
+
+        const text = el.textContent ?? '';
+        expect(text).to.include('Personalization fragments (1)');
+        expect(text).to.include('All other fragments (0)');
+    });
+
+    it('narrows personalization group using pznTags field when metadata tags are empty', async () => {
+        const withGeneralOnField = makeFragment({
+            id: 'pf',
+            path: '/content/dam/mas/acom/en_US/cards/pf',
+            tags: [],
+            fields: [{ name: 'pznTags', values: ['mas:pzn/general'] }],
+        });
+        const withSegmentOnField = makeFragment({
+            id: 'sf',
+            path: '/content/dam/mas/acom/en_US/cards/sf',
+            tags: [],
+            fields: [{ name: 'pznTags', values: ['mas:pzn/segment-only'] }],
+        });
+        Store.filters.set({
+            locale: 'en_US',
+            personalizationFilterEnabled: true,
+            tags: 'mas:pzn/general',
+        });
+        Store.renderMode.set('table');
+        Store.fragments.list.data.value = [makeStore(withGeneralOnField), makeStore(withSegmentOnField)];
 
         const el = await fixture(html`<mas-content></mas-content>`);
         await el.updateComplete;

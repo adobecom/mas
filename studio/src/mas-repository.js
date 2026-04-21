@@ -7,7 +7,15 @@ import router from './router.js';
 import { AEM } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
-import { debounce, looseEquals, showToast, UserFriendlyError, extractLocaleFromPath, extractSurfaceFromPath } from './utils.js';
+import {
+    debounce,
+    looseEquals,
+    showToast,
+    UserFriendlyError,
+    extractLocaleFromPath,
+    extractSurfaceFromPath,
+    isUUID,
+} from './utils.js';
 import {
     OPERATIONS,
     STATUS_PUBLISHED,
@@ -21,10 +29,13 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
 } from './constants.js';
+import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
+import { getFragmentName } from './translation/translation-utils.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
@@ -73,11 +84,6 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     fragmentCache.add(cacheData);
 }
 
-function isUUID(str) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(str);
-}
-
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },
@@ -97,9 +103,10 @@ export class MasRepository extends LitElement {
             placeholders: null,
             promotions: null,
             translations: null,
+            collections: null,
         };
         this.dictionaryCache = new Map();
-        this.inflightDictionaryRequest = null;
+        this.inflightDictionaryByKey = new Map();
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
@@ -115,7 +122,24 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #searchCursor = null;
     #addonPlaceholdersRequest = null;
+    #previewDictionaryAbortByKey = new Map();
+    #previewDictionaryLoadingDepth = 0;
+
+    /**
+     * When personalization is off, exclude fragments that carry mas:pzn/… tags except mas:pzn/country/….
+     * When on, search omits non-country pzn tags from the API; narrowing by those tags happens in mas-content.
+     * @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores
+     */
+    #filterStoresByPersonalizationEnabled(fragmentStores) {
+        if (this.filters.value.personalizationFilterEnabled === true) return fragmentStores;
+        return fragmentStores.filter((fs) => {
+            const fragment = fs.get?.() ?? fs.value;
+            return !fragmentHasPersonalizationTag(fragment);
+        });
+    }
+
     /** @type {AEM} */
     aem;
 
@@ -127,9 +151,15 @@ export class MasRepository extends LitElement {
         // Invalidate dictionary cache when filters or search path change
         Store.filters.subscribe(() => {
             this.dictionaryCache.clear();
+            Store.placeholders.previewByLocale.set({});
+            if (this.page.value === PAGE_NAMES.CONTENT) {
+                this.#searchCursor = null;
+            }
         });
         Store.search.subscribe(() => {
             this.dictionaryCache.clear();
+            Store.placeholders.previewByLocale.set({});
+            this.#searchCursor = null;
         });
 
         this.loadFolders();
@@ -252,12 +282,30 @@ export class MasRepository extends LitElement {
         const currentLocale = dataStore.getMeta('locale');
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
+        const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
+        const metaPersonalizationOn = dataStore.getMeta('personalizationFilterEnabled') === true;
+        let resolvedLocale = locale;
+        let resolvedPath = path;
 
-        if (currentData?.length > 0 && currentPath === path && currentQuery === query && currentLocale === locale) {
-            const filteredData = currentData.filter((fragmentStore) => {
+        const currentTags = dataStore.getMeta('tags');
+        const tagsString = this.filters.value.tags || '';
+        const currentCreatedBy = dataStore.getMeta('createdBy');
+        const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
+        const createdByString = createdBy.join(',');
+        if (
+            currentData?.length > 0 &&
+            currentPath === path &&
+            currentQuery === query &&
+            currentLocale === locale &&
+            currentTags === tagsString &&
+            currentCreatedBy === createdByString &&
+            metaPersonalizationOn === personalizationOn
+        ) {
+            let filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
                 return !Fragment.isGroupedVariationPath(fragmentPath);
             });
+            filteredData = this.#filterStoresByPersonalizationEnabled(filteredData);
             if (filteredData.length !== currentData.length) {
                 dataStore.set(filteredData);
             }
@@ -268,6 +316,9 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
+        if (dataStore.get().length > 0) {
+            dataStore.set([]);
+        }
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -282,7 +333,11 @@ export class MasRepository extends LitElement {
             }
         }
 
-        const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
+        // Non-country mas:pzn/* filters apply only to the Personalization group in mas-content, not the search API
+        tags = tags.filter((tag) => {
+            if (!tag.startsWith(PZN_TAG_ID_PREFIX)) return true;
+            return isPznCountryTagId(tag);
+        });
 
         let modelIds = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE)).map((tag) => TAG_MODEL_ID_MAPPING[tag]);
 
@@ -294,10 +349,11 @@ export class MasRepository extends LitElement {
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
         const damPath = getDamPath(path);
+        const localizedPath = `${damPath}/${locale}`;
         const localSearch = {
             ...this.search.value,
             modelIds,
-            path: `${damPath}/${this.filters.value.locale}`,
+            path: localizedPath,
             tags,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
@@ -309,14 +365,21 @@ export class MasRepository extends LitElement {
             localSearch.status = STATUS_PUBLISHED;
         }
 
+        let refilling = false;
         try {
             if (this.#abortControllers.search) this.#abortControllers.search.abort();
+            this.#searchCursor = null;
             this.#abortControllers.search = new AbortController();
+            const searchController = this.#abortControllers.search;
 
             if (isUUID(this.search.value.query)) {
                 // Check if the fragment with this UUID is already the only one in the store
                 const [currentFragment] = dataStore.get() ?? [];
-                if (currentFragment?.value.id === this.search.value.query && dataStore.get()?.length === 1) {
+                if (
+                    currentFragment?.value.id === this.search.value.query &&
+                    dataStore.get()?.length === 1 &&
+                    metaPersonalizationOn === personalizationOn
+                ) {
                     // Skip search if we already have exactly this fragment
                     Store.fragments.list.loading.set(false);
                     Store.fragments.list.firstPageLoaded.set(true);
@@ -326,57 +389,259 @@ export class MasRepository extends LitElement {
                     localSearch.query,
                     this.#abortControllers.search,
                 );
+                const fragmentSurface = extractSurfaceFromPath(fragmentData?.path)?.toLowerCase() || null;
+                const fragmentLocale = extractLocaleFromPath(fragmentData?.path);
+                const matchesSurface = !fragmentSurface || fragmentSurface === path;
+                const syncedPathQuery = Store.search.getMeta('uuid-query');
+                const syncedPath = Store.search.getMeta('uuid-path');
+                const canSyncSurface = syncedPathQuery !== query || Store.search.value.path === syncedPath;
+                const syncedLocaleQuery = Store.filters.getMeta('uuid-query');
+                const syncedLocale = Store.filters.getMeta('uuid-locale');
+                const canSyncLocale = syncedLocaleQuery !== query || Store.filters.value.locale === syncedLocale;
+                const matchesLocale = !fragmentLocale || fragmentLocale === locale;
+
                 if (
                     fragmentData &&
-                    fragmentData.path.indexOf(ROOT_PATH) === 0 &&
+                    (canSyncSurface || matchesSurface) &&
+                    (canSyncLocale || matchesLocale) &&
                     !Fragment.isGroupedVariationPath(fragmentData.path)
                 ) {
-                    const fragmentFolderPath = fragmentData.path.substring(ROOT_PATH.length + 1);
-                    const fragmentFolder = fragmentFolderPath.split('/')[0];
-                    const surface = fragmentFolder?.toLowerCase();
-                    applyCorrectorToFragment(fragmentData, surface);
+                    resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
+                    resolvedPath = canSyncSurface ? fragmentSurface || path : path;
+                    applyCorrectorToFragment(fragmentData, fragmentSurface);
                     const fragment = await this.#addToCache(fragmentData);
-                    const sourceStore = generateFragmentStore(fragment);
-                    dataStore.set([sourceStore]);
+                    const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
+                    dataStore.set(this.#filterStoresByPersonalizationEnabled([sourceStore]));
 
-                    // Update the search path to the fragment's folder
-                    if (Store.folders.data.get().includes(fragmentFolder)) {
+                    if (fragmentSurface) {
+                        Store.search.setMeta('uuid-query', query);
+                        Store.search.setMeta('uuid-path', fragmentSurface);
+                    }
+
+                    if (fragmentLocale) {
+                        Store.filters.setMeta('uuid-query', query);
+                        Store.filters.setMeta('uuid-locale', fragmentLocale);
+                    }
+
+                    // Backfill the surface for pathless UUID deep-links so the picker and URL normalize.
+                    if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
                         Store.search.set((prev) => ({
                             ...prev,
-                            path: fragmentFolder,
+                            query: prev.query ?? query,
+                            path: fragmentSurface,
+                        }));
+                    }
+
+                    if (canSyncLocale && fragmentLocale && Store.filters.value.locale !== fragmentLocale) {
+                        Store.filters.set((prev) => ({
+                            ...prev,
+                            locale: fragmentLocale,
                         }));
                     }
                 }
+                Store.fragments.list.data.set(dataStore.get());
+                Store.fragments.list.firstPageLoaded.set(true);
             } else {
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
-                const fragmentStores = [];
-                // Extract surface from path for corrector
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
-                for await (const result of cursor) {
-                    for await (const item of result) {
-                        if (this.skipVariant(variants, item)) continue;
-                        // Apply corrector transformer before caching
-                        applyCorrectorToFragment(item, surface);
-                        const fragment = await this.#addToCache(item);
-                        const sourceStore = generateFragmentStore(fragment);
-                        fragmentStores.push(sourceStore);
+                const fragmentStores = [];
+                const done = await this.#fillPage(
+                    cursor,
+                    variants,
+                    surface,
+                    fragmentStores,
+                    undefined,
+                    searchController.signal,
+                );
+                if (this.#abortControllers.search !== searchController) {
+                    Store.fragments.list.loading.set(false);
+                    return;
+                }
+                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                Store.fragments.list.firstPageLoaded.set(true);
+                const cursorState = done ? null : { cursor, variants, surface, fragmentStores };
+                this.#searchCursor = cursorState;
+                Store.fragments.list.hasMore.set(!done);
+                if (personalizationOn && cursorState) {
+                    Store.fragments.list.hasMore.set(false);
+                    this.#eagerLoadAllPznPages(cursorState, searchController);
+                } else {
+                    this.#abortControllers.search = null;
+                    if (cursorState) {
+                        refilling = true;
+                        this.#refillBelowThreshold(cursorState, searchController);
                     }
-                    dataStore.set([...fragmentStores]);
-                    Store.fragments.list.firstPageLoaded.set(true);
                 }
             }
 
-            dataStore.setMeta('path', path);
+            dataStore.setMeta('path', resolvedPath);
             dataStore.setMeta('query', query);
-            dataStore.setMeta('locale', locale);
-            dataStore.setMeta('tags', tags);
-
-            this.#abortControllers.search = null;
+            dataStore.setMeta('locale', resolvedLocale);
+            dataStore.setMeta('tags', this.filters.value.tags || '');
+            dataStore.setMeta('createdBy', createdByString);
+            dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
         } catch (error) {
+            if (error.name !== 'AbortError') {
+                Store.fragments.list.loading.set(false);
+            }
             this.processError(error, 'Could not load fragments.');
+            return;
         }
 
-        Store.fragments.list.loading.set(false);
+        if (!refilling) Store.fragments.list.loading.set(false);
+    }
+
+    static MIN_PAGE_SIZE = 10;
+    /**
+     * Soft cap on the eager personalization-page loop in #eagerLoadAllPznPages.
+     * Once the cap is hit, hasMore is set to true and the rest is delivered on
+     * demand by loadNextPage() (one page per scroll-trigger). Pagination is not
+     * lost — it simply stops being eager-prefetched after this many pages.
+     */
+    static MAX_EAGER_PZN_PAGES = 20;
+    /**
+     * Visible-row threshold for the post-filter refill loop in #refillBelowThreshold.
+     * When a cursor page, after #filterStoresByPersonalizationEnabled has been
+     * applied, has fewer than this many visible items AND the cursor is not
+     * exhausted, the loop fetches additional cursor pages until the threshold is
+     * met or the cursor runs out. Prevents the narrow-filter UX where a user sees
+     * "1 result" when the underlying catalog has many more matches spread across
+     * later cursor pages.
+     */
+    static MIN_FILTERED_PAGE_RESULTS = 25;
+    /**
+     * Soft cap on the number of #fillPage rounds the refill loop will run before
+     * giving up. Mirrors MAX_EAGER_PZN_PAGES to keep the non-personalization
+     * refill path bounded when a filter matches very little in the catalog.
+     * When the cap is hit, hasMore stays true so loadNextPage can continue
+     * fetching on scroll.
+     */
+    static MAX_REFILL_ROUNDS = 20;
+
+    async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal) {
+        let added = 0;
+        while (added < limit) {
+            if (signal?.aborted) return false;
+            const page = await cursor.next();
+            if (page.done) return true;
+            for await (const item of page.value) {
+                if (this.skipVariant(variants, item)) continue;
+                applyCorrectorToFragment(item, surface);
+                const fragment = await this.#addToCache(item);
+                fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
+                added++;
+            }
+        }
+        return false;
+    }
+
+    async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
+        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        let pagesLoaded = 0;
+        try {
+            while (this.#searchCursor === cursorSnapshot) {
+                if (pagesLoaded >= MasRepository.MAX_EAGER_PZN_PAGES) {
+                    Store.fragments.list.hasMore.set(true);
+                    break;
+                }
+                const done = await this.#fillPage(
+                    cursor,
+                    variants,
+                    surface,
+                    fragmentStores,
+                    undefined,
+                    searchController.signal,
+                );
+                pagesLoaded++;
+                if (this.#searchCursor !== cursorSnapshot) return;
+                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                if (done) {
+                    this.#searchCursor = null;
+                    return;
+                }
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            if (this.#searchCursor === cursorSnapshot) {
+                Store.fragments.list.hasMore.set(true);
+            }
+        }
+    }
+
+    async #refillBelowThreshold(cursorSnapshot, searchController) {
+        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        let rounds = 0;
+        Store.fragments.list.loading.set(true);
+        try {
+            while (this.#searchCursor === cursorSnapshot) {
+                const filtered = this.#filterStoresByPersonalizationEnabled(fragmentStores);
+                if (filtered.length >= MasRepository.MIN_FILTERED_PAGE_RESULTS) return;
+                if (rounds >= MasRepository.MAX_REFILL_ROUNDS) {
+                    Store.fragments.list.hasMore.set(true);
+                    return;
+                }
+                const beforeCount = fragmentStores.length;
+                const done = await this.#fillPage(
+                    cursor,
+                    variants,
+                    surface,
+                    fragmentStores,
+                    undefined,
+                    searchController.signal,
+                );
+                rounds++;
+                if (this.#searchCursor !== cursorSnapshot) return;
+                if (fragmentStores.length === beforeCount && !done) {
+                    Store.fragments.list.hasMore.set(true);
+                    return;
+                }
+                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                if (done) {
+                    this.#searchCursor = null;
+                    Store.fragments.list.hasMore.set(false);
+                    return;
+                }
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            if (this.#searchCursor === cursorSnapshot) {
+                Store.fragments.list.hasMore.set(true);
+            }
+        } finally {
+            if (this.#searchCursor === cursorSnapshot || this.#searchCursor === null) {
+                Store.fragments.list.loading.set(false);
+            }
+        }
+    }
+
+    async loadNextPage() {
+        if (Store.fragments.list.loading.get()) return;
+        const cursorSnapshot = this.#searchCursor;
+        if (!cursorSnapshot) return;
+        Store.fragments.list.loading.set(true);
+        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        try {
+            const done = await this.#fillPage(
+                cursor,
+                variants,
+                surface,
+                fragmentStores,
+                undefined,
+                this.#abortControllers.search?.signal,
+            );
+            if (this.#searchCursor !== cursorSnapshot) return;
+            Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+            if (done) {
+                this.#searchCursor = null;
+                Store.fragments.list.hasMore.set(false);
+            }
+        } catch (error) {
+            this.processError(error, 'Could not load next page.');
+            this.#searchCursor = null;
+            Store.fragments.list.hasMore.set(false);
+        } finally {
+            Store.fragments.list.loading.set(false);
+        }
     }
 
     async loadRecentlyUpdatedFragments() {
@@ -412,7 +677,7 @@ export class MasRepository extends LitElement {
                 // Apply corrector transformer before caching
                 applyCorrectorToFragment(item, surface);
                 const fragment = await this.#addToCache(item);
-                const sourceStore = generateFragmentStore(fragment);
+                const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                 fragmentStores.push(sourceStore);
             }
             dataStore.set(fragmentStores);
@@ -467,71 +732,118 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async loadPreviewPlaceholders() {
+    async loadAllCollections() {
+        if (!this.search.value.path) return;
+        try {
+            if (this.#abortControllers.collections) this.#abortControllers.collections.abort();
+            this.#abortControllers.collections = new AbortController();
+
+            const damPath = getDamPath(this.search.value.path);
+            const locale = this.filters.value.locale;
+            const searchOptions = {
+                path: `${damPath}/${locale}`,
+                modelIds: [TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection']],
+                sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+            };
+
+            const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.collections);
+            const collections = [];
+            const collectionsByPath = new Map();
+            for (const fragment of fragments) {
+                const collection = { ...fragment, studioPath: getFragmentName(fragment) };
+                collections.push(collection);
+                collectionsByPath.set(fragment.path, collection);
+            }
+
+            Store.translationProjects.allCollections.set(collections);
+            Store.translationProjects.displayCollections.set(collections);
+            Store.translationProjects.collectionsByPaths.set(collectionsByPath);
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            this.processError(error, 'Could not load collections.');
+        }
+    }
+
+    /**
+     * Loads preview dictionary for `locale` (defaults to surface locale) into `Store.placeholders.previewByLocale`.
+     * Safe to call in parallel for different locales; duplicate cache keys share one in-flight request.
+     * @param {string} [locale]
+     */
+    async loadPreviewPlaceholders(locale = Store.localeOrRegion()) {
         if (!this.search.value.path) return;
 
-        const cacheKey = `${this.filters.value.locale}_${this.search.value.path}`;
+        const path = this.search.value.path;
+        const cacheKey = `${locale}_${path}`;
 
-        // Return cached result if available
         if (this.dictionaryCache.has(cacheKey)) {
-            Store.placeholders.preview.set(this.dictionaryCache.get(cacheKey));
+            const cached = this.dictionaryCache.get(cacheKey);
+            Store.placeholders.previewByLocale.set((prev) => ({ ...prev, [locale]: cached }));
             return;
         }
 
-        // Return existing promise if same cache key is already in-flight
-        if (this.inflightDictionaryRequest?.cacheKey === cacheKey) {
-            return this.inflightDictionaryRequest.promise;
+        if (this.inflightDictionaryByKey.has(cacheKey)) {
+            return this.inflightDictionaryByKey.get(cacheKey);
         }
 
-        // Abort previous placeholder fetch if still running with different cache key
-        if (this.#abortControllers.placeholders) {
-            this.#abortControllers.placeholders.abort();
-        }
-        this.#abortControllers.placeholders = new AbortController();
+        const previousAbort = this.#previewDictionaryAbortByKey.get(cacheKey);
+        previousAbort?.abort();
+        const abortController = new AbortController();
+        this.#previewDictionaryAbortByKey.set(cacheKey, abortController);
 
-        try {
-            const promise = this.fetchDictionary(this.#abortControllers.placeholders);
-            this.inflightDictionaryRequest = { promise, cacheKey };
-            const result = await promise;
+        const promise = (async () => {
+            this.#previewDictionaryLoadingDepth += 1;
+            if (this.#previewDictionaryLoadingDepth === 1) {
+                Store.placeholders.list.loading.set(true);
+            }
+            try {
+                const result = await this.fetchDictionary(abortController, locale);
 
-            // Verify cache key hasn't changed during fetch (prevents stale data)
-            const currentKey = `${this.filters.value.locale}_${this.search.value.path}`;
-            if (currentKey === cacheKey) {
-                // If result is empty and locale isn't en_US, try fallback
-                if ((!result || Object.keys(result).length === 0) && this.filters.value.locale !== 'en_US') {
+                if (this.search.value.path !== path) return;
+
+                const mergeDict = (dict) => {
+                    this.dictionaryCache.set(cacheKey, dict);
+                    Store.placeholders.previewByLocale.set((prev) => ({ ...prev, [locale]: dict }));
+                };
+
+                if ((!result || Object.keys(result).length === 0) && locale !== 'en_US') {
                     const fallbackContext = {
                         preview: {
                             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
                         },
                         locale: 'en_US',
                         surface: this.search.value.path,
-                        signal: this.#abortControllers.placeholders?.signal,
+                        signal: abortController.signal,
                     };
 
                     const fallbackResult = await getDictionary(fallbackContext);
-                    this.dictionaryCache.set(cacheKey, fallbackResult);
-                    Store.placeholders.preview.set(fallbackResult);
+                    if (this.search.value.path !== path) return;
+                    mergeDict(fallbackResult);
                 } else {
-                    this.dictionaryCache.set(cacheKey, result);
-                    Store.placeholders.preview.set(result);
+                    mergeDict(result);
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') return;
+                this.processError(error, 'Could not load preview placeholders.');
+            } finally {
+                this.inflightDictionaryByKey.delete(cacheKey);
+                this.#previewDictionaryAbortByKey.delete(cacheKey);
+                this.#previewDictionaryLoadingDepth -= 1;
+                if (this.#previewDictionaryLoadingDepth === 0) {
+                    Store.placeholders.list.loading.set(false);
                 }
             }
-        } catch (error) {
-            if (error.name === 'AbortError') return; // Silent abort during navigation
-            this.processError(error, 'Could not load preview placeholders.');
-        } finally {
-            this.inflightDictionaryRequest = null;
-            this.#abortControllers.placeholders = null;
-            Store.placeholders.list.loading.set(false);
-        }
+        })();
+
+        this.inflightDictionaryByKey.set(cacheKey, promise);
+        return promise;
     }
 
-    async fetchDictionary(abortController) {
+    async fetchDictionary(abortController, locale = Store.localeOrRegion()) {
         const context = {
             preview: {
                 url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
             },
-            locale: this.filters.value.locale,
+            locale,
             surface: this.search.value.path,
             networkConfig: {
                 mainTimeout: 15000,
@@ -919,6 +1231,8 @@ export class MasRepository extends LitElement {
         if (!fragment) {
             fragment = new Fragment(fragmentData);
             fragmentCache.add(fragment);
+        } else {
+            fragment.refreshFrom(fragmentData);
         }
         return fragment;
     }
@@ -1460,7 +1774,7 @@ export class MasRepository extends LitElement {
      */
     generateGroupedVariationName(fragment, pznTags) {
         const parts = [];
-        const product = fragment.getTagTitle('mas:product/');
+        const product = fragment.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment.getTagTitle?.('mas:product/');
         if (product) parts.push(product);
 
         const customerSegment = fragment.getTagTitle('customer_segment');
@@ -1488,6 +1802,9 @@ export class MasRepository extends LitElement {
      * Resolves the parent fragment for the provided fragment path and hydrates references.
      * Finds the parent whose variations field contains fragmentPath.
      * Flow: referencedBy -> filter by variations field -> getById (hydrated)
+     * Note: localization copies the `variations` field to all locale copies, so
+     * getReferencedBy may return 30+ candidates. We sort to check the default-locale
+     * parent first since grouped variations always derive from the default locale.
      * @param {string} fragmentPath
      * @returns {Promise<Object|null>}
      */
@@ -1496,7 +1813,18 @@ export class MasRepository extends LitElement {
         const parentRefs = references?.parentReferences || [];
         if (!parentRefs.length) return null;
 
-        for (const ref of parentRefs) {
+        const surface = extractSurfaceFromPath(fragmentPath);
+        const variationLocale = extractLocaleFromPath(fragmentPath);
+        const defaultLocale = surface && variationLocale ? getDefaultLocaleCode(surface, variationLocale) : null;
+        const sortedRefs = defaultLocale
+            ? [...parentRefs].sort((a, b) => {
+                  const aIsDefault = extractLocaleFromPath(a.path) === defaultLocale ? -1 : 1;
+                  const bIsDefault = extractLocaleFromPath(b.path) === defaultLocale ? -1 : 1;
+                  return aIsDefault - bIsDefault;
+              })
+            : parentRefs;
+
+        for (const ref of sortedRefs) {
             const candidate = await this.aem.sites.cf.fragments.getByPath(ref.path);
             if (!candidate) continue;
 
@@ -1575,6 +1903,68 @@ export class MasRepository extends LitElement {
         const createdFragment = await this.aem.sites.cf.fragments.pollCreatedFragment(newFragment);
         if (!createdFragment) {
             throw new Error('Failed to create grouped variation');
+        }
+
+        await this.updateParentVariations(parentFragment, createdFragment.path);
+        const parentStore = Store.fragments.list.data.get().find((store) => store.get()?.id === parentFragment.id);
+        if (parentStore) {
+            await this.refreshFragment(parentStore);
+        }
+
+        return createdFragment;
+    }
+
+    /**
+     * Duplicates an existing grouped variation with new pznTags.
+     * Copies all fields (except variations) from the source, applies new pznTags,
+     * and registers the copy with the parent fragment.
+     * @param {string} sourceVariationId - The ID of the grouped variation to duplicate
+     * @param {string[]} pznTags - New pznTags for the duplicate
+     * @returns {Promise<Object>} The created duplicate fragment
+     */
+    async duplicateGroupedVariation(sourceVariationId, pznTags) {
+        const sourceFragment = await this.aem.sites.cf.fragments.getById(sourceVariationId);
+        if (!sourceFragment) {
+            throw new Error('Failed to fetch source grouped variation');
+        }
+
+        const parentFragment = await this.resolveHydratedParentFragment(sourceFragment.path);
+        if (!parentFragment) {
+            throw new Error('Failed to resolve parent fragment for grouped variation');
+        }
+
+        const parent = new Fragment(parentFragment);
+        const targetFolder = sourceFragment.path.split('/').slice(0, -1).join('/');
+
+        let fragmentName = this.generateGroupedVariationName(parent, pznTags);
+        const existingFragment = await this.aem.sites.cf.fragments
+            .getByPath(`${targetFolder}/${fragmentName}`)
+            .catch(() => null);
+        if (existingFragment) {
+            const suffix = Array.from({ length: 4 }, () => String.fromCharCode(97 + Math.floor(Math.random() * 26))).join('');
+            fragmentName = `${fragmentName}-${suffix}`;
+        }
+
+        const fieldsToClone = sourceFragment.fields
+            .filter((field) => field.name !== 'variations')
+            .map((field) => (field.name === 'pznTags' ? { ...field, values: pznTags } : field));
+
+        const newFragment = await this.aem.sites.cf.fragments.create({
+            title: sourceFragment.title,
+            description: sourceFragment.description,
+            modelId: sourceFragment.model.id,
+            parentPath: targetFolder,
+            name: fragmentName,
+            fields: fieldsToClone,
+        });
+
+        if (sourceFragment.tags?.length) {
+            await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, sourceFragment.tags);
+        }
+
+        const createdFragment = await this.aem.sites.cf.fragments.pollCreatedFragment(newFragment);
+        if (!createdFragment) {
+            throw new Error('Failed to duplicate grouped variation');
         }
 
         await this.updateParentVariations(parentFragment, createdFragment.path);
@@ -1816,8 +2206,8 @@ export class MasRepository extends LitElement {
         Store.placeholders.addons.loading.set(true);
         try {
             await this.loadPreviewPlaceholders();
-            const dictionary = Store.placeholders.preview.get();
-            if (dictionary) {
+            const dictionary = Store.previewDictionary();
+            if (Store.previewDictionaryReady()) {
                 const addonFragments = Object.keys(dictionary)
                     .filter((key) => /^addon-/.test(key))
                     .map((key) => ({ value: key, itemText: key }));

@@ -16,7 +16,7 @@ export default {
             data: {
                 cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
             },
-            browserParams: '#page=content&path=nala&query=',
+            browserParams: '#page=content&query=',
             tags: '@mas-studio',
         },
         {
@@ -100,6 +100,38 @@ export default {
                 price: PRICE_PATTERN.US.mo,
             },
             tags: '@mas-studio @regional-variations',
+        },
+        {
+            tcid: '11',
+            name: '@studio-nala-personalization-table-groups',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala&personalizationFilterEnabled=true',
+            tags: '@mas-studio @nala @personalization',
+        },
+        {
+            tcid: '12',
+            name: '@studio-nala-table-without-personalization-groups',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala',
+            tags: '@mas-studio @nala @personalization',
+        },
+        {
+            tcid: '13',
+            name: '@studio-variations-locale-filter',
+            path: '/studio.html',
+            browserParams: '#page=content&path=nala&query=',
+            data: {
+                usCardId: '8a338eba-55bf-4720-ab6d-79efd60177f6',
+                gbCardId: 'c2de5510-d259-4cf5-9a0c-32d8b538f31c',
+                deCardId: 'b8f54775-22ba-4304-b4af-60938f433482',
+                query: 'card-with-locale-and-grouped-variations',
+                localeVariationEnQaId: 'dd9a638e-8b19-4df5-8417-7fc405b58a1d',
+                groupedVariationDeDeId: 'd02ab931-311c-415b-8ee9-347340c9b43c',
+                groupedVariationPlPlId: '88b1bf05-80e8-4865-991d-dbbdd4257f43',
+                localeEnglishGb: { label: 'English (GB)', value: 'en_GB' },
+                localeGermanDe: { label: 'German (DE)', value: 'de_DE' },
+            },
+            tags: '@mas-studio @regional-variations @grouped-variations',
         },
     ],
 };

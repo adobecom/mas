@@ -250,6 +250,11 @@ merch-card[variant="full-pricing-express"] [slot="price"] {
     justify-content: center;
 }
 
+merch-card[variant="full-pricing-express"] [slot="price"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
+merch-card[variant="full-pricing-express"] [slot="price"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+    display: none;
+}
+
 merch-card[variant="full-pricing-express"] [slot="price"] p strong {
     display: inline-flex;
     justify-content: center;
@@ -426,7 +431,7 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button {
     margin: 0;
     padding: 0 24px;
     border-radius: 26px;
-    height: 40px;
+    min-height: 40px;
 }
 
 merch-card[variant="full-pricing-express"] [slot="cta"] sp-button[variant="accent"],
@@ -442,6 +447,18 @@ merch-card[variant="full-pricing-express"] [slot="cta"] sp-button[variant="accen
 merch-card[variant="full-pricing-express"] [slot="cta"] button.spectrum-Button--accent .spectrum-Button-label,
 merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.spectrum-Button--accent .spectrum-Button-label {
     color: var(--spectrum-white, #ffffff);
+}
+
+/* Small font size button styles for desktop when button text is too long */
+@media screen and ${DESKTOP_UP} {
+    merch-card[variant="full-pricing-express"] [slot="cta"] sp-button.small-font-size-button,
+    merch-card[variant="full-pricing-express"] [slot="cta"] button.small-font-size-button,
+    merch-card[variant="full-pricing-express"] [slot="cta"] a.con-button.small-font-size-button,
+    merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.small-font-size-button,
+    merch-card[variant="full-pricing-express"] a[slot="cta"].small-font-size-button {
+        font-size: 14px;
+        padding: 2px 24px;
+    }
 }
 
 /* Badge styling */

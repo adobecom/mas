@@ -12,6 +12,7 @@ const Store = {
             loading: new ReactiveStore(true),
             firstPageLoaded: new ReactiveStore(false),
             data: new ReactiveStore([]),
+            hasMore: new ReactiveStore(false),
         },
         recentlyUpdated: {
             loading: new ReactiveStore(true),
@@ -49,7 +50,7 @@ const Store = {
         data: new ReactiveStore([]),
     },
     search: new ReactiveStore({}),
-    filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+    filters: new ReactiveStore({ locale: 'en_US', personalizationFilterEnabled: false }, filtersValidator),
     sort: new ReactiveStore({}),
     renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
     viewMode: new ReactiveStore('default'),
@@ -70,7 +71,7 @@ const Store = {
             loading: new ReactiveStore(false),
             data: new ReactiveStore([{ value: 'disabled', itemText: 'disabled' }]),
         },
-        preview: new ReactiveStore(null),
+        previewByLocale: new ReactiveStore({}),
     },
     settings: new SettingsStore(),
     profile: new ReactiveStore({}),
@@ -101,6 +102,15 @@ const Store = {
     localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';
     },
+    previewDictionary: function () {
+        const locale = Store.localeOrRegion();
+        return Store.placeholders.previewByLocale.value[locale];
+    },
+    /** True when the active locale has a loaded dictionary with at least one entry (empty `{}` is not ready). */
+    previewDictionaryReady: function () {
+        const d = Store.previewDictionary();
+        return d != null && Object.keys(d).length > 0;
+    },
     removeRegionOverride: function () {
         if (Store.search.value.region) {
             Store.search.set((prev) => ({ ...prev, region: null }));
@@ -123,6 +133,8 @@ const Store = {
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
         offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()), // should not be modified directly, use setCardVariationsByPaths to modify
+        groupedVariationsData: new ReactiveStore(new Map()),
 
         allCollections: new ReactiveStore([]),
         collectionsByPaths: new ReactiveStore(new Map()),
@@ -136,6 +148,7 @@ const Store = {
 
         targetLocales: new ReactiveStore([]),
         showSelected: new ReactiveStore(false),
+        projectType: new ReactiveStore(null),
     },
 };
 
@@ -146,8 +159,12 @@ const Store = {
  * @returns {object}
  */
 function filtersValidator(value) {
-    if (!value) return { locale: 'en_US', tags: undefined };
+    if (!value) return { locale: 'en_US', tags: undefined, personalizationFilterEnabled: false };
     if (!value.locale) value.locale = 'en_US';
+
+    const rawPzn = value.personalizationFilterEnabled;
+    value.personalizationFilterEnabled =
+        rawPzn === true || rawPzn === 'true' || (typeof rawPzn === 'string' && rawPzn.toLowerCase() === 'true');
 
     // Ensure tags is always a string
     if (!value.tags) {
@@ -253,7 +270,7 @@ Store.page.subscribe((value) => {
     Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
 });
 
-Store.placeholders.preview.subscribe(() => {
+Store.placeholders.previewByLocale.subscribe(() => {
     if (Store.page.value === PAGE_NAMES.CONTENT) {
         for (const fragmentStore of Store.fragments.list.data.value) {
             fragmentStore.resolvePreviewFragment();

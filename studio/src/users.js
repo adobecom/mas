@@ -29,13 +29,16 @@ export async function initUsers() {
         Store.users.set(uniqueEditors);
 
         Store.search.subscribe(async ({ path }) => {
-            if (path !== 'sandbox') return;
-            Store.createdByUsers.set([
-                {
-                    displayName: profile.displayName,
-                    userPrincipalName: profile.email,
-                },
-            ]);
+            if (path === 'sandbox') {
+                Store.createdByUsers.set([
+                    {
+                        displayName: profile.displayName,
+                        userPrincipalName: profile.email,
+                    },
+                ]);
+            } else {
+                Store.createdByUsers.set([]);
+            }
         });
     } catch (e) {
         console.error('Error initializing users', e);

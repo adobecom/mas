@@ -42,6 +42,8 @@ WCS_ORIGIN_ENDPOINT
 AOS_URL=
 AOS_API_KEY=
 OST_WRITE_API_KEY=
+ODIN_ENDPOINT=
+BATCH_SIZE=
 
 With these steps, both the `.aio` and `.env` files are ready to be used as GH action secrets.
 
@@ -96,7 +98,7 @@ If you need to force re-deploy:
 
 - `aio app deploy --force-deploy --no-publish`
   To deploy specific action
-- `aio app deploy -a ost-products-read`
+- `aio app deploy --force-deploy -a ost-products-read`
 
 ## Config
 

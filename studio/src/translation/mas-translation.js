@@ -7,6 +7,14 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { PAGE_NAMES, TRANSLATIONS_ALLOWED_SURFACES } from '../constants.js';
 import { showToast } from '../utils.js';
 
+const translationSkeletonRow = () =>
+    html`<sp-table-row class="skeleton-row">
+        <sp-table-cell class="title"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="lastUpdatedBy"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="sentOn"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
+        <sp-table-cell class="actions"></sp-table-cell>
+    </sp-table-row>`;
+
 class MasTranslation extends LitElement {
     static styles = styles;
 
@@ -28,6 +36,7 @@ class MasTranslation extends LitElement {
         this.confirmDialogConfig = null;
         this.columns = new Set([
             { key: 'title', label: 'Translation Project' },
+            { key: 'status', label: 'Status' },
             {
                 key: 'lastUpdatedBy',
                 label: 'Last updated by',
@@ -76,28 +85,35 @@ class MasTranslation extends LitElement {
         `;
     }
 
+    get translationProjectsTableHead() {
+        return html`<sp-table-head>
+            ${[...this.columns].map(
+                ({ key, label, align }) => html`
+                    <sp-table-head-cell
+                        class="${key}${align === 'right' ? ' align-right' : ''}"
+                        .sortable=${key === 'sentOn'}
+                        sort-direction="asc"
+                        sort-key="sentOn"
+                        @sorted=${this.#sortBySentOn}
+                    >
+                        ${label}
+                    </sp-table-head-cell>
+                `,
+            )}
+        </sp-table-head>`;
+    }
+
     get translationsProjectsContent() {
-        if (Store.translationProjects?.list?.loading?.get()) {
-            return html`<div class="loading-container"><sp-progress-circle indeterminate size="l"></sp-progress-circle></div>`;
+        const isLoading = Store.translationProjects?.list?.loading?.get();
+        if (isLoading && !this.translationProjectsData.length) {
+            return html` <sp-table emphasized .scroller=${true} class="translation-table">
+                ${this.translationProjectsTableHead}
+                <sp-table-body> ${Array.from({ length: 5 }, translationSkeletonRow)} </sp-table-body>
+            </sp-table>`;
         }
         if (this.translationProjectsData.length) {
             return html` <sp-table emphasized .scroller=${true} class="translation-table">
-                <sp-table-head>
-                    ${[...this.columns].map(
-                        ({ key, label, align }) => html`
-                            <sp-table-head-cell
-                                class=${key}
-                                style="${align === 'right' ? 'text-align: right;' : ''}"
-                                .sortable=${key === 'sentOn'}
-                                sort-direction="asc"
-                                sort-key="sentOn"
-                                @sorted=${this.#sortBySentOn}
-                            >
-                                ${label}
-                            </sp-table-head-cell>
-                        `,
-                    )}
-                </sp-table-head>
+                ${this.translationProjectsTableHead}
                 <sp-table-body>
                     ${repeat(
                         this.translationProjectsData,
@@ -109,6 +125,7 @@ class MasTranslation extends LitElement {
                                 data-id=${translationProject.get().id}
                             >
                                 <sp-table-cell>${translationProject.get().title}</sp-table-cell>
+                                <sp-table-cell>${this.#formatProjectStatus(translationProject)}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
                                 <sp-table-cell>${this.#formatSubmissionDate(translationProject)}</sp-table-cell>
                                 <sp-table-cell class="action-cell">
@@ -250,7 +267,28 @@ class MasTranslation extends LitElement {
     #formatSubmissionDate(translationProject) {
         const date = translationProject.get().getFieldValue('submissionDate');
         if (!date) return 'N/A';
-        return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return new Date(date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            timeZone: 'UTC',
+        });
+    }
+
+    #formatProjectStatus(translationProject) {
+        const status = translationProject.get().getFieldValue('status');
+        switch (status) {
+            case 'QUEUED':
+                return 'Pending';
+            case 'RUNNING':
+                return 'Running';
+            case 'ASYNC_PROCESSING':
+                return 'Sent to loc';
+            case 'FAILED':
+                return 'Failed';
+            default:
+                return 'N/A';
+        }
     }
 
     #sortBySentOn({ detail: { sortKey, sortDirection } }) {

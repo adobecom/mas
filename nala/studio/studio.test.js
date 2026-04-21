@@ -43,10 +43,10 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Validate search results', async () => {
-            await expect(await studio.renderView).toBeVisible();
+            await studio.waitForCardsLoaded();
 
-            const cards = await studio.renderView.locator('merch-card');
-            expect(await cards.count()).toBe(1);
+            const cards = studio.renderView.locator('merch-card');
+            await expect(cards).toHaveCount(1);
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await expect(page).toHaveURL(expectedUrl);
@@ -69,16 +69,18 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.searchInput).toBeVisible();
             await expect(await studio.searchIcon).toBeVisible();
             await expect(await studio.renderView).toBeVisible();
-            const cards = await studio.renderView.locator('merch-card');
+            await studio.waitForCardsLoaded();
+            const cards = studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
         });
 
         await test.step('step-3: Validate search feature', async () => {
             await studio.searchInput.fill(data.cardid);
             await page.keyboard.press('Enter');
-            await page.waitForTimeout(2000);
+            await studio.waitForCardsLoaded();
+
             const searchResult = await studio.renderView.locator('merch-card');
-            expect(await searchResult.count()).toBe(1);
+            await expect(searchResult).toHaveCount(1);
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
         });
@@ -119,6 +121,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-3: Validate page view', async () => {
+            await studio.waitForCardsLoaded();
             await expect(await studio.renderView).toBeVisible();
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
@@ -139,6 +142,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Validate double-click message', async () => {
+            await studio.waitForCardsLoaded();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toHaveAttribute('variant', 'ccd-suggested');
             await (await studio.getCard(data.cardid)).click();
@@ -218,7 +222,7 @@ test.describe('M@S Studio feature test suite', () => {
         await test.step('step-1: Go to MAS Studio test page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await expect(await studio.renderView).toBeVisible();
+            await studio.waitForCardsLoaded();
         });
 
         await test.step('step-2: Change to the table view', async () => {
@@ -325,6 +329,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-2: Switch to table view and find cardid row', async () => {
+            await studio.waitForCardsLoaded();
             await studio.switchToTableView();
             await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
             expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(
@@ -341,6 +346,119 @@ test.describe('M@S Studio feature test suite', () => {
             ).toMatch(
                 data.price, // change to regional price once MWPW-187797 is fixed
             );
+        });
+    });
+
+    // @studio-nala-personalization-table-groups — Nala content in table view with personalization on shows grouped headers
+    test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[11].path}${miloLibs}${features[11].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Open nala content with personalization filter enabled (hash)', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-2: Switch to table view', async () => {
+            await studio.switchToTableView();
+        });
+
+        await test.step('step-3: Validate Personalization / All other fragment group headers', async () => {
+            await expect(studio.contentTableBody).toBeVisible({ timeout: 30000 });
+            await expect(studio.contentTableBody.getByText(/Personalization fragments\s*\(/)).toBeVisible({
+                timeout: 30000,
+            });
+            await expect(studio.contentTableBody.getByText(/All other fragments\s*\(/)).toBeVisible({
+                timeout: 30000,
+            });
+        });
+    });
+
+    // @studio-nala-table-without-personalization-groups — Same path without personalization: no grouped section headers
+    test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[12].path}${miloLibs}${features[12].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Open nala content without personalization in URL', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await expect(await studio.renderView).toBeVisible();
+        });
+
+        await test.step('step-2: Switch to table view', async () => {
+            await studio.switchToTableView();
+        });
+
+        await test.step('step-3: Table body has no personalization group rows', async () => {
+            await expect(studio.contentTableBody).toBeVisible({ timeout: 30000 });
+            await expect(studio.contentTableBody.getByText(/Personalization fragments\s*\(/)).toHaveCount(0);
+            await expect(studio.contentTableBody.getByText(/All other fragments\s*\(/)).toHaveCount(0);
+        });
+    });
+
+    // @studio-variations-locale-filter — Locale and grouped variation visibility per studio locale (Nala)
+    test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[13];
+        const testPage = `${baseURL}${features[13].path}${miloLibs}${features[13].browserParams}${data.query}`;
+        setTestPage(testPage);
+
+        /**
+         * The default en_US card is translated to en_GB and de_DE. It has one locale variation (en_QA), and
+         * two grouped variations: de_DE, and pl_PL, both not translated.
+         */
+
+        await test.step('step-1: en_US — locale and grouped variations are displayed', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+            const rootRow = studio.tableViewFragmentTable(data.usCardId);
+            await expect(rootRow).toBeVisible({ timeout: 15000 });
+            await rootRow.locator('button.expand-button').click();
+            await expect(studio.regionalVariationsTable(data.usCardId)).toHaveCount(1, { timeout: 15000 });
+            await expect(studio.tableViewFragmentTable(data.localeVariationEnQaId)).toBeVisible({ timeout: 15000 });
+            await studio.groupedVariationsTab(data.usCardId).click();
+            await expect(studio.groupedVariationsTable(data.usCardId)).toHaveCount(2, { timeout: 15000 });
+            await expect(studio.tableViewFragmentTable(data.groupedVariationDeDeId)).toBeVisible({ timeout: 15000 });
+            await expect(studio.tableViewFragmentTable(data.groupedVariationPlPlId)).toBeVisible({ timeout: 15000 });
+        });
+
+        await test.step('step-2: en_GB — locale or grouped variations are not displayed', async () => {
+            await studio.selectLocale(data.localeEnglishGb.label);
+            await expect(studio.localePicker).toHaveAttribute('value', data.localeEnglishGb.value);
+            await page.waitForLoadState('domcontentloaded');
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+            const fragmentRow = studio.tableViewRowByFragmentId(data.gbCardId);
+            await expect(fragmentRow).toBeVisible();
+            await fragmentRow.locator('button.expand-button').click();
+            await expect(studio.localeVariationsTabPanel(data.gbCardId).getByText('No locale variations found')).toBeVisible({
+                timeout: 15000,
+            });
+            await studio.groupedVariationsTab(data.gbCardId).click();
+            await expect(studio.groupedVariationsTabPanel(data.gbCardId).getByText('No grouped variations found')).toBeVisible({
+                timeout: 15000,
+            });
+        });
+
+        await test.step('step-3: de_DE — locale or grouped variations are not displayed', async () => {
+            await studio.selectLocale(data.localeGermanDe.label);
+            await expect(studio.localePicker).toHaveAttribute('value', data.localeGermanDe.value);
+            await page.waitForLoadState('domcontentloaded');
+            await studio.switchToTableView();
+            await page.waitForTimeout(2000);
+            const fragmentRow = studio.tableViewRowByFragmentId(data.deCardId);
+            await expect(fragmentRow).toBeVisible();
+            await fragmentRow.locator('button.expand-button').click();
+            await expect(studio.localePicker).toHaveAttribute('value', data.localeGermanDe.value);
+            await expect(studio.localeVariationsTabPanel(data.deCardId).getByText('No locale variations found')).toBeVisible({
+                timeout: 15000,
+            });
+            await studio.groupedVariationsTab(data.deCardId).click();
+            await expect(studio.groupedVariationsTabPanel(data.deCardId).getByText('No grouped variations found')).toBeVisible({
+                timeout: 15000,
+            });
         });
     });
 });

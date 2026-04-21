@@ -44,12 +44,17 @@ class MasSearchAndFilters extends LitElement {
             Store.translationProjects[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
         ]);
-        this.dataSubscription = Store.translationProjects[`all${this.typeUppercased}`].subscribe(() => {
+        const dataCallback = () => {
             if (!this.searchOnly) {
                 this.#extractFilterOptions();
             }
+            this.#applyFilters();
             this.requestUpdate();
-        });
+        };
+        Store.translationProjects[`all${this.typeUppercased}`].subscribe(dataCallback);
+        this.dataSubscription = {
+            unsubscribe: () => Store.translationProjects[`all${this.typeUppercased}`].unsubscribe(dataCallback),
+        };
     }
 
     disconnectedCallback() {
@@ -124,17 +129,20 @@ class MasSearchAndFilters extends LitElement {
         this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
     }
 
-    #handleSearchInput({ target: { value: query } }) {
-        this.searchQuery = query;
-        this.#applyFilters();
-    }
-
-    #handleSearchSubmit(e) {
-        e.preventDefault();
-        this.#applyFilters();
+    willUpdate(changed) {
+        if (
+            changed.has('searchQuery') ||
+            changed.has('templateFilter') ||
+            changed.has('marketSegmentFilter') ||
+            changed.has('customerSegmentFilter') ||
+            changed.has('productFilter')
+        ) {
+            this.#applyFilters();
+        }
     }
 
     #handleCheckboxChange(filterType, optionId, e) {
+        e.stopPropagation();
         let currentValues;
         switch (filterType) {
             case FILTER_TYPE.TEMPLATE:
@@ -175,7 +183,6 @@ class MasSearchAndFilters extends LitElement {
                 this.productFilter = currentValues;
                 break;
         }
-        this.#applyFilters();
     }
 
     #handleTagDelete({
@@ -197,7 +204,6 @@ class MasSearchAndFilters extends LitElement {
                 this.productFilter = this.productFilter.filter((filterId) => filterId !== id);
                 break;
         }
-        this.#applyFilters();
     }
 
     #clearAllFilters() {
@@ -205,7 +211,6 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
-        this.#applyFilters();
     }
 
     #renderAppliedFilters() {
@@ -311,6 +316,9 @@ class MasSearchAndFilters extends LitElement {
             return true;
         });
 
+        if (this.type === TABLE_TYPE.CARDS) {
+            result.sort((a, b) => (b.groupedVariations?.length > 0 ? 1 : 0) - (a.groupedVariations?.length > 0 ? 1 : 0));
+        }
         Store.translationProjects[`display${this.typeUppercased}`].set(result);
     }
 
@@ -324,54 +332,28 @@ class MasSearchAndFilters extends LitElement {
     }
 
     render() {
+        if (this.searchOnly) {
+            return html`${this.renderCount()}`;
+        }
         return html`
-            <div class="search">
-                <sp-search
-                    size="m"
-                    placeholder="Search fragments..."
-                    value=${this.searchQuery}
-                    .disabled=${this.isLoading}
-                    @input=${this.#handleSearchInput}
-                    @submit=${this.#handleSearchSubmit}
-                ></sp-search>
+            <div class="filters">
                 ${this.renderCount()}
+                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE)}
+                ${this.#renderFilterPicker(
+                    'Market Segment',
+                    this.marketSegmentOptions,
+                    this.marketSegmentFilter,
+                    FILTER_TYPE.MARKET_SEGMENT,
+                )}
+                ${this.#renderFilterPicker(
+                    'Customer Segment',
+                    this.customerSegmentOptions,
+                    this.customerSegmentFilter,
+                    FILTER_TYPE.CUSTOMER_SEGMENT,
+                )}
+                ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
             </div>
-
-                ${
-                    this.searchOnly
-                        ? nothing
-                        : html`
-                              <div class="filters">
-                                  ${this.#renderFilterPicker(
-                                      'Template',
-                                      this.templateOptions,
-                                      this.templateFilter,
-                                      FILTER_TYPE.TEMPLATE,
-                                  )}
-                                  ${this.#renderFilterPicker(
-                                      'Market Segment',
-                                      this.marketSegmentOptions,
-                                      this.marketSegmentFilter,
-                                      FILTER_TYPE.MARKET_SEGMENT,
-                                  )}
-                                  ${this.#renderFilterPicker(
-                                      'Customer Segment',
-                                      this.customerSegmentOptions,
-                                      this.customerSegmentFilter,
-                                      FILTER_TYPE.CUSTOMER_SEGMENT,
-                                  )}
-                                  ${this.#renderFilterPicker(
-                                      'Product',
-                                      this.productOptions,
-                                      this.productFilter,
-                                      FILTER_TYPE.PRODUCT,
-                                  )}
-                              </div>
-
-                              ${this.#renderAppliedFilters()}
-                          `
-                }
-            </div>
+            ${this.#renderAppliedFilters()}
         `;
     }
 }

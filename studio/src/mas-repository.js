@@ -106,7 +106,7 @@ export class MasRepository extends LitElement {
             collections: null,
         };
         this.dictionaryCache = new Map();
-        this.inflightDictionaryRequest = null;
+        this.inflightDictionaryByKey = new Map();
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
@@ -124,6 +124,8 @@ export class MasRepository extends LitElement {
     #abortControllers;
     #searchCursor = null;
     #addonPlaceholdersRequest = null;
+    #previewDictionaryAbortByKey = new Map();
+    #previewDictionaryLoadingDepth = 0;
 
     /**
      * When personalization is off, exclude fragments that carry mas:pzn/… tags except mas:pzn/country/….
@@ -149,12 +151,14 @@ export class MasRepository extends LitElement {
         // Invalidate dictionary cache when filters or search path change
         Store.filters.subscribe(() => {
             this.dictionaryCache.clear();
+            Store.placeholders.previewByLocale.set({});
             if (this.page.value === PAGE_NAMES.CONTENT) {
                 this.#searchCursor = null;
             }
         });
         Store.search.subscribe(() => {
             this.dictionaryCache.clear();
+            Store.placeholders.previewByLocale.set({});
             this.#searchCursor = null;
         });
 
@@ -760,71 +764,86 @@ export class MasRepository extends LitElement {
         }
     }
 
-    async loadPreviewPlaceholders() {
+    /**
+     * Loads preview dictionary for `locale` (defaults to surface locale) into `Store.placeholders.previewByLocale`.
+     * Safe to call in parallel for different locales; duplicate cache keys share one in-flight request.
+     * @param {string} [locale]
+     */
+    async loadPreviewPlaceholders(locale = Store.localeOrRegion()) {
         if (!this.search.value.path) return;
 
-        const cacheKey = `${this.filters.value.locale}_${this.search.value.path}`;
+        const path = this.search.value.path;
+        const cacheKey = `${locale}_${path}`;
 
-        // Return cached result if available
         if (this.dictionaryCache.has(cacheKey)) {
-            Store.placeholders.preview.set(this.dictionaryCache.get(cacheKey));
+            const cached = this.dictionaryCache.get(cacheKey);
+            Store.placeholders.previewByLocale.set((prev) => ({ ...prev, [locale]: cached }));
             return;
         }
 
-        // Return existing promise if same cache key is already in-flight
-        if (this.inflightDictionaryRequest?.cacheKey === cacheKey) {
-            return this.inflightDictionaryRequest.promise;
+        if (this.inflightDictionaryByKey.has(cacheKey)) {
+            return this.inflightDictionaryByKey.get(cacheKey);
         }
 
-        // Abort previous placeholder fetch if still running with different cache key
-        if (this.#abortControllers.placeholders) {
-            this.#abortControllers.placeholders.abort();
-        }
-        this.#abortControllers.placeholders = new AbortController();
+        const previousAbort = this.#previewDictionaryAbortByKey.get(cacheKey);
+        previousAbort?.abort();
+        const abortController = new AbortController();
+        this.#previewDictionaryAbortByKey.set(cacheKey, abortController);
 
-        try {
-            const promise = this.fetchDictionary(this.#abortControllers.placeholders);
-            this.inflightDictionaryRequest = { promise, cacheKey };
-            const result = await promise;
+        const promise = (async () => {
+            this.#previewDictionaryLoadingDepth += 1;
+            if (this.#previewDictionaryLoadingDepth === 1) {
+                Store.placeholders.list.loading.set(true);
+            }
+            try {
+                const result = await this.fetchDictionary(abortController, locale);
 
-            // Verify cache key hasn't changed during fetch (prevents stale data)
-            const currentKey = `${this.filters.value.locale}_${this.search.value.path}`;
-            if (currentKey === cacheKey) {
-                // If result is empty and locale isn't en_US, try fallback
-                if ((!result || Object.keys(result).length === 0) && this.filters.value.locale !== 'en_US') {
+                if (this.search.value.path !== path) return;
+
+                const mergeDict = (dict) => {
+                    this.dictionaryCache.set(cacheKey, dict);
+                    Store.placeholders.previewByLocale.set((prev) => ({ ...prev, [locale]: dict }));
+                };
+
+                if ((!result || Object.keys(result).length === 0) && locale !== 'en_US') {
                     const fallbackContext = {
                         preview: {
                             url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
                         },
                         locale: 'en_US',
                         surface: this.search.value.path,
-                        signal: this.#abortControllers.placeholders?.signal,
+                        signal: abortController.signal,
                     };
 
                     const fallbackResult = await getDictionary(fallbackContext);
-                    this.dictionaryCache.set(cacheKey, fallbackResult);
-                    Store.placeholders.preview.set(fallbackResult);
+                    if (this.search.value.path !== path) return;
+                    mergeDict(fallbackResult);
                 } else {
-                    this.dictionaryCache.set(cacheKey, result);
-                    Store.placeholders.preview.set(result);
+                    mergeDict(result);
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') return;
+                this.processError(error, 'Could not load preview placeholders.');
+            } finally {
+                this.inflightDictionaryByKey.delete(cacheKey);
+                this.#previewDictionaryAbortByKey.delete(cacheKey);
+                this.#previewDictionaryLoadingDepth -= 1;
+                if (this.#previewDictionaryLoadingDepth === 0) {
+                    Store.placeholders.list.loading.set(false);
                 }
             }
-        } catch (error) {
-            if (error.name === 'AbortError') return; // Silent abort during navigation
-            this.processError(error, 'Could not load preview placeholders.');
-        } finally {
-            this.inflightDictionaryRequest = null;
-            this.#abortControllers.placeholders = null;
-            Store.placeholders.list.loading.set(false);
-        }
+        })();
+
+        this.inflightDictionaryByKey.set(cacheKey, promise);
+        return promise;
     }
 
-    async fetchDictionary(abortController) {
+    async fetchDictionary(abortController, locale = Store.localeOrRegion()) {
         const context = {
             preview: {
                 url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
             },
-            locale: this.filters.value.locale,
+            locale,
             surface: this.search.value.path,
             networkConfig: {
                 mainTimeout: 15000,
@@ -2187,8 +2206,8 @@ export class MasRepository extends LitElement {
         Store.placeholders.addons.loading.set(true);
         try {
             await this.loadPreviewPlaceholders();
-            const dictionary = Store.placeholders.preview.get();
-            if (dictionary) {
+            const dictionary = Store.previewDictionary();
+            if (Store.previewDictionaryReady()) {
                 const addonFragments = Object.keys(dictionary)
                     .filter((key) => /^addon-/.test(key))
                     .map((key) => ({ value: key, itemText: key }));

@@ -10,8 +10,17 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 
 let dictionaryCache;
 
-export function clearDictionaryCache() {
-    dictionaryCache = undefined;
+export function clearDictionaryCache(preview = false) {
+    if (preview) {
+        console.log('Clearing dictionary preview cache');
+        Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('dictionary-')) {
+                localStorage.removeItem(key);
+            }
+        });
+    } else {
+        dictionaryCache = undefined;
+    }
 }
 
 async function cacheKey(context) {
@@ -22,7 +31,7 @@ async function cacheKey(context) {
 
 async function getCachedDictionary(context) {
     const key = await cacheKey(context);
-    const cacheEntry = dictionaryCache?.[key];
+    const cacheEntry = context.preview ? JSON.parse(localStorage.getItem(key)) : dictionaryCache?.[key];
     if (cacheEntry) {
         cacheEntry.isExpired = Date.now() - cacheEntry.timestamp > CONFIG_CACHE_TTL;
         return cacheEntry;
@@ -32,11 +41,16 @@ async function getCachedDictionary(context) {
 
 async function cache(context, dictionary) {
     const key = await cacheKey(context);
-    dictionaryCache = dictionaryCache || {};
-    dictionaryCache[key] = {
+    const cacheEntry = {
         dictionary,
         timestamp: Date.now(),
     };
+    if (context.preview) {
+        localStorage.setItem(key, JSON.stringify(cacheEntry));
+    } else {
+        dictionaryCache = dictionaryCache || {};
+        dictionaryCache[key] = cacheEntry;
+    }
     return dictionary;
 }
 

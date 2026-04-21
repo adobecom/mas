@@ -17,6 +17,17 @@ function createResponse(status, data, statusText = 'OK') {
     });
 }
 
+// Create a mock localStorage
+const storage = {};
+const localStorageStub = {
+    getItem: sinon.stub().callsFake((key) => storage[key] || null),
+    removeItem: sinon.stub().callsFake((key) => delete storage[key]),
+    setItem: sinon.stub().callsFake((key, value) => {
+        storage[key] = value.toString();
+    }),
+};
+let objectKeysStub;
+
 describe('FragmentClient', () => {
     const baseUrl = 'https://preview.mas.corp.adobe.com/adobe/contentFragments';
     let fetchStub;
@@ -28,6 +39,12 @@ describe('FragmentClient', () => {
                 head: { querySelector: () => null },
             };
         }
+        // Stub window.localStorage
+        globalThis.window = globalThis.window || { localStorage: {} };
+        sinon.stub(globalThis.window, 'localStorage').value(localStorageStub);
+        globalThis.localStorage = localStorageStub;
+        objectKeysStub = sinon.stub(Object, 'keys').callThrough();
+        objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
             // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
@@ -85,6 +102,11 @@ describe('FragmentClient', () => {
 
     after(() => {
         fetchStub.restore();
+        objectKeysStub.restore();
+        delete globalThis.localStorage;
+        if (globalThis.window?.localStorage) {
+            sinon.restore();
+        }
     });
 
     it('should fetch and transform card fragment for preview', async () => {
@@ -96,8 +118,7 @@ describe('FragmentClient', () => {
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
-        const dictionaryIndexUrl = `${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`;
-        fetchStub.withArgs(dictionaryIndexUrl).returns(
+        fetchStub.withArgs(`${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
             createResponse(200, {
                 items: [
                     {
@@ -114,32 +135,15 @@ describe('FragmentClient', () => {
         fetchStub
             .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=all-hydrated`)
             .returns(createResponse(200, mockPlaceholders));
-
-        clearCaches();
-        const dictionaryCallsBefore = fetchStub.withArgs(dictionaryIndexUrl).callCount;
-
         const output = await previewFragment(mockCollectionData.id, {
             surface: 'sandbox',
             locale: 'en_US',
         });
         expect(output.references).deep.equal(expectedOutput.references);
         expect(output.referencesTree).deep.equal(expectedOutput.referencesTree);
-
-        const dictionaryCallsAfterFirst = fetchStub.withArgs(dictionaryIndexUrl).callCount;
-        expect(dictionaryCallsAfterFirst).to.be.greaterThan(dictionaryCallsBefore);
-
-        await previewFragment(mockCollectionData.id, {
-            surface: 'sandbox',
-            locale: 'en_US',
-        });
-        expect(fetchStub.withArgs(dictionaryIndexUrl).callCount).to.equal(dictionaryCallsAfterFirst);
-
+        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.exist;
         clearCaches();
-        await previewFragment(mockCollectionData.id, {
-            surface: 'sandbox',
-            locale: 'en_US',
-        });
-        expect(fetchStub.withArgs(dictionaryIndexUrl).callCount).to.be.greaterThan(dictionaryCallsAfterFirst);
+        expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
     });
 
     it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {

@@ -2189,7 +2189,7 @@ export class MasRepository extends LitElement {
 
     /**
      * Populates the store with addon placeholders by filtering for keys that start with 'addon-'
-     * Uses the preview dictionary (loaded via odinpreview) instead of slow AEM search
+     * Uses the preview dictionary (loaded via mas preview) instead of slow AEM search
      */
     async loadAddonPlaceholders() {
         const currentOptions = this.#dedupeAddonOptions(Store.placeholders.addons.data.get());

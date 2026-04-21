@@ -40,8 +40,8 @@ const mockDictionaryBySurfaceLocale = (
     dictionaryResponse = DICTIONARY_RESPONSE,
     stub = fetchStub,
 ) => {
-    const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
-    const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
+    const odinDomain = `https://${preview ? 'preview.mas.corp' : 'odin'}.adobe.com`;
+    const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/sites/fragments';
     const dictionaryId = dictionaryIdFor(surface, locale);
 
     stub.withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/${surface}/${locale}/dictionary/index`).returns(

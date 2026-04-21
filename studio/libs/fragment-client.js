@@ -5,6 +5,7 @@
 
 // Import the modules
 import { logDebug, logError } from '../../io/www/src/fragment/utils/log.js';
+import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
@@ -14,6 +15,25 @@ import { transformer as promotions } from '../../io/www/src/fragment/transformer
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
+class LocaleStorageState {
+    constructor() {        
+    }
+
+    async get(key) {
+        return new Promise((resolve) => {
+            resolve({
+                value: window.localStorage.getItem(key),
+            });
+        });
+    }
+
+    async put(key, value) {
+        return new Promise((resolve) => {
+            window.localStorage.setItem(key, value);
+            resolve();
+        });
+    }
+}
 
 const DEFAULT_CONTEXT = {
     status: 200,
@@ -21,26 +41,26 @@ const DEFAULT_CONTEXT = {
         url: ODIN_PREVIEW_FRAGMENTS_URL,
     },
     requestId: 'preview',
+    state: new LocaleStorageState(),
     networkConfig: {
         mainTimeout: 20000,
         fetchTimeout: 15000,
         retries: 3,
     },
     locale: 'en_US',
-    defaultHeaders: { 'Cache-Control': 'max-age=15' },
 };
 
 if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
-    DEFAULT_CONTEXT.debugLogs = params.has('debug.io');
+    DEFAULT_CONTEXT.debugLogs = params.has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
     if (params.has('clearCaches.io')) {
         clearCaches();
     }
 }
 
 function clearCaches() {
-    clearDictionaryCache();
-    clearSettingsCache();
+    clearDictionaryCache(true);
+    clearSettingsCache(true);
 }
 
 async function previewFragment(id, options) {
@@ -48,7 +68,10 @@ async function previewFragment(id, options) {
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
     let context = { ...DEFAULT_CONTEXT, locale, country, ...options, id, api_key: 'fragment-client' };
-    const initPromises = {};
+    const initPromises = {};    
+    const cachedMetadata = await getRequestMetadata(context);
+    const metadataContext = extractContextFromMetadata(cachedMetadata);
+    context = { ...context, ...metadataContext };
     context.fragmentsIds = context.fragmentsIds || {};
     try {    
         for (const transformer of PIPELINE) {
@@ -82,6 +105,8 @@ async function previewFragment(id, options) {
         const { message } = context;
         logError(message, context);
         context.body = { message };
+    } else {
+        await storeRequestMetadata(context, cachedMetadata, 'nohash');
     }
     return options.fullContext ? context : context.body;
 }

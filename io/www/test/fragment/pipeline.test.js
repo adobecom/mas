@@ -41,11 +41,11 @@ const EXPECTED_HEADERS = {
 
 const SETTINGS_INDEX_URL_SANDBOX = 'https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/settings/index';
 const SETTINGS_INDEX_URL_PREVIEW =
-    'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments?path=/content/dam/mas/sandbox/settings/index';
+    'https://preview.mas.corp.adobe.com/adobe/contentFragments?path=/content/dam/mas/sandbox/settings/index';
 const SETTINGS_CONTENT_URL = (settingsId) =>
     `https://odin.adobe.com/adobe/sites/fragments/${settingsId}?references=all-hydrated`;
 const SETTINGS_CONTENT_URL_PREVIEW = (settingsId) =>
-    `https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments/${settingsId}?references=all-hydrated`;
+    `https://preview.mas.corp.adobe.com/adobe/contentFragments/${settingsId}?references=all-hydrated`;
 
 function mockSettings(fetchStub, preview = false, settingsId = 'settings-id') {
     const indexUrl = preview ? SETTINGS_INDEX_URL_PREVIEW : SETTINGS_INDEX_URL_SANDBOX;
@@ -60,8 +60,8 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
     // setup settings mocks so pipeline context gets settings
     mockSettings(fetchStub, preview);
 
-    const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
-    const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
+    const odinDomain = `https://${preview ? 'preview.mas.corp' : 'odin'}.adobe.com`;
+    const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/sites/fragments';
     // english fragment by id
     fetchStub
         .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
@@ -161,6 +161,13 @@ describe('pipeline full use case', () => {
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from preview too', async () => {
+        const previewStorage = {};
+        globalThis.localStorage = {
+            getItem: (key) => previewStorage[key] ?? null,
+            setItem: (key, value) => {
+                previewStorage[key] = value;
+            },
+        };
         setupFragmentMocks(
             fetchStub,
             {
@@ -173,7 +180,7 @@ describe('pipeline full use case', () => {
         const result = await getFragment({
             id: 'some-en-us-fragment',
             preview: {
-                url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                url: 'https://preview.mas.corp.adobe.com/adobe/contentFragments',
             },
             state: state,
             locale: 'fr_FR',
@@ -195,6 +202,7 @@ describe('pipeline full use case', () => {
             },
             hash: EXPECTED_BODY_HASH,
         });
+        delete globalThis.localStorage;
     });
 
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {

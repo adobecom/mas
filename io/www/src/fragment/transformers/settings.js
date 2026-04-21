@@ -32,7 +32,6 @@ async function cacheKey(context) {
 }
 
 async function getCachedSettings(context) {
-    if (context.preview) return null;
     const key = await cacheKey(context);
     const cacheEntry = settingsCache?.[key];
     if (cacheEntry) {
@@ -43,7 +42,6 @@ async function getCachedSettings(context) {
 }
 
 async function cache(context, settings) {
-    if (context.preview) return settings;
     const key = await cacheKey(context);
     settingsCache = settingsCache || {};
     settingsCache[key] = {

@@ -21,7 +21,6 @@ async function cacheKey(context) {
 }
 
 async function getCachedDictionary(context) {
-    if (context.preview) return null;
     const key = await cacheKey(context);
     const cacheEntry = dictionaryCache?.[key];
     if (cacheEntry) {
@@ -32,7 +31,6 @@ async function getCachedDictionary(context) {
 }
 
 async function cache(context, dictionary) {
-    if (context.preview) return dictionary;
     const key = await cacheKey(context);
     dictionaryCache = dictionaryCache || {};
     dictionaryCache[key] = {

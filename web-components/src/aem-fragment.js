@@ -479,15 +479,11 @@ export class AemFragment extends HTMLElement {
     async generatePreview() {
         const fragmentClientUrl = this.getFragmentClientUrl();
         const { previewFragment } = await import(fragmentClientUrl);
-        const freyjaToken = sessionStorage.getItem('masFreyjaToken');
         const options = {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
         };
-        if (freyjaToken) {
-            options.freyjaToken = freyjaToken;
-        }
         const data = await previewFragment(this.#fragmentId, options);
         return data;
     }

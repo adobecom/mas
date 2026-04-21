@@ -49,8 +49,9 @@ function measureTiming(context, label, startLabel = label) {
 async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
-        const headers = { ...context.DEFAULT_HEADERS };
-        const responsePromise = fetch(path, { headers });
+        const responsePromise = fetch(path, {
+            headers: context.DEFAULT_HEADERS,
+        });
 
         // Race the fetch promise with a timeout
         const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);
@@ -103,17 +104,10 @@ async function fetchAttempt(path, context, timeout, marker) {
 async function internalFetch(path, context, marker) {
     mark(context, `${marker}`);
     const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
-
-    const response = await fetchWithRetries(path, context, fetchTimeout, retries, retryDelay, marker);
-
-    measureTiming(context, `main-fetch-${marker}`, marker);
-    return response;
-}
-
-async function fetchWithRetries(path, context, fetchTimeout, retries, retryDelay, marker) {
     let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
+        // Race the fetch promise with a timeout
         response = await fetchAttempt(path, context, fetchTimeout, `fetch-${marker}-${attempt}`);
         if ([503, 504].includes(response.status)) {
             log(
@@ -121,11 +115,12 @@ async function fetchWithRetries(path, context, fetchTimeout, retries, retryDelay
                 context,
             );
             await new Promise((resolve) => setTimeout(resolve, delay));
-            delay *= 2;
+            delay *= 2; // Exponential backoff
         } else {
             break;
         }
     }
+    measureTiming(context, `main-fetch-${marker}`, marker);
     return response;
 }
 

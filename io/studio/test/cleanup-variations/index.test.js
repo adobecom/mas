@@ -196,14 +196,10 @@ describe('cleanup-variations/index.js', () => {
 
     describe('main — dryRun: true (default)', () => {
         it('reports invalid variations without calling putToOdin', async () => {
-            const fragment = makeFragment(
-                'frag-1',
-                '/content/dam/mas/sandbox/de_DE/test-card',
-                [
-                    '/content/dam/mas/sandbox/de_AT/test-card', // valid region
-                    '/content/dam/mas/sandbox/en_US/test-card', // INVALID — wrong lang
-                ],
-            );
+            const fragment = makeFragment('frag-1', '/content/dam/mas/sandbox/de_DE/test-card', [
+                '/content/dam/mas/sandbox/de_AT/test-card', // valid region
+                '/content/dam/mas/sandbox/en_US/test-card', // INVALID — wrong lang
+            ]);
 
             // folder listing returns one path
             fetchStub.resolves(makeFolderResponse(['/content/dam/mas/sandbox/de_DE/test-card']));
@@ -253,15 +249,11 @@ describe('cleanup-variations/index.js', () => {
 
     describe('main — dryRun: false', () => {
         it('calls putToOdin with only the valid variation paths', async () => {
-            const fragment = makeFragment(
-                'frag-live',
-                '/content/dam/mas/sandbox/de_DE/live-card',
-                [
-                    '/content/dam/mas/sandbox/de_AT/live-card', // valid
-                    '/content/dam/mas/sandbox/en_BE/live-card', // INVALID
-                    '/content/dam/mas/sandbox/en_US/some/pzn/path', // INVALID
-                ],
-            );
+            const fragment = makeFragment('frag-live', '/content/dam/mas/sandbox/de_DE/live-card', [
+                '/content/dam/mas/sandbox/de_AT/live-card', // valid
+                '/content/dam/mas/sandbox/en_BE/live-card', // INVALID
+                '/content/dam/mas/sandbox/en_US/some/pzn/path', // INVALID
+            ]);
 
             fetchStub.resolves(makeFolderResponse(['/content/dam/mas/sandbox/de_DE/live-card']));
             fetchFragmentByPathStub.resolves({ fragment, status: 200, etag: fragment.etag });
@@ -279,11 +271,9 @@ describe('cleanup-variations/index.js', () => {
         });
 
         it('adds error to summary and continues when putToOdin fails', async () => {
-            const fragment = makeFragment(
-                'frag-fail',
-                '/content/dam/mas/sandbox/de_DE/fail-card',
-                ['/content/dam/mas/sandbox/en_US/fail-card'],
-            );
+            const fragment = makeFragment('frag-fail', '/content/dam/mas/sandbox/de_DE/fail-card', [
+                '/content/dam/mas/sandbox/en_US/fail-card',
+            ]);
 
             fetchStub.resolves(makeFolderResponse(['/content/dam/mas/sandbox/de_DE/fail-card']));
             fetchFragmentByPathStub.resolves({ fragment, status: 200, etag: fragment.etag });
@@ -322,11 +312,9 @@ describe('cleanup-variations/index.js', () => {
         });
 
         it('retries on 429 and succeeds on second attempt', async () => {
-            const fragment = makeFragment(
-                'frag-retry',
-                '/content/dam/mas/sandbox/de_DE/retry-card',
-                ['/content/dam/mas/sandbox/en_US/retry-card'],
-            );
+            const fragment = makeFragment('frag-retry', '/content/dam/mas/sandbox/de_DE/retry-card', [
+                '/content/dam/mas/sandbox/en_US/retry-card',
+            ]);
 
             fetchStub.resolves(makeFolderResponse(['/content/dam/mas/sandbox/de_DE/retry-card']));
 

@@ -19,6 +19,10 @@ function getTargetPath(path, locale) {
     return `/content/dam/mas/${surface}/${locale}/${fragmentPath}`;
 }
 
+function localeFromPath(path) {
+    return path?.match(PATH_TOKENS)?.groups?.parsedLocale ?? null;
+}
+
 async function postToOdinWithRetry(odinEndpoint, URI, authToken, payload, maxRetries = 3) {
     let lastError = null;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -392,6 +396,8 @@ async function deleteFragmentById(odinEndpoint, fragmentId, authToken, etag) {
 
 module.exports = {
     DEFAULT_PACKAGE_NAME,
+    PATH_TOKENS,
+    localeFromPath,
     buildSiblingActionName,
     createRuntimeClient,
     fetchFragmentByPath,

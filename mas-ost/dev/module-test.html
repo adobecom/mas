@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MAS Studio Integration Test</title>
+    <style>
+        body { margin: 0; font-family: system-ui; }
+        #ost-container { width: 100%; height: 80vh; border: 2px solid #ccc; }
+        #output { margin: 16px; background: #f5f5f5; padding: 12px; border-radius: 4px; white-space: pre-wrap; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h2 style="margin: 16px;">MAS Studio Mode - Inline Embed</h2>
+    <div id="ost-container"></div>
+    <h3 style="margin: 16px;">Event Output:</h3>
+    <pre id="output">Waiting for events...</pre>
+    <script type="module">
+        import '/src/components/mas-ost-app.js';
+        import { store } from '/src/store/ost-store.js';
+
+        store.init({
+            country: 'US',
+            language: 'en',
+            env: 'PRODUCTION',
+            landscape: 'PUBLISHED',
+            apiKey: 'dexter-commerce-offers',
+            accessToken: localStorage.getItem('AOS_ACCESS_TOKEN'),
+            wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
+        });
+
+        const ost = document.createElement('mas-ost-app');
+        ost.addEventListener('ost-select', (e) => {
+            document.getElementById('output').textContent = 'ost-select: ' + JSON.stringify(e.detail, null, 2);
+        });
+        ost.addEventListener('ost-cancel', () => {
+            document.getElementById('output').textContent = 'ost-cancel fired';
+        });
+        document.getElementById('ost-container').appendChild(ost);
+    </script>
+</body>
+</html>

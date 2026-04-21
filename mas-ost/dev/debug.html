@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>mas-ost debug</title>
+    <style>
+        body { margin: 0; font-family: system-ui; }
+        #token-bar { padding: 8px 16px; background: #f5f5f5; display: flex; gap: 8px; align-items: center; font-size: 13px; }
+        #token-bar input { flex: 1; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
+        #token-bar button { padding: 4px 12px; background: #1473e6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #token-bar .status { color: #666; }
+        #ost-root { width: 100%; height: calc(100vh - 40px); }
+    </style>
+</head>
+<body>
+    <div id="token-bar">
+        <span>Token:</span>
+        <input id="token-input" type="password" placeholder="Paste AOS_ACCESS_TOKEN here (from MAS Studio network tab or milo.adobe.com/tools/ost)" />
+        <button onclick="applyToken()">Apply & Reload</button>
+        <span class="status" id="status"></span>
+    </div>
+    <div id="ost-root"></div>
+    <script type="module">
+        await import('/src/global.js');
+
+        const token = localStorage.getItem('AOS_ACCESS_TOKEN') || '';
+        const statusEl = document.getElementById('status');
+        const inputEl = document.getElementById('token-input');
+
+        if (token) {
+            inputEl.value = token.substring(0, 20) + '...';
+            statusEl.textContent = 'Token loaded from localStorage';
+        }
+
+        window.applyToken = function() {
+            const val = inputEl.value.trim();
+            if (val && !val.endsWith('...')) {
+                localStorage.setItem('AOS_ACCESS_TOKEN', val);
+                location.reload();
+            }
+        };
+
+        const { store } = await import('/src/store/ost-store.js');
+
+        // Listen for token or products via postMessage (from MAS Studio iframe)
+        window.addEventListener('message', (e) => {
+            if (e.data?.type === 'ost-token' && e.data.token) {
+                localStorage.setItem('AOS_ACCESS_TOKEN', e.data.token);
+                location.reload();
+            }
+            if (e.data?.type === 'ost-products' && e.data.products) {
+                store.setProducts(e.data.products);
+                statusEl.textContent = 'Products injected: ' + e.data.products.length;
+            }
+        });
+
+        window.ost.openOfferSelectorTool({
+            country: 'US',
+            language: 'en',
+            env: 'PRODUCTION',
+            landscape: 'PUBLISHED',
+            wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
+            aosApiKey: 'wcms-commerce-ims-user-prod',
+            aosAccessToken: token,
+            onSelect: (osi, type, offer, options, promoOverride, country) => {
+                statusEl.textContent = 'onSelect: osi=' + osi + ' type=' + type;
+            },
+            onCancel: () => { statusEl.textContent = 'Cancelled'; },
+            rootElement: document.getElementById('ost-root'),
+            dialog: false,
+            zIndex: 20000,
+        });
+    </script>
+</body>
+</html>

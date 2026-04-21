@@ -29,7 +29,7 @@ const localStorageStub = {
 let objectKeysStub;
 
 describe('FragmentClient', () => {
-    const baseUrl = 'https://preview-p22655-e59433.adobeaemcloud.com/adobe/contentFragments';
+    const baseUrl = 'https://preview.mas.corp.adobe.com/adobe/contentFragments';
     let fetchStub;
 
     before(() => {
@@ -145,13 +145,9 @@ describe('FragmentClient', () => {
 
     it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {
         const fragmentId = 'non-existent';
-        const odinBaseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
 
         fetchStub
             .withArgs(`${baseUrl}/${fragmentId}?references=all-hydrated`)
-            .returns(createResponse(404, { detail: 'Not Found' }, 'Not Found'));
-        fetchStub
-            .withArgs(`${odinBaseUrl}/${fragmentId}?references=all-hydrated`)
             .returns(createResponse(404, { detail: 'Not Found' }, 'Not Found'));
 
         const consoleErrorSpy = sinon.spy(console, 'error');

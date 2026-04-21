@@ -263,3 +263,4 @@ export const TABLE_TYPE = {
 export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 
 export const ODIN_PREVIEW_ORIGIN = 'https://preview.mas.corp.adobe.com';
+export const ODIN_PREVIEW_FRAGMENTS_URL = `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments`;

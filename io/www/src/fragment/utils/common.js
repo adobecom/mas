@@ -50,7 +50,7 @@ async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
         const responsePromise = fetch(path, {
-            headers: context.DEFAULT_HEADERS,
+            headers: context.defaultHeaders,
         });
 
         // Race the fetch promise with a timeout

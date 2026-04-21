@@ -96,7 +96,8 @@ describe('FragmentClient', () => {
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
-        fetchStub.withArgs(`${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
+        const dictionaryIndexUrl = `${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`;
+        fetchStub.withArgs(dictionaryIndexUrl).returns(
             createResponse(200, {
                 items: [
                     {
@@ -113,13 +114,32 @@ describe('FragmentClient', () => {
         fetchStub
             .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=all-hydrated`)
             .returns(createResponse(200, mockPlaceholders));
+
+        clearCaches();
+        const dictionaryCallsBefore = fetchStub.withArgs(dictionaryIndexUrl).callCount;
+
         const output = await previewFragment(mockCollectionData.id, {
             surface: 'sandbox',
             locale: 'en_US',
         });
         expect(output.references).deep.equal(expectedOutput.references);
         expect(output.referencesTree).deep.equal(expectedOutput.referencesTree);
+
+        const dictionaryCallsAfterFirst = fetchStub.withArgs(dictionaryIndexUrl).callCount;
+        expect(dictionaryCallsAfterFirst).to.be.greaterThan(dictionaryCallsBefore);
+
+        await previewFragment(mockCollectionData.id, {
+            surface: 'sandbox',
+            locale: 'en_US',
+        });
+        expect(fetchStub.withArgs(dictionaryIndexUrl).callCount).to.equal(dictionaryCallsAfterFirst);
+
         clearCaches();
+        await previewFragment(mockCollectionData.id, {
+            surface: 'sandbox',
+            locale: 'en_US',
+        });
+        expect(fetchStub.withArgs(dictionaryIndexUrl).callCount).to.be.greaterThan(dictionaryCallsAfterFirst);
     });
 
     it('maps non-200 preview pipeline to body.message, logs, and preserves status in fullContext', async () => {

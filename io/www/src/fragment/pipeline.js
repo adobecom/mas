@@ -33,7 +33,7 @@ async function main(params) {
     const requestId = params.__ow_headers?.['x-request-id'] || `mas-${performance.now()}`;
     const region = process.env.__OW_REGION || 'unknown';
     const api_key = params.api_key || 'n/a';
-    const DEFAULT_HEADERS = {
+    const defaultHeaders = {
         Accept: 'application/json, */*',
         'Accept-Encoding': 'gzip, deflate',
         'User-Agent': 'Mozilla/5.0 (compatible; mas-io-Pipeline/1.0)',
@@ -44,7 +44,7 @@ async function main(params) {
         api_key,
         requestId,
         loggedTransformer: 'pipeline',
-        DEFAULT_HEADERS,
+        defaultHeaders,
         status: 200,
     };
     mark(context, 'start');

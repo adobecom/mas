@@ -2,7 +2,7 @@ import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 import { Fragment } from '../aem/fragment.js';
-import { ODIN_PREVIEW_ORIGIN } from '../constants.js';
+import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel']);
 
 export function serializePreviewFields(fields = []) {
@@ -217,8 +217,8 @@ export class PreviewFragmentStore extends FragmentStore {
             locale: Store.localeOrRegion(),
             surface: Store.surface(),
             dictionary: Store.previewDictionary(),
-            preview: { url: `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments` },
-            DEFAULT_HEADERS: { 'Cache-Control': 'max-age=3' },
+            preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
+            defaultHeaders: {},
         };
         const result = await previewStudioFragment(body, context);
 

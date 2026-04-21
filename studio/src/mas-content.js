@@ -293,7 +293,7 @@ class MasContent extends LitElement {
             this.observedSentinel = null;
         } else if (loadingJustCompleted && this.hasMore.value) {
             this.scrollObserver?.unobserve(sentinel);
-            this.scrollObserver?.observe(sentinel);
+            requestAnimationFrame(() => this.scrollObserver?.observe(sentinel));
         }
     }
 

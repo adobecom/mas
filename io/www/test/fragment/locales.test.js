@@ -116,6 +116,18 @@ describe('locales', function () {
             expect(getDefaultLocaleCode('acom', null), 'return null if no locale code').to.be.null;
             expect(getDefaultLocaleCode('acom', undefined), 'return null if no locale code').to.be.null;
         });
+
+        it('should resolve locale codes for acom-cc like acom', function () {
+            expect(getDefaultLocaleCode('acom-cc', 'fr_CA')).to.equal('fr_FR');
+            expect(getDefaultLocaleCode('acom-cc', 'en_AU')).to.equal('en_GB');
+            expect(getDefaultLocaleCode('acom-cc', 'en_US')).to.equal('en_US');
+        });
+
+        it('should resolve locale codes for acom-dc like acom', function () {
+            expect(getDefaultLocaleCode('acom-dc', 'fr_CA')).to.equal('fr_FR');
+            expect(getDefaultLocaleCode('acom-dc', 'en_AU')).to.equal('en_GB');
+            expect(getDefaultLocaleCode('acom-dc', 'en_US')).to.equal('en_US');
+        });
     });
 
     describe('getDefaultLocales', function () {
@@ -131,6 +143,18 @@ describe('locales', function () {
             const result = getDefaultLocales('invalid_surface');
             expect(result).to.be.an('array');
             expect(result.length).to.equal(0);
+        });
+
+        it('should return ACOM locales for acom-cc surface', function () {
+            const acomResult = getDefaultLocales('acom');
+            const acomCcResult = getDefaultLocales('acom-cc');
+            expect(acomCcResult).to.deep.equal(acomResult);
+        });
+
+        it('should return ACOM locales for acom-dc surface', function () {
+            const acomResult = getDefaultLocales('acom');
+            const acomDcResult = getDefaultLocales('acom-dc');
+            expect(acomDcResult).to.deep.equal(acomResult);
         });
     });
 
@@ -192,6 +216,18 @@ describe('locales', function () {
             const result = getSurfaceLocales('invalid_surface');
             expect(result).to.be.an('array');
             expect(result.length).to.equal(0);
+        });
+
+        it('should return same locales for acom-cc as acom', function () {
+            const acomLocales = getSurfaceLocales('acom');
+            const acomCcLocales = getSurfaceLocales('acom-cc');
+            expect(acomCcLocales.length).to.equal(acomLocales.length);
+        });
+
+        it('should return same locales for acom-dc as acom', function () {
+            const acomLocales = getSurfaceLocales('acom');
+            const acomDcLocales = getSurfaceLocales('acom-dc');
+            expect(acomDcLocales.length).to.equal(acomLocales.length);
         });
     });
 

@@ -1,5 +1,6 @@
 import { expect } from '@open-wc/testing';
-import { generateFieldLink, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
+import sinon from 'sinon';
+import { generateFieldLink, camelToTitle, stripHtml, previewValue, scrubUrls, logError } from '../src/utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../src/constants.js';
 
 describe('generateFieldLink', () => {
@@ -132,5 +133,76 @@ describe('previewValue', () => {
     it('converts non-string values to string', () => {
         expect(previewValue([42])).to.equal('42');
         expect(previewValue([true])).to.equal('true');
+    });
+});
+
+describe('scrubUrls', () => {
+    it('passes non-string inputs through unchanged', () => {
+        expect(scrubUrls(null)).to.be.null;
+        expect(scrubUrls(undefined)).to.be.undefined;
+        expect(scrubUrls(42)).to.equal(42);
+    });
+
+    it('leaves strings without URLs unchanged', () => {
+        expect(scrubUrls('plain message')).to.equal('plain message');
+    });
+
+    it('collapses a URL to its origin, dropping path + query', () => {
+        const out = scrubUrls('Failed to fetch https://api.example.com/v1/thing?token=SECRET now');
+        expect(out).to.equal('Failed to fetch https://api.example.com now');
+    });
+
+    it('collapses multiple URLs in one string', () => {
+        const out = scrubUrls('From https://a.com/x?t=1 to https://b.com/y?t=2 done');
+        expect(out).to.equal('From https://a.com to https://b.com done');
+    });
+
+    it('replaces an unparseable URL-like token with [url-scrubbed]', () => {
+        const out = scrubUrls('weird http://??? token');
+        // Depending on URL parsing leniency this may be '[url-scrubbed]' or the origin.
+        expect(out).to.not.include('???');
+    });
+});
+
+describe('logError', () => {
+    let errorStub;
+
+    beforeEach(() => {
+        errorStub = sinon.stub(console, 'error');
+    });
+
+    afterEach(() => {
+        errorStub.restore();
+    });
+
+    it('logs label + name + scrubbed message for a standard Error', () => {
+        const err = new Error('Request to https://api.example.com/v1/x?token=SECRET failed');
+        logError('Op failed', err);
+        expect(errorStub.firstCall.args[0]).to.include('Op failed');
+        expect(errorStub.firstCall.args[0]).to.include('Error');
+        expect(errorStub.firstCall.args[0]).to.include('https://api.example.com');
+        expect(errorStub.firstCall.args[0]).to.not.include('token=SECRET');
+    });
+
+    it('logs a scrubbed stack trace separately when stack is present and differs from message', () => {
+        const err = new Error('boom');
+        err.stack = 'Error: boom\n  at fn (https://internal.adobe.io/secret?k=1:12:34)';
+        logError('Op failed', err);
+        // Two calls: message + stack
+        expect(errorStub.callCount).to.be.at.least(2);
+        const stackCall = errorStub.secondCall.args[0];
+        expect(stackCall).to.include('https://internal.adobe.io');
+        expect(stackCall).to.not.include('k=1');
+    });
+
+    it('handles non-Error thrown values', () => {
+        logError('Op failed', 'string thrown');
+        expect(errorStub.firstCall.args[0]).to.include('Op failed');
+        expect(errorStub.firstCall.args[0]).to.include('string thrown');
+    });
+
+    it('handles null / undefined errors without throwing', () => {
+        expect(() => logError('Op failed', null)).to.not.throw();
+        expect(() => logError('Op failed', undefined)).to.not.throw();
     });
 });

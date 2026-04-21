@@ -431,6 +431,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        this.linkStoreToHash(Store.productDetail.arrangementCode, 'arrangementCode');
         const redirectedOnStart = this.#enforceSettingsAccessFromParams();
         if (normalizedOnStart || redirectedOnStart) {
             this.updateHistory();

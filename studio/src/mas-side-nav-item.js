@@ -68,7 +68,6 @@ class MasSideNavItem extends LitElement {
             font-weight: inherit;
             line-height: 18px;
             text-align: center;
-            white-space: nowrap;
         }
 
         .support-indicator {

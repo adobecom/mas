@@ -234,15 +234,7 @@ export class AemFragment extends HTMLElement {
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
-            const preview = await this.generatePreview();
-            if (preview.status === 200) {
-                return preview.body;
-            } else {
-                throw new MasError(
-                    `Failed to generate preview: ${preview.message}`,
-                    {},
-                );
-            }
+            return await this.generatePreview();
         }
         performance.mark(startMarkName);
         let response;
@@ -403,7 +395,8 @@ export class AemFragment extends HTMLElement {
             dictionary = {},
             placeholders = {},
         } = this.#rawData;
-        this.#data = fields.reduce(
+        const fieldsArray = Array.isArray(fields) ? fields : [];
+        this.#data = fieldsArray.reduce(
             (acc, { name, multiple, values }) => {
                 acc.fields[name] = multiple ? values : values[0];
                 return acc;
@@ -482,7 +475,6 @@ export class AemFragment extends HTMLElement {
         const data = await previewFragment(this.#fragmentId, {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
-            fullContext: true,
         });
         return data;
     }

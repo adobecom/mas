@@ -254,7 +254,7 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
     return { authorPath, code, richText, href };
 }
 
-function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
+export function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
     const params = new URLSearchParams();
     params.set('content-type', webComponentName);
     if (page) params.set('page', page);
@@ -397,4 +397,50 @@ export function replaceLocaleInPath(fragmentPath, newLocale) {
 
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
+}
+
+export function normalizeFragmentForCache(fragmentData) {
+    if (!fragmentData) return fragmentData;
+    const { fields, ...rest } = fragmentData;
+    if (Array.isArray(fields)) return fragmentData;
+    const normalizedFields = Object.entries(fields || {}).map(([name, value]) => ({
+        name,
+        multiple: Array.isArray(value),
+        values: Array.isArray(value) ? value : [value],
+    }));
+    return { ...rest, fields: normalizedFields };
+}
+
+/**
+ * Scrub URL-like substrings from a string so we don't leak tokens, bearer
+ * credentials in query strings, or arbitrary internal hostnames via error
+ * logs. Every http(s)://... URL is collapsed to the bare origin.
+ */
+export function scrubUrls(input) {
+    if (typeof input !== 'string') return input;
+    return input.replace(/https?:\/\/[^\s"']+/g, (match) => {
+        try {
+            return new URL(match).origin;
+        } catch {
+            return '[url-scrubbed]';
+        }
+    });
+}
+
+/**
+ * Log an error with URL-scrubbing applied to both message and stack. Keeps
+ * the developer-useful function names and line numbers while stripping
+ * query strings, bearer-token-bearing URLs, and arbitrary interpolated
+ * hostnames. The raw error object is NOT passed to console.error — only
+ * its scrubbed text representation.
+ *
+ * @param {string} label - Call-site label (e.g. 'Create card error')
+ * @param {unknown} error - Error / unknown thrown value
+ */
+export function logError(label, error) {
+    const name = error?.name || 'Error';
+    const message = scrubUrls(error?.message ?? String(error ?? ''));
+    const stack = scrubUrls(error?.stack ?? '');
+    console.error(`${label}: ${name}: ${message}`);
+    if (stack && stack !== message) console.error(stack);
 }

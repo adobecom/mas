@@ -266,7 +266,7 @@ class MasFragmentVariations extends LitElement {
                                               <aem-tag-picker-field
                                                   namespace="/content/cq:tags/mas"
                                                   display-value
-                                                  top="locale,pzn"
+                                                  top="locale"
                                                   value="${tagsValue}"
                                                   readonly
                                               ></aem-tag-picker-field>

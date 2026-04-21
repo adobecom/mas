@@ -1,5 +1,11 @@
 import { html } from 'lit';
-import { CHECKOUT_CTA_TEXTS, EVENT_OST_SELECT, EVENT_OST_OFFER_SELECT, WCS_LANDSCAPE_PUBLISHED } from '../constants.js';
+import {
+    CHECKOUT_CTA_TEXTS,
+    EVENT_OST_SELECT,
+    EVENT_OST_OFFER_SELECT,
+    EVENT_OST_MULTI_OFFER_SELECT,
+    WCS_LANDSCAPE_PUBLISHED,
+} from '../constants.js';
 import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');
@@ -180,6 +186,22 @@ export function onOfferSelect(offerSelectorId, type, offer) {
     );
 }
 
+export function onMultiOfferSelect(detail) {
+    // Multi-select OST callback. `detail.base` and `detail.trial` are each
+    // either { osi, offer } or null. Trial is optional — only base is
+    // guaranteed to be present.
+    ostRoot.dispatchEvent(
+        new CustomEvent(EVENT_OST_MULTI_OFFER_SELECT, {
+            detail: {
+                base: detail?.base || null,
+                trial: detail?.trial || null,
+            },
+            bubbles: true,
+        }),
+    );
+    closeOfferSelectorTool();
+}
+
 export function getOffferSelectorTool() {
     return html`
         <sp-overlay id="ostDialog" type="modal">
@@ -190,7 +212,7 @@ export function getOffferSelectorTool() {
     `;
 }
 
-export function openOfferSelectorTool(triggerElement, offerElement) {
+export function openOfferSelectorTool(triggerElement, offerElement, initialSearchParams = null) {
     const masCommerceService = document.querySelector('mas-commerce-service');
     try {
         const landscape = Store.landscape?.value ?? WCS_LANDSCAPE_PUBLISHED;
@@ -200,12 +222,25 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         }
         let searchOfferSelectorId;
         let initialReferenceOsi;
-        const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
+        const freshImsToken = window.adobeIMS?.getAccessToken?.()?.token;
+        const aosAccessToken =
+            freshImsToken ??
+            sessionStorage.getItem('masAccessToken') ??
+            localStorage.getItem('masAccessToken') ??
+            window.adobeid?.authorize?.();
+
+        if (freshImsToken) {
+            sessionStorage.setItem('masAccessToken', freshImsToken);
+            localStorage.setItem('masAccessToken', freshImsToken);
+        }
+
         const searchParameters = new URLSearchParams();
 
         const offerSelectorPlaceholderOptions = {};
         if (offerElement) {
-            searchParameters.append('type', offerElement.isInlinePrice ? 'price' : 'checkout');
+            const template = offerElement.getAttribute('data-template');
+            const baseType = offerElement.isInlinePrice ? 'price' : 'checkoutUrl';
+            searchParameters.append('type', template || baseType);
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }
@@ -236,7 +271,16 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                 const value = offerSelectorPlaceholderOptions[key];
                 if (value) searchParameters.append(key, value);
             });
+        } else if (initialSearchParams) {
+            for (const [key, value] of Object.entries(initialSearchParams)) {
+                // `mode` is a studio-only flag (e.g. 'plans-base-and-trial') that
+                // tells us to open OST in multi-select mode. It is not an AOS
+                // search parameter so it must not flow into the URL.
+                if (key === 'mode') continue;
+                if (value) searchParameters.append(key, value);
+            }
         }
+        const isMultiSelectRequested = initialSearchParams?.mode === 'plans-base-and-trial';
         const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
@@ -281,6 +325,8 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
             offerSelectorPlaceholderOptions,
             modalsAndEntitlements: ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
+            multiSelect: isMultiSelectRequested,
+            onMultiSelect: onMultiOfferSelect,
             onCancel: () => closeOfferSelectorTool(),
             onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });

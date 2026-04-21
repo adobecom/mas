@@ -219,7 +219,7 @@
                         Store.fragmentEditor.fragmentId.set(`test-variation-${testId}`);
                         Store.fragments.inEdit.set(fragmentStore);
                         Store.fragments.list.data.set([fragmentStore]);
-                        Store.placeholders.preview.set({});
+                        Store.placeholders.previewByLocale.set({ [variationLocale]: {} });
                         Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: variationLocale }));
                         Store.viewMode.set('editing');
                         Store.settings.rows.set(createDefaultSettingsRows());
@@ -810,7 +810,7 @@
                             Store.fragmentEditor.fragmentId.set(`test-settings-${testId}`);
                             Store.fragments.inEdit.set(store);
                             Store.fragments.list.data.set([store]);
-                            Store.placeholders.preview.set({});
+                            Store.placeholders.previewByLocale.set({ en_AU: {} });
                             Store.search.set((prev) => ({ ...prev, surface: 'web', path: 'nala', region: 'en_AU' }));
                             Store.viewMode.set('editing');
                             Store.settings.rows.set(settingsRows);

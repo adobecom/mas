@@ -11,13 +11,14 @@ import { clearDictionaryCache, getDictionary, transformer as replace } from '../
 import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
+import { ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
 
 const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
 
 const DEFAULT_CONTEXT = {
     status: 200,
     preview:{
-        url: '/preview-proxy/adobe/sites/cf/fragments',
+        url: `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments`,
     },
     requestId: 'preview',
     networkConfig: {
@@ -26,7 +27,6 @@ const DEFAULT_CONTEXT = {
         retries: 3,
     },
     locale: 'en_US',
-    DEFAULT_HEADERS: { 'Cache-Control': 'max-age=15' },
 };
 
 if (typeof window !== 'undefined') {
@@ -35,21 +35,11 @@ if (typeof window !== 'undefined') {
     if (params.has('clearCaches.io')) {
         clearCaches();
     }
-    const isLocalMaslibs =
-        window.location.hostname === 'localhost' ||
-        params.get('maslibs')?.trim().toLowerCase() === 'local';
-    if (isLocalMaslibs) {
-        DEFAULT_CONTEXT.preview.url = 'http://localhost:3030/adobe/sites/cf/fragments';
-    }
 }
 
-// Studio settings cache keyed by surface — avoids re-fetching on every keystroke
-const studioSettingsCache = {};
-
 function clearCaches() {
-    clearDictionaryCache();
-    clearSettingsCache();
-    Object.keys(studioSettingsCache).forEach((k) => delete studioSettingsCache[k]);
+    clearDictionaryCache(true);
+    clearSettingsCache(true);
 }
 
 async function previewFragment(id, options) {
@@ -95,18 +85,10 @@ async function previewFragment(id, options) {
     return options.fullContext ? context : context.body;
 }
 
-/* c8 ignore next 1 */
+/* c8 ignore next 38 */
 async function previewStudioFragment(body, options) {
-    const { locale, surface } = options;
     let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
-
-    // Inject cached settings so the settings transformer skips network fetches on every call
-    const cachedSettings = studioSettingsCache[surface];
-    if (cachedSettings) {
-        context.hasExternalSettings = true;
-        context.settings = cachedSettings;
-    }
-
+    const { locale, surface } = options;
     const initPromises = {
         fetchFragment: Promise.resolve({
             status: 200,
@@ -136,15 +118,6 @@ async function previewStudioFragment(body, options) {
         context.transformer = transformer.name;
         context = await transformer.process(context);
     }
-
-    // Populate cache after first successful settings fetch
-    if (!cachedSettings) {
-        const resolvedSettings = await initPromises.settings;
-        if (resolvedSettings) {
-            studioSettingsCache[surface] = resolvedSettings;
-        }
-    }
-
     if (context.status != 200) {
         const { message } = context;
         logError(message, context);

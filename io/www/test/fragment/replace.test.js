@@ -40,9 +40,7 @@ const mockDictionaryBySurfaceLocale = (
     dictionaryResponse = DICTIONARY_RESPONSE,
     stub = fetchStub,
 ) => {
-    const odinDomain = preview
-        ? 'https://preview-p22655-e59433.adobeaemcloud.com'
-        : 'https://odin.adobe.com';
+    const odinDomain = preview ? 'https://preview-p22655-e59433.adobeaemcloud.com' : 'https://odin.adobe.com';
     const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/sites/fragments';
     const dictionaryId = dictionaryIdFor(surface, locale);
 

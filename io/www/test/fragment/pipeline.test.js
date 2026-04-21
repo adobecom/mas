@@ -60,9 +60,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
     // setup settings mocks so pipeline context gets settings
     mockSettings(fetchStub, preview);
 
-    const odinDomain = preview
-        ? 'https://preview-p22655-e59433.adobeaemcloud.com'
-        : 'https://odin.adobe.com';
+    const odinDomain = preview ? 'https://preview-p22655-e59433.adobeaemcloud.com' : 'https://odin.adobe.com';
     const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/sites/fragments';
     // english fragment by id
     fetchStub

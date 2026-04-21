@@ -157,7 +157,7 @@ export default {
                 locale: 'en_CA',
                 localeName: 'Canada',
                 price: PRICE_PATTERN.CA.mo,
-                referencesBaseUrl: 'https://preview-p22655-e59433.adobeaemcloud.com/adobe/contentFragments',
+                referencesBaseUrl: 'https://preview.mas.corp.adobe.com/adobe/contentFragments',
                 editedTitle: '[selfref] Edited title',
             },
             tags: '@mas-studio @regional-variations',

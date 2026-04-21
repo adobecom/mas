@@ -37,7 +37,7 @@ class LocaleStorageState {
 
 function getPreviewContext() {
     return {
-        preview: { url: GATEWAY_PREVIEW_URL, authToken: undefined },
+        preview: { url: GATEWAY_PREVIEW_URL },
     };
 }
 
@@ -45,7 +45,6 @@ const DEFAULT_CONTEXT = {
     status: 200,
     preview: {
         url: GATEWAY_PREVIEW_URL,
-        authToken: undefined,
     },
     requestId: 'preview',
     state: new LocaleStorageState(),

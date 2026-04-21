@@ -50,9 +50,6 @@ async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
         const headers = { ...context.DEFAULT_HEADERS };
-        if (context.preview?.authToken) {
-            headers['Authorization'] = `Bearer ${context.preview.authToken}`;
-        }
         const responsePromise = fetch(path, { headers });
 
         // Race the fetch promise with a timeout

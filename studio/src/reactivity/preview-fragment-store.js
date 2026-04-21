@@ -218,6 +218,7 @@ export class PreviewFragmentStore extends FragmentStore {
             surface: Store.surface(),
             dictionary: Store.previewDictionary(),
             preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
+            DEFAULT_HEADERS: {},
         };
         const result = await previewStudioFragment(body, context);
 

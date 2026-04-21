@@ -27,6 +27,7 @@ const DEFAULT_CONTEXT = {
         retries: 3,
     },
     locale: 'en_US',
+    DEFAULT_HEADERS: { 'Cache-Control': 'max-age=15' },
 };
 
 if (typeof window !== 'undefined') {

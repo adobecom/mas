@@ -150,6 +150,12 @@ export const FIELD_MODEL_MAPPING = {
 export const TAG_STUDIO_CONTENT_TYPE = 'mas:studio/content-type';
 export const TAG_PROMOTION_PREFIX = 'mas:promotion/';
 
+/** Full AEM content path for product_code */
+export const AEM_TAG_PATH_PRODUCT_CODE_ROOT = '/content/cq:tags/mas/product_code';
+
+/** Tag id prefix in short form */
+export const MAS_PRODUCT_CODE_PREFIX = 'mas:product_code/';
+
 export const TAG_MODEL_ID_MAPPING = {
     'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
     'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
@@ -187,6 +193,14 @@ export const SURFACES = {
     ACOM: {
         label: 'Adobe.com',
         name: 'acom',
+    },
+    ACOM_CC: {
+        label: 'ACOM CC',
+        name: 'acom-cc',
+    },
+    ACOM_DC: {
+        label: 'ACOM DC',
+        name: 'acom-dc',
     },
     ADOBE_HOME: {
         label: 'Adobe Home',
@@ -246,4 +260,4 @@ export const TABLE_TYPE = {
     PLACEHOLDERS: 'placeholders',
 };
 
-export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nala'];
+export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];

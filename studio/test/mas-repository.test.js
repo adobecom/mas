@@ -1470,6 +1470,60 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('excludes merch-card-collection with PZN on fragment tags when personalization filter is off', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: false,
+                },
+            };
+            const collectionWithPzn = createFragment({
+                id: 'coll-pzn',
+                path: `${ROOT_PATH}/acom/en_US/collections/c1`,
+                tags: [{ id: 'mas:pzn/general' }],
+                fields: [{ name: 'tagFilters', values: ['mas:types/desktop'] }],
+            });
+            const plainCollection = createFragment({
+                id: 'coll-plain',
+                path: `${ROOT_PATH}/acom/en_US/collections/c2`,
+                tags: [],
+                fields: [{ name: 'tagFilters', values: ['mas:product/foo'] }],
+            });
+            const mockCursor = createMockCursor([[collectionWithPzn, plainCollection]]);
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(mockDataStore.set.called).to.be.true;
+                const passedStores = mockDataStore.set.lastCall.args[0];
+                expect(passedStores).to.have.lengthOf(1);
+                expect(passedStores[0].get().id).to.equal('coll-plain');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('handles published tag filter by setting status', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1611,7 +1665,9 @@ describe('MasRepository dictionary helpers', () => {
         });
 
         it('loadNextPage appends fragments and updates data store', async () => {
-            const page1 = Array.from({ length: 10 }, (_, i) =>
+            // First page has MIN_FILTERED_PAGE_RESULTS items so the refill loop does not fire,
+            // keeping loadNextPage as the only path that extends the list.
+            const page1 = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
                 createFragment({ id: `p1-${i}`, path: `${ROOT_PATH}/acom/en_US/p1-${i}`, fields: [] }),
             );
             const page2 = Array.from({ length: 10 }, (_, i) =>
@@ -1624,13 +1680,13 @@ describe('MasRepository dictionary helpers', () => {
                 const { default: Store } = await import('../src/store.js');
                 const firstSetCalls = Store.fragments.list.data.set.getCalls();
                 const firstCount = firstSetCalls[firstSetCalls.length - 1].args[0].length;
-                expect(firstCount).to.equal(10);
+                expect(firstCount).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS);
                 expect(Store.fragments.list.hasMore.value).to.be.true;
 
                 await repository.loadNextPage();
                 const allSetCalls = Store.fragments.list.data.set.getCalls();
                 const lastCall = allSetCalls[allSetCalls.length - 1];
-                expect(lastCall.args[0].length).to.equal(20);
+                expect(lastCall.args[0].length).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS + 10);
             } finally {
                 cleanup();
             }
@@ -1753,7 +1809,7 @@ describe('MasRepository dictionary helpers', () => {
         });
 
         it('sets loading false after successful loadNextPage', async () => {
-            const page1 = Array.from({ length: 10 }, (_, i) =>
+            const page1 = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
                 createFragment({ id: `l-${i}`, path: `${ROOT_PATH}/acom/en_US/l-${i}`, fields: [] }),
             );
             const page2 = Array.from({ length: 5 }, (_, i) =>
@@ -1774,7 +1830,7 @@ describe('MasRepository dictionary helpers', () => {
         });
 
         it('paginates results when page is TRANSLATION_EDITOR', async () => {
-            const page1 = Array.from({ length: 20 }, (_, i) =>
+            const page1 = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
                 createFragment({ id: `t1-${i}`, path: `${ROOT_PATH}/acom/en_US/t1-${i}`, fields: [] }),
             );
             const page2 = Array.from({ length: 5 }, (_, i) =>
@@ -1788,12 +1844,293 @@ describe('MasRepository dictionary helpers', () => {
                 const { default: Store } = await import('../src/store.js');
                 const setCalls = Store.fragments.list.data.set.getCalls();
                 const firstCall = setCalls[setCalls.length - 1];
-                expect(firstCall.args[0].length).to.equal(20);
+                expect(firstCall.args[0].length).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS);
                 expect(Store.fragments.list.hasMore.value).to.be.true;
                 await repository.loadNextPage();
                 const nextCalls = Store.fragments.list.data.set.getCalls();
                 const lastCall = nextCalls[nextCalls.length - 1];
-                expect(lastCall.args[0].length).to.equal(25);
+                expect(lastCall.args[0].length).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS + 5);
+            } finally {
+                cleanup();
+            }
+        });
+    });
+
+    describe('eagerLoadAllPznPages cap', () => {
+        const setupPznSearchTest = async (pageCount) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: true,
+                },
+            };
+            // Each page has MIN_PAGE_SIZE items so each #fillPage call consumes exactly 1 page
+            const pages = Array.from({ length: pageCount }, (_, p) =>
+                Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) =>
+                    createFragment({
+                        id: `pzn-${p}-${i}`,
+                        path: `${ROOT_PATH}/acom/en_US/pzn-${p}-${i}`,
+                        tags: [{ id: 'mas:pzn/general' }],
+                        fields: [],
+                    }),
+                ),
+            );
+            let index = 0;
+            const mockCursor = {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        it('stops eager loading after MAX_EAGER_PZN_PAGES and sets hasMore true', async () => {
+            const pageCount = MasRepository.MAX_EAGER_PZN_PAGES + 5;
+            const { repository, cleanup } = await setupPznSearchTest(pageCount);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                // Wait for the async eager-load loop to complete
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('does not set hasMore when all pages fit within MAX_EAGER_PZN_PAGES', async () => {
+            const pageCount = 2;
+            const { repository, cleanup } = await setupPznSearchTest(pageCount);
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+    });
+
+    describe('refillBelowThreshold', () => {
+        const setupRefillSearchTest = async ({ pages, personalizationFilterEnabled = false }) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled,
+                },
+            };
+            let index = 0;
+            const mockCursor = {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        // Build a page of MIN_PAGE_SIZE (10) items where `visibleCount` are non-pzn
+        // (pass the filter) and the rest carry mas:pzn/general (dropped when pzn filter is off).
+        const mixedPage = (pageIndex, visibleCount) =>
+            Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) => {
+                const isVisible = i < visibleCount;
+                return createFragment({
+                    id: `p${pageIndex}-${i}`,
+                    path: `${ROOT_PATH}/acom/en_US/p${pageIndex}-${i}`,
+                    tags: isVisible ? [] : [{ id: 'mas:pzn/general' }],
+                    fields: [],
+                });
+            });
+
+        const lastSetCount = (mockDataStore) => {
+            const calls = mockDataStore.set.getCalls();
+            return calls[calls.length - 1]?.args[0]?.length ?? 0;
+        };
+
+        it('refills when filtered count is below threshold until threshold is met', async () => {
+            // Each page contributes 5 visible items. 5 pages → 25 visible, threshold reached.
+            const pages = Array.from({ length: 8 }, (_, p) => mixedPage(p, 5));
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                expect(lastSetCount(mockDataStore)).to.be.at.least(MasRepository.MIN_FILTERED_PAGE_RESULTS);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('does not refill when first page already has threshold visible items', async () => {
+            // First fetch fills via #fillPage until it has MIN_PAGE_SIZE (10) items. After filter,
+            // all 10 remain visible (no pzn tags). Threshold is 25, so refill DOES kick in here —
+            // unless we make the first page large enough. Make each page contribute 30 visible items.
+            const pages = [mixedPage(0, 10), mixedPage(1, 10), mixedPage(2, 10), mixedPage(3, 10)];
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                // #fillPage fills until it reaches MIN_PAGE_SIZE items via cursor.next() calls.
+                // With all-visible pages, #fillPage consumes 1 page (10 items) and returns.
+                // Then refill runs because 10 < 25. It should loop until threshold or cursor end.
+                expect(lastSetCount(mockDataStore)).to.be.at.least(MasRepository.MIN_FILTERED_PAGE_RESULTS);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('terminates and sets hasMore=false when cursor is exhausted before threshold', async () => {
+            // Only 2 pages, each with 5 visible → 10 visible total, cursor exhausted.
+            const pages = [mixedPage(0, 5), mixedPage(1, 5)];
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(lastSetCount(mockDataStore)).to.equal(10);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('terminates on extremely narrow filter without infinite loop', async () => {
+            // 20 pages with only 1 visible item each → 20 visible total, cursor exhausted.
+            const pages = Array.from({ length: 20 }, (_, p) => mixedPage(p, 1));
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                const { default: Store } = await import('../src/store.js');
+                expect(lastSetCount(mockDataStore)).to.equal(20);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('skips refill when personalization is on (eager-pzn path runs instead)', async () => {
+            // Pages of all-pzn items so #filterStoresByPersonalizationEnabled (with pzn ON)
+            // returns everything. We just want to confirm the refill method is NOT the one
+            // running; #eagerLoadAllPznPages handles this path.
+            const pages = Array.from({ length: 3 }, (_, p) =>
+                Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) =>
+                    createFragment({
+                        id: `pzn-${p}-${i}`,
+                        path: `${ROOT_PATH}/acom/en_US/pzn-${p}-${i}`,
+                        tags: [{ id: 'mas:pzn/general' }],
+                        fields: [],
+                    }),
+                ),
+            );
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({
+                pages,
+                personalizationFilterEnabled: true,
+            });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+                expect(lastSetCount(mockDataStore)).to.equal(30);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('stops refill after MAX_REFILL_ROUNDS and leaves hasMore=true', async () => {
+            // Many pages all fail the pzn filter so refill never reaches threshold.
+            // After MAX_REFILL_ROUNDS, refill bails and leaves hasMore=true so
+            // loadNextPage can continue on scroll.
+            const pages = Array.from({ length: MasRepository.MAX_REFILL_ROUNDS + 10 }, (_, p) => mixedPage(p, 0));
+            const { repository, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('sets loading=true during refill and resets to false when done', async () => {
+            // 3 pages with 5 visible each — refill runs for a few rounds.
+            // loading should be true during refill and false afterward.
+            const pages = [mixedPage(0, 5), mixedPage(1, 5), mixedPage(2, 5)];
+            const { repository, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.loading.value).to.be.false;
             } finally {
                 cleanup();
             }
@@ -2069,6 +2406,50 @@ describe('MasRepository dictionary helpers', () => {
             expect(result).to.be.null;
             expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
         });
+
+        it('prefers default-locale parent when locale copies also have the variation in their variations field', async () => {
+            const repository = createRepository();
+            const sourcePath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-source';
+            const koKrParentPath = '/content/dam/mas/sandbox/ko_KR/pac/default-fragment';
+            const enUsParentPath = '/content/dam/mas/sandbox/en_US/pac/default-fragment';
+
+            const koKrParent = {
+                id: 'ko-kr-id',
+                path: koKrParentPath,
+                fields: [{ name: 'variations', values: [sourcePath] }],
+            };
+            const enUsParent = {
+                id: 'en-us-id',
+                path: enUsParentPath,
+                fields: [{ name: 'variations', values: [sourcePath] }],
+            };
+            const hydratedEnUsParent = { ...enUsParent, references: [] };
+
+            const getByPathStub = sandbox.stub();
+            getByPathStub.withArgs(koKrParentPath).resolves(koKrParent);
+            getByPathStub.withArgs(enUsParentPath).resolves(enUsParent);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    // ko_KR comes first in AEM's response order — this is the bug scenario
+                    getReferencedBy: sandbox.stub().resolves({
+                        path: sourcePath,
+                        parentReferences: [
+                            { type: 'content-fragment', path: koKrParentPath },
+                            { type: 'content-fragment', path: enUsParentPath },
+                        ],
+                    }),
+                    getByPath: getByPathStub,
+                    getById: sandbox.stub().resolves(hydratedEnUsParent),
+                },
+            });
+
+            const result = await repository.resolveHydratedParentFragment(sourcePath);
+
+            // Must return the en_US parent, not the ko_KR one
+            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('en-us-id')).to.be.true;
+            expect(result).to.deep.equal(hydratedEnUsParent);
+        });
     });
 
     describe('createGroupedVariation', () => {
@@ -2225,6 +2606,236 @@ describe('MasRepository dictionary helpers', () => {
             } catch (error) {
                 expect(error.message).to.equal('Failed to resolve parent fragment for grouped variation');
             }
+        });
+    });
+
+    describe('duplicateGroupedVariation', () => {
+        const sourceFragment = {
+            id: 'source-grouped-1',
+            path: '/content/dam/mas/sandbox/en_US/pac/pzn/source-grouped',
+            title: 'Source title',
+            description: 'Source description',
+            model: { id: 'model-1' },
+            fields: [
+                { name: 'pznTags', values: ['mas:pzn/old-tag'] },
+                { name: 'promoCode', values: ['PROMO10'] },
+                { name: 'variations', values: ['/some/variation/path'] },
+            ],
+            tags: [{ id: 'mas:product/cc/photoshop' }],
+        };
+
+        const parentFragment = {
+            id: 'parent-fragment-1',
+            path: '/content/dam/mas/sandbox/en_US/pac/parent-fragment',
+            title: 'Parent title',
+            description: 'Parent description',
+            model: { id: 'model-1' },
+            fields: [{ name: 'variations', values: [] }],
+            tags: [],
+        };
+
+        it('duplicates a grouped variation and returns the created fragment', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = {
+                id: 'new-grouped-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped',
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves(createdDraft),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            const result = await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('source-grouped-1')).to.be.true;
+            expect(repository.resolveHydratedParentFragment.calledOnceWith(sourceFragment.path)).to.be.true;
+            expect(repository.updateParentVariations.calledOnceWith(parentFragment, createdFragment.path)).to.be.true;
+            expect(repository.refreshFragment.calledOnce).to.be.true;
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('clones fields excluding variations and replacing pznTags', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            const createArgs = createStub.firstCall.args[0];
+            const fieldNames = createArgs.fields.map((f) => f.name);
+            expect(fieldNames).not.to.include('variations');
+            const pznTagsField = createArgs.fields.find((f) => f.name === 'pznTags');
+            expect(pznTagsField.values).to.deep.equal(newPznTags);
+            const promoCodeField = createArgs.fields.find((f) => f.name === 'promoCode');
+            expect(promoCodeField.values).to.deep.equal(['PROMO10']);
+        });
+
+        it('throws when source fragment is not found', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(null),
+                },
+            });
+
+            try {
+                await repository.duplicateGroupedVariation('nonexistent-id', []);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to fetch source grouped variation');
+            }
+        });
+
+        it('throws when parent fragment cannot be resolved', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(null);
+
+            try {
+                await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to resolve parent fragment for grouped variation');
+            }
+        });
+
+        it('appends a random 4-char suffix when the generated name already exists', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped-abcd' };
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves({ id: 'existing-fragment' }),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            const createArgs = createStub.firstCall.args[0];
+            expect(createArgs.name).to.match(/^new-grouped-[a-z]{4}$/);
+        });
+
+        it('skips copyFragmentTags when source has no tags', async () => {
+            const repository = createRepository();
+            const sourceWithNoTags = { ...sourceFragment, tags: [] };
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const copyTagsStub = sandbox.stub().resolves();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceWithNoTags),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves(createdDraft),
+                    copyFragmentTags: copyTagsStub,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+
+            expect(copyTagsStub.called).to.be.false;
+        });
+
+        it('throws when pollCreatedFragment returns null', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves({ id: 'draft-id' }),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(null),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+
+            try {
+                await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to duplicate grouped variation');
+            }
+        });
+
+        it('skips refreshFragment when parent is not found in store', async () => {
+            const repository = createRepository();
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const refreshStub = sandbox.stub().resolves();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves({ id: 'draft-id' }),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').value(refreshStub);
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+
+            expect(refreshStub.called).to.be.false;
         });
     });
 

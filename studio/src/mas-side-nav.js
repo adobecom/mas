@@ -1,12 +1,12 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import Store from './store.js';
-import { PAGE_NAMES, SURFACES } from './constants.js';
+import { PAGE_NAMES, SURFACES, TRANSLATIONS_ALLOWED_SURFACES } from './constants.js';
 import Events from './events.js';
 import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { isPowerUser } from './groups.js';
+import { canAccessSettings } from './groups.js';
 
 const EVENT_MAS_READY = 'mas:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
@@ -278,7 +278,7 @@ class MasSideNav extends LitElement {
 
     get isTranslationEnabled() {
         const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
-        return [SURFACES.ACOM.name, SURFACES.EXPRESS.name, SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface);
+        return TRANSLATIONS_ALLOWED_SURFACES.includes(surface);
     }
 
     async saveFragment() {
@@ -325,6 +325,7 @@ class MasSideNav extends LitElement {
         'promoText',
         'callout',
         'subtitle',
+        'ctas',
     ]);
 
     #getPreviewCard() {
@@ -688,7 +689,7 @@ class MasSideNav extends LitElement {
     }
 
     get settingsItem() {
-        if (!isPowerUser()) {
+        if (!canAccessSettings(Store.surface())) {
             return nothing;
         }
         return html`

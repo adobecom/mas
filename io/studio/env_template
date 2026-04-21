@@ -10,5 +10,9 @@ AIO_runtime_apihost=https://adobeioruntime.net
 ODIN_ENDPOINT=https://author-p22655-xxxx.adobeaemcloud.com
 
 # batch size of concurrent requests to send to odin loc v2 API ODIN_ENDPOINT (default: 10)
-BATCH_SIZE=15
+BATCH_SIZE=10
 
+# max sustained requests per second sent to odin (default: 10)
+# NOTE: batch_size must not exceed rps_limit — each batch fires all requests simultaneously,
+# so a batch larger than the RPS limit would burst past the limit before throttling applies.
+RPS_LIMIT=10

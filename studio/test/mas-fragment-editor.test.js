@@ -5,7 +5,8 @@ import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore, { SourceFragmentStore } from '../src/reactivity/source-fragment-store.js';
-import { PAGE_NAMES, CARD_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
+import { PAGE_NAMES, CARD_MODEL_PATH } from '../src/constants.js';
+import { GATEWAY_PREVIEW_URL } from '../../io/www/src/fragment/utils/paths.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
@@ -468,7 +469,7 @@ describe('MasFragmentEditor', () => {
 
                 const fetchStub = sandbox.stub(window, 'fetch').resolves({
                     ok: true,
-                    json: () => Promise.resolve({ 'jcr:uuid': 'fil-ph-frag-id' }),
+                    json: () => Promise.resolve({ items: [{ id: 'fil-ph-frag-id' }] }),
                 });
 
                 await el.updateTranslatedLocalesStore(false, fragmentPath);
@@ -483,7 +484,7 @@ describe('MasFragmentEditor', () => {
                 });
                 expect(fetchStub.calledOnce).to.be.true;
                 expect(fetchStub.firstCall.args[0]).to.equal(
-                    `${ODIN_PREVIEW_ORIGIN}/content/dam/mas/acom/fil_PH/my-fragment.json`,
+                    `${GATEWAY_PREVIEW_URL}?path=${encodeURIComponent('/content/dam/mas/acom/fil_PH/my-fragment')}`,
                 );
             } finally {
                 Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
@@ -659,7 +660,7 @@ describe('MasFragmentEditor', () => {
             }
         });
 
-        it('adds fil_PH with id null when response json has no id', async () => {
+        it('skips fil_PH entry when response json has no id', async () => {
             const el = document.createElement('mas-fragment-editor');
             const originalTranslatedLocales = Store.fragmentEditor.translatedLocales.value;
             try {
@@ -675,14 +676,14 @@ describe('MasFragmentEditor', () => {
                 el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
                 sandbox.stub(window, 'fetch').resolves({
                     ok: true,
-                    json: () => Promise.resolve({}),
+                    json: () => Promise.resolve({ items: [] }),
                 });
 
                 await el.updateTranslatedLocalesStore(false, '/content/dam/mas/acom/en_US/my-fragment');
 
                 const locales = Store.fragmentEditor.translatedLocales.get();
                 const filPh = locales.find((l) => l.locale === 'fil_PH');
-                expect(filPh).to.deep.include({ locale: 'fil_PH', id: null, path: '/content/dam/mas/acom/fil_PH/my-fragment' });
+                expect(filPh).to.be.undefined;
             } finally {
                 Store.fragmentEditor.translatedLocales.value = originalTranslatedLocales;
                 Store.fragmentEditor.fragmentId.value = null;
@@ -711,7 +712,7 @@ describe('MasFragmentEditor', () => {
                 el.editorContextStore = { isVariation: sandbox.stub().returns(false) };
                 const fetchStub = sandbox.stub(window, 'fetch').resolves({
                     ok: true,
-                    json: () => Promise.resolve({ 'jcr:uuid': enUsFragmentId }),
+                    json: () => Promise.resolve({ items: [{ id: enUsFragmentId }] }),
                 });
 
                 await el.updateTranslatedLocalesStore(false, filPhPath);
@@ -720,7 +721,7 @@ describe('MasFragmentEditor', () => {
                 expect(locales).to.have.lengthOf(3);
                 expect(getTranslations.calledOnceWith(enUsFragmentId)).to.be.true;
                 expect(fetchStub.firstCall.args[0]).to.equal(
-                    `${ODIN_PREVIEW_ORIGIN}/content/dam/mas/acom/en_US/my-fragment.json`,
+                    `${GATEWAY_PREVIEW_URL}?path=${encodeURIComponent('/content/dam/mas/acom/en_US/my-fragment')}`,
                 );
                 const enUs = locales.find((l) => l.locale === 'en_US');
                 expect(enUs).to.deep.include({

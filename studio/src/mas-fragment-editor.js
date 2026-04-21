@@ -5,7 +5,8 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
+import { GATEWAY_PREVIEW_URL } from '../../io/www/src/fragment/utils/paths.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
@@ -869,6 +870,14 @@ export default class MasFragmentEditor extends LitElement {
         return null;
     }
 
+    async fetchFragmentIdByPath(path) {
+        const url = `${GATEWAY_PREVIEW_URL}?path=${encodeURIComponent(path)}`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json().catch(() => ({}));
+        return data.items?.[0]?.id ?? null;
+    }
+
     async updateTranslatedLocalesStore(isVariation, fragmentPath) {
         // Only fetch translations for default fragments, not variations
         if (isVariation) {
@@ -896,17 +905,12 @@ export default class MasFragmentEditor extends LitElement {
             if (isFilPh && fragmentPath) {
                 const enUsPath = replaceLocaleInPath(fragmentPath, 'en_US');
                 if (enUsPath) {
-                    const enUsUrl = `${ODIN_PREVIEW_ORIGIN}${enUsPath}.json`;
-                    const res = await fetch(enUsUrl);
-                    if (res.ok) {
-                        const data = await res.json().catch(() => ({}));
-                        const enUsFragmentId = data['jcr:uuid'];
-                        if (enUsFragmentId) {
-                            const requestPromise = this.repository.aem.sites.cf.fragments.getTranslations(enUsFragmentId);
-                            this.#translatedLocalesRequest.requestPromise = requestPromise;
-                            const result = await requestPromise;
-                            languageCopies = result.languageCopies ?? [];
-                        }
+                    const enUsFragmentId = await this.fetchFragmentIdByPath(enUsPath);
+                    if (enUsFragmentId) {
+                        const requestPromise = this.repository.aem.sites.cf.fragments.getTranslations(enUsFragmentId);
+                        this.#translatedLocalesRequest.requestPromise = requestPromise;
+                        const result = await requestPromise;
+                        languageCopies = result.languageCopies ?? [];
                     }
                 }
             }
@@ -936,11 +940,9 @@ export default class MasFragmentEditor extends LitElement {
                     const filPhPath = replaceLocaleInPath(fragmentPath, filPhLocale);
                     if (filPhPath) {
                         try {
-                            const filPhUrl = `${ODIN_PREVIEW_ORIGIN}${filPhPath}.json`;
-                            const res = await fetch(filPhUrl);
-                            if (res.ok) {
-                                const data = await res.json().catch(() => ({}));
-                                locales = [...locales, { locale: filPhLocale, id: data['jcr:uuid'] ?? null, path: filPhPath }];
+                            const filPhId = await this.fetchFragmentIdByPath(filPhPath);
+                            if (filPhId !== null) {
+                                locales = [...locales, { locale: filPhLocale, id: filPhId, path: filPhPath }];
                             }
                         } catch {
                             // No fil_PH for this fragment.

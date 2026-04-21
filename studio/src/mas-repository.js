@@ -824,7 +824,7 @@ export class MasRepository extends LitElement {
             surface: this.search.value.path,
             networkConfig: {
                 mainTimeout: 15000,
-                fetchTimeout: 4000,
+                fetchTimeout: 10000,
                 retries: 3,
             },
         };

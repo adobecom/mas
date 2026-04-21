@@ -257,12 +257,16 @@ export class MerchCard extends LitElement {
 
     updated(changedProperties) {
         if (
-            changedProperties.has('badgeBackgroundColor') ||
-            changedProperties.has('borderColor')
+            !this.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ) &&
+            this.computedBorderColor &&
+            (changedProperties.has('badgeBackgroundColor') ||
+                changedProperties.has('borderColor'))
         ) {
             this.style.setProperty(
-                '--consonant-merch-card-border',
-                this.computedBorderStyle,
+                '--consonant-merch-card-border-color',
+                this.computedBorderColor,
             );
         }
         if (changedProperties.has('backgroundColor')) {
@@ -297,7 +301,7 @@ export class MerchCard extends LitElement {
         return this.variantLayout.renderLayout();
     }
 
-    get computedBorderStyle() {
+    get computedBorderColor() {
         if (
             ![
                 'ccd-slice',
@@ -307,9 +311,9 @@ export class MerchCard extends LitElement {
                 'full-pricing-express',
             ].includes(this.variant)
         ) {
-            return `1px solid ${
-                this.borderColor ? this.borderColor : this.badgeBackgroundColor
-            }`;
+            return this.borderColor
+                ? this.borderColor
+                : this.badgeBackgroundColor;
         }
         return '';
     }
@@ -482,20 +486,39 @@ export class MerchCard extends LitElement {
         this.filters = newFilters;
     }
 
+    showInfoTooltip(el, classVisible) {
+        const tooltipLeft = 'tooltip-left';
+        const tooltipRight = 'tooltip-right';
+        if (
+            window.screen.width < 600 &&
+            el.getAttribute('data-tooltip')?.length > 12
+        ) {
+            this.iconButton.classList.remove(tooltipLeft);
+            this.iconButton.classList.remove(tooltipRight);
+            if (el.getBoundingClientRect().x < 100) {
+                this.iconButton.classList.add(tooltipLeft);
+            }
+            if (el.getBoundingClientRect().x > window.screen.width - 100) {
+                this.iconButton.classList.add(tooltipRight);
+            }
+        }
+        this.iconButton.classList.add(classVisible);
+    }
+
     handleInfoIconEvents() {
         const tooltipVisible = 'tooltip-visible';
         if (this.iconButton) {
             ['mouseenter', 'focus'].forEach((eventName) =>
                 this.iconButton.addEventListener(
                     eventName,
-                    (e) => this.iconButton.classList.add(tooltipVisible),
+                    (e) => this.showInfoTooltip(e.target, tooltipVisible),
                     false,
                 ),
             );
             ['mouseleave', 'blur'].forEach((eventName) =>
                 this.iconButton.addEventListener(
                     eventName,
-                    (e) => this.iconButton.classList.remove(tooltipVisible),
+                    () => this.iconButton.classList.remove(tooltipVisible),
                     false,
                 ),
             );
@@ -619,6 +642,9 @@ export class MerchCard extends LitElement {
         };
         this.#log.error(`merch-card${fragmentId}: ${error}`, detail);
         this.failed = true;
+        this.#resolveHydration?.();
+        this.#resolveHydration = undefined;
+        if (!this.#service.isPreview()) this.style.display = 'none';
         if (!dispatch) return;
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_ERROR, {
@@ -631,6 +657,7 @@ export class MerchCard extends LitElement {
 
     async checkReady() {
         if (!this.isConnected) return;
+        if (this.failed) return;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
             if (

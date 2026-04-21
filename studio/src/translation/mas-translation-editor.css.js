@@ -1,14 +1,12 @@
 import { css } from 'lit';
+import { ghostButtonStyles, loadingContainerCenteredStyles } from './translation-common-styles.css.js';
 
-export const styles = css`
-    .translation-editor-form {
-        padding: 32px;
-
-        .loading-container {
-            position: absolute;
-            top: 50%;
-            right: 50%;
-            transform: translate(-50%, -50%);
+export const styles = [
+    ghostButtonStyles,
+    loadingContainerCenteredStyles,
+    css`
+        .translation-editor-form {
+            padding: 32px;
         }
 
         .header {
@@ -36,12 +34,29 @@ export const styles = css`
             h2 {
                 margin: 0 0 20px 0;
             }
+        }
 
-            .metadata-info {
-                display: flex;
-                flex-direction: column;
-                border-radius: 10px;
-                margin-bottom: 20px;
+        .metadata-info {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 16px;
+            background: var(--spectrum-orange-100);
+
+            sp-icon-alert {
+                color: var(--spectrum-notice-color-800);
+            }
+
+            h2 {
+                margin: 0;
+            }
+
+            span {
+                width: 100%;
+                color: var(--spectrum-neutral-content-color-default);
             }
         }
 
@@ -50,8 +65,24 @@ export const styles = css`
                 margin: 0 0 8px 0;
             }
 
-            sp-textfield {
-                width: 50%;
+            .general-info-columns {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
+            }
+
+            .general-info-col {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+
+                sp-textfield {
+                    width: 90%;
+                }
+
+                span {
+                    color: var(--spectrum-neutral-content-color-default);
+                }
             }
         }
 
@@ -82,8 +113,7 @@ export const styles = css`
             border-radius: 10px;
         }
 
-        .add-langs-dialog,
-        .add-items-dialog {
+        .add-langs-dialog {
             --mod-dialog-confirm-buttongroup-padding-top: 82px;
         }
 
@@ -99,26 +129,35 @@ export const styles = css`
                 justify-content: space-between;
                 align-items: center;
 
-                h2 {
-                    margin: 0;
+                    h2 {
+                        margin: 0;
 
-                    span {
-                        font-weight: 500;
+                        span {
+                            font-weight: 500;
+                        }
+                    }
+
+                    .toggle-btn {
+                        --mod-button-background-color-down: var(--spectrum-gray-300);
+                        --mod-button-content-color-default: var(--spectrum-gray-800);
+                        --mod-button-content-color-hover: var(--spectrum-gray-900);
                     }
                 }
-
-                .toggle-btn {
-                    --mod-button-background-color-default: transparent;
-                    --mod-button-background-color-hover: var(--spectrum-gray-200);
-                    --mod-button-background-color-down: var(--spectrum-gray-300);
-                    --mod-button-content-color-default: var(--spectrum-gray-800);
-                    --mod-button-content-color-hover: var(--spectrum-gray-900);
-                }
+            }
+            h2 sp-icon-asterisk100 {
+                width: 10px;
+                height: 10px;
             }
         }
+
+        h1,
+        h2 {
+            color: var(--spectrum-neutral-content-color-default);
+        }
+
         h2 sp-icon-asterisk100 {
             width: 10px;
             height: 10px;
         }
-    }
-`;
+    `,
+];

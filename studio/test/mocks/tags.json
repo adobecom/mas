@@ -594,6 +594,36 @@
             "excerpt": "",
             "name": "two_years",
             "title": "TWO_YEARS"
+        },
+        {
+            "path": "/content/cq:tags/mas/pzn/general",
+            "excerpt": "",
+            "name": "general",
+            "title": "GENERAL"
+        },
+        {
+            "path": "/content/cq:tags/mas/pzn/smb",
+            "excerpt": "",
+            "name": "smb",
+            "title": "SMB"
+        },
+        {
+            "path": "/content/cq:tags/mas/pzn/edu",
+            "excerpt": "",
+            "name": "edu",
+            "title": "EDU"
+        },
+        {
+            "path": "/content/cq:tags/mas/product_code/apptype",
+            "excerpt": "",
+            "name": "apptype",
+            "title": "App Type"
+        },
+        {
+            "path": "/content/cq:tags/mas/product_code/apptype/mypac",
+            "excerpt": "",
+            "name": "mypac",
+            "title": "My PAC"
         }
     ]
 }

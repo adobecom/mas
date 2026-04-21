@@ -11,7 +11,7 @@ import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
-import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../constants.js';
+import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -34,6 +34,7 @@ class MasTranslationEditor extends LitElement {
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
+    #itemsConfirmed = false;
 
     constructor() {
         super();
@@ -68,6 +69,9 @@ class MasTranslationEditor extends LitElement {
         if (this.repository?.loadPlaceholders) {
             this.repository.loadPlaceholders();
         }
+        if (this.repository?.loadAllCollections) {
+            this.repository.loadAllCollections();
+        }
 
         // reset locale to default
         Store.search.set((prev) => ({ ...prev, region: null }));
@@ -95,6 +99,8 @@ class MasTranslationEditor extends LitElement {
             Store.translationProjects.selectedCollections,
             Store.translationProjects.selectedPlaceholders,
             Store.translationProjects.targetLocales,
+            Store.translationProjects.projectType,
+            Store.translationProjects.showSelected,
         ]);
         this.isProjectReadonly = !!this.translationProject?.getFieldValue('submissionDate');
         if (this.isProjectReadonly) {
@@ -120,11 +126,11 @@ class MasTranslationEditor extends LitElement {
     }
 
     get selectedCount() {
-        return [
-            ...Store.translationProjects.selectedCards.value,
-            ...Store.translationProjects.selectedPlaceholders.value,
-            ...Store.translationProjects.selectedCollections.value,
-        ].length;
+        return (
+            Store.translationProjects.selectedCards.value.length +
+            Store.translationProjects.selectedPlaceholders.value.length +
+            Store.translationProjects.selectedCollections.value.length
+        );
     }
 
     get targetLocalesCount() {
@@ -157,6 +163,7 @@ class MasTranslationEditor extends LitElement {
                 Store.translationProjects.selectedPlaceholders.set(translationProject.getFieldValues('placeholders'));
                 Store.translationProjects.selectedCollections.set(translationProject.getFieldValues('collections'));
                 Store.translationProjects.targetLocales.set(translationProject.getFieldValues('targetLocales'));
+                Store.translationProjects.projectType.set(translationProject.getFieldValue('projectType') ?? 'translation');
                 this.showSelectedEmptyState = this.selectedCount === 0;
                 this.showLangSelectedEmptyState = Store.translationProjects.targetLocales.value.length === 0;
             }
@@ -180,6 +187,7 @@ class MasTranslationEditor extends LitElement {
                 { name: 'collections', type: 'content-fragment', multiple: true, values: [] },
                 { name: 'targetLocales', type: 'text', multiple: true, values: targetLocale ? [targetLocale] : [] },
                 { name: 'submissionDate', type: 'date-time', multiple: false, values: [] },
+                { name: 'projectType', type: 'enumeration', multiple: false, values: ['translation'] },
             ],
         });
         this.isNewTranslationProject = true;
@@ -191,6 +199,7 @@ class MasTranslationEditor extends LitElement {
         if (targetLocale) {
             Store.translationProjects.targetLocales.set([targetLocale]);
         }
+        Store.translationProjects.projectType.set('translation');
 
         this.showSelectedEmptyState = this.selectedCount === 0;
         this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
@@ -239,6 +248,8 @@ class MasTranslationEditor extends LitElement {
                 return Store.translationProjects.selectedCollections.value;
             case 'targetLocales':
                 return Store.translationProjects.targetLocales.value;
+            case 'projectType':
+                return [Store.translationProjects.projectType.value];
             default:
                 return field.values;
         }
@@ -258,6 +269,7 @@ class MasTranslationEditor extends LitElement {
             collections: { type: 'content-fragment', multiple: true },
             targetLocales: { type: 'text', multiple: true },
             submissionDate: { type: 'date-time', multiple: false },
+            projectType: { type: 'enumeration', multiple: false },
         };
 
         const fragmentPayload = {
@@ -306,6 +318,7 @@ class MasTranslationEditor extends LitElement {
         this.translationProject.updateField('placeholders', Store.translationProjects.selectedPlaceholders.value);
         this.translationProject.updateField('collections', Store.translationProjects.selectedCollections.value);
         this.translationProject.updateField('targetLocales', Store.translationProjects.targetLocales.value);
+        this.translationProject.updateField('projectType', [Store.translationProjects.projectType.value]);
         showToast('Updating the project...');
         try {
             await this.repository.saveFragment(this.translationProjectStore, false);
@@ -450,6 +463,7 @@ class MasTranslationEditor extends LitElement {
         this.#cardsSnapshot = [];
         this.#collectionsSnapshot = [];
         this.#placeholdersSnapshot = [];
+        this.#itemsConfirmed = true;
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -460,14 +474,33 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
         Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
         this.showSelectedEmptyState = this.selectedCount === 0;
+        this.#itemsConfirmed = true;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
 
-    #openAddItemsOverlay() {
+    #openAddItemsOverlay(e) {
+        if (e && e.target !== e.currentTarget) return;
+        this.#itemsConfirmed = false;
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
         this.#collectionsSnapshot = Store.translationProjects.selectedCollections.value;
+
+        const selector = this.renderRoot.querySelector('mas-items-selector');
+        if (selector) {
+            selector.searchQuery = '';
+            selector.selectedTab = TABLE_TYPE.CARDS;
+            const searchAndFilters = selector.renderRoot.querySelector('mas-search-and-filters');
+            if (searchAndFilters) {
+                searchAndFilters.templateFilter = [];
+                searchAndFilters.marketSegmentFilter = [];
+                searchAndFilters.customerSegmentFilter = [];
+                searchAndFilters.productFilter = [];
+            }
+        }
+        Store.translationProjects.displayCards.set(Store.translationProjects.allCards.get());
+        Store.translationProjects.displayCollections.set(Store.translationProjects.allCollections.get());
+        Store.translationProjects.displayPlaceholders.set(Store.translationProjects.allPlaceholders.get());
     }
 
     #openAddLanguagesOverlay() {
@@ -488,23 +521,68 @@ class MasTranslationEditor extends LitElement {
         target.dispatchEvent(closeEvent);
     };
 
+    #toggleSelectedItemsOpen = ({ target }) => {
+        if (target.closest('mas-items-selector')) return;
+        this.isSelectedItemsOpen = !this.isSelectedItemsOpen;
+    };
+
+    #handleProjectTypeChange = ({ currentTarget }) => {
+        const projectType = currentTarget?.selected === 'rollout' ? 'rollout' : 'translation';
+        Store.translationProjects.projectType.set(projectType);
+        this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
+    };
+
     renderAddItemsDialog() {
+        const footerContent = html`
+            <sp-button-group>
+                <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchDialogEvent('cancel')}
+                    >Cancel</sp-button
+                >
+                <sp-button variant="accent" @click=${() => this.#dispatchDialogEvent('confirm')}>Add selected items</sp-button>
+            </sp-button-group>
+        `;
         return html`
             <sp-dialog-wrapper
                 class="add-items-dialog"
                 slot="click-content"
                 headline="Select items"
-                confirm-label="Add selected items"
-                cancel-label="Cancel"
+                headline-visibility="none"
+                .footer=${footerContent}
                 underlay
+                dismissable
                 no-divider
+                @sp-opened=${this.#alignItemsDialogFooter}
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
+                @close=${this.#restoreItemsSnapshot}
             >
                 <mas-items-selector></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
+
+    #alignItemsDialogFooter = ({ target }) => {
+        const slotDiv = target?.shadowRoot?.querySelector('div[slot="footer"]');
+        if (!slotDiv) return;
+        slotDiv.style.width = '100%';
+        slotDiv.style.display = 'flex';
+        slotDiv.style.justifyContent = 'flex-end';
+    };
+
+    // Flag stays sticky across the duplicate close event sp-dialog-wrapper emits after confirm/cancel;
+    // it's cleared on the next #openAddItemsOverlay so a re-opened dialog starts fresh.
+    #restoreItemsSnapshot = () => {
+        if (this.#itemsConfirmed) return;
+        Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
+        Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
+        Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
+        this.showSelectedEmptyState = this.selectedCount === 0;
+    };
+
+    #dispatchDialogEvent = (name) => {
+        const wrapper = this.renderRoot.querySelector('.add-items-dialog');
+        wrapper?.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
+    };
 
     renderAddLanguagesDialog() {
         return html`
@@ -558,10 +636,12 @@ class MasTranslationEditor extends LitElement {
     render() {
         let metadataInfo = '';
         if (this.isProjectReadonly) {
+            const isRollout = Store.translationProjects.projectType.value === 'rollout';
             const submissionDate = this.translationProject?.getFieldValue('submissionDate');
             const formattedDate = submissionDate ? new Date(submissionDate).toLocaleDateString() : '';
             const submitter = this.translationProject?.modified?.fullName;
-            metadataInfo = `Sent to translation on ${formattedDate} by ${submitter}`;
+            const operation = isRollout ? 'synchronization' : 'translation';
+            metadataInfo = `This project was sent for ${operation} on ${formattedDate} by ${submitter} and can no longer be edited.`;
         }
         let createEditLabel = '';
         if (this.isNewTranslationProject) {
@@ -575,12 +655,19 @@ class MasTranslationEditor extends LitElement {
             ${this.renderConfirmDialog()}
 
             <div class="translation-editor-form">
+                ${this.isProjectReadonly
+                    ? html`<div class="metadata-info">
+                          <sp-icon-alert></sp-icon-alert>
+                          <h2>Read-only mode</h2>
+                          <span>${metadataInfo}</span>
+                      </div>`
+                    : nothing}
                 <div class="header">
                     <h1>${createEditLabel}</h1>
                 </div>
                 ${this.isLoading
                     ? html`
-                          <div class="loading-container">
+                          <div class="loading-container--absolute">
                               <sp-progress-circle
                                   label="Loading translation project"
                                   indeterminate
@@ -589,23 +676,42 @@ class MasTranslationEditor extends LitElement {
                           </div>
                       `
                     : html`<div class="form-field general-info">
-                    ${
-                        this.isProjectReadonly
-                            ? html`<div class="metadata-info">
-                                  <h2>Metadata</h2>
-                                  <sp-textfield readonly value="${metadataInfo}"></sp-textfield>
-                              </div>`
-                            : nothing
-                    }
                     <h2>General info</h2>
-                    <sp-field-label for="title" required>Title</sp-field-label>
-                    <sp-textfield
-                        id="title"
-                        data-field="title"
-                        value="${this.translationProject?.getFieldValue('title') || ''}"
-                        ?readonly=${this.isProjectReadonly}
-                        @input=${this.#handleFragmentUpdate}
-                    ></sp-textfield>
+                    <div class="general-info-columns">
+                        <div class="general-info-col">
+                            <sp-field-label for="title" required>Title</sp-field-label>
+                            ${
+                                this.isProjectReadonly
+                                    ? html`<span id="title">${this.translationProject?.getFieldValue('title') || ''}</span>`
+                                    : html`<sp-textfield
+                                          id="title"
+                                          data-field="title"
+                                          value="${this.translationProject?.getFieldValue('title') || ''}"
+                                          @input=${this.#handleFragmentUpdate}
+                                      ></sp-textfield>`
+                            }
+                        </div>
+                        <div class="general-info-col">
+                            <sp-field-label for="projectType" required>Project Type</sp-field-label>
+                            ${
+                                this.isProjectReadonly
+                                    ? html`<span id="projectType"
+                                          >${Store.translationProjects.projectType.value === 'rollout'
+                                              ? 'Rollout'
+                                              : 'Translation'}</span
+                                      >`
+                                    : html`<sp-radio-group
+                                          id="projectType"
+                                          name="projectType"
+                                          .selected=${Store.translationProjects.projectType.value}
+                                          @change=${this.#handleProjectTypeChange}
+                                      >
+                                          <sp-radio value="translation">Translation</sp-radio>
+                                          <sp-radio value="rollout">Rollout</sp-radio>
+                                      </sp-radio-group>`
+                            }
+                        </div>
+                    </div>
                 </div>
                 ${
                     this.showLangSelectedEmptyState
@@ -621,7 +727,13 @@ class MasTranslationEditor extends LitElement {
                                               @sp-opened=${this.#openAddLanguagesOverlay}
                                           >
                                               ${this.renderAddLanguagesDialog()}
-                                              <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
+                                              <sp-button
+                                                  slot="trigger"
+                                                  variant="secondary"
+                                                  size="xl"
+                                                  icon-only
+                                                  class="ghost-button"
+                                              >
                                                   <sp-icon-add size="xxl" slot="icon" label="Add Languages"></sp-icon-add>
                                               </sp-button>
                                           </overlay-trigger>
@@ -633,7 +745,10 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                           `
-                        : html`<div class="form-field selected-langs">
+                        : html`<div
+                              class="form-field selected-langs"
+                              @click=${() => (this.isSelectedLangsOpen = !this.isSelectedLangsOpen)}
+                          >
                               <div class="selected-langs-header">
                                   <h2>
                                       Selected languages
@@ -650,11 +765,7 @@ class MasTranslationEditor extends LitElement {
                                                 </sp-action-button>
                                             </overlay-trigger>`
                                           : nothing}
-                                      <sp-button
-                                          icon-only
-                                          class="toggle-btn"
-                                          @click=${() => (this.isSelectedLangsOpen = !this.isSelectedLangsOpen)}
-                                      >
+                                      <sp-button icon-only class="toggle-btn ghost-button">
                                           <sp-icon-chevron-down
                                               slot="icon"
                                               label="${this.isSelectedLangsOpen ? 'Close' : 'Open'}"
@@ -681,7 +792,13 @@ class MasTranslationEditor extends LitElement {
                                               @sp-opened=${this.#openAddItemsOverlay}
                                           >
                                               ${this.renderAddItemsDialog()}
-                                              <sp-button slot="trigger" variant="secondary" size="xl" icon-only>
+                                              <sp-button
+                                                  slot="trigger"
+                                                  variant="secondary"
+                                                  size="xl"
+                                                  icon-only
+                                                  class="ghost-button"
+                                              >
                                                   <sp-icon-add size="xxl" slot="icon" label="Add Items"></sp-icon-add>
                                               </sp-button>
                                           </overlay-trigger>
@@ -693,7 +810,7 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                           `
-                        : html`<div class="form-field selected-items">
+                        : html`<div class="form-field selected-items" @click=${this.#toggleSelectedItemsOpen}>
                               <div class="selected-items-header">
                                   <h2>
                                       Selected items
@@ -710,11 +827,7 @@ class MasTranslationEditor extends LitElement {
                                                 </sp-action-button>
                                             </overlay-trigger>`
                                           : nothing}
-                                      <sp-button
-                                          icon-only
-                                          class="toggle-btn"
-                                          @click=${() => (this.isSelectedItemsOpen = !this.isSelectedItemsOpen)}
-                                      >
+                                      <sp-button icon-only class="toggle-btn ghost-button">
                                           <sp-icon-chevron-down
                                               slot="icon"
                                               .label=${this.isSelectedItemsOpen ? 'Close' : 'Open'}

@@ -1,3 +1,5 @@
+import { PATH_TOKENS } from './utils/paths.js';
+
 const COUNTRY_DATA = {
     AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
     AR: { name: 'Argentina', flag: '🇦🇷' },
@@ -130,8 +132,7 @@ const ACOM = [
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'HK' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const CCD = [
@@ -193,7 +194,7 @@ const CCD = [
 const EXPRESS = [
     { lang: 'da', country: 'DK' },
     { lang: 'de', country: 'DE', regions: ['AT', 'CH', 'LU'] },
-    { lang: 'en', country: 'GB', regions: ['IN'] },
+    { lang: 'en', country: 'GB' },
     {
         lang: 'en',
         country: 'US',
@@ -207,6 +208,7 @@ const EXPRESS = [
             'ID',
             'IE',
             'IL',
+            'IN',
             'KW',
             'LU',
             'MY',
@@ -347,6 +349,8 @@ const COMMERCE = [
 
 const DEFAULT_LOCALES = {
     acom: ACOM,
+    'acom-cc': ACOM,
+    'acom-dc': ACOM,
     nala: ACOM,
     sandbox: ACOM,
     ccd: CCD,
@@ -396,7 +400,7 @@ const LANG_TO_LANGUAGE = {
 
 const regionLocalesCache = {};
 
-const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
+export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 
 /**
  * Get locale object from locale code
@@ -505,6 +509,27 @@ export function getRegionLocales(surface, localeCode, includeDefault) {
         regionLocalesCache[cacheKey] = regionLocales;
     }
     return regionLocalesCache[cacheKey];
+}
+
+/**
+ * Whether a variation’s path locale belongs to the same default-locale “family” as the selected
+ * locale (base locale plus regional variants for the surface). Used when filtering fragment references
+ * in the studio so locale/grouped lists stay aligned with {@link getRegionLocales}.
+ *
+ * @param {string} surface - e.g. 'acom'
+ * @param {string} selectedLocale - Locale segment to match (e.g. 'en_US')
+ * @param {string} variationPath - Full AEM path of the variation
+ * @returns {boolean}
+ */
+export function isVariationPathInParentLocaleFamily(surface, selectedLocale, variationPath) {
+    if (!surface || !variationPath) return false;
+    const selectedLangAndCountry = getLocaleByCode(selectedLocale);
+    if (!selectedLangAndCountry) return false;
+    const regionLocales = getRegionLocales(surface, selectedLocale);
+    const pathMatch = variationPath.match(PATH_TOKENS);
+    const variationLocaleCode = pathMatch?.groups?.parsedLocale ?? null;
+    if (!variationLocaleCode) return false;
+    return [selectedLangAndCountry, ...regionLocales].some((localeEntry) => variationLocaleCode === getLocaleCode(localeEntry));
 }
 
 export function getLanguageName(lang) {

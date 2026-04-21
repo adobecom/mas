@@ -1,6 +1,7 @@
 import { html, css, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
+import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 
@@ -18,8 +19,10 @@ const EMPTY_TAGS = {
     market_segments: [],
     customer_segment: [],
     product_code: [],
+    pzn: [], // personalization namespace from AEM
     status: [],
     'studio/content-type': [],
+    custom: [],
     variant: [],
 };
 
@@ -58,7 +61,10 @@ class MasFilterPanel extends LitElement {
         }
     `;
 
-    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users]);
+    reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users, Store.filters]);
+
+    /** @type {() => void} */
+    #onRouterChange = () => this.#initializeTagFilters();
 
     constructor() {
         super();
@@ -73,12 +79,12 @@ class MasFilterPanel extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        router.addEventListener('change', () => this.#initializeTagFilters());
+        router.addEventListener('change', this.#onRouterChange);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        router.removeEventListener('change', () => this.#initializeTagFilters());
+        router.removeEventListener('change', this.#onRouterChange);
     }
 
     #initializeTagFilters() {
@@ -105,10 +111,15 @@ class MasFilterPanel extends LitElement {
                 }
                 // Get values after the type
                 const values = parts.slice(typeIndex);
-                // Construct the full path
-                const fullPath = `/content/cq:tags/mas/${tagPath}`;
-                // Get the title from the last value
-                const title = values.length > 0 ? values[values.length - 1].toUpperCase() : '';
+                let fullPath = `/content/cq:tags/mas/${tagPath}`;
+                let title = values.length > 0 ? values[values.length - 1].toUpperCase() : '';
+                // For product_code, collapse child selections
+                // back to the parent product for display in the filter chips
+                if (type === 'product_code' && values.length > 1) {
+                    const parentValue = values[0];
+                    fullPath = `/content/cq:tags/mas/${type}/${parentValue}`;
+                    title = parentValue.toUpperCase();
+                }
 
                 const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
                 picker?.allTags.then?.(() => {
@@ -132,24 +143,83 @@ class MasFilterPanel extends LitElement {
                     }
                 });
 
+                const nextTag = {
+                    path: fullPath,
+                    title: selectedTagTitle || title,
+                    top: type,
+                };
+
+                const existingTags = acc[type] || [];
+                const alreadyExists = existingTags.some((tag) => tag.path === nextTag.path);
+
                 return {
                     ...acc,
-                    [type]: [
-                        ...(acc[type] || []),
-                        {
-                            path: fullPath,
-                            title: selectedTagTitle || title,
-                            top: type,
-                        },
-                    ],
+                    [type]: alreadyExists ? existingTags : [...existingTags, nextTag],
                 };
             },
             { ...EMPTY_TAGS },
         );
+        const hasNonCountryPzn = (this.tagsByType.pzn || []).some((t) => !isPznCountryTagPath(t.path));
+        if (hasNonCountryPzn) {
+            Store.filters.set((prev) => ({
+                ...prev,
+                personalizationFilterEnabled: true,
+            }));
+        }
+    }
+
+    get #personalizationFilterEnabled() {
+        return Store.filters.get().personalizationFilterEnabled === true;
+    }
+
+    #onPersonalizationToggleEnabled(e) {
+        const enabled = e.detail.enabled;
+        Store.filters.set((prev) => ({
+            ...prev,
+            personalizationFilterEnabled: enabled,
+        }));
+        if (!enabled) {
+            const pznTags = this.tagsByType.pzn || [];
+            this.tagsByType = {
+                ...this.tagsByType,
+                pzn: pznTags.filter((t) => isPznCountryTagPath(t.path)),
+            };
+            this.#updateFiltersParams();
+        }
+    }
+
+    #expandProductCodeTags(tags) {
+        const picker = this.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+        const allTags = picker?.allTags;
+
+        if (!picker || !allTags || allTags instanceof Promise) {
+            return tags;
+        }
+
+        const rootPath = `${picker.namespace}/${picker.top}/`;
+        const availableTags = [...allTags.values()].filter((tag) => tag.path.startsWith(rootPath));
+
+        return tags.flatMap((tag) => {
+            const descendants = availableTags.filter((candidate) => candidate.path.startsWith(`${tag.path}/`));
+
+            const leafDescendants = descendants.filter(
+                (candidate) =>
+                    !availableTags.some(
+                        (other) => other.path !== candidate.path && other.path.startsWith(`${candidate.path}/`),
+                    ),
+            );
+
+            return leafDescendants.length ? leafDescendants : [tag];
+        });
     }
 
     #updateFiltersParams() {
-        const tagValues = Object.values(this.tagsByType ?? EMPTY_TAGS)
+        const expandedTagsByType = {
+            ...this.tagsByType,
+            product_code: this.#expandProductCodeTags(this.tagsByType.product_code || []),
+        };
+
+        const tagValues = Object.values(expandedTagsByType)
             .flat()
             .map((tag) => pathToTagId(tag.path))
             .filter(Boolean);
@@ -183,6 +253,7 @@ class MasFilterPanel extends LitElement {
         Store.filters.set((prev) => ({
             ...prev,
             tags: '',
+            personalizationFilterEnabled: false,
         }));
 
         Store.createdByUsers.set([]);
@@ -302,6 +373,29 @@ class MasFilterPanel extends LitElement {
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType['studio/content-type'])}
                     @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="custom"
+                    label="Tag"
+                    multiple
+                    selection="checkbox"
+                    value=${pathsToTagIds(this.tagsByType.custom)}
+                    @change=${this.#handleTagChange}
+                ></aem-tag-picker-field>
+
+                <aem-tag-picker-field
+                    namespace="/content/cq:tags/mas"
+                    top="pzn"
+                    label="Personalization"
+                    multiple
+                    selection="checkbox"
+                    personalization-toggle
+                    .personalizationEnabled=${this.#personalizationFilterEnabled}
+                    value=${pathsToTagIds(this.tagsByType.pzn)}
+                    @change=${this.#handleTagChange}
+                    @personalization-toggle-change=${this.#onPersonalizationToggleEnabled}
                 ></aem-tag-picker-field>
 
                 <mas-user-picker

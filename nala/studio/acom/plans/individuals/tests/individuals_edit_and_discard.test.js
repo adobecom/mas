@@ -249,7 +249,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-2: Remove badge field', async () => {
             await expect(await editor.badge).toBeVisible();
             await expect(await editor.badge).toHaveText(data.badge.original);
-            await editor.badge.fill('');
+            await editor.badge.click();
+            await page.waitForTimeout(500);
+            await page.keyboard.press('ControlOrMeta+A');
+            await page.keyboard.press('Backspace');
+            await page.waitForTimeout(1000);
+            await expect(await editor.badge).toHaveText('');
         });
 
         await test.step('step-3: Validate badge field is removed', async () => {
@@ -1183,6 +1188,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
+            await studio.waitForCardsLoaded();
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
             await expect(await individualsCard).toHaveAttribute('variant', 'plans');
@@ -1337,6 +1343,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
+            await studio.waitForCardsLoaded();
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
             await expect(await individualsCard).toHaveAttribute('variant', 'plans');
@@ -1376,8 +1383,8 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForTimeout(2000);
             await ost.nextButton.click();
             await ost.promoField.fill(data.promo.updated);
-            expect(await ost.promoLabel).toContainText(data.promo.updated);
-            await expect(await ost.promoField).toHaveValue(data.promo.updated);
+            await expect(ost.promoLabel).toContainText(data.promo.updated);
+            await expect(ost.promoField).toHaveValue(data.promo.updated);
             await ost.checkoutLinkUse.click();
         });
 
@@ -1403,7 +1410,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await ost.promoLabel).toBeVisible();
 
             await ost.promoField.fill('');
-            expect(await ost.promoLabel).toContainText('no promo');
+            await expect(ost.promoLabel).toContainText('no promo');
             await expect(await ost.promoField).toHaveValue('');
             await ost.checkoutLinkUse.click();
         });

@@ -47,11 +47,8 @@ export default class TranslationsPage {
     }
 
     async waitForListToLoad(timeout = 15000) {
-        await this.loadingIndicator.waitFor({ state: 'hidden', timeout }).catch(() => {});
-        await Promise.race([
-            this.translationTable.waitFor({ state: 'visible', timeout }),
-            this.emptyState.waitFor({ state: 'visible', timeout }),
-        ]);
+        const dataRow = this.translationTable.locator('sp-table-row:not(.skeleton-row)').first();
+        await dataRow.or(this.emptyState).waitFor({ state: 'visible', timeout });
     }
 
     async getSentOnColumnTexts() {
@@ -65,7 +62,7 @@ export default class TranslationsPage {
         return texts;
     }
 
-    static parseSentOnText(text) {
+    parseSentOnText(text) {
         const t = (text || '').trim();
         if (!t || t === 'N/A') return 0;
         const d = new Date(t);

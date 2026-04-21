@@ -10,8 +10,8 @@
         "io/studio"
     ],
     "scripts": {
-        "lint": "eslint --fix",
-        "format": "prettier . --write",
+        "lint": "eslint --fix web-components studio",
+        "format": "prettier web-components studio --write",
         "test": "npm run test:ci --workspaces",
         "build": "npm run build --workspaces --if-present",
         "studio": "cd studio && npm run proxy & aem up",
@@ -46,6 +46,7 @@
         "@spectrum-web-components/icon": "^1.0.0",
         "@spectrum-web-components/icons": "^1.0.0",
         "@spectrum-web-components/icons-workflow": "^1.0.0",
+        "@spectrum-web-components/illustrated-message": "^1.11.2",
         "@spectrum-web-components/link": "^1.0.0",
         "@spectrum-web-components/menu": "^1.0.0",
         "@spectrum-web-components/number-field": "^1.0.0",
@@ -68,7 +69,6 @@
         "@spectrum-web-components/tooltip": "^1.0.0",
         "@spectrum-web-components/top-nav": "^1.0.0",
         "@spectrum-web-components/tray": "^1.0.0",
-        "axios": "^1.13.5",
         "prosemirror-commands": "^1.6.1",
         "prosemirror-example-setup": "^1.2.3",
         "prosemirror-keymap": "^1.2.2",

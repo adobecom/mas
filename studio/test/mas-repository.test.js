@@ -1698,6 +1698,11 @@ describe('MasRepository dictionary helpers', () => {
         it('treats undefined query and undefined variants as no-op', () => {
             expect(buildVariantAugmentedQueries(undefined, undefined)).to.deep.equal(['']);
         });
+
+        it('drops nullish variant entries and falls back to the bare query when all are dropped', () => {
+            expect(buildVariantAugmentedQueries('photoshop', [null, undefined])).to.deep.equal(['photoshop']);
+            expect(buildVariantAugmentedQueries('photoshop', ['ccd-slice', null])).to.deep.equal(['ccd-slice photoshop']);
+        });
     });
 
     describe('fillPage pagination', () => {

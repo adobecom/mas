@@ -100,7 +100,8 @@ export function buildVariantAugmentedQueries(query, variants) {
     if (!variants || variants.length === 0) {
         return [trimmedQuery];
     }
-    return variants.filter(Boolean).map((variant) => (trimmedQuery ? `${variant} ${trimmedQuery}` : variant));
+    const augmented = variants.filter(Boolean).map((variant) => (trimmedQuery ? `${variant} ${trimmedQuery}` : variant));
+    return augmented.length > 0 ? augmented : [trimmedQuery];
 }
 
 export class MasRepository extends LitElement {

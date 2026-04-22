@@ -1,64 +1,52 @@
-const { fetchOdin, fetchFragmentByPath } = require('../common.js');
-const { isAlreadyPublished } = require('./skip-check.js');
+const { fetchOdin } = require('../common.js');
 
 const PUBLISH_URI = '/adobe/sites/cf/fragments/publish';
-const DEFAULT_MAX_RETRIES = 3;
 const WORKFLOW_MODEL_ID = '/var/workflow/models/scheduled_activation_with_references';
+const DEFAULT_MAX_RETRIES = 3;
 
-async function publishPath({ path, odinEndpoint, authToken, logger, maxRetries = DEFAULT_MAX_RETRIES }) {
+const WORKFLOW_STATUS_MAP = {
+    SUCCESS_TRIGGERED: { status: 'published' },
+    ERROR_NOT_FOUND: { status: 'failed', reason: 'not-found' },
+    ERROR_REFERENCED: { status: 'failed', reason: 'error-referenced' },
+    ERROR_FORBIDDEN: { status: 'failed', reason: 'error-forbidden' },
+    ERROR_INVALID: { status: 'failed', reason: 'error-invalid' },
+};
+
+async function publishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries = DEFAULT_MAX_RETRIES }) {
     try {
-        return await doPublishPath({ path, odinEndpoint, authToken, logger, maxRetries });
+        return await doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries });
     } catch (error) {
-        logger.error(JSON.stringify({ event: 'publish-unexpected-error', path, error: error.message || String(error) }));
-        return { path, status: 'failed', reason: 'unexpected-error', retries: 0 };
+        const message = error.message || String(error);
+        logger.error(JSON.stringify({ event: 'publish-unexpected-error', chunkSize: chunk.length, error: message }));
+        return chunk.map((path) => ({ path, status: 'failed', reason: 'unexpected-error', retries: 0 }));
     }
 }
 
-async function doPublishPath({ path, odinEndpoint, authToken, logger, maxRetries }) {
-    logger.info(JSON.stringify({ event: 'fetch-metadata', path }));
-    const { fragment, status, etag } = await fetchFragmentByPath(odinEndpoint, path, authToken);
+async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries }) {
+    logger.info(JSON.stringify({ event: 'publish-start', chunkSize: chunk.length }));
 
-    if (status === 404 || !fragment) {
-        logger.error(JSON.stringify({ event: 'fragment-not-found', path, status }));
-        return { path, status: 'failed', reason: 'not-found', httpStatus: status, retries: 0 };
-    }
-
-    const decision = isAlreadyPublished(fragment);
-    if (decision.skip) {
-        logger.info(
-            JSON.stringify({
-                event: 'skip',
-                path,
-                reason: decision.reason,
-                publishedAt: decision.publishedAt,
-                modifiedAt: decision.modifiedAt,
-            }),
-        );
-        return { path, status: 'skipped', reason: decision.reason, retries: 0 };
-    }
-
-    logger.info(JSON.stringify({ event: 'publish-start', path, fragmentId: fragment.id }));
     let lastError = null;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            await fetchOdin(odinEndpoint, PUBLISH_URI, authToken, {
+            const response = await fetchOdin(odinEndpoint, PUBLISH_URI, authToken, {
                 method: 'POST',
                 contentType: 'application/json',
-                etag,
                 body: JSON.stringify({
-                    paths: [fragment.path],
+                    paths: chunk,
                     filterReferencesByStatus: ['DRAFT', 'UNPUBLISHED'],
                     workflowModelId: WORKFLOW_MODEL_ID,
                 }),
             });
-            logger.info(JSON.stringify({ event: 'publish-success', path, retries: attempt - 1 }));
-            return { path, status: 'published', retries: attempt - 1 };
+            const data = await parseResponse(response);
+            const retries = attempt - 1;
+            logger.info(JSON.stringify({ event: 'publish-success', chunkSize: chunk.length, retries }));
+            return mapItemsToResults(chunk, data, retries);
         } catch (error) {
             lastError = error.message || String(error);
             const statusMatch = lastError.match(/status (\d{3})/);
             const httpStatus = statusMatch ? Number(statusMatch[1]) : 0;
             const retryable = httpStatus === 0 || httpStatus === 429 || httpStatus >= 500;
-            logger.warn(JSON.stringify({ event: 'retry', path, attempt, error: lastError, retryable }));
+            logger.warn(JSON.stringify({ event: 'retry', attempt, chunkSize: chunk.length, error: lastError, retryable }));
             if (!retryable) break;
             if (attempt < maxRetries) {
                 const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
@@ -67,8 +55,36 @@ async function doPublishPath({ path, odinEndpoint, authToken, logger, maxRetries
         }
     }
 
-    logger.error(JSON.stringify({ event: 'publish-failed', path, error: lastError, retries: maxRetries - 1 }));
-    return { path, status: 'failed', reason: lastError, retries: maxRetries - 1 };
+    const retries = maxRetries - 1;
+    logger.error(JSON.stringify({ event: 'publish-failed', chunkSize: chunk.length, error: lastError, retries }));
+    return chunk.map((path) => ({ path, status: 'failed', reason: lastError, retries }));
 }
 
-module.exports = { publishPath };
+async function parseResponse(response) {
+    if (!response || typeof response.json !== 'function') return {};
+    try {
+        return await response.json();
+    } catch (error) {
+        return {};
+    }
+}
+
+function mapItemsToResults(chunk, data, retries) {
+    const workflowInstanceId = data?.workflowInstanceId;
+    const itemsByPath = new Map();
+    if (Array.isArray(data?.items)) {
+        for (const item of data.items) {
+            if (item?.path) itemsByPath.set(item.path, item);
+        }
+    }
+    return chunk.map((path) => {
+        const item = itemsByPath.get(path);
+        if (!item) {
+            return { path, status: 'failed', reason: 'no-response-item', retries, workflowInstanceId };
+        }
+        const mapped = WORKFLOW_STATUS_MAP[item.status] || { status: 'failed', reason: 'unknown-status' };
+        return { path, ...mapped, retries, workflowInstanceId };
+    });
+}
+
+module.exports = { publishChunk };

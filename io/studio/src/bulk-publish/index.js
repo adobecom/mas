@@ -3,7 +3,7 @@ const { Ims } = require('@adobe/aio-lib-ims');
 const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils.js');
 const { processBatchWithConcurrency } = require('../common.js');
 const { resolvePaths } = require('./resolver.js');
-const { publishPath } = require('./publisher.js');
+const { publishChunk } = require('./publisher.js');
 const { enqueue } = require('./queue.js');
 
 const logger = Core.Logger('bulk-publish', { level: 'info' });
@@ -12,7 +12,9 @@ const MAX_CONCURRENCY = 20;
 const MAX_PATHS = 500;
 const MAX_LOCALES = 50;
 const MAX_RESOLVED = 5000;
+const MAX_CHUNK_SIZE = 50;
 const PATH_PREFIX = '/content/dam/mas/';
+const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
 
 async function main(params) {
@@ -23,8 +25,13 @@ async function run(params) {
     try {
         logger.info(JSON.stringify({ event: 'run-start' }));
 
+        const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
+        if (!odinEndpoint) {
+            return errorResponse(400, 'missing parameter(s) [aemOdinEndpoint|odinEndpoint]', logger);
+        }
+
         const requiredHeaders = ['Authorization'];
-        const requiredParams = ['paths', 'odinEndpoint'];
+        const requiredParams = ['paths'];
         const missing = checkMissingRequestInputs(params, requiredParams, requiredHeaders);
         if (missing) {
             return errorResponse(400, missing, logger);
@@ -61,17 +68,14 @@ async function run(params) {
             return errorResponse(400, `Resolved ${resolved.length} paths exceeds maximum of ${MAX_RESOLVED}`, logger);
         }
 
+        const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
         const concurrency = Math.min(Number(params.concurrencyLimit) || DEFAULT_CONCURRENCY, MAX_CONCURRENCY);
-        logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, concurrency }));
+        logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length, concurrency }));
 
-        const details = await processBatchWithConcurrency(resolved, concurrency, (path) =>
-            publishPath({
-                path,
-                odinEndpoint: params.odinEndpoint,
-                authToken,
-                logger,
-            }),
+        const chunkResults = await processBatchWithConcurrency(chunks, concurrency, (chunk) =>
+            publishOneChunk(chunk, odinEndpoint, authToken),
         );
+        const details = chunkResults.flat();
 
         const summary = buildSummary(details);
         logger.info(JSON.stringify({ event: 'run-complete', summary }));
@@ -84,6 +88,38 @@ async function run(params) {
         logger.error(JSON.stringify({ event: 'run-error', error: error.message || String(error) }));
         return errorResponse(500, 'Internal server error', logger);
     }
+}
+
+async function publishOneChunk({ locale, paths }, odinEndpoint, authToken) {
+    logger.info(JSON.stringify({ event: 'chunk-start', locale, size: paths.length }));
+    const results = await publishChunk({ chunk: paths, odinEndpoint, authToken, logger });
+    const published = results.filter((r) => r.status === STATUS.PUBLISHED).length;
+    const failed = results.filter((r) => r.status === STATUS.FAILED).length;
+    logger.info(JSON.stringify({ event: 'chunk-result', locale, size: paths.length, published, failed }));
+    return results;
+}
+
+function extractLocale(path) {
+    if (typeof path !== 'string') return 'unknown';
+    const match = path.match(LOCALE_REGEX);
+    return match?.groups?.locale || 'unknown';
+}
+
+function groupAndChunk(paths, maxChunkSize) {
+    const groups = new Map();
+    for (const path of paths) {
+        const locale = extractLocale(path);
+        const list = groups.get(locale);
+        if (list) list.push(path);
+        else groups.set(locale, [path]);
+    }
+    const chunks = [];
+    for (const [locale, list] of groups) {
+        for (let i = 0; i < list.length; i += maxChunkSize) {
+            chunks.push({ locale, paths: list.slice(i, i + maxChunkSize) });
+        }
+    }
+    return chunks;
 }
 
 function buildSummary(details) {

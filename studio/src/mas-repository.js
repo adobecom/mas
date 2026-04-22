@@ -809,7 +809,7 @@ export class MasRepository extends LitElement {
                 if ((!result || Object.keys(result).length === 0) && locale !== 'en_US') {
                     const fallbackContext = {
                         preview: {
-                            url: ODIN_PREVIEW_FRAGMENTS_URL,
+                            url: `${ODIN_PREVIEW_FRAGMENTS_URL}/byPath`,
                         },
                         locale: 'en_US',
                         surface: this.search.value.path,

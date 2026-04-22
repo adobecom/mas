@@ -10,18 +10,16 @@
  *       [--model-ids L2NvbmYvbWFzL...,L2NvbmYvbWFzL...]   # comma-separated, default: card + collection + dict-entry + dict-index
  */
 
-import { createHeaders } from './common.js';
+import {
+    CARD_MODEL_ID,
+    COLLECTION_MODEL_ID,
+    DICTIONARY_ENTRY_MODEL_ID,
+    DICTIONARY_INDEX_MODEL_ID,
+    createHeaders,
+    parseArgs,
+} from './common.js';
 
-const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
-const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
-const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
-const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
-
-const args = process.argv.slice(2);
-const getFlag = (name) => {
-    const idx = args.indexOf(name);
-    return idx >= 0 && idx < args.length - 1 ? args[idx + 1] : null;
-};
+const { getFlag } = parseArgs(process.argv);
 
 const authorHost = getFlag('--author-host');
 const folder = getFlag('--folder');

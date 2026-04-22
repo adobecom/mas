@@ -12,12 +12,9 @@
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { parseArgs } from './common.js';
 
-const args = process.argv.slice(2);
-const getFlag = (name) => {
-    const idx = args.indexOf(name);
-    return idx >= 0 && idx < args.length - 1 ? args[idx + 1] : null;
-};
+const { getFlag } = parseArgs(process.argv);
 
 const inFile = getFlag('--in');
 const outDir = getFlag('--out-dir');

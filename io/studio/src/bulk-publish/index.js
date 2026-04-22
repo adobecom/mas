@@ -93,9 +93,15 @@ async function run(params) {
 async function publishOneChunk({ locale, paths }, odinEndpoint, authToken) {
     logger.info(JSON.stringify({ event: 'chunk-start', locale, size: paths.length }));
     const results = await publishChunk({ chunk: paths, odinEndpoint, authToken, logger });
-    const published = results.filter((r) => r.status === STATUS.PUBLISHED).length;
-    const failed = results.filter((r) => r.status === STATUS.FAILED).length;
-    logger.info(JSON.stringify({ event: 'chunk-result', locale, size: paths.length, published, failed }));
+    const counts = results.reduce(
+        (acc, r) => {
+            if (r.status === STATUS.PUBLISHED) acc.published += 1;
+            else if (r.status === STATUS.FAILED) acc.failed += 1;
+            return acc;
+        },
+        { published: 0, failed: 0 },
+    );
+    logger.info(JSON.stringify({ event: 'chunk-result', locale, size: paths.length, ...counts }));
     return results;
 }
 

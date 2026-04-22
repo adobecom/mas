@@ -24,28 +24,22 @@
  */
 
 import { writeFile } from 'node:fs/promises';
-import { createHeaders } from './common.js';
+import {
+    CARD_MODEL_ID,
+    COLLECTION_MODEL_ID,
+    DICTIONARY_ENTRY_MODEL_ID,
+    DICTIONARY_INDEX_MODEL_ID,
+    createHeaders,
+    parseArgs,
+} from './common.js';
 import { getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
 
-// Values mirrored from studio/src/constants.js (:135-136 dictionary, :154-155 card/collection)
-// to avoid cross-directory browser-bundle coupling.
-const CARD_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
-const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
-const DICTIONARY_ENTRY_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25uYXJ5';
-const DICTIONARY_INDEX_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk';
 const DICTIONARY_MODEL_IDS = new Set([DICTIONARY_ENTRY_MODEL_ID, DICTIONARY_INDEX_MODEL_ID]);
 const ACOM_EXCLUDE_LOCALE = 'en_US';
 const ACOM_EN_US_SEGMENT = '/acom/en_US/';
 const ALLOWED_SURFACE_PREFIXES = ['/content/dam/mas/express/', '/content/dam/mas/acom/'];
 
-const args = process.argv.slice(2);
-const getFlag = (name) => {
-    const withEquals = args.find((a) => a.startsWith(`${name}=`));
-    if (withEquals) return withEquals.slice(name.length + 1);
-    const idx = args.indexOf(name);
-    return idx >= 0 && idx < args.length - 1 ? args[idx + 1] : null;
-};
-const hasFlag = (name) => args.includes(name);
+const { getFlag, hasFlag } = parseArgs(process.argv);
 
 const authorHost = getFlag('--author-host');
 const outFile = getFlag('--out') || '/tmp/bulk-publish-paths.txt';
@@ -114,22 +108,23 @@ function enforceAllowedPrefixes(paths) {
 async function discoverSurface(surface, modelIds, variantFilter) {
     const allLocales = getSurfaceLocales(surface).map(getLocaleCode);
     const locales = surface === 'acom' ? allLocales.filter((l) => l !== ACOM_EXCLUDE_LOCALE) : allLocales;
-    const byLocale = new Map();
 
-    for (const locale of locales) {
-        const folder = `/content/dam/mas/${surface}/${locale}`;
-        const hits = [];
-        for await (const batch of searchByPathAndModels(folder, modelIds)) {
-            for (const fragment of batch) {
-                if (!fragment?.path) continue;
-                if (variantFilter && fragment.model?.id === CARD_MODEL_ID && !variantFilter(fragment)) continue;
-                hits.push({ path: fragment.path, modelId: fragment.model?.id });
+    const entries = await Promise.all(
+        locales.map(async (locale) => {
+            const folder = `/content/dam/mas/${surface}/${locale}`;
+            const hits = [];
+            for await (const batch of searchByPathAndModels(folder, modelIds)) {
+                for (const fragment of batch) {
+                    if (!fragment?.path) continue;
+                    if (variantFilter && fragment.model?.id === CARD_MODEL_ID && !variantFilter(fragment)) continue;
+                    hits.push({ path: fragment.path, modelId: fragment.model?.id });
+                }
             }
-        }
-        byLocale.set(locale, hits);
-        console.log(`  ${surface}/${locale.padEnd(6)}  ${String(hits.length).padStart(5)} fragments`);
-    }
-    return byLocale;
+            console.log(`  ${surface}/${locale.padEnd(6)}  ${String(hits.length).padStart(5)} fragments`);
+            return [locale, hits];
+        }),
+    );
+    return new Map(entries);
 }
 
 function countsByModel(hits) {

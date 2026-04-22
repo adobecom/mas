@@ -1,5 +1,5 @@
 {
-    "edgeworker-version": "1",
+    "edgeworker-version": "2.0.0",
     "description": "convert 429 to 529 to serve stale",
     "config": {
         "logging": {

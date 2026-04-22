@@ -842,7 +842,7 @@ export class MasRepository extends LitElement {
     async fetchDictionary(abortController, locale = Store.localeOrRegion()) {
         const context = {
             preview: {
-                url: ODIN_PREVIEW_FRAGMENTS_URL,
+                url: `${ODIN_PREVIEW_FRAGMENTS_URL}/byPath`,
             },
             locale,
             surface: this.search.value.path,

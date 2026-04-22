@@ -867,6 +867,46 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('invalidates cache and re-searches when only the variant tag changes', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/plans' } };
+            const cursor = createMockCursor([[createFragment({ id: 'fresh-fragment' })]]);
+            const searchStub = sandbox.stub().resolves(cursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ value: { id: 'cached-fragment' } }]),
+                getMeta: sandbox.stub().callsFake((key) => {
+                    if (key === 'path') return 'acom';
+                    if (key === 'query') return '';
+                    if (key === 'locale') return 'en_US';
+                    if (key === 'tags') return 'mas:variant/catalog';
+                    if (key === 'createdBy') return '';
+                    if (key === 'personalizationFilterEnabled') return false;
+                    return null;
+                }),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('searches by UUID when query is a valid UUID', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };

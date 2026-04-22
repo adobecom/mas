@@ -17,15 +17,9 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { parseArgs } from './common.js';
 
-const args = process.argv.slice(2);
-const getFlag = (name) => {
-    const withEquals = args.find((a) => a.startsWith(`${name}=`));
-    if (withEquals) return withEquals.slice(name.length + 1);
-    const idx = args.indexOf(name);
-    return idx >= 0 && idx < args.length - 1 ? args[idx + 1] : null;
-};
-const hasFlag = (name) => args.includes(name);
+const { getFlag, hasFlag } = parseArgs(process.argv);
 
 const pathsFile = getFlag('--paths-file');
 const namespace = getFlag('--namespace');

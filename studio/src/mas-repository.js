@@ -809,7 +809,7 @@ export class MasRepository extends LitElement {
                 if ((!result || Object.keys(result).length === 0) && locale !== 'en_US') {
                     const fallbackContext = {
                         preview: {
-                            url: `${ODIN_PREVIEW_FRAGMENTS_URL}/byPath`,
+                            url: ODIN_PREVIEW_FRAGMENTS_URL,
                         },
                         locale: 'en_US',
                         surface: this.search.value.path,
@@ -842,7 +842,7 @@ export class MasRepository extends LitElement {
     async fetchDictionary(abortController, locale = Store.localeOrRegion()) {
         const context = {
             preview: {
-                url: `${ODIN_PREVIEW_FRAGMENTS_URL}/byPath`,
+                url: ODIN_PREVIEW_FRAGMENTS_URL,
             },
             locale,
             surface: this.search.value.path,

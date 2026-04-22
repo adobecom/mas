@@ -36,7 +36,7 @@ async function fetchWithTimeout(url, init = {}, timeoutMs = DEFAULT_TIMEOUT_MS) 
     }
 }
 
-export async function fetchProducts() {
+export async function fetchProducts(options = {}) {
     const response = await fetchWithTimeout(OST_PRODUCTS_URL, {
         headers: getAuthHeaders(),
     });
@@ -46,7 +46,28 @@ export async function fetchProducts() {
     }
     const data = await response.json();
     const productsObj = data.combinedProducts || data;
-    const products = Array.isArray(productsObj) ? productsObj : Object.values(productsObj);
+    let products = Array.isArray(productsObj) ? productsObj : Object.values(productsObj);
+
+    // Client-side filtering mirrors the backend mcp list_products field set
+    // (name / product_code / arrangement_code). Without this, chat-side
+    // recovery calls (see mas-chat.js recoverProductLookup) would render the
+    // full cache as "matches" for any search term.
+    if (options.searchText) {
+        const needle = String(options.searchText).toLowerCase();
+        products = products.filter(
+            (p) =>
+                String(p.name || '')
+                    .toLowerCase()
+                    .includes(needle) ||
+                String(p.product_code || p.code || '')
+                    .toLowerCase()
+                    .includes(needle) ||
+                String(p.arrangement_code || '')
+                    .toLowerCase()
+                    .includes(needle),
+        );
+    }
+
     return { success: true, operation: 'list_products', products, count: products.length };
 }
 

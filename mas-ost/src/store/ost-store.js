@@ -74,7 +74,11 @@ export class OstStore extends EventTarget {
 
     get viewState() {
         if (!this.selectedProduct && !this.flowChosen) return 'welcome';
-        if (this.authoringFlow === 'consult') return 'offers';
+        if (this.authoringFlow === 'consult') {
+            // Consult surface-mode used by AI chat: picking an offer swaps the
+            // whole dialog to a focused detail view with a Use CTA.
+            return this.selectedOffer ? 'offer-detail-focused' : 'offers';
+        }
         if (this.authoringFlow === 'tryBuy' || this.authoringFlow === 'bundle') return 'offers';
         if (!this.selectedOffer) return 'offers';
         return 'configure';
@@ -198,6 +202,11 @@ export class OstStore extends EventTarget {
 
     setProducts(products) {
         this.allProducts = products;
+        if (this.pendingArrangementCode) {
+            const code = this.pendingArrangementCode;
+            this.pendingArrangementCode = null;
+            this.autoSelectProductByArrangementCode(code);
+        }
         this.notify();
     }
 
@@ -311,9 +320,7 @@ export class OstStore extends EventTarget {
         }
 
         if (this.authoringFlow === 'bundle') {
-            const existing = this.selectedOffers.findIndex(
-                (o) => o.offer === offer || o.osi === osi,
-            );
+            const existing = this.selectedOffers.findIndex((o) => o.offer === offer || o.osi === osi);
             if (existing >= 0) {
                 this.selectedOffers.splice(existing, 1);
             } else {
@@ -412,7 +419,8 @@ export class OstStore extends EventTarget {
         this.deepLink = deepLink;
 
         const aosUpdates = {};
-        if (get('arrangement_code')) aosUpdates.arrangementCode = get('arrangement_code');
+        const arrangementCode = get('arrangement_code');
+        if (arrangementCode) aosUpdates.arrangementCode = arrangementCode;
         if (get('commitment')) aosUpdates.commitment = get('commitment');
         if (get('term')) aosUpdates.term = get('term');
         if (get('customerSegment')) aosUpdates.customerSegment = get('customerSegment');
@@ -420,10 +428,29 @@ export class OstStore extends EventTarget {
         if (get('offerType')) aosUpdates.offerType = get('offerType');
         if (Object.keys(aosUpdates).length > 0) {
             this.setAosParams(aosUpdates);
+            // Also auto-select the product if we can find it in the loaded
+            // catalog, so the deeplink lands directly on that product's offers
+            // instead of just filtering the left-panel search.
+            if (arrangementCode) this.autoSelectProductByArrangementCode(arrangementCode);
             return;
         }
+        if (arrangementCode) this.autoSelectProductByArrangementCode(arrangementCode);
 
         this.notify();
+    }
+
+    autoSelectProductByArrangementCode(arrangementCode) {
+        // allProducts is Object.entries(combinedProducts) → array of
+        // [code, productData] tuples. A keyed lookup is cheaper than scanning.
+        const match = this.allProducts?.find((entry) => Array.isArray(entry) && entry[0] === arrangementCode);
+        if (match) {
+            this.setProduct(match[1]);
+        } else {
+            // Catalog not loaded yet — stash the request so setProducts() can
+            // fulfill it once data arrives. Prevents the deeplink from dying
+            // to the applySearchParams / fetchProducts race.
+            this.pendingArrangementCode = arrangementCode;
+        }
     }
 }
 

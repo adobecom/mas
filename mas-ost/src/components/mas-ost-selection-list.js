@@ -20,15 +20,16 @@ export class MasOstSelectionList extends LitElement {
         .selection-slot {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
+            gap: 10px;
+            padding: 12px 14px;
             border: 1px solid var(--spectrum-gray-300);
             border-radius: 8px;
             background: var(--spectrum-gray-50);
             margin-bottom: 8px;
             transition:
                 border-color 0.15s,
-                background 0.15s;
+                background 0.15s,
+                box-shadow 0.15s;
         }
 
         .selection-slot.active {
@@ -36,8 +37,51 @@ export class MasOstSelectionList extends LitElement {
             background: var(--spectrum-blue-100, #e0f2ff);
         }
 
+        /* A slot that already holds an offer — give it a distinct, pronounced
+         * look so users can see at a glance that the slot is locked in, even
+         * when it isn't the currently-targeted slot. Positive (green) accent
+         * mirrors Spectrum's "success" semantic.
+         * Colors are pinned to explicit light-palette hex values so they stay
+         * readable regardless of the ambient Spectrum theme (token resolution
+         * inside a dark theme flips grays into mauve/beige shades that lose
+         * contrast on a saturated green fill). */
         .selection-slot.filled {
-            border-style: solid;
+            border-color: #12805c;
+            border-width: 2px;
+            padding: 11px 13px; /* keep internal dimensions stable despite thicker border */
+            background: #eaf7ee;
+            box-shadow: 0 1px 3px rgba(18, 128, 92, 0.12);
+        }
+
+        .selection-slot.filled .slot-label {
+            color: #0d6245;
+        }
+
+        .selection-slot.filled .slot-value {
+            font-weight: 600;
+            color: #1d1d1d;
+        }
+
+        .selection-slot.filled.active {
+            /* Slot is both targeted AND filled — layer both cues: blue ring
+             * on the outside, green fill inside, via box-shadow. */
+            border-color: #12805c;
+            box-shadow: 0 0 0 2px #378ef0;
+        }
+
+        .slot-check {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: var(--spectrum-positive-visual-color, #12805c);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
         }
 
         .selection-slot.clickable {
@@ -50,6 +94,10 @@ export class MasOstSelectionList extends LitElement {
 
         .selection-slot.active.clickable:hover {
             background: var(--spectrum-blue-100, #e0f2ff);
+        }
+
+        .selection-slot.filled.clickable:hover {
+            background: #d5efdc;
         }
 
         .slot-content {
@@ -150,9 +198,13 @@ export class MasOstSelectionList extends LitElement {
 
     renderConfirmBar() {
         if (!store.pendingFlowSwitch) return nothing;
-        const offerNames = store.selectedOffers.length > 0
-            ? store.selectedOffers.map((o) => offerLabel(o.offer)).filter(Boolean).join(', ')
-            : offerLabel(store.selectedOffer);
+        const offerNames =
+            store.selectedOffers.length > 0
+                ? store.selectedOffers
+                      .map((o) => offerLabel(o.offer))
+                      .filter(Boolean)
+                      .join(', ')
+                : offerLabel(store.selectedOffer);
         return html`
             <div class="confirm-bar">
                 <span class="confirm-text">Keep "${offerNames}" in your new selection?</span>
@@ -173,6 +225,7 @@ export class MasOstSelectionList extends LitElement {
                 class="selection-slot clickable ${currentSlot === 'trial' ? 'active' : ''} ${trialOffer ? 'filled' : ''}"
                 @click=${() => store.setCurrentSlot('trial')}
             >
+                ${trialOffer ? html`<span class="slot-check" aria-hidden="true">✓</span>` : nothing}
                 <div class="slot-content">
                     <div class="slot-label">Trial offer (Free trial CTA, optional)</div>
                     <div class="slot-value ${trialOffer ? '' : 'empty'}">
@@ -187,13 +240,16 @@ export class MasOstSelectionList extends LitElement {
                               e.stopPropagation();
                               store.removeOfferByRole('trial');
                           }}
-                      >&times;</button>`
+                      >
+                          &times;
+                      </button>`
                     : nothing}
             </div>
             <div
                 class="selection-slot clickable ${currentSlot === 'base' ? 'active' : ''} ${baseOffer ? 'filled' : ''}"
                 @click=${() => store.setCurrentSlot('base')}
             >
+                ${baseOffer ? html`<span class="slot-check" aria-hidden="true">✓</span>` : nothing}
                 <div class="slot-content">
                     <div class="slot-label">Base offer (Buy CTA)</div>
                     <div class="slot-value ${baseOffer ? '' : 'empty'}">
@@ -208,7 +264,9 @@ export class MasOstSelectionList extends LitElement {
                               e.stopPropagation();
                               store.removeOfferByRole('base');
                           }}
-                      >&times;</button>`
+                      >
+                          &times;
+                      </button>`
                     : nothing}
             </div>
         `;
@@ -221,15 +279,14 @@ export class MasOstSelectionList extends LitElement {
             ${offers.map(
                 (entry, index) => html`
                     <div class="selection-slot filled">
+                        <span class="slot-check" aria-hidden="true">✓</span>
                         <span class="slot-number">${index + 1}.</span>
                         <div class="slot-content">
                             <div class="slot-value">${offerLabel(entry.offer)}</div>
                         </div>
-                        <button
-                            class="slot-clear"
-                            title="Remove offer"
-                            @click=${() => store.removeOffer(index)}
-                        >&times;</button>
+                        <button class="slot-clear" title="Remove offer" @click=${() => store.removeOffer(index)}>
+                            &times;
+                        </button>
                     </div>
                 `,
             )}

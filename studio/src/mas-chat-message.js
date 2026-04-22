@@ -622,7 +622,8 @@ export class MasChatMessage extends LitElement {
                     ${this.message.productCards
                         ? html`<mas-chat-product-cards
                               .products=${this.message.productCards}
-                              .selectedValue=${this.message.buttonGroup?.selectedValue}
+                              .selectedValue=${this.message.productCardsSelectedValue ??
+                              this.message.buttonGroup?.selectedValue}
                           ></mas-chat-product-cards>`
                         : this.message.buttonGroup
                           ? html`<mas-chat-button-group
@@ -631,7 +632,7 @@ export class MasChatMessage extends LitElement {
                                 .inputHint=${this.message.buttonGroup.inputHint}
                             ></mas-chat-button-group>`
                           : nothing}
-                    ${this.message.openOst
+                    ${this.message.openOst && !this.message.buttonGroup?.options?.length
                         ? html`<sp-button
                               variant="accent"
                               ?disabled=${this.message.ostConfirmed}

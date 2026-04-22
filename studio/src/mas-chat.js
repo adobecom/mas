@@ -87,6 +87,7 @@ export class MasChat extends LitElement {
         this.selectedReleaseOsi = null;
         this.selectedReleaseTrialOffer = null;
         this.selectedReleaseTrialOsi = null;
+        this.trialCtaAsked = false;
     }
 
     #repositoryEl = null;
@@ -277,6 +278,7 @@ export class MasChat extends LitElement {
         this.selectedReleaseOsi = null;
         this.selectedReleaseTrialOffer = null;
         this.selectedReleaseTrialOsi = null;
+        this.trialCtaAsked = false;
     }
 
     handlePromptSelected(event) {
@@ -291,6 +293,7 @@ export class MasChat extends LitElement {
         const messageIndex = this.messages.findLastIndex(
             (m) => m.role === 'assistant' && m.buttonGroup && !m.buttonGroup.selectedValue,
         );
+        const answeredGroupLabel = messageIndex !== -1 ? this.messages[messageIndex].buttonGroup.label : null;
         if (messageIndex !== -1) {
             const updatedMessage = {
                 ...this.messages[messageIndex],
@@ -301,8 +304,63 @@ export class MasChat extends LitElement {
             };
             this.messages = [...this.messages.slice(0, messageIndex), updatedMessage, ...this.messages.slice(messageIndex + 1)];
         }
-        if (product?.arrangement_code || product?.arrangementCode) {
+        if (answeredGroupLabel === 'Trial CTA') {
+            if (value === 'trial-yes') {
+                const offer = this.selectedReleaseOffer || {};
+                const searchParams = {
+                    arrangement_code: offer.product_arrangement_code || offer.arrangementCode || null,
+                    commitment: offer.commitment || null,
+                    term: offer.term || null,
+                    customerSegment: offer.customer_segment || offer.customerSegment || null,
+                    mode: 'plans-base-and-trial',
+                };
+                this.messages = [
+                    ...this.messages,
+                    {
+                        role: 'assistant',
+                        content: 'Opening the Offer Selector Tool — please pick a free-trial offer.',
+                        openOst: true,
+                        ostSearchParams: searchParams,
+                        timestamp: Date.now(),
+                    },
+                ];
+            } else {
+                this.handleSendMessage({
+                    detail: {
+                        message: `Using the already-selected offer as the base offer (no trial offer). osi: ${this.selectedReleaseOsi}. Skip Step 5 and proceed directly to Step 6 (release confirmation summary).`,
+                        context: {
+                            hidden: true,
+                            osi: this.selectedReleaseOsi,
+                            offer: this.selectedReleaseOffer,
+                        },
+                    },
+                });
+            }
+            return;
+        }
+        const arrangementCode = product?.arrangement_code || product?.arrangementCode;
+        if (arrangementCode) {
             this.selectedReleaseProduct = product;
+            // Product is already resolved — signal to the backend to skip
+            // re-lookup (Step 2) and advance to Offering Type (Step 4).
+            // Without this, the AI re-runs list_products on the label and
+            // renders a duplicate product card list.
+            this.handleSendMessage({
+                detail: {
+                    message: `Selected product: ${label} (arrangement_code: ${arrangementCode}). Proceed to Step 4 (Offering Type Selection).`,
+                    context: {
+                        selectedProduct: {
+                            arrangement_code: arrangementCode,
+                            name: product.name || label,
+                            product_code: product.product_code,
+                            product_family: product.product_family,
+                            customer_segment: product.customer_segment,
+                            segments: product.segments,
+                        },
+                    },
+                },
+            });
+            return;
         }
         this.handleSendMessage({ detail: { message: label, context: {} } });
     }
@@ -347,6 +405,10 @@ export class MasChat extends LitElement {
             content: message,
             timestamp: Date.now(),
         };
+
+        if (context?.hidden) {
+            userMessage.hidden = true;
+        }
 
         if (context?.osi) {
             userMessage.osi = context.osi;
@@ -515,20 +577,82 @@ export class MasChat extends LitElement {
                 }
 
                 const guidedStep = await this.enrichGuidedStepWithRecentProducts(response);
-                const isProductSelectionStep = guidedStep.buttonGroup?.label === 'Product';
+                const offeringStep = guidedStep.buttonGroup?.label === 'Offering Type';
+                const pa = this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
+                const attachOst =
+                    offeringStep && pa
+                        ? { openOst: true, ostSearchParams: { arrangement_code: pa, mode: 'plans-base-and-trial' } }
+                        : {};
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
-                        content: isProductSelectionStep
-                            ? 'Type in your new product, or select from recent options below.'
-                            : guidedStep.message,
+                        content: guidedStep.message,
                         buttonGroup: guidedStep.buttonGroup,
                         productCards: guidedStep.productCards,
                         timestamp: Date.now(),
+                        ...attachOst,
                     },
                 ];
+                // Single-match preview is informational — auto-advance past
+                // it so the user doesn't have to click "Select" just to
+                // confirm the one product we already resolved for them.
+                // Release flow is active when either:
+                //  - the user arrived via an OST offer (selectedReleaseOffer)
+                //  - the assistant asked "Which product is this release for"
+                const cards = guidedStep.productCards;
+                const releaseFlowPrompt = this.messages.some(
+                    (m) => m.role === 'assistant' && m.content?.includes('Which product is this release for'),
+                );
+                const inReleaseFlow = this.selectedReleaseOffer || this.selectedReleaseOsi || releaseFlowPrompt;
+                if (Array.isArray(cards) && cards.length === 1 && inReleaseFlow) {
+                    const only = cards[0];
+                    this.selectedReleaseProduct = {
+                        arrangement_code: only.arrangement_code || only.value,
+                        name: only.label,
+                        icon: only.icon,
+                    };
+                    const lastIndex = this.messages.length - 1;
+                    const lastMessage = this.messages[lastIndex];
+                    if (lastMessage?.productCards) {
+                        this.messages = [
+                            ...this.messages.slice(0, lastIndex),
+                            { ...lastMessage, productCardsSelectedValue: only.value ?? only.arrangement_code },
+                        ];
+                    }
+                    await this.handleSendMessage({
+                        detail: {
+                            message: `Selected product: ${only.label} (arrangement_code: ${only.arrangement_code || only.value})`,
+                            context: { hidden: true, selectedProduct: this.selectedReleaseProduct },
+                        },
+                    });
+                }
             } else if (response.type === 'open_ost') {
+                // When the user already provided an offer (via OST "Use" at
+                // the start of the release flow), skip the base-offer pick
+                // step but still give them the option to add a free-trial
+                // CTA. Ask with a yes/no button group; the handler on the
+                // click routes to OST (yes) or to the confirmation summary
+                // (no). trialCtaAsked guards against asking twice.
+                if (this.selectedReleaseOffer && this.selectedReleaseOsi && !this.trialCtaAsked) {
+                    this.trialCtaAsked = true;
+                    this.messages = [
+                        ...this.messages,
+                        {
+                            role: 'assistant',
+                            content: 'Would you like to add a free-trial CTA to this card?',
+                            buttonGroup: {
+                                label: 'Trial CTA',
+                                options: [
+                                    { label: 'Yes, pick a trial offer', value: 'trial-yes' },
+                                    { label: 'No, skip', value: 'trial-no' },
+                                ],
+                            },
+                            timestamp: Date.now(),
+                        },
+                    ];
+                    return;
+                }
                 const searchParams = { ...response.searchParams };
                 const backendMode = response.searchParams?.mode;
                 const msg = response.message || '';
@@ -1358,6 +1482,41 @@ export class MasChat extends LitElement {
             this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
             await this.continueWithMCPResult('list_products', operationResult.rawResult);
         }
+
+        // After get_offer_by_id or resolve_offer_selector succeed, the release
+        // flow needs the product_arrangement_code matched against MCS via
+        // list_products. Auto-send the PA code as a synthetic user turn so the
+        // AI calls list_products next, then continues to the single-match
+        // product preview (Step 3 → Step 4).
+        if (operationType === 'get_offer_by_id' && operationResult?.success) {
+            const pa = operationResult.rawResult?.offer?.product_arrangement_code;
+            if (pa) {
+                // Strip the raw operation-result message — we only used it to
+                // extract the PA code, the release flow renders its own
+                // "Found your product:" preview downstream.
+                this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
+                await this.handleSendMessage({
+                    detail: {
+                        message: `arrangement_code: ${pa}. Now call list_products with searchText "${pa}" and emit the Step 3 single-match preview.`,
+                        context: { hidden: true },
+                    },
+                });
+            }
+        }
+        if (operationType === 'resolve_offer_selector' && operationResult?.success) {
+            const pa =
+                operationResult.rawResult?.selector?.product_arrangement_code ||
+                operationResult.rawResult?.offers?.[0]?.product_arrangement_code;
+            if (pa) {
+                this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
+                await this.handleSendMessage({
+                    detail: {
+                        message: `arrangement_code: ${pa}. Now call list_products with searchText "${pa}" and emit the Step 3 single-match preview.`,
+                        context: { hidden: true },
+                    },
+                });
+            }
+        }
     }
 
     async continueWithMCPResult(tool, result) {
@@ -1438,19 +1597,53 @@ export class MasChat extends LitElement {
                 }
 
                 const guidedStep = await this.enrichGuidedStepWithRecentProducts(response);
-                const isProductSelectionStep = guidedStep.buttonGroup?.label === 'Product';
+                const offeringStep = guidedStep.buttonGroup?.label === 'Offering Type';
+                const pa = this.selectedReleaseProduct?.arrangement_code || this.selectedReleaseProduct?.arrangementCode;
+                const attachOst =
+                    offeringStep && pa
+                        ? { openOst: true, ostSearchParams: { arrangement_code: pa, mode: 'plans-base-and-trial' } }
+                        : {};
                 this.messages = [
                     ...this.messages,
                     {
                         role: 'assistant',
-                        content: isProductSelectionStep
-                            ? 'Type in your new product, or select from recent options below.'
-                            : guidedStep.message,
+                        content: guidedStep.message,
                         buttonGroup: guidedStep.buttonGroup,
                         productCards: guidedStep.productCards,
                         timestamp: Date.now(),
+                        ...attachOst,
                     },
                 ];
+                // Single-match preview → auto-advance to Step 4.
+                {
+                    const cards = guidedStep.productCards;
+                    const releaseFlowPrompt = this.messages.some(
+                        (m) => m.role === 'assistant' && m.content?.includes('Which product is this release for'),
+                    );
+                    const inReleaseFlow = this.selectedReleaseOffer || this.selectedReleaseOsi || releaseFlowPrompt;
+                    if (Array.isArray(cards) && cards.length === 1 && inReleaseFlow) {
+                        const only = cards[0];
+                        this.selectedReleaseProduct = {
+                            arrangement_code: only.arrangement_code || only.value,
+                            name: only.label,
+                            icon: only.icon,
+                        };
+                        const lastIndex = this.messages.length - 1;
+                        const lastMessage = this.messages[lastIndex];
+                        if (lastMessage?.productCards) {
+                            this.messages = [
+                                ...this.messages.slice(0, lastIndex),
+                                { ...lastMessage, productCardsSelectedValue: only.value ?? only.arrangement_code },
+                            ];
+                        }
+                        await this.handleSendMessage({
+                            detail: {
+                                message: `Selected product: ${only.label} (arrangement_code: ${only.arrangement_code || only.value})`,
+                                context: { hidden: true, selectedProduct: this.selectedReleaseProduct },
+                            },
+                        });
+                    }
+                }
             } else if (response.type === 'release_confirmation') {
                 const confirmationSummary = await this.enrichReleaseConfirmationSummary(response.confirmationSummary);
                 this.messages = [
@@ -1524,24 +1717,7 @@ export class MasChat extends LitElement {
     }
 
     async enrichGuidedStepWithRecentProducts(response) {
-        if (!this.isProductSelectionStep(response)) {
-            return response;
-        }
-
-        const recentProducts = await this.getRecentReleaseProducts();
-        if (!recentProducts.length) {
-            return response;
-        }
-
-        return {
-            ...response,
-            productCards: recentProducts,
-            buttonGroup: {
-                ...response.buttonGroup,
-                label: response.buttonGroup?.label || 'Product',
-                inputHint: response.buttonGroup?.inputHint || 'Or type a product name to search...',
-            },
-        };
+        return response;
     }
 
     async recoverProductLookup(searchText) {
@@ -1929,17 +2105,19 @@ export class MasChat extends LitElement {
 
                 <div class="chat-container">
                     <div class="chat-messages">
-                        ${this.messages.map(
-                            (message) => html`
-                                <mas-chat-message
-                                    .message=${message}
-                                    .showSuggestions=${this.showPromptSuggestions && message.showSuggestions}
-                                    @card-action=${this.handleCardAction}
-                                    @collection-action=${this.handleCollectionAction}
-                                    @open-ost-from-response=${this.handleOpenOstFromResponse}
-                                ></mas-chat-message>
-                            `,
-                        )}
+                        ${this.messages
+                            .filter((message) => !message.hidden)
+                            .map(
+                                (message) => html`
+                                    <mas-chat-message
+                                        .message=${message}
+                                        .showSuggestions=${this.showPromptSuggestions && message.showSuggestions}
+                                        @card-action=${this.handleCardAction}
+                                        @collection-action=${this.handleCollectionAction}
+                                        @open-ost-from-response=${this.handleOpenOstFromResponse}
+                                    ></mas-chat-message>
+                                `,
+                            )}
                         ${this.isLoading
                             ? html`
                                   <div class="typing-indicator">

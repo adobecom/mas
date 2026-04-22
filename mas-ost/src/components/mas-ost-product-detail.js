@@ -1,4 +1,4 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import '@spectrum-web-components/badge/sp-badge.js';
 import '@spectrum-web-components/progress-circle/sp-progress-circle.js';
 import { store } from '../store/ost-store.js';
@@ -14,8 +14,7 @@ function formatPrice(offer) {
     if (!pricing) return '';
     const symbol = pricing.currency?.symbol || '';
     const formatString = pricing.currency?.format_string || '';
-    const priceValue =
-        pricing.prices?.[0]?.price_details?.display_rules?.price;
+    const priceValue = pricing.prices?.[0]?.price_details?.display_rules?.price;
     if (priceValue === undefined) return '';
     if (symbol) return `${symbol}${priceValue.toFixed(2)}`;
     if (formatString) {
@@ -252,9 +251,7 @@ export class MasOstProductDetail extends LitElement {
                 commitment: offer.commitment,
                 term: offer.term,
                 customer_segment: offer.customer_segment,
-                market_segment: Array.isArray(offer.market_segments)
-                    ? offer.market_segments[0]
-                    : offer.market_segment,
+                market_segment: Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segment,
                 sales_channel: offer.sales_channel,
                 offer_type: offer.offer_type,
                 price_point: offer.price_point,
@@ -266,7 +263,9 @@ export class MasOstProductDetail extends LitElement {
                 baseUrl: store.baseUrl,
                 env: store.env,
             };
-            const { data: { id } } = await createOfferSelector(params, config);
+            const {
+                data: { id },
+            } = await createOfferSelector(params, config);
             store.setOsi(id);
         } catch {
             /* auto OSI resolution failed — user can still click the offer */
@@ -300,10 +299,7 @@ export class MasOstProductDetail extends LitElement {
     handleStoreChange() {
         const product = store.selectedProduct;
         const paramsKey = JSON.stringify(store.aosParams) + store.country + store.landscape + store.env;
-        const shouldRefetch =
-            product &&
-            (product !== this.previousProduct ||
-                paramsKey !== this.previousParamsKey);
+        const shouldRefetch = product && (product !== this.previousProduct || paramsKey !== this.previousParamsKey);
         if (shouldRefetch) {
             this.previousProduct = product;
             this.previousParamsKey = paramsKey;
@@ -314,14 +310,7 @@ export class MasOstProductDetail extends LitElement {
 
     async fetchOffers(product) {
         const {
-            aosParams: {
-                commitment,
-                term,
-                customerSegment,
-                offerType,
-                marketSegment,
-                pricePoint,
-            },
+            aosParams: { commitment, term, customerSegment, offerType, marketSegment, pricePoint },
             country,
             landscape,
             env,
@@ -372,27 +361,48 @@ export class MasOstProductDetail extends LitElement {
                 language,
             };
 
-            const searchConfig = {
+            const baseConfig = {
                 accessToken,
                 apiKey,
                 baseUrl: store.baseUrl,
                 env,
                 environment,
-                landscape,
                 pageSize: 1000,
             };
 
-            const res = await searchOffers(searchParams, searchConfig);
-            let offers = (res.data || res).map(applyPlanType);
+            // When landscape is "BOTH" (AI chat consult), merge DRAFT and
+            // PUBLISHED results so authors can browse both sets in one view.
+            // Each offer is tagged with its source landscape so the UI can
+            // badge/distinguish them.
+            const landscapesToFetch = landscape === 'BOTH' ? ['PUBLISHED', 'DRAFT'] : [landscape];
+            const responses = await Promise.all(
+                landscapesToFetch.map(async (ls) => {
+                    const res = await searchOffers(searchParams, { ...baseConfig, landscape: ls });
+                    return (res.data || res).map((o) => ({ ...o, __landscape: ls }));
+                }),
+            );
+            let offers = responses.flat().map(applyPlanType);
+            // De-dupe: if the same offer_id came back from both DRAFT and
+            // PUBLISHED (shouldn't normally, but safe to guard), keep the
+            // PUBLISHED copy since that's what renders on live commerce.
+            if (landscape === 'BOTH') {
+                const seen = new Map();
+                for (const offer of offers) {
+                    const id = offer.offer_id;
+                    if (!seen.has(id) || offer.__landscape === 'PUBLISHED') {
+                        seen.set(id, offer);
+                    }
+                }
+                offers = Array.from(seen.values());
+            }
             offers = offers.map((offer) => ({
                 ...offer,
                 id: offer.offer_id,
                 name: product.name,
                 icon: product.icon,
             }));
-            offers.sort(
-                ({ name: nameLeft, price_point: ppLeft }, { name: nameRight, price_point: ppRight }) =>
-                    `${nameRight}${ppRight}`.localeCompare(`${nameLeft}${ppLeft}`),
+            offers.sort(({ name: nameLeft, price_point: ppLeft }, { name: nameRight, price_point: ppRight }) =>
+                `${nameRight}${ppRight}`.localeCompare(`${nameLeft}${ppLeft}`),
             );
             store.setOffers(offers);
             if (offers.length === 1) {
@@ -426,7 +436,9 @@ export class MasOstProductDetail extends LitElement {
                         <div class="arrangement-code">${arrangementCode}</div>
                     </div>
                     ${price ? html`<span class="summary-price">${price}</span>` : ''}
-                    <sp-badge size="s" variant="informative">${store.landscape}</sp-badge>
+                    ${store.landscape === 'BOTH'
+                        ? nothing
+                        : html`<sp-badge size="s" variant="informative">${store.landscape}</sp-badge>`}
                     <a class="change-link" @click=${this.handleChangeOffer}>Change</a>
                 </div>
             `;
@@ -445,27 +457,39 @@ export class MasOstProductDetail extends LitElement {
             <div class="offer-details">
                 <span class="detail-label">Arrangement Code</span>
                 <span class="detail-value">${arrangementCode}</span>
-                ${product.product_code ? html`
-                    <span class="detail-label">Product Code</span>
-                    <span class="detail-value">${product.product_code}</span>
-                ` : ''}
-                ${product.product_family ? html`
-                    <span class="detail-label">Product Family</span>
-                    <span class="detail-value">${product.product_family}</span>
-                ` : ''}
+                ${product.product_code
+                    ? html`
+                          <span class="detail-label">Product Code</span>
+                          <span class="detail-value">${product.product_code}</span>
+                      `
+                    : ''}
+                ${product.product_family
+                    ? html`
+                          <span class="detail-label">Product Family</span>
+                          <span class="detail-value">${product.product_family}</span>
+                      `
+                    : ''}
             </div>
             ${this.loading
-                ? html`<div class="loading-container"><sp-progress-circle indeterminate size="m" label="Loading offers"></sp-progress-circle></div>`
+                ? html`<div class="loading-container">
+                      <sp-progress-circle indeterminate size="m" label="Loading offers"></sp-progress-circle>
+                  </div>`
                 : offers.length === 0
-                    ? html`<div class="empty-state">No offers found. Try changing your filters or switching to Draft landscape.</div>`
-                    : html`
+                  ? html`<div class="empty-state">
+                        No offers found. Try changing your filters or switching to Draft landscape.
+                    </div>`
+                  : html`
                         <div class="section-label">Offers (${offers.length})</div>
                         <div class="offers-table">
                             <div class="offers-table-head">
                                 <span class="th">Price</span>
-                                <span class="th">Plan <mas-ost-help-icon text="${HELP_TOOLTIPS.planBadge}"></mas-ost-help-icon></span>
+                                <span class="th"
+                                    >Plan <mas-ost-help-icon text="${HELP_TOOLTIPS.planBadge}"></mas-ost-help-icon
+                                ></span>
                                 <span class="th">Type</span>
-                                <span class="th">Offer ID <mas-ost-help-icon text="${HELP_TOOLTIPS.offerId}"></mas-ost-help-icon></span>
+                                <span class="th"
+                                    >Offer ID <mas-ost-help-icon text="${HELP_TOOLTIPS.offerId}"></mas-ost-help-icon
+                                ></span>
                                 <span class="th th-actions"></span>
                             </div>
                             <div class="offers-table-body">
@@ -479,7 +503,9 @@ export class MasOstProductDetail extends LitElement {
                                 )}
                             </div>
                         </div>
-                        ${!store.selectedOffer ? html`<div class="hint-text">Select an offer to configure your placeholder</div>` : ''}
+                        ${!store.selectedOffer
+                            ? html`<div class="hint-text">Select an offer to configure your placeholder</div>`
+                            : ''}
                     `}
         `;
     }

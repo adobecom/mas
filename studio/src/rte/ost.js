@@ -171,7 +171,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
 
     ostRoot.dispatchEvent(
         new CustomEvent(EVENT_OST_SELECT, {
-            detail: attributes,
+            detail: { ...attributes, offer },
             bubbles: true,
         }),
     );
@@ -281,6 +281,17 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
             }
         }
         const isMultiSelectRequested = initialSearchParams?.mode === 'plans-base-and-trial';
+        // AI-chat opens OST as a read-only consult flow so authors can look
+        // up an offer without committing to try/buy authoring. Both entry
+        // points (MAS-CHAT-INPUT's Attach button, MAS-CHAT's release-flow
+        // "Browse offers" button) count; the release-flow multi-select path
+        // is the only chat-origin case that must stay in try/buy.
+        const chatTag = triggerElement?.tagName;
+        const isChatOsiAttach = (chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT') && !isMultiSelectRequested;
+        // AI-chat surfaces benefit from seeing both DRAFT + PUBLISHED offers
+        // at once. Studio-side Store.landscape is 2-state (Published/Draft);
+        // OST accepts a third 'BOTH' value that merges the two result sets.
+        const chatLandscape = chatTag === 'MAS-CHAT-INPUT' || chatTag === 'MAS-CHAT' ? 'BOTH' : landscape;
         const ostCloseFunction = window.ost.openOfferSelectorTool({
             aosApiKey: 'wcms-commerce-ims-user-prod',
             checkoutClientId: 'creative',
@@ -315,7 +326,7 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
             rootElement: ostRoot,
             zIndex: 2000,
             aosAccessToken,
-            landscape,
+            landscape: chatLandscape,
             searchParameters,
             searchOfferSelectorId,
             initialReferenceOsi,
@@ -326,6 +337,7 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
             modalsAndEntitlements: ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala'].includes(Store.search.get().path),
             dialog: true,
             multiSelect: isMultiSelectRequested,
+            ...(isChatOsiAttach ? { authoringFlow: 'consult' } : {}),
             onMultiSelect: onMultiOfferSelect,
             onCancel: () => closeOfferSelectorTool(),
             onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,

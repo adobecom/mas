@@ -8,8 +8,7 @@ import { countries as staticCountries } from '../data/countries.js';
 import { HELP_TOOLTIPS } from '../data/help-content.js';
 import './mas-ost-help-icon.js';
 
-const COUNTRIES_API =
-    'https://countries-stage.adobe.io/v2/countries?api_key=dexter-commerce-offers';
+const COUNTRIES_API = 'https://countries-stage.adobe.io/v2/countries?api_key=dexter-commerce-offers';
 
 function mapCountries(data) {
     return data.map((obj) => obj['iso2-code'] || obj).sort();
@@ -207,14 +206,10 @@ export class MasOstCountryPicker extends LitElement {
         return html`
             <div class="picker-group">
                 <span class="picker-label">Landscape</span>
-                <sp-picker
-                    value=${store.landscape}
-                    size="s"
-                    label="Landscape"
-                    @change=${this.handleLandscapeChange}
-                >
+                <sp-picker value=${store.landscape} size="s" label="Landscape" @change=${this.handleLandscapeChange}>
                     <sp-menu-item value="PUBLISHED">Published</sp-menu-item>
                     <sp-menu-item value="DRAFT">Draft</sp-menu-item>
+                    <sp-menu-item value="BOTH">Both (published + draft)</sp-menu-item>
                 </sp-picker>
             </div>
             <div class="picker-group">
@@ -229,27 +224,28 @@ export class MasOstCountryPicker extends LitElement {
                         @input=${this.handleCountryInput}
                         @keydown=${this.handleCountryKeydown}
                     ></sp-textfield>
-                    ${this.showDropdown ? html`
-                        <div class="country-dropdown">
-                            ${filtered.length > 0
-                                ? filtered.map((code) => html`
-                                    <div
-                                        class="country-option"
-                                        ?data-selected=${code === store.country}
-                                        @click=${() => this.selectCountry(code)}
-                                    >${code}</div>
-                                `)
-                                : html`<div class="country-no-match">No match</div>`
-                            }
-                        </div>
-                    ` : nothing}
+                    ${this.showDropdown
+                        ? html`
+                              <div class="country-dropdown">
+                                  ${filtered.length > 0
+                                      ? filtered.map(
+                                            (code) => html`
+                                                <div
+                                                    class="country-option"
+                                                    ?data-selected=${code === store.country}
+                                                    @click=${() => this.selectCountry(code)}
+                                                >
+                                                    ${code}
+                                                </div>
+                                            `,
+                                        )
+                                      : html`<div class="country-no-match">No match</div>`}
+                              </div>
+                          `
+                        : nothing}
                 </div>
             </div>
-            <sp-switch
-                size="s"
-                ?checked=${isStage}
-                @change=${this.handleEnvToggle}
-            >Stage</sp-switch>
+            <sp-switch size="s" ?checked=${isStage} @change=${this.handleEnvToggle}>Stage</sp-switch>
             <mas-ost-help-icon text="${HELP_TOOLTIPS.landscapeEnv}"></mas-ost-help-icon>
         `;
     }

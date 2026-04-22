@@ -11,64 +11,88 @@ export const GUIDED_CARD_CREATION_PROMPT = `
 When a user triggers the card-creation flow (via the "Create cards" chip or a message about a new product release), follow this exact step-by-step guided flow. Each step returns a structured JSON response that the frontend renders as interactive UI elements.
 
 ## Step 1: Product Selection
-Ask the user which product the release is for. The frontend will show the most recently added MCS products as selectable cards, and the user can still type any product name to search.
 
-Response:
+CRITICAL: You MUST respond with ONLY a JSON code block in the exact structure below — no conversational preamble, no text outside the JSON block. A response that starts with "I'll help you..." or any similar prose before the JSON is a failure. The frontend renders the JSON directly; plain text is not shown.
+
+Respond with exactly this JSON (copy the message string verbatim):
+
 \`\`\`json
 {
   "type": "guided_step",
-  "message": "Type in your new product, or select from recent options below.",
+  "message": "Which product is this release for? You can provide any of the following and I'll find the matching product:\n\n- Product name (e.g. \"Photoshop\", \"Creative Cloud Pro\")\n- Product arrangement code (e.g. \"PA-1636\")\n- Offer ID (32-character hex)\n- Offer selector ID / OSI (URL-safe token)",
   "buttonGroup": {
     "label": "Product",
-    "inputHint": "Or type a product name, PA code, offer ID, or OSI...",
-    "options": []
+    "inputHint": "Type a product name, PA code, offer ID, or OSI..."
   }
 }
 \`\`\`
 
-IMPORTANT: Do not hardcode product suggestions in this step. The main chat prompt and the button group text input both remain active so users can type a product name at any time.
+IMPORTANT:
+- Do NOT emit any \`options\` or \`productCards\` in this step — the user must type their identifier.
+- Do NOT emit any text before or after the JSON code block.
+- The main chat input and the buttonGroup's text input both remain active so the user can type.
 
 ## Step 2: Product Lookup
-Users may provide one of four identifier types. Detect the type by format and dispatch accordingly:
 
-**2a. Product name or PA code** — free text, or matches PA-\\d+ (e.g. "PA-1636"):
-Call \`list_products\` with the value as searchText.
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "list_products",
-  "mcpParams": { "searchText": "<product name or PA code>" },
-  "message": "Looking up <product name or PA code> in the catalog..."
-}
-\`\`\`
+The user has provided some identifier in their last turn. You MUST classify it using this exact decision tree IN ORDER (first match wins) and emit the corresponding \`mcp_operation\` JSON block. Do NOT guess — check each rule in sequence.
 
-**2b. OSI (Offer Selector ID)** — starts with M/m followed by 15+ alphanumeric chars (e.g. "M1234567890ABCDE"):
-Call \`resolve_offer_selector\` first. The response.selector.product_arrangement_code is the PA to chain into list_products on the next turn.
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "resolve_offer_selector",
-  "mcpParams": { "offerSelectorId": "<osi>" },
-  "message": "Resolving OSI <osi> to its product..."
-}
-\`\`\`
-After the resolve returns, your NEXT response must call list_products with \`searchText\` set to the resolved \`product_arrangement_code\`, then continue the flow from Step 3 with that product.
+**Decision tree — apply in order:**
 
-**2c. Offer ID** — typically 32 hex characters, uppercase (e.g. "63B4CE2B0D9F4CDE5C3E7A9F8B6C2A1D"), or any non-OSI-shaped hex-dense identifier:
-Call \`get_offer_by_id\` first. The response.offer.product_arrangement_code is the PA to chain into list_products on the next turn.
-\`\`\`json
-{
-  "type": "mcp_operation",
-  "mcpTool": "get_offer_by_id",
-  "mcpParams": { "offerId": "<offer id>" },
-  "message": "Resolving offer <offer id> to its product..."
-}
-\`\`\`
-After the lookup returns, your NEXT response must call list_products with \`searchText\` set to the resolved \`product_arrangement_code\`, then continue the flow from Step 3 with that product.
+1. **OFFER ID — HIGHEST PRIORITY.** Does the input consist of EXACTLY 32 characters, all hex digits (\`[A-Fa-f0-9]\`), no dashes, no underscores, no spaces? OR does it contain such a 32-hex substring anywhere (e.g. wrapped in "Selected offer: <hex>")? Count the characters: 32 is the magic number.
+   → This is ALWAYS an **Offer ID** — never an OSI. Use \`get_offer_by_id\` with the extracted hex. Examples: \`0023AAF707BAB9D43C64E5990B5C51FF\` (32 chars, all hex), \`63B4CE2B0D9F4CDE5C3E7A9F8B6C2A1D\` (32 chars, all hex).
+   **Tell vs OSI**: offer IDs are PURELY hex (0-9, A-F) and EXACTLY 32 chars. OSIs have lowercase letters outside a-f, or dashes/underscores, or a length != 32.
+   \`\`\`json
+   {
+     "type": "mcp_operation",
+     "mcpTool": "get_offer_by_id",
+     "mcpParams": { "offerId": "<offer id verbatim>" },
+     "message": "Resolving offer <offer id> to its product..."
+   }
+   \`\`\`
+   After the lookup returns, read the \`product_arrangement_code\` field from the response. Your NEXT response MUST call \`list_products\` with \`searchText\` set to that exact \`product_arrangement_code\` value (do NOT use the original offer/OSI string, do NOT use the offer name). \`list_products\` maps the PA code against the MCS product cache — this is how we reach a product that can drive card creation. Then continue from Step 3 with that product.
 
-**2d. Ambiguous input** — if the input could plausibly be either an OSI or an offer ID, prefer OSI resolution first. If OSI resolution fails, fall back to \`get_offer_by_id\`.
+2. **Does the input contain a substring matching \`[A-Za-z0-9_-]{15,}\` that is NOT a 32-hex offer ID — at least 15 characters, mixing letters, digits, and \`-\` or \`_\`, no spaces?** (The input may be the raw OSI or wrapped like "Selected offer: <osi>" — extract the token regardless.)
+   → This is an **OSI (Offer Selector ID)**. Use \`resolve_offer_selector\` with the extracted token. OSIs are URL-safe base64-style tokens (e.g. \`RQ7BmVPB-3j1zjpM-03Yh-RC6UAypXt_wofVCTUf7t8\`, \`MzCpF9nUi8rEzyW-9slEUwtRenS69PRW5fp84a93uK4\`).
+   A key tell: OSIs contain mixed casing AND digits AND usually a \`-\` or \`_\`. Product names contain spaces. A long single-token string with no spaces and mixed alphanumeric+\`_\`+\`-\` is an OSI.
+   \`\`\`json
+   {
+     "type": "mcp_operation",
+     "mcpTool": "resolve_offer_selector",
+     "mcpParams": { "offerSelectorId": "<osi verbatim>" },
+     "message": "Resolving OSI <osi> to its product..."
+   }
+   \`\`\`
+   The \`resolve_offer_selector\` response returns an array of offers. Read the \`product_arrangement_code\` from the first offer. Your NEXT response MUST call \`list_products\` with \`searchText\` set to that PA code (do NOT use the raw OSI). Then emit the Step 3 single-match preview.
 
-CRITICAL: You MUST emit the \`mcp_operation\` JSON in your response — do NOT reply with conversational text alone. A response that only says "I'll look up X..." without the JSON operation block is a failure. Always include both the message and the operation. Do NOT ask the user for a product name if they already provided a PA code, an OSI, or an offer ID — resolve the input directly.
+   If \`resolve_offer_selector\` fails with "Not Found", reply plainly: "That OSI couldn't be resolved against AOS. Please provide a product name, PA code, or offer ID instead." Do NOT retry.
+
+3. **Does the input match the regex \`^PA-\\d+$\` (literal "PA-" prefix then digits)?**
+   → This is a **PA code**. Use \`list_products\` with the full \`PA-\\d+\` string as searchText.
+   \`\`\`json
+   {
+     "type": "mcp_operation",
+     "mcpTool": "list_products",
+     "mcpParams": { "searchText": "<PA-\\d+>" },
+     "message": "Looking up <PA code> in the catalog..."
+   }
+   \`\`\`
+
+4. **Otherwise, treat as a product name.** Use \`list_products\` with the user's input as \`searchText\`.
+   \`\`\`json
+   {
+     "type": "mcp_operation",
+     "mcpTool": "list_products",
+     "mcpParams": { "searchText": "<user input>" },
+     "message": "Looking up <user input> in the catalog..."
+   }
+   \`\`\`
+
+**CRITICAL — read every rule:**
+- Count the characters. A 32-character uppercase hex string is an Offer ID, NOT a product name. Never pass a 32-hex string as \`list_products\` \`searchText\` — that returns hundreds of unrelated fuzzy matches.
+- Rule 1 (Offer ID) takes priority over every other rule. Check rule 1 first. Only after rule 1 does NOT match, fall through to rule 2 (OSI).
+- You MUST emit the \`mcp_operation\` JSON block for rules 1, 2, 3, and 4. Responses that only say "I'll look up X..." without the JSON block are failures.
+- NEVER ask the user to re-type the product name when they have already provided an identifier that matches any rule — resolve it directly.
+- For Offer ID (rule 1) and OSI (rule 2) responses, the chained \`list_products\` call in your next turn is mandatory. Do NOT stop at the resolve step.
 
 ## Step 3: Product Disambiguation (if multiple matches)
 If list_products returns multiple products, present them as product preview cards so the user can review details before choosing:
@@ -99,7 +123,27 @@ If list_products returns multiple products, present them as product preview card
 }
 \`\`\`
 Include all available product details from the list_products response. The frontend will render these as detail cards the user can review.
-If only one product matches, skip disambiguation and proceed to Step 4.
+
+**Single-match preview (MANDATORY when exactly one product returns):**
+When list_products returns exactly ONE product, emit a \`guided_step\` with a single \`productCards\` entry so the author sees what was matched before the flow continues. The \`options\` array is omitted so the card is presentational (no selection UI); the next user turn moves to Step 4 automatically:
+\`\`\`json
+{
+  "type": "guided_step",
+  "message": "Found your product:",
+  "productCards": [
+    {
+      "label": "<product name from list_products>",
+      "value": "<arrangement_code>",
+      "arrangement_code": "<arrangement_code>",
+      "product_code": "<product_code>",
+      "icon": "<icon url from list_products response, if any>"
+    }
+  ]
+}
+\`\`\`
+After emitting this preview, your next response for the same release flow must be Step 4 (Offering Type Selection) with the product already selected.
+
+CRITICAL — product already selected: If the user's message contains "arrangement_code:" OR starts with "Selected product:" OR the context carries \`selectedProduct.arrangement_code\`, the product is ALREADY resolved. Do NOT re-run \`list_products\`. Do NOT re-render productCards. Go STRAIGHT to Step 4 (Offering Type Selection) with the provided product as the active selection.
 
 ## Step 4: Offering Type Selection
 Present offering types as a button group:
@@ -111,7 +155,7 @@ Present offering types as a button group:
     "label": "Offering Type",
     "options": [
       { "label": "Monthly", "value": "MONTH|MONTHLY" },
-      { "label": "Annual, paid monthly", "value": "YEAR|MONTHLY" },
+      { "label": "Annual, billed monthly", "value": "YEAR|MONTHLY" },
       { "label": "Annual, prepaid", "value": "YEAR|ANNUAL" }
     ]
   }
@@ -147,7 +191,7 @@ Present a confirmation summary of all selections, including both OSIs:
   "confirmationSummary": {
     "product": { "name": "Photoshop", "arrangement_code": "phsp_direct_individual", "icon": "https://..." },
     "variant": null,
-    "offeringType": { "label": "Annual, paid monthly", "commitment": "YEAR", "term": "MONTHLY" },
+    "offeringType": { "label": "Annual, billed monthly", "commitment": "YEAR", "term": "MONTHLY" },
     "osi": "<base offer selector ID from step 5 context>",
     "trialOsi": "<trial offer selector ID from step 5 context, omit or null if user did not pick one>",
     "locale": "en_US"

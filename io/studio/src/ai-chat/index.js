@@ -252,13 +252,32 @@ function extractSurfaceFromPath(path) {
  * @returns {boolean} - True if message contains release/NPI intent
  */
 function isReleaseIntent(message, conversationHistory = []) {
-    const releaseKeywords = ['release', 'npi', 'new product', 'kickstart cards', 'new launch', 'product launch'];
+    const releaseKeywords = [
+        'release',
+        'npi',
+        'new product',
+        'kickstart cards',
+        'new launch',
+        'product launch',
+        'create cards',
+        'help me create',
+    ];
     const lowerMessage = message.toLowerCase();
     if (releaseKeywords.some((keyword) => lowerMessage.includes(keyword))) return true;
     if (lowerMessage.includes('[mcs product data retrieved')) return true;
-    return conversationHistory.some(
-        (msg) => msg.role === 'user' && releaseKeywords.some((kw) => msg.content?.toLowerCase().includes(kw)),
-    );
+    if (
+        conversationHistory.some(
+            (msg) => msg.role === 'user' && releaseKeywords.some((kw) => msg.content?.toLowerCase().includes(kw)),
+        )
+    ) {
+        return true;
+    }
+    // Mid-flow fallback: if the previous assistant turn asked which product this
+    // release is for (the guided Step 1 prompt), subsequent user turns are part
+    // of the release flow even though they don't carry keywords.
+    const lastAssistant = [...conversationHistory].reverse().find((m) => m.role === 'assistant');
+    if (lastAssistant?.content?.includes('Which product is this release for')) return true;
+    return false;
 }
 
 /**
@@ -466,6 +485,85 @@ async function main(params) {
 
         const releaseIntent = isReleaseIntent(message, conversationHistory);
         const effectivePrompt = releaseIntent ? `${basePrompt}\n\n${GUIDED_CARD_CREATION_PROMPT}` : basePrompt;
+
+        // Deterministic identifier shortcut: when the user message is a bare
+        // identifier, classify it by shape and emit the correct MCP operation
+        // without consulting the LLM. The LLM misroutes ~all of these because
+        // the shapes are visually similar. Precedence (narrowest first):
+        //   1. Offer ID          — exactly 32 hex chars.
+        //   2. Arrangement code  — lowercase alnum with one or more `_`
+        //                          segments (e.g. `cptv_direct_individual`,
+        //                          `phsp_direct_individual`, or the canonical
+        //                          `PA-\d+`). Route to list_products.
+        //   3. OSI               — URL-safe token with mixed case OR length
+        //                          >=22 (real OSIs are base64-shaped and
+        //                          ~32–48 chars, not short lowercase names).
+        //                          Route to resolve_offer_selector.
+        if (releaseIntent) {
+            const trimmed = (message || '').trim();
+            const bareOfferId = /^(?:(?:offer\s*id|osi|selected\s*offer)\s*[:=]\s*)?([a-fA-F0-9]{32})$/i.exec(trimmed);
+            const barePaCode = /^(?:arrangement\s*code\s*[:=]\s*)?(PA-\d+)$/i.exec(trimmed);
+            const bareArrangementSlug = /^(?:arrangement\s*code\s*[:=]\s*)?([a-z0-9]+(?:_[a-z0-9]+)+)$/.exec(trimmed);
+            const bareOsi = /^(?:(?:osi|selected\s*offer)\s*[:=]\s*)?([A-Za-z0-9_-]{15,})$/i.exec(trimmed);
+            const looksLikeOfferId = bareOfferId && /^[a-fA-F0-9]{32}$/.test(bareOfferId[1]);
+            const looksLikeArrangement = !looksLikeOfferId && (barePaCode || bareArrangementSlug);
+            const arrangementCode = looksLikeArrangement
+                ? barePaCode
+                    ? barePaCode[1].toUpperCase()
+                    : bareArrangementSlug[1]
+                : null;
+            const osiCandidate = bareOsi ? bareOsi[1] : null;
+            const osiHasMixedCase = osiCandidate && /[A-Z]/.test(osiCandidate) && /[a-z]/.test(osiCandidate);
+            const looksLikeOsi =
+                !looksLikeOfferId &&
+                !looksLikeArrangement &&
+                osiCandidate &&
+                !/^[a-fA-F0-9]{32}$/.test(osiCandidate) &&
+                (osiHasMixedCase || osiCandidate.length >= 22);
+            if (looksLikeOfferId) {
+                const id = bareOfferId[1];
+                return {
+                    statusCode: 200,
+                    headers: { ...getResponseHeaders() },
+                    body: {
+                        type: 'mcp_operation',
+                        mcpTool: 'get_offer_by_id',
+                        mcpParams: { offerId: id },
+                        message: `Resolving offer ${id} to its product...`,
+                        confirmationRequired: false,
+                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                    },
+                };
+            }
+            if (looksLikeArrangement) {
+                return {
+                    statusCode: 200,
+                    headers: { ...getResponseHeaders() },
+                    body: {
+                        type: 'mcp_operation',
+                        mcpTool: 'list_products',
+                        mcpParams: { searchText: arrangementCode },
+                        message: `Looking up product for arrangement code ${arrangementCode}...`,
+                        confirmationRequired: false,
+                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                    },
+                };
+            }
+            if (looksLikeOsi) {
+                return {
+                    statusCode: 200,
+                    headers: { ...getResponseHeaders() },
+                    body: {
+                        type: 'mcp_operation',
+                        mcpTool: 'resolve_offer_selector',
+                        mcpParams: { offerSelectorId: osiCandidate },
+                        message: `Resolving OSI ${osiCandidate} to its product...`,
+                        confirmationRequired: false,
+                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                    },
+                };
+            }
+        }
 
         if (releaseIntent) {
             console.log('[Backend] Release/NPI intent detected, appending release workflow instructions');

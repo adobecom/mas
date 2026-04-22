@@ -19,6 +19,16 @@ function getTrialDays(offer) {
     return match ? parseInt(match[1], 10) : null;
 }
 
+function isFreeOffer(offer) {
+    if (offer?.price_point === 'FREE') return true;
+    const priceValue = offer?.pricing?.prices?.[0]?.price_details?.display_rules?.price;
+    return priceValue === 0;
+}
+
+function currencySymbol(offer) {
+    return offer?.pricing?.currency?.symbol || '$';
+}
+
 function formatPeriod(offer) {
     const term = offer.term;
     const commitment = offer.commitment;
@@ -28,6 +38,9 @@ function formatPeriod(offer) {
 }
 
 function formatPrice(offer) {
+    if (isFreeOffer(offer)) {
+        return `${currencySymbol(offer)}0.00`;
+    }
     const pricing = offer.pricing;
     if (!pricing) return '';
     const symbol = pricing.currency?.symbol || '';
@@ -139,7 +152,14 @@ export class MasOstOfferCard extends LitElement {
 
     async handleClick() {
         if (!this.offer || this.resolving) return;
-        if (store.authoringFlow === 'consult') return;
+        if (store.authoringFlow === 'consult') {
+            // In consult (AI chat) the user selects an offer to inspect/submit,
+            // not to configure a placeholder. Stash it on the store so the app
+            // can switch to a focused detail view.
+            store.selectedOffer = this.offer;
+            store.notify();
+            return;
+        }
         this.resolving = true;
         try {
             const config = { accessToken: store.accessToken, apiKey: store.apiKey, baseUrl: store.baseUrl, env: store.env };
@@ -162,33 +182,38 @@ export class MasOstOfferCard extends LitElement {
         const offerId = offer.offer_id || '';
 
         return html`
-            <span class="cell cell-price" @click=${this.handleClick}>
-                ${price}${period}
-            </span>
+            <span class="cell cell-price" @click=${this.handleClick}> ${price}${period} </span>
             <span class="cell" @click=${this.handleClick}>
-                ${planType
-                    ? html`<sp-badge size="s" variant="${badgeVariant}">${planType}</sp-badge>`
-                    : ''}
+                ${planType ? html`<sp-badge size="s" variant="${badgeVariant}">${planType}</sp-badge>` : ''}
             </span>
             <span class="cell" @click=${this.handleClick}>
                 ${offer.offer_type
-                    ? html`<sp-badge size="s" variant="neutral">${offer.offer_type}</sp-badge>${getTrialDays(offer) !== null ? html`<span class="trial-days">${getTrialDays(offer)}d</span>` : ''}`
+                    ? html`<sp-badge size="s" variant="neutral">${offer.offer_type}</sp-badge>${getTrialDays(offer) !== null
+                              ? html`<span class="trial-days">${getTrialDays(offer)}d</span>`
+                              : ''}`
+                    : ''}
+                ${offer.__landscape
+                    ? html`<sp-badge
+                          size="s"
+                          variant="${offer.__landscape === 'DRAFT' ? 'yellow' : 'informative'}"
+                          style="margin-left:4px;"
+                          >${offer.__landscape}</sp-badge
+                      >`
                     : ''}
             </span>
-            <span class="cell cell-id" @click=${this.handleClick}>
-                ${offerId}
-            </span>
+            <span class="cell cell-id" @click=${this.handleClick}> ${offerId} </span>
             <span class="cell cell-actions">
                 ${this.resolving
                     ? html`<sp-progress-circle indeterminate size="s" label="Resolving"></sp-progress-circle>`
                     : this.copied
-                        ? html`<span class="copied-label">Copied</span>`
-                        : html`<sp-action-button
-                              quiet
-                              size="xs"
-                              label="Copy offer ID"
-                              @click=${(e) => this.copyOfferId(e, offerId)}
-                          ><sp-icon-copy slot="icon"></sp-icon-copy></sp-action-button>`}
+                      ? html`<span class="copied-label">Copied</span>`
+                      : html`<sp-action-button
+                            quiet
+                            size="xs"
+                            label="Copy offer ID"
+                            @click=${(e) => this.copyOfferId(e, offerId)}
+                            ><sp-icon-copy slot="icon"></sp-icon-copy
+                        ></sp-action-button>`}
             </span>
         `;
     }

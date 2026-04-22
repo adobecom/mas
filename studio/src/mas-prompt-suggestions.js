@@ -29,7 +29,7 @@ export class MasPromptSuggestions extends LitElement {
             },
             {
                 text: 'Search offers',
-                icon: 'Offer',
+                icon: 'Label',
                 prompt: 'Search for offers by product, commitment, or term',
             },
             {
@@ -122,8 +122,8 @@ export class MasPromptSuggestions extends LitElement {
                 return html`<sp-icon-layers slot="icon" size="s"></sp-icon-layers>`;
             case 'ShoppingCart':
                 return html`<sp-icon-shopping-cart slot="icon" size="s"></sp-icon-shopping-cart>`;
-            case 'Offer':
-                return html`<sp-icon-offer slot="icon" size="s"></sp-icon-offer>`;
+            case 'Label':
+                return html`<sp-icon-label slot="icon" size="s"></sp-icon-label>`;
             case 'Collection':
                 return html`<sp-icon-collection slot="icon" size="s"></sp-icon-collection>`;
             case 'Star':

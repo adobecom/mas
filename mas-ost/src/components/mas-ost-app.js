@@ -19,18 +19,19 @@ import '@spectrum-web-components/menu/sp-menu-item.js';
 import './mas-ost-welcome-screen.js';
 import './mas-ost-selection-list.js';
 import './mas-ost-help-banner.js';
+import './mas-ost-offer-detail-focused.js';
 import { store } from '../store/ost-store.js';
-import { getOfferSelector } from '../utils/aos-client.js';
+import { getOfferSelector, resolveOfferSelector } from '../utils/aos-client.js';
 
 const ADOBE_FONTS_URL = 'https://use.typekit.net/pps7abe.css';
-const PRODUCTS_ENDPOINT =
-    'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';
+const PRODUCTS_ENDPOINT = 'https://14257-masstudio.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ost-products-read';
 
 export class MasOstApp extends LitElement {
     static properties = {
         config: { type: Object },
         dialog: { type: Boolean, reflect: true },
         productsError: { type: String, state: true },
+        usingFocusedOffer: { type: Boolean, state: true },
     };
 
     static styles = css`
@@ -38,7 +39,12 @@ export class MasOstApp extends LitElement {
             display: block;
             height: 100%;
             overflow: hidden;
-            font-family: 'adobe-clean', 'adobe-clean-ux', system-ui, -apple-system, sans-serif;
+            font-family:
+                'adobe-clean',
+                'adobe-clean-ux',
+                system-ui,
+                -apple-system,
+                sans-serif;
         }
 
         :host([dialog]) {
@@ -58,7 +64,12 @@ export class MasOstApp extends LitElement {
         .ost-container,
         .ost-footer-bar,
         .ost-dialog {
-            font-family: 'adobe-clean', 'adobe-clean-ux', system-ui, -apple-system, sans-serif;
+            font-family:
+                'adobe-clean',
+                'adobe-clean-ux',
+                system-ui,
+                -apple-system,
+                sans-serif;
         }
 
         :host([dialog]) sp-theme {
@@ -219,7 +230,6 @@ export class MasOstApp extends LitElement {
             outline: 2px solid var(--spectrum-blue-900);
             outline-offset: 2px;
         }
-
     `;
 
     constructor() {
@@ -309,21 +319,15 @@ export class MasOstApp extends LitElement {
                 env: store.env,
             };
             const result = await getOfferSelector(id, config);
-            const code =
-                result?.product_arrangement_code ||
-                result?.arrangement_code;
+            const code = result?.product_arrangement_code || result?.arrangement_code;
             if (!code) return;
 
             const aosUpdates = { arrangementCode: code };
-            if (result.commitment)
-                aosUpdates.commitment = result.commitment;
+            if (result.commitment) aosUpdates.commitment = result.commitment;
             if (result.term) aosUpdates.term = result.term;
-            if (result.customer_segment)
-                aosUpdates.customerSegment = result.customer_segment;
-            if (result.market_segment)
-                aosUpdates.marketSegment = result.market_segment;
-            if (result.offer_type)
-                aosUpdates.offerType = result.offer_type;
+            if (result.customer_segment) aosUpdates.customerSegment = result.customer_segment;
+            if (result.market_segment) aosUpdates.marketSegment = result.market_segment;
+            if (result.offer_type) aosUpdates.offerType = result.offer_type;
             store.setAosParams(aosUpdates);
             store.setOsi(id);
 
@@ -333,9 +337,7 @@ export class MasOstApp extends LitElement {
                 if (store.offers.length > 0) {
                     store.removeEventListener('state-changed', handler);
                     const match = store.offers.find(
-                        (o) =>
-                            o.offer_type === result.offer_type &&
-                            o.price_point === result.price_point,
+                        (o) => o.offer_type === result.offer_type && o.price_point === result.price_point,
                     );
                     if (match) {
                         store.setOffer(match);
@@ -422,8 +424,7 @@ export class MasOstApp extends LitElement {
             }),
         );
         if (typeof store.onSelect === 'function') {
-            const { osi, type, offer, options, promoOverride, country } =
-                detail;
+            const { osi, type, offer, options, promoOverride, country } = detail;
             store.onSelect(osi, type, offer, options, promoOverride, country);
         }
     }
@@ -431,12 +432,8 @@ export class MasOstApp extends LitElement {
     selectMulti() {
         if (!store.canConfirmMultiSelect) return;
         const detail = {
-            base: store.selectedBaseOsi
-                ? { osi: store.selectedBaseOsi, offer: store.selectedBaseOffer }
-                : null,
-            trial: store.selectedTrialOsi
-                ? { osi: store.selectedTrialOsi, offer: store.selectedTrialOffer }
-                : null,
+            base: store.selectedBaseOsi ? { osi: store.selectedBaseOsi, offer: store.selectedBaseOffer } : null,
+            trial: store.selectedTrialOsi ? { osi: store.selectedTrialOsi, offer: store.selectedTrialOffer } : null,
             country: store.country,
         };
         this.dispatchEvent(
@@ -463,6 +460,38 @@ export class MasOstApp extends LitElement {
         }
     }
 
+    handleFocusedBack() {
+        store.selectedOffer = undefined;
+        store.notify();
+    }
+
+    async handleFocusedUse() {
+        const offer = store.selectedOffer;
+        if (!offer || this.usingFocusedOffer) return;
+        this.usingFocusedOffer = true;
+        try {
+            // In consult mode (chat-origin "Use") we hand back the offer
+            // directly. The chat-input prefers `offer.offer_id` over the OSI
+            // for deterministic lookups, so we don't need to create/resolve a
+            // canonical OSI here. Skipping the POST /offer_selectors call
+            // avoids a redundant AOS round-trip and the "No offers found"
+            // state that can appear when that lookup fails.
+            const passthroughOsi = offer.offer_id || offer.id || '';
+            if (typeof store.onSelect === 'function') {
+                store.onSelect(passthroughOsi, 'price', offer, {}, undefined, store.country);
+            }
+            this.dispatchEvent(
+                new CustomEvent('ost-select', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { osi: passthroughOsi, offer, country: store.country },
+                }),
+            );
+        } finally {
+            this.usingFocusedOffer = false;
+        }
+    }
+
     renderRightPanel() {
         const state = store.viewState;
         if (state === 'welcome') {
@@ -475,9 +504,7 @@ export class MasOstApp extends LitElement {
                 <mas-ost-promo-tag></mas-ost-promo-tag>
             `;
         }
-        return html`
-            <mas-ost-product-detail></mas-ost-product-detail>
-        `;
+        return html` <mas-ost-product-detail></mas-ost-product-detail> `;
     }
 
     renderContent() {
@@ -490,9 +517,7 @@ export class MasOstApp extends LitElement {
                         <mas-ost-search></mas-ost-search>
                         <mas-ost-filter-bar></mas-ost-filter-bar>
                     </div>
-                    ${this.productsError
-                        ? html`<div class="ost-left-panel-error">${this.productsError}</div>`
-                        : ''}
+                    ${this.productsError ? html`<div class="ost-left-panel-error">${this.productsError}</div>` : ''}
                     <div class="ost-left-products-label">Products</div>
                     <mas-ost-product-list></mas-ost-product-list>
                 </div>
@@ -503,7 +528,6 @@ export class MasOstApp extends LitElement {
             </div>
         `;
     }
-
 
     handleBack() {
         store.selectedOffer = undefined;
@@ -551,41 +575,49 @@ export class MasOstApp extends LitElement {
     }
 
     render() {
-        const headerBar = html`
-            <div class="ost-header-bar">
-                <span class="ost-title">Offer Selector Tool</span>
-                <div class="ost-header-controls">
-                    <mas-ost-country-picker></mas-ost-country-picker>
-                    <sp-picker
-                        size="s"
-                        label="Authoring mode"
-                        value=${store.authoringFlow}
-                        @change=${(e) => store.setAuthoringFlow(e.target.value)}
-                    >
-                        <sp-menu-item value="tryBuy">Try / Buy</sp-menu-item>
-                        <sp-menu-item value="bundle">Soft Bundle</sp-menu-item>
-                        <sp-menu-item value="consult">Consult</sp-menu-item>
-                    </sp-picker>
-                    <sp-action-button
-                        quiet
-                        size="s"
-                        class="ost-help-toggle"
-                        ?selected=${store.helpMode}
-                        @click=${() => store.toggleHelp()}
-                    >
-                        <sp-icon-info slot="icon"></sp-icon-info>
-                        Help
-                    </sp-action-button>
-                    ${this.dialog
-                        ? html`<button
-                              class="ost-close-btn"
-                              aria-label="Close"
-                              @click=${() => this.cancel()}
-                          >&times;</button>`
-                        : ''}
-                </div>
-            </div>
-        `;
+        const isWelcome = store.viewState === 'welcome';
+        const isFocused = store.viewState === 'offer-detail-focused';
+        const closeButton = this.dialog
+            ? html`<button class="ost-close-btn" aria-label="Close" @click=${() => this.cancel()}>&times;</button>`
+            : '';
+
+        const headerBar =
+            isWelcome || isFocused
+                ? html`
+                      <div class="ost-header-bar">
+                          <span class="ost-title">Offer Selector Tool</span>
+                          <div class="ost-header-controls">${closeButton}</div>
+                      </div>
+                  `
+                : html`
+                      <div class="ost-header-bar">
+                          <span class="ost-title">Offer Selector Tool</span>
+                          <div class="ost-header-controls">
+                              <mas-ost-country-picker></mas-ost-country-picker>
+                              <sp-picker
+                                  size="s"
+                                  label="Authoring mode"
+                                  value=${store.authoringFlow}
+                                  @change=${(e) => store.setAuthoringFlow(e.target.value)}
+                              >
+                                  <sp-menu-item value="tryBuy">Try / Buy</sp-menu-item>
+                                  <sp-menu-item value="bundle">Soft Bundle</sp-menu-item>
+                                  <sp-menu-item value="consult">Consult</sp-menu-item>
+                              </sp-picker>
+                              <sp-action-button
+                                  quiet
+                                  size="s"
+                                  class="ost-help-toggle"
+                                  ?selected=${store.helpMode}
+                                  @click=${() => store.toggleHelp()}
+                              >
+                                  <sp-icon-info slot="icon"></sp-icon-info>
+                                  Help
+                              </sp-action-button>
+                              ${closeButton}
+                          </div>
+                      </div>
+                  `;
 
         const flow = store.authoringFlow;
         let useLabel = 'Use';
@@ -607,39 +639,46 @@ export class MasOstApp extends LitElement {
         const footerBar = html`
             <div class="ost-footer-bar">
                 ${flow === 'single' && store.viewState === 'configure'
-                    ? html`<sp-button
-                          variant="secondary"
-                          size="m"
-                          @click=${() => this.handleBack()}
-                      >Back</sp-button>`
+                    ? html`<sp-button variant="secondary" size="m" @click=${() => this.handleBack()}>Back</sp-button>`
                     : ''}
                 <sp-button
                     variant="${flow === 'consult' ? 'secondary' : 'accent'}"
                     size="m"
                     ?disabled=${useDisabled}
                     @click=${() => this.handleFooterUse()}
-                >${useLabel}</sp-button>
+                    >${useLabel}</sp-button
+                >
             </div>
         `;
 
-        const content = html`
-            ${headerBar}
-            ${this.renderContent()}
-            ${footerBar}
+        const focusedFooterBar = html`
+            <div class="ost-footer-bar">
+                <sp-button variant="secondary" size="m" @click=${() => this.handleFocusedBack()}>Back</sp-button>
+                <sp-button variant="accent" size="m" ?disabled=${this.usingFocusedOffer} @click=${() => this.handleFocusedUse()}
+                    >${this.usingFocusedOffer ? 'Resolving…' : 'Use'}</sp-button
+                >
+            </div>
         `;
 
+        const content = isWelcome
+            ? html`
+                  ${headerBar}
+                  <mas-ost-welcome-screen></mas-ost-welcome-screen>
+              `
+            : isFocused
+              ? html`
+                    ${headerBar}
+                    <mas-ost-offer-detail-focused></mas-ost-offer-detail-focused>
+                    ${focusedFooterBar}
+                `
+              : html` ${headerBar} ${this.renderContent()} ${footerBar} `;
+
         return html`
-            <sp-theme
-                system="spectrum-two"
-                color="light"
-                scale="medium"
-            >
+            <sp-theme system="spectrum-two" color="light" scale="medium">
                 ${this.dialog
                     ? html`
                           <div class="ost-backdrop" @click=${() => this.cancel()}></div>
-                          <div class="ost-dialog">
-                              ${content}
-                          </div>
+                          <div class="ost-dialog">${content}</div>
                       `
                     : content}
             </sp-theme>

@@ -6,6 +6,69 @@
  */
 
 /**
+ * JSON strings must not contain raw newlines, carriage returns, or tabs.
+ * Claude occasionally emits JSON with literal newlines inside the "message"
+ * field, which makes JSON.parse throw. Walk the candidate once, escape
+ * raw control chars that appear INSIDE double-quoted string literals, and
+ * leave whitespace between tokens untouched.
+ */
+function normalizeJsonString(raw) {
+    if (!raw || typeof raw !== 'string') return raw;
+    let out = '';
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < raw.length; i += 1) {
+        const ch = raw[i];
+        if (inString) {
+            if (escaped) {
+                out += ch;
+                escaped = false;
+                continue;
+            }
+            if (ch === '\\') {
+                out += ch;
+                escaped = true;
+                continue;
+            }
+            if (ch === '"') {
+                out += ch;
+                inString = false;
+                continue;
+            }
+            if (ch === '\n') {
+                out += '\\n';
+                continue;
+            }
+            if (ch === '\r') {
+                out += '\\r';
+                continue;
+            }
+            if (ch === '\t') {
+                out += '\\t';
+                continue;
+            }
+            out += ch;
+        } else {
+            out += ch;
+            if (ch === '"') inString = true;
+        }
+    }
+    return out;
+}
+
+function tryParse(candidate) {
+    try {
+        return JSON.parse(candidate);
+    } catch (e1) {
+        try {
+            return JSON.parse(normalizeJsonString(candidate));
+        } catch (e2) {
+            return null;
+        }
+    }
+}
+
+/**
  * Extract JSON from AI response
  * Claude may wrap JSON in markdown code blocks or include explanatory text
  * @param {string} responseText - Raw AI response
@@ -16,20 +79,15 @@ export function extractJSON(responseText) {
 
     const jsonBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (jsonBlockMatch) {
-        try {
-            return JSON.parse(jsonBlockMatch[1]);
-        } catch (error) {
-            console.error('Failed to parse JSON from code block:', error);
-        }
+        const parsed = tryParse(jsonBlockMatch[1]);
+        if (parsed) return parsed;
+        console.error('Failed to parse JSON from code block');
     }
 
     const bareMatch = responseText.match(/(\{[\s\S]*\})/);
     if (bareMatch) {
-        try {
-            return JSON.parse(bareMatch[1]);
-        } catch (error) {
-            // not valid JSON, fall through
-        }
+        const parsed = tryParse(bareMatch[1]);
+        if (parsed) return parsed;
     }
 
     return null;

@@ -124,11 +124,22 @@ export class MasChatInput extends LitElement {
 
     sendOffer() {
         if (!this.selectedOsi) return;
+        // Prefer the raw offer_id over the OSI when we have it — the chat's
+        // Rule 1 (get_offer_by_id) lookup against AOS is deterministic
+        // regardless of landscape/country, whereas OSI resolution via
+        // /offer_selectors/{id} is brittle for DRAFT-only or historic OSIs.
+        const offerId = this.selectedOffer?.offer_id || this.selectedOffer?.id || null;
         const context = { osi: this.selectedOsi };
         if (this.selectedOffer) context.offer = this.selectedOffer;
+        if (offerId) context.offerId = offerId;
+        // Disambiguate the identifier type for the AI. When we have an
+        // offer_id (from an OST offer payload), label it explicitly so the
+        // AI routes to Rule 1 (get_offer_by_id). Otherwise label as OSI so
+        // it routes to Rule 2 (resolve_offer_selector).
+        const message = offerId ? `Offer ID: ${offerId}` : `OSI: ${this.selectedOsi}`;
         this.dispatchEvent(
             new CustomEvent('send-message', {
-                detail: { message: `Selected offer: ${this.selectedOsi}`, context },
+                detail: { message, context },
                 bubbles: true,
                 composed: true,
             }),
@@ -164,13 +175,22 @@ export class MasChatInput extends LitElement {
 
         if (!message && !this.selectedOsi) return;
 
-        const effectiveMessage = message || `Selected offer: ${this.selectedOsi}`;
+        const offerId = this.selectedOffer?.offer_id || this.selectedOffer?.id || null;
+        const osiLooksLikeOfferId = this.selectedOsi && /^[a-fA-F0-9]{32}$/.test(this.selectedOsi);
+        const resolvedOfferId = offerId || (osiLooksLikeOfferId ? this.selectedOsi : null);
+        let attachmentLabel = `Selected offer: ${this.selectedOsi}`;
+        if (resolvedOfferId) attachmentLabel = `Offer ID: ${resolvedOfferId}`;
+        else if (this.selectedOsi) attachmentLabel = `OSI: ${this.selectedOsi}`;
+        const effectiveMessage = message || attachmentLabel;
         const context = {};
         if (this.selectedOsi) {
             context.osi = this.selectedOsi;
         }
         if (this.selectedOffer) {
             context.offer = this.selectedOffer;
+        }
+        if (resolvedOfferId) {
+            context.offerId = resolvedOfferId;
         }
 
         this.dispatchEvent(

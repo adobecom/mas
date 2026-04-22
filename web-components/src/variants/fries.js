@@ -24,6 +24,10 @@ export const FRIES_AEM_FRAGMENT_MAPPING = {
         attribute: 'border-color',
         specialValues: {
             gray: '--spectrum-gray-300',
+            'gradient-purple-blue':
+                'linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)',
+            'gradient-firefly-spectrum':
+                'linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)',
         },
     },
 };
@@ -70,6 +74,18 @@ export class FriesCard extends VariantLayout {
             --merch-card-fries-price-line-height: 17px;
             --merch-card-fries-outline: transparent;
             --consonant-merch-card-border-width: 1px;
+            --gradient-purple-blue: linear-gradient(
+                96deg,
+                #b539c8 0%,
+                #7155fa 66%,
+                #3b63fb 100%
+            );
+            --gradient-firefly-spectrum: linear-gradient(
+                96deg,
+                #d73220 0%,
+                #d92361 33%,
+                #7155fa 100%
+            );
             max-width: var(--merch-card-fries-max-width);
             min-height: var(--merch-card-fries-min-height);
             background-color: var(
@@ -123,6 +139,38 @@ export class FriesCard extends VariantLayout {
             align-items: center;
             gap: 8px;
             margin-top: 15px;
+        }
+
+        :host([variant='fries'][border-color='gradient-purple-blue']) {
+            background: var(--gradient-purple-blue);
+        }
+
+        :host([variant='fries'][border-color='gradient-firefly-spectrum']) {
+            background: var(--gradient-firefly-spectrum);
+        }
+
+        :host([variant='fries'][gradient-border='true']) {
+            border: none;
+            position: relative;
+        }
+
+        :host([variant='fries'][gradient-border='true'])::before {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: var(
+                --merch-card-custom-background-color,
+                var(--consonant-merch-card-background-color)
+            );
+            border-radius: 3px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        :host([variant='fries'][gradient-border='true']) .content,
+        :host([variant='fries'][gradient-border='true']) ::slotted(*) {
+            position: relative;
+            z-index: 1;
         }
     `;
 }

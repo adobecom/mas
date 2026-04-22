@@ -63,6 +63,18 @@ function clearCaches() {
     clearSettingsCache(true);
 }
 
+function buildInitContext(transformer, context, initPromises) {
+    const usesByPath = transformer.name === 'settings' || transformer.name === 'replace';
+    const previewUrl = usesByPath ? `${ODIN_PREVIEW_FRAGMENTS_URL}/byPath` : ODIN_PREVIEW_FRAGMENTS_URL;
+    return {
+        ...structuredClone(context),
+        preview: { url: previewUrl },
+        promises: initPromises,
+        fragmentsIds: context.fragmentsIds,
+        loggedTransformer: `${transformer.name}-init`,
+    };
+}
+
 async function previewFragment(id, options) {
     const serviceElement = document.head.querySelector('mas-commerce-service');
     const locale = serviceElement?.getAttribute('locale');
@@ -77,12 +89,7 @@ async function previewFragment(id, options) {
         for (const transformer of PIPELINE) {
             if (transformer.init) {
                 //we fork context to avoid init to override any context property
-                const initContext = {
-                    ...structuredClone(context),
-                    promises: initPromises,
-                    fragmentsIds: context.fragmentsIds,
-                };
-                initContext.loggedTransformer = `${transformer.name}-init`;
+                const initContext = buildInitContext(transformer, context, initPromises);
                 logDebug(() => `Initializing transformer ${transformer.name}`, initContext);
                 initPromises[transformer.name] = transformer.init(initContext);
             }
@@ -127,12 +134,7 @@ async function previewStudioFragment(body, options) {
     context.hasExternalDictionary = Boolean(context.dictionary);
     for (const transformer of [settings, replace, corrector]) {
         if (transformer.init) {
-            const initContext = {
-                ...structuredClone(context),
-                promises: initPromises,
-                fragmentsIds: context.fragmentsIds,
-            };
-            initContext.loggedTransformer = `${transformer.name}-init`;
+            const initContext = buildInitContext(transformer, context, initPromises);
             initPromises[transformer.name] = transformer.init(initContext);
         }
     }

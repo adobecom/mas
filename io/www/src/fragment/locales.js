@@ -353,6 +353,8 @@ const COMMERCE = [
 
 const DEFAULT_LOCALES = {
     acom: ACOM,
+    'acom-cc': ACOM,
+    'acom-dc': ACOM,
     nala: ACOM,
     sandbox: ACOM,
     ccd: CCD,

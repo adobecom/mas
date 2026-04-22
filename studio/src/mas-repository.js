@@ -84,6 +84,14 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     fragmentCache.add(cacheData);
 }
 
+export function buildVariantAugmentedQueries(query, variants) {
+    const trimmedQuery = (query || '').trim();
+    if (!variants || variants.length === 0) {
+        return [trimmedQuery];
+    }
+    return variants.map((variant) => (trimmedQuery ? `${variant} ${trimmedQuery}` : variant));
+}
+
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },

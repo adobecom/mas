@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { MasRepository } from '../src/mas-repository.js';
+import { MasRepository, buildVariantAugmentedQueries } from '../src/mas-repository.js';
 import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
@@ -1602,6 +1602,39 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
             }
+        });
+    });
+
+    describe('buildVariantAugmentedQueries', () => {
+        it('returns the original query unchanged when no variants are selected', () => {
+            expect(buildVariantAugmentedQueries('photoshop', [])).to.deep.equal(['photoshop']);
+        });
+
+        it('prepends a single variant token to the query', () => {
+            expect(buildVariantAugmentedQueries('photoshop', ['ccd-slice'])).to.deep.equal(['ccd-slice photoshop']);
+        });
+
+        it('returns one query per variant for multi-variant selections', () => {
+            expect(buildVariantAugmentedQueries('photoshop', ['catalog', 'plans'])).to.deep.equal([
+                'catalog photoshop',
+                'plans photoshop',
+            ]);
+        });
+
+        it('handles an empty user query by emitting variant-only queries', () => {
+            expect(buildVariantAugmentedQueries('', ['ccd-slice'])).to.deep.equal(['ccd-slice']);
+        });
+
+        it('preserves variant order so cursor snapshots are deterministic', () => {
+            expect(buildVariantAugmentedQueries('x', ['b', 'a'])).to.deep.equal(['b x', 'a x']);
+        });
+
+        it('trims surrounding whitespace from the user query', () => {
+            expect(buildVariantAugmentedQueries('  photoshop  ', ['ccd-slice'])).to.deep.equal(['ccd-slice photoshop']);
+        });
+
+        it('treats undefined query and undefined variants as no-op', () => {
+            expect(buildVariantAugmentedQueries(undefined, undefined)).to.deep.equal(['']);
         });
     });
 

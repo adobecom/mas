@@ -1,0 +1,20 @@
+{
+    "name": "mas-io-edgeworker",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "c8 --check-coverage --lines=100 --functions=100 --branches=100 --statements=100 mocha --recursive ./test",
+        "test:ci": "c8 --check-coverage --lines=100 --functions=100 --branches=100 --statements=100 mocha --recursive ./test",
+        "test:watch": "nodemon --watch src --watch test --ext js --exec \"mocha --recursive ./test\""
+    },
+    "devDependencies": {
+        "c8": "^10.1.3",
+        "chai": "^4.3.6",
+        "mocha": "^10.2.0",
+        "nodemon": "^3.1.10"
+    },
+    "engines": {
+        "node": ">=22"
+    }
+}

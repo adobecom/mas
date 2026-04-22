@@ -485,7 +485,10 @@ export default class MasFragmentEditor extends LitElement {
 
     // Returns true when editor should lazily initialize the fragment for the current route.
     #shouldInitFragment() {
-        return this.fragmentId && !this.inEdit.get() && this.initState !== MasFragmentEditor.INIT_STATE.LOADING;
+        if (!this.fragmentId || this.initState === MasFragmentEditor.INIT_STATE.LOADING) return false;
+        const currentInEdit = this.inEdit.get();
+        if (!currentInEdit) return true;
+        return currentInEdit.get()?.id !== this.fragmentId;
     }
 
     get previewSkeleton() {
@@ -695,26 +698,43 @@ export default class MasFragmentEditor extends LitElement {
 
     // Initializes editor state when the fragment already exists in the list store cache.
     async #initializeFromCachedStore(fragmentId, existingStore) {
+        if (this.repository.search.value.path) {
+            void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+        }
         const fragmentPath = existingStore.get().path;
-        this.#updateLocaleIfNeeded(fragmentPath);
 
-        // Reload context to correctly determine if this fragment is a variation
+        const fragmentLocale = extractLocaleFromPath(fragmentPath);
+        const pathDetection = this.editorContextStore.detectVariationFromPath(fragmentPath);
+        if (pathDetection.isVariation && fragmentLocale) {
+            Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+        }
+
+        this.#updateLocaleIfNeeded(fragmentPath);
         await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
         const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
 
-        // Consume store-level skip flag (set after copy operation)
         const skipVariation = existingStore.skipVariationDetection;
         if (skipVariation) existingStore.skipVariationDetection = false;
 
         if (isVariationAfterContext && !skipVariation) {
+            const localeChanged = fragmentLocale && fragmentLocale !== Store.localeOrRegion();
+            if (localeChanged) {
+                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                void this.repository.loadPreviewPlaceholders();
+                existingStore.resolvePreviewFragment();
+            }
             await this.#attachParentToCachedVariation(existingStore, fragmentPath);
+            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                void this.repository.loadPreviewPlaceholders();
+                existingStore.resolvePreviewFragment();
+            }
         } else {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
 
-        this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath); // no need to await
+        this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath);
 
-        // Use existing store - just refresh it
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
         }
@@ -758,8 +778,9 @@ export default class MasFragmentEditor extends LitElement {
     // Initializes editor state for fragments that are not yet present in list store cache.
     async #initializeFromRepository(fragmentId) {
         try {
-            // Start loading placeholders early
-            const placeholdersPromise = this.repository.loadPreviewPlaceholders().catch(() => null);
+            if (this.repository.search.value.path) {
+                void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+            }
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
             const fragment = new Fragment(fragmentData);
 
@@ -770,8 +791,16 @@ export default class MasFragmentEditor extends LitElement {
             const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
-            // Wait for placeholders before creating stores (needed for preview resolution)
-            await placeholdersPromise;
+            if (isVariationForStore) {
+                const fragmentLocale = extractLocaleFromPath(fragment.path);
+                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                }
+            }
+
+            if (this.repository.search.value.path) {
+                void this.repository.loadPreviewPlaceholders();
+            }
 
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
             // Only add to main list if not a variation (variations appear under parent's variations panel)
@@ -785,10 +814,13 @@ export default class MasFragmentEditor extends LitElement {
             // Handle locale-specific placeholder reload for variations
             if (isVariationForStore) {
                 const fragmentLocale = extractLocaleFromPath(fragment.path);
-                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                if (fragmentLocale) {
+                    const localeChanged = fragmentLocale !== Store.localeOrRegion();
                     Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-                    await this.repository.loadPreviewPlaceholders();
-                    fragmentStore.resolvePreviewFragment();
+                    if (localeChanged) {
+                        void this.repository.loadPreviewPlaceholders();
+                        fragmentStore.resolvePreviewFragment();
+                    }
                 }
             }
 
@@ -811,18 +843,18 @@ export default class MasFragmentEditor extends LitElement {
             return;
         }
 
+        const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+
+        if (existingStore) {
+            this.groupedVariationOrphanMessage = null;
+            await this.#initializeFromCachedStore(fragmentId, existingStore);
+            return;
+        }
+
         this.groupedVariationOrphanMessage = null;
         this.previewResolved = false;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
         Store.fragmentEditor.loading.set(true);
-
-        // Check for existing store first
-        const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
-
-        if (existingStore) {
-            await this.#initializeFromCachedStore(fragmentId, existingStore);
-            return;
-        }
 
         await this.#initializeFromRepository(fragmentId);
     }
@@ -1586,6 +1618,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get missingVariationState() {
+        if (this.fragmentId && this.fragment?.id !== this.fragmentId) return null;
         const currentLocale = Store.localeOrRegion();
         const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
 
@@ -1661,7 +1694,7 @@ export default class MasFragmentEditor extends LitElement {
             `;
         }
 
-        if (this.fragmentStore?.loading || this.isLoading) {
+        if (this.initState === MasFragmentEditor.INIT_STATE.LOADING) {
             return html`
                 ${this.styles}
                 <div id="fragment-editor">

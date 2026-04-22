@@ -101,6 +101,7 @@ const ACOM = [
             'TH',
             'VN',
             'ZA',
+            'MU',
         ],
     },
     { lang: 'en', country: 'GB', regions: ['AU', 'IN'] },

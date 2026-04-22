@@ -461,4 +461,26 @@ test.describe('M@S Studio feature test suite', () => {
             });
         });
     });
+
+    // @studio-sandbox-no-created-by-filter - Validate Sandbox does not auto-apply a Created By filter
+    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio sandbox page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate sandbox surface is selected', async () => {
+            await expect(await studio.surfacePicker).toHaveAttribute('value', 'sandbox');
+        });
+
+        await test.step('step-3: Validate no Created By filter is auto-applied', async () => {
+            await studio.waitForCardsLoaded();
+            await expect(studio.createdByTag).toHaveCount(0);
+            const cards = studio.renderView.locator('merch-card');
+            expect(await cards.count()).toBeGreaterThan(1);
+        });
+    });
 });

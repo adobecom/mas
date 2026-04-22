@@ -133,5 +133,12 @@ export default {
             },
             tags: '@mas-studio @regional-variations @grouped-variations',
         },
+        {
+            tcid: '14',
+            name: '@studio-sandbox-no-created-by-filter',
+            path: '/studio.html',
+            browserParams: '#page=welcome&path=sandbox',
+            tags: '@mas-studio',
+        },
     ],
 };

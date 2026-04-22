@@ -262,5 +262,5 @@ export const TABLE_TYPE = {
 
 export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 
-/** Base URL for Odin preview fragment-by-path checks (e.g. fil_PH .json endpoint). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
+export const ODIN_PREVIEW_FRAGMENTS_URL = `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments`;

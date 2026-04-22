@@ -29,7 +29,7 @@ const localStorageStub = {
 let objectKeysStub;
 
 describe('FragmentClient', () => {
-    const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
+    const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/contentFragments';
     let fetchStub;
 
     before(() => {

@@ -59,7 +59,7 @@ describe('FragmentClient', () => {
         fetchStub
             .withArgs(`${baseUrl}/${mockCollectionData.id}?references=all-hydrated`)
             .returns(createResponse(200, mockCollectionData));
-        fetchStub.withArgs(`${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
+        fetchStub.withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
             createResponse(200, {
                 items: [
                     {
@@ -70,7 +70,7 @@ describe('FragmentClient', () => {
             }),
         );
         // Settings fetch (preview pipeline now loads settings)
-        const settingsIndexUrl = `${baseUrl}?path=/content/dam/mas/sandbox/settings/index`;
+        const settingsIndexUrl = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/settings/index`;
         const settingsId = 'preview-settings-id';
         const settingsContentUrl = `${baseUrl}/${settingsId}?references=all-hydrated`;
         const settingsBody = {
@@ -118,7 +118,7 @@ describe('FragmentClient', () => {
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
-        fetchStub.withArgs(`${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
+        fetchStub.withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
             createResponse(200, {
                 items: [
                     {
@@ -208,8 +208,8 @@ describe('FragmentClient', () => {
     });
 
     it('merges options locale and country over document element', async () => {
-        const dePlaceholderIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
-        const deDictIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
+        const dePlaceholderIndex = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
+        const deDictIndex = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
         const deVariationId = 'de-de-default-locale-fragment';
         fetchStub.withArgs(dePlaceholderIndex).returns(
             createResponse(200, {

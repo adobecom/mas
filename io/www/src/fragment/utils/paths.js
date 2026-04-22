@@ -39,7 +39,7 @@ function odinReferences(id, allHydrated = false, preview) {
  * @returns full fetchable path to the fragment
  */
 function odinUrl(surface, { locale, fragmentPath, preview }) {
-    const root = fragmentPath ? `${rootURL(preview)}/byPath` : rootURL(preview);
+    const root = fragmentPath && preview?.url ? `${rootURL(preview)}/byPath` : rootURL(preview);
     if (!locale) return `${root}?path=${MAS_ROOT}/${surface}/${fragmentPath}`;
     return `${root}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }

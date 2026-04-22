@@ -41,7 +41,7 @@ const EXPECTED_HEADERS = {
 
 const SETTINGS_INDEX_URL_SANDBOX = 'https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/settings/index';
 const SETTINGS_INDEX_URL_PREVIEW =
-    'https://odinpreview.corp.adobe.com/adobe/contentFragments?path=/content/dam/mas/sandbox/settings/index';
+    'https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/settings/index';
 const SETTINGS_CONTENT_URL = (settingsId) =>
     `https://odin.adobe.com/adobe/sites/fragments/${settingsId}?references=all-hydrated`;
 const SETTINGS_CONTENT_URL_PREVIEW = (settingsId) =>
@@ -62,6 +62,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/sites/fragments';
+    const odinByPathRoot = preview ? `${odinUriRoot}/byPath` : odinUriRoot;
     // english fragment by id
     fetchStub
         .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
@@ -69,11 +70,11 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // french fragment by path
     fetchStub
-        .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
+        .withArgs(`${odinDomain}${odinByPathRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
         .returns(createResponse(200, { items: [{ id: 'some-fr-fr-fragment' }] }));
 
     // candadian french fragment by path
-    fetchStub.withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`).returns(
+    fetchStub.withArgs(`${odinDomain}${odinByPathRoot}?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`).returns(
         createResponse(200, {
             items: [],
         }),

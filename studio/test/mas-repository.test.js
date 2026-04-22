@@ -907,6 +907,68 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('sends the variant-augmented query to AEM when a single variant is selected', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/ccd-slice' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.query).to.equal('ccd-slice photoshop');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('leaves query unchanged when no variants are selected', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.query).to.equal('photoshop');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('searches by UUID when query is a valid UUID', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };

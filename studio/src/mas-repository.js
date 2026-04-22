@@ -84,12 +84,23 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     fragmentCache.add(cacheData);
 }
 
+/**
+ * Build the AEM query string(s) used to server-side-filter fragments by variant.
+ *
+ * Always returns a non-empty array. Each element is the query to send to AEM for
+ * one search call. A single empty-string element means "no filter applied" (i.e.
+ * the caller should issue a normal unfiltered search).
+ *
+ * @param {string} [query] The user-typed search query; undefined/null is treated as empty.
+ * @param {string[]} [variants] The variant tokens to prepend; undefined/null is treated as empty.
+ * @returns {string[]} One query per variant, or `[trimmedQuery]` when no variants are provided.
+ */
 export function buildVariantAugmentedQueries(query, variants) {
     const trimmedQuery = (query || '').trim();
     if (!variants || variants.length === 0) {
         return [trimmedQuery];
     }
-    return variants.map((variant) => (trimmedQuery ? `${variant} ${trimmedQuery}` : variant));
+    return variants.filter(Boolean).map((variant) => (trimmedQuery ? `${variant} ${trimmedQuery}` : variant));
 }
 
 export class MasRepository extends LitElement {
@@ -352,6 +363,7 @@ export class MasRepository extends LitElement {
             .map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
+        const augmentedQueries = buildVariantAugmentedQueries(query, variants);
         const damPath = getDamPath(path);
         const localizedPath = `${damPath}/${locale}`;
         const localSearch = {
@@ -359,6 +371,7 @@ export class MasRepository extends LitElement {
             modelIds,
             path: localizedPath,
             tags,
+            query: augmentedQueries[0],
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };

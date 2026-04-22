@@ -93,7 +93,7 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
  *
  * @param {string} [query] The user-typed search query; undefined/null is treated as empty.
  * @param {string[]} [variants] The variant tokens to prepend; undefined/null is treated as empty.
- * @returns {string[]} One query per variant, or `[trimmedQuery]` when no variants are provided.
+ * @returns {string[]} One query per non-nullish variant, or `[trimmedQuery]` when no usable variants remain.
  */
 export function buildVariantAugmentedQueries(query, variants) {
     const trimmedQuery = (query || '').trim();
@@ -364,7 +364,7 @@ export class MasRepository extends LitElement {
             .map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
-        const augmentedQueries = buildVariantAugmentedQueries(query, variants);
+        const [primaryAugmentedQuery] = buildVariantAugmentedQueries(query, variants);
         const damPath = getDamPath(path);
         const localizedPath = `${damPath}/${locale}`;
         const localSearch = {
@@ -372,7 +372,7 @@ export class MasRepository extends LitElement {
             modelIds,
             path: localizedPath,
             tags,
-            query: augmentedQueries[0],
+            query: primaryAugmentedQuery,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
@@ -404,7 +404,7 @@ export class MasRepository extends LitElement {
                     return;
                 }
                 const fragmentData = await this.aem.sites.cf.fragments.getById(
-                    localSearch.query,
+                    this.search.value.query,
                     this.#abortControllers.search,
                 );
                 const fragmentSurface = extractSurfaceFromPath(fragmentData?.path)?.toLowerCase() || null;

@@ -1015,6 +1015,42 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('calls getById with the raw UUID even when a variant tag is selected', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            const uuid = '12345678-1234-1234-1234-123456789012';
+            repository.search = { value: { path: 'acom', query: uuid } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/ccd-slice' } };
+            const mockFragment = createFragment({ id: uuid, path: `${ROOT_PATH}/acom/en_US/x`, fields: [] });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: sandbox.stub() } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            let dataValue = [];
+            const mockDataStore = {
+                get: sandbox.stub().callsFake(() => dataValue),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub().callsFake((v) => {
+                    dataValue = v;
+                }),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            const originalFolders = Store.folders.data.get();
+            Store.fragments.list.data = mockDataStore;
+            Store.folders.data.set(['acom', 'ccd']);
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(getByIdStub.firstCall.args[0]).to.equal(uuid);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+                Store.folders.data.set(originalFolders);
+            }
+        });
+
         it('infers the surface for a UUID deep link when the path is missing', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };

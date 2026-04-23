@@ -6493,7 +6493,6 @@ merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
     border-radius: 4px;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    text-overflow: ellipsis;
     font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
     font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
     line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);

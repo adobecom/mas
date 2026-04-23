@@ -6861,7 +6861,7 @@ merch-card[variant="full-pricing-express"] merch-badge {
 
     merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
         font-size: 12px;
-        line-height: 16px;
+        line-height: 15.6px;
     }
 }
 

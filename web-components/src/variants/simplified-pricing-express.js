@@ -83,6 +83,11 @@ export class SimplifiedPricingExpress extends VariantLayout {
             return;
         }
 
+        const headingSlot = this.card.querySelector('[slot="heading-xs"]');
+        if (headingSlot) {
+            this.updateCardElementMinHeight(headingSlot, 'heading-xs');
+        }
+
         const descriptionSlot = this.card.querySelector('[slot="body-xs"]');
         if (descriptionSlot) {
             this.updateCardElementMinHeight(descriptionSlot, 'description');
@@ -104,6 +109,11 @@ export class SimplifiedPricingExpress extends VariantLayout {
         if (iconRow) {
             this.updateCardElementMinHeight(iconRow, 'icons');
         }
+
+        this.updateCardElementMinHeight(
+            this.card.shadowRoot?.querySelector('.header'),
+            'header',
+        );
     }
 
     async postCardUpdateHook() {
@@ -137,9 +147,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
         });
 
         if (Media.isDesktopOrUp) {
-            requestAnimationFrame(() => {
-                cards.forEach((card) => card.variantLayout?.syncHeights?.());
-            });
+            cards.forEach((card) => card.variantLayout?.syncHeights?.());
         }
     }
 
@@ -152,6 +160,22 @@ export class SimplifiedPricingExpress extends VariantLayout {
         if (this.card?.hasAttribute('data-default-card') && !isDesktop()) {
             this.card.setAttribute('data-expanded', 'true');
         }
+        this.observeVisibility();
+    }
+
+    observeVisibility() {
+        if (typeof ResizeObserver === 'undefined') return;
+        this.sizeObserver = new ResizeObserver(() => {
+            if (this.card.getBoundingClientRect().width <= 2) return;
+            this.sizeObserver?.disconnect();
+            this.sizeObserver = null;
+            const container = this.getContainer();
+            if (!container) return;
+            container
+                .querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
+                .forEach((card) => card.variantLayout?.syncHeights?.());
+        });
+        this.sizeObserver.observe(this.card);
     }
 
     setupAccordion() {
@@ -187,6 +211,8 @@ export class SimplifiedPricingExpress extends VariantLayout {
             const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
             mediaQuery.removeEventListener('change', this.mediaQueryListener);
         }
+        this.sizeObserver?.disconnect();
+        this.sizeObserver = null;
     }
 
     handleChevronClick(e) {
@@ -519,6 +545,12 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
             :host([variant='simplified-pricing-express']) .cta {
                 flex-shrink: 0;
+            }
+
+            :host([variant='simplified-pricing-express']) .header {
+                min-height: var(
+                    --consonant-merch-card-simplified-pricing-express-header-height
+                );
             }
         }
 

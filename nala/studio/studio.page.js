@@ -18,7 +18,6 @@ export default class StudioPage {
         this.filter = page.locator('sp-action-button[label="Filter"]');
         this.filterPanel = page.locator('mas-filter-panel');
         this.createdByTag = this.filterPanel.locator('sp-tag sp-icon-user');
-        this.filterCountBadge = this.filter.locator('sp-badge, [slot="badge"]');
         this.folderPicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.previewMenu = page.locator('#actions sp-action-menu[value="render"]');
         this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');

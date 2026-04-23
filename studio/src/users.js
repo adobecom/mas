@@ -28,7 +28,7 @@ export async function initUsers() {
         const uniqueEditors = await loadUsers();
         Store.users.set(uniqueEditors);
 
-        Store.search.subscribe(async () => {
+        Store.search.subscribe(() => {
             Store.createdByUsers.set([]);
         });
     } catch (e) {

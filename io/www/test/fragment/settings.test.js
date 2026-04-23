@@ -5,6 +5,7 @@ import {
     getSettings,
     collectSettingEntries,
     clearSettingsCache,
+    applyCollectionSettings,
 } from '../../src/fragment/transformers/settings.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import { createResponse } from './mocks/MockFetch.js';
@@ -356,6 +357,22 @@ describe('settings', () => {
             expect(result.body.references.ref1.value.settings.secureLabel).to.equal('{{secure-label}}');
             expect(result.body.placeholders).to.exist;
             expect(result.body.settings?.tagLabels).to.exist;
+        });
+
+        it('applyCollectionSettings uses empty tagLabels when Object.fromEntries is falsy', function () {
+            const fromEntriesStub = sinon.stub(Object, 'fromEntries').returns(null);
+            const context = {
+                body: {
+                    references: null,
+                },
+                dictionary: {},
+            };
+            try {
+                applyCollectionSettings(context, 'fr_FR', {});
+                expect(context.body.settings.tagLabels).to.deep.equal({});
+            } finally {
+                fromEntriesStub.restore();
+            }
         });
 
         it('skips null entry (no default and no override)', async () => {

@@ -163,17 +163,21 @@ export class SimplifiedPricingExpress extends VariantLayout {
         this.observeVisibility();
     }
 
+    resyncSiblings() {
+        const container = this.getContainer();
+        if (!container) return;
+        container
+            .querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
+            .forEach((card) => card.variantLayout?.syncHeights?.());
+    }
+
     observeVisibility() {
         if (typeof ResizeObserver === 'undefined') return;
         this.sizeObserver = new ResizeObserver(() => {
             if (this.card.getBoundingClientRect().width <= 2) return;
             this.sizeObserver?.disconnect();
             this.sizeObserver = null;
-            const container = this.getContainer();
-            if (!container) return;
-            container
-                .querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
-                .forEach((card) => card.variantLayout?.syncHeights?.());
+            this.resyncSiblings();
         });
         this.sizeObserver.observe(this.card);
     }

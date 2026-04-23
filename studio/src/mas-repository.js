@@ -1666,6 +1666,9 @@ export class MasRepository extends LitElement {
      * Resolves the parent fragment for the provided fragment path and hydrates references.
      * Finds the parent whose variations field contains fragmentPath.
      * Flow: referencedBy -> filter by variations field -> getById (hydrated)
+     * Note: localization copies the `variations` field to all locale copies, so
+     * getReferencedBy may return 30+ candidates. We sort to check the default-locale
+     * parent first since grouped variations always derive from the default locale.
      * @param {string} fragmentPath
      * @returns {Promise<Object|null>}
      */
@@ -1674,7 +1677,18 @@ export class MasRepository extends LitElement {
         const parentRefs = references?.parentReferences || [];
         if (!parentRefs.length) return null;
 
-        for (const ref of parentRefs) {
+        const surface = extractSurfaceFromPath(fragmentPath);
+        const variationLocale = extractLocaleFromPath(fragmentPath);
+        const defaultLocale = surface && variationLocale ? getDefaultLocaleCode(surface, variationLocale) : null;
+        const sortedRefs = defaultLocale
+            ? [...parentRefs].sort((a, b) => {
+                  const aIsDefault = extractLocaleFromPath(a.path) === defaultLocale ? -1 : 1;
+                  const bIsDefault = extractLocaleFromPath(b.path) === defaultLocale ? -1 : 1;
+                  return aIsDefault - bIsDefault;
+              })
+            : parentRefs;
+
+        for (const ref of sortedRefs) {
             const candidate = await this.aem.sites.cf.fragments.getByPath(ref.path);
             if (!candidate) continue;
 

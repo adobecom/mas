@@ -635,4 +635,92 @@ describe('common.js - fetchOdin', () => {
             expect(result).to.equal(mockResponse);
         });
     });
+
+    describe('getFragmentWithEtag', () => {
+        it('should return the fragment JSON and etag header', async () => {
+            const fragment = { id: 'fragment-123', title: 'Test fragment' };
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: {
+                    get: sinon.stub().callsFake((headerName) => (headerName === 'etag' ? '"fragment-etag"' : null)),
+                },
+                json: sinon.stub().resolves(fragment),
+            };
+            fetchStub.resolves(mockResponse);
+
+            const result = await common.getFragmentWithEtag(odinEndpoint, 'fragment-123', authToken);
+
+            expect(fetchStub).to.have.been.calledOnce;
+            expect(fetchStub).to.have.been.calledWith(
+                'https://test-odin.example.com/adobe/sites/cf/fragments/fragment-123',
+                sinon.match({
+                    method: 'GET',
+                    headers: sinon.match({
+                        Authorization: 'Bearer test-auth-token',
+                        'User-Agent': 'mas-translation-project',
+                    }),
+                }),
+            );
+            expect(mockResponse.json).to.have.been.calledOnce;
+            expect(result).to.deep.equal({
+                fragment,
+                etag: '"fragment-etag"',
+            });
+        });
+
+        it('should fall back to Etag header casing when etag is missing', async () => {
+            const fragment = { id: 'fragment-456' };
+            const headersGetStub = sinon.stub();
+            headersGetStub.withArgs('etag').returns(null);
+            headersGetStub.withArgs('Etag').returns('"etag-from-uppercase-header"');
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: {
+                    get: headersGetStub,
+                },
+                json: sinon.stub().resolves(fragment),
+            };
+            fetchStub.resolves(mockResponse);
+
+            const result = await common.getFragmentWithEtag(odinEndpoint, 'fragment-456', authToken);
+
+            expect(result).to.deep.equal({
+                fragment,
+                etag: '"etag-from-uppercase-header"',
+            });
+        });
+    });
+
+    describe('deleteFragmentById', () => {
+        it('should send DELETE with If-Match when etag is provided', async () => {
+            const mockResponse = {
+                ok: true,
+                status: 204,
+                statusText: 'No Content',
+                headers: {
+                    get: sinon.stub().returns(null),
+                },
+            };
+            fetchStub.resolves(mockResponse);
+
+            await common.deleteFragmentById(odinEndpoint, 'fragment-789', authToken, '"delete-etag"');
+
+            expect(fetchStub).to.have.been.calledOnce;
+            expect(fetchStub).to.have.been.calledWith(
+                'https://test-odin.example.com/adobe/sites/cf/fragments/fragment-789',
+                sinon.match({
+                    method: 'DELETE',
+                    body: null,
+                    headers: sinon.match({
+                        Authorization: 'Bearer test-auth-token',
+                        'If-Match': '"delete-etag"',
+                    }),
+                }),
+            );
+        });
+    });
 });

@@ -1,0 +1,61 @@
+{
+    "id": "collection-missing-ref",
+    "path": "/content/dam/mas/test/collection-missing-ref",
+    "name": "collection-missing-ref",
+    "title": "Collection Missing Ref",
+    "description": "",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+    },
+    "fields": {},
+    "placeholders": {},
+    "references": {
+        "cat-all": {
+            "type": "content-fragment",
+            "value": {
+                "id": "cat-all",
+                "path": "/content/dam/mas/test/cat-all",
+                "name": "cat-all",
+                "title": "All",
+                "description": "",
+                "fields": {
+                    "label": "All",
+                    "cards": ["card-a", "card-b-missing"]
+                }
+            }
+        },
+        "card-a": {
+            "type": "content-fragment",
+            "value": {
+                "id": "card-a",
+                "path": "/content/dam/mas/test/card-a",
+                "name": "card-a",
+                "title": "Card A",
+                "description": "",
+                "fields": {
+                    "variant": "plans",
+                    "tags": ["mas:offer_type/base"],
+                    "searchText": "card a"
+                }
+            }
+        }
+    },
+    "referencesTree": [
+        {
+            "fieldName": "collections",
+            "identifier": "cat-all",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "card-a",
+                    "referencesTree": []
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "card-b-missing",
+                    "referencesTree": []
+                }
+            ]
+        }
+    ]
+}

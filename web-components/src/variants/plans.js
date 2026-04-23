@@ -238,7 +238,7 @@ export class Plans extends VariantLayout {
     }
 
     get mainPrice() {
-        const price = this.headingM.querySelector(
+        const price = this.headingM?.querySelector(
             `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
         );
         return price;

@@ -638,6 +638,9 @@ export class MerchCard extends LitElement {
         };
         this.#log.error(`merch-card${fragmentId}: ${error}`, detail);
         this.failed = true;
+        this.#resolveHydration?.();
+        this.#resolveHydration = undefined;
+        if (!this.#service.isPreview()) this.style.display = 'none';
         if (!dispatch) return;
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_ERROR, {
@@ -650,6 +653,7 @@ export class MerchCard extends LitElement {
 
     async checkReady() {
         if (!this.isConnected) return;
+        if (this.failed) return;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
             if (

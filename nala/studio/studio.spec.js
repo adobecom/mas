@@ -137,7 +137,7 @@ export default {
             tcid: '14',
             name: '@studio-sandbox-no-created-by-filter',
             path: '/studio.html',
-            browserParams: '#page=welcome&path=sandbox',
+            browserParams: '#page=content&path=sandbox',
             tags: '@mas-studio',
         },
     ],

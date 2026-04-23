@@ -2871,4 +2871,42 @@ describe('MasRepository dictionary helpers', () => {
             expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
         });
     });
+
+    describe('loadPreviewPlaceholders', () => {
+        let previousSearch;
+        let previousFilters;
+        let previousPreview;
+
+        beforeEach(() => {
+            previousSearch = structuredClone(Store.search.get());
+            previousFilters = structuredClone(Store.filters.get());
+            previousPreview = Store.placeholders.previewByLocale.get();
+        });
+
+        afterEach(() => {
+            Store.search.value = previousSearch;
+            Store.filters.value = previousFilters;
+            Store.placeholders.previewByLocale.value = previousPreview;
+        });
+
+        it('uses Store.localeOrRegion() for cache key and fetchDictionary locale', async () => {
+            const repository = createFullRepository();
+            repository.dictionaryCache.clear();
+
+            Store.search.value = { path: 'sandbox' };
+            Store.filters.value = { locale: 'en_US' };
+            Store.search.set((prev) => ({ ...prev, region: 'fr_FR' }));
+            // Unconnected repo: StoreController does not receive Store updates unless we sync.
+            repository.search.value = Store.search.get();
+
+            const fetchStub = sandbox.stub(repository, 'fetchDictionary').resolves({ dictKey: 'dictVal' });
+
+            await repository.loadPreviewPlaceholders();
+
+            expect(fetchStub.calledOnce).to.be.true;
+            expect(fetchStub.firstCall.args[1]).to.equal('fr_FR');
+            expect(repository.dictionaryCache.has('fr_FR_sandbox')).to.be.true;
+            expect(Store.placeholders.previewByLocale.get().fr_FR).to.deep.equal({ dictKey: 'dictVal' });
+        });
+    });
 });

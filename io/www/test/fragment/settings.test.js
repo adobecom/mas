@@ -25,7 +25,7 @@ function mockSettingsFetch(
     referencesBody = { body: { references: {} } },
     stub = fetchStub,
 ) {
-    stub.withArgs(settingsIndexUrl(surface)).returns(createResponse(200, { items: [{ id: settingsId }] }));
+    stub.withArgs(settingsIndexUrl(surface)).returns(createResponse(200, { id: settingsId }));
     stub.withArgs(settingsContentUrl(settingsId)).returns(createResponse(200, referencesBody));
 }
 
@@ -87,13 +87,13 @@ describe('settings', () => {
         });
 
         it('returns null when settings index has no items', async () => {
-            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [] }));
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, {}));
             const result = await getSettings(createContext());
             expect(result).to.be.null;
         });
 
         it('returns null when fetch references fails', async () => {
-            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [{ id: 'sid' }] }));
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { id: 'sid' }));
             fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(500, null, 'Internal Server Error'));
             const result = await getSettings(createContext());
             expect(result).to.be.null;
@@ -150,7 +150,7 @@ describe('settings', () => {
         });
 
         it('returns null when fetch references fails', async () => {
-            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [{ id: 'sid' }] }));
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { id: 'sid' }));
             fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(500, null, 'Internal Server Error'));
             const result = await settings.init(createContext());
             expect(result).to.be.null;

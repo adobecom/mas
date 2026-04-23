@@ -163,8 +163,7 @@ async function getFragmentId(context, odinUrl, mark) {
     }
     const response = await internalFetch(odinUrl, context, mark);
     if (response.status == 200) {
-        const { items, id: directId } = response.body || {};
-        const id = items?.[0]?.id ?? directId;
+        const { id } = response.body || {};
         if (id) {
             context.fragmentsIds = context.fragmentsIds || {};
             context.fragmentsIds[mark] = id;

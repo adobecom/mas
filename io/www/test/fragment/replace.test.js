@@ -13,12 +13,7 @@ const DEFAULT_LOCALE = 'fr_FR';
 const dictionaryIdFor = (surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => `${surface}_${locale}_dictionary`;
 
 const dictionaryCfResponse = (surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => ({
-    items: [
-        {
-            path: `/content/dam/mas/${surface}/${locale}/dictionary/index`,
-            id: dictionaryIdFor(surface, locale),
-        },
-    ],
+    id: dictionaryIdFor(surface, locale),
 });
 
 const odinResponse = (description, cta = '{{buy-now}}', surface = DEFAULT_SURFACE, locale = DEFAULT_LOCALE) => ({

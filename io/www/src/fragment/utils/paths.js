@@ -39,7 +39,10 @@ function odinReferences(id, allHydrated = false, preview) {
  * @returns full fetchable path to the fragment
  */
 function odinUrl(surface, { locale, fragmentPath, preview }) {
-    const root = fragmentPath && preview?.url ? `${rootURL(preview)}/byPath` : rootURL(preview);
+    // /byPath is a freyja-only endpoint on the preview origin; fall through to the bare
+    // fragments URL when either the path or a preview URL is missing.
+    const usePreviewByPath = Boolean(fragmentPath && preview?.url);
+    const root = usePreviewByPath ? `${rootURL(preview)}/byPath` : rootURL(preview);
     if (!locale) return `${root}?path=${MAS_ROOT}/${surface}/${fragmentPath}`;
     return `${root}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }

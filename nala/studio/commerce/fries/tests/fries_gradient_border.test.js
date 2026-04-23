@@ -42,7 +42,6 @@ test.describe('M@S Studio Commerce Fries gradient border test suite', () => {
                 const option = page.getByRole('option', { name: data.color.updated, exact: true });
                 await expect(option).toBeVisible();
                 await option.click();
-                await page.waitForTimeout(2000);
             });
 
             await test.step('step-4: Validate fries card receives gradient-border attributes', async () => {

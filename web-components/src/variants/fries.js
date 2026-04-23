@@ -1,6 +1,11 @@
-import { html, css } from 'lit';
+import { html, css, unsafeCSS } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './fries.css.js';
+
+const GRADIENT_PURPLE_BLUE =
+    'linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)';
+const GRADIENT_FIREFLY_SPECTRUM =
+    'linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)';
 
 export const FRIES_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 's' },
@@ -24,10 +29,8 @@ export const FRIES_AEM_FRAGMENT_MAPPING = {
         attribute: 'border-color',
         specialValues: {
             gray: '--spectrum-gray-300',
-            'gradient-purple-blue':
-                'linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%)',
-            'gradient-firefly-spectrum':
-                'linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%)',
+            'gradient-purple-blue': GRADIENT_PURPLE_BLUE,
+            'gradient-firefly-spectrum': GRADIENT_FIREFLY_SPECTRUM,
         },
     },
 };
@@ -74,18 +77,8 @@ export class FriesCard extends VariantLayout {
             --merch-card-fries-price-line-height: 17px;
             --merch-card-fries-outline: transparent;
             --consonant-merch-card-border-width: 1px;
-            --gradient-purple-blue: linear-gradient(
-                96deg,
-                #b539c8 0%,
-                #7155fa 66%,
-                #3b63fb 100%
-            );
-            --gradient-firefly-spectrum: linear-gradient(
-                96deg,
-                #d73220 0%,
-                #d92361 33%,
-                #7155fa 100%
-            );
+            --gradient-purple-blue: ${unsafeCSS(GRADIENT_PURPLE_BLUE)};
+            --gradient-firefly-spectrum: ${unsafeCSS(GRADIENT_FIREFLY_SPECTRUM)};
             max-width: var(--merch-card-fries-max-width);
             min-height: var(--merch-card-fries-min-height);
             background-color: var(

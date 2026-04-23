@@ -260,12 +260,16 @@ export class MerchCard extends LitElement {
 
     updated(changedProperties) {
         if (
-            changedProperties.has('badgeBackgroundColor') ||
-            changedProperties.has('borderColor')
+            !this.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ) &&
+            this.computedBorderColor &&
+            (changedProperties.has('badgeBackgroundColor') ||
+                changedProperties.has('borderColor'))
         ) {
             this.style.setProperty(
-                '--consonant-merch-card-border',
-                this.computedBorderStyle,
+                '--consonant-merch-card-border-color',
+                this.computedBorderColor,
             );
         }
         if (changedProperties.has('backgroundColor')) {
@@ -300,7 +304,7 @@ export class MerchCard extends LitElement {
         return this.variantLayout.renderLayout();
     }
 
-    get computedBorderStyle() {
+    get computedBorderColor() {
         if (
             ![
                 'ccd-slice',
@@ -310,9 +314,9 @@ export class MerchCard extends LitElement {
                 'full-pricing-express',
             ].includes(this.variant)
         ) {
-            return `1px solid ${
-                this.borderColor ? this.borderColor : this.badgeBackgroundColor
-            }`;
+            return this.borderColor
+                ? this.borderColor
+                : this.badgeBackgroundColor;
         }
         return '';
     }

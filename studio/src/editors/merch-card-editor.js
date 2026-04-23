@@ -507,7 +507,7 @@ class MerchCardEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.#registerCommercePriceProviders();
+        this.registerCommercePriceProviders();
         document.addEventListener(EVENT_COMMERCE_READY, this.#handleCommerceReady);
     }
 
@@ -518,15 +518,17 @@ class MerchCardEditor extends LitElement {
     }
 
     #handleCommerceReady = (event) => {
-        this.#registerCommercePriceProviders(event.detail);
+        this.registerCommercePriceProviders(event.detail);
     };
 
-    #registerCommercePriceProviders(service = document.querySelector('mas-commerce-service')) {
+    registerCommercePriceProviders(service = document.querySelector('mas-commerce-service')) {
         if (!service?.providers?.price) return;
-        if (service.providers.has(groupedPreviewLocaleProvider)) return;
-        service.providers.price(groupedPreviewLocaleProvider);
-        if (service.providers.has(editorPromoCodeProvider)) return;
-        service.providers.price(editorPromoCodeProvider);
+        if (!service.providers.has(groupedPreviewLocaleProvider)) {
+            service.providers.price(groupedPreviewLocaleProvider);
+        }
+        if (!service.providers.has(editorPromoCodeProvider)) {
+            service.providers.price(editorPromoCodeProvider);
+        }
     }
 
     refreshRenderedPrices() {
@@ -733,7 +735,7 @@ class MerchCardEditor extends LitElement {
             return;
         }
 
-        this.fragmentStore.updateField('compatVersion', [COMPAT_VERSION]);
+        this.fragmentStore.updateField('compatVersion', [String(COMPAT_VERSION)]);
 
         // Variations can inherit `variant` from their parent fragment.
         // Use the effective value so template field visibility remains accurate.

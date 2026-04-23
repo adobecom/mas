@@ -216,6 +216,7 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
+    #contextPromotionCode;
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;
@@ -254,6 +255,10 @@ export class MerchCard extends LitElement {
     }
 
     static getFragmentMapping = getFragmentMapping;
+
+    set contextPromotionCode(value) {
+        this.#contextPromotionCode = value;
+    }
 
     firstUpdated() {
         this.variantLayout = getVariantLayout(this);
@@ -878,8 +883,15 @@ export class MerchCard extends LitElement {
             ...this.querySelectorAll(
                 `${SELECTOR_MAS_INLINE_PRICE}[data-promotion-code],${SELECTOR_MAS_CHECKOUT_LINK}[data-promotion-code]`,
             ),
-        ].map((el) => el.dataset.promotionCode);
-        // Check if all promotion codes are the same
+        ]
+            .map((el) => el.dataset.promotionCode)
+            .filter(
+                (promotionCode) =>
+                    ![undefined, 'cancel-context'].includes(promotionCode),
+            );
+        if (promotionCodes.length === 0) {
+            return this.#contextPromotionCode;
+        }
         const uniqueCodes = [...new Set(promotionCodes)];
         if (uniqueCodes.length > 1) {
             this.#log?.warn(

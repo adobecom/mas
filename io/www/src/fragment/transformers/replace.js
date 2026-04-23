@@ -154,12 +154,13 @@ function replaceValues(input, dictionary, calls) {
 }
 
 async function init(context) {
-    // we fetch dictionary at this stage only if id has already been cached
-    // because we can't know surface of fragment *before* first fetch
-    // if dictionaryId is present in cache - early load dictionary
-    // if nothing in cache - dictionaryId and dictionary itself will be loaded later,
-    // during process
-    return await getDictionary(context);
+    // Dictionary cache key needs merged `locale` (region) from defaultLanguage init (after fetchFragment).
+    // Parallelism for dictionary id is via `getRequestInfos` → `requestInfos` inside getDictionaryId, not here.
+    const fetchResult = await context?.promises?.defaultLanguage;
+    // If defaultLanguage is missing or non-200, we keep `context` only: dictionary id/cache use request `locale`, not
+    // the regional locale from init. That matches a degraded path (pipeline already failed or no init promise).
+    const merged = fetchResult?.status === 200 ? { ...context, ...fetchResult } : context;
+    return await getDictionary(merged);
 }
 
 async function replace(context) {

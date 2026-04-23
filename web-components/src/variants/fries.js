@@ -78,7 +78,9 @@ export class FriesCard extends VariantLayout {
             --merch-card-fries-outline: transparent;
             --consonant-merch-card-border-width: 1px;
             --gradient-purple-blue: ${unsafeCSS(GRADIENT_PURPLE_BLUE)};
-            --gradient-firefly-spectrum: ${unsafeCSS(GRADIENT_FIREFLY_SPECTRUM)};
+            --gradient-firefly-spectrum: ${unsafeCSS(
+                GRADIENT_FIREFLY_SPECTRUM,
+            )};
             max-width: var(--merch-card-fries-max-width);
             min-height: var(--merch-card-fries-min-height);
             background-color: var(

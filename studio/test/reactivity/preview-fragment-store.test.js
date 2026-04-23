@@ -102,7 +102,7 @@ describe('mergeResolvedPreviewFields', () => {
 describe('PreviewFragmentStore', () => {
     let sandbox;
     let placeholderSubscribers;
-    let originalPlaceholdersPreview;
+    let originalPlaceholdersPreviewByLocale;
     let originalSurface;
     let originalLocaleOrRegion;
 
@@ -122,10 +122,10 @@ describe('PreviewFragmentStore', () => {
         sandbox = sinon.createSandbox();
 
         placeholderSubscribers = [];
-        originalPlaceholdersPreview = Store.placeholders.preview;
+        originalPlaceholdersPreviewByLocale = Store.placeholders.previewByLocale;
 
-        Store.placeholders.preview = {
-            value: { key: 'value' },
+        Store.placeholders.previewByLocale = {
+            value: { en_US: { key: 'value' } },
             subscribe: (fn) => {
                 placeholderSubscribers.push(fn);
                 return fn;
@@ -144,7 +144,7 @@ describe('PreviewFragmentStore', () => {
 
     afterEach(() => {
         sandbox.restore();
-        Store.placeholders.preview = originalPlaceholdersPreview;
+        Store.placeholders.previewByLocale = originalPlaceholdersPreviewByLocale;
         Store.surface = originalSurface;
         Store.localeOrRegion = originalLocaleOrRegion;
     });

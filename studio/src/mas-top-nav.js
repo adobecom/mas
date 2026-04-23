@@ -5,7 +5,7 @@ import { until } from 'lit/directives/until.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
-import { extractLocaleFromPath } from './utils.js';
+import { extractLocaleFromPath, debounce } from './utils.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
@@ -35,6 +35,7 @@ class MasTopNav extends LitElement {
         this.promotions.promotionId,
         this.translationProjects.translationProjectId,
         this.translationProjects.inEdit,
+        Store.productCatalog.search,
     ]);
 
     createRenderRoot() {
@@ -167,6 +168,14 @@ class MasTopNav extends LitElement {
     get isSettingsEditorPage() {
         return this.page.value === PAGE_NAMES.SETTINGS_EDITOR;
     }
+
+    get isProductCatalogPage() {
+        return this.page.value === PAGE_NAMES.PRODUCT_CATALOG;
+    }
+
+    handleProductSearch = debounce((e) => {
+        Store.productCatalog.search.set(e.target.value || '');
+    }, 200);
 
     get topNavLocale() {
         if (this.isFragmentEditorPage) {
@@ -360,7 +369,15 @@ class MasTopNav extends LitElement {
                     ${this.historyNavigationTemplate} ${this.breadcrumbsTemplate}
                 </div>
 
-                <div class="spacer"></div>
+                ${this.isProductCatalogPage
+                    ? html`<sp-search
+                          class="top-nav-search"
+                          placeholder="Search by product name, code, or arrangement..."
+                          @input=${this.handleProductSearch}
+                          @submit=${(e) => e.preventDefault()}
+                          value=${Store.productCatalog.search.value}
+                      ></sp-search>`
+                    : html`<div class="spacer"></div>`}
 
                 <div class="right-section">
                     ${this.shouldShowPickers
@@ -377,16 +394,20 @@ class MasTopNav extends LitElement {
                                   surface=${Store.surface()}
                                   locale=${this.topNavLocale}
                               ></mas-locale-picker>
-                              <sp-switch
-                                  class="landscape-switch"
-                                  size="m"
-                                  ?checked=${this.isDraftLandscape}
-                                  @change=${(e) => {
-                                      Store.landscape.set(e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED);
-                                  }}
-                              >
-                                  Draft landscape offer
-                              </sp-switch>
+                              ${this.isProductCatalogPage
+                                  ? nothing
+                                  : html`<sp-switch
+                                        class="landscape-switch"
+                                        size="m"
+                                        ?checked=${this.isDraftLandscape}
+                                        @change=${(e) => {
+                                            Store.landscape.set(
+                                                e.target.checked ? WCS_LANDSCAPE_DRAFT : WCS_LANDSCAPE_PUBLISHED,
+                                            );
+                                        }}
+                                    >
+                                        Draft landscape offer
+                                    </sp-switch>`}
                               <div class="divider"></div>
                               <div class="universal-elements">
                                   <button class="icon-button" title="Help">

@@ -281,11 +281,11 @@ export class MasVariationDialog extends LitElement {
             <sp-field-group>
                 <sp-field-label>Grouped variation tags</sp-field-label>
                 <aem-tag-picker-field
-                    label="Locale and PZN tags"
+                    label="Locale tags"
                     namespace="/content/cq:tags/mas"
                     selection="checkbox-tags"
                     display-value
-                    top="locale,pzn"
+                    top="locale"
                     multiple
                     ?disabled=${this.loading}
                     @change=${this.handlePznTagsChange}

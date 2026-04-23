@@ -195,6 +195,10 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         hideFormatButtons: { type: Boolean, attribute: 'hide-format-buttons' },
+        hideToolbar: { type: Boolean, attribute: 'hide-toolbar' },
+        hideCounter: { type: Boolean, attribute: 'hide-counter' },
+        noBorder: { type: Boolean, attribute: 'no-border' },
+        placeholder: { type: String },
         osi: { type: String },
         value: { type: String },
     };
@@ -221,6 +225,8 @@ class RteField extends LitElement {
                     gap: 8px;
                     flex-direction: column;
                     font-size: var(--spectrum-font-size-200);
+                    width: 100%;
+                    box-sizing: border-box;
                 }
 
                 :host([hide-format-buttons]) {
@@ -266,10 +272,39 @@ class RteField extends LitElement {
                     padding: 8px 4px 4px 4px;
                     min-height: 36px;
                     flex: 1;
+                    width: 100%;
+                    box-sizing: border-box;
                     color: var(--spectrum-gray-800);
                     background-color: var(--spectrum-white);
                     border: 2px solid var(--spectrum-gray-300);
                     border-radius: 8px;
+                }
+
+                #editor .ProseMirror.is-empty::before {
+                    content: attr(data-placeholder);
+                    color: #888888;
+                    pointer-events: none;
+                    float: left;
+                    height: 0;
+                    font-style: italic;
+                }
+
+                #editor .ProseMirror {
+                    min-height: 20px;
+                }
+
+                :host([no-border]) #editor {
+                    border: none;
+                    background: transparent;
+                    padding: 0;
+                }
+
+                :host([no-border]) #editor .ProseMirror {
+                    outline: none;
+                }
+
+                :host([no-border][focused]) #editor {
+                    outline: none;
                 }
 
                 :host([data-field-state='overridden']) #editor {
@@ -655,6 +690,10 @@ class RteField extends LitElement {
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
+        this.hideToolbar = false;
+        this.hideCounter = false;
+        this.noBorder = false;
+        this.placeholder = '';
         this.osi = '';
         this.marks = ['heading-xxxs', 'heading-xxs', 'heading-xs', 'heading-s', 'heading-m', 'promo-text', 'mnemonic-text'];
         this.#boundHandlers = {
@@ -1119,6 +1158,11 @@ class RteField extends LitElement {
             },
         });
 
+        if (this.placeholder) {
+            this.editorView.dom.setAttribute('data-placeholder', this.placeholder);
+            this.#updateEmptyState();
+        }
+
         try {
             const html = (this.value ?? this.innerHTML).trim();
             this.innerHTML = '';
@@ -1214,6 +1258,7 @@ class RteField extends LitElement {
 
             if (newState.doc) {
                 this.#boundHandlers.updateLength();
+                this.#updateEmptyState();
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
                 const isFirstChange = transaction.getMeta('initialize');
@@ -1236,6 +1281,16 @@ class RteField extends LitElement {
             if (error.message && !error.message.includes('matchesNode')) {
                 console.error('Error handling transaction:', error);
             }
+        }
+    }
+
+    #updateEmptyState() {
+        if (!this.editorView?.dom) return;
+        const text = this.editorView.dom.innerText.trim();
+        if (text === '' || text === '\n') {
+            this.editorView.dom.classList.add('is-empty');
+        } else {
+            this.editorView.dom.classList.remove('is-empty');
         }
     }
 
@@ -1739,7 +1794,7 @@ class RteField extends LitElement {
     render() {
         const lengthExceeded = this.length > this.maxLength;
         return html`
-            ${this.hideFormatButtons
+            ${this.hideFormatButtons || this.hideToolbar
                 ? nothing
                 : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                       ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
@@ -1750,7 +1805,7 @@ class RteField extends LitElement {
                 <div id="editor"></div>
                 ${this.hideFormatButtons ? this.#offerSelectorToolButton : nothing}
             </div>
-            ${this.hideFormatButtons
+            ${this.hideFormatButtons || this.hideCounter
                 ? nothing
                 : html`<p id="counter">
                       <span class="${lengthExceeded ? 'exceeded' : ''}">${this.length}</span>/${this.maxLength}

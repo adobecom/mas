@@ -58,6 +58,9 @@ const Store = {
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
+    productCatalog: {
+        search: new ReactiveStore(''),
+    },
     placeholders: {
         search: new ReactiveStore(''),
         list: {
@@ -80,6 +83,9 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    productDetail: {
+        arrangementCode: new ReactiveStore(null),
+    },
     version: {
         fragmentId: new ReactiveStore(null),
     },
@@ -133,8 +139,6 @@ const Store = {
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
         offerDataCache: new Map(),
-        groupedVariationsByParent: new ReactiveStore(new Map()), // should not be modified directly, use setCardVariationsByPaths to modify
-        groupedVariationsData: new ReactiveStore(new Map()),
 
         allCollections: new ReactiveStore([]),
         collectionsByPaths: new ReactiveStore(new Map()),
@@ -194,6 +198,9 @@ function pageValidator(value) {
         PAGE_NAMES.PROMOTIONS_EDITOR,
         PAGE_NAMES.TRANSLATIONS,
         PAGE_NAMES.TRANSLATION_EDITOR,
+        PAGE_NAMES.AI_ASSISTANT,
+        PAGE_NAMES.PRODUCT_CATALOG,
+        PAGE_NAMES.PRODUCT_DETAIL,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

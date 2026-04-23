@@ -1,6 +1,8 @@
 import Store from './store.js';
 
 const MAS_ADMIN_GROUP = 'GRP-ODIN-MAS-ADMINS';
+const SURFACE_EDITOR_PREFIX = 'GRP-ODIN-MAS-';
+const SURFACE_EDITOR_SUFFIX = '-EDITORS';
 
 /** Surface path segment → LDAP group required for Studio settings (non-admin). */
 const SETTINGS_ACCESS_GROUP_BY_SURFACE = new Map([
@@ -41,4 +43,27 @@ export function canAccessSettings(surface) {
     if (!key || ADMIN_ONLY_SETTINGS_SURFACES.has(key)) return false;
     const requiredGroup = SETTINGS_ACCESS_GROUP_BY_SURFACE.get(key);
     return !!requiredGroup && groups.includes(requiredGroup.toUpperCase());
+}
+
+/**
+ * Returns the surfaces the current user has editor access to.
+ * Extracts surface names from IAM groups matching GRP-ODIN-MAS-{SURFACE}-EDITORS.
+ * Admins get access to all surfaces.
+ *
+ * @returns {string[]} Array of surface names (lowercase), e.g., ['acom', 'express']
+ */
+export function getUserSurfaces() {
+    const groups = getCurrentUserNormalizedGroups();
+    if (!groups) return Store.folders?.data?.value || [];
+    if (groups.includes(MAS_ADMIN_GROUP.toUpperCase())) {
+        return Store.folders?.data?.value || [];
+    }
+    const surfaces = [];
+    for (const group of groups) {
+        if (group.startsWith(SURFACE_EDITOR_PREFIX) && group.endsWith(SURFACE_EDITOR_SUFFIX)) {
+            const surface = group.slice(SURFACE_EDITOR_PREFIX.length, -SURFACE_EDITOR_SUFFIX.length).toLowerCase();
+            if (surface) surfaces.push(surface);
+        }
+    }
+    return surfaces.length > 0 ? surfaces : Store.folders?.data?.value || [];
 }

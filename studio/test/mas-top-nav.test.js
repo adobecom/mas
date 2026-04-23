@@ -646,6 +646,49 @@ describe('MasTopNav', () => {
         });
     });
 
+    describe('isProductCatalogPage getter', () => {
+        it('returns true when on product catalog page', async () => {
+            Store.page.value = PAGE_NAMES.PRODUCT_CATALOG;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isProductCatalogPage).to.be.true;
+        });
+
+        it('returns false for other pages', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isProductCatalogPage).to.be.false;
+        });
+    });
+
+    describe('product search', () => {
+        let originalProductCatalogSearch;
+
+        beforeEach(() => {
+            originalProductCatalogSearch = Store.productCatalog.search.value;
+        });
+
+        afterEach(() => {
+            Store.productCatalog.search.value = originalProductCatalogSearch;
+        });
+
+        it('renders search bar on product catalog page', async () => {
+            Store.page.value = PAGE_NAMES.PRODUCT_CATALOG;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const searchBar = el.querySelector('sp-search.top-nav-search');
+            expect(searchBar).to.exist;
+            expect(searchBar.getAttribute('placeholder')).to.include('Search by product name');
+        });
+
+        it('renders spacer on non-product-catalog pages', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const searchBar = el.querySelector('sp-search.top-nav-search');
+            const spacer = el.querySelector('.spacer');
+            expect(searchBar).to.not.exist;
+            expect(spacer).to.exist;
+        });
+    });
+
     describe('landscape switch', () => {
         it('should render landscape switch when pickers are shown', async () => {
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);

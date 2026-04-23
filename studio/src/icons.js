@@ -18,6 +18,9 @@ export const branch2Icon = html` <svg
     ></path>
 </svg>`;
 
+/**
+ * Toggle sidebar icon used in the translation items selector.
+ */
 export const toggleSidebarIcon = html`<svg
     width="20"
     height="20"
@@ -39,6 +42,7 @@ export const toggleSidebarIcon = html`<svg
         <rect width="20" height="20" fill="#292929" />
     </g>
 </svg> `;
+
 /**
  * Figma connector trunk used for expanded settings override groups.
  */

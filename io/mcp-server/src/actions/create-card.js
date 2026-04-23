@@ -1,0 +1,44 @@
+import { AuthManager } from '../lib/auth-manager.js';
+import { AEMClient } from '../lib/aem-client.js';
+import { StudioURLBuilder } from '../lib/studio-url-builder.js';
+import { StudioOperations } from '../lib/studio-operations.js';
+import { requireSurfaceAccess, resolveAemBaseUrl } from '../lib/ims-validator.js';
+
+async function main(params) {
+    const { title, parentPath, variant, size, fields, tags, __ow_headers } = params;
+
+    try {
+        const authError = await requireSurfaceAccess(__ow_headers, params);
+        if (authError) {
+            return authError;
+        }
+
+        const accessToken = __ow_headers.authorization.replace('Bearer ', '');
+
+        const authManager = new AuthManager();
+        authManager.setAccessToken(accessToken);
+
+        const { url: aemBaseUrl, error: aemError } = resolveAemBaseUrl(params);
+        if (aemError) return aemError;
+        const studioBaseUrl = params.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html';
+
+        const aemClient = new AEMClient(aemBaseUrl, authManager);
+        const urlBuilder = new StudioURLBuilder(studioBaseUrl);
+        const studioOps = new StudioOperations(aemClient, urlBuilder);
+
+        const result = await studioOps.createCard({ title, parentPath, variant, size, fields, tags });
+
+        return {
+            statusCode: 200,
+            body: result,
+        };
+    } catch (error) {
+        console.error('Create card error:', error);
+        return {
+            statusCode: 500,
+            body: { error: error.message },
+        };
+    }
+}
+
+export { main };

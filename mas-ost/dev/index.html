@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>mas-ost dev</title>
+    <style>
+        body { margin: 0; font-family: system-ui; }
+        .ost { width: 100%; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div class="ost"></div>
+    <script type="module">
+        import '/src/global.js';
+
+        window.ost.openOfferSelectorTool({
+            country: 'US',
+            language: 'en',
+            env: 'PRODUCTION',
+            landscape: 'PUBLISHED',
+            wcsApiKey: 'wcms-commerce-ims-ro-user-cc',
+            aosApiKey: 'dexter-commerce-offers',
+            aosAccessToken: localStorage.getItem('AOS_ACCESS_TOKEN'),
+            onSelect: (osi, type, offer, options, promoOverride, country) => {
+                console.log('onSelect:', { osi, type, offer, options, promoOverride, country });
+            },
+            onCancel: () => console.log('onCancel'),
+            rootElement: document.querySelector('.ost'),
+            dialog: true,
+            zIndex: 20000,
+        });
+    </script>
+</body>
+</html>

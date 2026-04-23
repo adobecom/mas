@@ -1,0 +1,64 @@
+{
+  "name": "@adobecom/mas-ost",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/mas-ost.es.js",
+  "module": "dist/mas-ost.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/mas-ost.es.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --mode global && cp dist/mas-ost.iife.js ../studio/ost/index.js",
+    "build:esm": "vite build",
+    "test": "web-test-runner",
+    "test:ci": "web-test-runner",
+    "test:watch": "web-test-runner --watch",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "lit": "^3.1.0",
+    "@spectrum-web-components/theme": "^1.0.0",
+    "@spectrum-web-components/button": "^1.0.0",
+    "@spectrum-web-components/tabs": "^1.0.0",
+    "@spectrum-web-components/picker": "^1.0.0",
+    "@spectrum-web-components/textfield": "^1.0.0",
+    "@spectrum-web-components/search": "^1.0.0",
+    "@spectrum-web-components/checkbox": "^1.0.0",
+    "@spectrum-web-components/radio": "^1.0.0",
+    "@spectrum-web-components/dialog": "^1.0.0",
+    "@spectrum-web-components/table": "^1.0.0",
+    "@spectrum-web-components/badge": "^1.0.0",
+    "@spectrum-web-components/divider": "^1.0.0",
+    "@spectrum-web-components/progress-circle": "^1.0.0",
+    "@spectrum-web-components/tooltip": "^1.0.0",
+    "@spectrum-web-components/overlay": "^1.0.0",
+    "@spectrum-web-components/menu": "^1.0.0",
+    "@spectrum-web-components/action-button": "^1.0.0",
+    "@spectrum-web-components/link": "^1.0.0",
+    "@spectrum-web-components/field-label": "^1.0.0",
+    "@spectrum-web-components/help-text": "^1.0.0",
+    "@spectrum-web-components/popover": "^1.0.0",
+    "@spectrum-web-components/switch": "^1.0.0"
+  },
+  "optionalDependencies": {
+    "@pandora/data-source-aos": "0.6.4",
+    "@pandora/data-models-odm": "0.5.4",
+    "@pandora/data-source-utils": "0.3.1",
+    "@pandora/commerce-checkout-url-builder": "1.5.2"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@web/test-runner": "^0.18.0",
+    "@open-wc/testing": "^4.0.0",
+    "@web/dev-server-esbuild": "^1.0.0",
+    "eslint": "^8.20.0"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  }
+}

@@ -264,3 +264,10 @@ export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'exp
 
 /** Base URL for Odin preview fragment-by-path checks (e.g. fil_PH .json endpoint). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
+
+/**
+ * Compat version of the card.
+ * 0: assumed version for fragments before compat version was introduced.
+ * see web-components/src/compat-version.js for more details.
+ */
+export const COMPAT_VERSION = 1;

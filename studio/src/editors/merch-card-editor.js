@@ -7,7 +7,7 @@ import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-import { CARD_MODEL_PATH } from '../constants.js';
+import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
@@ -51,23 +51,11 @@ function groupedPreviewLocaleProvider(element, options) {
     options.country = locale.country;
 }
 
-function registerGroupedPreviewLocaleProvider(service) {
-    if (!service?.providers?.price) return;
-    if (service.providers.has(groupedPreviewLocaleProvider)) return;
-    service.providers.price(groupedPreviewLocaleProvider);
-}
-
 function editorPromoCodeProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
     const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
     if (!promoCode) return;
     options.promotionCode = promoCode;
-}
-
-function registerEditorPromoCodeProvider(service) {
-    if (!service?.providers?.price) return;
-    if (service.providers.has(editorPromoCodeProvider)) return;
-    service.providers.price(editorPromoCodeProvider);
 }
 
 const VARIANT_RTE_MARKS = {
@@ -534,8 +522,11 @@ class MerchCardEditor extends LitElement {
     };
 
     #registerCommercePriceProviders(service = document.querySelector('mas-commerce-service')) {
-        registerGroupedPreviewLocaleProvider(service);
-        registerEditorPromoCodeProvider(service);
+        if (!service?.providers?.price) return;
+        if (service.providers.has(groupedPreviewLocaleProvider)) return;
+        service.providers.price(groupedPreviewLocaleProvider);
+        if (service.providers.has(editorPromoCodeProvider)) return;
+        service.providers.price(editorPromoCodeProvider);
     }
 
     refreshRenderedPrices() {
@@ -741,6 +732,9 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) {
             return;
         }
+
+        this.fragmentStore.updateField('compatVersion', [COMPAT_VERSION]);
+
         // Variations can inherit `variant` from their parent fragment.
         // Use the effective value so template field visibility remains accurate.
         const variantValue = this.getEffectiveFieldValue('variant');

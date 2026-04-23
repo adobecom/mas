@@ -34,6 +34,7 @@ import {
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
 import { getService, printMeasure } from './utils.js';
+import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -56,7 +57,10 @@ function priceOptionsProvider(element, options) {
         options.literals ??= {};
         Object.assign(options.literals, card.priceLiterals);
     }
-    if (!options.promotionCode) {
+    if (
+        !options.promotionCode &&
+        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+    ) {
         options.promotionCode = card.promotionCode;
     }
     if (card.aemFragment) {
@@ -221,6 +225,12 @@ export class MerchCard extends LitElement {
     #hydrationPromise = new Promise((resolve) => {
         this.#resolveHydration = resolve;
     });
+
+    /**
+     * Compat version of the card.
+     * @type {number}
+     */
+    compatVersion;
 
     customerSegment;
     marketSegment;

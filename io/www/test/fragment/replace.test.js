@@ -37,10 +37,9 @@ const mockDictionaryBySurfaceLocale = (
 ) => {
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/sites/fragments';
-    const odinByPathRoot = preview ? `${odinUriRoot}/byPath` : odinUriRoot;
     const dictionaryId = dictionaryIdFor(surface, locale);
 
-    stub.withArgs(`${odinDomain}${odinByPathRoot}?path=/content/dam/mas/${surface}/${locale}/dictionary/index`).returns(
+    stub.withArgs(`${odinDomain}${odinUriRoot}/byPath?path=/content/dam/mas/${surface}/${locale}/dictionary/index`).returns(
         createResponse(200, dictionaryCfResponse(surface, locale)),
     );
 
@@ -157,7 +156,7 @@ describe('replace', () => {
 
         it('manages gracefully fetch failure to find dictionary', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .rejects(new Error('fetch error'));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
@@ -165,7 +164,7 @@ describe('replace', () => {
 
         it('manages gracefully non 2xx to find dictionary', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .returns(createResponse(404, 'not found', 'Not Found'));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
@@ -173,7 +172,7 @@ describe('replace', () => {
 
         it('manages gracefully fetch no dictionary index', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .returns(createResponse(200, { items: [] }));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
@@ -181,7 +180,7 @@ describe('replace', () => {
 
         it('manages gracefully failure to find entries', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .returns(createResponse(200, dictionaryCfResponse()));
             fetchStub
                 .withArgs('https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
@@ -192,7 +191,7 @@ describe('replace', () => {
         });
         it('manages gracefully non 2xx to find entries', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
                 .returns(createResponse(200, dictionaryCfResponse()));
             fetchStub
                 .withArgs('https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')

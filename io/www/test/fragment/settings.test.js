@@ -13,7 +13,7 @@ const DEFAULT_SURFACE = 'sandbox';
 const DEFAULT_LOCALE = 'fr_FR';
 
 const settingsIndexUrl = (surface = DEFAULT_SURFACE) =>
-    `https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/${surface}/settings/index`;
+    `https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/${surface}/settings/index`;
 
 const settingsContentUrl = (id) => `https://odin.adobe.com/adobe/sites/fragments/${id}?references=all-hydrated`;
 

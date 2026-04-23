@@ -39,7 +39,7 @@ const EXPECTED_HEADERS = {
     'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
 };
 
-const SETTINGS_INDEX_URL_SANDBOX = 'https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/settings/index';
+const SETTINGS_INDEX_URL_SANDBOX = 'https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/settings/index';
 const SETTINGS_INDEX_URL_PREVIEW =
     'https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/settings/index';
 const SETTINGS_CONTENT_URL = (settingsId) =>
@@ -62,7 +62,6 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
     const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/sites/fragments';
-    const odinByPathRoot = preview ? `${odinUriRoot}/byPath` : odinUriRoot;
     // english fragment by id
     fetchStub
         .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
@@ -70,12 +69,12 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // french fragment by path
     fetchStub
-        .withArgs(`${odinDomain}${odinByPathRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
+        .withArgs(`${odinDomain}${odinUriRoot}/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
         .returns(createResponse(200, { id: 'some-fr-fr-fragment' }));
 
     // candadian french fragment by path — not found (empty body)
     fetchStub
-        .withArgs(`${odinDomain}${odinByPathRoot}?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`)
+        .withArgs(`${odinDomain}${odinUriRoot}/byPath?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`)
         .returns(createResponse(200, {}));
 
     // french fragment by id
@@ -233,7 +232,7 @@ describe('pipeline full use case', () => {
             path: 'someFragment',
         });
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_CA/dictionary/index')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_CA/dictionary/index')
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
         const result = await getFragment({
@@ -261,7 +260,7 @@ describe('pipeline full use case', () => {
             path: 'someFragment',
         });
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
         const result = await getFragment({
@@ -289,7 +288,7 @@ describe('pipeline full use case', () => {
 
         // Mock settings for adobe-home surface
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/adobe-home/settings/index')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/adobe-home/settings/index')
             .returns(createResponse(200, { id: 'adobe-home-settings-id' }));
         fetchStub
             .withArgs('https://odin.adobe.com/adobe/sites/fragments/adobe-home-settings-id?references=all-hydrated')
@@ -302,7 +301,7 @@ describe('pipeline full use case', () => {
 
         // Mock dictionary for adobe-home de_DE (note the path structure matches adobe-home)
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/adobe-home/de_DE/dictionary/index')
+            .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/adobe-home/de_DE/dictionary/index')
             .returns(createResponse(200, { id: 'de_DE_dictionary' }));
 
         fetchStub

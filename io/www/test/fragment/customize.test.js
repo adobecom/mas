@@ -1139,7 +1139,7 @@ describe('customize corner cases', function () {
             .withArgs(
                 'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             )
-            .returns(createResponse(200, {}));
+            .returns(createResponse(404, {}));
 
         const result = await process({
             ...FAKE_CONTEXT,
@@ -1149,7 +1149,7 @@ describe('customize corner cases', function () {
         });
         expect(result).to.deep.include({
             status: 404,
-            message: 'Fragment not found',
+            message: 'Error fetching fragment id',
         });
     });
 

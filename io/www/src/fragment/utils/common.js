@@ -162,6 +162,7 @@ async function getFragmentId(context, odinUrl, mark) {
         }
     }
     const response = await internalFetch(odinUrl, context, mark);
+    let { message, status } = response;
     if (response.status == 200) {
         const { id } = response.body || {};
         if (id) {
@@ -169,18 +170,15 @@ async function getFragmentId(context, odinUrl, mark) {
             context.fragmentsIds[mark] = id;
             return {
                 id,
-                status: 200,
-            };
-        } else {
-            return {
-                message: 'Fragment not found',
-                status: 404,
+                status,
             };
         }
+        message = 'No id found in response';
+        status = 503;
     }
     return {
         message: response.message || 'Error fetching fragment id',
-        status: 503,
+        status,
     };
 }
 

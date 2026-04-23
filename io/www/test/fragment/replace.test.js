@@ -210,6 +210,24 @@ describe('replace', () => {
             expect(context).to.deep.include(EXPECTED);
         });
 
+        it('manages gracefully 200 response with null body when fetching dictionary id', async () => {
+            fetchStub
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                )
+                .returns(
+                    Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        statusText: 'OK',
+                        headers: { entries: () => [] },
+                        json: async () => null,
+                    }),
+                );
+            const context = await replace.process({ ...FAKE_CONTEXT });
+            expect(context).to.deep.include(EXPECTED);
+        });
+
         it('manages gracefully failure to find entries', async () => {
             fetchStub
                 .withArgs(

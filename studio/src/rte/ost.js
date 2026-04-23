@@ -146,7 +146,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
 
     const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
-        attributes['text'] = ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala'].includes(Store.search.get().path)
+        attributes['text'] = ['acom', 'acom-cc', 'acom-dc', 'sandbox', 'nala', 'express'].includes(Store.search.get().path)
             ? `{{${options.ctaText}}}`
             : ctaText;
         attributes['data-analytics-id'] = options.ctaText;

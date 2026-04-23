@@ -36,7 +36,7 @@ const mockDictionaryBySurfaceLocale = (
     stub = fetchStub,
 ) => {
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
-    const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/sites/fragments';
+    const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/contentFragments';
     const dictionaryId = dictionaryIdFor(surface, locale);
 
     stub.withArgs(`${odinDomain}${odinUriRoot}/byPath?path=/content/dam/mas/${surface}/${locale}/dictionary/index`).returns(
@@ -156,7 +156,9 @@ describe('replace', () => {
 
         it('manages gracefully fetch failure to find dictionary', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                )
                 .rejects(new Error('fetch error'));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
@@ -164,7 +166,9 @@ describe('replace', () => {
 
         it('manages gracefully non 2xx to find dictionary', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                )
                 .returns(createResponse(404, 'not found', 'Not Found'));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
@@ -172,7 +176,9 @@ describe('replace', () => {
 
         it('manages gracefully fetch no dictionary index', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                )
                 .returns(createResponse(200, { items: [] }));
             const context = await replace.process(FAKE_CONTEXT);
             expect(context).to.deep.include(EXPECTED);
@@ -180,10 +186,12 @@ describe('replace', () => {
 
         it('manages gracefully failure to find entries', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                )
                 .returns(createResponse(200, dictionaryCfResponse()));
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_FR_dictionary?references=all-hydrated')
                 .rejects(new Error('fetch error'));
             const context = await replace.process(FAKE_CONTEXT);
             const dictionaryId = dictionaryIdFor();
@@ -191,10 +199,12 @@ describe('replace', () => {
         });
         it('manages gracefully non 2xx to find entries', async () => {
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+                .withArgs(
+                    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                )
                 .returns(createResponse(200, dictionaryCfResponse()));
             fetchStub
-                .withArgs('https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated')
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_FR_dictionary?references=all-hydrated')
                 .returns(createResponse(500, 'server error', 'Internal Server Error'));
             const context = await replace.process(FAKE_CONTEXT);
             const dictionaryId = dictionaryIdFor();
@@ -204,7 +214,7 @@ describe('replace', () => {
 
     describe('dictionary caching', () => {
         const dictionaryContentUrl =
-            'https://odin.adobe.com/adobe/sites/fragments/sandbox_fr_FR_dictionary?references=all-hydrated';
+            'https://odin.adobe.com/adobe/contentFragments/sandbox_fr_FR_dictionary?references=all-hydrated';
 
         const contentFetchCalls = () => fetchStub.getCalls().filter((c) => c.args[0]?.includes('references=all-hydrated'));
 

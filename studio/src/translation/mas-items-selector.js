@@ -23,6 +23,7 @@ class MasItemsSelector extends LitElement {
         viewOnly: { type: Boolean, state: true },
         searchQuery: { type: String, state: true },
         selectedTab: { type: String, state: true },
+        targetStore: { type: Object },
     };
 
     constructor() {
@@ -30,33 +31,37 @@ class MasItemsSelector extends LitElement {
         this.viewOnly = false;
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
+        this.targetStore = Store.translationProjects;
     }
 
     connectedCallback() {
         super.connectedCallback();
-        this.storeController = new ReactiveController(this, [
-            Store.translationProjects.inEdit,
-            Store.translationProjects.showSelected,
-            Store.translationProjects.selectedCards,
-            Store.translationProjects.selectedCollections,
-            Store.translationProjects.selectedPlaceholders,
-        ]);
-    }
-
-    get showSelected() {
-        return Store.translationProjects.showSelected.value;
-    }
-
-    get selectedCount() {
-        return (
-            Store.translationProjects.selectedCards.value.length +
-            Store.translationProjects.selectedPlaceholders.value.length +
-            Store.translationProjects.selectedCollections.value.length
+        this.storeController = new ReactiveController(
+            this,
+            [
+                this.targetStore.inEdit,
+                this.targetStore.showSelected,
+                this.targetStore.selectedCards,
+                this.targetStore.selectedCollections,
+                this.targetStore.selectedPlaceholders,
+            ].filter(Boolean),
         );
     }
 
+    get showSelected() {
+        return this.targetStore.showSelected.value;
+    }
+
+    get selectedCount() {
+        return [
+            ...this.targetStore.selectedCards.value,
+            ...this.targetStore.selectedPlaceholders.value,
+            ...this.targetStore.selectedCollections.value,
+        ].length;
+    }
+
     #toggleShowSelected() {
-        Store.translationProjects.showSelected.set(!this.showSelected);
+        this.targetStore.showSelected.set(!this.showSelected);
     }
 
     #setSearchQuery = debounce((value) => {
@@ -79,7 +84,7 @@ class MasItemsSelector extends LitElement {
     #getTabLabel(tab) {
         if (this.viewOnly) {
             const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            return `${tab.label} (${Store.translationProjects[`selected${valueUppercase}`].value.length})`;
+            return `${tab.label} (${this.targetStore[`selected${valueUppercase}`].value.length})`;
         }
         return tab.label;
     }

@@ -20,44 +20,49 @@ class MasItemsSelector extends LitElement {
 
     static properties = {
         viewOnly: { type: Boolean, state: true },
+        targetStore: { type: Object },
     };
 
     constructor() {
         super();
         this.viewOnly = false;
+        this.targetStore = Store.translationProjects;
     }
 
     connectedCallback() {
         super.connectedCallback();
-        this.storeController = new ReactiveController(this, [
-            Store.translationProjects.inEdit,
-            Store.translationProjects.showSelected,
-            Store.translationProjects.selectedCards,
-            Store.translationProjects.selectedCollections,
-            Store.translationProjects.selectedPlaceholders,
-        ]);
+        this.storeController = new ReactiveController(
+            this,
+            [
+                this.targetStore.inEdit,
+                this.targetStore.showSelected,
+                this.targetStore.selectedCards,
+                this.targetStore.selectedCollections,
+                this.targetStore.selectedPlaceholders,
+            ].filter(Boolean),
+        );
     }
 
     get showSelected() {
-        return Store.translationProjects.showSelected.value;
+        return this.targetStore.showSelected.value;
     }
 
     get selectedCount() {
         return [
-            ...Store.translationProjects.selectedCards.value,
-            ...Store.translationProjects.selectedPlaceholders.value,
-            ...Store.translationProjects.selectedCollections.value,
+            ...this.targetStore.selectedCards.value,
+            ...this.targetStore.selectedPlaceholders.value,
+            ...this.targetStore.selectedCollections.value,
         ].length;
     }
 
     #toggleShowSelected() {
-        Store.translationProjects.showSelected.set(!this.showSelected);
+        this.targetStore.showSelected.set(!this.showSelected);
     }
 
     #getTabLabel(tab) {
         if (this.viewOnly) {
             const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            return `${tab.label} (${Store.translationProjects[`selected${valueUppercase}`].value.length})`;
+            return `${tab.label} (${this.targetStore[`selected${valueUppercase}`].value.length})`;
         }
         return tab.label;
     }

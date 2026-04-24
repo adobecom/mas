@@ -9,7 +9,13 @@ class MasTranslationLanguages extends LitElement {
 
     static properties = {
         localesArray: { type: Array, state: true },
+        targetStore: { type: Object },
     };
+
+    constructor() {
+        super();
+        this.targetStore = Store.translationProjects;
+    }
 
     connectedCallback() {
         super.connectedCallback();
@@ -25,17 +31,17 @@ class MasTranslationLanguages extends LitElement {
                 return a.locale > b.locale ? 1 : -1;
             });
         this.localesMatrix = this.getLocales();
-        this.targetLocalesController = new ReactiveController(this, [Store.translationProjects.targetLocales]);
+        this.targetLocalesController = new ReactiveController(this, [this.targetStore?.targetLocales].filter(Boolean));
     }
 
     get selectAllChecked() {
-        return Store.translationProjects.targetLocales.value.length === this.localesArray.length;
+        return this.targetStore.targetLocales.value.length === this.localesArray.length;
     }
 
     get numberOfLocales() {
-        const languagesText = Store.translationProjects.targetLocales.value.length === 1 ? 'language' : 'languages';
-        return Store.translationProjects.targetLocales.value.length
-            ? `${Store.translationProjects.targetLocales.value.length} ${languagesText} selected`
+        const languagesText = this.targetStore.targetLocales.value.length === 1 ? 'language' : 'languages';
+        return this.targetStore.targetLocales.value.length
+            ? `${this.targetStore.targetLocales.value.length} ${languagesText} selected`
             : `${this.localesArray.length} ${languagesText}`;
     }
 
@@ -58,9 +64,9 @@ class MasTranslationLanguages extends LitElement {
 
     selectAll(event) {
         if (event.target.checked) {
-            Store.translationProjects.targetLocales.set(this.localesArray.map((item) => item.locale));
+            this.targetStore.targetLocales.set(this.localesArray.map((item) => item.locale));
         } else {
-            Store.translationProjects.targetLocales.set([]);
+            this.targetStore.targetLocales.set([]);
         }
         this.requestUpdate();
     }
@@ -68,13 +74,10 @@ class MasTranslationLanguages extends LitElement {
     changeCheckboxState(event) {
         event.stopPropagation();
         if (event.target.checked) {
-            Store.translationProjects.targetLocales.set([
-                ...Store.translationProjects.targetLocales.value,
-                event.target.textContent.trim(),
-            ]);
+            this.targetStore.targetLocales.set([...this.targetStore.targetLocales.value, event.target.textContent.trim()]);
         } else {
-            Store.translationProjects.targetLocales.set(
-                Store.translationProjects.targetLocales.value.filter((locale) => locale !== event.target.textContent.trim()),
+            this.targetStore.targetLocales.set(
+                this.targetStore.targetLocales.value.filter((locale) => locale !== event.target.textContent.trim()),
             );
         }
     }
@@ -86,7 +89,7 @@ class MasTranslationLanguages extends LitElement {
                     ? html`
                           <sp-checkbox
                               @change=${this.changeCheckboxState}
-                              ?checked=${Store.translationProjects.targetLocales.value.includes(item.locale)}
+                              ?checked=${this.targetStore.targetLocales.value.includes(item.locale)}
                           >
                               ${item.locale}
                           </sp-checkbox>

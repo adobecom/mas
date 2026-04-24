@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { MasRepository, buildVariantAugmentedQueries } from '../src/mas-repository.js';
+import { MasRepository } from '../src/mas-repository.js';
 import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
@@ -907,7 +907,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('sends the variant-augmented query to AEM when a single variant is selected', async () => {
+        it('sends the raw user query and strips variant tags before calling AEM', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: 'photoshop' } };
@@ -931,7 +931,8 @@ describe('MasRepository dictionary helpers', () => {
                 await repository.searchFragments();
                 expect(searchStub.calledOnce).to.be.true;
                 const callArg = searchStub.firstCall.args[0];
-                expect(callArg.query).to.equal('ccd-slice photoshop');
+                expect(callArg.query).to.equal('photoshop');
+                expect(callArg.tags).to.deep.equal([]);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -1422,7 +1423,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('filters tags for variant and model ID tags', async () => {
+        it('strips variant and content-type tags before calling AEM', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: '' } };
@@ -1454,7 +1455,6 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 const searchOptions = searchStub.firstCall.args[0];
-                // Variant and content-type tags should be filtered out
                 expect(searchOptions.tags).to.deep.equal(['mas:custom-tag']);
             } finally {
                 Store.profile.set(originalProfile);
@@ -1700,44 +1700,6 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
             }
-        });
-    });
-
-    describe('buildVariantAugmentedQueries', () => {
-        it('returns the original query unchanged when no variants are selected', () => {
-            expect(buildVariantAugmentedQueries('photoshop', [])).to.deep.equal(['photoshop']);
-        });
-
-        it('prepends a single variant token to the query', () => {
-            expect(buildVariantAugmentedQueries('photoshop', ['ccd-slice'])).to.deep.equal(['ccd-slice photoshop']);
-        });
-
-        it('returns one query per variant for multi-variant selections', () => {
-            expect(buildVariantAugmentedQueries('photoshop', ['catalog', 'plans'])).to.deep.equal([
-                'catalog photoshop',
-                'plans photoshop',
-            ]);
-        });
-
-        it('handles an empty user query by emitting variant-only queries', () => {
-            expect(buildVariantAugmentedQueries('', ['ccd-slice'])).to.deep.equal(['ccd-slice']);
-        });
-
-        it('preserves variant order so cursor snapshots are deterministic', () => {
-            expect(buildVariantAugmentedQueries('x', ['b', 'a'])).to.deep.equal(['b x', 'a x']);
-        });
-
-        it('trims surrounding whitespace from the user query', () => {
-            expect(buildVariantAugmentedQueries('  photoshop  ', ['ccd-slice'])).to.deep.equal(['ccd-slice photoshop']);
-        });
-
-        it('treats undefined query and undefined variants as no-op', () => {
-            expect(buildVariantAugmentedQueries(undefined, undefined)).to.deep.equal(['']);
-        });
-
-        it('drops nullish variant entries and falls back to the bare query when all are dropped', () => {
-            expect(buildVariantAugmentedQueries('photoshop', [null, undefined])).to.deep.equal(['photoshop']);
-            expect(buildVariantAugmentedQueries('photoshop', ['ccd-slice', null])).to.deep.equal(['ccd-slice photoshop']);
         });
     });
 

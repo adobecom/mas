@@ -46,4 +46,14 @@ export const styles = css`
         font-size: 12px;
         color: var(--spectrum-gray-800, #4b4b4b);
     }
+    sp-dialog-wrapper.selector-dialog {
+        --spectrum-dialog-width: 900px;
+        --mod-dialog-confirm-max-width: 900px;
+    }
+    sp-dialog-wrapper.selector-dialog mas-translation-languages,
+    sp-dialog-wrapper.selector-dialog mas-items-selector {
+        display: block;
+        max-height: 60vh;
+        overflow: auto;
+    }
 `;

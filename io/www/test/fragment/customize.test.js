@@ -152,7 +152,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/intro',
+                        path: '/content/dam/mas/sandbox/en_KW/PA-123/pzn/intro',
                         id: pznVariationId,
                         title: 'Intro pricing',
                         fields: {
@@ -162,7 +162,7 @@ describe('customize collections', function () {
                     },
                 },
                 [pznOtherVariationId]: {
-                    path: '/content/dam/mas/pzn/sandbox/pznTest',
+                    path: '/content/dam/mas/sandbox/en_KW/PA-123/pzn/pzn-test',
                     id: pznOtherVariationId,
                     title: 'test variation',
                     description: 'has en_KW too, but appears second in the list',
@@ -201,7 +201,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/country',
+                        path: '/content/dam/mas/sandbox/en_KW/PA-123/pzn/country',
                         id: pznVariationId,
                         title: 'Country targeting',
                         fields: {
@@ -241,7 +241,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/mx',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/mx',
                         id: pznVariationId,
                         title: 'Mexico country targeting',
                         fields: {
@@ -281,7 +281,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/teams-edu',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/teams-edu',
                         id: pznVariationId,
                         title: 'Teams and EDU',
                         fields: {
@@ -322,7 +322,7 @@ describe('customize collections', function () {
                 [teamsOnlyId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/teams-only',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/teams-only',
                         id: teamsOnlyId,
                         title: 'Teams only',
                         fields: {
@@ -334,7 +334,7 @@ describe('customize collections', function () {
                 [teamsEduId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/teams-edu-combo',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/teams-edu-combo',
                         id: teamsEduId,
                         title: 'Teams and EDU combo',
                         fields: {
@@ -375,7 +375,7 @@ describe('customize collections', function () {
                 [teamsEduOnlyId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/no-country',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/no-country',
                         id: teamsEduOnlyId,
                         title: 'TEAMS+EDU no country tag',
                         fields: {
@@ -387,7 +387,7 @@ describe('customize collections', function () {
                 [teamsEduMxId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/with-mx',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/with-mx',
                         id: teamsEduMxId,
                         title: 'TEAMS+EDU with MX',
                         fields: {
@@ -428,7 +428,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/pzn-slash',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/pzn-slash',
                         id: pznVariationId,
                         title: 'pzn/ token',
                         fields: {
@@ -469,7 +469,7 @@ describe('customize collections', function () {
                 [oneTokenId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/one',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/one',
                         id: oneTokenId,
                         title: 'One token',
                         fields: {
@@ -481,7 +481,7 @@ describe('customize collections', function () {
                 [twoTokenId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/two',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/two',
                         id: twoTokenId,
                         title: 'Two tokens',
                         fields: {
@@ -521,7 +521,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/token',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/token',
                         id: pznVariationId,
                         title: 'Token targeting',
                         fields: {
@@ -561,7 +561,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/numeric',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/numeric',
                         id: pznVariationId,
                         title: 'Numeric pzn',
                         fields: {
@@ -604,7 +604,7 @@ describe('customize collections', function () {
                 [emptyArrayId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/empty-array',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/empty-array',
                         id: emptyArrayId,
                         title: 'Empty pznTags array',
                         fields: {
@@ -616,7 +616,7 @@ describe('customize collections', function () {
                 [invalidArrayId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/invalid',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/invalid',
                         id: invalidArrayId,
                         title: 'Not an array',
                         fields: {
@@ -628,7 +628,7 @@ describe('customize collections', function () {
                 [emptyTagsId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/empty-tags',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/empty-tags',
                         id: emptyTagsId,
                         title: 'Only falsy tag entries',
                         fields: {
@@ -640,7 +640,7 @@ describe('customize collections', function () {
                 [validId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/valid',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/valid',
                         id: validId,
                         title: 'Valid tags',
                         fields: {
@@ -816,7 +816,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/promo',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/promo',
                         id: pznVariationId,
                         title: 'PZN Promo',
                         fields: { pznTags: ['en_AE', 'fr_FR'], badge: 'Other badge' },
@@ -829,13 +829,53 @@ describe('customize collections', function () {
         const result = await process({
             ...FAKE_CONTEXT,
             fragmentPath: 'pzn-test-fragment',
-            locale: 'en_KW',
+            locale: 'en_US',
             parsedLocale: 'en_US',
             body: bodyWithPzn,
         });
 
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.deep.include({ value: 'default badge', mimeType: 'text/html' });
+    });
+
+    it('should NOT apply a pzn variation located under en_US when the fragment is in fr_FR', async function () {
+        const pznVariationId = 'pzn-var-en-us-wrong-locale';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/fr_FR/some-fr-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/en-us-variant',
+                        id: pznVariationId,
+                        title: 'EN US pzn variant',
+                        fields: {
+                            pznTags: ['en_US'],
+                            badge: 'EN US PZN badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'some-fr-fragment',
+            locale: 'fr_FR',
+            parsedLocale: 'fr_FR',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        // pzn variation lives under en_US path, must NOT be applied to a fr_FR fragment
+        expect(result.body.fields.badge).to.equal('default badge');
     });
 });
 

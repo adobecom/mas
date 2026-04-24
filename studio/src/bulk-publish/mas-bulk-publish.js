@@ -1,8 +1,9 @@
 import { LitElement, html } from 'lit';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
+import router from '../router.js';
 import { styles } from './mas-bulk-publish.css.js';
-import { BULK_PUBLISH_STATUS } from '../constants.js';
+import { BULK_PUBLISH_STATUS, PAGE_NAMES } from '../constants.js';
 
 class MasBulkPublish extends LitElement {
     static styles = styles;
@@ -11,6 +12,13 @@ class MasBulkPublish extends LitElement {
 
     onCreate() {
         this.dispatchEvent(new CustomEvent('create-project', { bubbles: true, composed: true }));
+        Store.bulkPublishProjects.projectId.set(null);
+        Store.bulkPublishProjects.inEdit.set({
+            id: null,
+            getFieldValue: (k) => ({ status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '' })[k],
+            setFieldValue: () => {},
+        });
+        router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
     }
 
     statusClass(s) {

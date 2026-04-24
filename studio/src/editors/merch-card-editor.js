@@ -2252,13 +2252,15 @@ class MerchCardEditor extends LitElement {
         const isBadgeColor = dataField === 'badgeColor' || dataField === 'trialBadgeColor';
         const isBadgeBorderColor = dataField === 'badgeBorderColor' || dataField === 'trialBadgeBorderColor';
 
+        const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
+
         let colorArray = Array.isArray(colors) ? colors : Object.keys(colors || {});
 
         let variantSpecialValues = {};
         if (this.fragment && isBorder && this.currentVariantMapping) {
             const variant = this.currentVariantMapping;
             variantSpecialValues = variant?.borderColor?.specialValues || {};
-            if (variantSpecialValues && Object.keys(variantSpecialValues).length > 0) {
+            if (showAllSpectrum && Object.keys(variantSpecialValues).length > 0) {
                 colorArray = [...colorArray, ...Object.keys(variantSpecialValues)];
             }
         }
@@ -2283,7 +2285,6 @@ class MerchCardEditor extends LitElement {
             displaySelectedValue = 'Transparent';
         }
 
-        const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
         const options = isBackground
             ? ['Default', 'Transparent', ...colorArray]
             : [

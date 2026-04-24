@@ -118,9 +118,12 @@ export class Router extends EventTarget {
     /**
      * Navigation function to change the current page
      * @param {string} value - The page to navigate to
+     * @param {object} [options] - Optional state to set on navigation
+     * @param {string} [options.bulkPublishProjectId] - Project ID for bulk publish editor
+     * @param {string} [options.translationProjectId] - Project ID for translation editor
      * @returns {Function} A function that when called will navigate to the page
      */
-    navigateToPage(value) {
+    navigateToPage(value, options = {}) {
         return async () => {
             const targetPage = this.#getAuthorizedPage(value);
             if (Store.page.value === targetPage) return;
@@ -160,6 +163,12 @@ export class Router extends EventTarget {
                     ) {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
+                    }
+                    if (options.bulkPublishProjectId !== undefined) {
+                        Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
+                    }
+                    if (options.translationProjectId !== undefined) {
+                        Store.translationProjects.translationProjectId.set(options.translationProjectId);
                     }
                     Store.viewMode.set('default');
                     Store.page.set(targetPage);
@@ -430,6 +439,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
+        this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         const redirectedOnStart = this.#enforceSettingsAccessFromParams();
         if (normalizedOnStart || redirectedOnStart) {

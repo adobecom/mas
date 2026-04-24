@@ -956,45 +956,6 @@ describe('customize collections', function () {
         expect(result.body.fields.badge).to.equal('default badge');
     });
 
-    it('should treat a tag ending with /pzn/<locale-code> as locale-based (not token-only), renders for matching locale', async function () {
-        const pznVariationId = 'pzn-locale-token';
-        const bodyWithPzn = {
-            path: '/content/dam/mas/sandbox/en_US/plans-default-card',
-            id: 'root-fragment',
-            title: 'Default Card',
-            fields: {
-                badge: 'default badge',
-                variations: [pznVariationId],
-            },
-            references: {
-                [pznVariationId]: {
-                    type: 'content-fragment',
-                    value: {
-                        path: '/content/dam/mas/sandbox/en_US/plans-default-card/pzn/locale-token',
-                        id: pznVariationId,
-                        title: 'Locale code as pzn token',
-                        fields: {
-                            pznTags: ['mas:audiences/pzn/en_KW'],
-                            badge: 'Kuwait locale token badge',
-                        },
-                    },
-                },
-            },
-            referencesTree: [],
-        };
-
-        const result = await process({
-            ...FAKE_CONTEXT,
-            fragmentPath: 'plans-default-card',
-            locale: 'en_KW',
-            parsedLocale: 'en_US',
-            body: bodyWithPzn,
-        });
-
-        expect(result.status).to.equal(200);
-        expect(result.body.fields.badge).to.equal('Kuwait locale token badge');
-    });
-
     it('should render grouped variation with only audience/campaign pzn tags when MEP provides matching token', async function () {
         const pznVariationId = 'pzn-teams-promo';
         const bodyWithPzn = {

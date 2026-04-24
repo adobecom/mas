@@ -3,26 +3,9 @@ import { logDebug } from '../utils/log.js';
 
 const PZN = 'pzn';
 const PZN_FOLDER = `/${PZN}/`;
-
-/**
- * Locale codes follow the pattern: two lowercase letters, underscore, two uppercase letters (e.g. en_US, fr_FR).
- */
-const LOCALE_CODE_REGEX = /^[a-z]{2}_[A-Z]{2}$/;
-
-/**
- * Returns true when a tag is a pzn audience/campaign token tag — i.e. it ends with `[:/]pzn/<TOKEN>`
- * where TOKEN is not a locale code, not "country", and not empty.
- * AEM tag IDs use `:` as the namespace separator (e.g. `mas:pzn/smb`), so both `:` and `/`
- * (to support deeper hierarchies) are accepted as the separator before `pzn`.
- * Examples that return true:  mas:pzn/smb, mas:pzn/site-pivot, mas:sandbox/pzn/teams
- * Examples that return false: en_KW, mas:locale/en_US, mas:pzn/country/mx
- */
-function isTokenPznTag(tag) {
-    const match = typeof tag === 'string' && tag.match(new RegExp(`[:/]${PZN}/([^/]+)$`));
-    if (!match) return false;
-    const token = match[1];
-    return token !== 'country' && !LOCALE_CODE_REGEX.test(token);
-}
+// Matches a pzn token tag: ends with [:/]pzn/<token> where token contains no slashes.
+// Accepts both ':' (AEM namespace separator, e.g. mas:pzn/smb) and '/' (nested path).
+const PZN_TOKEN_TAG_PATTERN = new RegExp(`[:/]${PZN}/[^/]+$`);
 
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
@@ -121,9 +104,9 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     }
     const tokens = parsePznTokens(pzn);
     const matchedTokens = countMatchedPznTokens(tags, tokens);
-    // Skip locale-based matching when ALL tags are audience/campaign pzn tokens.
+    // Skip locale-based matching when ALL tags are pzn token tags.
     // Those variations must only fire when an explicit pzn token is provided (MEP active).
-    const requiresTokens = tags.every(isTokenPznTag);
+    const requiresTokens = tags.filter((tag) => PZN_TOKEN_TAG_PATTERN.test(tag)).length === tags.length;
     const regionMatch = !requiresTokens && Boolean(regionLocale && tags.some((tag) => tag.includes(regionLocale)));
     const countryMatch = Boolean(
         country && tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(country).toLowerCase()}`)),

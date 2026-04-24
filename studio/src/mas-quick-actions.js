@@ -44,6 +44,10 @@ const ACTION_CONFIG = {
         icon: 'custom-icon-send-to-loc',
         title: 'Send to Localization',
     },
+    [QUICK_ACTION.VALIDATE]: {
+        icon: 'sp-icon-checkmark',
+        title: 'Validate',
+    },
 };
 
 class MasQuickActions extends LitElement {
@@ -233,6 +237,8 @@ class MasQuickActions extends LitElement {
                 return html`<sp-icon-delete slot="icon"></sp-icon-delete>`;
             case 'custom-icon-send-to-loc':
                 return this.sendToLocIcon;
+            case 'sp-icon-checkmark':
+                return html`<sp-icon-checkmark slot="icon"></sp-icon-checkmark>`;
             default:
                 return nothing;
         }

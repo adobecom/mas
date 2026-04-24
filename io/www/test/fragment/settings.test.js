@@ -87,6 +87,14 @@ describe('settings', () => {
             expect(fetchStub.called).to.be.false;
         });
 
+        it('returns null without fetching when surface is undefined', async () => {
+            const context = createContext();
+            delete context.surface;
+            const result = await getSettings(context);
+            expect(result).to.be.null;
+            expect(fetchStub.called).to.be.false;
+        });
+
         it('returns null when settings index has no items', async () => {
             fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, {}));
             const result = await getSettings(createContext());

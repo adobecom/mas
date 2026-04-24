@@ -95,6 +95,21 @@ describe('replace', () => {
         clearDictionaryCache();
     });
 
+    it('replace init returns null when defaultLanguage init is non-200', async () => {
+        const context = {
+            surface: DEFAULT_SURFACE,
+            locale: DEFAULT_LOCALE,
+            loggedTransformer: 'replace',
+            requestId: 'mas-replace-ut',
+            promises: {
+                defaultLanguage: Promise.resolve({ status: 404, message: 'Fragment not found' }),
+            },
+        };
+        const result = await replace.init(context);
+        expect(result).to.be.null;
+        expect(fetchStub.called).to.be.false;
+    });
+
     it('replace init merges defaultLanguage into context for getDictionary', async () => {
         mockDictionary(false, fetchStub, true);
         const context = {
@@ -179,6 +194,14 @@ describe('replace', () => {
                 path: `/content/dam/mas/${DEFAULT_SURFACE}/${DEFAULT_LOCALE}/ccd-slice-wide-cc-all-app`,
             },
         };
+
+        it('manages gracefully missing surface without fetching', async () => {
+            const context = { ...FAKE_CONTEXT };
+            delete context.surface;
+            const result = await replace.process(context);
+            expect(fetchStub.called).to.be.false;
+            expect(result.status).to.equal(200);
+        });
 
         it('manages gracefully fetch failure to find dictionary', async () => {
             fetchStub

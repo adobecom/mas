@@ -47,12 +47,15 @@ export const styles = css`
         color: var(--spectrum-gray-800, #4b4b4b);
     }
     sp-dialog-wrapper.selector-dialog {
-        --spectrum-dialog-width: 900px;
-        --mod-dialog-confirm-max-width: 900px;
+        --spectrum-dialog-confirm-width: 960px;
+        --spectrum-dialog-content-width: 960px;
+        --spectrum-dialog-max-height: 85vh;
+        --spectrum-dialog-content-overflow-y: auto;
     }
     sp-dialog-wrapper.selector-dialog mas-translation-languages,
     sp-dialog-wrapper.selector-dialog mas-items-selector {
         display: block;
+        min-width: 860px;
         max-height: 60vh;
         overflow: auto;
     }

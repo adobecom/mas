@@ -159,10 +159,11 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
     observeVisibility() {
         if (typeof ResizeObserver === 'undefined') return;
+        this.lastSyncedWidth = 0;
         this.sizeObserver = new ResizeObserver(() => {
-            if (this.card.getBoundingClientRect().width <= 2) return;
-            this.sizeObserver?.disconnect();
-            this.sizeObserver = null;
+            const width = this.card.getBoundingClientRect().width;
+            if (width <= 2 || width === this.lastSyncedWidth) return;
+            this.lastSyncedWidth = width;
             this.resyncSiblings();
         });
         this.sizeObserver.observe(this.card);

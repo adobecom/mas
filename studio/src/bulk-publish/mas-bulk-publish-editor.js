@@ -272,6 +272,7 @@ class MasBulkPublishEditor extends LitElement {
                 ? html`<sp-dialog-wrapper
                       class="selector-dialog"
                       size="l"
+                      open
                       underlay
                       dismissable
                       @close=${this.closeItemsSelector}
@@ -286,6 +287,7 @@ class MasBulkPublishEditor extends LitElement {
                 ? html`<sp-dialog-wrapper
                       class="selector-dialog"
                       size="l"
+                      open
                       underlay
                       dismissable
                       @close=${this.closeLocalesPicker}

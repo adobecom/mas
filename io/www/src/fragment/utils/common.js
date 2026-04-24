@@ -68,7 +68,7 @@ async function fetchAttempt(path, context, timeout, marker) {
             return {
                 status: 200,
                 message: 'ok',
-                body: await computeBody(response, context),
+                body: await Promise.race([computeBody(response, context), createTimeoutPromise(timeout)]),
             };
         }
         return response;

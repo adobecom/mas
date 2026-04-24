@@ -100,9 +100,35 @@ describe('replace', () => {
         clearDictionaryCache();
     });
 
+    it('replace init merges defaultLanguage into context for getDictionary', async () => {
+        mockDictionary(false, fetchStub, true);
+        const context = {
+            surface: DEFAULT_SURFACE,
+            locale: DEFAULT_LOCALE,
+            loggedTransformer: 'replace',
+            requestId: 'mas-replace-ut',
+            promises: {
+                defaultLanguage: Promise.resolve({
+                    status: 200,
+                    locale: DEFAULT_LOCALE,
+                    regionLocale: DEFAULT_LOCALE,
+                    defaultLocale: DEFAULT_LOCALE,
+                    parsedLocale: DEFAULT_LOCALE,
+                    surface: DEFAULT_SURFACE,
+                    fragmentPath: `/content/dam/mas/${DEFAULT_SURFACE}/${DEFAULT_LOCALE}/ccd-slice-wide-cc-all-app`,
+                    body: {},
+                }),
+            },
+        };
+        context.promises.replace = replace.init(context);
+        const dictionary = await context.promises.replace;
+        expect(dictionary).to.be.an('object');
+        expect(Object.keys(dictionary).length).to.be.greaterThan(0);
+    });
+
     it('returns 200 & no placeholders', async () => {
         const response = await getResponse('foo', 'Buy now');
-        const expected = expectedResponse('foo');
+        const { fragmentsIds: _omit, ...expected } = expectedResponse('foo');
         expect(response).to.deep.include(expected);
     });
     it('returns 200 & replaced entries keys with text', async () => {

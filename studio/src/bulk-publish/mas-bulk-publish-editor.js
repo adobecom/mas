@@ -107,6 +107,9 @@ class MasBulkPublishEditor extends LitElement {
 
     openItemsSelector() {
         this.ensureSurface();
+        const repo = document.querySelector('mas-repository');
+        if (repo?.searchFragments) repo.searchFragments();
+        if (repo?.loadPlaceholders) repo.loadPlaceholders();
         this.itemsSelectorOpen = true;
     }
 

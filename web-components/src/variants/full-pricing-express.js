@@ -100,21 +100,15 @@ export class FullPricingExpress extends VariantLayout {
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
 
-        ['heading-xs', 'short-description', 'cta'].forEach((slot) =>
-            this.updateCardElementMinHeight(
-                this.card.querySelector(`[slot="${slot}"]`),
-                slot,
-            ),
-        );
+        const shadow = this.card.shadowRoot;
+        if (!shadow) return;
 
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot?.querySelector('.header'),
-            'header',
-        );
-
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot?.querySelector('.price-container'),
-            'price',
+        ['header', 'short-description', 'price-container', 'cta'].forEach(
+            (className) =>
+                this.updateCardElementMinHeight(
+                    shadow.querySelector(`.${className}`),
+                    className,
+                ),
         );
     }
 
@@ -458,7 +452,7 @@ export class FullPricingExpress extends VariantLayout {
             justify-content: center;
             align-items: center;
             min-height: var(
-                --consonant-merch-card-full-pricing-express-price-height
+                --consonant-merch-card-full-pricing-express-price-container-height
             );
         }
 
@@ -521,6 +515,18 @@ export class FullPricingExpress extends VariantLayout {
             :host([variant='full-pricing-express']) .header {
                 min-height: var(
                     --consonant-merch-card-full-pricing-express-header-height
+                );
+            }
+
+            :host([variant='full-pricing-express']) .short-description {
+                min-height: var(
+                    --consonant-merch-card-full-pricing-express-short-description-height
+                );
+            }
+
+            :host([variant='full-pricing-express']) .cta {
+                min-height: var(
+                    --consonant-merch-card-full-pricing-express-cta-height
                 );
             }
         }

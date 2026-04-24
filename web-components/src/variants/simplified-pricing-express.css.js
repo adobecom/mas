@@ -56,13 +56,7 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
         margin: 0 auto;
     }
 
-    merch-card[variant="simplified-pricing-express"] [slot="heading-xs"] {
-        min-height: var(--consonant-merch-card-simplified-pricing-express-heading-xs-height);
-    }
-
-    /* Apply synchronized heights to slots using CSS variables */
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] {
-        min-height: var(--consonant-merch-card-simplified-pricing-express-description-height);
         display: flex;
         flex-direction: column;
     }
@@ -83,14 +77,6 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
     /* Additional fallback - if second paragraph exists, assume it has mnemonics */
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2) {
         margin-top: auto;
-    }
-
-    merch-card[variant="simplified-pricing-express"] [slot="price"] {
-        min-height: var(--consonant-merch-card-simplified-pricing-express-price-height);
-    }
-
-    merch-card[variant="simplified-pricing-express"] [slot="callout-content"] {
-        min-height: var(--consonant-merch-card-simplified-pricing-express-callout-height);
     }
 }
 

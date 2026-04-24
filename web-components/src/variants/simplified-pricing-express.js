@@ -83,25 +83,16 @@ export class SimplifiedPricingExpress extends VariantLayout {
             return;
         }
 
-        const headingSlot = this.card.querySelector('[slot="heading-xs"]');
-        if (headingSlot) {
-            this.updateCardElementMinHeight(headingSlot, 'heading-xs');
-        }
+        const shadow = this.card.shadowRoot;
+        if (!shadow) return;
 
-        const descriptionSlot = this.card.querySelector('[slot="body-xs"]');
-        if (descriptionSlot) {
-            this.updateCardElementMinHeight(descriptionSlot, 'description');
-        }
-
-        const priceSlot = this.card.querySelector('[slot="price"]');
-        if (priceSlot) {
-            this.updateCardElementMinHeight(priceSlot, 'price');
-        }
-
-        const calloutSlot = this.card.querySelector('[slot="callout-content"]');
-        if (calloutSlot) {
-            this.updateCardElementMinHeight(calloutSlot, 'callout');
-        }
+        ['header', 'description', 'price-container', 'cta'].forEach(
+            (className) =>
+                this.updateCardElementMinHeight(
+                    shadow.querySelector(`.${className}`),
+                    className,
+                ),
+        );
 
         const iconRow = this.card.querySelector(
             '[slot="body-xs"] p:has(mas-mnemonic)',
@@ -109,11 +100,6 @@ export class SimplifiedPricingExpress extends VariantLayout {
         if (iconRow) {
             this.updateCardElementMinHeight(iconRow, 'icons');
         }
-
-        this.updateCardElementMinHeight(
-            this.card.shadowRoot?.querySelector('.header'),
-            'header',
-        );
     }
 
     async postCardUpdateHook() {
@@ -543,17 +529,29 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 height: 100%;
             }
 
+            :host([variant='simplified-pricing-express']) .header {
+                min-height: var(
+                    --consonant-merch-card-simplified-pricing-express-header-height
+                );
+            }
+
             :host([variant='simplified-pricing-express']) .description {
                 flex: 1;
+                min-height: var(
+                    --consonant-merch-card-simplified-pricing-express-description-height
+                );
+            }
+
+            :host([variant='simplified-pricing-express']) .price-container {
+                min-height: var(
+                    --consonant-merch-card-simplified-pricing-express-price-container-height
+                );
             }
 
             :host([variant='simplified-pricing-express']) .cta {
                 flex-shrink: 0;
-            }
-
-            :host([variant='simplified-pricing-express']) .header {
                 min-height: var(
-                    --consonant-merch-card-simplified-pricing-express-header-height
+                    --consonant-merch-card-simplified-pricing-express-cta-height
                 );
             }
         }

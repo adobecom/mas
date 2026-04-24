@@ -4,6 +4,7 @@ import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 import { Fragment } from '../aem/fragment.js';
 import { extractSurfaceFromPath, extractLocaleFromPath } from '../utils.js';
+import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 
 export class EditorContextStore extends ReactiveStore {
     loading = false;
@@ -60,6 +61,7 @@ export class EditorContextStore extends ReactiveStore {
                 surface,
                 hasExternalDictionary: true,
                 dictionary: {},
+                preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
             };
             const result = await previewFragment(fragmentId, options);
 

@@ -158,6 +158,12 @@ const Store = {
         inEdit: new ReactiveStore(null),
         projectId: new ReactiveStore(null),
         publishing: new ReactiveStore({}),
+        selectedCards: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+        targetLocales: new ReactiveStore([]),
+        showSelected: new ReactiveStore(false),
+        projectType: new ReactiveStore(null),
     },
 };
 

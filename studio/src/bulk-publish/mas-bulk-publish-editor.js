@@ -98,7 +98,15 @@ class MasBulkPublishEditor extends LitElement {
         this.requestUpdate();
     }
 
+    ensureSurface() {
+        const current = Store.search.get()?.path;
+        if (!current) {
+            Store.search.set((prev) => ({ ...prev, path: 'sandbox' }));
+        }
+    }
+
     openItemsSelector() {
+        this.ensureSurface();
         this.itemsSelectorOpen = true;
     }
 
@@ -127,6 +135,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     openLocalesPicker() {
+        this.ensureSurface();
         Store.bulkPublishProjects.targetLocales.set([...this.locales]);
         this.localesPickerOpen = true;
     }

@@ -32,6 +32,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
+    ODIN_PREVIEW_FRAGMENTS_URL,
 } from './constants.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
@@ -808,7 +809,7 @@ export class MasRepository extends LitElement {
                 if ((!result || Object.keys(result).length === 0) && locale !== 'en_US') {
                     const fallbackContext = {
                         preview: {
-                            url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                            url: ODIN_PREVIEW_FRAGMENTS_URL,
                         },
                         locale: 'en_US',
                         surface: this.search.value.path,
@@ -841,7 +842,7 @@ export class MasRepository extends LitElement {
     async fetchDictionary(abortController, locale = Store.localeOrRegion()) {
         const context = {
             preview: {
-                url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                url: ODIN_PREVIEW_FRAGMENTS_URL,
             },
             locale,
             surface: this.search.value.path,

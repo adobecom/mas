@@ -6991,18 +6991,21 @@ merch-card[variant="full-pricing-express"] [slot="trial-badge"] {
     font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
     font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
     line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
-    white-space: nowrap;
     z-index: 0;
     max-width: calc(100% - 24px);
-    text-align: right;
 }
 
 merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
+    display: -webkit-box;
+    max-width: 240px;
+    border-radius: 4px;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
     font-weight: var(--merch-card-full-pricing-express-trial-badge-font-weight);
     line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
     color: var(--spectrum-express-accent);
-    border-radius: 4px;
+    overflow: hidden;
 }
 
 merch-card[variant="full-pricing-express"] [slot="trial-badge"]:empty {
@@ -7306,7 +7309,6 @@ merch-card[variant="full-pricing-express"] [slot="cta"] a.spectrum-Button.spectr
 
 /* Badge styling */
 merch-card[variant="full-pricing-express"] merch-badge {
-    white-space: nowrap;
     color: var(--spectrum-white);
     font-size: 16px;
     font-weight: bold;
@@ -7366,8 +7368,8 @@ merch-card[variant="full-pricing-express"] merch-badge {
     }
 
     merch-card[variant="full-pricing-express"] [slot="trial-badge"] merch-badge {
-        font-size: 12px;
-        line-height: 20.8px;
+        font-size: var(--merch-card-full-pricing-express-trial-badge-font-size);
+        line-height: var(--merch-card-full-pricing-express-trial-badge-line-height);
     }
 }
 

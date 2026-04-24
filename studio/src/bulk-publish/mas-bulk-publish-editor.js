@@ -280,6 +280,7 @@ class MasBulkPublishEditor extends LitElement {
             ${this.itemsSelectorOpen
                 ? html`<sp-dialog-wrapper
                       class="selector-dialog"
+                      style="--spectrum-dialog-confirm-width: 960px; --spectrum-dialog-content-width: 960px;"
                       size="l"
                       open
                       underlay
@@ -295,6 +296,7 @@ class MasBulkPublishEditor extends LitElement {
             ${this.localesPickerOpen
                 ? html`<sp-dialog-wrapper
                       class="selector-dialog"
+                      style="--spectrum-dialog-confirm-width: 960px; --spectrum-dialog-content-width: 960px;"
                       size="l"
                       open
                       underlay

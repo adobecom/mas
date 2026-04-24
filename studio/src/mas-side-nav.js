@@ -742,6 +742,13 @@ class MasSideNav extends LitElement {
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
             <mas-side-nav-item
+                label="Bulk publish"
+                ?selected=${Store.page.get() === PAGE_NAMES.BULK_PUBLISH}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)}"
+            >
+                <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
+            </mas-side-nav-item>
+            <mas-side-nav-item
                 class="side-nav-support"
                 label="Support"
                 @nav-click="${() => window.open('https://adobe.enterprise.slack.com/archives/C02RZERR9CH', '_blank')}"

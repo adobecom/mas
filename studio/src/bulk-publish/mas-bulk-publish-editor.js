@@ -48,12 +48,20 @@ class MasBulkPublishEditor extends LitElement {
         return this.project?.getFieldValue('locales') ?? [];
     }
 
+    get title() {
+        return this.project?.getFieldValue('title') ?? '';
+    }
+
     get hasValidItems() {
         return this.items.some((i) => i.status === 'valid');
     }
 
+    get isNewProject() {
+        return !this.project?.id;
+    }
+
     get disabledActions() {
-        const disabled = new Set();
+        const disabled = new Set([QUICK_ACTION.DUPLICATE, QUICK_ACTION.COPY, QUICK_ACTION.LOCK]);
         if (!this.urls.trim()) disabled.add(QUICK_ACTION.VALIDATE);
         if (!this.hasValidItems || this.status !== BULK_PUBLISH_STATUS.DRAFT) {
             disabled.add(QUICK_ACTION.PUBLISH);
@@ -72,6 +80,16 @@ class MasBulkPublishEditor extends LitElement {
     handleConfirmPublish() {
         this.confirmOpen = false;
         this.publish();
+    }
+
+    handleTitleChange(e) {
+        this.project?.setFieldValue('title', e.target.value);
+        this.requestUpdate();
+    }
+
+    handleUrlsChange(e) {
+        this.project?.setFieldValue('urls', e.detail);
+        this.requestUpdate();
     }
 
     async validate() {
@@ -129,10 +147,16 @@ class MasBulkPublishEditor extends LitElement {
     render() {
         if (!this.project) return html`<p>Loading…</p>`;
         const published = this.status === BULK_PUBLISH_STATUS.PUBLISHED;
+        const titleText = this.isNewProject ? 'Create bulk publish project' : 'Bulk publish project';
         return html`
             <header>
-                <h1>Bulk publish project</h1>
-                ${published ? html`<sp-button variant="secondary">Download report</sp-button>` : nothing}
+                <h1>${titleText}</h1>
+                ${published
+                    ? html`<sp-button variant="secondary" treatment="outline" size="m">
+                          <sp-icon-download slot="icon"></sp-icon-download>
+                          Download report
+                      </sp-button>`
+                    : nothing}
             </header>
             ${published
                 ? html`<mas-bulk-publish-success-banner
@@ -142,12 +166,41 @@ class MasBulkPublishEditor extends LitElement {
                 : nothing}
             <section class="card">
                 <h3>General info</h3>
-                <sp-textfield label="Title" .value=${this.project.getFieldValue('title') ?? ''}></sp-textfield>
+                <div class="general-info-grid">
+                    <div class="field-group">
+                        <label class="field-label">Title <span class="required">*</span></label>
+                        <sp-textfield
+                            placeholder="Enter title"
+                            .value=${this.title}
+                            @input=${this.handleTitleChange}
+                        ></sp-textfield>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Publish date</label>
+                        <sp-textfield placeholder="DD / MM / YYYY" disabled></sp-textfield>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label">Time</label>
+                        <sp-textfield placeholder="0 : 00 AM (GMT)" disabled></sp-textfield>
+                    </div>
+                </div>
             </section>
-            <mas-bulk-publish-items class="card" .items=${this.items} .urls=${this.urls}></mas-bulk-publish-items>
-            <mas-bulk-publish-locales class="card" .locales=${this.locales}></mas-bulk-publish-locales>
+            <mas-bulk-publish-items
+                .items=${this.items}
+                .urls=${this.urls}
+                @urls-change=${this.handleUrlsChange}
+            ></mas-bulk-publish-items>
+            <mas-bulk-publish-locales .locales=${this.locales}></mas-bulk-publish-locales>
             <mas-quick-actions
-                .actions=${[QUICK_ACTION.SAVE, QUICK_ACTION.VALIDATE, QUICK_ACTION.PUBLISH, QUICK_ACTION.DELETE]}
+                .actions=${[
+                    QUICK_ACTION.SAVE,
+                    QUICK_ACTION.VALIDATE,
+                    QUICK_ACTION.DUPLICATE,
+                    QUICK_ACTION.PUBLISH,
+                    QUICK_ACTION.COPY,
+                    QUICK_ACTION.LOCK,
+                    QUICK_ACTION.DELETE,
+                ]}
                 .disabled=${this.disabledActions}
                 @save=${() => this.repository?.saveFragment?.(this.project)}
                 @validate=${() => this.validate()}
@@ -155,7 +208,7 @@ class MasBulkPublishEditor extends LitElement {
                 @delete=${() => this.repository?.deleteFragment?.(this.project)}
             ></mas-quick-actions>
             <mas-bulk-publish-confirm-dialog
-                .projectTitle=${this.project.getFieldValue('title') ?? ''}
+                .projectTitle=${this.title}
                 .itemCount=${this.items.filter((i) => i.status === 'valid').length}
                 .open=${this.confirmOpen}
                 @publish-confirmed=${this.handleConfirmPublish}

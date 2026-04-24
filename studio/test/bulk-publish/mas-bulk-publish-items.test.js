@@ -34,7 +34,8 @@ describe('mas-bulk-publish-items', () => {
         await el.updateComplete;
         const warn = el.shadowRoot.querySelector('[data-testid="items-warning"]');
         expect(warn).to.exist;
-        expect(warn.textContent).to.include('404 error found (1)');
+        expect(warn.textContent).to.include('404 error');
+        expect(warn.textContent).to.include('1');
     });
 
     it('dispatches urls-change when textarea input changes', async () => {

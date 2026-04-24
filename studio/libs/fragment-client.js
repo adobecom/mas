@@ -13,6 +13,7 @@ import { clearDictionaryCache, getDictionary, transformer as replace } from '../
 import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
+import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, customize, settings, replace, corrector];
 class LocaleStorageState {
@@ -37,8 +38,8 @@ class LocaleStorageState {
 
 const DEFAULT_CONTEXT = {
     status: 200,
-    preview:{
-        url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+    preview: {
+        url: ODIN_PREVIEW_FRAGMENTS_URL,
     },
     requestId: 'preview',
     state: new LocaleStorageState(),

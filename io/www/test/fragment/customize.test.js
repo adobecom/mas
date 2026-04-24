@@ -892,7 +892,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/cct-teams-promo',
+                        path: '/content/dam/mas/sandbox/en_US/plans-default-card/pzn/cct-teams-promo',
                         id: pznVariationId,
                         title: 'CCT Teams Promo',
                         fields: {
@@ -931,7 +931,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/country-token',
+                        path: '/content/dam/mas/sandbox/en_US/plans-default-card/pzn/country-token',
                         id: pznVariationId,
                         title: 'Country token edge case',
                         fields: {
@@ -970,7 +970,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/locale-token',
+                        path: '/content/dam/mas/sandbox/en_US/plans-default-card/pzn/locale-token',
                         id: pznVariationId,
                         title: 'Locale code as pzn token',
                         fields: {
@@ -1009,7 +1009,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/cct-teams-promo',
+                        path: '/content/dam/mas/sandbox/en_US/plans-default-card/pzn/cct-teams-promo',
                         id: pznVariationId,
                         title: 'CCT Teams Promo',
                         fields: {

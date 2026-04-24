@@ -83,6 +83,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-page-rule.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-pause.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-preview.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-promote.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-publish-check.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-publish-remove.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-publish.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-refresh.js';

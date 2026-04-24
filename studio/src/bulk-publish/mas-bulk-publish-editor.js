@@ -4,6 +4,8 @@ import StoreController from '../reactivity/store-controller.js';
 import { styles } from './mas-bulk-publish-editor.css.js';
 import { QUICK_ACTION, BULK_PUBLISH_STATUS } from '../constants.js';
 import '../mas-quick-actions.js';
+import '../translation/mas-items-selector.js';
+import '../translation/mas-translation-languages.js';
 import './mas-bulk-publish-items.js';
 import './mas-bulk-publish-locales.js';
 import './mas-bulk-publish-success-banner.js';
@@ -15,11 +17,15 @@ class MasBulkPublishEditor extends LitElement {
 
     static properties = {
         confirmOpen: { state: true },
+        itemsSelectorOpen: { state: true },
+        localesPickerOpen: { state: true },
     };
 
     constructor() {
         super();
         this.confirmOpen = false;
+        this.itemsSelectorOpen = false;
+        this.localesPickerOpen = false;
     }
 
     get project() {
@@ -89,6 +95,50 @@ class MasBulkPublishEditor extends LitElement {
 
     handleUrlsChange(e) {
         this.project?.setFieldValue('urls', e.detail);
+        this.requestUpdate();
+    }
+
+    openItemsSelector() {
+        this.itemsSelectorOpen = true;
+    }
+
+    closeItemsSelector() {
+        this.itemsSelectorOpen = false;
+    }
+
+    confirmItemsSelector() {
+        const selected = Store.bulkPublishProjects.selectedCards.get();
+        const studioBase = `${window.location.origin}/studio.html`;
+        const urlLines = selected
+            .map((card) => {
+                const id = card?.getFieldValue?.('id') ?? card?.id;
+                if (!id) return null;
+                return `${studioBase}#content-type=merch-card&page=content&path=sandbox&query=${id}`;
+            })
+            .filter(Boolean);
+        const existing = this.urls
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean);
+        const merged = Array.from(new Set([...existing, ...urlLines])).join('\n');
+        this.project?.setFieldValue('urls', merged);
+        this.itemsSelectorOpen = false;
+        this.requestUpdate();
+    }
+
+    openLocalesPicker() {
+        Store.bulkPublishProjects.targetLocales.set([...this.locales]);
+        this.localesPickerOpen = true;
+    }
+
+    closeLocalesPicker() {
+        this.localesPickerOpen = false;
+    }
+
+    confirmLocalesPicker() {
+        const selected = Store.bulkPublishProjects.targetLocales.get();
+        this.project?.setFieldValue('locales', [...selected]);
+        this.localesPickerOpen = false;
         this.requestUpdate();
     }
 
@@ -189,8 +239,12 @@ class MasBulkPublishEditor extends LitElement {
                 .items=${this.items}
                 .urls=${this.urls}
                 @urls-change=${this.handleUrlsChange}
+                @add-by-search=${this.openItemsSelector}
             ></mas-bulk-publish-items>
-            <mas-bulk-publish-locales .locales=${this.locales}></mas-bulk-publish-locales>
+            <mas-bulk-publish-locales
+                .locales=${this.locales}
+                @edit-locales=${this.openLocalesPicker}
+            ></mas-bulk-publish-locales>
             <mas-quick-actions
                 .actions=${[
                     QUICK_ACTION.SAVE,
@@ -214,6 +268,34 @@ class MasBulkPublishEditor extends LitElement {
                 @publish-confirmed=${this.handleConfirmPublish}
                 @publish-cancelled=${this.handleConfirmCancel}
             ></mas-bulk-publish-confirm-dialog>
+            ${this.itemsSelectorOpen
+                ? html`<sp-dialog-wrapper
+                      class="selector-dialog"
+                      size="l"
+                      underlay
+                      dismissable
+                      @close=${this.closeItemsSelector}
+                  >
+                      <h2 slot="heading">Add by search</h2>
+                      <mas-items-selector .targetStore=${Store.bulkPublishProjects}></mas-items-selector>
+                      <sp-button slot="button" variant="secondary" @click=${this.closeItemsSelector}>Cancel</sp-button>
+                      <sp-button slot="button" variant="accent" @click=${this.confirmItemsSelector}>Continue</sp-button>
+                  </sp-dialog-wrapper>`
+                : nothing}
+            ${this.localesPickerOpen
+                ? html`<sp-dialog-wrapper
+                      class="selector-dialog"
+                      size="l"
+                      underlay
+                      dismissable
+                      @close=${this.closeLocalesPicker}
+                  >
+                      <h2 slot="heading">Select locales</h2>
+                      <mas-translation-languages .targetStore=${Store.bulkPublishProjects}></mas-translation-languages>
+                      <sp-button slot="button" variant="secondary" @click=${this.closeLocalesPicker}>Cancel</sp-button>
+                      <sp-button slot="button" variant="accent" @click=${this.confirmLocalesPicker}>Continue</sp-button>
+                  </sp-dialog-wrapper>`
+                : nothing}
         `;
     }
 }

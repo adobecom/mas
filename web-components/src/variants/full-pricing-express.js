@@ -150,7 +150,7 @@ export class FullPricingExpress extends VariantLayout {
             });
         }
 
-        if (window.matchMedia('(min-width: 1025px)').matches) {
+        if (window.matchMedia('(min-width: 768px)').matches) {
             this.resyncSiblings();
         }
     }
@@ -495,8 +495,8 @@ export class FullPricingExpress extends VariantLayout {
             }
         }
 
-        /* Desktop - fixed heights for alignment */
-        @media (min-width: 1025px) {
+        /* Tablet and desktop - fixed heights for alignment */
+        @media (min-width: 768px) {
             :host([variant='full-pricing-express']) .card-content {
                 height: 100%;
             }
@@ -507,27 +507,21 @@ export class FullPricingExpress extends VariantLayout {
 
             :host([variant='full-pricing-express']) .cta {
                 margin-bottom: 24px;
-            }
-
-            :host([variant='full-pricing-express']) .short-description {
-                margin-bottom: 24px;
-            }
-
-            :host([variant='full-pricing-express']) .header {
                 min-height: var(
-                    --consonant-merch-card-full-pricing-express-header-height
+                    --consonant-merch-card-full-pricing-express-cta-height
                 );
             }
 
             :host([variant='full-pricing-express']) .short-description {
+                margin-bottom: 24px;
                 min-height: var(
                     --consonant-merch-card-full-pricing-express-short-description-height
                 );
             }
 
-            :host([variant='full-pricing-express']) .cta {
+            :host([variant='full-pricing-express']) .header {
                 min-height: var(
-                    --consonant-merch-card-full-pricing-express-cta-height
+                    --consonant-merch-card-full-pricing-express-header-height
                 );
             }
         }

@@ -7465,7 +7465,7 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
             >
                 <slot name="badge"></slot>
             </div>
-        `}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.shadowRoot;t&&["header","short-description","price-container","cta"].forEach(r=>this.updateCardElementMinHeight(t.querySelector(`.${r}`),r))}resyncSiblings(){let t=this.getContainer();t&&t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(r=>r.variantLayout?.syncHeights?.())}async postCardUpdateHook(){if(!this.card.isConnected)return;await this.card.updateComplete,this.card.prices?.length&&await Promise.all(this.card.prices.map(r=>r.onceSettled()));let t=this.getContainer();if(t){let r=t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`),i=49;r.forEach(a=>{a.classList.remove("small-font-size-button"),a.querySelectorAll('[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]').forEach(o=>{let s=o.textContent.trim().length>i;o.classList.toggle("small-font-size-button",s)})})}window.matchMedia("(min-width: 1025px)").matches&&this.resyncSiblings()}connectedCallbackHook(){!this.card||typeof ResizeObserver>"u"||(this.lastSyncedWidth=0,this.sizeObserver=new ResizeObserver(()=>{let t=this.card.getBoundingClientRect().width;t<=2||t===this.lastSyncedWidth||(this.lastSyncedWidth=t,this.resyncSiblings())}),this.sizeObserver.observe(this.card))}disconnectedCallbackHook(){this.sizeObserver?.disconnect(),this.sizeObserver=null}renderLayout(){return g`
+        `}syncHeights(){if(this.card.getBoundingClientRect().width<=2)return;let t=this.card.shadowRoot;t&&["header","short-description","price-container","cta"].forEach(r=>this.updateCardElementMinHeight(t.querySelector(`.${r}`),r))}resyncSiblings(){let t=this.getContainer();t&&t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`).forEach(r=>r.variantLayout?.syncHeights?.())}async postCardUpdateHook(){if(!this.card.isConnected)return;await this.card.updateComplete,this.card.prices?.length&&await Promise.all(this.card.prices.map(r=>r.onceSettled()));let t=this.getContainer();if(t){let r=t.querySelectorAll(`merch-card[variant="${this.card.variant}"]`),i=49;r.forEach(a=>{a.classList.remove("small-font-size-button"),a.querySelectorAll('[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]').forEach(o=>{let s=o.textContent.trim().length>i;o.classList.toggle("small-font-size-button",s)})})}window.matchMedia("(min-width: 768px)").matches&&this.resyncSiblings()}connectedCallbackHook(){!this.card||typeof ResizeObserver>"u"||(this.lastSyncedWidth=0,this.sizeObserver=new ResizeObserver(()=>{let t=this.card.getBoundingClientRect().width;t<=2||t===this.lastSyncedWidth||(this.lastSyncedWidth=t,this.resyncSiblings())}),this.sizeObserver.observe(this.card))}disconnectedCallbackHook(){this.sizeObserver?.disconnect(),this.sizeObserver=null}renderLayout(){return g`
             ${this.badge}
             <div class="card-content">
                 <div class="header">
@@ -7784,8 +7784,8 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
             }
         }
 
-        /* Desktop - fixed heights for alignment */
-        @media (min-width: 1025px) {
+        /* Tablet and desktop - fixed heights for alignment */
+        @media (min-width: 768px) {
             :host([variant='full-pricing-express']) .card-content {
                 height: 100%;
             }
@@ -7796,27 +7796,21 @@ merch-card[variant="full-pricing-express"] mas-mnemonic {
 
             :host([variant='full-pricing-express']) .cta {
                 margin-bottom: 24px;
-            }
-
-            :host([variant='full-pricing-express']) .short-description {
-                margin-bottom: 24px;
-            }
-
-            :host([variant='full-pricing-express']) .header {
                 min-height: var(
-                    --consonant-merch-card-full-pricing-express-header-height
+                    --consonant-merch-card-full-pricing-express-cta-height
                 );
             }
 
             :host([variant='full-pricing-express']) .short-description {
+                margin-bottom: 24px;
                 min-height: var(
                     --consonant-merch-card-full-pricing-express-short-description-height
                 );
             }
 
-            :host([variant='full-pricing-express']) .cta {
+            :host([variant='full-pricing-express']) .header {
                 min-height: var(
-                    --consonant-merch-card-full-pricing-express-cta-height
+                    --consonant-merch-card-full-pricing-express-header-height
                 );
             }
         }

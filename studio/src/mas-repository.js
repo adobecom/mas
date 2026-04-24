@@ -101,6 +101,7 @@ export class MasRepository extends LitElement {
             placeholders: null,
             promotions: null,
             translations: null,
+            bulkPublish: null,
         };
         this.dictionaryCache = new Map();
         this.inflightDictionaryRequest = null;
@@ -1016,6 +1017,37 @@ export class MasRepository extends LitElement {
             Store.translationProjects.list.loading.set(false);
         }
     }
+
+    getBulkPublishProjectsPath() {
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        return surface ? `/content/dam/mas/bulk-publish-projects/${surface}` : null;
+    }
+
+    async loadBulkPublishProjects() {
+        const path = this.getBulkPublishProjectsPath();
+        if (!path) return;
+        try {
+            if (this.#abortControllers.bulkPublish) this.#abortControllers.bulkPublish.abort();
+            this.#abortControllers.bulkPublish = new AbortController();
+            Store.bulkPublishProjects.list.loading.set(true);
+            const fragments = await this.searchFragmentList(
+                { path, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
+                50,
+                this.#abortControllers.bulkPublish,
+            );
+            const projects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
+            Store.bulkPublishProjects.list.data.set(projects);
+        } catch (error) {
+            this.processError(error, 'Could not load bulk publish projects.');
+        } finally {
+            Store.bulkPublishProjects.list.loading.set(false);
+        }
+    }
+
+    getFragmentById(id) {
+        return this.aem.sites.cf.fragments.getById(id);
+    }
+
     /**
      * Helper method to create fragment fields from data object
      * @param {Object} data - The data object containing field values

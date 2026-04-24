@@ -46,14 +46,16 @@ function deepMerge(...objects) {
     return result;
 }
 
-function extractVariationBasedOnPath(variations, references, pathSegment) {
+function extractVariationBasedOnPath(variations, references, pattern) {
     return variations
-        .filter((variationId) => references[variationId]?.value?.path?.includes(pathSegment))
+        .filter((variationId) => pattern.test(references[variationId]?.value?.path))
         .map((variationId) => references[variationId].value);
 }
 
-function findRegionalVariation(variations, references, prefix) {
-    const regionalVariations = extractVariationBasedOnPath(variations, references, prefix);
+function findRegionalVariation(variations, customizeContext) {
+    const { surface, regionLocale, references } = customizeContext;
+    const pattern = new RegExp(`/content/dam/mas/${surface}/${regionLocale}/.+`);
+    const regionalVariations = extractVariationBasedOnPath(variations, references, pattern);
     return regionalVariations.length > 0 ? regionalVariations[0] : null;
 }
 
@@ -105,8 +107,9 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
 }
 
 function findPersonalizationVariation(variations, customizeContext) {
-    const { country, pzn, references, regionLocale } = customizeContext;
-    const personalizationVariations = extractVariationBasedOnPath(variations, references, PZN_FOLDER);
+    const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
+    const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
+    const personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);
         return null;
@@ -134,7 +137,7 @@ function findPersonalizationVariation(variations, customizeContext) {
 }
 
 function mergeVariations(root, customizeContext) {
-    const { isRegionLocale, prefix, references } = customizeContext;
+    const { isRegionLocale } = customizeContext;
     const variations = root?.fields?.variations;
     if (!variations?.length) {
         logDebug(() => `No variations to merge for fragment ${root.id}`, customizeContext);
@@ -142,7 +145,7 @@ function mergeVariations(root, customizeContext) {
     }
     logDebug(() => `found variations ${JSON.stringify(variations)} in ${root.id}`, customizeContext);
     if (isRegionLocale) {
-        const regionalVariation = findRegionalVariation(variations, references, prefix);
+        const regionalVariation = findRegionalVariation(variations, customizeContext);
         if (regionalVariation) {
             logDebug(() => `Merging regional variation ${regionalVariation.id} for fragment ${root.id}`, customizeContext);
             const merged = deepMerge(root, regionalVariation);
@@ -266,11 +269,12 @@ async function customize(context) {
     const isRegionLocale = regionLocale !== defaultLocale;
     const customizeContext = {
         ...context,
+        defaultLocale,
         isRegionLocale,
         promos,
         regionLocale,
-        prefix: `${surface}/${regionLocale}`,
         references,
+        surface,
     };
     const {
         fragment: customizedFragment,

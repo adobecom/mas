@@ -124,6 +124,8 @@ export const PAGE_NAMES = {
     PROMOTIONS_EDITOR: 'promotions-editor',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
+    BULK_PUBLISH: 'bulkPublish',
+    BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -225,6 +227,7 @@ export const QUICK_ACTION = {
     DISCARD: 'discard',
     DELETE: 'delete',
     LOC: 'loc',
+    VALIDATE: 'validate',
 };
 
 export const FILTER_TYPE = {
@@ -250,3 +253,13 @@ export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'express', 'sandbox', 'nal
 
 /** Base URL for Odin preview fragment-by-path checks (e.g. fil_PH .json endpoint). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
+
+export const BULK_PUBLISH_PROJECT_MODEL_ID = '/conf/mas/settings/dam/cfm/models/bulk-publish-project';
+
+export const BULK_PUBLISH_STATUS = {
+    DRAFT: 'Draft',
+    PUBLISHING: 'Publishing',
+    PUBLISHED: 'Published',
+};
+
+export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';

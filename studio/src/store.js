@@ -141,6 +141,15 @@ const Store = {
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
     },
+    bulkPublishProjects: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(false),
+        },
+        inEdit: new ReactiveStore(null),
+        projectId: new ReactiveStore(null),
+        publishing: new ReactiveStore({}),
+    },
 };
 
 // #region Validators

@@ -17,17 +17,30 @@ class MasBulkPublishLocales extends LitElement {
     render() {
         const n = this.locales.length;
         return html`
-            <h3>Locales (${n})</h3>
+            <h3>Locales ${n ? `(${n})` : ''}</h3>
+            <p class="help">A selection here is only needed if the URLs above don't include locales already.</p>
             ${n === 0
                 ? html`
-                      <div class="dropzone" data-testid="empty-dropzone" @click=${this.emitEdit}>
-                          <strong>+ Add locales</strong>
-                          <p>Choose one or more locales for your bulk publish project.</p>
+                      <div
+                          class="dropzone"
+                          data-testid="empty-dropzone"
+                          role="button"
+                          tabindex="0"
+                          @click=${this.emitEdit}
+                          @keydown=${(e) => (e.key === 'Enter' || e.key === ' ') && this.emitEdit()}
+                      >
+                          <span class="plus">+</span>
+                          <div>
+                              <p class="label">Add locales</p>
+                              <p class="sublabel">Choose one or more locales for your bulk publish project.</p>
+                          </div>
                       </div>
                   `
                 : html`
-                      <div data-testid="summary">${this.locales.join(', ')}</div>
-                      <sp-action-button @click=${this.emitEdit}>Edit</sp-action-button>
+                      <div class="summary" data-testid="summary">
+                          <span>${this.locales.join(', ')}</span>
+                          <sp-action-button quiet @click=${this.emitEdit}>Edit</sp-action-button>
+                      </div>
                   `}
         `;
     }

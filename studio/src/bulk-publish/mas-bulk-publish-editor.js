@@ -71,7 +71,59 @@ class MasBulkPublishEditor extends LitElement {
 
     handleConfirmPublish() {
         this.confirmOpen = false;
-        // T17 will dispatch a publish-start event here
+        this.publish();
+    }
+
+    async validate() {
+        const { parseStudioUrl } = await import('./url-to-path.js');
+        const urls = this.urls
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean);
+        const results = await Promise.all(
+            urls.map(async (raw) => {
+                const parsed = parseStudioUrl(raw);
+                if (!parsed) {
+                    return { url: raw, status: 'error', reason: 'invalid-url' };
+                }
+                try {
+                    const fragment = await this.repository.getFragmentById(parsed.fragmentId);
+                    return {
+                        url: raw,
+                        fragmentId: parsed.fragmentId,
+                        path: fragment.path,
+                        status: 'valid',
+                    };
+                } catch (err) {
+                    return {
+                        url: raw,
+                        fragmentId: parsed.fragmentId,
+                        status: 'error',
+                        reason: err?.response?.status === 404 ? 'not-found' : 'error',
+                    };
+                }
+            }),
+        );
+        this.project.setFieldValue('items', JSON.stringify(results));
+        this.requestUpdate();
+        return results;
+    }
+
+    async publish() {
+        const { startPublishing } = await import('./bulk-publish-store.js');
+        const { publishBulk } = await import('./bulk-publish-client.js');
+        const paths = this.items.filter((i) => i.status === 'valid').map((i) => i.path);
+        const token = document.querySelector('meta[name="imsToken"]')?.content;
+        const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
+        await startPublishing({
+            project: this.project,
+            paths,
+            locales: this.locales,
+            token,
+            ioBaseUrl,
+            publishFn: publishBulk,
+            repository: this.repository,
+        });
     }
 
     render() {
@@ -97,7 +149,10 @@ class MasBulkPublishEditor extends LitElement {
             <mas-quick-actions
                 .actions=${[QUICK_ACTION.SAVE, QUICK_ACTION.VALIDATE, QUICK_ACTION.PUBLISH, QUICK_ACTION.DELETE]}
                 .disabled=${this.disabledActions}
+                @save=${() => this.repository?.saveFragment?.(this.project)}
+                @validate=${() => this.validate()}
                 @publish=${this.handlePublish}
+                @delete=${() => this.repository?.deleteFragment?.(this.project)}
             ></mas-quick-actions>
             <mas-bulk-publish-confirm-dialog
                 .projectTitle=${this.project.getFieldValue('title') ?? ''}

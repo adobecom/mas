@@ -1,7 +1,10 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
-import { isPowerUser } from './groups.js';
+import { canAccessSettings } from './groups.js';
+
+const STORE_SEARCH_HASH_KEYS = ['path', 'query'];
+const STORE_SEARCH_HASH_DEFAULT = {};
 
 export class Router extends EventTarget {
     #settingsAccessRouteWatcher = () => {
@@ -414,13 +417,8 @@ export class Router extends EventTarget {
     start() {
         this.currentParams = new URLSearchParams(this.#hashValue());
         const normalizedOnStart = this.#normalizeSettingsEditorRoute();
-        const redirectedOnStart = this.#enforceSettingsAccessFromParams();
-        if (normalizedOnStart || redirectedOnStart) {
-            this.updateHistory();
-        }
-        this.previousHash = this.location.hash;
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
-        this.linkStoreToHash(Store.search, ['path', 'query'], {});
+        this.linkStoreToHash(Store.search, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
         this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled'], {
             locale: 'en_US',
             personalizationFilterEnabled: false,
@@ -433,6 +431,10 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        const redirectedOnStart = this.#enforceSettingsAccessFromParams();
+        if (normalizedOnStart || redirectedOnStart) {
+            this.updateHistory();
+        }
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
@@ -445,6 +447,8 @@ export class Router extends EventTarget {
                 this.updateHistory();
             }
         }
+
+        this.previousHash = this.location.hash;
 
         window.addEventListener('hashchange', async (event) => {
             if (!this.isNavigating) {
@@ -475,6 +479,7 @@ export class Router extends EventTarget {
                 this.currentParams.set('path', Store.search.value.path);
             }
             const normalizedSettingsRoute = this.#normalizeSettingsEditorRoute();
+            this.#syncSearchStoreFromHashParams();
             const redirectedSettingsRoute = this.#enforceSettingsAccessFromParams();
             if (normalizedSettingsRoute || redirectedSettingsRoute) {
                 this.updateHistory();
@@ -519,10 +524,15 @@ export class Router extends EventTarget {
         return page === PAGE_NAMES.SETTINGS || page === PAGE_NAMES.SETTINGS_EDITOR;
     }
 
+    #syncSearchStoreFromHashParams() {
+        const currentValue = Store.search.get();
+        this.syncStoreFromHash(Store.search, currentValue, true, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
+    }
+
     #getAuthorizedPage(page) {
         if (!this.#isSettingsPage(page)) return page;
         if (!Store.users.getMeta('loaded')) return page;
-        if (isPowerUser()) return page;
+        if (canAccessSettings(Store.surface())) return page;
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
         return PAGE_NAMES.WELCOME;
@@ -544,7 +554,7 @@ export class Router extends EventTarget {
             return false;
         }
         this.#stopWatchingSettingsAccessRoute();
-        if (isPowerUser()) return false;
+        if (canAccessSettings(Store.surface())) return false;
         this.currentParams.set('page', PAGE_NAMES.WELCOME);
         this.currentParams.delete('fragmentId');
         Store.page.set(PAGE_NAMES.WELCOME);

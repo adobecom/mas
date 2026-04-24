@@ -245,6 +245,29 @@ describe('FragmentClient', () => {
             expect(result).to.have.property('fields');
         });
 
+        it('uses body.path when options.fragmentPath is omitted', async () => {
+            const customPath = '/content/dam/mas/sandbox/en_US/studio-preview-path';
+            const body = { ...mockCardFragment, path: customPath };
+            const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });
+            expect(result).to.have.property('fields');
+        });
+
+        it('uses options.fragmentPath over body.path when both are set', async () => {
+            const body = { ...mockCardFragment, path: '/content/dam/from-body' };
+            const result = await previewStudioFragment(body, {
+                locale: 'en_US',
+                surface: 'sandbox',
+                fragmentPath: '/content/dam/from-options',
+            });
+            expect(result).to.have.property('fields');
+        });
+
+        it('succeeds when body omits path', async () => {
+            const { path: _omitPath, ...bodyNoPath } = mockCardFragment;
+            const result = await previewStudioFragment(bodyNoPath, { locale: 'en_US', surface: 'sandbox' });
+            expect(result).to.have.property('fields');
+        });
+
         it('maps non-200 studio pipeline to body.message and logs', async () => {
             const stub = sinon.stub(settingsTransformer, 'process').callsFake(async (ctx) => ({
                 ...ctx,

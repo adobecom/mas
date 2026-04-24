@@ -1,6 +1,29 @@
 #!/usr/bin/env node
 
 import { spawn, spawnSync } from 'child_process';
+import { readFileSync, existsSync } from 'fs';
+import { dirname, basename, join } from 'path';
+
+function detectWorktreePort() {
+    // Walk up from cwd looking for a parent dir named "worktrees"; if the cwd is
+    // <…>/worktrees/<BRANCH>/…, read <…>/worktrees/.ports for BRANCH=<offset>.
+    let dir = process.cwd();
+    while (dir !== dirname(dir)) {
+        const parent = dirname(dir);
+        if (basename(parent) === 'worktrees') {
+            const branch = basename(dir);
+            const portsFile = join(parent, '.ports');
+            if (!existsSync(portsFile)) return null;
+            const line = readFileSync(portsFile, 'utf-8')
+                .split('\n')
+                .find((l) => l.startsWith(`${branch}=`));
+            const offset = line ? parseInt(line.split('=')[1], 10) : NaN;
+            return Number.isFinite(offset) ? 3000 + offset : null;
+        }
+        dir = parent;
+    }
+    return null;
+}
 
 function displayHelp() {
     console.log(`
@@ -99,7 +122,12 @@ function getLocalTestLiveUrl(env, masiourl, milolibs, repo = 'mas', owner = 'ado
         process.env.MILO_LIBS = `?milolibs=${milolibs}`;
     }
 
-    if (env === 'local') return 'http://localhost:3000';
+    if (env === 'local') {
+        // When run from a worktree checkout, auto-target that worktree's AEM port
+        // so `npm run nala local` works without needing to set LOCAL_TEST_LIVE_URL.
+        const worktreePort = detectWorktreePort();
+        return `http://localhost:${worktreePort ?? 3000}`;
+    }
     if (env === 'libs') return 'http://localhost:6456';
     return `https://${env}--${repo}--${owner}.aem.live`;
 }

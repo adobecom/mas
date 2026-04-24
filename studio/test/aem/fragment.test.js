@@ -378,6 +378,19 @@ describe('Fragment', () => {
 
                 expect(variation.getField('icons').multiple).to.be.true;
             });
+
+            it('inherits type from parent field when creating new field in a variation', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({
+                        fields: [{ name: 'cta', type: 'long-text', values: ['1800 100 0000'] }],
+                    }),
+                );
+                const variation = new Fragment(createFragmentConfig({ fields: [] }));
+
+                variation.updateField('cta', ['1800 102 5567'], parent);
+
+                expect(variation.getField('cta').type).to.equal('long-text');
+            });
         });
     });
 

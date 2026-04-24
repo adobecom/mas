@@ -278,36 +278,38 @@ class MasBulkPublishEditor extends LitElement {
                 @publish-cancelled=${this.handleConfirmCancel}
             ></mas-bulk-publish-confirm-dialog>
             ${this.itemsSelectorOpen
-                ? html`<sp-dialog-wrapper
-                      class="selector-dialog"
-                      style="--spectrum-dialog-confirm-width: 960px; --spectrum-dialog-content-width: 960px;"
-                      size="l"
-                      open
-                      underlay
-                      dismissable
-                      @close=${this.closeItemsSelector}
-                  >
-                      <h2 slot="heading">Add by search</h2>
-                      <mas-items-selector .targetStore=${Store.bulkPublishProjects}></mas-items-selector>
-                      <sp-button slot="button" variant="secondary" @click=${this.closeItemsSelector}>Cancel</sp-button>
-                      <sp-button slot="button" variant="accent" @click=${this.confirmItemsSelector}>Continue</sp-button>
-                  </sp-dialog-wrapper>`
+                ? html`<div class="selector-overlay" @click=${(e) => e.target === e.currentTarget && this.closeItemsSelector()}>
+                      <div class="selector-dialog" role="dialog" aria-labelledby="items-dialog-heading">
+                          <div class="dialog-header">
+                              <h2 id="items-dialog-heading">Add by search</h2>
+                              <button class="close-btn" aria-label="Close" @click=${this.closeItemsSelector}>×</button>
+                          </div>
+                          <div class="dialog-body">
+                              <mas-items-selector .targetStore=${Store.bulkPublishProjects}></mas-items-selector>
+                          </div>
+                          <div class="dialog-footer">
+                              <sp-button variant="secondary" @click=${this.closeItemsSelector}>Cancel</sp-button>
+                              <sp-button variant="accent" @click=${this.confirmItemsSelector}>Continue</sp-button>
+                          </div>
+                      </div>
+                  </div>`
                 : nothing}
             ${this.localesPickerOpen
-                ? html`<sp-dialog-wrapper
-                      class="selector-dialog"
-                      style="--spectrum-dialog-confirm-width: 960px; --spectrum-dialog-content-width: 960px;"
-                      size="l"
-                      open
-                      underlay
-                      dismissable
-                      @close=${this.closeLocalesPicker}
-                  >
-                      <h2 slot="heading">Select locales</h2>
-                      <mas-translation-languages .targetStore=${Store.bulkPublishProjects}></mas-translation-languages>
-                      <sp-button slot="button" variant="secondary" @click=${this.closeLocalesPicker}>Cancel</sp-button>
-                      <sp-button slot="button" variant="accent" @click=${this.confirmLocalesPicker}>Continue</sp-button>
-                  </sp-dialog-wrapper>`
+                ? html`<div class="selector-overlay" @click=${(e) => e.target === e.currentTarget && this.closeLocalesPicker()}>
+                      <div class="selector-dialog" role="dialog" aria-labelledby="locales-dialog-heading">
+                          <div class="dialog-header">
+                              <h2 id="locales-dialog-heading">Select locales</h2>
+                              <button class="close-btn" aria-label="Close" @click=${this.closeLocalesPicker}>×</button>
+                          </div>
+                          <div class="dialog-body">
+                              <mas-translation-languages .targetStore=${Store.bulkPublishProjects}></mas-translation-languages>
+                          </div>
+                          <div class="dialog-footer">
+                              <sp-button variant="secondary" @click=${this.closeLocalesPicker}>Cancel</sp-button>
+                              <sp-button variant="accent" @click=${this.confirmLocalesPicker}>Continue</sp-button>
+                          </div>
+                      </div>
+                  </div>`
                 : nothing}
         `;
     }

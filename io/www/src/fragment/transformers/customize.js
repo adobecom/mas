@@ -1,7 +1,28 @@
 import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
-const PZN_FOLDER = '/pzn/';
+const PZN = 'pzn';
+const PZN_FOLDER = `/${PZN}/`;
+
+/**
+ * Locale codes follow the pattern: two lowercase letters, underscore, two uppercase letters (e.g. en_US, fr_FR).
+ */
+const LOCALE_CODE_REGEX = /^[a-z]{2}_[A-Z]{2}$/;
+
+/**
+ * Returns true when a tag is a pzn audience/campaign token tag — i.e. it ends with `[:/]pzn/<TOKEN>`
+ * where TOKEN is not a locale code, not "country", and not empty.
+ * AEM tag IDs use `:` as the namespace separator (e.g. `mas:pzn/smb`), so both `:` and `/`
+ * (to support deeper hierarchies) are accepted as the separator before `pzn`.
+ * Examples that return true:  mas:pzn/smb, mas:pzn/site-pivot, mas:sandbox/pzn/teams
+ * Examples that return false: en_KW, mas:locale/en_US, mas:pzn/country/mx
+ */
+function isTokenPznTag(tag) {
+    const match = typeof tag === 'string' && tag.match(new RegExp(`[:/]${PZN}/([^/]+)$`));
+    if (!match) return false;
+    const token = match[1];
+    return token !== 'country' && !LOCALE_CODE_REGEX.test(token);
+}
 
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
@@ -71,7 +92,11 @@ function parsePznTokens(pzn) {
 function countMatchedPznTokens(tags, tokens) {
     let n = 0;
     for (const token of tokens) {
-        if (tags.some((tag) => Boolean(tag && token && tag.endsWith(`${PZN_FOLDER}${token}`)))) {
+        if (
+            tags.some((tag) =>
+                Boolean(tag && token && (tag.endsWith(`${PZN_FOLDER}${token}`) || tag.endsWith(`:${PZN}/${token}`))),
+            )
+        ) {
             n += 1;
         }
     }
@@ -94,7 +119,10 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     }
     const tokens = parsePznTokens(pzn);
     const matchedTokens = countMatchedPznTokens(tags, tokens);
-    const regionMatch = Boolean(regionLocale && tags.some((tag) => tag.includes(regionLocale)));
+    // Skip locale-based matching when ALL tags are audience/campaign pzn tokens.
+    // Those variations must only fire when an explicit pzn token is provided (MEP active).
+    const requiresTokens = tags.every(isTokenPznTag);
+    const regionMatch = !requiresTokens && Boolean(regionLocale && tags.some((tag) => tag.includes(regionLocale)));
     const countryMatch = Boolean(
         country && tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(country).toLowerCase()}`)),
     );

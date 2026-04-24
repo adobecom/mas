@@ -837,6 +837,163 @@ describe('customize collections', function () {
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.deep.include({ value: 'default badge', mimeType: 'text/html' });
     });
+
+    it('should NOT render grouped variation with only audience/campaign pzn tags when MEP is inactive', async function () {
+        const pznVariationId = 'pzn-teams-promo';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/plans-default-card',
+            id: 'root-fragment',
+            title: 'Default Card',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/cct-teams-promo',
+                        id: pznVariationId,
+                        title: 'CCT Teams Promo',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/teams'],
+                            badge: 'Teams promo badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'plans-default-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('default badge');
+    });
+
+    it('should NOT treat a tag ending with /pzn/country as a token-only tag (token is "country")', async function () {
+        const pznVariationId = 'pzn-country-token';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/plans-default-card',
+            id: 'root-fragment',
+            title: 'Default Card',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/country-token',
+                        id: pznVariationId,
+                        title: 'Country token edge case',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/country'],
+                            badge: 'Country token badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'plans-default-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('default badge');
+    });
+
+    it('should treat a tag ending with /pzn/<locale-code> as locale-based (not token-only), renders for matching locale', async function () {
+        const pznVariationId = 'pzn-locale-token';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/plans-default-card',
+            id: 'root-fragment',
+            title: 'Default Card',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/locale-token',
+                        id: pznVariationId,
+                        title: 'Locale code as pzn token',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/en_KW'],
+                            badge: 'Kuwait locale token badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'plans-default-card',
+            locale: 'en_KW',
+            parsedLocale: 'en_US',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Kuwait locale token badge');
+    });
+
+    it('should render grouped variation with only audience/campaign pzn tags when MEP provides matching token', async function () {
+        const pznVariationId = 'pzn-teams-promo';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/en_US/plans-default-card',
+            id: 'root-fragment',
+            title: 'Default Card',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/pzn/sandbox/cct-teams-promo',
+                        id: pznVariationId,
+                        title: 'CCT Teams Promo',
+                        fields: {
+                            pznTags: ['mas:audiences/pzn/teams'],
+                            badge: 'Teams promo badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'plans-default-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            pzn: 'teams',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Teams promo badge');
+    });
 });
 
 async function process(context) {

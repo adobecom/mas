@@ -59,6 +59,7 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] {
         display: flex;
         flex-direction: column;
+        min-height: var(--consonant-merch-card-simplified-pricing-express-description-height);
     }
 
     /* Push paragraph with mnemonics to the bottom using :has() */

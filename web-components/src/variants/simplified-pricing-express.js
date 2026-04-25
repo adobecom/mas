@@ -86,13 +86,17 @@ export class SimplifiedPricingExpress extends VariantLayout {
         const shadow = this.card.shadowRoot;
         if (!shadow) return;
 
-        ['header', 'description', 'price-container', 'cta'].forEach(
-            (className) =>
-                this.updateCardElementMinHeight(
-                    shadow.querySelector(`.${className}`),
-                    className,
-                ),
+        ['header', 'price-container', 'cta'].forEach((className) =>
+            this.updateCardElementMinHeight(
+                shadow.querySelector(`.${className}`),
+                className,
+            ),
         );
+
+        const descriptionSlot = this.card.querySelector('[slot="body-xs"]');
+        if (descriptionSlot) {
+            this.updateCardElementMinHeight(descriptionSlot, 'description');
+        }
 
         const iconRow = this.card.querySelector(
             '[slot="body-xs"] p:has(mas-mnemonic)',
@@ -538,9 +542,6 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
             :host([variant='simplified-pricing-express']) .description {
                 flex: 1;
-                min-height: var(
-                    --consonant-merch-card-simplified-pricing-express-description-height
-                );
             }
 
             :host([variant='simplified-pricing-express']) .price-container {

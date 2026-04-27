@@ -4,7 +4,7 @@ import { FragmentStore } from './reactivity/fragment-store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
 import router from './router.js';
-import { AEM } from './aem/aem.js';
+import { AEM, filterByTags } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
 import Events from './events.js';
 import {
@@ -158,6 +158,11 @@ export class MasRepository extends LitElement {
             this.#searchCursor = null;
         });
 
+        const stampLastEdit = () => Store.fragments.list.data.setMeta('lastEdit', Date.now());
+        Events.fragmentAdded.subscribe(stampLastEdit);
+        Events.fragmentDeleted.subscribe(stampLastEdit);
+        Events.fragmentSaved.subscribe(stampLastEdit);
+
         this.loadFolders();
         this.style.display = 'none';
     }
@@ -265,6 +270,85 @@ export class MasRepository extends LitElement {
         return variants.length && !variants.includes(variant);
     }
 
+    /**
+     * Determines whether the new filter set is a strict narrowing of the previous one.
+     * Returns { narrowed: true } only if every dimension is "same or narrower" AND at least
+     * one dimension is strictly narrower; otherwise the caller must hit AEM.
+     */
+    #narrowingPredicate(prev, next) {
+        let strict = false;
+        const queryNarrowed = () => {
+            if (prev.query === next.query) return true;
+            if (!next.query) return false;
+            if (!prev.query) {
+                strict = true;
+                return true;
+            }
+            if (next.query.toLowerCase().includes(prev.query.toLowerCase())) {
+                strict = true;
+                return true;
+            }
+            return false;
+        };
+        const arraySupersetNarrowed = (prevArr, nextArr) => {
+            if (prevArr.length === nextArr.length && prevArr.every((v) => nextArr.includes(v))) return true;
+            if (prevArr.every((v) => nextArr.includes(v)) && nextArr.length > prevArr.length) {
+                strict = true;
+                return true;
+            }
+            return false;
+        };
+        const variantsNarrowed = () => {
+            if (prev.variants.length === 0 && next.variants.length === 0) return true;
+            if (prev.variants.length === 0 && next.variants.length > 0) {
+                strict = true;
+                return true;
+            }
+            if (next.variants.length === 0) return false;
+            if (next.variants.every((v) => prev.variants.includes(v))) {
+                if (next.variants.length < prev.variants.length) strict = true;
+                return true;
+            }
+            return false;
+        };
+        const narrowed =
+            queryNarrowed() &&
+            arraySupersetNarrowed(prev.tags, next.tags) &&
+            variantsNarrowed() &&
+            arraySupersetNarrowed(prev.createdBy, next.createdBy);
+        return { narrowed, anyStrictlyNarrower: strict };
+    }
+
+    /**
+     * Guard for in-memory narrowing: surface must be fully loaded and free of pending edits.
+     */
+    #canNarrowInMemory(dataStore) {
+        if (this.#searchCursor !== null) return false;
+        if (Store.fragments.list.hasMore.get() === true) return false;
+        const lastEdit = dataStore.getMeta('lastEdit');
+        const lastLoad = dataStore.getMeta('lastLoad');
+        if (lastEdit && (!lastLoad || lastEdit > lastLoad)) return false;
+        return true;
+    }
+
+    #applyInMemoryFilter(stores, { query, tags, variants, createdBy }) {
+        const tagPredicate = filterByTags(tags);
+        const queryLower = query?.toLowerCase() || '';
+        return stores.filter((store) => {
+            const item = store?.get?.();
+            if (!item) return false;
+            if (Fragment.isGroupedVariationPath(item.path)) return false;
+            if (this.skipVariant(variants, item)) return false;
+            if (!tagPredicate(item)) return false;
+            if (createdBy.length && !createdBy.includes(item.createdBy)) return false;
+            if (queryLower) {
+                const haystack = `${item.title || ''}\n${item.description || ''}\n${item.path || ''}`.toLowerCase();
+                if (!haystack.includes(queryLower)) return false;
+            }
+            return true;
+        });
+    }
+
     async searchFragments() {
         if (!(this.page.value === PAGE_NAMES.CONTENT || this.page.value === PAGE_NAMES.TRANSLATION_EDITOR)) return;
         if (!Store.profile.value) return;
@@ -288,33 +372,6 @@ export class MasRepository extends LitElement {
         const currentCreatedBy = dataStore.getMeta('createdBy');
         const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
         const createdByString = createdBy.join(',');
-        if (
-            currentData?.length > 0 &&
-            currentPath === path &&
-            currentQuery === query &&
-            currentLocale === locale &&
-            currentTags === tagsString &&
-            currentCreatedBy === createdByString &&
-            metaPersonalizationOn === personalizationOn
-        ) {
-            let filteredData = currentData.filter((fragmentStore) => {
-                const fragmentPath = fragmentStore?.get?.()?.path;
-                return !Fragment.isGroupedVariationPath(fragmentPath);
-            });
-            filteredData = this.#filterStoresByPersonalizationEnabled(filteredData);
-            if (filteredData.length !== currentData.length) {
-                dataStore.set(filteredData);
-            }
-            Store.fragments.list.loading.set(false);
-            Store.fragments.list.firstPageLoaded.set(true);
-            return;
-        }
-
-        Store.fragments.list.loading.set(true);
-        Store.fragments.list.firstPageLoaded.set(false);
-        if (dataStore.get().length > 0) {
-            dataStore.set([]);
-        }
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -344,6 +401,71 @@ export class MasRepository extends LitElement {
             .map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
+        const tracing = typeof localStorage !== 'undefined' && localStorage.getItem('mas-perf-trace');
+
+        const sameSurface =
+            currentData?.length > 0 &&
+            currentPath === path &&
+            currentLocale === locale &&
+            metaPersonalizationOn === personalizationOn;
+
+        const identicalFilters =
+            sameSurface && currentQuery === query && currentTags === tagsString && currentCreatedBy === createdByString;
+
+        if (identicalFilters) {
+            let filteredData = currentData.filter((fragmentStore) => {
+                const fragmentPath = fragmentStore?.get?.()?.path;
+                return !Fragment.isGroupedVariationPath(fragmentPath);
+            });
+            filteredData = this.#filterStoresByPersonalizationEnabled(filteredData);
+            if (filteredData.length !== currentData.length) {
+                dataStore.set(filteredData);
+            }
+            Store.fragments.list.loading.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            return;
+        }
+
+        if (sameSurface && this.#canNarrowInMemory(dataStore)) {
+            const prevTagsAll = currentTags ? currentTags.split(',').filter(Boolean) : [];
+            const prevVariants = prevTagsAll
+                .filter((t) => t.startsWith(TAG_VARIANT_PREFIX))
+                .map((t) => t.replace(TAG_VARIANT_PREFIX, ''));
+            const prevTagsNonVariant = prevTagsAll.filter(
+                (t) => !t.startsWith(TAG_VARIANT_PREFIX) && !t.startsWith(TAG_STUDIO_CONTENT_TYPE),
+            );
+            const prevCreatedBy = currentCreatedBy ? currentCreatedBy.split(',').filter(Boolean) : [];
+            const { narrowed, anyStrictlyNarrower } = this.#narrowingPredicate(
+                {
+                    query: currentQuery || '',
+                    tags: prevTagsNonVariant,
+                    variants: prevVariants,
+                    createdBy: prevCreatedBy,
+                },
+                { query: query || '', tags, variants, createdBy },
+            );
+            if (narrowed && anyStrictlyNarrower) {
+                if (tracing) console.time('searchFragments:in-memory');
+                const filtered = this.#filterStoresByPersonalizationEnabled(
+                    this.#applyInMemoryFilter(currentData, { query, tags, variants, createdBy }),
+                );
+                dataStore.set(filtered);
+                dataStore.setMeta('query', query);
+                dataStore.setMeta('tags', tagsString);
+                dataStore.setMeta('createdBy', createdByString);
+                Store.fragments.list.loading.set(false);
+                Store.fragments.list.firstPageLoaded.set(true);
+                if (tracing) console.timeEnd('searchFragments:in-memory');
+                return;
+            }
+        }
+
+        Store.fragments.list.loading.set(true);
+        Store.fragments.list.firstPageLoaded.set(false);
+        if (dataStore.get().length > 0) {
+            dataStore.set([]);
+        }
+
         const damPath = getDamPath(path);
         const localizedPath = `${damPath}/${locale}`;
         const localSearch = {
@@ -361,6 +483,7 @@ export class MasRepository extends LitElement {
             localSearch.status = STATUS_PUBLISHED;
         }
 
+        if (tracing) console.time('searchFragments:aem');
         let refilling = false;
         try {
             if (this.#abortControllers.search) this.#abortControllers.search.abort();
@@ -476,6 +599,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', this.filters.value.tags || '');
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
+            dataStore.setMeta('lastLoad', Date.now());
         } catch (error) {
             if (error.name !== 'AbortError') {
                 Store.fragments.list.loading.set(false);
@@ -485,6 +609,7 @@ export class MasRepository extends LitElement {
         }
 
         if (!refilling) Store.fragments.list.loading.set(false);
+        if (tracing) console.timeEnd('searchFragments:aem');
     }
 
     static MIN_PAGE_SIZE = 10;
@@ -1255,6 +1380,7 @@ export class MasRepository extends LitElement {
             if (parentFragment) {
                 await this.refreshVariationParentInList(savedFragment, parentFragment);
             }
+            Events.fragmentSaved.emit(savedFragment.id);
             if (withToast) showToast('Fragment successfully saved.', 'positive');
             return savedFragment;
         } catch (error) {

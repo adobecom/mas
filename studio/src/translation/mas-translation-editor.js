@@ -66,7 +66,7 @@ class MasTranslationEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore();
+        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
         setItemsSelectionStore(Store.translationProjects);
 
         if (this.repository?.searchFragments) {
@@ -116,10 +116,8 @@ class MasTranslationEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        if (this.#itemsSelectionStoreSnapshot != null) {
-            setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
-            this.#itemsSelectionStoreSnapshot = null;
-        }
+        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
+        this.#itemsSelectionStoreSnapshot = null;
     }
 
     /** @type {MasRepository} */

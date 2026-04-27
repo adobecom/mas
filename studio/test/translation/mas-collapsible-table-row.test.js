@@ -3,6 +3,7 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { setCardVariationsByPaths } from '../../src/common/utils/translation-items-loader.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
@@ -49,6 +50,7 @@ describe('MasCollapsibleTableRow', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         resetStore();
         createMockRepository();
     });
@@ -58,6 +60,7 @@ describe('MasCollapsibleTableRow', () => {
         sandbox.restore();
         resetStore();
         removeMockRepository();
+        setItemsSelectionStore(null);
     });
 
     describe('initialization', () => {
@@ -495,7 +498,7 @@ describe('MasCollapsibleTableRow', () => {
             expect(groupedCell).to.exist;
         });
 
-        it('should render "no type" for unknown model path', async () => {
+        it('should render "Unknown" for unknown model path', async () => {
             const topLevelCard = createMockTopLevelCard({
                 modelPath: '/conf/mas/settings/dam/cfm/models/unknown',
             });
@@ -503,7 +506,7 @@ describe('MasCollapsibleTableRow', () => {
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
             const shadowText = el.shadowRoot?.textContent || '';
-            expect(shadowText).to.include('no type');
+            expect(shadowText).to.include('Unknown');
         });
     });
 

@@ -1,60 +1,18 @@
 import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE } from '../../constants.js';
+import { TABLE_TYPE } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
-import { getService } from '../../utils.js';
+import { loadOfferData } from './item-loading-browser.js';
 import {
     processConcurrently,
     yieldToMain,
     OFFER_DATA_CONCURRENCY_LIMIT,
     VARIATIONS_CONCURRENCY_LIMIT,
+    LARGE_BATCH_YIELD_THRESHOLD,
     flattenGroupedVariationsByParent,
+    parseFragmentsFromStore,
+    enrichCards,
 } from './item-loading.js';
-
-/**
- * Loads offer data for a fragment using its OSI field
- * @param {Object} fragment - Fragment object with fields
- * @param {AbortSignal} signal - Optional abort signal for cancellation
- * @param {Number} timeoutMs - Timeout in milliseconds (default: 10000)
- * @returns {Promise<Object|null>} Offer data or null if not found/failed
- */
-async function loadOfferData(fragment, signal, timeoutMs = 10000) {
-    const cache = getItemsSelectionStore().offerDataCache;
-    const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0];
-    if (!wcsOsi) return null;
-
-    try {
-        if (cache.has(wcsOsi)) {
-            return cache.get(wcsOsi);
-        }
-        if (signal?.aborted) return null;
-
-        const service = getService();
-        const priceOptions = service.collectPriceOptions({ wcsOsi });
-        const [offersPromise] = service.resolveOfferSelectors(priceOptions);
-        if (!offersPromise) return null;
-        let timeoutId;
-        const timeoutPromise = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
-        });
-        try {
-            const [offer] = await Promise.race([offersPromise, timeoutPromise]);
-            clearTimeout(timeoutId);
-            if (signal?.aborted) return null;
-            cache.set(wcsOsi, offer);
-            return offer;
-        } catch (err) {
-            clearTimeout(timeoutId);
-            throw err;
-        }
-    } catch (err) {
-        console.warn(`Failed to load offer data for fragment ${fragment.id}:`, err.message);
-        if (!signal?.aborted) {
-            cache.set(wcsOsi, null);
-        }
-        return null;
-    }
-}
 
 /**
  * Loads grouped variations for a card fragment
@@ -89,7 +47,8 @@ async function loadGroupedVariations(card, repository, signal, getDisplayName) {
 
     const offerDataResults = await processConcurrently(
         validVariations,
-        (variation) => loadOfferData(variation, signal),
+        (variation) =>
+            loadOfferData(variation, { cache: getItemsSelectionStore().offerDataCache, signal }),
         VARIATIONS_CONCURRENCY_LIMIT,
     );
 
@@ -117,7 +76,7 @@ export async function fetchVariationByPath(variationPath, repository, { getDispl
         const variation = await repository.aem.getFragmentByPath(variationPath);
         if (!variation || !Array.isArray(variation.fieldTags) || variation.fieldTags.length === 0) return false;
 
-        const offerData = await loadOfferData(variation);
+        const offerData = await loadOfferData(variation, { cache: getItemsSelectionStore().offerDataCache });
         const enriched = {
             ...variation,
             studioPath: getDisplayName(new Fragment(variation)),
@@ -144,30 +103,6 @@ export async function fetchVariationByPath(variationPath, repository, { getDispl
 export function setCardVariationsByPaths(groupedVariationsByParentValue) {
     getItemsSelectionStore().groupedVariationsByParent.set(groupedVariationsByParentValue);
     getItemsSelectionStore().groupedVariationsData.set(flattenGroupedVariationsByParent(groupedVariationsByParentValue));
-}
-
-/**
- * Extracts card fragments from the shared fragment store, decorating each with studioPath.
- * Collections come from repository.loadAllCollections() — not this stream.
- * @param {Array} allFragments - Array of fragment store objects
- * @returns {Array} Array of card objects
- */
-function parseFragmentsFromStore(allFragments, getDisplayName) {
-    return (allFragments || []).reduce(
-        (acc, fragment) => {
-            const withPath = {
-                ...fragment.value,
-                studioPath: getDisplayName(fragment.value),
-            };
-            if (fragment.value.model.path === CARD_MODEL_PATH) {
-                acc.allCards.push(withPath);
-            } else if (fragment.value.model.path === COLLECTION_MODEL_PATH) {
-                acc.allCollections.push(withPath);
-            }
-            return acc;
-        },
-        { allCards: [], allCollections: [] },
-    );
 }
 
 /**
@@ -202,7 +137,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (cardsNeedingOfferData.length > 0) {
             const offerDataResults = await processConcurrently(
                 cardsNeedingOfferData,
-                (card) => loadOfferData(card, signal),
+                (card) => loadOfferData(card, { cache: getItemsSelectionStore().offerDataCache, signal }),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
             if (signal?.aborted) return;
@@ -234,7 +169,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
             groupedVariations: existingGroupedVariationsByPath.get(card.path) ?? [],
         }));
 
-        if (enrichedCards.length > 50) {
+        if (enrichedCards.length > LARGE_BATCH_YIELD_THRESHOLD) {
             await yieldToMain();
         }
         if (signal?.aborted) return;
@@ -310,7 +245,7 @@ export function loadAllFragments(type, repository, state = {}, { getDisplayName 
     }
     state.subscribed = true;
     const callback = async () => {
-        const { allCards } = parseFragmentsFromStore(Store.fragments.list.data.get() || [], getDisplayName);
+        const { allCards } = parseFragmentsFromStore(Store.fragments.list.data.get() || [], { getDisplayName });
         await processCardsData(allCards, repository, state, getDisplayName);
     };
     Store.fragments.list.data.subscribe(callback);
@@ -380,7 +315,15 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
         const validFragments = fragments.filter(Boolean);
 
         if (type === TABLE_TYPE.CARDS) {
-            const enriched = await enrichCardsForViewOnly(validFragments, repository, signal, getDisplayName);
+            const enriched = await enrichCards(validFragments, {
+                getByPath: repository.aem.getFragmentByPath,
+                getOfferData: loadOfferData,
+                signal,
+                getDisplayName,
+                offerDataCache: getItemsSelectionStore().offerDataCache,
+                existingOfferDataByPath: new Map(),
+                existingGroupedVariationsByPath: new Map(),
+            });
             if (!signal?.aborted && onItems) onItems(enriched);
         } else if (onItems) {
             onItems(validFragments);
@@ -389,38 +332,6 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
         console.error('Failed to load selected fragments:', err);
         if (onItems) onItems([]);
     }
-}
-
-/**
- * Enriches cards with offer data and grouped variations (for view-only)
- * @param {Array<Object>} cards - Card objects
- * @param {Object} repository - MasRepository instance
- * @param {AbortSignal} signal - Abort signal
- * @returns {Promise<Array<Object>>} Enriched cards
- */
-async function enrichCardsForViewOnly(cards, repository, signal, getDisplayName) {
-    const offerDataResults = await processConcurrently(
-        cards,
-        (card) => loadOfferData(card, signal),
-        OFFER_DATA_CONCURRENCY_LIMIT,
-    );
-    if (signal?.aborted) return [];
-
-    const groupedVariationsResults = repository
-        ? await processConcurrently(
-              cards,
-              (card) => loadGroupedVariations(card, repository, signal, getDisplayName),
-              OFFER_DATA_CONCURRENCY_LIMIT,
-          )
-        : cards.map(() => []);
-
-    if (signal?.aborted) return [];
-
-    return cards.map((card, i) => ({
-        ...card,
-        offerData: offerDataResults[i] ?? null,
-        groupedVariations: groupedVariationsResults[i] ?? [],
-    }));
 }
 
 /**
@@ -490,7 +401,7 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
 
         const offerDataResults = await processConcurrently(
             validVariations,
-            (variation) => loadOfferData(variation),
+            (variation) => loadOfferData(variation, { cache: getItemsSelectionStore().offerDataCache }),
             VARIATIONS_CONCURRENCY_LIMIT,
         );
 

@@ -4,8 +4,8 @@ import { styles } from './mas-selected-items.css.js';
 import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
-import { Fragment } from '../../aem/fragment.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
+import { getItemTypeLabel } from '../utils/render-utils.js';
 import { fetchUnresolvedVariations } from '../utils/translation-items-loader.js';
 
 class MasSelectedItems extends LitElement {
@@ -89,15 +89,7 @@ class MasSelectedItems extends LitElement {
     }
 
     getType(item) {
-        if (!item) return 'Unknown type';
-        switch (item.model.path) {
-            case CARD_MODEL_PATH:
-                return Fragment.isGroupedVariationPath(item.path) ? 'Grouped variation' : 'Default card';
-            case COLLECTION_MODEL_PATH:
-                return 'Collection';
-            default:
-                return 'Placeholder';
-        }
+        return getItemTypeLabel(item);
     }
 
     getTitle(item) {

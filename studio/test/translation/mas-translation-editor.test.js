@@ -4,6 +4,7 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import { PAGE_NAMES, QUICK_ACTION, TRANSLATION_PROJECT_MODEL_ID } from '../../src/constants.js';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import router from '../../src/router.js';
 import Events from '../../src/events.js';
 import { Fragment } from '../../src/aem/fragment.js';
@@ -88,6 +89,7 @@ describe('MasTranslationEditor', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         toastEmitStub = sandbox.stub(Events.toast, 'emit');
         originalQuerySelector = document.querySelector.bind(document);
         defaultMockRepository = {
@@ -119,6 +121,7 @@ describe('MasTranslationEditor', () => {
         fixtureCleanup();
         sandbox.restore();
         resetStores();
+        setItemsSelectionStore(null);
     });
 
     describe('initialization', () => {

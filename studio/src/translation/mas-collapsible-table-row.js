@@ -1,8 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
+import { getItemTypeLabel } from '../common/utils/render-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath } from '../common/utils/translation-items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -233,19 +233,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderItemType(item) {
-        if (Fragment.isGroupedVariationPath(item?.path)) {
-            return html`<sp-table-cell>Grouped variation</sp-table-cell>`;
-        }
-        if (item?.model?.path.includes('/dictionary/')) {
-            return html`<sp-table-cell>Placeholder</sp-table-cell>`;
-        }
-        if (item?.model?.path === COLLECTION_MODEL_PATH) {
-            return html`<sp-table-cell>Collection</sp-table-cell>`;
-        }
-        if (item?.model?.path === CARD_MODEL_PATH) {
-            return html`<sp-table-cell>Default</sp-table-cell>`;
-        }
-        return html`<sp-table-cell>no type</sp-table-cell>`;
+        return html`<sp-table-cell>${getItemTypeLabel(item)}</sp-table-cell>`;
     }
 
     async #copyToClipboard(e, text) {

@@ -3,6 +3,7 @@ import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
 
 export const OFFER_DATA_CONCURRENCY_LIMIT = 5;
 export const VARIATIONS_CONCURRENCY_LIMIT = 5;
+export const LARGE_BATCH_YIELD_THRESHOLD = 50;
 
 /**
  * Yields control to the event loop.
@@ -16,6 +17,11 @@ export async function yieldToMain() {
 
 /**
  * Processes async tasks with a concurrency limit and periodic yielding.
+ *
+ * NOTE: `Promise.resolve().then(...)` schedules all tasks into the microtask queue
+ * immediately. The concurrency throttle applies only to async work; any synchronous
+ * work inside `asyncFn` runs in parallel.
+ *
  * @param {Array} items
  * @param {Function} asyncFn
  * @param {number} concurrencyLimit
@@ -277,7 +283,7 @@ export async function enrichCards(
         groupedVariations: groupedVariationsByPath.get(card.path) ?? [],
     }));
 
-    if (enrichedCards.length > 50) {
+    if (enrichedCards.length > LARGE_BATCH_YIELD_THRESHOLD) {
         await yieldToMain();
     }
 

@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { TABLE_TYPE, COLLECTION_MODEL_PATH, CARD_MODEL_PATH } from '../../src/constants.js';
 import {
@@ -51,6 +52,7 @@ describe('translation-items-loader', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         resetStore();
         createMockCommerceService();
     });
@@ -59,6 +61,7 @@ describe('translation-items-loader', () => {
         sandbox.restore();
         resetStore();
         removeMockCommerceService();
+        setItemsSelectionStore(null);
     });
 
     describe('setCardVariationsByPaths', () => {

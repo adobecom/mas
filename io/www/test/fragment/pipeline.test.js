@@ -39,18 +39,19 @@ const EXPECTED_HEADERS = {
     'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
 };
 
-const SETTINGS_INDEX_URL_SANDBOX = 'https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/settings/index';
+const SETTINGS_INDEX_URL_SANDBOX =
+    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/settings/index';
 const SETTINGS_INDEX_URL_PREVIEW =
-    'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments?path=/content/dam/mas/sandbox/settings/index';
+    'https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/settings/index';
 const SETTINGS_CONTENT_URL = (settingsId) =>
-    `https://odin.adobe.com/adobe/sites/fragments/${settingsId}?references=all-hydrated`;
+    `https://odin.adobe.com/adobe/contentFragments/${settingsId}?references=all-hydrated`;
 const SETTINGS_CONTENT_URL_PREVIEW = (settingsId) =>
-    `https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments/${settingsId}?references=all-hydrated`;
+    `https://odinpreview.corp.adobe.com/adobe/contentFragments/${settingsId}?references=all-hydrated`;
 
 function mockSettings(fetchStub, preview = false, settingsId = 'settings-id') {
     const indexUrl = preview ? SETTINGS_INDEX_URL_PREVIEW : SETTINGS_INDEX_URL_SANDBOX;
     const contentUrl = preview ? SETTINGS_CONTENT_URL_PREVIEW(settingsId) : SETTINGS_CONTENT_URL(settingsId);
-    fetchStub.withArgs(indexUrl).returns(createResponse(200, { items: [{ id: settingsId }] }));
+    fetchStub.withArgs(indexUrl).returns(createResponse(200, { id: settingsId }));
     fetchStub.withArgs(contentUrl).returns(createResponse(200, SETTINGS_RESPONSE));
 }
 
@@ -61,7 +62,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
     mockSettings(fetchStub, preview);
 
     const odinDomain = `https://${preview ? 'odinpreview.corp' : 'odin'}.adobe.com`;
-    const odinUriRoot = preview ? '/adobe/sites/cf/fragments' : '/adobe/sites/fragments';
+    const odinUriRoot = preview ? '/adobe/contentFragments' : '/adobe/contentFragments';
     // english fragment by id
     fetchStub
         .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
@@ -69,15 +70,13 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // french fragment by path
     fetchStub
-        .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
-        .returns(createResponse(200, { items: [{ id: 'some-fr-fr-fragment' }] }));
+        .withArgs(`${odinDomain}${odinUriRoot}/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
+        .returns(createResponse(200, { id: 'some-fr-fr-fragment' }));
 
-    // candadian french fragment by path
-    fetchStub.withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`).returns(
-        createResponse(200, {
-            items: [],
-        }),
-    );
+    // candadian french fragment by path — not found (empty body)
+    fetchStub
+        .withArgs(`${odinDomain}${odinUriRoot}/byPath?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`)
+        .returns(createResponse(200, {}));
 
     // french fragment by id
     fetchStub
@@ -180,7 +179,7 @@ describe('pipeline full use case', () => {
         const result = await getFragment({
             id: 'some-en-us-fragment',
             preview: {
-                url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                url: 'https://odinpreview.corp.adobe.com/adobe/contentFragments',
             },
             state: state,
             locale: 'fr_FR',
@@ -234,7 +233,9 @@ describe('pipeline full use case', () => {
             path: 'someFragment',
         });
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_CA/dictionary/index')
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_CA/dictionary/index',
+            )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
         const result = await getFragment({
@@ -262,7 +263,9 @@ describe('pipeline full use case', () => {
             path: 'someFragment',
         });
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+            )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
         const result = await getFragment({
@@ -290,32 +293,26 @@ describe('pipeline full use case', () => {
 
         // Mock settings for adobe-home surface
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/adobe-home/settings/index')
-            .returns(createResponse(200, { items: [{ id: 'adobe-home-settings-id' }] }));
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/adobe-home/settings/index')
+            .returns(createResponse(200, { id: 'adobe-home-settings-id' }));
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/adobe-home-settings-id?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/adobe-home-settings-id?references=all-hydrated')
             .returns(createResponse(200, SETTINGS_RESPONSE));
 
         // Mock the fragment fetch
         fetchStub
-            .withArgs(`https://odin.adobe.com/adobe/sites/fragments/${fragmentId}?references=all-hydrated`)
+            .withArgs(`https://odin.adobe.com/adobe/contentFragments/${fragmentId}?references=all-hydrated`)
             .returns(createResponse(200, FRAGMENT_AH_DE_DE_CORRUPTED));
 
         // Mock dictionary for adobe-home de_DE (note the path structure matches adobe-home)
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/adobe-home/de_DE/dictionary/index')
-            .returns(
-                createResponse(200, {
-                    items: [
-                        {
-                            id: 'de_DE_dictionary',
-                        },
-                    ],
-                }),
-            );
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/adobe-home/de_DE/dictionary/index',
+            )
+            .returns(createResponse(200, { id: 'de_DE_dictionary' }));
 
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/de_DE_dictionary?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/de_DE_dictionary?references=all-hydrated')
             .returns(createResponse(200, DICTIONARY_RESPONSE));
 
         const state = new MockState();
@@ -356,12 +353,12 @@ describe('collection placeholders', () => {
         const state = new MockState();
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/sites/fragments/07f9729e-dc1f-4634-829d-7aa469bb0d33?references=all-hydrated',
+                'https://odin.adobe.com/adobe/contentFragments/07f9729e-dc1f-4634-829d-7aa469bb0d33?references=all-hydrated',
             )
             .returns(createResponse(200, COLLECTION_RESPONSE));
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/sites/fragments/412fda08-7b73-4a01-a04f-1953e183bad2?references=all-hydrated',
+                'https://odin.adobe.com/adobe/contentFragments/412fda08-7b73-4a01-a04f-1953e183bad2?references=all-hydrated',
             )
             .returns(createResponse(200, DICTIONARY_FOR_COLLECTION_RESPONSE));
         state.put(
@@ -397,7 +394,7 @@ describe('pipeline corner cases', () => {
 
     it('should handle main timeout', async () => {
         const odinDomain = 'https://odin.adobe.com';
-        const odinUriRoot = '/adobe/sites/fragments';
+        const odinUriRoot = '/adobe/contentFragments';
         //simulate slow response
         fetchStub
             .withArgs(`${odinDomain}${odinUriRoot}/some-en-us-fragment?references=all-hydrated`)
@@ -405,7 +402,7 @@ describe('pipeline corner cases', () => {
 
         fetchStub
             .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
-            .returns(createResponse(200, { items: [{ id: 'some-fr-fr-fragment' }] }));
+            .returns(createResponse(200, { id: 'some-fr-fr-fragment' }));
 
         fetchStub
             .withArgs(`${odinDomain}${odinUriRoot}/some-fr-fr-fragment?references=all-hydrated`)
@@ -442,7 +439,7 @@ describe('pipeline corner cases', () => {
 
     it('bad path should return 400', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-fr-fr-fragment?references=all-hydrated')
             .returns(createResponse(200, { path: '/content/bad-path' }));
         const state = new MockState();
         await state.put(
@@ -473,7 +470,7 @@ describe('pipeline corner cases', () => {
 
     it('should handle fetch timeouts', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/test-fragment?references=all-hydrated')
             .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, {})), 50)));
 
         const state = new MockState();
@@ -494,7 +491,7 @@ describe('pipeline corner cases', () => {
     });
 
     it('should handle fetch exceptions', async () => {
-        fetchStub.withArgs(sinon.match(/adobe\/sites\/fragments\/test-fragment/)).rejects(new Error('Network error'));
+        fetchStub.withArgs(sinon.match(/adobe\/contentFragments\/test-fragment/)).rejects(new Error('Network error'));
         const state = new MockState();
         await state.put('configuration', '{"networkConfig":{"retries": 2, "retryDelay": 1}}');
         const result = await getFragment({
@@ -514,7 +511,7 @@ describe('pipeline corner cases', () => {
 
     it('should handle 404 response status', async () => {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/test-fragment?references=all-hydrated')
             .returns(createResponse(404, null, 'Not Found'));
 
         const result = await getFragment({
@@ -641,7 +638,7 @@ describe('caching headers', () => {
     it('should include Cache-Control header in error responses', async () => {
         mockSettings(fetchStub);
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/test-fragment?references=all-hydrated')
             .returns(createResponse(404, { message: 'Fragment not found' }));
 
         const result = await getFragment({
@@ -659,7 +656,7 @@ describe('caching headers', () => {
         fetchStub.restore();
         resetCache();
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/test-fragment?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/test-fragment?references=all-hydrated')
             .returns(createResponse(200, {}));
 
         const state = new MockState();

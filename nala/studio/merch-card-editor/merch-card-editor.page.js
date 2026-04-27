@@ -8,6 +8,10 @@ export default class MerchCardEditorPage {
         this.merchCardLocReadyLabel = this.merchCardEditor.locator('sp-field-label[for="loc-ready"]');
         this.merchCardSendToTranslationText = this.merchCardEditor.getByText('Send to translation?');
 
+        this.editorPanel = page.locator('editor-panel');
+        this.metadataLocReadyLabel = this.editorPanel.locator('sp-field-label[for="fragment-locready"]');
+        this.metadataLocReadySwitch = this.metadataLocReadyLabel.locator('xpath=following-sibling::sp-switch[1]');
+
         this.cssProp = {};
     }
 }

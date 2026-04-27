@@ -11,5 +11,15 @@ export default {
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @merch-card-editor @loc-ready',
         },
+        {
+            tcid: '1',
+            name: '@studio-merch-card-editor-loc-ready-metadata-toggle',
+            path: '/studio.html',
+            data: {
+                cardid: '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4',
+            },
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            tags: '@mas-studio @merch-card-editor @loc-ready',
+        },
     ],
 };

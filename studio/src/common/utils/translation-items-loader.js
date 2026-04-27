@@ -47,8 +47,7 @@ async function loadGroupedVariations(card, repository, signal, getDisplayName) {
 
     const offerDataResults = await processConcurrently(
         validVariations,
-        (variation) =>
-            loadOfferData(variation, { cache: getItemsSelectionStore().offerDataCache, signal }),
+        (variation) => loadOfferData(variation, { cache: getItemsSelectionStore().offerDataCache, signal }),
         VARIATIONS_CONCURRENCY_LIMIT,
     );
 

@@ -1633,18 +1633,6 @@ class MerchCardEditor extends LitElement {
                         ></quantity-select-settings-field>
                     </sp-field-group>
                 </div>
-                <sp-field-group id="locReady">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-                        <sp-field-label for="loc-ready">Send to translation?</sp-field-label>
-                        <sp-switch
-                            id="loc-ready"
-                            data-field-state="${this.getFieldState('locReady')}"
-                            ?checked="${form.locReady?.values[0]}"
-                            @click="${this.#handleLocReady}"
-                        ></sp-switch>
-                    </div>
-                    ${this.renderFieldStatusIndicator('locReady')}
-                </sp-field-group>
             </div>
         `;
     }
@@ -2410,11 +2398,6 @@ class MerchCardEditor extends LitElement {
         if (this.updateFragment) {
             this.updateFragment(event);
         }
-    }
-
-    #handleLocReady() {
-        const value = !this.fragment.getField('locReady')?.values[0];
-        this.fragmentStore.updateField('locReady', [value]);
     }
 
     #getPerUnitDisplayValue(value) {

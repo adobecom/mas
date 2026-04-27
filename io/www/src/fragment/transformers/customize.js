@@ -97,8 +97,10 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     const tokens = parsePznTokens(pzn);
     const matchedTokens = countMatchedPznTokens(tags, tokens);
     const regionMatch = Boolean(regionLocale && tags.some((tag) => tag.includes(regionLocale)));
+    const effectiveCountry = country || regionLocale?.split('_')[1];
     const countryMatch = Boolean(
-        country && tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(country).toLowerCase()}`)),
+        effectiveCountry &&
+            tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(effectiveCountry).toLowerCase()}`)),
     );
     if (matchedTokens === 0 && !regionMatch && !countryMatch) {
         return 0;

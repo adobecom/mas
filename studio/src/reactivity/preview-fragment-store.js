@@ -2,6 +2,8 @@ import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
 import { previewStudioFragment } from 'fragment-client';
 import { Fragment } from '../aem/fragment.js';
+import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
+
 const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect']);
 
 export function serializePreviewFields(fields = []) {
@@ -73,8 +75,8 @@ export class PreviewFragmentStore extends FragmentStore {
         super(fragmentInstance, validator);
         this.lazy = lazy;
 
-        this.placeholderUnsubscribe = Store.placeholders.preview.subscribe(() => {
-            if (!this.lazy && !this.resolved && Store.placeholders.preview.value) {
+        this.placeholderUnsubscribe = Store.placeholders.previewByLocale.subscribe(() => {
+            if (!this.lazy && !this.resolved && Store.previewDictionaryReady()) {
                 this.resolveFragment(true);
             }
         });
@@ -171,7 +173,7 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
-        if (this.isCollection || !Store.placeholders.preview.value) {
+        if (this.isCollection || !Store.previewDictionaryReady()) {
             this.resolved = true;
             this.refreshAemFragment(true);
             this.notify();
@@ -215,7 +217,8 @@ export class PreviewFragmentStore extends FragmentStore {
         const context = {
             locale: Store.localeOrRegion(),
             surface: Store.surface(),
-            dictionary: Store.placeholders.preview.value,
+            dictionary: Store.previewDictionary(),
+            preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },
         };
         const result = await previewStudioFragment(body, context);
 
@@ -295,7 +298,7 @@ export class PreviewFragmentStore extends FragmentStore {
      */
     dispose() {
         if (this.placeholderUnsubscribe) {
-            Store.placeholders.preview.unsubscribe(this.placeholderUnsubscribe);
+            Store.placeholders.previewByLocale.unsubscribe(this.placeholderUnsubscribe);
             this.placeholderUnsubscribe = null;
         }
     }

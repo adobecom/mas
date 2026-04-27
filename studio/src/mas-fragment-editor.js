@@ -28,6 +28,15 @@ const MODEL_WEB_COMPONENT_MAPPING = {
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
+export function syncVariationLocaleInUrlForHash(path) {
+    const loc = extractLocaleFromPath(path);
+    if (!loc) return false;
+    if (Store.filters.value.locale === loc && !Store.search.value.region) return false;
+    Store.search.set((p) => ({ ...p, region: null }));
+    if (Store.filters.value.locale !== loc) Store.filters.set((f) => ({ ...f, locale: loc }));
+    return true;
+}
+
 export default class MasFragmentEditor extends LitElement {
     static styles = css`
         #fragment-editor {
@@ -705,8 +714,9 @@ export default class MasFragmentEditor extends LitElement {
 
         const fragmentLocale = extractLocaleFromPath(fragmentPath);
         const pathDetection = this.editorContextStore.detectVariationFromPath(fragmentPath);
+        let urlLocaleSynced = false;
         if (pathDetection.isVariation && fragmentLocale) {
-            Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+            urlLocaleSynced = syncVariationLocaleInUrlForHash(fragmentPath);
         }
 
         this.#updateLocaleIfNeeded(fragmentPath);
@@ -717,23 +727,20 @@ export default class MasFragmentEditor extends LitElement {
         if (skipVariation) existingStore.skipVariationDetection = false;
 
         if (isVariationAfterContext && !skipVariation) {
-            const localeChanged = fragmentLocale && fragmentLocale !== Store.localeOrRegion();
-            if (localeChanged) {
-                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-                void this.repository.loadPreviewPlaceholders();
-                existingStore.resolvePreviewFragment();
-            }
             await this.#attachParentToCachedVariation(existingStore, fragmentPath);
-            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
-                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-                void this.repository.loadPreviewPlaceholders();
-                existingStore.resolvePreviewFragment();
+            if (fragmentLocale) {
+                urlLocaleSynced = syncVariationLocaleInUrlForHash(fragmentPath) || urlLocaleSynced;
             }
         } else {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
 
         this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath);
+
+        if (urlLocaleSynced) {
+            void this.repository.loadPreviewPlaceholders();
+            existingStore.resolvePreviewFragment();
+        }
 
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
@@ -783,19 +790,24 @@ export default class MasFragmentEditor extends LitElement {
             }
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
             const fragment = new Fragment(fragmentData);
+            const fragmentPath = fragment.path;
+            const pathDetection = this.editorContextStore.detectVariationFromPath(fragmentPath);
+            const fragmentLocaleEarly = extractLocaleFromPath(fragmentPath);
 
-            this.#updateLocaleIfNeeded(fragment.path);
-            await this.editorContextStore.loadFragmentContext(fragmentId, fragment.path);
+            let urlLocaleSynced = false;
+            if (pathDetection.isVariation && fragmentLocaleEarly) {
+                urlLocaleSynced = syncVariationLocaleInUrlForHash(fragmentPath);
+            }
+
+            this.#updateLocaleIfNeeded(fragmentPath);
+            await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
 
             const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
             const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
-            if (isVariationForStore) {
-                const fragmentLocale = extractLocaleFromPath(fragment.path);
-                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
-                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-                }
+            if (isVariationForStore && extractLocaleFromPath(fragmentPath)) {
+                urlLocaleSynced = syncVariationLocaleInUrlForHash(fragmentPath) || urlLocaleSynced;
             }
 
             if (this.repository.search.value.path) {
@@ -811,17 +823,9 @@ export default class MasFragmentEditor extends LitElement {
             this.#activateEditorStore(fragmentStore);
             this.dispatchFragmentLoaded();
 
-            // Handle locale-specific placeholder reload for variations
-            if (isVariationForStore) {
-                const fragmentLocale = extractLocaleFromPath(fragment.path);
-                if (fragmentLocale) {
-                    const localeChanged = fragmentLocale !== Store.localeOrRegion();
-                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-                    if (localeChanged) {
-                        void this.repository.loadPreviewPlaceholders();
-                        fragmentStore.resolvePreviewFragment();
-                    }
-                }
+            if (urlLocaleSynced) {
+                void this.repository.loadPreviewPlaceholders();
+                fragmentStore.resolvePreviewFragment();
             }
 
             Store.editor.resetChanges();

@@ -1,7 +1,6 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
-import '../src/mas-fragment-editor.js';
-import MasFragmentEditor from '../src/mas-fragment-editor.js';
+import MasFragmentEditor, { syncVariationLocaleInUrlForHash } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
@@ -375,8 +374,9 @@ describe('MasFragmentEditor', () => {
 
             await el.initFragment();
 
-            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
-            expect(Store.search.get().region).to.equal('fr_FR');
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(3);
+            expect(Store.filters.get().locale).to.equal('fr_FR');
+            expect(Store.search.get().region == null).to.be.true;
             expect(Store.previewDictionary()).to.deep.equal({ testDictionary: true });
         });
 
@@ -401,7 +401,8 @@ describe('MasFragmentEditor', () => {
             await el.initFragment();
 
             expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
-            expect(Store.search.get().region).to.equal('fr_FR');
+            expect(Store.filters.get().locale).to.equal('fr_FR');
+            expect(Store.search.get().region == null).to.be.true;
             expect(Store.previewDictionary()).to.deep.equal({ fromCachedVariation: true });
             expect(sourceStore.resolvePreviewFragment.calledOnce).to.be.true;
         });
@@ -1100,6 +1101,53 @@ describe('MasFragmentEditor', () => {
         it('renders variation counts', () => {
             const section = el.relatedVariationsSection;
             expect(section).to.not.equal(nothing);
+        });
+    });
+
+    describe('syncVariationLocaleInUrlForHash', () => {
+        const frPath = '/content/dam/mas/sandbox/fr_FR/pac/card';
+
+        let savedSearch;
+        let savedFilters;
+
+        beforeEach(() => {
+            savedSearch = structuredClone(Store.search.get());
+            savedFilters = structuredClone(Store.filters.get());
+            Store.search.set({});
+            Store.filters.set({ locale: 'en_US' });
+        });
+
+        afterEach(() => {
+            Store.search.set(savedSearch);
+            Store.filters.set(savedFilters);
+        });
+
+        it('returns false when path has no parseable locale', () => {
+            expect(syncVariationLocaleInUrlForHash('')).to.be.false;
+            expect(syncVariationLocaleInUrlForHash('/invalid')).to.be.false;
+        });
+
+        it('returns false when filter and region already match path locale', () => {
+            Store.filters.set({ locale: 'fr_FR' });
+            expect(syncVariationLocaleInUrlForHash(frPath)).to.be.false;
+        });
+
+        it('updates filters.locale and clears region when URL locale mismatched', () => {
+            Store.filters.set({ locale: 'it_IT' });
+            Store.search.set({ path: 'sandbox', region: 'fr_FR' });
+
+            expect(syncVariationLocaleInUrlForHash(frPath)).to.be.true;
+            expect(Store.filters.get().locale).to.equal('fr_FR');
+            expect(Store.search.get().region).to.be.null;
+        });
+
+        it('clears stale region when filter already matches path locale', () => {
+            Store.filters.set({ locale: 'fr_FR' });
+            Store.search.set({ path: 'sandbox', region: 'de_DE' });
+
+            expect(syncVariationLocaleInUrlForHash(frPath)).to.be.true;
+            expect(Store.filters.get().locale).to.equal('fr_FR');
+            expect(Store.search.get().region).to.be.null;
         });
     });
 

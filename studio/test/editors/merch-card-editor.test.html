@@ -1324,15 +1324,16 @@
                                 providers: {
                                     has: (p) => registered.includes(p),
                                     price: (p) => registered.push(p),
+                                    checkout: (p) => registered.push(p),
                                 },
                             };
-                            editor.registerCommercePriceProviders(fakeService);
-                            expect(registered.length).to.equal(2);
-                            editor.registerCommercePriceProviders(fakeService);
-                            expect(registered.length).to.equal(2);
+                            editor.registerCommerceProviders(fakeService);
+                            expect(registered.length).to.equal(4);
+                            editor.registerCommerceProviders(fakeService);
+                            expect(registered.length).to.equal(4);
                         });
 
-                        it('registers the second provider even when the first is already registered', async () => {
+                        it('registers providers when an unrelated provider is already registered', async () => {
                             const { editor } = await setupTestEnvironment({}, 'providers-partial');
                             const registered = [];
                             const firstProvider = () => {};
@@ -1341,12 +1342,18 @@
                                 providers: {
                                     has: (p) => registered.includes(p),
                                     price: (p) => registered.push(p),
+                                    checkout: (p) => registered.push(p),
                                 },
                             };
                             const before = registered.length;
-                            editor.registerCommercePriceProviders(fakeService);
-                            // Both editor providers should have been added (2), plus the pre-seeded unrelated one.
-                            expect(registered.length).to.equal(before + 2);
+                            editor.registerCommerceProviders(fakeService);
+                            // Both editor providers are registered for price and checkout.
+                            expect(registered.length).to.equal(before + 4);
+                        });
+
+                        it('does not throw when commerce service is unavailable', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'providers-missing-service');
+                            expect(() => editor.registerCommerceProviders(null)).to.not.throw();
                         });
                     });
                 });

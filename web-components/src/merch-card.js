@@ -69,9 +69,24 @@ function priceOptionsProvider(element, options) {
     card.variantLayout?.priceOptionsProvider?.(element, options);
 }
 
-function registerPriceOptionsProvider(masCommerceService) {
-    if (masCommerceService.providers.has(priceOptionsProvider)) return;
-    masCommerceService.providers.price(priceOptionsProvider);
+function checkoutOptionsProvider(element, options) {
+    const card = element.closest(MERCH_CARD);
+    if (!card) return options;
+    if (
+        !options.promotionCode &&
+        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+    ) {
+        options.promotionCode = card.promotionCode;
+    }
+}
+
+function registerOptionsProviders(masCommerceService) {
+    if (!masCommerceService.providers.has(priceOptionsProvider)) {
+        masCommerceService.providers.price(priceOptionsProvider);
+    }
+    if (!masCommerceService.providers.has(checkoutOptionsProvider)) {
+        masCommerceService.providers.checkout(checkoutOptionsProvider);
+    }
 }
 
 const intersectionObserver = new IntersectionObserver((entries) => {
@@ -571,7 +586,7 @@ export class MerchCard extends LitElement {
         this.#durationMarkName = `${MARK_MERCH_CARD_PREFIX}${logId}${MARK_DURATION_SUFFIX}`;
         performance.mark(this.#startMarkName);
         this.#service = getService();
-        registerPriceOptionsProvider(this.#service);
+        registerOptionsProviders(this.#service);
         this.#log = this.#service.Log.module(MERCH_CARD);
         this.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,

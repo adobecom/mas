@@ -58,6 +58,13 @@ function editorPromoCodeProvider(element, options) {
     options.promotionCode = promoCode;
 }
 
+function checkoutOptionsProvider(element, options) {
+    if (!isEditorPriceElement(element)) return;
+    const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
+    if (!promoCode) return;
+    options.promotionCode = promoCode;
+}
+
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
         description: {
@@ -507,7 +514,7 @@ class MerchCardEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.registerCommercePriceProviders();
+        this.registerCommerceProviders();
         document.addEventListener(EVENT_COMMERCE_READY, this.#handleCommerceReady);
     }
 
@@ -518,16 +525,20 @@ class MerchCardEditor extends LitElement {
     }
 
     #handleCommerceReady = (event) => {
-        this.registerCommercePriceProviders(event.detail);
+        this.registerCommerceProviders(event.detail);
     };
 
-    registerCommercePriceProviders(service = document.querySelector('mas-commerce-service')) {
-        if (!service?.providers?.price) return;
+    registerCommerceProviders(service = document.querySelector('mas-commerce-service')) {
+        if (!service?.providers) return;
         if (!service.providers.has(groupedPreviewLocaleProvider)) {
             service.providers.price(groupedPreviewLocaleProvider);
+            service.providers.checkout(groupedPreviewLocaleProvider);
         }
         if (!service.providers.has(editorPromoCodeProvider)) {
             service.providers.price(editorPromoCodeProvider);
+        }
+        if (!service.providers.has(checkoutOptionsProvider)) {
+            service.providers.checkout(checkoutOptionsProvider);
         }
     }
 

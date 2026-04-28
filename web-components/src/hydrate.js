@@ -830,7 +830,7 @@ export async function hydrate(fragment, merchCard) {
     const { variant } = fields;
     if (!variant) throw new Error(`hydrate: no variant found in payload ${id}`);
     cleanup(merchCard);
-    merchCard.compatVersion = fields.compatVersion ?? 0;
+    merchCard.compatVersion = fields.compatVersion;
     merchCard.contextPromotionCode = fields.promoCode;
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;

@@ -629,7 +629,7 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
-    it('defaults compatVersion to 0 when fields.compatVersion is missing', async () => {
+    it('passes through missing compatVersion as undefined', async () => {
         const fragment = {
             fields: {
                 variant: 'ccd-slice',
@@ -642,7 +642,7 @@ describe('hydrate', () => {
             aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
         };
         await hydrate(fragment, merchCard);
-        expect(merchCard.compatVersion).to.equal(0);
+        expect(merchCard.compatVersion).to.equal(undefined);
     });
 
     it('reads compatVersion from fragment fields', async () => {
@@ -660,6 +660,23 @@ describe('hydrate', () => {
         };
         await hydrate(fragment, merchCard);
         expect(merchCard.compatVersion).to.equal(1);
+    });
+
+    it('passes through string compatVersion from fragment fields unchanged', async () => {
+        const fragment = {
+            fields: {
+                variant: 'ccd-slice',
+                compatVersion: '1',
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.compatVersion).to.equal('1');
     });
 
     it('copies fragment promoCode into contextPromotionCode', async () => {

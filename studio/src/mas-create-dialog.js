@@ -224,7 +224,7 @@ export class MasCreateDialog extends LitElement {
             fragmentData.data = {
                 osi: this.osi,
                 tags: this.tags,
-                compatVersion: String(COMPAT_VERSION),
+                compatVersion: COMPAT_VERSION,
             };
         }
 

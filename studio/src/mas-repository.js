@@ -91,11 +91,11 @@ function ensureCompatVersionOnMerchCardFieldList(modelPath, fields) {
     const idx = fields.findIndex((f) => f.name === 'compatVersion');
     const valuesEmpty = (vals) => !vals?.length || vals[0] === '' || vals[0] == null;
     if (idx === -1) {
-        fields.push({ name: 'compatVersion', type: 'text', values: [String(COMPAT_VERSION)] });
+        fields.push({ name: 'compatVersion', type: 'number', values: [COMPAT_VERSION] });
         return true;
     }
     if (valuesEmpty(fields[idx].values)) {
-        fields[idx] = { ...fields[idx], type: fields[idx].type || 'text', values: [String(COMPAT_VERSION)] };
+        fields[idx] = { ...fields[idx], type: fields[idx].type || 'number', values: [COMPAT_VERSION] };
         return true;
     }
     return false;
@@ -1185,7 +1185,7 @@ export class MasRepository extends LitElement {
                     if (key === 'tags') {
                         fields.push({ name: key, type: 'tag', values: value });
                     } else {
-                        const type = key === 'locReady' ? 'boolean' : 'text';
+                        const type = key === 'locReady' ? 'boolean' : key === 'compatVersion' ? 'number' : 'text';
                         fields.push({ name: key, type, values: [value] });
                     }
                     return fields;

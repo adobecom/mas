@@ -495,7 +495,7 @@ describe('Fragment', () => {
             const p = new Fragment(
                 createFragmentConfig({
                     fields: [
-                        { name: 'compatVersion', values: ['1'] },
+                        { name: 'compatVersion', type: 'number', values: [1] },
                         { name: 'title', values: ['Parent Title'] },
                     ],
                 }),
@@ -503,13 +503,13 @@ describe('Fragment', () => {
             const v = new Fragment(
                 createFragmentConfig({
                     fields: [
-                        { name: 'compatVersion', values: ['1'] },
+                        { name: 'compatVersion', type: 'number', values: [1] },
                         { name: 'title', values: ['Parent Title'] },
                     ],
                 }),
             );
             const prepared = v.prepareVariationForSave(p);
-            expect(prepared.getFieldValues('compatVersion')).to.deep.equal(['1']);
+            expect(prepared.getFieldValues('compatVersion')).to.deep.equal([1]);
             expect(prepared.getFieldValues('title')).to.deep.equal([]);
         });
 

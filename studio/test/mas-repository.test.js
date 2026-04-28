@@ -2413,6 +2413,93 @@ describe('MasRepository dictionary helpers', () => {
                 Store.fragments.list.data = originalData;
             }
         });
+
+        it('multi-word query: sends longest token to AEM and phrase-filters client-side', async () => {
+            // AEM's fullText.EDGES ANDs across tokens, so "creative cloud" returns 0 if no
+            // card has both at edge positions in title/description. Workaround: send the
+            // longest single token ("creative") to AEM, then filter for the full phrase
+            // client-side via skipQuery's expanded haystack.
+            const phraseInTitle = createFragment({
+                id: 'creative-cloud-1',
+                path: `${ROOT_PATH}/acom/en_US/cc-1`,
+                title: 'Creative Cloud Pro',
+                fields: [{ name: 'variant', values: ['plans'] }],
+            });
+            const phraseInDescriptionField = createFragment({
+                id: 'creative-cloud-2',
+                path: `${ROOT_PATH}/acom/en_US/cc-2`,
+                title: 'Plans Card',
+                fields: [
+                    { name: 'variant', values: ['plans'] },
+                    { name: 'description', values: ['<p>Creative Cloud All Apps for individuals.</p>'] },
+                ],
+            });
+            const creativeButNotCloud = createFragment({
+                id: 'creative-only',
+                path: `${ROOT_PATH}/acom/en_US/co-1`,
+                title: 'Creative Suite Legacy',
+                fields: [{ name: 'variant', values: ['plans'] }],
+            });
+            const mockCursor = createMockCursorFromPages([[phraseInTitle, phraseInDescriptionField, creativeButNotCloud]]);
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'creative cloud' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'tester' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.firstCall.args[0].query).to.equal('creative');
+                const finalSet = mockDataStore.set.lastCall.args[0];
+                expect(finalSet).to.have.lengthOf(2);
+                const ids = finalSet.map((s) => s.get().id);
+                expect(ids).to.include('creative-cloud-1');
+                expect(ids).to.include('creative-cloud-2');
+                expect(ids).to.not.include('creative-only');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('single-word query: sends query unchanged to AEM (no client-side filter regression)', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().resolves(createMockCursorFromPages([[]]));
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'tester' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.firstCall.args[0].query).to.equal('photoshop');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
     });
 
     describe('eagerLoadAllPznPages cap', () => {

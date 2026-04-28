@@ -472,20 +472,30 @@ export class MasRepository extends LitElement {
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
 
-        // When a single variant chip is selected, route the variant name through
-        // fullText.EDGES so AEM can prune to candidate matches in a single round-trip
-        // instead of streaming the entire surface. The variant name is approximate —
-        // false positives are filtered by skipVariant() in #fillPage. The user's actual
-        // query (if any) is applied client-side via skipQuery() against an expanded
-        // haystack covering all string field values, since AEM's fullText index only
-        // covers title+description and would miss matches in cardTitle/description/etc.
-        // This also bypasses the MWPW-193359 AND-across-tokens regression because we
-        // never send query+variant together to AEM.
+        // AEM's fullText.EDGES index only covers title+description and ANDs across
+        // tokens, so multi-word queries like "creative cloud" return zero on catalogs
+        // where no card has both tokens at edge positions in metadata — even though
+        // many cards have the phrase in body fields (cardTitle, description, etc.).
+        // To make search reliable, we route a single discriminative term to AEM and
+        // apply the user's full query client-side via skipQuery() against an expanded
+        // haystack covering all string field values.
+        //   - single variant chip: variant name → AEM
+        //   - else multi-word query: longest token → AEM
+        //   - else (single-word or UUID): query unchanged
+        // The client-side skipQuery is idempotent in the single-word case (matches
+        // exactly what AEM returned) and only narrows in the multi-word case.
         const userQuery = !isUUID(this.search.value.query) && query ? query : '';
         let clientQuery = '';
         if (variants.length === 1) {
             localSearch.query = variants[0];
             clientQuery = userQuery;
+        } else if (userQuery) {
+            const tokens = userQuery.split(/\s+/).filter(Boolean);
+            if (tokens.length > 1) {
+                const longest = tokens.reduce((a, b) => (b.length > a.length ? b : a));
+                localSearch.query = longest;
+                clientQuery = userQuery;
+            }
         }
 
         const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);

@@ -20,4 +20,5 @@ node ./docs/src/build-docs.mjs specialoffer.md ./docs/specialoffer.html
 node ./docs/src/build-docs.mjs image.md ./docs/image.html
 node ./docs/src/build-docs.mjs commerce.md ./docs/commerce.html
 node ./docs/src/build-docs.mjs ccd.md ./docs/ccd.html
+node ./docs/src/build-docs.mjs json-ld.md ./docs/json-ld.html
 npx esbuild --bundle --external:*.css --outfile=./docs/spectrum.js ./docs/src/spectrum.mjs

@@ -70,6 +70,15 @@ export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
 };
 
 export class FullPricingExpress extends VariantLayout {
+    static SYNCED_DESCRIPTION_ROWS = 12;
+
+    static SYNCED_SECTIONS = [
+        'header',
+        'short-description',
+        'price-container',
+        'cta',
+    ];
+
     getGlobalCSS() {
         return CSS;
     }
@@ -97,27 +106,68 @@ export class FullPricingExpress extends VariantLayout {
         `;
     }
 
-    syncHeights() {
-        if (this.card.getBoundingClientRect().width <= 2) return;
-
+    measureRowHeights() {
+        const heights = {};
+        if (this.card.getBoundingClientRect().width <= 2) return heights;
         const shadow = this.card.shadowRoot;
-        if (!shadow) return;
+        if (!shadow) return heights;
+        FullPricingExpress.SYNCED_SECTIONS.forEach((name) => {
+            const el = shadow.querySelector(`.${name}`);
+            if (el) heights[name] = el.getBoundingClientRect().height;
+        });
+        const rows = this.card.querySelectorAll('[slot="body-s"] > *');
+        rows.forEach((row, index) => {
+            if (index >= FullPricingExpress.SYNCED_DESCRIPTION_ROWS) return;
+            heights[`description-row-${index}`] =
+                row.getBoundingClientRect().height;
+        });
+        return heights;
+    }
 
-        ['header', 'short-description', 'price-container', 'cta'].forEach(
-            (className) =>
-                this.updateCardElementMinHeight(
-                    shadow.querySelector(`.${className}`),
-                    className,
-                ),
-        );
+    syncHeights() {
+        this.resyncSiblings();
     }
 
     resyncSiblings() {
+        if (this.resyncScheduled) return;
+        this.resyncScheduled = true;
+        Promise.resolve().then(() => {
+            this.resyncScheduled = false;
+            this.runResync();
+        });
+    }
+
+    runResync() {
         const container = this.getContainer();
         if (!container) return;
-        container
-            .querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
-            .forEach((card) => card.variantLayout?.syncHeights?.());
+        const variant = this.card.variant;
+        const rowNames = Array.from(
+            { length: FullPricingExpress.SYNCED_DESCRIPTION_ROWS },
+            (_, i) => `description-row-${i}`,
+        );
+        const allNames = [...FullPricingExpress.SYNCED_SECTIONS, ...rowNames];
+        allNames.forEach((name) =>
+            container.style.removeProperty(
+                `--consonant-merch-card-${variant}-${name}-height`,
+            ),
+        );
+        const cards = container.querySelectorAll(
+            `merch-card[variant="${variant}"]`,
+        );
+        const maxHeights = {};
+        cards.forEach((card) => {
+            const measured = card.variantLayout?.measureRowHeights?.() || {};
+            Object.entries(measured).forEach(([name, value]) => {
+                maxHeights[name] = Math.max(maxHeights[name] || 0, value);
+            });
+        });
+        Object.entries(maxHeights).forEach(([name, value]) => {
+            const propName = `--consonant-merch-card-${variant}-${name}-height`;
+            const newValue = `${Math.round(value)}px`;
+            if (container.style.getPropertyValue(propName) !== newValue) {
+                container.style.setProperty(propName, newValue);
+            }
+        });
     }
 
     async postCardUpdateHook() {
@@ -151,6 +201,7 @@ export class FullPricingExpress extends VariantLayout {
         }
 
         if (window.matchMedia('(min-width: 768px)').matches) {
+            await document.fonts?.ready;
             this.resyncSiblings();
         }
     }

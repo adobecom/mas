@@ -514,7 +514,6 @@ export class SimplifiedPricingExpress extends VariantLayout {
         :host([variant='simplified-pricing-express']) .price-container {
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
             margin-top: auto;
         }
 

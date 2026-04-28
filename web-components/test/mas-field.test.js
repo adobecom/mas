@@ -240,3 +240,166 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.getAttribute('data-wcs-osi')).to.equal('osi1');
     });
 });
+
+describe('mas-field – checkReady()', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+    });
+
+    it('resolves immediately when fragment is already loaded', async () => {
+        const el = makeField('title', 'Creative Cloud');
+        const result = await el.checkReady();
+        expect(result).to.be.true;
+    });
+
+    it('resolves after aem:load fires when not yet loaded', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+
+        const readyPromise = el.checkReady();
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Creative Cloud' } },
+            }),
+        );
+        const result = await readyPromise;
+        expect(result).to.be.true;
+    });
+});
+
+describe('mas-field – normalized field values', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+    });
+
+    it('renders string extracted from object field value { value: "..." }', () => {
+        const el = makeField('title', { value: 'Creative Cloud' });
+        const content = el.querySelector('[data-role="mas-field-content"]');
+        expect(content.textContent).to.equal('Creative Cloud');
+    });
+});
+
+describe('mas-field – non-checkout and link-style CTAs', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+    });
+
+    it('clones non-checkout link without button styling', () => {
+        const el = makeField('ctas', '<a href="https://example.com" class="accent">Learn more</a>');
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link).to.exist;
+        expect(link.getAttribute('href')).to.equal('https://example.com');
+        expect(link.classList.contains('con-button')).to.be.false;
+    });
+
+    it('does not add button classes for link-style variant (accent-link)', () => {
+        const el = makeField('ctas', '<a data-wcs-osi="ABC" class="accent-link">Learn more</a>');
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link).to.exist;
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('blue')).to.be.false;
+    });
+
+    it('does not add button classes for primary-link variant', () => {
+        const el = makeField('ctas', '<a data-wcs-osi="ABC" class="primary-link">Details</a>');
+        const link = el.querySelector('[slot="footer"] a');
+        expect(link.classList.contains('con-button')).to.be.false;
+        expect(link.classList.contains('fill')).to.be.false;
+    });
+});
+
+describe('mas-field – lifecycle', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+    });
+
+    it('re-renders when field attribute changes after load', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Creative Cloud', description: 'Great plan' } },
+            }),
+        );
+        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Creative Cloud');
+        el.setAttribute('field', 'description');
+        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Great plan');
+    });
+
+    it('ignores aem:load events not from the aem-fragment child', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+
+        // Fire from a non-aem-fragment element
+        const other = document.createElement('div');
+        el.append(other);
+        other.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Should not render' } },
+            }),
+        );
+        expect(el.querySelector('[data-role="mas-field-content"]')?.textContent ?? '').to.equal('');
+    });
+
+    it('stops responding to aem:load after disconnection', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        el.remove();
+
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Post-disconnect' } },
+            }),
+        );
+        expect(el.querySelector('[data-role="mas-field-content"]')?.textContent ?? '').to.equal('');
+    });
+});
+
+describe('mas-field – non-string field values', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+    });
+
+    it('renders numeric field value as text', () => {
+        const el = makeField('count', 42);
+        const content = el.querySelector('[data-role="mas-field-content"]');
+        expect(content.textContent).to.equal('42');
+    });
+
+    it('renders empty string for null field value', () => {
+        const el = makeField('count', null);
+        const content = el.querySelector('[data-role="mas-field-content"]');
+        expect(content.textContent).to.equal('');
+    });
+
+    it('skips render when field value is undefined', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'missing');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Something' } },
+            }),
+        );
+        expect(el.querySelector('[data-role="mas-field-content"]')?.innerHTML ?? '').to.equal('');
+    });
+});

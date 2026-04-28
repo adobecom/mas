@@ -108,8 +108,10 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     // Those variations must only fire when an explicit pzn token is provided (MEP active).
     const requiresTokens = tags.filter((tag) => PZN_TOKEN_TAG_PATTERN.test(tag)).length === tags.length;
     const regionMatch = !requiresTokens && Boolean(regionLocale && tags.some((tag) => tag.includes(regionLocale)));
+    const effectiveCountry = country || regionLocale?.split('_')[1];
     const countryMatch = Boolean(
-        country && tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(country).toLowerCase()}`)),
+        effectiveCountry &&
+            tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(effectiveCountry).toLowerCase()}`)),
     );
     if (matchedTokens === 0 && !regionMatch && !countryMatch) {
         return 0;

@@ -1704,6 +1704,14 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('searchFragments — in-memory narrowing', () => {
+        let activeCleanup = null;
+        afterEach(() => {
+            if (activeCleanup) {
+                activeCleanup();
+                activeCleanup = null;
+            }
+        });
+
         const makeFragmentStore = ({
             id = 'f',
             variant = 'ccd-slice',
@@ -1765,18 +1773,14 @@ describe('MasRepository dictionary helpers', () => {
             Store.profile.set({ name: 'tester' });
             Store.fragments.list.hasMore.set(hasMore);
             Store.createdByUsers.set([]);
-            return {
-                repository,
-                setStub,
-                setMetaStub,
-                meta,
-                cleanup: () => {
-                    Store.fragments.list.data = originalData;
-                    Store.profile.set(originalProfile);
-                    Store.fragments.list.hasMore.set(originalHasMore);
-                    Store.createdByUsers.set(originalCreatedByUsers);
-                },
+            const cleanup = () => {
+                Store.fragments.list.data = originalData;
+                Store.profile.set(originalProfile);
+                Store.fragments.list.hasMore.set(originalHasMore);
+                Store.createdByUsers.set(originalCreatedByUsers);
             };
+            activeCleanup = cleanup;
+            return { repository, setStub, setMetaStub, meta, cleanup };
         };
 
         it('1. narrows by query without calling AEM', async () => {
@@ -2288,10 +2292,7 @@ describe('MasRepository dictionary helpers', () => {
             const page1 = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
                 createFragment({ id: `l-${i}`, path: `${ROOT_PATH}/acom/en_US/l-${i}`, fields: [] }),
             );
-            const page2 = Array.from({ length: 5 }, (_, i) =>
-                createFragment({ id: `l2-${i}`, path: `${ROOT_PATH}/acom/en_US/l2-${i}`, fields: [] }),
-            );
-            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const mockCursor = createMockCursorFromPages([page1]);
             const { repository, cleanup } = await setupSearchTest(mockCursor);
             try {
                 await repository.searchFragments();

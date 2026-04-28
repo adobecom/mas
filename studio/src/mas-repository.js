@@ -163,14 +163,22 @@ export class MasRepository extends LitElement {
             this.#searchCursor = null;
         });
 
-        const stampLastEdit = () => Store.fragments.list.data.setMeta('lastEdit', Date.now());
-        Events.fragmentAdded.subscribe(stampLastEdit);
-        Events.fragmentDeleted.subscribe(stampLastEdit);
-        Events.fragmentSaved.subscribe(stampLastEdit);
+        Events.fragmentAdded.subscribe(this.#stampLastEdit);
+        Events.fragmentDeleted.subscribe(this.#stampLastEdit);
+        Events.fragmentSaved.subscribe(this.#stampLastEdit);
 
         this.loadFolders();
         this.style.display = 'none';
     }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        Events.fragmentAdded.unsubscribe(this.#stampLastEdit);
+        Events.fragmentDeleted.unsubscribe(this.#stampLastEdit);
+        Events.fragmentSaved.unsubscribe(this.#stampLastEdit);
+    }
+
+    #stampLastEdit = () => Store.fragments.list.data.setMeta('lastEdit', Date.now());
 
     /**
      * @param {Error} error
@@ -276,52 +284,21 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Determines whether the new filter set is a strict narrowing of the previous one.
-     * Returns { narrowed: true } only if every dimension is "same or narrower" AND at least
-     * one dimension is strictly narrower; otherwise the caller must hit AEM.
+     * Returns true when every dimension of `next` is "same or narrower" than `prev`.
+     * Caller has already established the two filter sets are not identical, so any "same or narrower"
+     * result implies at least one dimension is strictly narrower.
      */
-    #narrowingPredicate(prev, next) {
-        let strict = false;
-        const queryNarrowed = () => {
-            if (prev.query === next.query) return true;
-            if (!next.query) return false;
-            if (!prev.query) {
-                strict = true;
-                return true;
-            }
-            if (next.query.toLowerCase().includes(prev.query.toLowerCase())) {
-                strict = true;
-                return true;
-            }
-            return false;
-        };
-        const arraySupersetNarrowed = (prevArr, nextArr) => {
-            if (prevArr.length === nextArr.length && prevArr.every((v) => nextArr.includes(v))) return true;
-            if (prevArr.every((v) => nextArr.includes(v)) && nextArr.length > prevArr.length) {
-                strict = true;
-                return true;
-            }
-            return false;
-        };
-        const variantsNarrowed = () => {
-            if (prev.variants.length === 0 && next.variants.length === 0) return true;
-            if (prev.variants.length === 0 && next.variants.length > 0) {
-                strict = true;
-                return true;
-            }
-            if (next.variants.length === 0) return false;
-            if (next.variants.every((v) => prev.variants.includes(v))) {
-                if (next.variants.length < prev.variants.length) strict = true;
-                return true;
-            }
-            return false;
-        };
-        const narrowed =
-            queryNarrowed() &&
-            arraySupersetNarrowed(prev.tags, next.tags) &&
-            variantsNarrowed() &&
-            arraySupersetNarrowed(prev.createdBy, next.createdBy);
-        return { narrowed, anyStrictlyNarrower: strict };
+    #isNarrowing(prev, next) {
+        const queryNarrowed =
+            prev.query === next.query ||
+            (next.query && (!prev.query || next.query.toLowerCase().includes(prev.query.toLowerCase())));
+        const isSuperset = (prevArr, nextArr) => prevArr.every((v) => nextArr.includes(v));
+        const isSubset = (prevArr, nextArr) => nextArr.every((v) => prevArr.includes(v));
+        const variantsNarrowed =
+            prev.variants.length === 0 || (next.variants.length > 0 && isSubset(prev.variants, next.variants));
+        return (
+            queryNarrowed && isSuperset(prev.tags, next.tags) && variantsNarrowed && isSuperset(prev.createdBy, next.createdBy)
+        );
     }
 
     /**
@@ -339,8 +316,9 @@ export class MasRepository extends LitElement {
     #applyInMemoryFilter(stores, { query, tags, variants, createdBy }) {
         const tagPredicate = filterByTags(tags);
         const queryLower = query?.toLowerCase() || '';
+        const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         return stores.filter((store) => {
-            const item = store?.get?.();
+            const item = store?.get?.() ?? store?.value;
             if (!item) return false;
             if (Fragment.isGroupedVariationPath(item.path)) return false;
             if (this.skipVariant(variants, item)) return false;
@@ -350,6 +328,7 @@ export class MasRepository extends LitElement {
                 const haystack = `${item.title || ''}\n${item.description || ''}\n${item.path || ''}`.toLowerCase();
                 if (!haystack.includes(queryLower)) return false;
             }
+            if (!personalizationOn && fragmentHasPersonalizationTag(item)) return false;
             return true;
         });
     }
@@ -440,21 +419,16 @@ export class MasRepository extends LitElement {
                 (t) => !t.startsWith(TAG_VARIANT_PREFIX) && !t.startsWith(TAG_STUDIO_CONTENT_TYPE),
             );
             const prevCreatedBy = currentCreatedBy ? currentCreatedBy.split(',').filter(Boolean) : [];
-            const { narrowed, anyStrictlyNarrower } = this.#narrowingPredicate(
-                {
-                    query: currentQuery || '',
-                    tags: prevTagsNonVariant,
-                    variants: prevVariants,
-                    createdBy: prevCreatedBy,
-                },
+            const narrowed = this.#isNarrowing(
+                { query: currentQuery || '', tags: prevTagsNonVariant, variants: prevVariants, createdBy: prevCreatedBy },
                 { query: query || '', tags, variants, createdBy },
             );
-            if (narrowed && anyStrictlyNarrower) {
+            if (narrowed) {
                 if (tracing) console.time('searchFragments:in-memory');
-                const filtered = this.#filterStoresByPersonalizationEnabled(
-                    this.#applyInMemoryFilter(currentData, { query, tags, variants, createdBy }),
-                );
-                dataStore.set(filtered);
+                const filtered = this.#applyInMemoryFilter(currentData, { query, tags, variants, createdBy });
+                if (filtered.length !== currentData.length) {
+                    dataStore.set(filtered);
+                }
                 dataStore.setMeta('query', query);
                 dataStore.setMeta('tags', tagsString);
                 dataStore.setMeta('createdBy', createdByString);
@@ -481,6 +455,16 @@ export class MasRepository extends LitElement {
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
+
+        // When the only narrowing signal is a single variant chip (no user query),
+        // route the variant name through fullText.EDGES so AEM can prune to candidate
+        // matches in a single round-trip instead of streaming the entire surface.
+        // The variant name is approximate — false positives are filtered by the
+        // existing client-side skipVariant() in #fillPage. Skipped when the user has
+        // typed a query (avoids the MWPW-193359 AND-across-tokens regression).
+        if (!query && variants.length === 1) {
+            localSearch.query = variants[0];
+        }
 
         const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
         if (publishedTagIndex > -1) {
@@ -569,14 +553,7 @@ export class MasRepository extends LitElement {
                 const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 const fragmentStores = [];
-                const done = await this.#fillPage(
-                    cursor,
-                    variants,
-                    surface,
-                    fragmentStores,
-                    undefined,
-                    searchController.signal,
-                );
+                const done = await this.#fillPage(cursor, variants, surface, fragmentStores, searchController.signal);
                 if (this.#abortControllers.search !== searchController) {
                     Store.fragments.list.loading.set(false);
                     return;
@@ -644,19 +621,15 @@ export class MasRepository extends LitElement {
      */
     static MAX_REFILL_ROUNDS = 20;
 
-    async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal) {
-        let added = 0;
-        while (added < limit) {
-            if (signal?.aborted) return false;
-            const page = await cursor.next();
-            if (page.done) return true;
-            for await (const item of page.value) {
-                if (this.skipVariant(variants, item)) continue;
-                applyCorrectorToFragment(item, surface);
-                const fragment = await this.#addToCache(item);
-                fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
-                added++;
-            }
+    async #fillPage(cursor, variants, surface, fragmentStores, signal) {
+        if (signal?.aborted) return false;
+        const page = await cursor.next();
+        if (page.done) return true;
+        for await (const item of page.value) {
+            if (this.skipVariant(variants, item)) continue;
+            applyCorrectorToFragment(item, surface);
+            const fragment = await this.#addToCache(item);
+            fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
         }
         return false;
     }
@@ -670,14 +643,7 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.hasMore.set(true);
                     break;
                 }
-                const done = await this.#fillPage(
-                    cursor,
-                    variants,
-                    surface,
-                    fragmentStores,
-                    undefined,
-                    searchController.signal,
-                );
+                const done = await this.#fillPage(cursor, variants, surface, fragmentStores, searchController.signal);
                 pagesLoaded++;
                 if (this.#searchCursor !== cursorSnapshot) return;
                 Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
@@ -707,14 +673,7 @@ export class MasRepository extends LitElement {
                     return;
                 }
                 const beforeCount = fragmentStores.length;
-                const done = await this.#fillPage(
-                    cursor,
-                    variants,
-                    surface,
-                    fragmentStores,
-                    undefined,
-                    searchController.signal,
-                );
+                const done = await this.#fillPage(cursor, variants, surface, fragmentStores, searchController.signal);
                 rounds++;
                 if (this.#searchCursor !== cursorSnapshot) return;
                 if (fragmentStores.length === beforeCount && !done) {
@@ -747,14 +706,7 @@ export class MasRepository extends LitElement {
         Store.fragments.list.loading.set(true);
         const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
         try {
-            const done = await this.#fillPage(
-                cursor,
-                variants,
-                surface,
-                fragmentStores,
-                undefined,
-                this.#abortControllers.search?.signal,
-            );
+            const done = await this.#fillPage(cursor, variants, surface, fragmentStores, this.#abortControllers.search?.signal);
             if (this.#searchCursor !== cursorSnapshot) return;
             Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
             if (done) {

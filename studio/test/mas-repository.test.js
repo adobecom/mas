@@ -2341,6 +2341,7 @@ describe('MasRepository dictionary helpers', () => {
             const repository = createFullRepository();
             // Card whose title/description do NOT contain "photoshop" but cardTitle does.
             // AEM's fullText index would miss this; skipQuery's expanded haystack catches it.
+            // Caller pre-lowercases the query (contract documented on skipQuery).
             const item = {
                 id: 'cc-mini-card',
                 title: 'Rivero - Mini comparison chart',
@@ -2353,7 +2354,6 @@ describe('MasRepository dictionary helpers', () => {
                 ],
             };
             expect(repository.skipQuery('photoshop', item)).to.be.false;
-            expect(repository.skipQuery('PhotoShop', item)).to.be.false;
             expect(repository.skipQuery('illustrator', item)).to.be.true;
             expect(repository.skipQuery('', item)).to.be.false;
         });

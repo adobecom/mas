@@ -298,9 +298,10 @@ export class MasRepository extends LitElement {
         return parts.join('\n').toLowerCase();
     }
 
+    /** Pass `query` already lowercased to avoid re-lowercasing once per item. */
     skipQuery(query, item) {
         if (!query) return false;
-        return !this.#queryHaystack(item).includes(query.toLowerCase());
+        return !this.#queryHaystack(item).includes(query);
     }
 
     /**
@@ -336,6 +337,7 @@ export class MasRepository extends LitElement {
     #applyInMemoryFilter(stores, { query, tags, variants, createdBy }) {
         const tagPredicate = filterByTags(tags);
         const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
+        const lowerQuery = query?.toLowerCase() || '';
         return stores.filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
@@ -343,7 +345,7 @@ export class MasRepository extends LitElement {
             if (this.skipVariant(variants, item)) return false;
             if (!tagPredicate(item)) return false;
             if (createdBy.length && !createdBy.includes(item.createdBy)) return false;
-            if (this.skipQuery(query, item)) return false;
+            if (this.skipQuery(lowerQuery, item)) return false;
             if (!personalizationOn && fragmentHasPersonalizationTag(item)) return false;
             return true;
         });
@@ -490,13 +492,14 @@ export class MasRepository extends LitElement {
             localSearch.query = variants[0];
             clientQuery = userQuery;
         } else if (userQuery) {
-            const tokens = userQuery.split(/\s+/).filter(Boolean);
+            const tokens = userQuery.match(/\S+/g) || [];
             if (tokens.length > 1) {
                 const longest = tokens.reduce((a, b) => (b.length > a.length ? b : a));
                 localSearch.query = longest;
                 clientQuery = userQuery;
             }
         }
+        const lowerClientQuery = clientQuery.toLowerCase();
 
         const publishedTagIndex = tags.indexOf(TAG_STATUS_PUBLISHED);
         if (publishedTagIndex > -1) {
@@ -590,7 +593,7 @@ export class MasRepository extends LitElement {
                     variants,
                     surface,
                     fragmentStores,
-                    clientQuery,
+                    lowerClientQuery,
                     searchController.signal,
                 );
                 if (this.#abortControllers.search !== searchController) {
@@ -599,7 +602,7 @@ export class MasRepository extends LitElement {
                 }
                 Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
-                const cursorState = done ? null : { cursor, variants, surface, fragmentStores, clientQuery };
+                const cursorState = done ? null : { cursor, variants, surface, fragmentStores, lowerClientQuery };
                 this.#searchCursor = cursorState;
                 Store.fragments.list.hasMore.set(!done);
                 if (personalizationOn && cursorState) {
@@ -660,13 +663,13 @@ export class MasRepository extends LitElement {
      */
     static MAX_REFILL_ROUNDS = 20;
 
-    async #fillPage(cursor, variants, surface, fragmentStores, clientQuery, signal) {
+    async #fillPage(cursor, variants, surface, fragmentStores, lowerClientQuery, signal) {
         if (signal?.aborted) return false;
         const page = await cursor.next();
         if (page.done) return true;
         for await (const item of page.value) {
             if (this.skipVariant(variants, item)) continue;
-            if (this.skipQuery(clientQuery, item)) continue;
+            if (this.skipQuery(lowerClientQuery, item)) continue;
             applyCorrectorToFragment(item, surface);
             const fragment = await this.#addToCache(item);
             fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
@@ -675,7 +678,7 @@ export class MasRepository extends LitElement {
     }
 
     async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
-        const { cursor, variants, surface, fragmentStores, clientQuery } = cursorSnapshot;
+        const { cursor, variants, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         let pagesLoaded = 0;
         try {
             while (this.#searchCursor === cursorSnapshot) {
@@ -688,7 +691,7 @@ export class MasRepository extends LitElement {
                     variants,
                     surface,
                     fragmentStores,
-                    clientQuery,
+                    lowerClientQuery,
                     searchController.signal,
                 );
                 pagesLoaded++;
@@ -708,7 +711,7 @@ export class MasRepository extends LitElement {
     }
 
     async #refillBelowThreshold(cursorSnapshot, searchController) {
-        const { cursor, variants, surface, fragmentStores, clientQuery } = cursorSnapshot;
+        const { cursor, variants, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         let rounds = 0;
         Store.fragments.list.loading.set(true);
         try {
@@ -725,7 +728,7 @@ export class MasRepository extends LitElement {
                     variants,
                     surface,
                     fragmentStores,
-                    clientQuery,
+                    lowerClientQuery,
                     searchController.signal,
                 );
                 rounds++;
@@ -758,14 +761,14 @@ export class MasRepository extends LitElement {
         const cursorSnapshot = this.#searchCursor;
         if (!cursorSnapshot) return;
         Store.fragments.list.loading.set(true);
-        const { cursor, variants, surface, fragmentStores, clientQuery } = cursorSnapshot;
+        const { cursor, variants, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         try {
             const done = await this.#fillPage(
                 cursor,
                 variants,
                 surface,
                 fragmentStores,
-                clientQuery,
+                lowerClientQuery,
                 this.#abortControllers.search?.signal,
             );
             if (this.#searchCursor !== cursorSnapshot) return;

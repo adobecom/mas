@@ -277,7 +277,7 @@ export class MasRepository extends LitElement {
         return fragments;
     }
 
-    skipVariant(variants, item) {
+    #skipVariant(variants, item) {
         if (Fragment.isGroupedVariationPath(item.path)) return true;
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
         return variants.length && !variants.includes(variant);
@@ -299,7 +299,7 @@ export class MasRepository extends LitElement {
     }
 
     /** Pass `query` already lowercased to avoid re-lowercasing once per item. */
-    skipQuery(query, item) {
+    #skipQuery(query, item) {
         if (!query) return false;
         return !this.#queryHaystack(item).includes(query);
     }
@@ -342,10 +342,10 @@ export class MasRepository extends LitElement {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
             if (Fragment.isGroupedVariationPath(item.path)) return false;
-            if (this.skipVariant(variants, item)) return false;
+            if (this.#skipVariant(variants, item)) return false;
             if (!tagPredicate(item)) return false;
             if (createdBy.length && !createdBy.includes(item.createdBy)) return false;
-            if (this.skipQuery(lowerQuery, item)) return false;
+            if (this.#skipQuery(lowerQuery, item)) return false;
             if (!personalizationOn && fragmentHasPersonalizationTag(item)) return false;
             return true;
         });
@@ -479,12 +479,12 @@ export class MasRepository extends LitElement {
         // where no card has both tokens at edge positions in metadata — even though
         // many cards have the phrase in body fields (cardTitle, description, etc.).
         // To make search reliable, we route a single discriminative term to AEM and
-        // apply the user's full query client-side via skipQuery() against an expanded
+        // apply the user's full query client-side via #skipQuery() against an expanded
         // haystack covering all string field values.
         //   - single variant chip: variant name → AEM
         //   - else multi-word query: longest token → AEM
         //   - else (single-word or UUID): query unchanged
-        // The client-side skipQuery is idempotent in the single-word case (matches
+        // The client-side #skipQuery is idempotent in the single-word case (matches
         // exactly what AEM returned) and only narrows in the multi-word case.
         const userQuery = !isUUID(this.search.value.query) && query ? query : '';
         let clientQuery = '';
@@ -668,8 +668,8 @@ export class MasRepository extends LitElement {
         const page = await cursor.next();
         if (page.done) return true;
         for await (const item of page.value) {
-            if (this.skipVariant(variants, item)) continue;
-            if (this.skipQuery(lowerClientQuery, item)) continue;
+            if (this.#skipVariant(variants, item)) continue;
+            if (this.#skipQuery(lowerClientQuery, item)) continue;
             applyCorrectorToFragment(item, surface);
             const fragment = await this.#addToCache(item);
             fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));

@@ -2337,27 +2337,6 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('skipQuery matches against all string field values, not just title/description', () => {
-            const repository = createFullRepository();
-            // Card whose title/description do NOT contain "photoshop" but cardTitle does.
-            // AEM's fullText index would miss this; skipQuery's expanded haystack catches it.
-            // Caller pre-lowercases the query (contract documented on skipQuery).
-            const item = {
-                id: 'cc-mini-card',
-                title: 'Rivero - Mini comparison chart',
-                description: 'This is a test for mini comparison chart',
-                path: '/content/dam/mas/sandbox/en_US/cc-mini-card',
-                fields: [
-                    { name: 'variant', values: ['mini-compare-chart-mweb'] },
-                    { name: 'cardTitle', values: ['Photoshop'] },
-                    { name: 'shortDescription', values: ['<p>Photoshop on desktop, web, and mobile.</p>'] },
-                ],
-            };
-            expect(repository.skipQuery('photoshop', item)).to.be.false;
-            expect(repository.skipQuery('illustrator', item)).to.be.true;
-            expect(repository.skipQuery('', item)).to.be.false;
-        });
-
         it('client-side filters by user query when single variant + query are combined', async () => {
             // Two variant=plans cards: one with "Firefly" in cardTitle, one without.
             // The user types "Firefly" + selects mas:variant/plans. AEM gets the variant

@@ -867,6 +867,109 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('invalidates cache and re-searches when only the variant tag changes', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/plans' } };
+            const cursor = createMockCursor([[createFragment({ id: 'fresh-fragment' })]]);
+            const searchStub = sandbox.stub().resolves(cursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ value: { id: 'cached-fragment' } }]),
+                getMeta: sandbox.stub().callsFake((key) => {
+                    if (key === 'path') return 'acom';
+                    if (key === 'query') return '';
+                    if (key === 'locale') return 'en_US';
+                    if (key === 'tags') return 'mas:variant/catalog';
+                    if (key === 'createdBy') return '';
+                    if (key === 'personalizationFilterEnabled') return false;
+                    return null;
+                }),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('sends the raw user query and strips variant tags before calling AEM', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/ccd-slice' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.query).to.equal('photoshop');
+                expect(callArg.tags).to.deep.equal([]);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('leaves query unchanged when no variants are selected', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.query).to.equal('photoshop');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('searches by UUID when query is a valid UUID', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -906,6 +1009,42 @@ describe('MasRepository dictionary helpers', () => {
                 expect(getByIdStub.calledOnce).to.be.true;
                 expect(getByIdStub.firstCall.args[0]).to.equal('12345678-1234-1234-1234-123456789012');
                 expect(searchStub.called).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+                Store.folders.data.set(originalFolders);
+            }
+        });
+
+        it('calls getById with the raw UUID even when a variant tag is selected', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            const uuid = '12345678-1234-1234-1234-123456789012';
+            repository.search = { value: { path: 'acom', query: uuid } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/ccd-slice' } };
+            const mockFragment = createFragment({ id: uuid, path: `${ROOT_PATH}/acom/en_US/x`, fields: [] });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: sandbox.stub() } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            let dataValue = [];
+            const mockDataStore = {
+                get: sandbox.stub().callsFake(() => dataValue),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub().callsFake((v) => {
+                    dataValue = v;
+                }),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            const originalFolders = Store.folders.data.get();
+            Store.fragments.list.data = mockDataStore;
+            Store.folders.data.set(['acom', 'ccd']);
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(getByIdStub.firstCall.args[0]).to.equal(uuid);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -1284,7 +1423,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('filters tags for variant and model ID tags', async () => {
+        it('strips variant and content-type tags before calling AEM', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: '' } };
@@ -1316,7 +1455,6 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 const searchOptions = searchStub.firstCall.args[0];
-                // Variant and content-type tags should be filtered out
                 expect(searchOptions.tags).to.deep.equal(['mas:custom-tag']);
             } finally {
                 Store.profile.set(originalProfile);

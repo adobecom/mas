@@ -29,7 +29,7 @@ const localStorageStub = {
 let objectKeysStub;
 
 describe('FragmentClient', () => {
-    const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
+    const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/contentFragments';
     let fetchStub;
 
     before(() => {
@@ -59,18 +59,11 @@ describe('FragmentClient', () => {
         fetchStub
             .withArgs(`${baseUrl}/${mockCollectionData.id}?references=all-hydrated`)
             .returns(createResponse(200, mockCollectionData));
-        fetchStub.withArgs(`${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
-            createResponse(200, {
-                items: [
-                    {
-                        id: mockPlaceholders.id,
-                        type: 'dictionary',
-                    },
-                ],
-            }),
-        );
+        fetchStub
+            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .returns(createResponse(200, { id: mockPlaceholders.id }));
         // Settings fetch (preview pipeline now loads settings)
-        const settingsIndexUrl = `${baseUrl}?path=/content/dam/mas/sandbox/settings/index`;
+        const settingsIndexUrl = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/settings/index`;
         const settingsId = 'preview-settings-id';
         const settingsContentUrl = `${baseUrl}/${settingsId}?references=all-hydrated`;
         const settingsBody = {
@@ -96,7 +89,7 @@ describe('FragmentClient', () => {
                 },
             },
         };
-        fetchStub.withArgs(settingsIndexUrl).returns(createResponse(200, { items: [{ id: settingsId }] }));
+        fetchStub.withArgs(settingsIndexUrl).returns(createResponse(200, { id: settingsId }));
         fetchStub.withArgs(settingsContentUrl).returns(createResponse(200, settingsBody));
     });
 
@@ -118,20 +111,9 @@ describe('FragmentClient', () => {
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
-        fetchStub.withArgs(`${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
-            createResponse(200, {
-                items: [
-                    {
-                        id: mockPlaceholders.id,
-                        type: 'dictionary',
-                        fields: {
-                            name: 'Dictionary',
-                            description: 'Dictionary description',
-                        },
-                    },
-                ],
-            }),
-        );
+        fetchStub
+            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .returns(createResponse(200, { id: mockPlaceholders.id }));
         fetchStub
             .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=all-hydrated`)
             .returns(createResponse(200, mockPlaceholders));
@@ -208,24 +190,11 @@ describe('FragmentClient', () => {
     });
 
     it('merges options locale and country over document element', async () => {
-        const dePlaceholderIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
-        const deDictIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
+        const dePlaceholderIndex = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
+        const deDictIndex = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
         const deVariationId = 'de-de-default-locale-fragment';
-        fetchStub.withArgs(dePlaceholderIndex).returns(
-            createResponse(200, {
-                items: [{ id: deVariationId, type: 'content-fragment' }],
-            }),
-        );
-        fetchStub.withArgs(deDictIndex).returns(
-            createResponse(200, {
-                items: [
-                    {
-                        id: mockPlaceholders.id,
-                        type: 'dictionary',
-                    },
-                ],
-            }),
-        );
+        fetchStub.withArgs(dePlaceholderIndex).returns(createResponse(200, { id: deVariationId }));
+        fetchStub.withArgs(deDictIndex).returns(createResponse(200, { id: mockPlaceholders.id }));
         fetchStub
             .withArgs(`${baseUrl}/${deVariationId}?references=all-hydrated`)
             .returns(createResponse(200, { ...mockCardFragment, id: deVariationId }));

@@ -907,7 +907,12 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('sends the raw user query and strips variant tags before calling AEM', async () => {
+        it('routes single variant via fullText.EDGES and applies user query client-side', async () => {
+            // Single variant + user query: AEM call carries the variant name as fullText so
+            // it can prune via the indexed text fields. The user's query ("photoshop") is
+            // applied client-side via skipQuery against an expanded haystack covering all
+            // string field values (since AEM's fullText index only covers title+description).
+            // This avoids the MWPW-193359 AND-across-tokens regression.
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: 'photoshop' } };
@@ -931,7 +936,7 @@ describe('MasRepository dictionary helpers', () => {
                 await repository.searchFragments();
                 expect(searchStub.calledOnce).to.be.true;
                 const callArg = searchStub.firstCall.args[0];
-                expect(callArg.query).to.equal('photoshop');
+                expect(callArg.query).to.equal('ccd-slice');
                 expect(callArg.tags).to.deep.equal([]);
             } finally {
                 Store.profile.set(originalProfile);
@@ -2329,6 +2334,83 @@ describe('MasRepository dictionary helpers', () => {
                 expect(lastCall.args[0].length).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS + 5);
             } finally {
                 cleanup();
+            }
+        });
+
+        it('skipQuery matches against all string field values, not just title/description', () => {
+            const repository = createFullRepository();
+            // Card whose title/description do NOT contain "photoshop" but cardTitle does.
+            // AEM's fullText index would miss this; skipQuery's expanded haystack catches it.
+            const item = {
+                id: 'cc-mini-card',
+                title: 'Rivero - Mini comparison chart',
+                description: 'This is a test for mini comparison chart',
+                path: '/content/dam/mas/sandbox/en_US/cc-mini-card',
+                fields: [
+                    { name: 'variant', values: ['mini-compare-chart-mweb'] },
+                    { name: 'cardTitle', values: ['Photoshop'] },
+                    { name: 'shortDescription', values: ['<p>Photoshop on desktop, web, and mobile.</p>'] },
+                ],
+            };
+            expect(repository.skipQuery('photoshop', item)).to.be.false;
+            expect(repository.skipQuery('PhotoShop', item)).to.be.false;
+            expect(repository.skipQuery('illustrator', item)).to.be.true;
+            expect(repository.skipQuery('', item)).to.be.false;
+        });
+
+        it('client-side filters by user query when single variant + query are combined', async () => {
+            // Two variant=plans cards: one with "Firefly" in cardTitle, one without.
+            // The user types "Firefly" + selects mas:variant/plans. AEM gets the variant
+            // name as fullText (via the fast path), then skipQuery filters to only the
+            // card containing "Firefly" anywhere in its fields.
+            const matching = createFragment({
+                id: 'firefly-plans',
+                path: `${ROOT_PATH}/acom/en_US/firefly-plans`,
+                title: 'Plans card A',
+                description: '',
+                fields: [
+                    { name: 'variant', values: ['plans'] },
+                    { name: 'cardTitle', values: ['Adobe Firefly'] },
+                ],
+            });
+            const nonMatching = createFragment({
+                id: 'photo-plans',
+                path: `${ROOT_PATH}/acom/en_US/photo-plans`,
+                title: 'Plans card B',
+                description: '',
+                fields: [
+                    { name: 'variant', values: ['plans'] },
+                    { name: 'cardTitle', values: ['Photoshop'] },
+                ],
+            });
+            const mockCursor = createMockCursorFromPages([[matching, nonMatching]]);
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'firefly' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/plans' } };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'tester' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.firstCall.args[0].query).to.equal('plans');
+                const finalSet = mockDataStore.set.lastCall.args[0];
+                expect(finalSet).to.have.lengthOf(1);
+                expect(finalSet[0].get().id).to.equal('firefly-plans');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
             }
         });
     });

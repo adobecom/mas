@@ -1,6 +1,6 @@
 const MAS_ROOT = '/content/dam/mas';
 
-const FRAGMENT_URL_PREFIX = 'https://odin.adobe.com/adobe/sites/fragments';
+const FRAGMENT_URL_PREFIX = 'https://odin.adobe.com/adobe/contentFragments';
 
 const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 
@@ -39,8 +39,9 @@ function odinReferences(id, allHydrated = false, preview) {
  * @returns full fetchable path to the fragment
  */
 function odinUrl(surface, { locale, fragmentPath, preview }) {
-    if (!locale) return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${fragmentPath}`;
-    return `${rootURL(preview)}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
+    const root = fragmentPath ? `${rootURL(preview)}/byPath` : rootURL(preview);
+    if (!locale) return `${root}?path=${MAS_ROOT}/${surface}/${fragmentPath}`;
+    return `${root}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
 export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinUrl, odinId, odinReferences };

@@ -887,6 +887,12 @@ describe('MasSideNav – Copy Field', () => {
             );
             expect(ctaValueLabels).to.have.length(1);
             expect(ctaValueLabels[0].textContent).to.equal('CTA 1');
+
+            // The combined 'ctas' field row must NOT appear — CTAs are shown as individual items only
+            const fieldLabels = [...container.querySelectorAll('.field-label')].filter(
+                (el) => el.textContent === 'CTAs',
+            );
+            expect(fieldLabels).to.have.length(0);
         });
 
         it('should render overridden CTA section for variation with current CTAs', () => {

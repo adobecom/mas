@@ -603,8 +603,12 @@ class MasSideNav extends LitElement {
     get copyFieldButton() {
         const loading = this.variationDataLoading || Store.fragmentEditor.loading.get();
         const isVariation = this.#isVariationFragment(this.fragmentEditor?.fragment?.id);
-        const currentFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.CURRENT);
-        const inheritedFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.INHERITED);
+        const currentFields = this.copyableFields.filter(
+            (field) => field.source === FIELD_SOURCE.CURRENT && field.name !== 'ctas',
+        );
+        const inheritedFields = this.copyableFields.filter(
+            (field) => field.source === FIELD_SOURCE.INHERITED && field.name !== 'ctas',
+        );
         const showOverriddenSection = isVariation && currentFields.length;
         const showInheritedSection = inheritedFields.length;
         const { current: currentCtas, inherited: inheritedCtas } = this.copyableCtas;

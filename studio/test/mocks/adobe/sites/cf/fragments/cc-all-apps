@@ -24,6 +24,13 @@
             ]
         },
         {
+            "name": "compatVersion",
+            "type": "number",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
             "name": "osi",
             "type": "text",
             "multiple": false,

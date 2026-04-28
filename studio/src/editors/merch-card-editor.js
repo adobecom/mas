@@ -746,7 +746,12 @@ class MerchCardEditor extends LitElement {
             return;
         }
 
-        this.fragmentStore.updateField('compatVersion', [String(COMPAT_VERSION)]);
+        const rawCompat = this.getEffectiveFieldValue('compatVersion', 0);
+        const parsedCompat = Number(rawCompat);
+        const currentCompat = Number.isFinite(parsedCompat) ? parsedCompat : 0;
+        if (currentCompat < COMPAT_VERSION) {
+            this.fragmentStore.updateField('compatVersion', [String(COMPAT_VERSION)]);
+        }
 
         // Variations can inherit `variant` from their parent fragment.
         // Use the effective value so template field visibility remains accurate.

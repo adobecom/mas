@@ -1307,12 +1307,32 @@
                     });
 
                     describe('compat version', () => {
-                        it('writes COMPAT_VERSION into the fragment store when toggleFields runs', async () => {
+                        it('writes COMPAT_VERSION into the fragment store when effective compat is below the constant', async () => {
                             const { fragmentStore, editor } = await setupTestEnvironment({}, 'compat');
                             await editor.toggleFields();
                             const field = fragmentStore.get().getField('compatVersion');
                             expect(field).to.exist;
                             expect(field.values).to.deep.equal([String(COMPAT_VERSION)]);
+                        });
+
+                        it('bumps compat when own value is below the constant', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment(
+                                { compatVersion: ['0'] },
+                                'compat-bump',
+                            );
+                            await editor.toggleFields();
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
+                        });
+
+                        it('does not change compat when own value already meets the constant', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment(
+                                { compatVersion: [String(COMPAT_VERSION)] },
+                                'compat-ok',
+                            );
+                            await editor.toggleFields();
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
+                            expect(fragmentStore.get().hasChanges, 'toggleFields must not bump compat when already current').to
+                                .be.false;
                         });
                     });
 

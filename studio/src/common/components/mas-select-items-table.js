@@ -11,7 +11,7 @@ import {
     loadAllFragments,
     loadSelectedPlaceholders,
     loadSelectedFragments,
-} from '../utils/translation-items-loader.js';
+} from '../utils/items-loader.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;

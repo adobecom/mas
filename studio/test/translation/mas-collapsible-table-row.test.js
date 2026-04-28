@@ -4,7 +4,7 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { setCardVariationsByPaths } from '../../src/common/utils/translation-items-loader.js';
+import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
 import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';

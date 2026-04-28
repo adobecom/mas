@@ -6,7 +6,7 @@ import { getItemsSelectionStore } from '../items-selection-store.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
 import { getItemTypeLabel } from '../utils/render-utils.js';
-import { fetchUnresolvedVariations } from '../utils/translation-items-loader.js';
+import { fetchUnresolvedVariations } from '../utils/items-loader.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;

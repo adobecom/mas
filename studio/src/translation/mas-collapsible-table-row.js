@@ -4,7 +4,7 @@ import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
 import { getItemTypeLabel } from '../common/utils/render-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
-import { loadCardVariations, fetchVariationByPath } from '../common/utils/translation-items-loader.js';
+import { loadCardVariations, fetchVariationByPath } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
 export class MasCollapsibleTableRow extends LitElement {

@@ -202,6 +202,7 @@ export class FullPricingExpress extends VariantLayout {
 
         if (window.matchMedia('(min-width: 768px)').matches) {
             await document.fonts?.ready;
+            await new Promise((resolve) => requestAnimationFrame(resolve));
             this.resyncSiblings();
         }
     }

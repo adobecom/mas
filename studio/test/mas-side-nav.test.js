@@ -437,10 +437,7 @@ describe('MasSideNav – Copy Field', () => {
 
         it('should return inherited CTAs for variation with empty current ctas', () => {
             const variationFragment = mockFragment([], { id: 'variation-123' });
-            const baseFragment = mockFragment(
-                [{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }],
-                { id: 'base-123' },
-            );
+            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
             editorStub
                 .withArgs('mas-fragment-editor')
                 .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
@@ -453,14 +450,10 @@ describe('MasSideNav – Copy Field', () => {
         });
 
         it('should return current CTAs and no inherited when variation has its own CTAs', () => {
-            const variationFragment = mockFragment(
-                [{ name: 'ctas', values: ['<a href="/v">Variation CTA</a>'] }],
-                { id: 'variation-123' },
-            );
-            const baseFragment = mockFragment(
-                [{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }],
-                { id: 'base-123' },
-            );
+            const variationFragment = mockFragment([{ name: 'ctas', values: ['<a href="/v">Variation CTA</a>'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
             editorStub
                 .withArgs('mas-fragment-editor')
                 .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
@@ -878,9 +871,7 @@ describe('MasSideNav – Copy Field', () => {
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
-            const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find(
-                (el) => el.textContent === 'CTAs',
-            );
+            const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find((el) => el.textContent === 'CTAs');
             expect(ctaLabel).to.exist;
             const ctaValueLabels = [...container.querySelectorAll('.field-label')].filter((el) =>
                 el.textContent.startsWith('CTA '),
@@ -889,34 +880,25 @@ describe('MasSideNav – Copy Field', () => {
             expect(ctaValueLabels[0].textContent).to.equal('CTA 1');
 
             // The combined 'ctas' field row must NOT appear — CTAs are shown as individual items only
-            const fieldLabels = [...container.querySelectorAll('.field-label')].filter(
-                (el) => el.textContent === 'CTAs',
-            );
+            const fieldLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent === 'CTAs');
             expect(fieldLabels).to.have.length(0);
         });
 
         it('should render overridden CTA section for variation with current CTAs', () => {
-            const variationFragment = mockFragment(
-                [{ name: 'ctas', values: ['<a href="/v">Variation CTA</a>'] }],
-                { id: 'variation-123' },
-            );
-            const baseFragment = mockFragment(
-                [{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }],
-                { id: 'base-123' },
-            );
+            const variationFragment = mockFragment([{ name: 'ctas', values: ['<a href="/v">Variation CTA</a>'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
             editorStub
                 .withArgs('mas-fragment-editor')
-                .returns(
-                    mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }),
-                );
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
 
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
             const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
                 (item) =>
-                    item.classList.contains('overridden-section') &&
-                    item.textContent.includes('Overridden in this variation'),
+                    item.classList.contains('overridden-section') && item.textContent.includes('Overridden in this variation'),
             );
             expect(overriddenSection).to.exist;
             const ctaEntries = [...container.querySelectorAll('.field-entry-overridden')];
@@ -925,23 +907,17 @@ describe('MasSideNav – Copy Field', () => {
 
         it('should render inherited CTA section for variation without current CTAs', () => {
             const variationFragment = mockFragment([], { id: 'variation-123' });
-            const baseFragment = mockFragment(
-                [{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }],
-                { id: 'base-123' },
-            );
+            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
             editorStub
                 .withArgs('mas-fragment-editor')
-                .returns(
-                    mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }),
-                );
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
 
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
             const inheritedCtaSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
                 (item) =>
-                    item.classList.contains('inherited-section') &&
-                    item.textContent.includes('Inherited from base fragment'),
+                    item.classList.contains('inherited-section') && item.textContent.includes('Inherited from base fragment'),
             );
             expect(inheritedCtaSection).to.exist;
         });
@@ -955,9 +931,7 @@ describe('MasSideNav – Copy Field', () => {
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
-            const ctaLabels = [...container.querySelectorAll('.field-label')].filter((el) =>
-                el.textContent.startsWith('CTA '),
-            );
+            const ctaLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent.startsWith('CTA '));
             expect(ctaLabels).to.have.length(2);
             expect(ctaLabels[0].textContent).to.equal('CTA 1');
             expect(ctaLabels[1].textContent).to.equal('CTA 2');
@@ -970,9 +944,7 @@ describe('MasSideNav – Copy Field', () => {
             const container = document.createElement('div');
             render(el.copyFieldButton, container);
 
-            const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find(
-                (el) => el.textContent === 'CTAs',
-            );
+            const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find((el) => el.textContent === 'CTAs');
             expect(ctaLabel).to.not.exist;
         });
     });

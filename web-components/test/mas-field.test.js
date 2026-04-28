@@ -243,7 +243,9 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
 
 describe('mas-field – checkReady()', () => {
     afterEach(() => {
-        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
     });
 
     it('resolves immediately when fragment is already loaded', async () => {
@@ -273,7 +275,9 @@ describe('mas-field – checkReady()', () => {
 
 describe('mas-field – normalized field values', () => {
     afterEach(() => {
-        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
     });
 
     it('renders string extracted from object field value { value: "..." }', () => {
@@ -285,11 +289,16 @@ describe('mas-field – normalized field values', () => {
 
 describe('mas-field – non-checkout and link-style CTAs', () => {
     afterEach(() => {
-        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
     });
 
     it('clones non-checkout link without button styling', () => {
-        const el = makeField('ctas', '<a href="https://example.com" class="accent">Learn more</a>');
+        const el = makeField(
+            'ctas',
+            '<a href="https://example.com" class="accent">Learn more</a>',
+        );
         const link = el.querySelector('[slot="footer"] a');
         expect(link).to.exist;
         expect(link.getAttribute('href')).to.equal('https://example.com');
@@ -297,7 +306,10 @@ describe('mas-field – non-checkout and link-style CTAs', () => {
     });
 
     it('does not add button classes for link-style variant (accent-link)', () => {
-        const el = makeField('ctas', '<a data-wcs-osi="ABC" class="accent-link">Learn more</a>');
+        const el = makeField(
+            'ctas',
+            '<a data-wcs-osi="ABC" class="accent-link">Learn more</a>',
+        );
         const link = el.querySelector('[slot="footer"] a');
         expect(link).to.exist;
         expect(link.classList.contains('con-button')).to.be.false;
@@ -305,7 +317,10 @@ describe('mas-field – non-checkout and link-style CTAs', () => {
     });
 
     it('does not add button classes for primary-link variant', () => {
-        const el = makeField('ctas', '<a data-wcs-osi="ABC" class="primary-link">Details</a>');
+        const el = makeField(
+            'ctas',
+            '<a data-wcs-osi="ABC" class="primary-link">Details</a>',
+        );
         const link = el.querySelector('[slot="footer"] a');
         expect(link.classList.contains('con-button')).to.be.false;
         expect(link.classList.contains('fill')).to.be.false;
@@ -314,7 +329,9 @@ describe('mas-field – non-checkout and link-style CTAs', () => {
 
 describe('mas-field – lifecycle', () => {
     afterEach(() => {
-        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
     });
 
     it('re-renders when field attribute changes after load', () => {
@@ -326,12 +343,21 @@ describe('mas-field – lifecycle', () => {
         fragment.dispatchEvent(
             new CustomEvent('aem:load', {
                 bubbles: true,
-                detail: { fields: { title: 'Creative Cloud', description: 'Great plan' } },
+                detail: {
+                    fields: {
+                        title: 'Creative Cloud',
+                        description: 'Great plan',
+                    },
+                },
             }),
         );
-        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Creative Cloud');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').textContent,
+        ).to.equal('Creative Cloud');
         el.setAttribute('field', 'description');
-        expect(el.querySelector('[data-role="mas-field-content"]').textContent).to.equal('Great plan');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]').textContent,
+        ).to.equal('Great plan');
     });
 
     it('ignores aem:load events not from the aem-fragment child', () => {
@@ -350,7 +376,10 @@ describe('mas-field – lifecycle', () => {
                 detail: { fields: { title: 'Should not render' } },
             }),
         );
-        expect(el.querySelector('[data-role="mas-field-content"]')?.textContent ?? '').to.equal('');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]')?.textContent ??
+                '',
+        ).to.equal('');
     });
 
     it('stops responding to aem:load after disconnection', () => {
@@ -367,13 +396,18 @@ describe('mas-field – lifecycle', () => {
                 detail: { fields: { title: 'Post-disconnect' } },
             }),
         );
-        expect(el.querySelector('[data-role="mas-field-content"]')?.textContent ?? '').to.equal('');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]')?.textContent ??
+                '',
+        ).to.equal('');
     });
 });
 
 describe('mas-field – non-string field values', () => {
     afterEach(() => {
-        document.body.querySelectorAll('mas-field').forEach((el) => el.remove());
+        document.body
+            .querySelectorAll('mas-field')
+            .forEach((el) => el.remove());
     });
 
     it('renders numeric field value as text', () => {
@@ -400,6 +434,9 @@ describe('mas-field – non-string field values', () => {
                 detail: { fields: { title: 'Something' } },
             }),
         );
-        expect(el.querySelector('[data-role="mas-field-content"]')?.innerHTML ?? '').to.equal('');
+        expect(
+            el.querySelector('[data-role="mas-field-content"]')?.innerHTML ??
+                '',
+        ).to.equal('');
     });
 });

@@ -7,7 +7,7 @@ import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
+import { CARD_MODEL_PATH } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
@@ -745,8 +745,6 @@ class MerchCardEditor extends LitElement {
         if (!this.fragment) {
             return;
         }
-
-        this.fragmentStore.updateField('compatVersion', [String(COMPAT_VERSION)]);
 
         // Variations can inherit `variant` from their parent fragment.
         // Use the effective value so template field visibility remains accurate.

@@ -89,7 +89,7 @@
             import { Fragment } from '../../src/aem/fragment.js';
             import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
             import Store from '../../src/store.js';
-            import { PAGE_NAMES, TAG_PROMOTION_PREFIX, COMPAT_VERSION } from '../../src/constants.js';
+            import { PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
             import { delay } from '../utils.js';
 
             // Load the existing mock data for a merch card
@@ -1306,13 +1306,11 @@
                         });
                     });
 
-                    describe('compat version migration', () => {
-                        it('writes COMPAT_VERSION into the fragment store when the editor opens', async () => {
+                    describe('compat version', () => {
+                        it('does not set compatVersion or mark the fragment dirty when toggleFields runs', async () => {
                             const { fragmentStore, editor } = await setupTestEnvironment({}, 'compat');
                             await editor.toggleFields();
-                            const field = fragmentStore.get().getField('compatVersion');
-                            expect(field).to.exist;
-                            expect(field.values).to.deep.equal([String(COMPAT_VERSION)]);
+                            expect(fragmentStore.get().hasChanges).to.be.false;
                         });
                     });
 

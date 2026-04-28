@@ -387,7 +387,7 @@ export class MasRepository extends LitElement {
                     return;
                 }
                 const fragmentData = await this.aem.sites.cf.fragments.getById(
-                    localSearch.query,
+                    this.search.value.query,
                     this.#abortControllers.search,
                 );
                 const fragmentSurface = extractSurfaceFromPath(fragmentData?.path)?.toLowerCase() || null;

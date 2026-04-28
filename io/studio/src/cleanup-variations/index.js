@@ -9,16 +9,20 @@ const {
     getValues,
     localeFromPath,
 } = require('../common');
-const SURFACE_LOCALES = require('../locales.json');
+const { ACOM, CCD, EXPRESS, ADOBE_HOME, COMMERCE } = require('../../../www/src/locales.json');
 
 const logger = Core.Logger('cleanup-variations', { level: 'info' });
 
 const DEFAULT_LOCALES = {
-    ...SURFACE_LOCALES,
-    'acom-cc': SURFACE_LOCALES.acom,
-    'acom-dc': SURFACE_LOCALES.acom,
-    nala: SURFACE_LOCALES.acom,
-    sandbox: SURFACE_LOCALES.acom,
+    acom: ACOM,
+    'acom-cc': ACOM,
+    'acom-dc': ACOM,
+    nala: ACOM,
+    sandbox: ACOM,
+    ccd: CCD,
+    express: EXPRESS,
+    'adobe-home': ADOBE_HOME,
+    commerce: COMMERCE,
 };
 
 /**

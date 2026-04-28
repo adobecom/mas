@@ -1,14 +1,10 @@
 const { Core } = require('@adobe/aio-sdk');
 const { Ims } = require('@adobe/aio-lib-ims');
 const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils.js');
-const { processBatchWithConcurrency } = require('../common.js');
 const { resolvePaths } = require('./resolver.js');
 const { publishChunk } = require('./publisher.js');
-const { enqueue } = require('./queue.js');
 
 const logger = Core.Logger('bulk-publish', { level: 'info' });
-const DEFAULT_CONCURRENCY = 5;
-const MAX_CONCURRENCY = 20;
 const MAX_PATHS = 500;
 const MAX_LOCALES = 50;
 const MAX_RESOLVED = 5000;
@@ -18,7 +14,7 @@ const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
 
 async function main(params) {
-    return enqueue(() => run(params));
+    return run(params);
 }
 
 async function run(params) {
@@ -69,13 +65,13 @@ async function run(params) {
         }
 
         const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
-        const concurrency = Math.min(Number(params.concurrencyLimit) || DEFAULT_CONCURRENCY, MAX_CONCURRENCY);
-        logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length, concurrency }));
+        logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length }));
 
-        const chunkResults = await processBatchWithConcurrency(chunks, concurrency, (chunk) =>
-            publishOneChunk(chunk, odinEndpoint, authToken),
-        );
-        const details = chunkResults.flat();
+        const details = [];
+        for (const chunk of chunks) {
+            const chunkResults = await publishOneChunk(chunk, odinEndpoint, authToken);
+            details.push(...chunkResults);
+        }
 
         const summary = buildSummary(details);
         logger.info(JSON.stringify({ event: 'run-complete', summary }));

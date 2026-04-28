@@ -43,9 +43,6 @@ describe('bulk-publish/index.js', () => {
         };
 
         const { resolvePaths } = require('../../src/bulk-publish/resolver.js');
-        const { processBatchWithConcurrency } = proxyquire('../../src/common.js', {
-            '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
-        });
 
         const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
             '../common.js': {
@@ -63,10 +60,8 @@ describe('bulk-publish/index.js', () => {
                     }
                 },
             },
-            '../common.js': { processBatchWithConcurrency },
             './resolver.js': { resolvePaths },
             './publisher.js': publisher,
-            './queue.js': { enqueue: (task) => task() },
             '../../utils.js': require('../../utils.js'),
         });
     });

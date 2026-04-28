@@ -196,7 +196,7 @@ async function getTranslationData(authToken, projectCF, surface, translationFlow
     logger.info(`Translation flow: ${translationFlow}`);
 
     return {
-        title: getValue(projectCF, 'title')?.value?.trim() || 'Untitled-Project',
+        title: getValue(projectCF, 'title')?.value?.trim(),
         itemsToTranslate,
         itemsToSync,
         locales,

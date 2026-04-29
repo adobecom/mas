@@ -100,12 +100,39 @@ class MasField extends HTMLElement {
         return value;
     }
 
+    /** Parses "ctas[0]" into { fieldName: "ctas", index: 0 }, or { fieldName, index: null } for plain names. */
+    #parseFieldAndIndex(field) {
+        const match = field?.match(/^(.+)\[(\d+)\]$/);
+        if (!match) return { fieldName: field, index: null };
+        return { fieldName: match[1], index: parseInt(match[2], 10) };
+    }
+
+    /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
+     *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
+     *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
+    #extractIndexedAnchor(html, index) {
+        if (typeof html !== 'string') return null;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        const anchor = [...template.content.querySelectorAll('a')][index - 1];
+        if (!anchor) return null;
+        anchor.removeAttribute('class');
+        return anchor.outerHTML;
+    }
+
     #renderField() {
         if (!this.#fields || !this.#field) return;
-        const fieldValue = this.#normalizeFieldValue(this.#fields[this.#field]);
+        const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
+        const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
         if (fieldValue === undefined) return;
         const content = this.#ensureContentElement();
-        const html = this.#unwrapSingleParagraph(fieldValue);
+        let html;
+        if (index !== null) {
+            html = this.#extractIndexedAnchor(fieldValue, index);
+            if (html === null) return;
+        } else {
+            html = this.#unwrapSingleParagraph(fieldValue);
+        }
         if (typeof html === 'string') {
             if (this.#field === 'ctas') {
                 const ctaEl = this.#renderCtaField(html);

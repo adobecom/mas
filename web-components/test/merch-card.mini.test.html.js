@@ -148,7 +148,7 @@ runTests(async () => {
                 await card.checkReady();
                 compareGetters(card, {
                     title: 'CCD Apps: Creative Cloud Pro - Individual Promo',
-                    regularPrice: 'US$59.99/mo',
+                    regularPrice: 'US$59.99',
                     promoPrice: 'US$35.99/mo',
                     promotionCode: 'CCI2AAUSQ22440CD',
                     annualPrice: undefined,
@@ -299,7 +299,7 @@ runTests(async () => {
                 await card.checkReady();
                 compareGetters(card, {
                     title: 'CCD Apps: Creative Cloud Pro - Individual Promo',
-                    regularPrice: 'CAD $78.99/mo',
+                    regularPrice: 'CAD $78.99',
                     promoPrice: 'CAD $68.99/mo',
                     promotionCode: 'CCI2AACAQ22440CD',
                     annualPrice: undefined,
@@ -402,7 +402,7 @@ runTests(async () => {
                 await card.checkReady();
                 compareGetters(card, {
                     title: 'CCD Apps: Creative Cloud Pro - Individual Promo',
-                    regularPrice: 'A$95.99/mo',
+                    regularPrice: 'A$95.99',
                     promoPrice: 'A$47.99/mo',
                     promotionCode: 'CCI2AAAUQ22440CD',
                     annualPrice: 'A$575.88/yr',
@@ -505,7 +505,7 @@ runTests(async () => {
                 await card.checkReady();
                 compareGetters(card, {
                     title: 'CCD Apps: Creative Cloud Pro - Individual Promo',
-                    regularPrice: '71,99 €/mois',
+                    regularPrice: '71,99 €',
                     promoPrice: '59,99 €/mois',
                     promotionCode: 'CCI2AAFRQ22440CD',
                     annualPrice: undefined,

@@ -5,7 +5,7 @@ import {
     tableColumnIconStyles,
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
-} from '../styles/translation-common-styles.css.js';
+} from '../styles/table-styles.css.js';
 
 export const styles = [
     tableHeaderBaseStyles,

@@ -804,7 +804,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
-            const chevronCell = el.shadowRoot.querySelector('.translation-table-icon-cell--chevron');
+            const chevronCell = el.shadowRoot.querySelector('.table-icon-cell--chevron');
             expect(chevronCell).to.exist;
         });
 

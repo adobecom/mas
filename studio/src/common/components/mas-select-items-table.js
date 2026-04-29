@@ -186,8 +186,8 @@ class MasSelectItemsTable extends LitElement {
         const TABLE_COLUMNS = {
             cards: {
                 selectable: [
-                    { label: '', key: 'chevron', class: 'translation-table-icon-cell translation-table-icon-cell--chevron' },
-                    { label: '', key: 'checkbox', class: 'translation-table-icon-cell translation-table-icon-cell--checkbox' },
+                    { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
+                    { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Offer', key: 'offer', sortable: true },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
@@ -195,7 +195,7 @@ class MasSelectItemsTable extends LitElement {
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
-                    { label: '', key: 'chevron', class: 'translation-table-icon-cell translation-table-icon-cell--chevron' },
+                    { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
                     { label: 'Offer', key: 'offer', sortable: true },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
@@ -206,7 +206,7 @@ class MasSelectItemsTable extends LitElement {
             },
             collections: {
                 selectable: [
-                    { label: '', key: 'checkbox', class: 'translation-table-icon-cell translation-table-icon-cell--checkbox' },
+                    { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Path', key: 'path' },
                     { label: 'Status', key: 'status' },
@@ -219,7 +219,7 @@ class MasSelectItemsTable extends LitElement {
             },
             placeholders: {
                 selectable: [
-                    { label: '', key: 'checkbox', class: 'translation-table-icon-cell translation-table-icon-cell--checkbox' },
+                    { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Key', key: 'key' },
                     { label: 'Value', key: 'value' },
                     { label: 'Status', key: 'status' },
@@ -268,7 +268,7 @@ class MasSelectItemsTable extends LitElement {
                         >
                             ${!this.viewOnly
                                 ? html`
-                                      <sp-table-cell class="translation-table-icon-cell translation-table-icon-cell--checkbox">
+                                      <sp-table-cell class="table-icon-cell table-icon-cell--checkbox">
                                           <sp-checkbox
                                               value=${fragment.path}
                                               ?checked=${this.selectedInTable.has(fragment.path)}
@@ -293,7 +293,7 @@ class MasSelectItemsTable extends LitElement {
                             aria-selected=${!this.viewOnly && this.selectedInTable.has(fragment.path) ? 'true' : 'false'}
                         >
                             ${!this.viewOnly
-                                ? html`<sp-table-cell class="translation-table-icon-cell translation-table-icon-cell--checkbox">
+                                ? html`<sp-table-cell class="table-icon-cell table-icon-cell--checkbox">
                                       <sp-checkbox
                                           value=${fragment.path}
                                           ?checked=${this.selectedInTable.has(fragment.path)}
@@ -329,7 +329,7 @@ class MasSelectItemsTable extends LitElement {
                       <sp-progress-circle indeterminate size="l"></sp-progress-circle>
                   </div>`
                 : html`${this.itemsToDisplay.length > 0
-                      ? html`<sp-table class="fragments-table translation-table" emphasized>
+                      ? html`<sp-table class="fragments-table item-table" emphasized>
                             <sp-table-head>
                                 ${repeat(
                                     this.tableColumns,

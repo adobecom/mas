@@ -120,7 +120,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                   ?selected=${isSelected}
                                   aria-selected=${isSelected ? 'true' : 'false'}
                               >
-                                  <sp-table-cell class="translation-table-icon-cell">
+                                  <sp-table-cell class="table-icon-cell">
                                       <sp-button
                                           class="expand-button"
                                           icon-only
@@ -133,7 +133,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                               : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                                       </sp-button>
                                   </sp-table-cell>
-                                  <sp-table-cell class="translation-table-icon-cell">
+                                  <sp-table-cell class="table-icon-cell">
                                       <sp-checkbox
                                           value=${variationPath}
                                           ?checked=${isSelected}
@@ -156,7 +156,7 @@ export class MasCollapsibleTableRow extends LitElement {
     get viewOnlyTemplate() {
         return html`<sp-table-row value=${this.topLevelCard.path}>
                 ${this.isGroupedVariation
-                    ? html`<sp-table-cell class="translation-table-icon-cell">
+                    ? html`<sp-table-cell class="table-icon-cell">
                           <sp-button
                               class="expand-button"
                               icon-only
@@ -169,9 +169,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                   : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                           </sp-button>
                       </sp-table-cell>`
-                    : html`<sp-table-cell
-                          class="translation-table-icon-cell translation-table-icon-cell--chevron"
-                      ></sp-table-cell>`}
+                    : html`<sp-table-cell class="table-icon-cell table-icon-cell--chevron"></sp-table-cell>`}
                 ${repeat(this.cells, (cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
             </sp-table-row>
 
@@ -343,8 +341,8 @@ export class MasCollapsibleTableRow extends LitElement {
     renderGroupedVariationDetailsRow(variationPath) {
         return this.isLoadingVariations
             ? html`<sp-table-row class="variation-details-row variation-details-row--loading">
-                  <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
-                  <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
+                  <sp-table-cell class="table-icon-cell"></sp-table-cell>
+                  <sp-table-cell class="table-icon-cell"></sp-table-cell>
                   <sp-table-cell colspan="5">
                       <div class="loading-container--flex">
                           <sp-progress-circle label="Loading variation details" indeterminate size="m"></sp-progress-circle>
@@ -352,8 +350,8 @@ export class MasCollapsibleTableRow extends LitElement {
                   </sp-table-cell>
               </sp-table-row>`
             : html`<sp-table-row class="variation-details-row">
-                  <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
-                  <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
+                  <sp-table-cell class="table-icon-cell"></sp-table-cell>
+                  <sp-table-cell class="table-icon-cell"></sp-table-cell>
                   ${this.renderPromoCode(getItemsSelectionStore().groupedVariationsData.value?.get(variationPath))}
                   <sp-table-cell></sp-table-cell>
                   ${this.renderTags(getItemsSelectionStore().groupedVariationsData.value?.get(variationPath))}
@@ -372,14 +370,14 @@ export class MasCollapsibleTableRow extends LitElement {
                 ?selected=${isSelected}
                 aria-selected=${isSelected ? 'true' : 'false'}
             >
-                <sp-table-cell class="translation-table-icon-cell">
+                <sp-table-cell class="table-icon-cell">
                     <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
                         ${this.isTopLevelExpanded
                             ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
                             : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                     </sp-button>
                 </sp-table-cell>
-                <sp-table-cell class="translation-table-icon-cell">
+                <sp-table-cell class="table-icon-cell">
                     <sp-checkbox
                         value=${this.topLevelCard.path}
                         ?checked=${isSelected}

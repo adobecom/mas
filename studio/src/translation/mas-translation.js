@@ -106,13 +106,13 @@ class MasTranslation extends LitElement {
     get translationsProjectsContent() {
         const isLoading = Store.translationProjects?.list?.loading?.get();
         if (isLoading && !this.translationProjectsData.length) {
-            return html` <sp-table emphasized .scroller=${true} class="translation-table">
+            return html` <sp-table emphasized .scroller=${true} class="item-table">
                 ${this.translationProjectsTableHead}
                 <sp-table-body> ${Array.from({ length: 5 }, translationSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
         if (this.translationProjectsData.length) {
-            return html` <sp-table emphasized .scroller=${true} class="translation-table">
+            return html` <sp-table emphasized .scroller=${true} class="item-table">
                 ${this.translationProjectsTableHead}
                 <sp-table-body>
                     ${repeat(

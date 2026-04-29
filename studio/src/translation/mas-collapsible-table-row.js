@@ -18,7 +18,6 @@ export class MasCollapsibleTableRow extends LitElement {
         isTopLevelExpanded: { type: Boolean },
         expandedVariationsPaths: { type: Set, state: true },
         isLoadingVariations: { type: Boolean, state: true },
-        resizeObserver: { type: Object },
         repository: { type: Object, state: true },
     };
 
@@ -40,7 +39,6 @@ export class MasCollapsibleTableRow extends LitElement {
         }
         this.isTopLevelExpanded = false;
         this.expandedVariationsPaths = new Set();
-        this.resizeObserver = null;
         this.variationsController = new ReactiveController(this, [Store.translationProjects.groupedVariationsByParent]);
         this.selectedCardsController = new ReactiveController(this, [Store.translationProjects.selectedCards]);
     }
@@ -50,26 +48,6 @@ export class MasCollapsibleTableRow extends LitElement {
         this.expandedVariationsPaths = new Set(this.variationPaths);
         this.setAttribute('value', this.topLevelCard?.path ?? '');
         this.repository = document.querySelector('mas-repository');
-    }
-
-    updated(changedProperties) {
-        super.updated(changedProperties);
-        if (changedProperties.has('isTopLevelExpanded')) {
-            if (this.isTopLevelExpanded) {
-                requestAnimationFrame(() => {
-                    this.#updateConnectorBottom();
-                    this.#observeResize();
-                });
-            } else {
-                this.resizeObserver?.disconnect();
-            }
-        }
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        this.resizeObserver?.disconnect();
-        this.resizeObserver = null;
     }
 
     get variationPaths() {
@@ -116,6 +94,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                   value=${variationPath}
                                   ?selected=${isSelected}
                                   aria-selected=${isSelected ? 'true' : 'false'}
+                                  @click=${(event) => this.#onRowClickForSelection(event, variationPath)}
                               >
                                   <sp-table-cell class="translation-table-icon-cell">
                                       <sp-button
@@ -126,15 +105,15 @@ export class MasCollapsibleTableRow extends LitElement {
                                           @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
                                       >
                                           ${isExpanded
-                                              ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
-                                              : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
+                                              ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                                              : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                                       </sp-button>
                                   </sp-table-cell>
                                   <sp-table-cell class="translation-table-icon-cell">
                                       <sp-checkbox
                                           value=${variationPath}
                                           ?checked=${isSelected}
-                                          @change=${(e) => this.#toggleSelect(e, variationPath)}
+                                          @change=${(event) => this.#toggleSelect(event, variationPath)}
                                       ></sp-checkbox>
                                   </sp-table-cell>
                                   ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
@@ -162,8 +141,8 @@ export class MasCollapsibleTableRow extends LitElement {
                               @click=${this.#toggleExpandTopLevel}
                           >
                               ${this.isTopLevelExpanded
-                                  ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
-                                  : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
+                                  ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                                  : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                           </sp-button>
                       </sp-table-cell>`
                     : html`<sp-table-cell
@@ -268,44 +247,22 @@ export class MasCollapsibleTableRow extends LitElement {
         }
     }
 
-    #hasConnector(tab) {
-        return tab?.key === 'groupedVariation' && this.topLevelCardVariationsByPaths.size > 0;
-    }
-
-    /** Updates the bottom position of the connector between the nested content and the last row of the selected tab panel */
-    #updateConnectorBottom() {
-        const nestedContent = this.shadowRoot?.querySelector('.nested-content');
-        if (!nestedContent) return;
-
-        const selectedTabPanel = nestedContent.querySelector('sp-tab-panel[selected]');
-        const rows = selectedTabPanel?.querySelectorAll('sp-table-row:not(.variation-details-row)');
-        const lastRow = rows?.[rows.length - 1];
-        if (!lastRow) return;
-
-        let connectorBottom = lastRow.offsetHeight / 2 + 16;
-        if (this.expandedVariationsPaths.has(lastRow.getAttribute('value'))) {
-            connectorBottom += lastRow.nextElementSibling?.offsetHeight ?? 0;
-        }
-        nestedContent.style.setProperty('--nested-content-connector-bottom', `${connectorBottom}px`);
-    }
-
-    /** Observes the resize of the nested content when user changes the window width, and updates the bottom position of the connector */
-    #observeResize() {
-        const nestedContent = this.shadowRoot?.querySelector('.nested-content');
-        if (!nestedContent) return;
-
-        this.resizeObserver?.disconnect();
-        this.resizeObserver = new ResizeObserver(() => {
-            this.#updateConnectorBottom();
+    #onRowClickForSelection(e, path) {
+        const shouldIgnore = e.composedPath().some((node) => {
+            if (!(node instanceof Element)) return false;
+            if (node.tagName === 'SP-CHECKBOX') return true;
+            if (node.classList?.contains('expand-button')) return true;
+            if (node.tagName === 'SP-ACTION-BUTTON') return true;
         });
-        this.resizeObserver.observe(nestedContent);
+        if (shouldIgnore) return;
+        this.#toggleSelect(e, path);
     }
 
     #toggleSelect(e, path) {
         e.stopPropagation();
         const current = Store.translationProjects.selectedCards.value || [];
         if (current.includes(path)) {
-            Store.translationProjects.selectedCards.set(current.filter((p) => p !== path));
+            Store.translationProjects.selectedCards.set(current.filter((selectedPath) => selectedPath !== path));
         } else {
             Store.translationProjects.selectedCards.set([...current, path]);
         }
@@ -376,12 +333,13 @@ export class MasCollapsibleTableRow extends LitElement {
                 value=${this.topLevelCard.path}
                 ?selected=${isSelected}
                 aria-selected=${isSelected ? 'true' : 'false'}
+                @click=${(e) => this.#onRowClickForSelection(e, this.topLevelCard.path)}
             >
                 <sp-table-cell class="translation-table-icon-cell">
                     <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
                         ${this.isTopLevelExpanded
-                            ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
-                            : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
+                            ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
+                            : html`<sp-icon-chevron-right></sp-icon-chevron-right>`}
                     </sp-button>
                 </sp-table-cell>
                 <sp-table-cell class="translation-table-icon-cell">
@@ -396,7 +354,7 @@ export class MasCollapsibleTableRow extends LitElement {
 
             ${this.isTopLevelExpanded
                 ? html`<div class="nested-content-container">
-                      <div class="nested-content ${this.#hasConnector(selectedTab) ? 'has-connector' : ''}">
+                      <div class="nested-content">
                           <sp-tabs quiet .selected=${selectedTab?.key}>
                               ${repeat(
                                   this.tabs,

@@ -144,66 +144,6 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
-    describe('connector visibility', () => {
-        it('should not add has-connector class when tab is not groupedVariation', async () => {
-            const topLevelCard = createMockTopLevelCard({ variationPaths: ['/path/v1'] });
-            setupCardVariationsInStore(topLevelCard.path, []);
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                    .tabs=${[{ key: 'promotion', selected: true }, { key: 'groupedVariation' }]}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            const nestedContent = el.shadowRoot.querySelector('.nested-content');
-            expect(nestedContent?.classList.contains('has-connector')).to.be.false;
-        });
-
-        it('should not add has-connector class when tab is groupedVariation but no variation paths', async () => {
-            const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
-            setupCardVariationsInStore(topLevelCard.path, []);
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            const nestedContent = el.shadowRoot.querySelector('.nested-content');
-            expect(nestedContent?.classList.contains('has-connector')).to.be.false;
-        });
-
-        it('should add has-connector class when groupedVariation tab is selected and has variation paths', async () => {
-            const topLevelCard = createMockTopLevelCard({ variationPaths: ['/path/v1'] });
-            const mockVariation = { path: '/path/v1', title: 'Var 1' };
-            setupCardVariationsInStore(topLevelCard.path, [mockVariation]);
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            const nestedContent = el.shadowRoot.querySelector('.nested-content');
-            expect(nestedContent?.classList.contains('has-connector')).to.be.true;
-        });
-
-        it('should not add has-connector class when groupedVariation tab is selected and has no variation paths', async () => {
-            const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
-            setupCardVariationsInStore(topLevelCard.path, []);
-            const el = await fixture(
-                html`<mas-collapsible-table-row
-                    .topLevelCard=${topLevelCard}
-                    .isTopLevelExpanded=${true}
-                ></mas-collapsible-table-row>`,
-            );
-            await el.updateComplete;
-            const nestedContent = el.shadowRoot.querySelector('.nested-content');
-            expect(nestedContent?.classList.contains('has-connector')).to.be.false;
-        });
-    });
-
     describe('rendering', () => {
         it('should render main table row with topLevelCard path', async () => {
             const topLevelCard = createMockTopLevelCard();
@@ -566,6 +506,32 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
             expect(Store.translationProjects.selectedCards.value).to.not.include(topLevelCard.path);
         });
+
+        it('should add path to selectedCards when row is clicked outside checkbox', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            const titleCell = row.querySelector('sp-table-cell:nth-of-type(4)');
+            titleCell.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.include(topLevelCard.path);
+        });
+
+        it('should not change selectedCards when expand button is clicked', async () => {
+            const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
+            setupCardVariationsInStore(topLevelCard.path, []);
+            Store.translationProjects.selectedCards.set([]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            expandButton.click();
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.value).to.deep.equal([]);
+        });
     });
 
     describe('grouped variations tab', () => {
@@ -840,16 +806,6 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('lifecycle', () => {
-        it('should remove the resize observer on disconnect', async () => {
-            const topLevelCard = createMockTopLevelCard({ variationPaths: [] });
-            setupCardVariationsInStore(topLevelCard.path, []);
-            const el = await fixture(
-                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
-            );
-            el.remove();
-            expect(el.resizeObserver).to.be.null;
-        });
-
         it('should set value attribute from topLevelCard path in connectedCallback', async () => {
             const topLevelCard = createMockTopLevelCard({ path: '/custom/path' });
             const el = await fixture(

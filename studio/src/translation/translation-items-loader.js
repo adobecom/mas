@@ -59,11 +59,14 @@ async function processConcurrently(items, asyncFn, concurrencyLimit, batchSize =
  * @param {Object} fragment - Fragment object with fields
  * @param {AbortSignal} signal - Optional abort signal for cancellation
  * @param {Number} timeoutMs - Timeout in milliseconds (default: 10000)
+ * @param {Object} [options]
+ * @param {string} [options.fallbackWcsOsi] - Parent card OSI when the fragment has an empty `osi` field (grouped variations)
  * @returns {Promise<Object|null>} Offer data or null if not found/failed
  */
-async function loadOfferData(fragment, signal, timeoutMs = 10000) {
+async function loadOfferData(fragment, signal, timeoutMs = 10000, options = {}) {
+    const { fallbackWcsOsi } = options;
     const cache = Store.translationProjects.offerDataCache;
-    const wcsOsi = fragment?.fields?.find(({ name }) => name === 'osi')?.values?.[0];
+    const wcsOsi = new Fragment(fragment).getFieldValue('osi') ?? fallbackWcsOsi;
     if (!wcsOsi) return null;
 
     try {
@@ -100,6 +103,74 @@ async function loadOfferData(fragment, signal, timeoutMs = 10000) {
 }
 
 /**
+ * Resolves parent OSI once when any variation lacks its own OSI (prefers in-memory parent), loads WCS offer
+ * data per variation via {@link loadOfferData} fallback (no mutation of fragment payloads), and attaches studioPath.
+ * @param {Object} params
+ * @param {{ path: string, parentFragment?: Object }} params.parent - Parent card path and optional in-memory parent fragment (e.g. from store) so OSI can be read without fetching by path first
+ * @param {Array<Object>} params.variations - Variation fragments with fieldTags
+ * @param {Object} params.repository - MasRepository with aem.getFragmentByPath
+ * @param {AbortSignal} params.signal - Optional abort for offer requests
+ * @returns {Promise<Array<Object>>} Same variations with studioPath and offerData
+ */
+async function enrichGroupedVariationsWithOffers({ parent, variations, repository, signal }) {
+    if (!variations?.length || !repository) return [];
+
+    const needsParentOsiFallback = variations.some((variation) => !new Fragment(variation).getFieldValue('osi'));
+
+    let parentWcsOsi;
+    if (needsParentOsiFallback) {
+        parentWcsOsi = parent.parentFragment ? new Fragment(parent.parentFragment).getFieldValue('osi') : undefined;
+        if (!parentWcsOsi) {
+            const parentFromAem = await repository.aem.getFragmentByPath(parent.path);
+            parentWcsOsi = parentFromAem ? new Fragment(parentFromAem).getFieldValue('osi') : undefined;
+        }
+    }
+
+    const offerDataResults = await processConcurrently(
+        variations,
+        (variation) =>
+            loadOfferData(variation, signal, 10000, {
+                fallbackWcsOsi: parentWcsOsi,
+            }),
+        VARIATIONS_CONCURRENCY_LIMIT,
+    );
+
+    return variations.map((variation, index) => ({
+        ...variation,
+        studioPath: getFragmentName(new Fragment(variation)),
+        offerData: offerDataResults[index] ?? null,
+    }));
+}
+
+/**
+ * Resolves WCS offer data for a view-only table row: uses the fragment's own OSI, or parent card OSI when the row is a grouped variation without OSI (same idea as {@link enrichGroupedVariationsWithOffers}).
+ * @param {Object} card - Fragment payload (may be a parent card or a /pzn/ variation)
+ * @param {Object} repository - MasRepository
+ * @param {AbortSignal} [signal] - Abort signal
+ * @returns {Promise<Object|null>}
+ */
+async function loadOfferDataForViewOnlyCard(card, repository, signal) {
+    if (!repository || !card) return null;
+
+    const ownOsi = new Fragment(card).getFieldValue('osi');
+    if (ownOsi) {
+        return loadOfferData(card, signal);
+    }
+
+    let fallbackWcsOsi;
+    if (repository.resolveHydratedParentFragment && Fragment.isGroupedVariationPath(card.path)) {
+        try {
+            const parentFromAem = await repository.resolveHydratedParentFragment(card.path);
+            fallbackWcsOsi = new Fragment(parentFromAem).getFieldValue('osi');
+        } catch (err) {
+            console.warn(`Failed to load parent fragment for grouped variation ${card.id}:`, err.message);
+        }
+    }
+
+    return loadOfferData(card, signal, 10000, { fallbackWcsOsi });
+}
+
+/**
  * Loads grouped variations for a card fragment
  * @param {Object} card - Card object with path, references, fields
  * @param {Object} repository - MasRepository instance with aem.getFragmentByPath
@@ -130,17 +201,12 @@ async function loadGroupedVariations(card, repository, signal) {
         (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
     );
 
-    const offerDataResults = await processConcurrently(
-        validVariations,
-        (variation) => loadOfferData(variation, signal),
-        VARIATIONS_CONCURRENCY_LIMIT,
-    );
-
-    return validVariations.map((variation, i) => ({
-        ...variation,
-        studioPath: getFragmentName(new Fragment(variation)),
-        offerData: offerDataResults[i] ?? null,
-    }));
+    return enrichGroupedVariationsWithOffers({
+        parent: { path: card.path, parentFragment: card },
+        variations: validVariations,
+        repository,
+        signal,
+    });
 }
 
 /**
@@ -159,12 +225,11 @@ export async function fetchVariationByPath(variationPath, repository) {
         const variation = await repository.aem.getFragmentByPath(variationPath);
         if (!variation || !Array.isArray(variation.fieldTags) || variation.fieldTags.length === 0) return false;
 
-        const offerData = await loadOfferData(variation);
-        const enriched = {
-            ...variation,
-            studioPath: getFragmentName(new Fragment(variation)),
-            offerData,
-        };
+        const [enriched] = await enrichGroupedVariationsWithOffers({
+            parent: { path: parentCardPath },
+            variations: [variation],
+            repository,
+        });
 
         const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
         const innerMap = new Map(existing.get(parentCardPath) || []);
@@ -435,7 +500,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
 async function enrichCardsForViewOnly(cards, repository, signal) {
     const offerDataResults = await processConcurrently(
         cards,
-        (card) => loadOfferData(card, signal),
+        (card) => loadOfferDataForViewOnlyCard(card, repository, signal),
         OFFER_DATA_CONCURRENCY_LIMIT,
     );
     if (signal?.aborted) return [];
@@ -514,22 +579,13 @@ export async function loadCardVariations(cardPath, variationPaths, repository) {
             (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
         );
 
-        const offerDataResults = await processConcurrently(
-            validVariations,
-            (variation) => loadOfferData(variation),
-            VARIATIONS_CONCURRENCY_LIMIT,
-        );
+        const enrichedVariations = await enrichGroupedVariationsWithOffers({
+            parent: { path: cardPath },
+            variations: validVariations,
+            repository,
+        });
 
-        const variationsByPaths = new Map(
-            validVariations.map((variation, index) => [
-                variation.path,
-                {
-                    ...variation,
-                    studioPath: getFragmentName(new Fragment(variation)),
-                    offerData: offerDataResults[index] ?? null,
-                },
-            ]),
-        );
+        const variationsByPaths = new Map(enrichedVariations.map((variation) => [variation.path, variation]));
 
         const existing = Store.translationProjects.groupedVariationsByParent.value || new Map();
         const merged = new Map(existing);

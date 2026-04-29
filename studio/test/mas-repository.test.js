@@ -1731,7 +1731,7 @@ describe('MasRepository dictionary helpers', () => {
                 path,
                 title,
                 description,
-                createdBy,
+                created: { by: createdBy },
                 tags: itemTags,
                 fields: [{ name: 'variant', values: [variant] }],
             };
@@ -1859,6 +1859,27 @@ describe('MasRepository dictionary helpers', () => {
         it('4. narrows by adding createdBy without calling AEM', async () => {
             const stores = [
                 makeFragmentStore({ id: 'a', createdBy: 'alice@adobe.com' }),
+                makeFragmentStore({ id: 'b', createdBy: 'bob@adobe.com' }),
+            ];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            Store.createdByUsers.set([{ userPrincipalName: 'alice@adobe.com' }]);
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(1);
+                expect(setStub.firstCall.args[0][0].get().id).to.equal('a');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('4a. narrows by createdBy case-insensitively against item.created.by', async () => {
+            const stores = [
+                makeFragmentStore({ id: 'a', createdBy: 'Alice@Adobe.com' }),
                 makeFragmentStore({ id: 'b', createdBy: 'bob@adobe.com' }),
             ];
             const searchStub = sandbox.stub();

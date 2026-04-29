@@ -338,13 +338,17 @@ export class MasRepository extends LitElement {
         const tagPredicate = filterByTags(tags);
         const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         const lowerQuery = query?.toLowerCase() || '';
+        const createdByLc = createdBy.map((value) => value.toLowerCase());
         return stores.filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
             if (Fragment.isGroupedVariationPath(item.path)) return false;
             if (this.#skipVariant(variants, item)) return false;
             if (!tagPredicate(item)) return false;
-            if (createdBy.length && !createdBy.includes(item.createdBy)) return false;
+            if (createdByLc.length) {
+                const itemCreatedBy = (item.created?.by || '').toLowerCase();
+                if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;
+            }
             if (this.#skipQuery(lowerQuery, item)) return false;
             if (!personalizationOn && fragmentHasPersonalizationTag(item)) return false;
             return true;

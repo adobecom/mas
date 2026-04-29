@@ -42,7 +42,7 @@ export const features = [
         data: {
             fragment: 'df357350-95b2-47f2-844f-df2e491eecef',
             title: 'CCD Apps: Premiere Pro plan',
-            regularPrice: 'US$34.49/mo',
+            regularPrice: 'US$34.49',
             unitText: '',
             promoPrice: 'US$17.24/mo',
             promotionCode: 'UMRM2MUSPr501YOC',
@@ -107,7 +107,7 @@ export const features = [
         data: {
             fragment: '77e049ee-c611-437b-bbeb-c54cf72605b1',
             title: 'CCD Apps: Photoshop Promo',
-            regularPrice: '314,35 €/an',
+            regularPrice: '314,35 €',
             promoPrice: '157,14 €/an',
             unitText: '',
             promotionCode: 'PCEMAP50CCDC2',

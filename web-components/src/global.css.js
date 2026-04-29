@@ -810,6 +810,16 @@ merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
 }
 
+merch-card:is([variant="catalog"],[variant="image"],[variant="product"],[variant="segment"]) [slot="heading-xs"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
+merch-card:is([variant="catalog"],[variant="image"],[variant="product"],[variant="segment"]) [slot="heading-xs"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+    display: none;
+}
+
+merch-card[variant^="mini-compare-chart"] [slot="heading-m-price"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
+merch-card[variant^="mini-compare-chart"] [slot="heading-m-price"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+    display: none;
+}
+
 @media (max-width: 600px) {
     merch-card [slot='callout-content'] .icon-button.tooltip-left::before {
         left: -30px;

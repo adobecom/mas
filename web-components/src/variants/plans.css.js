@@ -369,6 +369,11 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
     padding-bottom: 48px;
 }
 
+merch-card[variant^="plans"] [slot="heading-m"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
+merch-card[variant^="plans"] [slot="heading-m"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+    display: none;
+}
+
 /* Mobile */
 @media screen and ${MOBILE_LANDSCAPE} {
     merch-whats-included merch-mnemonic-list,

@@ -10236,6 +10236,30 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
         margin-left: 8px;
     }
 
+    merch-card[variant='fries'] [slot="whats-included"] {
+        display: block;
+        margin-top: 8px;
+    }
+
+    merch-card[variant='fries'] merch-whats-included {
+        row-gap: 6px;
+    }
+
+    merch-card[variant='fries'] merch-whats-included > [slot="heading"]:empty {
+        display: none;
+    }
+
+    merch-card[variant='fries'] merch-whats-included merch-mnemonic-list {
+        width: auto;
+        flex: 0 0 auto;
+        margin-right: 0;
+    }
+
+    merch-card[variant='fries'] merch-whats-included merch-icon {
+        --img-width: 20px;
+        --img-height: 20px;
+    }
+
     .spectrum--dark merch-card[variant="fries"],
     .spectrum--darkest merch-card[variant="fries"] {
       --spectrum-yellow-300:rgb(248, 217, 4);
@@ -10251,7 +10275,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     .spectrum--darkest merch-card[variant="fries"] [slot="body-s"] {
         color: rgb(142, 142, 147);
     }
-`;var Vn={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300"}}},mr=class extends A{getGlobalCSS(){return yl}get aemFragmentMapping(){return Vn}renderLayout(){return g`
+`;var Vn={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},whatsIncluded:{tag:"div",slot:"whats-included"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300"}}},mr=class extends A{getGlobalCSS(){return yl}get aemFragmentMapping(){return Vn}renderLayout(){return g`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -10260,6 +10284,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
                 </div>
                 <slot name="badge"></slot>
                 <slot name="body-s"></slot>
+                <slot name="whats-included"></slot>
                 <div class="footer">
                     <div class="cta">
                         <slot name="cta"></slot>

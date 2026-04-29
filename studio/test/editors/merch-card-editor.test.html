@@ -1324,6 +1324,22 @@
                             expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
                         });
 
+                        it('reapplies compat after a refresh replaces the fragment data', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment({}, 'compat-refresh');
+                            await editor.toggleFields();
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
+
+                            const refreshed = structuredClone(fragmentStore.get());
+                            refreshed.fields = refreshed.fields.filter((field) => field.name !== 'compatVersion');
+                            fragmentStore.refreshFrom(refreshed);
+
+                            await editor.updateComplete;
+                            await delay(50);
+
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
+                            expect(fragmentStore.get().hasChanges, 'compat should become dirty again after refresh').to.be.true;
+                        });
+
                         it('does not change compat when own value already meets the constant', async () => {
                             const { fragmentStore, editor } = await setupTestEnvironment(
                                 { compatVersion: [String(COMPAT_VERSION)] },

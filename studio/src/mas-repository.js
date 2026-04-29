@@ -428,7 +428,11 @@ export class MasRepository extends LitElement {
             return;
         }
 
-        if (sameSurface && this.#canNarrowInMemory(dataStore)) {
+        // UUID queries are ID lookups, not haystack searches. The in-memory haystack does not include
+        // the fragment ID, so narrowing would falsely drop the matching fragment. Route to AEM (the
+        // UUID branch below has its own fast path that skips the network when the fragment is already
+        // the sole entry in the store).
+        if (sameSurface && !isUUID(query) && this.#canNarrowInMemory(dataStore)) {
             const prevTagsAll = currentTags ? currentTags.split(',').filter(Boolean) : [];
             const prevVariants = prevTagsAll
                 .filter((t) => t.startsWith(TAG_VARIANT_PREFIX))

@@ -1999,6 +1999,34 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('11b. UUID query bypasses in-memory narrowing (UUID is not haystack-searchable)', async () => {
+            const uuid = '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4';
+            // Regression for the cold-load deep-link race (#793 / studio-direct-search):
+            // currentData has SOME fragment(s) and meta carries a non-UUID query. The new
+            // query is the UUID. Without the guard, `#isNarrowing` returns true (UUID
+            // "narrows" the empty/different query), then `#applyInMemoryFilter` runs the
+            // UUID against a haystack that doesn't include fragment IDs and drops every
+            // store, leaving mas-content empty. With the guard, narrowing is skipped and
+            // execution falls through to the UUID branch (getById).
+            const stores = [makeFragmentStore({ id: 'other-fragment', title: 'illustrator' })];
+            const searchStub = sandbox.stub();
+            const getByIdStub = sandbox.stub().resolves(null);
+            const { repository, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.aem.sites.cf.fragments.getById = getByIdStub;
+            repository.search = { value: { path: 'acom', query: uuid } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called, 'should not call AEM cursor search').to.be.false;
+                // Proves narrowing was bypassed — without the guard, narrowing would have
+                // returned early after wiping the store, never reaching getById.
+                expect(getByIdStub.calledOnceWith(uuid), 'must call getById with the UUID').to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
         it('12. lateral variant move falls through to AEM', async () => {
             const stores = [makeFragmentStore({ id: 'a', variant: 'ccd-slice' })];
             const emptyCursor = { next: async () => ({ done: true }) };

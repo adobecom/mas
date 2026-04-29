@@ -29,7 +29,7 @@ const config = {
     /* Retry on CI only */
     retries: process.env.CI ? 1 : 0,
     /* Opt out of parallel tests on CI. */
-    workers: process.env.CI ? 2 : 3,
+    workers: process.env.CI ? 4 : 3,
     /* Reporter to use. */
     reporter: process.env.CI
         ? [['github'], ['list'], ['./nala/utils/base-reporter.js']]
@@ -78,7 +78,11 @@ const config = {
             },
             bypassCSP: true,
             launchOptions: {
-                args: ['--disable-web-security', '--disable-gpu'],
+                // --disable-http2 forces HTTP/1.1, capping concurrent connections at 6 per
+                // origin. This prevents the browser from multiplexing all ~150 studio JS
+                // module requests simultaneously over HTTP/2, which would burst past the
+                // 200 RPS per-hostname limit now enforced by AEM.live on feature branches.
+                args: ['--disable-web-security', '--disable-gpu', '--disable-http2'],
             },
             dependencies: ['setup'],
             testMatch: /nala\/studio\/.*\.test\.js/,

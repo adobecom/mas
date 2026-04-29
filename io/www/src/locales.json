@@ -3,12 +3,7 @@
         {
             "lang": "ar",
             "country": "SA",
-            "regions": [
-                "AE",
-                "EG",
-                "KW",
-                "QA"
-            ]
+            "regions": ["AE", "EG", "KW", "QA"]
         },
         {
             "lang": "bg",
@@ -25,11 +20,7 @@
         {
             "lang": "de",
             "country": "DE",
-            "regions": [
-                "AT",
-                "CH",
-                "LU"
-            ]
+            "regions": ["AT", "CH", "LU"]
         },
         {
             "lang": "el",
@@ -66,10 +57,7 @@
         {
             "lang": "en",
             "country": "GB",
-            "regions": [
-                "AU",
-                "IN"
-            ]
+            "regions": ["AU", "IN"]
         },
         {
             "lang": "et",
@@ -86,12 +74,7 @@
         {
             "lang": "fr",
             "country": "FR",
-            "regions": [
-                "BE",
-                "CA",
-                "CH",
-                "LU"
-            ]
+            "regions": ["BE", "CA", "CH", "LU"]
         },
         {
             "lang": "he",
@@ -112,9 +95,7 @@
         {
             "lang": "it",
             "country": "IT",
-            "regions": [
-                "CH"
-            ]
+            "regions": ["CH"]
         },
         {
             "lang": "ja",
@@ -143,9 +124,7 @@
         {
             "lang": "nl",
             "country": "NL",
-            "regions": [
-                "BE"
-            ]
+            "regions": ["BE"]
         },
         {
             "lang": "pl",
@@ -178,17 +157,7 @@
         {
             "lang": "es",
             "country": "ES",
-            "regions": [
-                "AR",
-                "CL",
-                "CO",
-                "CR",
-                "EC",
-                "GT",
-                "MX",
-                "PE",
-                "PR"
-            ]
+            "regions": ["AR", "CL", "CO", "CR", "EC", "GT", "MX", "PE", "PR"]
         },
         {
             "lang": "sv",
@@ -217,9 +186,7 @@
         {
             "lang": "zh",
             "country": "TW",
-            "regions": [
-                "HK"
-            ]
+            "regions": ["HK"]
         }
     ],
     "CCD": [
@@ -234,11 +201,7 @@
         {
             "lang": "de",
             "country": "DE",
-            "regions": [
-                "AT",
-                "CH",
-                "LU"
-            ]
+            "regions": ["AT", "CH", "LU"]
         },
         {
             "lang": "en",
@@ -276,12 +239,7 @@
         {
             "lang": "fr",
             "country": "FR",
-            "regions": [
-                "BE",
-                "CA",
-                "CH",
-                "LU"
-            ]
+            "regions": ["BE", "CA", "CH", "LU"]
         },
         {
             "lang": "hi",
@@ -298,9 +256,7 @@
         {
             "lang": "it",
             "country": "IT",
-            "regions": [
-                "CH"
-            ]
+            "regions": ["CH"]
         },
         {
             "lang": "ja",
@@ -317,9 +273,7 @@
         {
             "lang": "nl",
             "country": "NL",
-            "regions": [
-                "BE"
-            ]
+            "regions": ["BE"]
         },
         {
             "lang": "pl",
@@ -336,17 +290,7 @@
         {
             "lang": "es",
             "country": "ES",
-            "regions": [
-                "AR",
-                "CL",
-                "CO",
-                "CR",
-                "EC",
-                "GT",
-                "MX",
-                "PE",
-                "PR"
-            ]
+            "regions": ["AR", "CL", "CO", "CR", "EC", "GT", "MX", "PE", "PR"]
         },
         {
             "lang": "sv",
@@ -385,11 +329,7 @@
         {
             "lang": "de",
             "country": "DE",
-            "regions": [
-                "AT",
-                "CH",
-                "LU"
-            ]
+            "regions": ["AT", "CH", "LU"]
         },
         {
             "lang": "en",
@@ -432,12 +372,7 @@
         {
             "lang": "fr",
             "country": "FR",
-            "regions": [
-                "BE",
-                "CA",
-                "CH",
-                "LU"
-            ]
+            "regions": ["BE", "CA", "CH", "LU"]
         },
         {
             "lang": "id",
@@ -446,9 +381,7 @@
         {
             "lang": "it",
             "country": "IT",
-            "regions": [
-                "CH"
-            ]
+            "regions": ["CH"]
         },
         {
             "lang": "ja",
@@ -465,9 +398,7 @@
         {
             "lang": "nl",
             "country": "NL",
-            "regions": [
-                "BE"
-            ]
+            "regions": ["BE"]
         },
         {
             "lang": "pt",
@@ -476,17 +407,7 @@
         {
             "lang": "es",
             "country": "ES",
-            "regions": [
-                "AR",
-                "CL",
-                "CO",
-                "CR",
-                "EC",
-                "GT",
-                "MX",
-                "PE",
-                "PR"
-            ]
+            "regions": ["AR", "CL", "CO", "CR", "EC", "GT", "MX", "PE", "PR"]
         },
         {
             "lang": "sv",
@@ -513,11 +434,7 @@
         {
             "lang": "de",
             "country": "DE",
-            "regions": [
-                "AT",
-                "CH",
-                "LU"
-            ]
+            "regions": ["AT", "CH", "LU"]
         },
         {
             "lang": "en",
@@ -555,12 +472,7 @@
         {
             "lang": "fr",
             "country": "FR",
-            "regions": [
-                "BE",
-                "CA",
-                "CH",
-                "LU"
-            ]
+            "regions": ["BE", "CA", "CH", "LU"]
         },
         {
             "lang": "hu",
@@ -573,9 +485,7 @@
         {
             "lang": "it",
             "country": "IT",
-            "regions": [
-                "CH"
-            ]
+            "regions": ["CH"]
         },
         {
             "lang": "ja",
@@ -592,9 +502,7 @@
         {
             "lang": "nl",
             "country": "NL",
-            "regions": [
-                "BE"
-            ]
+            "regions": ["BE"]
         },
         {
             "lang": "pl",
@@ -611,17 +519,7 @@
         {
             "lang": "es",
             "country": "ES",
-            "regions": [
-                "AR",
-                "CL",
-                "CO",
-                "CR",
-                "EC",
-                "GT",
-                "MX",
-                "PE",
-                "PR"
-            ]
+            "regions": ["AR", "CL", "CO", "CR", "EC", "GT", "MX", "PE", "PR"]
         },
         {
             "lang": "sv",
@@ -664,11 +562,7 @@
         {
             "lang": "de",
             "country": "DE",
-            "regions": [
-                "AT",
-                "CH",
-                "LU"
-            ]
+            "regions": ["AT", "CH", "LU"]
         },
         {
             "lang": "en",
@@ -706,12 +600,7 @@
         {
             "lang": "fr",
             "country": "FR",
-            "regions": [
-                "BE",
-                "CA",
-                "CH",
-                "LU"
-            ]
+            "regions": ["BE", "CA", "CH", "LU"]
         },
         {
             "lang": "hu",
@@ -724,9 +613,7 @@
         {
             "lang": "it",
             "country": "IT",
-            "regions": [
-                "CH"
-            ]
+            "regions": ["CH"]
         },
         {
             "lang": "ja",
@@ -743,9 +630,7 @@
         {
             "lang": "nl",
             "country": "NL",
-            "regions": [
-                "BE"
-            ]
+            "regions": ["BE"]
         },
         {
             "lang": "pl",
@@ -758,17 +643,7 @@
         {
             "lang": "es",
             "country": "ES",
-            "regions": [
-                "AR",
-                "CL",
-                "CO",
-                "CR",
-                "EC",
-                "GT",
-                "MX",
-                "PE",
-                "PR"
-            ]
+            "regions": ["AR", "CL", "CO", "CR", "EC", "GT", "MX", "PE", "PR"]
         },
         {
             "lang": "sv",

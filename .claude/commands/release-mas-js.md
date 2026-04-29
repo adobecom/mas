@@ -55,7 +55,7 @@ Build release notes in this format:
 ## What's Changed
 
 ### Highlights
-<!-- Group significant changes by area if possible -->
+{2-5 bullet points written as plain functional descriptions of what changed — what the feature does, what was fixed, what behavior changed. Do not reference PR numbers, JIRA IDs, version numbers, or author names here. Example: "Added support for quantity selector on merch cards" or "Fixed price display overflow on mini compare cards".}
 
 ### All Changes
 * {PR title} by @{author} in {PR URL}
@@ -64,13 +64,15 @@ Build release notes in this format:
 {deduplicated list of all MWPW-* tickets found, one per line}
 ```
 
-Show the draft release notes to the user and ask for confirmation or edits before proceeding.
+Show the draft release notes to the user and ask for confirmation or edits before proceeding to the next step.
 
-### 7. Build the bundle
+### 7. Build
 
 ```bash
-cd web-components && npm run build:bundle
+cd web-components && npm run build
 ```
+
+This runs tests, bundles, and builds docs. If this step fails, stop and report the error to the user — do not proceed to packing.
 
 ### 8. Pack the npm package
 
@@ -136,6 +138,4 @@ rm web-components/adobecom-mas-{VERSION}.tgz
 
 - Tag format: `mas-js-v{VERSION}` (e.g. `mas-js-v0.7.0`)
 - Tarball is uploaded as a release asset, not published to npm registry
-- Do NOT run `npm test` — tests run in CI; packing is sufficient here
-- Do NOT use `npm run build` (runs tests) — use `npm run build:bundle` only
 - `"private": true` in package.json is intentional — do not remove it

@@ -58,7 +58,7 @@ Build release notes in this format:
 {2-5 bullet points written as plain functional descriptions of what changed — what the feature does, what was fixed, what behavior changed. Do not reference PR numbers, JIRA IDs, version numbers, or author names here. Example: "Added support for quantity selector on merch cards" or "Fixed price display overflow on mini compare cards".}
 
 ### All Changes
-* {PR title} by @{author} in {PR URL}
+* {PR title} by @{author} in {PR URL} — [MWPW-XXXXX](https://jira.corp.adobe.com/browse/MWPW-XXXXX) (include one link per JIRA found; omit if none)
 
 ### JIRAs
 {deduplicated list of all MWPW-* tickets found, one per line}

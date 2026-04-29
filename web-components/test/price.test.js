@@ -375,7 +375,7 @@ describe('class "InlinePrice"', () => {
                 locale: 'AT_de',
                 expected: [
                     [true, false],
-                    [true, false],
+                    [true, true],
                     [true, false],
                     [true, true],
                 ],
@@ -629,7 +629,7 @@ describe('class "InlinePrice"', () => {
                     [true, false],
                     [true, true],
                     [true, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {
@@ -665,7 +665,7 @@ describe('class "InlinePrice"', () => {
                     [true, false],
                     [true, true],
                     [true, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {
@@ -691,8 +691,8 @@ describe('class "InlinePrice"', () => {
                 expected: [
                     [true, false],
                     [true, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, false],
                 ],
             },
             {
@@ -771,18 +771,18 @@ describe('class "InlinePrice"', () => {
                 locale: 'SA_ar',
                 expected: [
                     [true, false],
-                    [false, false],
+                    [true, true],
                     [true, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {
                 locale: 'SA_en',
                 expected: [
                     [true, false],
-                    [false, false],
+                    [true, true],
                     [true, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {
@@ -907,7 +907,7 @@ describe('class "InlinePrice"', () => {
                 expected: [
                     [true, false],
                     [true, true],
-                    [false, false],
+                    [true, false],
                     [true, true],
                 ],
             },
@@ -960,7 +960,7 @@ describe('class "InlinePrice"', () => {
                 locale: 'SG_en',
                 expected: [
                     [true, false],
-                    [false, false],
+                    [true, true],
                     [true, false],
                     [true, true],
                 ],
@@ -987,27 +987,27 @@ describe('class "InlinePrice"', () => {
                 locale: 'VN_en',
                 expected: [
                     [false, false],
+                    [true, true],
                     [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {
                 locale: 'VN_vi',
                 expected: [
                     [false, false],
+                    [true, true],
                     [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, true],
                 ],
             },
             {
                 locale: 'AR_es',
                 expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, true],
+                    [true, false],
+                    [true, true],
                 ],
             },
             {
@@ -1040,19 +1040,19 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'CL_es',
                 expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, true],
+                    [true, false],
+                    [true, true],
                 ],
             },
             {
                 locale: 'CO_es',
                 expected: [
-                    [false, false],
+                    [true, false],
                     [true, true],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, true],
                 ],
             },
             {
@@ -1094,19 +1094,19 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'MX_es',
                 expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, true],
+                    [true, false],
+                    [true, true],
                 ],
             },
             {
                 locale: 'PE_es',
                 expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, false],
+                    [true, false],
+                    [true, false],
                 ],
             },
             {

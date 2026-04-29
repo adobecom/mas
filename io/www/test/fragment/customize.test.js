@@ -219,6 +219,46 @@ describe('customize collections', function () {
         expect(result.body.fields.badge).to.equal('Kuwait country PZN');
     });
 
+    it('should merge personalization using country implied by locale when country param is absent', async function () {
+        const pznVariationId = 'pzn-var-br-locale-implied';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/express/pt_BR/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/express/pt_BR/PA-484/pzn/individual-edu-country-br',
+                        id: pznVariationId,
+                        title: 'Brazil country targeting',
+                        fields: {
+                            pznTags: ['experience-fragments:mas/express/pzn/country/br'],
+                            badge: 'Brazil country PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            surface: 'express',
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'pt_BR',
+            parsedLocale: 'pt_BR',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Brazil country PZN');
+    });
+
     it('should merge personalization when country is MX and pznTags end with pzn/country/MX', async function () {
         const pznVariationId = 'pzn-var-mx';
         const bodyWithPzn = {

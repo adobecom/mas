@@ -83,9 +83,26 @@ const masTest = base.extend({
         // Initialize counter
         await GlobalRequestCounter.init(page);
 
+        const onBrowserConsole = (msg) => {
+            if (msg.type() !== 'error') return;
+            const loc = msg.location();
+            const where =
+                loc?.url && typeof loc.lineNumber === 'number'
+                    ? ` ${loc.url}:${loc.lineNumber}`
+                    : '';
+            console.error(`[browser console.error]${where} ${msg.text()}`);
+        };
+        const onPageError = (err) => {
+            console.error(`[browser pageerror] ${err.message}`);
+        };
+        page.on('console', onBrowserConsole);
+        page.on('pageerror', onPageError);
+
         try {
             await use(page);
         } finally {
+            page.off('console', onBrowserConsole);
+            page.off('pageerror', onPageError);
             // Store test page in testInfo for base reporter if test failed
             if (testInfo.status === 'failed' && currentTestPage) {
                 testInfo.annotations.push({

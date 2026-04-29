@@ -1334,6 +1334,19 @@
                             expect(fragmentStore.get().hasChanges, 'toggleFields must not bump compat when already current').to
                                 .be.false;
                         });
+
+                        it('does not bump compat when there is no promoCode value', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment(
+                                {
+                                    isVariation: false,
+                                    path: '/content/dam/mas/nala/en_US/test-root-compat-no-promo',
+                                    compatVersion: ['0'],
+                                },
+                                'compat-no-promo',
+                            );
+                            await editor.toggleFields();
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal(['0']);
+                        });
                     });
 
                     describe('commerce price providers', () => {

@@ -158,6 +158,13 @@
             ]
         },
         {
+            "name": "promoCode",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
             "name": "parent",
             "type": "content-fragment",
             "multiple": false,

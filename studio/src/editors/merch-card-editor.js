@@ -746,11 +746,15 @@ class MerchCardEditor extends LitElement {
             return;
         }
 
-        const rawCompat = this.getEffectiveFieldValue('compatVersion', 0);
-        const parsedCompat = Number(rawCompat);
-        const currentCompat = Number.isFinite(parsedCompat) ? parsedCompat : 0;
-        if (currentCompat < COMPAT_VERSION) {
-            this.fragmentStore.updateField('compatVersion', [String(COMPAT_VERSION)]);
+        const rawPromo = this.getEffectiveFieldValue('promoCode', 0);
+        const hasPromoCode = String(rawPromo ?? '').trim() !== '';
+        if (hasPromoCode) {
+            const rawCompat = this.getEffectiveFieldValue('compatVersion', 0);
+            const parsedCompat = Number(rawCompat);
+            const currentCompat = Number.isFinite(parsedCompat) ? parsedCompat : 0;
+            if (currentCompat < COMPAT_VERSION) {
+                this.fragmentStore.updateField('compatVersion', [String(COMPAT_VERSION)]);
+            }
         }
 
         // Variations can inherit `variant` from their parent fragment.

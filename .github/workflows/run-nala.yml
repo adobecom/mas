@@ -65,7 +65,7 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
             - name: Install Playwright system dependencies
-              run: npx playwright install-deps
+              uses: ./.github/actions/prep-apt
 
             - name: Install/verify Playwright browsers
               run: |
@@ -162,6 +162,8 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
+            # Docs tests run on GitHub-hosted runners (ubuntu-latest) — no unattended-upgrades
+            # lock contention, so the prep-apt composite action is not needed here.
             - name: Install Playwright system dependencies
               if: steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install-deps

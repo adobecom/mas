@@ -57,8 +57,8 @@ export default class EditorPage {
         this.promoCode = this.panel.locator('#promo-code input');
         this.promoCodeFieldGroup = this.panel.locator('sp-field-group#promoCode');
 
-        this.quantitySelectorCheckbox = this.panel.locator('#quantitySelect sp-checkbox input');
-        this.quantitySelectorFields = this.panel.locator('#quantitySelector quantity-select-field');
+        this.quantitySelectorCheckbox = this.panel.locator('#quantity-select-settings-field-toggle input');
+        this.quantitySelectorFields = this.panel.locator('#quantitySelect quantity-select-settings-field');
         this.quantitySelectorTitle = this.quantitySelectorFields.locator('#quantity-selector-title input');
         this.quantitySelectorStart = this.quantitySelectorFields.locator('#quantity-selector-start input');
         this.quantitySelectorStep = this.quantitySelectorFields.locator('#quantity-selector-step input');

@@ -3,7 +3,7 @@ import { html } from 'lit';
 import { fixture } from '@open-wc/testing-helpers/pure';
 import '../../src/swc.js';
 import '../../src/editors/variant-picker.js';
-import { VARIANTS, VARIANT_NAMES } from '../../src/editors/variant-picker.js';
+import { VARIANTS, VARIANT_NAMES, getVariantTreeData } from '../../src/editors/variant-picker.js';
 import { spTheme } from '../utils.js';
 
 describe('VariantPicker', () => {
@@ -86,6 +86,58 @@ describe('VariantPicker', () => {
         it('should include plans variant', () => {
             const plans = VARIANTS.find((v) => v.value === VARIANT_NAMES.PLANS);
             expect(plans).to.exist;
+        });
+    });
+
+    describe('getVariantTreeData', () => {
+        it('should return only CC templates for acom-cc surface', () => {
+            const result = getVariantTreeData('acom-cc');
+            const names = result.map((v) => v.name);
+            expect(names).to.include('product');
+            expect(names).to.include('segment');
+            expect(names).to.include('mini-compare-chart');
+            expect(names).to.include('image');
+            expect(names).to.include('special-offers');
+            expect(names).to.not.include('plans');
+            expect(names).to.not.include('catalog');
+            expect(names).to.not.include('ccd-slice');
+            expect(names.length).to.equal(5);
+        });
+
+        it('should return only DC templates for acom-dc surface', () => {
+            const result = getVariantTreeData('acom-dc');
+            const names = result.map((v) => v.name);
+            expect(names).to.include('product');
+            expect(names).to.include('segment');
+            expect(names).to.include('mini-compare-chart');
+            expect(names).to.include('image');
+            expect(names).to.not.include('special-offers');
+            expect(names).to.not.include('plans');
+            expect(names.length).to.equal(4);
+        });
+
+        it('should return only plans/catalog templates for acom surface', () => {
+            const result = getVariantTreeData('acom');
+            const names = result.map((v) => v.name);
+            expect(names).to.include('plans');
+            expect(names).to.include('plans-v2');
+            expect(names).to.include('plans-students');
+            expect(names).to.include('plans-education');
+            expect(names).to.include('catalog');
+            expect(names).to.include('media');
+            expect(names).to.include('mini-compare-chart-mweb');
+            expect(names).to.not.include('product');
+            expect(names).to.not.include('segment');
+            expect(names).to.not.include('image');
+            expect(names).to.not.include('special-offers');
+        });
+
+        it('should return all variants for sandbox surface', () => {
+            const result = getVariantTreeData('sandbox');
+            const names = result.map((v) => v.name);
+            expect(names).to.include('product');
+            expect(names).to.include('plans');
+            expect(names).to.include('ccd-slice');
         });
     });
 });

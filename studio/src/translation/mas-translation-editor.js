@@ -11,7 +11,7 @@ import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
-import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION } from '../constants.js';
+import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -34,6 +34,7 @@ class MasTranslationEditor extends LitElement {
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
+    #itemsConfirmed = false;
 
     constructor() {
         super();
@@ -68,6 +69,9 @@ class MasTranslationEditor extends LitElement {
         if (this.repository?.loadPlaceholders) {
             this.repository.loadPlaceholders();
         }
+        if (this.repository?.loadAllCollections) {
+            this.repository.loadAllCollections();
+        }
 
         // reset locale to default
         Store.search.set((prev) => ({ ...prev, region: null }));
@@ -96,6 +100,7 @@ class MasTranslationEditor extends LitElement {
             Store.translationProjects.selectedPlaceholders,
             Store.translationProjects.targetLocales,
             Store.translationProjects.projectType,
+            Store.translationProjects.showSelected,
         ]);
         this.isProjectReadonly = !!this.translationProject?.getFieldValue('submissionDate');
         if (this.isProjectReadonly) {
@@ -121,11 +126,11 @@ class MasTranslationEditor extends LitElement {
     }
 
     get selectedCount() {
-        return [
-            ...Store.translationProjects.selectedCards.value,
-            ...Store.translationProjects.selectedPlaceholders.value,
-            ...Store.translationProjects.selectedCollections.value,
-        ].length;
+        return (
+            Store.translationProjects.selectedCards.value.length +
+            Store.translationProjects.selectedPlaceholders.value.length +
+            Store.translationProjects.selectedCollections.value.length
+        );
     }
 
     get targetLocalesCount() {
@@ -458,6 +463,7 @@ class MasTranslationEditor extends LitElement {
         this.#cardsSnapshot = [];
         this.#collectionsSnapshot = [];
         this.#placeholdersSnapshot = [];
+        this.#itemsConfirmed = true;
         this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -468,14 +474,33 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
         Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
         this.showSelectedEmptyState = this.selectedCount === 0;
+        this.#itemsConfirmed = true;
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
 
-    #openAddItemsOverlay() {
+    #openAddItemsOverlay(e) {
+        if (e && e.target !== e.currentTarget) return;
+        this.#itemsConfirmed = false;
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
         this.#collectionsSnapshot = Store.translationProjects.selectedCollections.value;
+
+        const selector = this.renderRoot.querySelector('mas-items-selector');
+        if (selector) {
+            selector.searchQuery = '';
+            selector.selectedTab = TABLE_TYPE.CARDS;
+            const searchAndFilters = selector.renderRoot.querySelector('mas-search-and-filters');
+            if (searchAndFilters) {
+                searchAndFilters.templateFilter = [];
+                searchAndFilters.marketSegmentFilter = [];
+                searchAndFilters.customerSegmentFilter = [];
+                searchAndFilters.productFilter = [];
+            }
+        }
+        Store.translationProjects.displayCards.set(Store.translationProjects.allCards.get());
+        Store.translationProjects.displayCollections.set(Store.translationProjects.allCollections.get());
+        Store.translationProjects.displayPlaceholders.set(Store.translationProjects.allPlaceholders.get());
     }
 
     #openAddLanguagesOverlay() {
@@ -508,22 +533,56 @@ class MasTranslationEditor extends LitElement {
     };
 
     renderAddItemsDialog() {
+        const footerContent = html`
+            <sp-button-group>
+                <sp-button variant="secondary" treatment="outline" @click=${() => this.#dispatchDialogEvent('cancel')}
+                    >Cancel</sp-button
+                >
+                <sp-button variant="accent" @click=${() => this.#dispatchDialogEvent('confirm')}>Add selected items</sp-button>
+            </sp-button-group>
+        `;
         return html`
             <sp-dialog-wrapper
                 class="add-items-dialog"
                 slot="click-content"
                 headline="Select items"
-                confirm-label="Add selected items"
-                cancel-label="Cancel"
+                headline-visibility="none"
+                .footer=${footerContent}
                 underlay
+                dismissable
                 no-divider
+                @sp-opened=${this.#alignItemsDialogFooter}
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
+                @close=${this.#restoreItemsSnapshot}
             >
                 <mas-items-selector></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
+
+    #alignItemsDialogFooter = ({ target }) => {
+        const slotDiv = target?.shadowRoot?.querySelector('div[slot="footer"]');
+        if (!slotDiv) return;
+        slotDiv.style.width = '100%';
+        slotDiv.style.display = 'flex';
+        slotDiv.style.justifyContent = 'flex-end';
+    };
+
+    // Flag stays sticky across the duplicate close event sp-dialog-wrapper emits after confirm/cancel;
+    // it's cleared on the next #openAddItemsOverlay so a re-opened dialog starts fresh.
+    #restoreItemsSnapshot = () => {
+        if (this.#itemsConfirmed) return;
+        Store.translationProjects.selectedCards.set(this.#cardsSnapshot);
+        Store.translationProjects.selectedCollections.set(this.#collectionsSnapshot);
+        Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
+        this.showSelectedEmptyState = this.selectedCount === 0;
+    };
+
+    #dispatchDialogEvent = (name) => {
+        const wrapper = this.renderRoot.querySelector('.add-items-dialog');
+        wrapper?.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true }));
+    };
 
     renderAddLanguagesDialog() {
         return html`

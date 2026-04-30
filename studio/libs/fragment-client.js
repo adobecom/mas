@@ -8,12 +8,14 @@ import { logDebug, logError } from '../../io/www/src/fragment/utils/log.js';
 import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from '../../io/www/src/fragment/utils/cache.js';
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
+import { transformer as defaultLanguage } from '../../io/www/src/fragment/transformers/defaultLanguage.js';
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
 import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
+import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 
-const PIPELINE = [fetchFragment, promotions, customize, settings, replace, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, customize, settings, replace, corrector];
 class LocaleStorageState {
     constructor() {        
     }
@@ -36,8 +38,8 @@ class LocaleStorageState {
 
 const DEFAULT_CONTEXT = {
     status: 200,
-    preview:{
-        url: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+    preview: {
+        url: ODIN_PREVIEW_FRAGMENTS_URL,
     },
     requestId: 'preview',
     state: new LocaleStorageState(),
@@ -114,12 +116,21 @@ async function previewFragment(id, options) {
 async function previewStudioFragment(body, options) {
     let context = { ...DEFAULT_CONTEXT, ...options, body, api_key: 'fragment-client-studio' };
     const { locale, surface } = options;
+    const fragmentPath = options.fragmentPath ?? body?.path;
+    const phase1 = {
+        status: 200,
+        body: context.body,
+        parsedLocale: locale,
+        surface,
+        fragmentPath,
+    };
     const initPromises = {
-        fetchFragment: Promise.resolve({
-            status: 200,
-            body: context.body,
+        fetchFragment: Promise.resolve(phase1),
+        defaultLanguage: Promise.resolve({
+            ...phase1,
+            defaultLocale: locale,
             locale,
-            surface,
+            regionLocale: locale,
         }),
     };
     context.fragmentsIds = context.fragmentsIds || {};

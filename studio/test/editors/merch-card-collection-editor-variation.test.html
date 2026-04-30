@@ -120,7 +120,7 @@
                         fragmentStore = generateFragmentStore(variationFragment, parentFragment);
 
                         // Disable preview resolution — collection editor doesn't need it
-                        Store.placeholders.preview.set(null);
+                        Store.placeholders.previewByLocale.set({});
                         Store.fragments.list.data.set([fragmentStore]);
 
                         const updateCalls = [];

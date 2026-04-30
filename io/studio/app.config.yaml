@@ -47,6 +47,8 @@ application:
                         inputs:
                             translationMapping:
                                 acom: transcreation
+                                acom-cc: transcreation
+                                acom-dc: transcreation
                                 express: transcreation
                                 sandbox: machineTranslation
                         annotations:
@@ -63,6 +65,7 @@ application:
                         runtime: nodejs:22
                         inputs:
                             batchSize: $BATCH_SIZE
+                            rpsLimit: $RPS_LIMIT
                         limits:
                             timeout: 3600000
                         annotations:

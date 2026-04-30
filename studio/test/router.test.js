@@ -601,7 +601,8 @@ describe('Router', () => {
 
         it('should clear settings route state when returning from settings-editor to settings', async () => {
             Store.profile.set({ email: 'power@adobe.com' });
-            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-POWERUSERS'] }]);
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
             Store.settings.creating.set(true);
             Store.settings.fragmentId.set('setting-id');

@@ -867,6 +867,114 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('invalidates cache and re-searches when only the variant tag changes', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/plans' } };
+            const cursor = createMockCursor([[createFragment({ id: 'fresh-fragment' })]]);
+            const searchStub = sandbox.stub().resolves(cursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ value: { id: 'cached-fragment' } }]),
+                getMeta: sandbox.stub().callsFake((key) => {
+                    if (key === 'path') return 'acom';
+                    if (key === 'query') return '';
+                    if (key === 'locale') return 'en_US';
+                    if (key === 'tags') return 'mas:variant/catalog';
+                    if (key === 'createdBy') return '';
+                    if (key === 'personalizationFilterEnabled') return false;
+                    return null;
+                }),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('routes single variant via fullText.EDGES and applies user query client-side', async () => {
+            // Single variant + user query: AEM call carries the variant name as fullText so
+            // it can prune via the indexed text fields. The user's query ("photoshop") is
+            // applied client-side via skipQuery against an expanded haystack covering all
+            // string field values (since AEM's fullText index only covers title+description).
+            // This avoids the MWPW-193359 AND-across-tokens regression.
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/ccd-slice' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.query).to.equal('ccd-slice');
+                expect(callArg.tags).to.deep.equal([]);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('leaves query unchanged when no variants are selected', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.query).to.equal('photoshop');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('searches by UUID when query is a valid UUID', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -906,6 +1014,42 @@ describe('MasRepository dictionary helpers', () => {
                 expect(getByIdStub.calledOnce).to.be.true;
                 expect(getByIdStub.firstCall.args[0]).to.equal('12345678-1234-1234-1234-123456789012');
                 expect(searchStub.called).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+                Store.folders.data.set(originalFolders);
+            }
+        });
+
+        it('calls getById with the raw UUID even when a variant tag is selected', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            const uuid = '12345678-1234-1234-1234-123456789012';
+            repository.search = { value: { path: 'acom', query: uuid } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/ccd-slice' } };
+            const mockFragment = createFragment({ id: uuid, path: `${ROOT_PATH}/acom/en_US/x`, fields: [] });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: sandbox.stub() } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            let dataValue = [];
+            const mockDataStore = {
+                get: sandbox.stub().callsFake(() => dataValue),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub().callsFake((v) => {
+                    dataValue = v;
+                }),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            const originalFolders = Store.folders.data.get();
+            Store.fragments.list.data = mockDataStore;
+            Store.folders.data.set(['acom', 'ccd']);
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(getByIdStub.firstCall.args[0]).to.equal(uuid);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -1284,7 +1428,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('filters tags for variant and model ID tags', async () => {
+        it('strips variant and content-type tags before calling AEM', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: '' } };
@@ -1316,7 +1460,6 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 const searchOptions = searchStub.firstCall.args[0];
-                // Variant and content-type tags should be filtered out
                 expect(searchOptions.tags).to.deep.equal(['mas:custom-tag']);
             } finally {
                 Store.profile.set(originalProfile);
@@ -1470,6 +1613,60 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('excludes merch-card-collection with PZN on fragment tags when personalization filter is off', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: false,
+                },
+            };
+            const collectionWithPzn = createFragment({
+                id: 'coll-pzn',
+                path: `${ROOT_PATH}/acom/en_US/collections/c1`,
+                tags: [{ id: 'mas:pzn/general' }],
+                fields: [{ name: 'tagFilters', values: ['mas:types/desktop'] }],
+            });
+            const plainCollection = createFragment({
+                id: 'coll-plain',
+                path: `${ROOT_PATH}/acom/en_US/collections/c2`,
+                tags: [],
+                fields: [{ name: 'tagFilters', values: ['mas:product/foo'] }],
+            });
+            const mockCursor = createMockCursor([[collectionWithPzn, plainCollection]]);
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({
+                fragments: {
+                    search: searchStub,
+                },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(mockDataStore.set.called).to.be.true;
+                const passedStores = mockDataStore.set.lastCall.args[0];
+                expect(passedStores).to.have.lengthOf(1);
+                expect(passedStores[0].get().id).to.equal('coll-plain');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('handles published tag filter by setting status', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1507,6 +1704,397 @@ describe('MasRepository dictionary helpers', () => {
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
+            }
+        });
+    });
+
+    describe('searchFragments — in-memory narrowing', () => {
+        let activeCleanup = null;
+        afterEach(() => {
+            if (activeCleanup) {
+                activeCleanup();
+                activeCleanup = null;
+            }
+        });
+
+        const makeFragmentStore = ({
+            id = 'f',
+            variant = 'ccd-slice',
+            tags: itemTags = [],
+            title = '',
+            description = '',
+            path = '/content/dam/mas/acom/en_US/x',
+            createdBy = 'alice@adobe.com',
+        } = {}) => {
+            const item = {
+                id,
+                path,
+                title,
+                description,
+                created: { by: createdBy },
+                tags: itemTags,
+                fields: [{ name: 'variant', values: [variant] }],
+            };
+            return { get: () => item, value: item };
+        };
+
+        const setupNarrowingFixture = ({
+            stores,
+            metaTags = '',
+            metaQuery = '',
+            metaCreatedBy = '',
+            hasMore = false,
+            lastEdit = null,
+            lastLoad = Date.now(),
+        }) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.aem = createAemMock({});
+            const meta = {
+                path: 'acom',
+                query: metaQuery,
+                locale: 'en_US',
+                tags: metaTags,
+                createdBy: metaCreatedBy,
+                personalizationFilterEnabled: false,
+                lastEdit,
+                lastLoad,
+            };
+            const setStub = sandbox.stub();
+            const setMetaStub = sandbox.stub().callsFake((k, v) => {
+                meta[k] = v;
+            });
+            const mockDataStore = {
+                get: () => stores,
+                getMeta: (k) => meta[k] ?? null,
+                set: setStub,
+                setMeta: setMetaStub,
+            };
+            const originalData = Store.fragments.list.data;
+            const originalProfile = Store.profile.value;
+            const originalHasMore = Store.fragments.list.hasMore.get();
+            const originalCreatedByUsers = Store.createdByUsers.get();
+            Store.fragments.list.data = mockDataStore;
+            Store.profile.set({ name: 'tester' });
+            Store.fragments.list.hasMore.set(hasMore);
+            Store.createdByUsers.set([]);
+            const cleanup = () => {
+                Store.fragments.list.data = originalData;
+                Store.profile.set(originalProfile);
+                Store.fragments.list.hasMore.set(originalHasMore);
+                Store.createdByUsers.set(originalCreatedByUsers);
+            };
+            activeCleanup = cleanup;
+            return { repository, setStub, setMetaStub, meta, cleanup };
+        };
+
+        it('1. narrows by query without calling AEM', async () => {
+            const stores = [
+                makeFragmentStore({ id: 'a', title: 'photoshop hero' }),
+                makeFragmentStore({ id: 'b', title: 'illustrator' }),
+            ];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.calledOnce).to.be.true;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(1);
+                expect(setStub.firstCall.args[0][0].get().id).to.equal('a');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('2. narrows by adding a variant without calling AEM', async () => {
+            const stores = [
+                makeFragmentStore({ id: 'a', variant: 'ccd-slice' }),
+                makeFragmentStore({ id: 'b', variant: 'plans' }),
+            ];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: 'mas:variant/ccd-slice', personalizationFilterEnabled: false },
+            };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(1);
+                expect(setStub.firstCall.args[0][0].get().id).to.equal('a');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('3. narrows by adding a non-variant tag without calling AEM', async () => {
+            const stores = [
+                makeFragmentStore({ id: 'a', tags: [{ id: 'mas:custom/a' }, { id: 'mas:product/b' }] }),
+                makeFragmentStore({ id: 'b', tags: [{ id: 'mas:custom/a' }] }),
+            ];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({
+                stores,
+                metaTags: 'mas:custom/a',
+            });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: 'mas:custom/a,mas:product/b', personalizationFilterEnabled: false },
+            };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(1);
+                expect(setStub.firstCall.args[0][0].get().id).to.equal('a');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('4. narrows by adding createdBy without calling AEM', async () => {
+            const stores = [
+                makeFragmentStore({ id: 'a', createdBy: 'alice@adobe.com' }),
+                makeFragmentStore({ id: 'b', createdBy: 'bob@adobe.com' }),
+            ];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            Store.createdByUsers.set([{ userPrincipalName: 'alice@adobe.com' }]);
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(1);
+                expect(setStub.firstCall.args[0][0].get().id).to.equal('a');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('4a. narrows by createdBy case-insensitively against item.created.by', async () => {
+            const stores = [
+                makeFragmentStore({ id: 'a', createdBy: 'Alice@Adobe.com' }),
+                makeFragmentStore({ id: 'b', createdBy: 'bob@adobe.com' }),
+            ];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            Store.createdByUsers.set([{ userPrincipalName: 'alice@adobe.com' }]);
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(1);
+                expect(setStub.firstCall.args[0][0].get().id).to.equal('a');
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('5. path change falls through to AEM', async () => {
+            const stores = [makeFragmentStore({ id: 'a' })];
+            const emptyCursor = { next: async () => ({ done: true }) };
+            const searchStub = sandbox.stub().resolves(emptyCursor);
+            const { repository, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'cc', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('6. locale change falls through to AEM', async () => {
+            const stores = [makeFragmentStore({ id: 'a' })];
+            const emptyCursor = { next: async () => ({ done: true }) };
+            const searchStub = sandbox.stub().resolves(emptyCursor);
+            const { repository, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'fr_FR', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('7. widening (remove a tag) falls through to AEM', async () => {
+            const stores = [makeFragmentStore({ id: 'a' })];
+            const emptyCursor = { next: async () => ({ done: true }) };
+            const searchStub = sandbox.stub().resolves(emptyCursor);
+            const { repository, cleanup } = setupNarrowingFixture({
+                stores,
+                metaTags: 'mas:custom/a,mas:product/b',
+            });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: 'mas:custom/a', personalizationFilterEnabled: false },
+            };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('8. cursor not exhausted (hasMore=true) falls through to AEM', async () => {
+            const stores = [makeFragmentStore({ id: 'a', title: 'photoshop' })];
+            const emptyCursor = { next: async () => ({ done: true }) };
+            const searchStub = sandbox.stub().resolves(emptyCursor);
+            const { repository, cleanup } = setupNarrowingFixture({ stores, hasMore: true });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('9. edit since last load falls through to AEM', async () => {
+            const stores = [makeFragmentStore({ id: 'a', title: 'photoshop' })];
+            const emptyCursor = { next: async () => ({ done: true }) };
+            const searchStub = sandbox.stub().resolves(emptyCursor);
+            const now = Date.now();
+            const { repository, cleanup } = setupNarrowingFixture({
+                stores,
+                lastLoad: now - 1000,
+                lastEdit: now,
+            });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('10. identical filters use the existing fast-path (no AEM, no narrowing set)', async () => {
+            const stores = [makeFragmentStore({ id: 'a' }), makeFragmentStore({ id: 'b' })];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.called).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('11. empty narrow result on fully loaded surface returns empty without AEM', async () => {
+            const stores = [makeFragmentStore({ id: 'a', title: 'illustrator' })];
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(0);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('11b. UUID query bypasses in-memory narrowing (UUID is not haystack-searchable)', async () => {
+            const uuid = '48a759ce-3c9a-4158-9bc3-b21ffa07e8e4';
+            // Regression for the cold-load deep-link race (#793 / studio-direct-search):
+            // currentData has SOME fragment(s) and meta carries a non-UUID query. The new
+            // query is the UUID. Without the guard, `#isNarrowing` returns true (UUID
+            // "narrows" the empty/different query), then `#applyInMemoryFilter` runs the
+            // UUID against a haystack that doesn't include fragment IDs and drops every
+            // store, leaving mas-content empty. With the guard, narrowing is skipped and
+            // execution falls through to the UUID branch (getById).
+            const stores = [makeFragmentStore({ id: 'other-fragment', title: 'illustrator' })];
+            const searchStub = sandbox.stub();
+            const getByIdStub = sandbox.stub().resolves(null);
+            const { repository, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.aem.sites.cf.fragments.getById = getByIdStub;
+            repository.search = { value: { path: 'acom', query: uuid } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called, 'should not call AEM cursor search').to.be.false;
+                // Proves narrowing was bypassed — without the guard, narrowing would have
+                // returned early after wiping the store, never reaching getById.
+                expect(getByIdStub.calledOnceWith(uuid), 'must call getById with the UUID').to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('12. lateral variant move falls through to AEM', async () => {
+            const stores = [makeFragmentStore({ id: 'a', variant: 'ccd-slice' })];
+            const emptyCursor = { next: async () => ({ done: true }) };
+            const searchStub = sandbox.stub().resolves(emptyCursor);
+            const { repository, cleanup } = setupNarrowingFixture({
+                stores,
+                metaTags: 'mas:variant/ccd-slice',
+            });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: 'mas:variant/plans', personalizationFilterEnabled: false },
+            };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it("13. Roy's regression: query+variant returns all matching cards via in-memory filter", async () => {
+            const stores = [];
+            for (let i = 0; i < 34; i += 1) {
+                stores.push(
+                    makeFragmentStore({
+                        id: `f-${i}`,
+                        variant: 'plans',
+                        title: `Firefly card ${i}`,
+                    }),
+                );
+            }
+            stores.push(makeFragmentStore({ id: 'noise', variant: 'ccd-slice', title: 'Firefly noise' }));
+            stores.push(makeFragmentStore({ id: 'noise2', variant: 'plans', title: 'unrelated' }));
+            const searchStub = sandbox.stub();
+            const { repository, setStub, cleanup } = setupNarrowingFixture({ stores });
+            repository.aem.sites.cf.fragments.search = searchStub;
+            repository.search = { value: { path: 'acom', query: 'firefly' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: 'mas:variant/plans', personalizationFilterEnabled: false },
+            };
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(setStub.firstCall.args[0]).to.have.lengthOf(34);
+            } finally {
+                cleanup();
             }
         });
     });
@@ -1611,7 +2199,9 @@ describe('MasRepository dictionary helpers', () => {
         });
 
         it('loadNextPage appends fragments and updates data store', async () => {
-            const page1 = Array.from({ length: 10 }, (_, i) =>
+            // First page has MIN_FILTERED_PAGE_RESULTS items so the refill loop does not fire,
+            // keeping loadNextPage as the only path that extends the list.
+            const page1 = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
                 createFragment({ id: `p1-${i}`, path: `${ROOT_PATH}/acom/en_US/p1-${i}`, fields: [] }),
             );
             const page2 = Array.from({ length: 10 }, (_, i) =>
@@ -1624,13 +2214,13 @@ describe('MasRepository dictionary helpers', () => {
                 const { default: Store } = await import('../src/store.js');
                 const firstSetCalls = Store.fragments.list.data.set.getCalls();
                 const firstCount = firstSetCalls[firstSetCalls.length - 1].args[0].length;
-                expect(firstCount).to.equal(10);
+                expect(firstCount).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS);
                 expect(Store.fragments.list.hasMore.value).to.be.true;
 
                 await repository.loadNextPage();
                 const allSetCalls = Store.fragments.list.data.set.getCalls();
                 const lastCall = allSetCalls[allSetCalls.length - 1];
-                expect(lastCall.args[0].length).to.equal(20);
+                expect(lastCall.args[0].length).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS + 10);
             } finally {
                 cleanup();
             }
@@ -1753,13 +2343,10 @@ describe('MasRepository dictionary helpers', () => {
         });
 
         it('sets loading false after successful loadNextPage', async () => {
-            const page1 = Array.from({ length: 10 }, (_, i) =>
+            const page1 = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
                 createFragment({ id: `l-${i}`, path: `${ROOT_PATH}/acom/en_US/l-${i}`, fields: [] }),
             );
-            const page2 = Array.from({ length: 5 }, (_, i) =>
-                createFragment({ id: `l2-${i}`, path: `${ROOT_PATH}/acom/en_US/l2-${i}`, fields: [] }),
-            );
-            const mockCursor = createMockCursorFromPages([page1, page2]);
+            const mockCursor = createMockCursorFromPages([page1]);
             const { repository, cleanup } = await setupSearchTest(mockCursor);
             try {
                 await repository.searchFragments();
@@ -1774,7 +2361,7 @@ describe('MasRepository dictionary helpers', () => {
         });
 
         it('paginates results when page is TRANSLATION_EDITOR', async () => {
-            const page1 = Array.from({ length: 20 }, (_, i) =>
+            const page1 = Array.from({ length: MasRepository.MIN_FILTERED_PAGE_RESULTS }, (_, i) =>
                 createFragment({ id: `t1-${i}`, path: `${ROOT_PATH}/acom/en_US/t1-${i}`, fields: [] }),
             );
             const page2 = Array.from({ length: 5 }, (_, i) =>
@@ -1788,12 +2375,436 @@ describe('MasRepository dictionary helpers', () => {
                 const { default: Store } = await import('../src/store.js');
                 const setCalls = Store.fragments.list.data.set.getCalls();
                 const firstCall = setCalls[setCalls.length - 1];
-                expect(firstCall.args[0].length).to.equal(20);
+                expect(firstCall.args[0].length).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS);
                 expect(Store.fragments.list.hasMore.value).to.be.true;
                 await repository.loadNextPage();
                 const nextCalls = Store.fragments.list.data.set.getCalls();
                 const lastCall = nextCalls[nextCalls.length - 1];
-                expect(lastCall.args[0].length).to.equal(25);
+                expect(lastCall.args[0].length).to.equal(MasRepository.MIN_FILTERED_PAGE_RESULTS + 5);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('client-side filters by user query when single variant + query are combined', async () => {
+            // Two variant=plans cards: one with "Firefly" in cardTitle, one without.
+            // The user types "Firefly" + selects mas:variant/plans. AEM gets the variant
+            // name as fullText (via the fast path), then skipQuery filters to only the
+            // card containing "Firefly" anywhere in its fields.
+            const matching = createFragment({
+                id: 'firefly-plans',
+                path: `${ROOT_PATH}/acom/en_US/firefly-plans`,
+                title: 'Plans card A',
+                description: '',
+                fields: [
+                    { name: 'variant', values: ['plans'] },
+                    { name: 'cardTitle', values: ['Adobe Firefly'] },
+                ],
+            });
+            const nonMatching = createFragment({
+                id: 'photo-plans',
+                path: `${ROOT_PATH}/acom/en_US/photo-plans`,
+                title: 'Plans card B',
+                description: '',
+                fields: [
+                    { name: 'variant', values: ['plans'] },
+                    { name: 'cardTitle', values: ['Photoshop'] },
+                ],
+            });
+            const mockCursor = createMockCursorFromPages([[matching, nonMatching]]);
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'firefly' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/plans' } };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'tester' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.firstCall.args[0].query).to.equal('plans');
+                const finalSet = mockDataStore.set.lastCall.args[0];
+                expect(finalSet).to.have.lengthOf(1);
+                expect(finalSet[0].get().id).to.equal('firefly-plans');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('multi-word query: sends longest token to AEM and phrase-filters client-side', async () => {
+            // AEM's fullText.EDGES ANDs across tokens, so "creative cloud" returns 0 if no
+            // card has both at edge positions in title/description. Workaround: send the
+            // longest single token ("creative") to AEM, then filter for the full phrase
+            // client-side via skipQuery's expanded haystack.
+            const phraseInTitle = createFragment({
+                id: 'creative-cloud-1',
+                path: `${ROOT_PATH}/acom/en_US/cc-1`,
+                title: 'Creative Cloud Pro',
+                fields: [{ name: 'variant', values: ['plans'] }],
+            });
+            const phraseInDescriptionField = createFragment({
+                id: 'creative-cloud-2',
+                path: `${ROOT_PATH}/acom/en_US/cc-2`,
+                title: 'Plans Card',
+                fields: [
+                    { name: 'variant', values: ['plans'] },
+                    { name: 'description', values: ['<p>Creative Cloud All Apps for individuals.</p>'] },
+                ],
+            });
+            const creativeButNotCloud = createFragment({
+                id: 'creative-only',
+                path: `${ROOT_PATH}/acom/en_US/co-1`,
+                title: 'Creative Suite Legacy',
+                fields: [{ name: 'variant', values: ['plans'] }],
+            });
+            const mockCursor = createMockCursorFromPages([[phraseInTitle, phraseInDescriptionField, creativeButNotCloud]]);
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'creative cloud' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'tester' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.firstCall.args[0].query).to.equal('creative');
+                const finalSet = mockDataStore.set.lastCall.args[0];
+                expect(finalSet).to.have.lengthOf(2);
+                const ids = finalSet.map((s) => s.get().id);
+                expect(ids).to.include('creative-cloud-1');
+                expect(ids).to.include('creative-cloud-2');
+                expect(ids).to.not.include('creative-only');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('single-word query: sends query unchanged to AEM (no client-side filter regression)', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: 'photoshop' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().resolves(createMockCursorFromPages([[]]));
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'tester' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.firstCall.args[0].query).to.equal('photoshop');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+    });
+
+    describe('eagerLoadAllPznPages cap', () => {
+        const setupPznSearchTest = async (pageCount) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled: true,
+                },
+            };
+            // Each page has MIN_PAGE_SIZE items so each #fillPage call consumes exactly 1 page
+            const pages = Array.from({ length: pageCount }, (_, p) =>
+                Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) =>
+                    createFragment({
+                        id: `pzn-${p}-${i}`,
+                        path: `${ROOT_PATH}/acom/en_US/pzn-${p}-${i}`,
+                        tags: [{ id: 'mas:pzn/general' }],
+                        fields: [],
+                    }),
+                ),
+            );
+            let index = 0;
+            const mockCursor = {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        it('stops eager loading after MAX_EAGER_PZN_PAGES and sets hasMore true', async () => {
+            const pageCount = MasRepository.MAX_EAGER_PZN_PAGES + 5;
+            const { repository, cleanup } = await setupPznSearchTest(pageCount);
+            try {
+                await repository.searchFragments();
+                const { default: Store } = await import('../src/store.js');
+                // Wait for the async eager-load loop to complete
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('does not set hasMore when all pages fit within MAX_EAGER_PZN_PAGES', async () => {
+            const pageCount = 2;
+            const { repository, cleanup } = await setupPznSearchTest(pageCount);
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+    });
+
+    describe('refillBelowThreshold', () => {
+        const setupRefillSearchTest = async ({ pages, personalizationFilterEnabled = false }) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: {
+                    locale: 'en_US',
+                    tags: '',
+                    personalizationFilterEnabled,
+                },
+            };
+            let index = 0;
+            const mockCursor = {
+                next: async () => {
+                    if (index >= pages.length) return { done: true };
+                    const page = pages[index++];
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            return {
+                repository,
+                mockDataStore,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.fragments.list.data = originalData;
+                },
+            };
+        };
+
+        // Build a page of MIN_PAGE_SIZE (10) items where `visibleCount` are non-pzn
+        // (pass the filter) and the rest carry mas:pzn/general (dropped when pzn filter is off).
+        const mixedPage = (pageIndex, visibleCount) =>
+            Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) => {
+                const isVisible = i < visibleCount;
+                return createFragment({
+                    id: `p${pageIndex}-${i}`,
+                    path: `${ROOT_PATH}/acom/en_US/p${pageIndex}-${i}`,
+                    tags: isVisible ? [] : [{ id: 'mas:pzn/general' }],
+                    fields: [],
+                });
+            });
+
+        const lastSetCount = (mockDataStore) => {
+            const calls = mockDataStore.set.getCalls();
+            return calls[calls.length - 1]?.args[0]?.length ?? 0;
+        };
+
+        it('refills when filtered count is below threshold until threshold is met', async () => {
+            // Each page contributes 5 visible items. 5 pages → 25 visible, threshold reached.
+            const pages = Array.from({ length: 8 }, (_, p) => mixedPage(p, 5));
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                expect(lastSetCount(mockDataStore)).to.be.at.least(MasRepository.MIN_FILTERED_PAGE_RESULTS);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('does not refill when first page already has threshold visible items', async () => {
+            // First fetch fills via #fillPage until it has MIN_PAGE_SIZE (10) items. After filter,
+            // all 10 remain visible (no pzn tags). Threshold is 25, so refill DOES kick in here —
+            // unless we make the first page large enough. Make each page contribute 30 visible items.
+            const pages = [mixedPage(0, 10), mixedPage(1, 10), mixedPage(2, 10), mixedPage(3, 10)];
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                // #fillPage fills until it reaches MIN_PAGE_SIZE items via cursor.next() calls.
+                // With all-visible pages, #fillPage consumes 1 page (10 items) and returns.
+                // Then refill runs because 10 < 25. It should loop until threshold or cursor end.
+                expect(lastSetCount(mockDataStore)).to.be.at.least(MasRepository.MIN_FILTERED_PAGE_RESULTS);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('terminates and sets hasMore=false when cursor is exhausted before threshold', async () => {
+            // Only 2 pages, each with 5 visible → 10 visible total, cursor exhausted.
+            const pages = [mixedPage(0, 5), mixedPage(1, 5)];
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(lastSetCount(mockDataStore)).to.equal(10);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('terminates on extremely narrow filter without infinite loop', async () => {
+            // 20 pages with only 1 visible item each → 20 visible total, cursor exhausted.
+            const pages = Array.from({ length: 20 }, (_, p) => mixedPage(p, 1));
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                const { default: Store } = await import('../src/store.js');
+                expect(lastSetCount(mockDataStore)).to.equal(20);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('skips refill when personalization is on (eager-pzn path runs instead)', async () => {
+            // Pages of all-pzn items so #filterStoresByPersonalizationEnabled (with pzn ON)
+            // returns everything. We just want to confirm the refill method is NOT the one
+            // running; #eagerLoadAllPznPages handles this path.
+            const pages = Array.from({ length: 3 }, (_, p) =>
+                Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) =>
+                    createFragment({
+                        id: `pzn-${p}-${i}`,
+                        path: `${ROOT_PATH}/acom/en_US/pzn-${p}-${i}`,
+                        tags: [{ id: 'mas:pzn/general' }],
+                        fields: [],
+                    }),
+                ),
+            );
+            const { repository, mockDataStore, cleanup } = await setupRefillSearchTest({
+                pages,
+                personalizationFilterEnabled: true,
+            });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+                expect(lastSetCount(mockDataStore)).to.equal(30);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('stops refill after MAX_REFILL_ROUNDS and leaves hasMore=true', async () => {
+            // Many pages all fail the pzn filter so refill never reaches threshold.
+            // After MAX_REFILL_ROUNDS, refill bails and leaves hasMore=true so
+            // loadNextPage can continue on scroll.
+            const pages = Array.from({ length: MasRepository.MAX_REFILL_ROUNDS + 10 }, (_, p) => mixedPage(p, 0));
+            const { repository, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('sets loading=true during refill and resets to false when done', async () => {
+            // 3 pages with 5 visible each — refill runs for a few rounds.
+            // loading should be true during refill and false afterward.
+            const pages = [mixedPage(0, 5), mixedPage(1, 5), mixedPage(2, 5)];
+            const { repository, cleanup } = await setupRefillSearchTest({ pages });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                const { default: Store } = await import('../src/store.js');
+                expect(Store.fragments.list.loading.value).to.be.false;
             } finally {
                 cleanup();
             }
@@ -2272,6 +3283,236 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
+    describe('duplicateGroupedVariation', () => {
+        const sourceFragment = {
+            id: 'source-grouped-1',
+            path: '/content/dam/mas/sandbox/en_US/pac/pzn/source-grouped',
+            title: 'Source title',
+            description: 'Source description',
+            model: { id: 'model-1' },
+            fields: [
+                { name: 'pznTags', values: ['mas:pzn/old-tag'] },
+                { name: 'promoCode', values: ['PROMO10'] },
+                { name: 'variations', values: ['/some/variation/path'] },
+            ],
+            tags: [{ id: 'mas:product/cc/photoshop' }],
+        };
+
+        const parentFragment = {
+            id: 'parent-fragment-1',
+            path: '/content/dam/mas/sandbox/en_US/pac/parent-fragment',
+            title: 'Parent title',
+            description: 'Parent description',
+            model: { id: 'model-1' },
+            fields: [{ name: 'variations', values: [] }],
+            tags: [],
+        };
+
+        it('duplicates a grouped variation and returns the created fragment', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = {
+                id: 'new-grouped-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped',
+            };
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves(createdDraft),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves(parentFragment);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: parentFragment.id }) }]);
+
+            const result = await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            expect(repository.aem.sites.cf.fragments.getById.calledOnceWith('source-grouped-1')).to.be.true;
+            expect(repository.resolveHydratedParentFragment.calledOnceWith(sourceFragment.path)).to.be.true;
+            expect(repository.updateParentVariations.calledOnceWith(parentFragment, createdFragment.path)).to.be.true;
+            expect(repository.refreshFragment.calledOnce).to.be.true;
+            expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('clones fields excluding variations and replacing pznTags', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            const createArgs = createStub.firstCall.args[0];
+            const fieldNames = createArgs.fields.map((f) => f.name);
+            expect(fieldNames).not.to.include('variations');
+            const pznTagsField = createArgs.fields.find((f) => f.name === 'pznTags');
+            expect(pznTagsField.values).to.deep.equal(newPznTags);
+            const promoCodeField = createArgs.fields.find((f) => f.name === 'promoCode');
+            expect(promoCodeField.values).to.deep.equal(['PROMO10']);
+        });
+
+        it('throws when source fragment is not found', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(null),
+                },
+            });
+
+            try {
+                await repository.duplicateGroupedVariation('nonexistent-id', []);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to fetch source grouped variation');
+            }
+        });
+
+        it('throws when parent fragment cannot be resolved', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(null);
+
+            try {
+                await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to resolve parent fragment for grouped variation');
+            }
+        });
+
+        it('appends a random 4-char suffix when the generated name already exists', async () => {
+            const repository = createRepository();
+            const newPznTags = ['mas:pzn/new-tag'];
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped-abcd' };
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves({ id: 'existing-fragment' }),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', newPznTags);
+
+            const createArgs = createStub.firstCall.args[0];
+            expect(createArgs.name).to.match(/^new-grouped-[a-z]{4}$/);
+        });
+
+        it('skips copyFragmentTags when source has no tags', async () => {
+            const repository = createRepository();
+            const sourceWithNoTags = { ...sourceFragment, tags: [] };
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const copyTagsStub = sandbox.stub().resolves();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceWithNoTags),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves(createdDraft),
+                    copyFragmentTags: copyTagsStub,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+
+            expect(copyTagsStub.called).to.be.false;
+        });
+
+        it('throws when pollCreatedFragment returns null', async () => {
+            const repository = createRepository();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves({ id: 'draft-id' }),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(null),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+
+            try {
+                await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+                expect.fail('Should have thrown');
+            } catch (error) {
+                expect(error.message).to.equal('Failed to duplicate grouped variation');
+            }
+        });
+
+        it('skips refreshFragment when parent is not found in store', async () => {
+            const repository = createRepository();
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const refreshStub = sandbox.stub().resolves();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(sourceFragment),
+                    getByPath: sandbox.stub().resolves(null),
+                    create: sandbox.stub().resolves({ id: 'draft-id' }),
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+            sandbox.stub(repository, 'generateGroupedVariationName').returns('new-grouped');
+            sandbox.stub(repository, 'updateParentVariations').resolves();
+            sandbox.stub(repository, 'refreshFragment').value(refreshStub);
+            sandbox.stub(Store.fragments.list.data, 'get').returns([]);
+
+            await repository.duplicateGroupedVariation('source-grouped-1', ['mas:pzn/tag']);
+
+            expect(refreshStub.called).to.be.false;
+        });
+    });
+
     describe('deleteFragment', () => {
         it('refreshes referencing list stores after deletion to prevent stale variation rows', async () => {
             const repository = createRepository();
@@ -2302,6 +3543,44 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.sites.cf.fragments.forceDelete.calledOnceWith({ path: fragment.path })).to.be.true;
             expect(refreshVariationParentInListStub.calledOnceWith(fragment, null)).to.be.true;
             expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
+        });
+    });
+
+    describe('loadPreviewPlaceholders', () => {
+        let previousSearch;
+        let previousFilters;
+        let previousPreview;
+
+        beforeEach(() => {
+            previousSearch = structuredClone(Store.search.get());
+            previousFilters = structuredClone(Store.filters.get());
+            previousPreview = Store.placeholders.previewByLocale.get();
+        });
+
+        afterEach(() => {
+            Store.search.value = previousSearch;
+            Store.filters.value = previousFilters;
+            Store.placeholders.previewByLocale.value = previousPreview;
+        });
+
+        it('uses Store.localeOrRegion() for cache key and fetchDictionary locale', async () => {
+            const repository = createFullRepository();
+            repository.dictionaryCache.clear();
+
+            Store.search.value = { path: 'sandbox' };
+            Store.filters.value = { locale: 'en_US' };
+            Store.search.set((prev) => ({ ...prev, region: 'fr_FR' }));
+            // Unconnected repo: StoreController does not receive Store updates unless we sync.
+            repository.search.value = Store.search.get();
+
+            const fetchStub = sandbox.stub(repository, 'fetchDictionary').resolves({ dictKey: 'dictVal' });
+
+            await repository.loadPreviewPlaceholders();
+
+            expect(fetchStub.calledOnce).to.be.true;
+            expect(fetchStub.firstCall.args[1]).to.equal('fr_FR');
+            expect(repository.dictionaryCache.has('fr_FR_sandbox')).to.be.true;
+            expect(Store.placeholders.previewByLocale.get().fr_FR).to.deep.equal({ dictKey: 'dictVal' });
         });
     });
 });

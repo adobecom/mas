@@ -115,21 +115,8 @@ describe('translation-items-loader', () => {
     });
 
     describe('loadAllFragments', () => {
-        it('should return no-op subscription when allCards already has data', () => {
-            Store.translationProjects.allCards.set([{ path: '/card1', title: 'Card 1' }]);
-            const result = loadAllFragments(TABLE_TYPE.CARDS, null, {});
-            expect(result.unsubscribe).to.be.a('function');
-            expect(Store.translationProjects.allCards.get()).to.have.lengthOf(1);
-        });
-
-        it('should return no-op subscription when allCollections already has data', () => {
-            Store.translationProjects.allCollections.set([{ path: '/col1', title: 'Col 1' }]);
-            const result = loadAllFragments(TABLE_TYPE.COLLECTIONS, null, {});
-            expect(result.unsubscribe).to.be.a('function');
-            expect(Store.translationProjects.allCollections.get()).to.have.lengthOf(1);
-        });
-
-        it('should subscribe and process collections when fragments list updates', async () => {
+        it('should not subscribe for collections (loaded via repository.loadAllCollections)', async () => {
+            const before = Store.translationProjects.allCollections.get();
             const result = loadAllFragments(TABLE_TYPE.COLLECTIONS, null, {});
 
             const mockCollection = {
@@ -142,8 +129,8 @@ describe('translation-items-loader', () => {
             Store.fragments.list.data.set([mockCollection]);
             await new Promise((r) => setTimeout(r, 50));
 
-            expect(Store.translationProjects.allCollections.get()).to.have.lengthOf(1);
-            expect(Store.translationProjects.displayCollections.get()).to.have.lengthOf(1);
+            // Collections store is NOT touched by the shared fragment stream anymore.
+            expect(Store.translationProjects.allCollections.get()).to.equal(before);
 
             result.unsubscribe();
         });
@@ -187,35 +174,40 @@ describe('translation-items-loader', () => {
             result.unsubscribe();
         });
 
-        it('should use existing card data when already in store', async () => {
-            const existingCard = {
-                path: '/content/dam/mas/acom/en_US/cards/existing',
-                title: 'Existing',
-                offerData: { offerId: 'cached' },
-                groupedVariations: [],
-            };
-            Store.translationProjects.allCards.set([existingCard]);
-
+        it('should not re-fetch grouped variations for a card already enriched in a prior page', async () => {
             const state = {};
-            const repo = { aem: { getFragmentByPath: sinon.stub() } };
+            const cardPath = '/content/dam/mas/acom/en_US/cards/card1';
+            const variationPath = `${cardPath}/pzn/var1`;
+            const repo = {
+                aem: {
+                    getFragmentByPath: sinon.stub().resolves({
+                        path: variationPath,
+                        fieldTags: [{ id: 't1', name: 'T1' }],
+                        fields: [],
+                        tags: [],
+                    }),
+                },
+            };
+            const mockCardFragment = new Fragment({
+                path: cardPath,
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [{ name: 'variations', values: [variationPath] }],
+                references: [{ path: variationPath }],
+            });
+
             const result = loadAllFragments(TABLE_TYPE.CARDS, repo, state);
 
-            const mockCardStore = {
-                value: new Fragment({
-                    path: '/content/dam/mas/acom/en_US/cards/existing',
-                    title: 'Existing',
-                    model: { path: CARD_MODEL_PATH },
-                    tags: [],
-                    fields: [],
-                }),
-            };
-            Store.fragments.list.data.set([mockCardStore]);
-            await new Promise((r) => setTimeout(r, 100));
+            Store.fragments.list.data.set([{ value: mockCardFragment }]);
+            await new Promise((r) => setTimeout(r, 200));
 
-            const cards = Store.translationProjects.allCards.get();
-            expect(cards).to.have.lengthOf(1);
-            expect(cards[0].offerData).to.deep.equal({ offerId: 'cached' });
-            expect(repo.aem.getFragmentByPath.called).to.be.false;
+            const callCountAfterFirst = repo.aem.getFragmentByPath.callCount;
+            expect(callCountAfterFirst).to.be.greaterThan(0);
+
+            Store.fragments.list.data.set([{ value: mockCardFragment }]);
+            await new Promise((r) => setTimeout(r, 200));
+
+            expect(repo.aem.getFragmentByPath.callCount).to.equal(callCountAfterFirst);
 
             result.unsubscribe();
         });
@@ -645,6 +637,67 @@ describe('translation-items-loader', () => {
             const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
             const variation = Store.translationProjects.groupedVariationsByParent.value?.get(cardPath)?.get(variationPath);
             expect(variation).to.not.exist;
+        });
+    });
+
+    describe('loadAllFragments subscription persistence', () => {
+        it('should subscribe to fragment store updates even when allCards already has data', async () => {
+            const existingCard = {
+                path: '/card/existing',
+                model: { path: CARD_MODEL_PATH },
+                studioPath: 'existing',
+                tags: [],
+                fields: [],
+            };
+            Store.translationProjects.allCards.set([existingCard]);
+
+            const state = {};
+            const { unsubscribe } = loadAllFragments(TABLE_TYPE.CARDS, null, state);
+
+            const newCardData = {
+                path: '/card/new',
+                model: { path: CARD_MODEL_PATH },
+                title: 'New Card',
+                tags: [],
+                fields: [],
+                fieldTags: [],
+            };
+            Store.fragments.list.data.set([{ value: new Fragment(newCardData) }]);
+            await new Promise((r) => setTimeout(r, 50));
+
+            expect(Store.translationProjects.allCards.get().length).to.be.greaterThan(0);
+            unsubscribe();
+        });
+
+        it('should not register duplicate subscriptions when called twice with the same state', () => {
+            const state = {};
+            const sub1 = loadAllFragments(TABLE_TYPE.CARDS, null, state);
+            const sub2 = loadAllFragments(TABLE_TYPE.CARDS, null, state);
+
+            expect(sub1.unsubscribe).to.be.a('function');
+            expect(sub2.unsubscribe).to.be.a('function');
+
+            sub1.unsubscribe();
+            sub2.unsubscribe();
+        });
+    });
+
+    describe('processCardsData re-entrancy', () => {
+        it('should reset isProcessingCards to false after processing completes', async () => {
+            const state = {};
+            const card = {
+                path: '/card/1',
+                model: { path: CARD_MODEL_PATH },
+                tags: [],
+                fields: [],
+            };
+
+            const { unsubscribe } = loadAllFragments(TABLE_TYPE.CARDS, null, state);
+            Store.fragments.list.data.set([{ value: new Fragment(card) }]);
+            await new Promise((r) => setTimeout(r, 100));
+
+            expect(state.isProcessingCards).to.be.false;
+            unsubscribe();
         });
     });
 });

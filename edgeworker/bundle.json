@@ -1,0 +1,13 @@
+{
+    "edgeworker-version": "2.0.0",
+    "description": "convert 429 to 529 to serve stale",
+    "config": {
+        "logging": {
+            "level": "error"
+        },
+        "subrequest": {
+            "invoke-for-edgeworker-clients": false
+        },
+        "client-ip-header": false
+    }
+}

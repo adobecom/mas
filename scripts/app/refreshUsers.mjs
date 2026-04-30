@@ -54,7 +54,7 @@ async function getAccessToken() {
 async function fetchLdapMembers(token) {
     console.log('Retrieving users from LDAP');
 
-    const tenants = ['CCD', 'ACOM', 'COMMERCE', 'AH', 'SANDBOX', 'NALA'];
+    const tenants = ['CCD', 'ACOM', 'ACOM-CC', 'ACOM-DC', 'COMMERCE', 'AH', 'SANDBOX', 'NALA'];
     const fetchPromises = tenants.map(async (tenant) => {
         const groupName = `GRP-ODIN-MAS-${tenant}-EDITORS`;
         const apiEndpoint = `${LDAP_BASE_URL}/groups/${groupName}/members?show_all=true`;

@@ -956,7 +956,7 @@ describe('Settings Store Namespace', () => {
                         },
                         create: async (payload) => {
                             createCalls.push(payload);
-                            return { id: 'new-index', path: payload.parentPath + '/' + payload.name, fields: payload.fields };
+                            return { id: 'new-index', path: `${payload.parentPath}/${payload.name}`, fields: payload.fields };
                         },
                         getWithEtag: async (id) => ({ id, etag: 'test-etag' }),
                         publish: async (fragment) => {

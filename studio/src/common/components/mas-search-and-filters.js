@@ -1,10 +1,11 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { VARIANTS } from '../editors/variant-picker.js';
+import { VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
-import Store from '../store.js';
-import { FILTER_TYPE, TABLE_TYPE } from '../constants.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
+import Store from '../../store.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
+import { FILTER_TYPE, TABLE_TYPE } from '../../constants.js';
+import ReactiveController from '../../reactivity/reactive-controller.js';
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -40,8 +41,8 @@ class MasSearchAndFilters extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         this.commonDataController = new ReactiveController(this, [
-            Store.translationProjects[`all${this.typeUppercased}`],
-            Store.translationProjects[`display${this.typeUppercased}`],
+            getItemsSelectionStore()[`all${this.typeUppercased}`],
+            getItemsSelectionStore()[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
         ]);
         const dataCallback = () => {
@@ -51,16 +52,16 @@ class MasSearchAndFilters extends LitElement {
             this.#applyFilters();
             this.requestUpdate();
         };
-        Store.translationProjects[`all${this.typeUppercased}`].subscribe(dataCallback);
+        getItemsSelectionStore()[`all${this.typeUppercased}`].subscribe(dataCallback);
         this.dataSubscription = {
-            unsubscribe: () => Store.translationProjects[`all${this.typeUppercased}`].unsubscribe(dataCallback),
+            unsubscribe: () => getItemsSelectionStore()[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        Store.translationProjects[`display${this.typeUppercased}`].set(
-            Store.translationProjects[`all${this.typeUppercased}`].value,
+        getItemsSelectionStore()[`display${this.typeUppercased}`].set(
+            getItemsSelectionStore()[`all${this.typeUppercased}`].value,
         );
         this.dataSubscription?.unsubscribe();
     }
@@ -105,7 +106,7 @@ class MasSearchAndFilters extends LitElement {
         const marketSegments = new Map();
         const customerSegments = new Map();
         const products = new Map();
-        for (const fragment of Store.translationProjects[`all${this.typeUppercased}`].value) {
+        for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
             for (const tag of fragment.tags) {
@@ -271,7 +272,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #applyFilters() {
-        const source = Store.translationProjects[`all${this.typeUppercased}`].value || [];
+        const source = getItemsSelectionStore()[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
         const hasTemplate = this.templateFilter?.length > 0;
         const hasMarket = this.marketSegmentFilter?.length > 0;
@@ -319,15 +320,15 @@ class MasSearchAndFilters extends LitElement {
         if (this.type === TABLE_TYPE.CARDS) {
             result.sort((a, b) => (b.groupedVariations?.length > 0 ? 1 : 0) - (a.groupedVariations?.length > 0 ? 1 : 0));
         }
-        Store.translationProjects[`display${this.typeUppercased}`].set(result);
+        getItemsSelectionStore()[`display${this.typeUppercased}`].set(result);
     }
 
     renderCount() {
         return html`<div class="result-count">
             ${this.isLoading
                 ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
-                : html`${Store.translationProjects[`display${this.typeUppercased}`].value.length}
-                  result${Store.translationProjects[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
+                : html`${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length}
+                  result${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
         </div>`;
     }
 

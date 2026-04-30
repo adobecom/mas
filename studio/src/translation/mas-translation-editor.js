@@ -6,12 +6,15 @@ import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Fragment } from '../aem/fragment.js';
 import { MasRepository, getFromFragmentCache } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
-import './mas-items-selector.js';
+import '../common/components/mas-items-selector.js';
 import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
+import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
+import { getFragmentName, renderFragmentStatusCell } from './translation-utils.js';
+import './mas-collapsible-table-row.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -34,6 +37,7 @@ class MasTranslationEditor extends LitElement {
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
+    #itemsSelectionStoreSnapshot = null;
     #itemsConfirmed = false;
 
     constructor() {
@@ -62,6 +66,8 @@ class MasTranslationEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
+        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
+        setItemsSelectionStore(Store.translationProjects);
 
         if (this.repository?.searchFragments) {
             this.repository.searchFragments();
@@ -106,6 +112,12 @@ class MasTranslationEditor extends LitElement {
         if (this.isProjectReadonly) {
             this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
         }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
+        this.#itemsSelectionStoreSnapshot = null;
     }
 
     /** @type {MasRepository} */
@@ -556,7 +568,10 @@ class MasTranslationEditor extends LitElement {
                 @cancel=${this.#cancelItemSelection}
                 @close=${this.#restoreItemsSnapshot}
             >
-                <mas-items-selector></mas-items-selector>
+                <mas-items-selector
+                    .getDisplayName=${getFragmentName}
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
@@ -836,7 +851,11 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                               ${this.isSelectedItemsOpen
-                                  ? html`<mas-items-selector .viewOnly=${true}></mas-items-selector>`
+                                  ? html`<mas-items-selector
+                                        .viewOnly=${true}
+                                        .getDisplayName=${getFragmentName}
+                                        .renderFragmentStatusCell=${renderFragmentStatusCell}
+                                    ></mas-items-selector>`
                                   : nothing}
                           </div>`
                 }

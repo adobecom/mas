@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { TABLE_TYPE, COLLECTION_MODEL_PATH, CARD_MODEL_PATH } from '../../src/constants.js';
 import {
@@ -12,11 +13,12 @@ import {
     fetchUnresolvedVariations,
     fetchVariationByPath,
     setCardVariationsByPaths,
-} from '../../src/translation/translation-items-loader.js';
+} from '../../src/common/utils/items-loader.js';
 
 describe('translation-items-loader', () => {
     let sandbox;
 
+    const mockGetDisplayName = () => 'mock-display-name';
     const resetStore = () => {
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.cardsByPaths.set(new Map());
@@ -50,6 +52,7 @@ describe('translation-items-loader', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         resetStore();
         createMockCommerceService();
     });
@@ -58,6 +61,7 @@ describe('translation-items-loader', () => {
         sandbox.restore();
         resetStore();
         removeMockCommerceService();
+        setItemsSelectionStore(null);
     });
 
     describe('setCardVariationsByPaths', () => {
@@ -115,10 +119,16 @@ describe('translation-items-loader', () => {
     });
 
     describe('loadAllFragments', () => {
+        it('should return no-op subscription when allCards already has data', () => {
+            Store.translationProjects.allCards.set([{ path: '/card1', title: 'Card 1' }]);
+            const result = loadAllFragments(TABLE_TYPE.CARDS, null, {}, { getDisplayName: mockGetDisplayName });
+            expect(result.unsubscribe).to.be.a('function');
+            expect(Store.translationProjects.allCards.get()).to.have.lengthOf(1);
+        });
+
         it('should not subscribe for collections (loaded via repository.loadAllCollections)', async () => {
             const before = Store.translationProjects.allCollections.get();
             const result = loadAllFragments(TABLE_TYPE.COLLECTIONS, null, {});
-
             const mockCollection = {
                 value: {
                     path: '/content/dam/mas/acom/en_US/collections/test',
@@ -149,7 +159,7 @@ describe('translation-items-loader', () => {
                 },
             };
 
-            const result = loadAllFragments(TABLE_TYPE.CARDS, repo, state);
+            const result = loadAllFragments(TABLE_TYPE.CARDS, repo, state, { getDisplayName: mockGetDisplayName });
 
             const mockCardData = {
                 path: '/content/dam/mas/acom/en_US/cards/card1',
@@ -195,8 +205,7 @@ describe('translation-items-loader', () => {
                 fields: [{ name: 'variations', values: [variationPath] }],
                 references: [{ path: variationPath }],
             });
-
-            const result = loadAllFragments(TABLE_TYPE.CARDS, repo, state);
+            const result = loadAllFragments(TABLE_TYPE.CARDS, repo, state, { getDisplayName: mockGetDisplayName });
 
             Store.fragments.list.data.set([{ value: mockCardFragment }]);
             await new Promise((r) => setTimeout(r, 200));
@@ -253,14 +262,17 @@ describe('translation-items-loader', () => {
     describe('loadSelectedFragments', () => {
         it('should call onItems with empty array when repository is null', async () => {
             const onItems = sinon.stub();
-            await loadSelectedFragments(['/path/1'], TABLE_TYPE.CARDS, null, { onItems });
+            await loadSelectedFragments(['/path/1'], TABLE_TYPE.CARDS, null, {
+                onItems,
+                getDisplayName: mockGetDisplayName,
+            });
             expect(onItems.calledWith([])).to.be.true;
         });
 
         it('should call onItems with empty array when selectedPaths is empty', async () => {
             const onItems = sinon.stub();
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            await loadSelectedFragments([], TABLE_TYPE.CARDS, repo, { onItems });
+            await loadSelectedFragments([], TABLE_TYPE.CARDS, repo, { onItems, getDisplayName: mockGetDisplayName });
             expect(onItems.calledWith([])).to.be.true;
         });
 
@@ -277,7 +289,10 @@ describe('translation-items-loader', () => {
             };
             const onItems = sinon.stub();
 
-            await loadSelectedFragments([mockFragment.path], TABLE_TYPE.COLLECTIONS, repo, { onItems });
+            await loadSelectedFragments([mockFragment.path], TABLE_TYPE.COLLECTIONS, repo, {
+                onItems,
+                getDisplayName: mockGetDisplayName,
+            });
 
             expect(repo.aem.getFragmentByPath.calledWith(mockFragment.path)).to.be.true;
             expect(onItems.called).to.be.true;
@@ -307,7 +322,10 @@ describe('translation-items-loader', () => {
             };
             const onItems = sinon.stub();
 
-            await loadSelectedFragments([cardPath], TABLE_TYPE.CARDS, repo, { onItems });
+            await loadSelectedFragments([cardPath], TABLE_TYPE.CARDS, repo, {
+                onItems,
+                getDisplayName: mockGetDisplayName,
+            });
 
             expect(repo.aem.getFragmentByPath.calledWith(cardPath)).to.be.true;
             expect(onItems.called).to.be.true;
@@ -326,7 +344,10 @@ describe('translation-items-loader', () => {
                 aem: { getFragmentByPath: sinon.stub().rejects(new Error('Fetch failed')) },
             };
 
-            await loadSelectedFragments(['/invalid/path'], TABLE_TYPE.CARDS, repo, { onItems });
+            await loadSelectedFragments(['/invalid/path'], TABLE_TYPE.CARDS, repo, {
+                onItems,
+                getDisplayName: mockGetDisplayName,
+            });
 
             expect(onItems.calledWith([])).to.be.true;
         });
@@ -341,7 +362,9 @@ describe('translation-items-loader', () => {
                 },
             };
 
-            await loadSelectedFragments(['/path'], TABLE_TYPE.COLLECTIONS, repo, {});
+            await loadSelectedFragments(['/path'], TABLE_TYPE.COLLECTIONS, repo, {
+                getDisplayName: mockGetDisplayName,
+            });
             expect(repo.aem.getFragmentByPath.called).to.be.true;
         });
 
@@ -365,6 +388,7 @@ describe('translation-items-loader', () => {
             await loadSelectedFragments([cardPath], TABLE_TYPE.CARDS, repo, {
                 signal: abortedController.signal,
                 onItems,
+                getDisplayName: mockGetDisplayName,
             });
 
             expect(onItems.called).to.be.false;
@@ -374,7 +398,7 @@ describe('translation-items-loader', () => {
     describe('loadCardVariations', () => {
         it('should return early when variationPaths is empty', async () => {
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            await loadCardVariations('/card/path', [], repo);
+            await loadCardVariations('/card/path', [], repo, { getDisplayName: mockGetDisplayName });
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
 
@@ -384,13 +408,13 @@ describe('translation-items-loader', () => {
             setCardVariationsByPaths(existingMap);
 
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            await loadCardVariations('/card/path', ['/var/path'], repo);
+            await loadCardVariations('/card/path', ['/var/path'], repo, { getDisplayName: mockGetDisplayName });
 
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
 
         it('should return early when repository is null', async () => {
-            await loadCardVariations('/card/path', ['/var/path'], null);
+            await loadCardVariations('/card/path', ['/var/path'], null, { getDisplayName: mockGetDisplayName });
             expect(Store.translationProjects.groupedVariationsByParent.value?.has('/card/path')).to.be.false;
         });
 
@@ -409,7 +433,7 @@ describe('translation-items-loader', () => {
                 },
             };
 
-            await loadCardVariations(cardPath, [variationPath], repo);
+            await loadCardVariations(cardPath, [variationPath], repo, { getDisplayName: mockGetDisplayName });
 
             expect(repo.aem.getFragmentByPath.calledWith(variationPath)).to.be.true;
             const variationsByPaths = Store.translationProjects.groupedVariationsByParent.value?.get(cardPath);
@@ -437,7 +461,7 @@ describe('translation-items-loader', () => {
                 },
             };
 
-            await loadCardVariations(cardPath, [invalidPath], repo);
+            await loadCardVariations(cardPath, [invalidPath], repo, { getDisplayName: mockGetDisplayName });
 
             const variationsByPaths = Store.translationProjects.groupedVariationsByParent.value?.get(cardPath);
             expect(variationsByPaths).to.exist;
@@ -451,7 +475,7 @@ describe('translation-items-loader', () => {
                 aem: { getFragmentByPath: sinon.stub().rejects(new Error('Network error')) },
             };
 
-            await loadCardVariations(cardPath, [variationPath], repo);
+            await loadCardVariations(cardPath, [variationPath], repo, { getDisplayName: mockGetDisplayName });
 
             expect(repo.aem.getFragmentByPath.calledWith(variationPath)).to.be.true;
             const variationsMap = Store.translationProjects.groupedVariationsByParent.value?.get(cardPath);
@@ -479,7 +503,7 @@ describe('translation-items-loader', () => {
                 aem: { getFragmentByPath: sinon.stub().resolves(mockVar) },
             };
 
-            await loadCardVariations(cardPath2, [varPath2], repo);
+            await loadCardVariations(cardPath2, [varPath2], repo, { getDisplayName: mockGetDisplayName });
 
             const result = Store.translationProjects.groupedVariationsByParent.value;
             expect(result.has(cardPath1)).to.be.true;
@@ -493,19 +517,19 @@ describe('translation-items-loader', () => {
         const variationPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
 
         it('should return false when repository is null', async () => {
-            const result = await fetchVariationByPath(variationPath, null);
+            const result = await fetchVariationByPath(variationPath, null, { getDisplayName: mockGetDisplayName });
             expect(result).to.be.false;
         });
 
         it('should return false when repository has no getFragmentByPath', async () => {
-            const result = await fetchVariationByPath(variationPath, {});
+            const result = await fetchVariationByPath(variationPath, {}, { getDisplayName: mockGetDisplayName });
             expect(result).to.be.false;
         });
 
         it('should return false when path is not a grouped variation path', async () => {
             const cardPath = '/content/dam/mas/acom/en_US/cards/card1';
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            const result = await fetchVariationByPath(cardPath, repo);
+            const result = await fetchVariationByPath(cardPath, repo, { getDisplayName: mockGetDisplayName });
             expect(result).to.be.false;
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
@@ -513,7 +537,7 @@ describe('translation-items-loader', () => {
         it('should return false when path has no /pzn/ segment', async () => {
             const invalidPath = '/content/dam/mas/acom/en_US/cards/parent/invalid/var1';
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            const result = await fetchVariationByPath(invalidPath, repo);
+            const result = await fetchVariationByPath(invalidPath, repo, { getDisplayName: mockGetDisplayName });
             expect(result).to.be.false;
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
@@ -522,7 +546,7 @@ describe('translation-items-loader', () => {
             const repo = {
                 aem: { getFragmentByPath: sinon.stub().rejects(new Error('Network error')) },
             };
-            const result = await fetchVariationByPath(variationPath, repo);
+            const result = await fetchVariationByPath(variationPath, repo, { getDisplayName: mockGetDisplayName });
             expect(result).to.be.false;
         });
 
@@ -536,7 +560,7 @@ describe('translation-items-loader', () => {
                 aem: { getFragmentByPath: sinon.stub().resolves(mockVariation) },
             };
 
-            const result = await fetchVariationByPath(variationPath, repo);
+            const result = await fetchVariationByPath(variationPath, repo, { getDisplayName: mockGetDisplayName });
 
             expect(result).to.be.true;
             const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
@@ -553,20 +577,22 @@ describe('translation-items-loader', () => {
 
         it('should not fetch when selectedCards is empty', async () => {
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            await fetchUnresolvedVariations([], new Map(), new Map(), repo);
+            await fetchUnresolvedVariations([], new Map(), new Map(), repo, { getDisplayName: mockGetDisplayName });
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
 
         it('should not fetch when selectedCards is null', async () => {
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            await fetchUnresolvedVariations(null, new Map(), new Map(), repo);
+            await fetchUnresolvedVariations(null, new Map(), new Map(), repo, { getDisplayName: mockGetDisplayName });
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
 
         it('should skip non-grouped-variation paths', async () => {
             const defaultCardPath = '/content/dam/mas/acom/en_US/cards/card1';
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            await fetchUnresolvedVariations([defaultCardPath], new Map(), new Map(), repo);
+            await fetchUnresolvedVariations([defaultCardPath], new Map(), new Map(), repo, {
+                getDisplayName: mockGetDisplayName,
+            });
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
 
@@ -574,7 +600,9 @@ describe('translation-items-loader', () => {
             const cardsByPaths = new Map();
             cardsByPaths.set(variationPath, { path: variationPath });
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            await fetchUnresolvedVariations([variationPath], cardsByPaths, new Map(), repo);
+            await fetchUnresolvedVariations([variationPath], cardsByPaths, new Map(), repo, {
+                getDisplayName: mockGetDisplayName,
+            });
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
 
@@ -585,7 +613,9 @@ describe('translation-items-loader', () => {
             const groupedVariationsByParent = new Map();
             groupedVariationsByParent.set(cardPath, variationsMap);
             const repo = { aem: { getFragmentByPath: sinon.stub() } };
-            await fetchUnresolvedVariations([variationPath], new Map(), groupedVariationsByParent, repo);
+            await fetchUnresolvedVariations([variationPath], new Map(), groupedVariationsByParent, repo, {
+                getDisplayName: mockGetDisplayName,
+            });
             expect(repo.aem.getFragmentByPath.called).to.be.false;
         });
 
@@ -599,7 +629,9 @@ describe('translation-items-loader', () => {
                 aem: { getFragmentByPath: sinon.stub().resolves(mockVariation) },
             };
 
-            await fetchUnresolvedVariations([variationPath], new Map(), new Map(), repo);
+            await fetchUnresolvedVariations([variationPath], new Map(), new Map(), repo, {
+                getDisplayName: mockGetDisplayName,
+            });
 
             expect(repo.aem.getFragmentByPath.calledWith(variationPath)).to.be.true;
             const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
@@ -613,7 +645,9 @@ describe('translation-items-loader', () => {
                 aem: { getFragmentByPath: sinon.stub().rejects(new Error('Network error')) },
             };
 
-            await fetchUnresolvedVariations([variationPath], new Map(), new Map(), repo);
+            await fetchUnresolvedVariations([variationPath], new Map(), new Map(), repo, {
+                getDisplayName: mockGetDisplayName,
+            });
 
             expect(repo.aem.getFragmentByPath.calledWith(variationPath)).to.be.true;
             const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
@@ -631,7 +665,9 @@ describe('translation-items-loader', () => {
                 aem: { getFragmentByPath: sinon.stub().resolves(mockInvalidVariation) },
             };
 
-            await fetchUnresolvedVariations([variationPath], new Map(), new Map(), repo);
+            await fetchUnresolvedVariations([variationPath], new Map(), new Map(), repo, {
+                getDisplayName: mockGetDisplayName,
+            });
 
             expect(repo.aem.getFragmentByPath.calledWith(variationPath)).to.be.true;
             const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
@@ -692,7 +728,9 @@ describe('translation-items-loader', () => {
                 fields: [],
             };
 
-            const { unsubscribe } = loadAllFragments(TABLE_TYPE.CARDS, null, state);
+            const { unsubscribe } = loadAllFragments(TABLE_TYPE.CARDS, null, state, {
+                getDisplayName: mockGetDisplayName,
+            });
             Store.fragments.list.data.set([{ value: new Fragment(card) }]);
             await new Promise((r) => setTimeout(r, 100));
 

@@ -1,5 +1,5 @@
 import { css } from 'lit';
-import { ghostButtonStyles } from './translation-common-styles.css.js';
+import { ghostButtonStyles } from '../styles/table-styles.css.js';
 
 export const styles = [
     ghostButtonStyles,

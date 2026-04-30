@@ -26,69 +26,75 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 **Tax Label Display by Country and Customer Segment:**
 > **Note:** The settings in the table apply only to Milo.
 
-| Country/Locale | INDIVIDUAL_COM | TEAM_COM | INDIVIDUAL_EDU | TEAM_EDU |
-|----------------|----------------|----------|----------------|----------|
-| **Europe** |
-| AT_de (Austria) | inkl. MwSt | inkl. MwSt | inkl. MwSt | exkl. MwSt |
-| BE_en (Belgium) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| BE_fr (Belgium) | TTC | HT | TTC | HT |
-| BE_nl (Belgium) | incl. btw | excl. btw | incl. btw | excl. btw |
-| BG_bg (Bulgaria) | вкл. ДДС | без ДДС | вкл. ДДС | без ДДС |
-| CH_de (Switzerland) | inkl. MwSt | exkl. MwSt | inkl. MwSt | exkl. MwSt |
-| CH_fr (Switzerland) | TTC | HT | TTC | HT |
-| CH_it (Switzerland) | incl. IVA | escl. IVA. | incl. IVA | escl. IVA. |
-| CZ_cs (Czech Republic) | včetně DPH | bez DPH | včetně DPH | bez DPH |
-| DE_de (Germany) | inkl. MwSt | exkl. MwSt | inkl. MwSt | exkl. MwSt |
-| DK_da (Denmark) | inkl. moms | ekskl. moms | inkl. moms | ekskl. moms |
-| EE_et (Estonia) | käibemaksuga | käibemaksuta | käibemaksuga | käibemaksuta |
-| ES_es (Spain) | IVA incluido | sin IVA | IVA incluido | sin IVA |
-| FI_fi (Finland) | sis. ALV:n | ilman ALV:tä | sis. ALV:n | ilman ALV:tä |
-| FR_fr (France) | TTC | HT | TTC | HT |
-| GB_en (United Kingdom) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| GR_el (Greece) | συμπερ. ΦΠΑ | εξαιρ. ΦΠΑ | συμπερ. ΦΠΑ | εξαιρ. ΦΠΑ |
-| GR_en (Greece) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| HU_hu (Hungary) | áfával | áfa nélkül | áfával | áfa nélkül |
-| IE_en (Ireland) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| IT_it (Italy) | incl. IVA | escl. IVA. | incl. IVA | escl. IVA. |
-| LT_lt (Lithuania) | su PVM | be PVM | su PVM | – |
-| LU_de (Luxembourg) | inkl. MwSt | exkl. MwSt | inkl. MwSt | exkl. MwSt |
-| LU_en (Luxembourg) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| LU_fr (Luxembourg) | TTC | HT | TTC | HT |
-| LV_lv (Latvia) | ar PVN | bez PVN | ar PVN | – |
-| NL_nl (Netherlands) | incl. btw | excl. btw | incl. btw | excl. btw |
-| NO_nb (Norway) | inkl. mva | ekskl. mva | inkl. mva | ekskl. mva |
-| PL_pl (Poland) | w tym VAT | bez VAT | w tym VAT | bez VAT |
-| PT_pt (Portugal) | IVA incluso | IVA não incluso | IVA incluso | IVA não incluso |
-| RO_ro (Romania) | cu TVA | fără TVA | cu TVA | fără TVA |
-| SE_sv (Sweden) | inkl. moms | exkl. moms | inkl. moms | exkl. moms |
-| SI_sl (Slovenia) | z DDV-jem | brez DDV-ja | z DDV-jem | brez DDV-ja |
-| SK_sk (Slovakia) | vrátane DPH | bez DPH | vrátane DPH | bez DPH |
-| TR_tr (Turkey) | KDV dahil | KDV hariç | KDV dahil | KDV hariç |
-| UA_uk (Ukraine) | з ПДВ | без урахування ПДВ | з ПДВ | без урахування ПДВ |
-| **Asia-Pacific** |
-| AU_en (Australia) | incl. GST | incl. GST | incl. GST | incl. GST |
-| ID_en (Indonesia) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| ID_in (Indonesia) | termasuk PPN | sebelum PPN | termasuk PPN | sebelum PPN |
-| IN_en (India) | incl. GST | excl. GST | incl. GST | excl. GST |
-| IN_hi (India) | GST सहित | GST अतिरिक्त | GST सहित | GST अतिरिक्त |
-| JP_ja (Japan) | 税込 | 税込 | 税込 | 税込 |
-| KR_ko (South Korea) | 부가세 포함 | 부가세 별도 | – | 부가세 별도 |
-| MY_en (Malaysia) | incl. SST | excl. SST | incl. SST | excl. SST |
-| MY_ms (Malaysia) | termasuk SST | SST dikecualikan | termasuk SST | SST dikecualikan |
-| NZ_en (New Zealand) | incl. GST | incl. GST | incl. GST | incl. GST |
-| SG_en (Singapore) | incl. GST | – | incl. GST | excl. GST |
-| TH_en (Thailand) | incl. VAT | incl. VAT | incl. VAT | incl. VAT |
-| TH_th (Thailand) | รวม VAT | รวม VAT | รวม VAT | รวม VAT |
-| **Middle East & Africa** |
-| EG_ar (Egypt) | بالضريبة | باستثناء ضريبة | بالضريبة | باستثناء ضريبة |
-| EG_en (Egypt) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| MU_en (Mauritius) | excl. VAT | excl. VAT | excl. VAT | excl. VAT |
-| NG_en (Nigeria) | incl. VAT | incl. VAT | – | – |
-| SA_ar (Saudi Arabia) | بالضريبة | – | بالضريبة | – |
-| SA_en (Saudi Arabia) | incl. VAT | – | incl. VAT | – |
-| ZA_en (South Africa) | incl. VAT | excl. VAT | incl. VAT | excl. VAT |
-| **Latin America** |
-| CO_es (Colombia) | – | IVA no incluido | – | – |
+| Country/Locale | INDIVIDUAL | TEAM |
+| --- | --- | --- |
+| **Europe** |     |     |
+| AT_de (Austria) | inkl. MwSt | exkl. MwSt |
+| BE_en (Belgium) | incl. VAT | excl. VAT |
+| BE_fr (Belgium) | TTC | HT  |
+| BE_nl (Belgium) | incl. btw | excl. btw |
+| BG_bg (Bulgaria) | вкл. ДДС | без ДДС |
+| CH_de (Switzerland) | inkl. MwSt | exkl. MwSt |
+| CH_fr (Switzerland) | TTC | HT  |
+| CH_it (Switzerland) | incl. IVA | escl. IVA. |
+| CZ_cs (Czech Republic) | včetně DPH | bez DPH |
+| DE_de (Germany) | inkl. MwSt | exkl. MwSt |
+| DK_da (Denmark) | inkl. moms | ekskl. moms |
+| EE_et (Estonia) | käibemaksuga | käibemaksuta |
+| ES_es (Spain) | IVA incluido | sin IVA |
+| FI_fi (Finland) | sis. ALV:n | ilman ALV:tä |
+| FR_fr (France) | TTC | HT  |
+| GB_en (United Kingdom) | incl. VAT | excl. VAT |
+| GR_el (Greece) | συμπερ. ΦΠΑ | εξαιρ. ΦΠΑ |
+| GR_en (Greece) | incl. VAT | excl. VAT |
+| HU_hu (Hungary) | áfával | áfa nélkül |
+| IE_en (Ireland) | incl. VAT | excl. VAT |
+| IT_it (Italy) | incl. IVA | escl. IVA. |
+| LT_lt (Lithuania) | su PVM | be PVM |
+| LU_de (Luxembourg) | inkl. MwSt | exkl. MwSt |
+| LU_en (Luxembourg) | incl. VAT | excl. VAT |
+| LU_fr (Luxembourg) | TTC | HT  |
+| LV_lv (Latvia) | ar PVN | bez PVN |
+| NL_nl (Netherlands) | incl. btw | excl. btw |
+| NO_nb (Norway) | inkl. moms | uten moms |
+| PL_pl (Poland) | w tym VAT | bez VAT |
+| PT_pt (Portugal) | IVA incluso | IVA não incluso |
+| RO_ro (Romania) | cu TVA | fără TVA |
+| SE_sv (Sweden) | inkl. moms | exkl. moms |
+| SI_sl (Slovenia) | z DDV-jem | brez DDV-ja |
+| SK_sk (Slovakia) | vrátane DPH | bez DPH |
+| TR_tr (Turkey) | KDV dahil | KDV hariç |
+| UA_uk (Ukraine) | з ПДВ | без урахування ПДВ |
+| **Asia-Pacific** |     |     |
+| AU_en (Australia) | incl. GST | incl. GST |
+| ID_en (Indonesia) | incl. VAT | excl. VAT |
+| ID_id (Indonesia) | termasuk PPN | sebelum PPN |
+| IN_en (India) | incl. GST | excl. GST |
+| IN_hi (India) | GST सहित | GST अतिरिक्त |
+| JP_ja (Japan) | 税込  | 税込  |
+| KR_ko (South Korea) | 부가세 포함 | 부가세 별도 |
+| MY_en (Malaysia) | incl. SST | excl. SST |
+| MY_ms (Malaysia) | termasuk SST | SST dikecualikan |
+| NZ_en (New Zealand) | incl. GST | incl. GST |
+| SG_en (Singapore) | incl. GST | excl. GST |
+| TH_en (Thailand) | incl. VAT | incl. VAT |
+| TH_th (Thailand) | รวม VAT | รวม VAT |
+| VN_en (Vietnam) | \-  | excl. VAT |
+| VN_vi (Vietnam) | \-  | chưa bao gồm VAT |
+| **Middle East & Africa** |     |     |
+| EG_ar (Egypt) | بالضريبة | باستثناء ضريبة |
+| EG_en (Egypt) | incl. VAT | excl. VAT |
+| MU_en (Mauritius) | excl. VAT | excl. VAT |
+| NG_en (Nigeria) | incl. VAT | incl. VAT |
+| SA_ar (Saudi Arabia) | بالضريبة | باستثناء ضريبة |
+| SA_en (Saudi Arabia) | incl. VAT | excl. VAT |
+| ZA_en (South Africa) | incl. VAT | incl. VAT |
+| **Latin America** |     |     |
+| CO_es (Colombia) | IVA incluido | sin IVA |
+| PE_es (Peru) | IVA incluido | IVA incluido |
+| AR_es (Argentina) | impuestos incluidos | sin impuestos |
+| MX_es (Mexico) | sin IVA | sin IVA |
+| CL_es (Chile) | sin IVA | sin IVA |
 
 For the rest of the countries tax label is not displayed by default.
 

@@ -1,7 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '../src/constants.js';
+import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 
@@ -2632,6 +2632,44 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.updateParentVariations.calledOnce).to.be.true;
             expect(repository.updateParentVariations.calledWith(parentFragment, createdFragment.path)).to.be.true;
             expect(result).to.deep.equal(createdFragment);
+        });
+
+        it('creates grouped variation for merch-card-collection without CF pznTags field and copies merged metadata tags', async () => {
+            const repository = createRepository();
+            const collectionParent = {
+                ...parentFragment,
+                model: { id: 'collection-model-id', path: COLLECTION_MODEL_PATH },
+            };
+            const createdDraft = { id: 'new-coll-grouped-id' };
+            const createdFragment = {
+                id: 'new-coll-grouped-id',
+                path: '/content/dam/mas/sandbox/en_US/merch-card-collection/pzn/new-grouped',
+            };
+            const createStub = sandbox.stub().resolves(createdDraft);
+            const copyFragmentTagsStub = sandbox.stub().resolves();
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(collectionParent),
+                    getByPath: sandbox.stub().resolves(null),
+                    ensureFolderExists: sandbox.stub().resolves(),
+                    create: createStub,
+                    copyFragmentTags: copyFragmentTagsStub,
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'updateParentVariations').resolves(collectionParent);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: collectionParent.id }) }]);
+
+            const pznTags = ['mas:locale/ar_AE'];
+            await repository.createGroupedVariation(collectionParent.id, pznTags, {
+                productArrangementCode: 'merch-card-collection',
+            });
+
+            expect(createStub.firstCall.args[0].fields).to.deep.equal([]);
+            expect(copyFragmentTagsStub.calledOnce).to.be.true;
+            expect(copyFragmentTagsStub.firstCall.args[1]).to.deep.equal([...collectionParent.tags, ...pznTags]);
         });
 
         it('resolves parent fragment via repository resolver when source fragment is grouped', async () => {

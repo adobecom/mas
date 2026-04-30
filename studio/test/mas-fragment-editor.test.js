@@ -5,11 +5,11 @@ import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
-import { PAGE_NAMES, CARD_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
+import { PAGE_NAMES, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
-import { nothing } from 'lit';
+import { nothing, render } from 'lit';
 
 describe('MasFragmentEditor', () => {
     let sandbox;
@@ -1071,6 +1071,24 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             const header = el.localeVariationHeader;
             expect(header).to.not.equal(nothing);
+        });
+
+        it('renders grouped variation header from metadata tags for collection when pznTags field is empty', () => {
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            const fragment = new Fragment({
+                id: 'var-id',
+                path: '/content/dam/mas/sandbox/en_US/merch-card-collection/pzn/my-variation',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [{ id: 'mas:locale/de_DE' }, { id: 'mas:locale/fr_FR' }],
+            });
+            el.inEdit.value = { get: () => fragment };
+            const header = el.localeVariationHeader;
+            const wrap = document.createElement('div');
+            render(header, wrap);
+            expect(wrap.textContent).to.include('Grouped variation:');
+            expect(wrap.textContent).to.include('de_DE');
+            expect(wrap.textContent).to.include('fr_FR');
         });
 
         it('renders derived from container', async () => {

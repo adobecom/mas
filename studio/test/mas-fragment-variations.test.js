@@ -50,6 +50,24 @@ describe('MasFragmentVariations', () => {
             });
             expect(el.getGroupedVariationTagsValue(variation)).to.equal('');
         });
+
+        it('returns metadata tags when pznTags field is missing', async () => {
+            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+            const variation = createVariationFragment({
+                fields: [],
+                tags: [{ id: 'mas:locale/de_DE' }],
+            });
+            expect(el.getGroupedVariationTagsValue(variation)).to.equal('mas:locale/de_DE');
+        });
+
+        it('returns locale and pzn metadata tags when pznTags field is missing', async () => {
+            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+            const variation = createVariationFragment({
+                fields: [],
+                tags: [{ id: 'mas:product_code/foo' }, { id: 'mas:locale/fr_FR' }, { id: 'mas:pzn/segment' }],
+            });
+            expect(el.getGroupedVariationTagsValue(variation)).to.equal('mas:locale/fr_FR,mas:pzn/segment');
+        });
     });
 
     describe('getPromoCode', () => {
@@ -77,13 +95,16 @@ describe('MasFragmentVariations', () => {
             expect(el.duplicatePznTags).to.deep.equal(['mas:pzn/tag-a', 'mas:pzn/tag-b']);
         });
 
-        it('sets duplicatePznTags to empty array when source has no pznTags', async () => {
+        it('pre-populates duplicatePznTags from metadata when pznTags field is missing', async () => {
             const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
-            const variation = createVariationFragment({ fields: [] });
+            const variation = createVariationFragment({
+                fields: [],
+                tags: [{ id: 'mas:locale/es_CL' }],
+            });
 
             el.openDuplicateDialog(variation);
 
-            expect(el.duplicatePznTags).to.deep.equal([]);
+            expect(el.duplicatePznTags).to.deep.equal(['mas:locale/es_CL']);
         });
     });
 

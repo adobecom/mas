@@ -36,12 +36,18 @@
 
             import '../libs/swc.js';
             import '../src/mas-variation-dialog.js';
-            import { EVENT_KEYDOWN } from '../src/constants.js';
+            import {
+                EVENT_KEYDOWN,
+                CARD_MODEL_PATH,
+                COLLECTION_MODEL_PATH,
+                COLLECTION_GROUPED_VARIATION_PAC,
+            } from '../src/constants.js';
             import { delay, oneEvent } from './utils.js';
             import Store from '../src/store.js';
 
             const mockFragment = {
                 id: 'test-fragment-id',
+                model: { path: CARD_MODEL_PATH },
                 path: '/content/dam/mas/commerce/en_US/test-fragment',
                 fields: [{ name: 'variations', values: ['/content/dam/mas/commerce/en_AU/test-fragment'] }],
                 getFieldValue(name, index = 0) {
@@ -373,6 +379,28 @@
                             expect(
                                 mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/fr_FR'], {
                                     productArrangementCode: 'pac-from-resolved-offer',
+                                }),
+                            ).to.be.true;
+                        });
+
+                        it('should use collection PAC for merch-card-collection without OSI when offerData is not preloaded', async () => {
+                            dialog.fragment = {
+                                ...mockFragment,
+                                model: { path: COLLECTION_MODEL_PATH },
+                                path: '/content/dam/mas/sandbox/en_US/my-collection',
+                                fields: [{ name: 'variations', values: [] }],
+                            };
+                            dialog.variationType = 'grouped';
+                            dialog.pznTags = ['mas:locale/ar_AE'];
+                            dialog.offerData = null;
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(mockRepository.createGroupedVariation.calledOnce).to.be.true;
+                            expect(
+                                mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/ar_AE'], {
+                                    productArrangementCode: COLLECTION_GROUPED_VARIATION_PAC,
                                 }),
                             ).to.be.true;
                         });

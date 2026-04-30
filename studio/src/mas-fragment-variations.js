@@ -6,6 +6,7 @@ import { createPreviewDataWithParent } from './reactivity/source-fragment-store.
 import { styles } from './mas-fragment-variations.css.js';
 import { extractLocaleFromPath, showToast } from './utils.js';
 import router from './router.js';
+import { normalizeTagId } from './aem/tag-id-utils.js';
 import './aem/aem-tag-picker-field.js';
 
 const styleElement = document.createElement('style');
@@ -66,13 +67,24 @@ class MasFragmentVariations extends LitElement {
 
     /**
      * Returns pznTags value as a comma-separated string for aem-tag-picker-field.
+     * Falls back to metadata tags (mas:locale/*, mas:pzn/*) for collections.
      * @param {Object} variationFragment
      * @returns {string}
      */
     getGroupedVariationTagsValue(variationFragment) {
         const pznTagsField = variationFragment.fields?.find((field) => field.name === 'pznTags');
-        const tags = pznTagsField?.values || [];
-        return tags.join(',');
+        const fromField = pznTagsField?.values || [];
+        if (fromField.length) return fromField.join(',');
+        const seen = new Set();
+        const fromMeta = [];
+        for (const ref of variationFragment.tags || []) {
+            const id = normalizeTagId(ref);
+            if (id && !seen.has(id) && (id.startsWith('mas:locale/') || id.startsWith('mas:pzn/'))) {
+                seen.add(id);
+                fromMeta.push(id);
+            }
+        }
+        return fromMeta.join(',');
     }
 
     /**

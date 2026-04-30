@@ -144,6 +144,8 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 
+export const COLLECTION_GROUPED_VARIATION_PAC = 'merch-card-collection';
+
 export const FIELD_MODEL_MAPPING = {
     [CARD_MODEL_PATH]: 'cards',
     [COLLECTION_MODEL_PATH]: 'collections',

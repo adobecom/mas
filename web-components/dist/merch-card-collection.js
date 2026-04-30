@@ -639,10 +639,16 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   }
 
   /* Style each mnemonic-list as a footer row */
+  /*
+   * Public API: --merch-whats-included-divider-color
+   * Set on <merch-card> (or any ancestor) to recolor the row divider
+   * above each merch-mnemonic-list row inside merch-whats-included.
+   * Fallback preserves the existing variant color for unset consumers.
+   */
   merch-card[variant="mini-compare-chart"] merch-mnemonic-list {
     width: 100%;
     margin-inline: 0;
-    border-top: 1px solid var(--consonant-merch-card-mini-compare-border-color);
+    border-top: 1px solid var(--merch-whats-included-divider-color, var(--consonant-merch-card-mini-compare-border-color));
     display: flex;
     gap: var(--consonant-merch-spacing-xs);
     justify-content: start;

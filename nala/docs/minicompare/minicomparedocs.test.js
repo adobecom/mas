@@ -82,4 +82,42 @@ test.describe('Minicompare gallery feature test suite', () => {
             }
         });
     });
+
+    test(`${features[2].name},${features[2].tags}`, async () => {
+        const { data } = features[2];
+        const page = workerSetup.getPage('US');
+        galleryPage = new MasMinicompare(page);
+
+        await test.step('step-1: Go to Minicompare gallery page', async () => {
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.MINICOMPARE, expect);
+        });
+
+        await test.step('step-2: Default divider color matches the variant fallback (no regression)', async () => {
+            const card = galleryPage.getCard(data.id);
+            await expect(card).toBeVisible();
+            const row = galleryPage.getMnemonicRow(data.id, 0);
+            await expect(row).toBeVisible();
+            const defaultColor = await row.evaluate((el) => window.getComputedStyle(el).borderTopColor);
+            expect(defaultColor).toBe(data.defaultDividerColor);
+        });
+
+        await test.step('step-3: Setting --merch-whats-included-divider-color on <merch-card> recolors the divider', async () => {
+            const card = galleryPage.getCard(data.id);
+            await card.evaluate(
+                (el, color) => el.style.setProperty('--merch-whats-included-divider-color', color),
+                data.overrideDividerColor,
+            );
+            const row = galleryPage.getMnemonicRow(data.id, 0);
+            const overriddenColor = await row.evaluate((el) => window.getComputedStyle(el).borderTopColor);
+            expect(overriddenColor).toBe(data.overrideDividerColor);
+        });
+
+        await test.step('step-4: Removing the override restores the default color', async () => {
+            const card = galleryPage.getCard(data.id);
+            await card.evaluate((el) => el.style.removeProperty('--merch-whats-included-divider-color'));
+            const row = galleryPage.getMnemonicRow(data.id, 0);
+            const restoredColor = await row.evaluate((el) => window.getComputedStyle(el).borderTopColor);
+            expect(restoredColor).toBe(data.defaultDividerColor);
+        });
+    });
 });

@@ -27,7 +27,9 @@ nala/.auth/
 /.cursor*/
 .CLAUDE.md
 **/CLAUDE.md
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 .logs/
 .specify/
 .worktrees/

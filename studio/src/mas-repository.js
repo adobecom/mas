@@ -30,6 +30,7 @@ import {
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    COMPAT_VERSION,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
@@ -84,6 +85,21 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     cacheData.fields = normalizedFields;
 
     fragmentCache.add(cacheData);
+}
+
+function ensureCompatVersionOnMerchCardFieldList(modelPath, fields) {
+    if (modelPath !== CARD_MODEL_PATH) return false;
+    const idx = fields.findIndex((f) => f.name === 'compatVersion');
+    const valuesEmpty = (vals) => !vals?.length || vals[0] === '' || vals[0] == null;
+    if (idx === -1) {
+        fields.push({ name: 'compatVersion', type: 'number', values: [COMPAT_VERSION] });
+        return true;
+    }
+    if (valuesEmpty(fields[idx].values)) {
+        fields[idx] = { ...fields[idx], type: fields[idx].type || 'number', values: [COMPAT_VERSION] };
+        return true;
+    }
+    return false;
 }
 
 export class MasRepository extends LitElement {
@@ -1170,7 +1186,7 @@ export class MasRepository extends LitElement {
                     if (key === 'tags') {
                         fields.push({ name: key, type: 'tag', values: value });
                     } else {
-                        const type = key === 'locReady' ? 'boolean' : 'text';
+                        const type = key === 'locReady' ? 'boolean' : key === 'compatVersion' ? 'number' : 'text';
                         fields.push({ name: key, type, values: [value] });
                     }
                     return fields;
@@ -1266,6 +1282,11 @@ export class MasRepository extends LitElement {
             return false;
         }
 
+        if (!fragmentToSave.fields) {
+            fragmentToSave.fields = [];
+        }
+        ensureCompatVersionOnMerchCardFieldList(fragmentToSave.model?.path, fragmentToSave.fields);
+
         try {
             const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave);
             if (!savedFragment) throw new Error('Invalid fragment.');
@@ -1328,7 +1349,11 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.CLONE);
             const result = await this.aem.sites.cf.fragments.copy(this.fragmentInEdit);
             let savedResult = result;
-            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi;
+            if (!result.fields) {
+                result.fields = [];
+            }
+            const needsCompatSave = ensureCompatVersionOnMerchCardFieldList(result.model?.path, result.fields);
+            const needsSave = (updatedTitle && updatedTitle !== result.title) || osi || needsCompatSave;
             if (needsSave) {
                 if (updatedTitle && updatedTitle !== result.title) {
                     result.title = updatedTitle;
@@ -1602,13 +1627,16 @@ export class MasRepository extends LitElement {
             throw new Error(`A variation already exists at ${targetPath}`);
         }
 
+        const createFields = [];
+        ensureCompatVersionOnMerchCardFieldList(parentFragment.model?.path, createFields);
+
         const newFragment = await this.aem.sites.cf.fragments.create({
             title: parentFragment.title,
             description: parentFragment.description,
             modelId: parentFragment.model.id,
             parentPath: targetFolder,
             name: fragmentName,
-            fields: [],
+            fields: createFields,
         });
 
         if (parentFragment.tags?.length) {
@@ -1891,8 +1919,11 @@ export class MasRepository extends LitElement {
             fragmentName = `${fragmentName}-${suffix}`;
         }
 
-        const initialFields =
-            !isCollection && pznTags?.length ? [{ name: 'pznTags', type: 'tag', multiple: true, values: pznTags }] : [];
+        const groupedFields = [];
+        if (!isCollection && pznTags?.length) {
+          groupedFields.push({ name: 'pznTags', type: 'tag', multiple: true, values: pznTags });
+        }
+        ensureCompatVersionOnMerchCardFieldList(parentFragment.model?.path, groupedFields);
 
         const newFragment = await this.aem.sites.cf.fragments.create({
             title: parentFragment.title,
@@ -1900,7 +1931,7 @@ export class MasRepository extends LitElement {
             modelId: parentFragment.model.id,
             parentPath: targetFolder,
             name: fragmentName,
-            fields: initialFields,
+            fields: groupedFields,
         });
 
         if (isCollection) {
@@ -1960,6 +1991,8 @@ export class MasRepository extends LitElement {
         const fieldsToClone = sourceFragment.fields
             .filter((field) => field.name !== 'variations')
             .map((field) => (field.name === 'pznTags' ? { ...field, values: pznTags } : field));
+
+        ensureCompatVersionOnMerchCardFieldList(sourceFragment.model?.path, fieldsToClone);
 
         const newFragment = await this.aem.sites.cf.fragments.create({
             title: sourceFragment.title,

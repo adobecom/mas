@@ -28,8 +28,16 @@ const config = {
     forbidOnly: !!process.env.CI,
     /* Retry on CI only */
     retries: process.env.CI ? 1 : 0,
-    /* Opt out of parallel tests on CI. */
-    workers: process.env.CI ? 4 : 3,
+    /*
+     * EDS (~200 rps / hostname). EDS pacing in nala/libs/eds-throttle.js is per *worker*; multiple
+     * workers multiply traffic to the same preview host → 429s. Default CI workers=1; override
+     * with NALA_PLAYWRIGHT_WORKERS only if EDS grants a higher automation cap.
+     */
+    workers: (() => {
+        const fromEnv = Number.parseInt(process.env.NALA_PLAYWRIGHT_WORKERS ?? '', 10);
+        if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
+        return process.env.CI ? 2 : 3;
+    })(),
     /* Reporter to use. */
     reporter: process.env.CI
         ? [['github'], ['list'], ['./nala/utils/base-reporter.js']]
@@ -78,7 +86,11 @@ const config = {
             },
             bypassCSP: true,
             launchOptions: {
-                args: ['--disable-web-security', '--disable-gpu'],
+                // --disable-http2 forces HTTP/1.1, capping concurrent connections at 6 per
+                // origin. This prevents the browser from multiplexing all ~150 studio JS
+                // module requests simultaneously over HTTP/2, which would burst past the
+                // 200 RPS per-hostname limit now enforced by AEM.live on feature branches.
+                args: ['--disable-web-security', '--disable-gpu', '--disable-http2'],
             },
             dependencies: ['setup'],
             testMatch: /nala\/studio\/.*\.test\.js/,

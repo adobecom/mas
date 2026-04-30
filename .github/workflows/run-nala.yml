@@ -91,6 +91,10 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
+                  # CDN cache is warmed by gh.run.sh before tests start, so the per-request
+                  # EDS throttle (eds-throttle.js) is not needed. Re-enable if 429s return.
+                  NALA_EDS_THROTTLE_DISABLED: 1
+                  NALA_PLAYWRIGHT_WORKERS: 4
 
             - name: Cleanup cloned cards
               if: always()

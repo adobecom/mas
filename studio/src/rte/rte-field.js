@@ -1195,6 +1195,7 @@ class RteField extends LitElement {
             const parser = DOMParser.fromSchema(this.#editorSchema);
             const doc = parser.parse(container);
             const tr = this.editorView.state.tr.replaceWith(0, this.editorView.state.doc.content.size, doc.content);
+            tr.setMeta('external', true);
             this.editorView.dispatch(tr);
         } catch (error) {
             console.error('Error updating editor content:', error);
@@ -1217,11 +1218,12 @@ class RteField extends LitElement {
                 const value = this.#serializeContent(newState);
                 // skip change event during initialization
                 const isFirstChange = transaction.getMeta('initialize');
+                const isExternalUpdate = transaction.getMeta('external');
                 if (value !== this.value) {
                     this.#isInternalUpdate = true;
                     this.value = value === '<p></p>' ? '' : value;
                     this.#isInternalUpdate = false;
-                    if (isFirstChange) return;
+                    if (isFirstChange || isExternalUpdate) return;
                     this.dispatchEvent(
                         new CustomEvent('change', {
                             bubbles: true,

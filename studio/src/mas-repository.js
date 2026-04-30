@@ -29,6 +29,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
@@ -1870,6 +1871,8 @@ export class MasRepository extends LitElement {
             throw new Error('Product arrangement code not available. The parent fragment must have a resolved offer.');
         }
 
+        const isCollection = parentFragment.model.path === COLLECTION_MODEL_PATH;
+
         const parentPath = parentFragment.path;
         const surface = extractSurfaceFromPath(parentPath);
         if (!surface) {
@@ -1888,16 +1891,24 @@ export class MasRepository extends LitElement {
             fragmentName = `${fragmentName}-${suffix}`;
         }
 
+        const initialFields =
+            !isCollection && pznTags?.length ? [{ name: 'pznTags', type: 'tag', multiple: true, values: pznTags }] : [];
+
         const newFragment = await this.aem.sites.cf.fragments.create({
             title: parentFragment.title,
             description: parentFragment.description,
             modelId: parentFragment.model.id,
             parentPath: targetFolder,
             name: fragmentName,
-            fields: pznTags?.length ? [{ name: 'pznTags', type: 'tag', multiple: true, values: pznTags }] : [],
+            fields: initialFields,
         });
 
-        if (parentFragment.tags?.length) {
+        if (isCollection) {
+            const mergedTags = [...(parentFragment.tags || []), ...(pznTags || [])];
+            if (mergedTags.length) {
+                await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, mergedTags);
+            }
+        } else if (parentFragment.tags?.length) {
             await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, parentFragment.tags);
         }
 

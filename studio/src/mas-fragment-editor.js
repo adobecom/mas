@@ -21,6 +21,7 @@ import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
 import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { normalizeTagId } from './aem/tag-id-utils.js';
 import { branch2Icon } from './icons.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
@@ -1360,13 +1361,18 @@ export default class MasFragmentEditor extends LitElement {
 
     displayGroupedVariationInfo(clazz) {
         if (!Fragment.isGroupedVariationPath(this.fragment?.path)) return nothing;
-        const pznTags = this.fragment.getFieldValues('pznTags') || [];
-        if (pznTags.length === 0) return nothing;
-        // Extract locale codes from tag paths like "/content/cq:tags/mas/locale/fr_FR"
-        const localeCodes = pznTags.map((tag) => {
-            const parts = tag.split('/');
-            return parts[parts.length - 1];
-        });
+        let pznTags = this.fragment.getFieldValues('pznTags') || [];
+        if (!pznTags.length && this.fragment.model?.path === COLLECTION_MODEL_PATH) {
+            pznTags = [
+                ...new Set(
+                    (this.fragment.tags || [])
+                        .map(normalizeTagId)
+                        .filter((id) => id && (id.startsWith('mas:locale/') || id.startsWith('mas:pzn/'))),
+                ),
+            ];
+        }
+        if (!pznTags.length) return nothing;
+        const localeCodes = pznTags.map((tag) => tag.split('/').at(-1));
         return html`<div class="${clazz}">
             <span>Grouped variation: <strong>${localeCodes.join(', ')}</strong></span>
         </div>`;

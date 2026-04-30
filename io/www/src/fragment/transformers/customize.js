@@ -108,6 +108,20 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     return matchedTokens * 100 + (regionMatch ? 20 : 0) + (countryMatch ? 10 : 0);
 }
 
+function pznTagIdsForMatching(variation) {
+    const fromField = variation.fields?.pznTags;
+    if (fromField != null && fromField !== '') {
+        const fromFields = Array.isArray(fromField) ? fromField : [fromField];
+        if (fromFields.length) {
+            return fromFields;
+        }
+    }
+    if (Array.isArray(variation.tags)) {
+        return variation.tags.map((t) => (typeof t === 'string' ? t : t?.id)).filter(Boolean);
+    }
+    return [];
+}
+
 function findPersonalizationVariation(variations, customizeContext) {
     const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
     const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
@@ -124,7 +138,7 @@ function findPersonalizationVariation(variations, customizeContext) {
     let best = null;
     let bestScore = 0;
     for (const variation of personalizationVariations) {
-        const score = personalizationMatchScore(variation.fields?.pznTags, { regionLocale, country, pzn });
+        const score = personalizationMatchScore(pznTagIdsForMatching(variation), { regionLocale, country, pzn });
         logDebug(() => `variation ${variation.id} scored ${score}`, customizeContext);
         if (score > bestScore) {
             bestScore = score;

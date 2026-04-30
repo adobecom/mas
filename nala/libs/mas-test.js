@@ -86,10 +86,7 @@ const masTest = base.extend({
         const onBrowserConsole = (msg) => {
             if (msg.type() !== 'error') return;
             const loc = msg.location();
-            const where =
-                loc?.url && typeof loc.lineNumber === 'number'
-                    ? ` ${loc.url}:${loc.lineNumber}`
-                    : '';
+            const where = loc?.url && typeof loc.lineNumber === 'number' ? ` ${loc.url}:${loc.lineNumber}` : '';
             console.error(`[browser console.error]${where} ${msg.text()}`);
         };
         const onPageError = (err) => {

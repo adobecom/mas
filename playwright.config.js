@@ -28,8 +28,16 @@ const config = {
     forbidOnly: !!process.env.CI,
     /* Retry on CI only */
     retries: process.env.CI ? 1 : 0,
-    /* Opt out of parallel tests on CI. */
-    workers: process.env.CI ? 2 : 3,
+    /*
+     * EDS (aem.live) rate-limits around ~200 RPS per edge context. Each worker drives a full
+     * browser; each page load fans out to many parallel requests. Too many workers → 429s and
+     * flaky "app not loading" in CI. Override with NALA_PLAYWRIGHT_WORKERS (e.g. 1) if needed.
+     */
+    workers: (() => {
+        const fromEnv = Number.parseInt(process.env.NALA_PLAYWRIGHT_WORKERS ?? '', 10);
+        if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
+        return process.env.CI ? 2 : 3;
+    })(),
     /* Reporter to use. */
     reporter: process.env.CI
         ? [['github'], ['list'], ['./nala/utils/base-reporter.js']]

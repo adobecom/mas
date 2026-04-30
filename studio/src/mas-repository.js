@@ -1921,7 +1921,7 @@ export class MasRepository extends LitElement {
 
         const groupedFields = [];
         if (!isCollection && pznTags?.length) {
-          groupedFields.push({ name: 'pznTags', type: 'tag', multiple: true, values: pznTags });
+            groupedFields.push({ name: 'pznTags', type: 'tag', multiple: true, values: pznTags });
         }
         ensureCompatVersionOnMerchCardFieldList(parentFragment.model?.path, groupedFields);
 

@@ -5,7 +5,12 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
-import { getFragmentName, renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
+import {
+    getFragmentName,
+    getOdinLocTaskNameValidationError,
+    ODIN_LOC_TASK_NAME_MAX_LENGTH,
+    renderFragmentStatusCell,
+} from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
 
 describe('translation-utils', () => {
@@ -151,6 +156,43 @@ describe('translation-utils', () => {
                 </sp-table>
             `);
             expect(el.textContent.trim()).to.include('Custom_status');
+        });
+    });
+
+    describe('getOdinLocTaskNameValidationError', () => {
+        it('returns null for valid project title', () => {
+            expect(getOdinLocTaskNameValidationError('ODIN_TASK-test.1')).to.be.null;
+            expect(getOdinLocTaskNameValidationError('test1')).to.be.null;
+            expect(getOdinLocTaskNameValidationError('  ok-name  ')).to.be.null;
+        });
+
+        it('returns null when value uses allowed punctuation with alphanumerics', () => {
+            expect(getOdinLocTaskNameValidationError('a-b_c.d1')).to.be.null;
+        });
+
+        it('rejects empty and whitespace-only', () => {
+            expect(getOdinLocTaskNameValidationError('')).to.be.a('string');
+            expect(getOdinLocTaskNameValidationError('   ')).to.be.a('string');
+            expect(getOdinLocTaskNameValidationError(null)).to.be.a('string');
+        });
+
+        it('rejects names longer than max length', () => {
+            const long = 'a'.repeat(ODIN_LOC_TASK_NAME_MAX_LENGTH + 1);
+            expect(getOdinLocTaskNameValidationError(long)).to.include(`${ODIN_LOC_TASK_NAME_MAX_LENGTH}`);
+        });
+
+        it('rejects names with no alphanumeric character', () => {
+            expect(getOdinLocTaskNameValidationError('._-')).to.be.a('string');
+            expect(getOdinLocTaskNameValidationError('...')).to.be.a('string');
+        });
+
+        it('rejects disallowed characters including spaces', () => {
+            expect(getOdinLocTaskNameValidationError('bad name')).to.be.a('string');
+            expect(getOdinLocTaskNameValidationError('a@b')).to.be.a('string');
+        });
+
+        it('rejects consecutive dots', () => {
+            expect(getOdinLocTaskNameValidationError('task..name-test')).to.be.a('string');
         });
     });
 });

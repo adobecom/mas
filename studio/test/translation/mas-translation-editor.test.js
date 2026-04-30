@@ -19,10 +19,10 @@ describe('MasTranslationEditor', () => {
 
     const createMockFragment = (overrides = {}) => ({
         id: 'test-fragment-id',
-        title: 'Test Translation Project',
+        title: 'Test-Translation-Project',
         path: '/content/dam/mas/translations/test-project',
         fields: [
-            { name: 'title', type: 'text', multiple: false, values: ['Test Translation Project'] },
+            { name: 'title', type: 'text', multiple: false, values: ['Test-Translation-Project'] },
             { name: 'status', type: 'text', multiple: false, values: ['draft'] },
             { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
             {
@@ -414,7 +414,7 @@ describe('MasTranslationEditor', () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'New Title';
+            titleField.value = 'New-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
@@ -674,6 +674,36 @@ describe('MasTranslationEditor', () => {
                     content: 'Please fill in all required fields.',
                 }),
             ).to.be.true;
+        });
+
+        it('should show error when title has consecutive dots on create', async () => {
+            const mockFragment = new Fragment(createMockFragment());
+            const fragmentStore = new FragmentStore(mockFragment);
+            Store.translationProjects.inEdit.set(fragmentStore);
+            const mockRepository = createMockRepository();
+            querySelectorStub.callsFake((selector) => {
+                if (selector === 'mas-repository') return mockRepository;
+                return originalQuerySelector(selector);
+            });
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.isNewTranslationProject = true;
+            Store.translationProjects.targetLocales.set(['pl_PL']);
+            Store.translationProjects.selectedCards.set(['card1']);
+            await el.updateComplete;
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'bad..name';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('save'));
+            await el.updateComplete;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Project title cannot contain two dots in a row.',
+                }),
+            ).to.be.true;
+            expect(mockRepository.createFragment.called).to.be.false;
         });
 
         it('should have createFragment method on repository', async () => {
@@ -994,7 +1024,7 @@ describe('MasTranslationEditor', () => {
 
     describe('create translation project success', () => {
         it('should create project successfully with valid data', async () => {
-            const newFragment = new Fragment(createMockFragment({ id: 'new-id', title: 'New Project' }));
+            const newFragment = new Fragment(createMockFragment({ id: 'new-id', title: 'New-Project' }));
             const mockRepository = createMockRepository();
             mockRepository.createFragment.resolves(newFragment);
             querySelectorStub.callsFake((selector) => {
@@ -1008,7 +1038,7 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             expect(el.isNewTranslationProject).to.be.true;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Valid Title';
+            titleField.value = 'Valid-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
@@ -1039,7 +1069,7 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             expect(el.isNewTranslationProject).to.be.true;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Valid Title';
+            titleField.value = 'Valid-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
@@ -1069,7 +1099,7 @@ describe('MasTranslationEditor', () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Existing Title';
+            titleField.value = 'Existing-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             el.isNewTranslationProject = false;
@@ -1109,6 +1139,35 @@ describe('MasTranslationEditor', () => {
             ).to.be.true;
         });
 
+        it('should show error when title has a space on update', async () => {
+            const mockRepository = createMockRepository();
+            querySelectorStub.callsFake((selector) => {
+                if (selector === 'mas-repository') return mockRepository;
+                return originalQuerySelector(selector);
+            });
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.targetLocales.set(['pl_PL']);
+            Store.translationProjects.selectedCards.set(['card1']);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'Invalid Title';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            el.isNewTranslationProject = false;
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('save'));
+            await el.updateComplete;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Project title may only use letters, numbers, hyphens, underscores and dots.',
+                }),
+            ).to.be.true;
+            expect(mockRepository.saveFragment.called).to.be.false;
+        });
+
         it('should handle update failure gracefully', async () => {
             const consoleErrorStub = sandbox.stub(console, 'error');
             const mockRepository = createMockRepository();
@@ -1123,7 +1182,7 @@ describe('MasTranslationEditor', () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Valid Title';
+            titleField.value = 'Valid-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             el.isNewTranslationProject = false;
@@ -1302,7 +1361,7 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             // Set some values
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Original Title';
+            titleField.value = 'Original-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             // Set some selected items to trigger the condition for showing dialog

@@ -178,6 +178,10 @@ export class EditorContextStore extends ReactiveStore {
         return this.defaultLocaleId !== fragmentId;
     }
 
+    get isFragmentTranslatable() {
+        return !this.isVariationByPath || this.isGroupedVariationByPath;
+    }
+
     reset() {
         this.localeDefaultFragment = null;
         this.defaultLocaleId = null;

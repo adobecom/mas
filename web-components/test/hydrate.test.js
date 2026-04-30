@@ -628,6 +628,122 @@ describe('hydrate', () => {
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
         litCard.remove();
     });
+
+    it('passes through missing compatVersion as undefined', async () => {
+        const fragment = {
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.compatVersion).to.equal(undefined);
+    });
+
+    it('reads compatVersion from fragment fields', async () => {
+        const fragment = {
+            fields: {
+                variant: 'ccd-slice',
+                compatVersion: 1,
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.compatVersion).to.equal(1);
+    });
+
+    it('passes through string compatVersion from fragment fields unchanged', async () => {
+        const fragment = {
+            fields: {
+                variant: 'ccd-slice',
+                compatVersion: '1',
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.compatVersion).to.equal('1');
+    });
+
+    it('copies fragment promoCode into contextPromotionCode', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'context-promo-card',
+            fields: {
+                variant: 'ccd-slice',
+                promoCode: 'CTX_PROMO',
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        await hydrate(fragment, litCard);
+        // contextPromotionCode is a setter only; it surfaces via promotionCode getter
+        // when no price/checkout descendant carries a data-promotion-code.
+        expect(litCard.promotionCode).to.equal('CTX_PROMO');
+        litCard.remove();
+    });
+});
+
+describe('MerchCard promotionCode getter', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    function addPriceChild(promotionCode) {
+        const span = document.createElement('span');
+        span.setAttribute('is', 'inline-price');
+        span.dataset.wcsOsi = 'abm';
+        if (promotionCode !== undefined)
+            span.dataset.promotionCode = promotionCode;
+        card.appendChild(span);
+        return span;
+    }
+
+    it('returns contextPromotionCode when no descendant carries a promotion code', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        expect(card.promotionCode).to.equal('CTX_PROMO');
+    });
+
+    it('ignores descendants with data-promotion-code="cancel-context" and falls back to contextPromotionCode', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        addPriceChild('cancel-context');
+        expect(card.promotionCode).to.equal('CTX_PROMO');
+    });
+
+    it('returns a descendant promotion code when present', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        addPriceChild('CHILD_PROMO');
+        expect(card.promotionCode).to.equal('CHILD_PROMO');
+    });
+
+    it('returns undefined when no descendant and no contextPromotionCode is set', () => {
+        expect(card.promotionCode).to.be.undefined;
+    });
 });
 
 describe('processDescription', async () => {

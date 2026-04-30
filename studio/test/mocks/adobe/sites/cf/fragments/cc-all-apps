@@ -24,6 +24,13 @@
             ]
         },
         {
+            "name": "compatVersion",
+            "type": "number",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
             "name": "osi",
             "type": "text",
             "multiple": false,
@@ -149,6 +156,13 @@
             "values": [
                 "<a is=\"checkout-link\" class=\"accent\" href=\"\" data-promotion-code=\"testpromo\" data-wcs-osi=\"PpnQ-UmW9NBwZwXlFw79zw2JybhvwIUwMTDYiIlu5qI\">Buy now</a>"
             ]
+        },
+        {
+            "name": "promoCode",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
         },
         {
             "name": "parent",

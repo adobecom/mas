@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
+import { COMPAT_VERSION, EVENT_KEYDOWN, EVENT_OST_OFFER_SELECT, TAG_MODEL_ID_MAPPING } from './constants.js';
 import router from './router.js';
 import Store from './store.js';
 import './rte/osi-field.js';
@@ -224,6 +224,7 @@ export class MasCreateDialog extends LitElement {
             fragmentData.data = {
                 osi: this.osi,
                 tags: this.tags,
+                compatVersion: COMPAT_VERSION,
             };
         }
 

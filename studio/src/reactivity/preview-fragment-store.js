@@ -61,6 +61,7 @@ export function mergeResolvedPreviewFields(originalFields = [], resolvedFields =
 export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
     placeholderUnsubscribe = null;
+    previewLocaleOverride = null;
     #resolving = false;
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
@@ -134,6 +135,16 @@ export class PreviewFragmentStore extends FragmentStore {
             }
         }
         this.resolveFragment();
+    }
+
+    setPreviewLocaleOverride(value) {
+        const nextValue = value || null;
+        if (this.previewLocaleOverride === nextValue) {
+            return false;
+        }
+        this.previewLocaleOverride = nextValue;
+        this.resolved = false;
+        return true;
     }
 
     resolveFragment(immediate = false) {
@@ -214,7 +225,7 @@ export class PreviewFragmentStore extends FragmentStore {
         body.fields = serializePreviewFields(originalFields);
 
         const context = {
-            locale: Store.localeOrRegion(),
+            locale: this.previewLocaleOverride || Store.localeOrRegion(),
             surface: Store.surface(),
             dictionary: Store.previewDictionary(),
             preview: { url: ODIN_PREVIEW_FRAGMENTS_URL },

@@ -491,6 +491,28 @@ describe('Fragment', () => {
             });
         });
 
+        it('does not reset compatVersion when same as parent', () => {
+            const p = new Fragment(
+                createFragmentConfig({
+                    fields: [
+                        { name: 'compatVersion', type: 'number', values: [1] },
+                        { name: 'title', values: ['Parent Title'] },
+                    ],
+                }),
+            );
+            const v = new Fragment(
+                createFragmentConfig({
+                    fields: [
+                        { name: 'compatVersion', type: 'number', values: [1] },
+                        { name: 'title', values: ['Parent Title'] },
+                    ],
+                }),
+            );
+            const prepared = v.prepareVariationForSave(p);
+            expect(prepared.getFieldValues('compatVersion')).to.deep.equal([1]);
+            expect(prepared.getFieldValues('title')).to.deep.equal([]);
+        });
+
         it('returns a new Fragment instance and handles null parent', () => {
             const variation = new Fragment(createFragmentConfig({ fields: [{ name: 'title', values: ['Title'] }] }));
             expect(variation.prepareVariationForSave(null)).to.equal(variation);

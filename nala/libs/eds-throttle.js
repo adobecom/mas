@@ -9,7 +9,7 @@
  */
 
 /** Default CI cap under 200 rps with headroom for edge burst rules. */
-const DEFAULT_CI_EDS_MAX_RPS = 80;
+const DEFAULT_CI_EDS_MAX_RPS = 90;
 
 export function resolveEdsMaxRps() {
     if (process.env.NALA_EDS_THROTTLE_DISABLED === '1') return 0;

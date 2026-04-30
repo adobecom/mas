@@ -89,29 +89,6 @@ if [[ -z "$PROJECT" ]]; then
     fi
 fi
 
-# Pre-warm the CDN cache for studio assets before launching parallel Playwright workers.
-# Without this, all workers simultaneously fire ~150 HTTP/2 module requests to a cold
-# cache, which exceeds the 200 RPS per-hostname limit enforced by AEM.live and causes
-# 429 errors on every JS file. Sequential curl populates the cache without bursting.
-if [[ "$PROJECT" == "mas-studio-chromium" ]]; then
-    echo "Pre-warming studio CDN cache: $PR_BRANCH_LIVE_URL_GH"
-    WARMUP_FILES=()
-    WARMUP_FILES+=("studio.html")
-    while IFS= read -r f; do WARMUP_FILES+=("$f"); done < <(find studio/src -name "*.js" | sed 's|^\./||' | sort)
-    while IFS= read -r f; do WARMUP_FILES+=("$f"); done < <(find studio/libs -name "*.js" | sed 's|^\./||' | sort)
-    while IFS= read -r f; do WARMUP_FILES+=("$f"); done < <(find io/www/src/fragment -name "*.js" | sed 's|^\./||' | sort)
-    WARMUP_FILES+=("web-components/dist/lit-all.min.js")
-    TOTAL=${#WARMUP_FILES[@]}
-    echo "Fetching $TOTAL files..."
-    WARMUP_START=$(date +%s)
-    for file in "${WARMUP_FILES[@]}"; do
-        status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${PR_BRANCH_LIVE_URL_GH}/${file}")
-        echo "  $status  $file"
-    done
-    WARMUP_END=$(date +%s)
-    echo "CDN warmup complete: $TOTAL files in $((WARMUP_END - WARMUP_START))s."
-fi
-
 # Run Playwright tests on the specific projects using root-level playwright.config.js
 echo "*** Running tests on specific projects ***"
 echo "Using project: $PROJECT"

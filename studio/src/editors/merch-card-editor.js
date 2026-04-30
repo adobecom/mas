@@ -99,6 +99,7 @@ class MerchCardEditor extends LitElement {
     availableColors = [];
     availableBorderColors = [];
     availableBadgeColors = [];
+    availableWhatsIncludedDividerColors = [];
     availableBackgroundColors = [];
     quantitySelectorValues = '';
     lastMnemonicState = null;
@@ -1330,6 +1331,15 @@ class MerchCardEditor extends LitElement {
                 </sp-field-group>
                 <sp-field-group class="toggle" id="whatsIncludedIconPicker">
                     <div class="section-title">What's included</div>
+                    <div class="two-column-grid">
+                        ${this.#renderColorPicker(
+                            'whatsIncludedDividerColor',
+                            'Divider Color',
+                            this.availableWhatsIncludedDividerColors,
+                            form.whatsIncludedDividerColor?.values[0],
+                            'whatsIncludedDividerColor',
+                        )}
+                    </div>
                     <mas-multifield
                         button-label="Add application"
                         data-field-state="${this.getFieldState('whatsIncluded')}"
@@ -1980,6 +1990,7 @@ class MerchCardEditor extends LitElement {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
         }
+        this.availableWhatsIncludedDividerColors = variant.allowedWhatsIncludedDividerColors || [];
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
     }
@@ -2390,6 +2401,7 @@ class MerchCardEditor extends LitElement {
         const isBorder = dataField === 'borderColor';
         const isBadgeColor = dataField === 'badgeColor' || dataField === 'trialBadgeColor';
         const isBadgeBorderColor = dataField === 'badgeBorderColor' || dataField === 'trialBadgeBorderColor';
+        const isWhatsIncludedDividerColor = dataField === 'whatsIncludedDividerColor';
 
         let colorArray = Array.isArray(colors) ? colors : Object.keys(colors || {});
 
@@ -2416,7 +2428,7 @@ class MerchCardEditor extends LitElement {
         const hasNoExplicitColor = !selectedValue || selectedValue === '';
         const isTransparent = selectedValue === 'transparent';
 
-        if (hasNoExplicitColor && (isBadgeColor || isBadgeBorderColor || isBorder)) {
+        if (hasNoExplicitColor && (isBadgeColor || isBadgeBorderColor || isBorder || isWhatsIncludedDividerColor)) {
             displaySelectedValue = 'Default';
         } else if (isTransparent) {
             displaySelectedValue = 'Transparent';
@@ -2448,7 +2460,7 @@ class MerchCardEditor extends LitElement {
                     } else if (dataField === 'trialBadgeBorderColor') {
                         this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, '');
                     }
-                } else if (isBorder) {
+                } else if (isBorder || isWhatsIncludedDividerColor) {
                     const fragment = this.fragmentStore.get();
                     fragment.updateField(dataField, ['Default']);
                     this.fragmentStore.set(fragment);
@@ -2470,7 +2482,7 @@ class MerchCardEditor extends LitElement {
                     } else if (dataField === 'trialBadgeBorderColor') {
                         this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, 'transparent');
                     }
-                } else if (isBorder) {
+                } else if (isBorder || isWhatsIncludedDividerColor) {
                     const fragment = this.fragmentStore.get();
                     fragment.updateField(dataField, ['transparent']);
                     this.fragmentStore.set(fragment);
@@ -2509,8 +2521,8 @@ class MerchCardEditor extends LitElement {
                     data-field="${dataField}"
                     data-field-state="${this.#getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor)}"
                     value="${displaySelectedValue ||
-                    (isBackground || isBadgeColor || isBadgeBorderColor || isBorder ? 'Default' : '')}"
-                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder ? 'Default' : ''}"
+                    (isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isWhatsIncludedDividerColor ? 'Default' : '')}"
+                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isWhatsIncludedDividerColor ? 'Default' : ''}"
                     @change="${handleChange}"
                 >
                     ${options.map(

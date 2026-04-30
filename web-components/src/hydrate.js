@@ -278,6 +278,21 @@ export function processBorderColor(fields, merchCard, variantMapping) {
     }
 }
 
+export function processWhatsIncludedDividerColor(fields, merchCard, variantMapping) {
+    if (!variantMapping?.whatsIncludedDividerColor) return;
+    const color = fields.whatsIncludedDividerColor;
+    const cssVar = '--merch-whats-included-divider-color';
+    if (!color || color.toLowerCase() === 'default') {
+        merchCard.style.removeProperty(cssVar);
+        return;
+    }
+    if (color.toLowerCase() === 'transparent') {
+        merchCard.style.setProperty(cssVar, 'transparent');
+        return;
+    }
+    merchCard.style.setProperty(cssVar, `var(--${color})`);
+}
+
 export function processBackgroundImage(
     fields,
     merchCard,
@@ -863,6 +878,7 @@ export async function hydrate(fragment, merchCard) {
         mapping.backgroundColor,
     );
     processBorderColor(fields, merchCard, mapping);
+    processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);

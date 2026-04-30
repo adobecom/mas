@@ -139,6 +139,11 @@ export class MerchCard extends LitElement {
             attribute: 'background-color',
             reflect: true,
         },
+        whatsIncludedDividerColor: {
+            type: String,
+            attribute: 'whats-included-divider-color',
+            reflect: true,
+        },
         badgeBackgroundColor: {
             type: String,
             attribute: 'badge-background-color',
@@ -307,6 +312,16 @@ export class MerchCard extends LitElement {
                 '--merch-card-custom-background-color',
                 this.backgroundColor ? `var(--${this.backgroundColor})` : '',
             );
+        }
+        if (changedProperties.has('whatsIncludedDividerColor')) {
+            const color = this.whatsIncludedDividerColor;
+            if (!color || color.toLowerCase() === 'default') {
+                this.style.removeProperty('--merch-whats-included-divider-color');
+            } else if (color.toLowerCase() === 'transparent') {
+                this.style.setProperty('--merch-whats-included-divider-color', 'transparent');
+            } else {
+                this.style.setProperty('--merch-whats-included-divider-color', `var(--${color})`);
+            }
         }
         try {
             this.variantLayoutPromise =

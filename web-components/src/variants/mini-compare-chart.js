@@ -43,6 +43,13 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
         'gradient-purple-blue',
     ],
     borderColor: { attribute: 'border-color' },
+    allowedWhatsIncludedDividerColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+    ],
+    whatsIncludedDividerColor: { attribute: 'whats-included-divider-color' },
     size: ['wide', 'super-wide'],
     whatsIncluded: { tag: 'div', slot: 'footer-rows' },
     ctas: { slot: 'footer', size: 'l' },

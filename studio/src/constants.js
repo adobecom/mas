@@ -1,3 +1,5 @@
+import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../../web-components/src/compat-version.js';
+
 export const CHECKOUT_CTA_TEXTS = {
     'buy-now': 'Buy now',
     'free-trial': 'Free trial',
@@ -261,8 +263,17 @@ export const TABLE_TYPE = {
 };
 
 export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
+export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
+
+/**
+ * Compat version of the card.
+ * 0: assumed version for fragments before compat version was introduced.
+ * see web-components/src/compat-version.js for more details.
+ */
+export const COMPAT_VERSION = COMPAT_VERSION_GLOBAL_PROMO_CODE;
+
 /** Freyja fragments API root on the preview origin — use as `preview.url` in pipeline contexts. */
 export const ODIN_PREVIEW_FRAGMENTS_URL = `${ODIN_PREVIEW_ORIGIN}/adobe/contentFragments`;

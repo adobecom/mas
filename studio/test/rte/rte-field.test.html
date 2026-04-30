@@ -103,6 +103,22 @@
                         const rte = await createFromTemplate('rte', this.test.title);
                         expect(rte.shadowRoot).exist;
                     });
+
+                    it('should not emit change when syncing an external value update', async function () {
+                        const rte = await createFromTemplate('rte-link', this.test.title);
+                        let changeCount = 0;
+                        rte.addEventListener('change', () => {
+                            changeCount += 1;
+                        });
+
+                        rte.value = '<a class="accent" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a>';
+                        await delay(100);
+
+                        expect(changeCount).to.equal(0);
+                        expect(rte.value).to.equal(
+                            '<p><a class="accent" data-checkout-workflow="UCv3" data-wcs-osi="abm">Buy now</a></p>',
+                        );
+                    });
                 });
 
                 describe('RTE Field: styling features', () => {

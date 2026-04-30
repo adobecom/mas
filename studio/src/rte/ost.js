@@ -1,5 +1,11 @@
 import { html } from 'lit';
-import { CHECKOUT_CTA_TEXTS, EVENT_OST_SELECT, EVENT_OST_OFFER_SELECT, WCS_LANDSCAPE_PUBLISHED } from '../constants.js';
+import {
+    CHECKOUT_CTA_TEXTS,
+    EVENT_OST_SELECT,
+    EVENT_OST_OFFER_SELECT,
+    WCS_LANDSCAPE_PUBLISHED,
+    PLACEHOLDER_CTA_SURFACES,
+} from '../constants.js';
 import Store from '../store.js';
 
 let ostRoot = document.getElementById('ost');
@@ -146,7 +152,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
 
     const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
-        attributes['text'] = ['acom', 'sandbox', 'nala'].includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
+        attributes['text'] = PLACEHOLDER_CTA_SURFACES.includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
         attributes['data-analytics-id'] = options.ctaText;
     }
 
@@ -202,6 +208,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
         let initialReferenceOsi;
         const aosAccessToken = localStorage.getItem('masAccessToken') ?? window.adobeid.authorize();
         const searchParameters = new URLSearchParams();
+        const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
         const offerSelectorPlaceholderOptions = {};
         if (offerElement) {
@@ -222,6 +229,10 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
                     offerSelectorPlaceholderOptions[newKey] = newValue;
                 }
             });
+
+            if (promotionCode && !offerSelectorPlaceholderOptions.promotionCode) {
+                offerSelectorPlaceholderOptions.promotionCode = promotionCode;
+            }
 
             [
                 'promotionCode', // contextual promo code (e.g. set on card/)

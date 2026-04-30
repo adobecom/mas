@@ -81,7 +81,10 @@ export class SourceFragmentStore extends FragmentStore {
         return success;
     }
 
-    resolvePreviewFragment() {
+    resolvePreviewFragment(previewLocaleOverride) {
+        if (previewLocaleOverride !== undefined) {
+            this.previewStore.setPreviewLocaleOverride(previewLocaleOverride);
+        }
         this.previewStore.resolveFragment();
     }
 

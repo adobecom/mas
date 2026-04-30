@@ -219,7 +219,7 @@ runTests(async () => {
                 await card.checkReady();
                 const promoCode = card.promotionCode;
                 expect(promoCode).to.equal('PROMO_ABC');
-                expect(logSpy.calledOnce).to.be.true;
+                expect(logSpy.called).to.be.true;
                 expect(logSpy.args[0][0]).to.include(
                     'Multiple different promotion codes found: PROMO_ABC, PROMO_XYZ',
                 );

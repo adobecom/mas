@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import '../../../web-components/dist/mas.js';
 
 import { EVENT_OST_SELECT } from '../../src/constants.js';
+import Store from '../../src/store.js';
 
 describe('onPlaceholderSelect', () => {
     let dispatchEventStub;
@@ -53,6 +54,7 @@ describe('onPlaceholderSelect', () => {
 
     beforeEach(() => {
         dispatchEventStub.reset();
+        Store.search.set({});
     });
 
     it('should dispatch an event with correct attributes for price', () => {
@@ -132,6 +134,28 @@ describe('onPlaceholderSelect', () => {
         const event = dispatchEventStub.getCall(0).args[0];
         expect(event.type).to.equal(EVENT_OST_SELECT);
         expect(event.detail).to.deep.equal(expectedAttributes);
+    });
+
+    ['acom-cc', 'acom-dc', 'express'].forEach((path) => {
+        it(`should dispatch checkout link with placeholder text on ${path}`, () => {
+            Store.search.set({ path });
+            const offerSelectorId = 'test-id';
+            const type = 'checkoutUrl';
+            const offer = {};
+            const options = {
+                modal: 'twp',
+                entitlement: true,
+                upgrade: true,
+                ctaText: 'buy-now',
+            };
+
+            onPlaceholderSelect(offerSelectorId, type, offer, options, null);
+
+            expect(dispatchEventStub.calledOnce).to.be.true;
+            const event = dispatchEventStub.getCall(0).args[0];
+            expect(event.detail.text).to.equal('{{buy-now}}');
+            expect(event.detail['data-analytics-id']).to.equal('buy-now');
+        });
     });
 
     it('should not include promo code if not provided for price', () => {

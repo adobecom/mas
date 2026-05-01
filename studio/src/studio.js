@@ -26,6 +26,7 @@ import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
 import './settings/mas-settings.js';
+import './mas-advanced-tools.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
 import './version-page.js';
@@ -201,6 +202,11 @@ class MasStudio extends LitElement {
         return html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`;
     }
 
+    get advancedTools() {
+        if (this.page.value !== PAGE_NAMES.ADVANCED_TOOLS) return nothing;
+        return html`<mas-advanced-tools></mas-advanced-tools>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -252,7 +258,8 @@ class MasStudio extends LitElement {
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
-                          ${this.bulkPublish} ${this.bulkPublishEditor} ${this.editorPanel} ${this.settings}
+                          ${this.bulkPublish} ${this.bulkPublishEditor} ${this.advancedTools} ${this.editorPanel}
+                          ${this.settings}
                       </div>`
                     : nothing}
             </div>

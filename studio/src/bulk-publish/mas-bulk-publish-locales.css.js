@@ -3,51 +3,60 @@ export const styles = css`
     :host {
         display: block;
         background: var(--spectrum-gray-50, #fff);
-        border: 1px solid var(--spectrum-gray-200, #eaeaea);
-        border-radius: 8px;
-        padding: 16px 20px;
+        border: 1px solid var(--spectrum-gray-300, #dadada);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
     }
-    h3 {
-        font-size: 15px;
-        margin: 0 0 4px;
-        font-weight: 700;
-    }
-    .help {
-        font-size: 12px;
-        color: var(--spectrum-gray-700, #6d6d6d);
-        margin: 0 0 12px;
-    }
-    .dropzone {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        border: 1px dashed var(--spectrum-gray-400, #b9b9b9);
-        border-radius: 8px;
-        padding: 14px 18px;
-        cursor: pointer;
-        background: transparent;
-    }
-    .dropzone:hover {
-        background: var(--spectrum-gray-75, #fafafa);
-    }
-    .dropzone .plus {
-        font-size: 20px;
-        font-weight: 400;
-        color: var(--spectrum-gray-800, #4b4b4b);
-    }
-    .label {
-        font-weight: 700;
-        margin: 0;
-    }
-    .sublabel {
-        font-size: 12px;
-        color: var(--spectrum-gray-700, #6d6d6d);
-        margin: 2px 0 0;
-    }
-    .summary {
+    .header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 0;
+        margin-bottom: 8px;
+    }
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    h3 {
+        font-size: 18px;
+        margin: 0;
+        font-weight: 700;
+    }
+    .count {
+        font-weight: 400;
+        color: var(--spectrum-gray-600, #505050);
+    }
+    .locales-box {
+        border: 1px solid var(--spectrum-gray-300, #dadada);
+        border-radius: 12px;
+        padding: 4px 0;
+        overflow: hidden;
+    }
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    li {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--spectrum-gray-200, #eaeaea);
+        font-size: 14px;
+        color: var(--spectrum-gray-800, #292929);
+    }
+    li:last-child {
+        border-bottom: none;
+    }
+    .empty {
+        font-size: 16px;
+        color: var(--spectrum-gray-800, #292929);
+        margin: 0;
+    }
+    .collapse {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
     }
 `;

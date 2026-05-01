@@ -3,6 +3,9 @@ import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import { styles } from './mas-bulk-publish-editor.css.js';
 import { QUICK_ACTION, BULK_PUBLISH_STATUS } from '../constants.js';
+import { Fragment } from '../aem/fragment.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
+import { getFromFragmentCache } from '../mas-repository.js';
 import '../mas-quick-actions.js';
 import '../translation/mas-items-selector.js';
 import '../translation/mas-translation-languages.js';
@@ -26,6 +29,35 @@ class MasBulkPublishEditor extends LitElement {
         this.confirmOpen = false;
         this.itemsSelectorOpen = false;
         this.localesPickerOpen = false;
+    }
+
+    async connectedCallback() {
+        super.connectedCallback();
+        if (this.project) return;
+        const projectId = Store.bulkPublishProjects.projectId.get();
+        if (projectId) {
+            try {
+                let fragment = await getFromFragmentCache(projectId);
+                if (!fragment) {
+                    fragment = await this.repository.getFragmentById(projectId);
+                }
+                if (fragment) {
+                    Store.bulkPublishProjects.inEdit.set(new FragmentStore(new Fragment(fragment)));
+                }
+            } catch {
+                Store.bulkPublishProjects.inEdit.set(null);
+            }
+        } else {
+            Store.bulkPublishProjects.inEdit.set({
+                id: null,
+                getFieldValue: (k) => ({ status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '' })[k],
+                setFieldValue: () => {},
+            });
+        }
+    }
+
+    get repository() {
+        return document.querySelector('mas-repository');
     }
 
     get project() {
@@ -98,6 +130,19 @@ class MasBulkPublishEditor extends LitElement {
         this.requestUpdate();
     }
 
+    handleUrlRemove(e) {
+        const urlToRemove = e.detail;
+        const updated = this.urls
+            .split('\n')
+            .map((l) => l.trim())
+            .filter((l) => l && l !== urlToRemove)
+            .join('\n');
+        this.project?.setFieldValue('urls', updated);
+        const updatedItems = this.items.filter((i) => i.url !== urlToRemove);
+        this.project?.setFieldValue('items', JSON.stringify(updatedItems));
+        this.requestUpdate();
+    }
+
     ensureSurface() {
         const current = Store.search.get()?.path;
         if (!current) {
@@ -107,9 +152,8 @@ class MasBulkPublishEditor extends LitElement {
 
     openItemsSelector() {
         this.ensureSurface();
-        const repo = document.querySelector('mas-repository');
-        if (repo?.searchFragments) repo.searchFragments();
-        if (repo?.loadPlaceholders) repo.loadPlaceholders();
+        if (this.repository?.searchFragments) this.repository.searchFragments();
+        if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         this.itemsSelectorOpen = true;
     }
 
@@ -213,12 +257,10 @@ class MasBulkPublishEditor extends LitElement {
         return html`
             <header>
                 <h1>${titleText}</h1>
-                ${published
-                    ? html`<sp-button variant="secondary" treatment="outline" size="m">
-                          <sp-icon-download slot="icon"></sp-icon-download>
-                          Download report
-                      </sp-button>`
-                    : nothing}
+                <sp-button variant="secondary" treatment="outline" size="m" ?disabled=${!published}>
+                    <sp-icon-download slot="icon"></sp-icon-download>
+                    Download report
+                </sp-button>
             </header>
             ${published
                 ? html`<mas-bulk-publish-success-banner
@@ -228,23 +270,13 @@ class MasBulkPublishEditor extends LitElement {
                 : nothing}
             <section class="card">
                 <h3>General info</h3>
-                <div class="general-info-grid">
-                    <div class="field-group">
-                        <label class="field-label">Title <span class="required">*</span></label>
-                        <sp-textfield
-                            placeholder="Enter title"
-                            .value=${this.title}
-                            @input=${this.handleTitleChange}
-                        ></sp-textfield>
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Publish date</label>
-                        <sp-textfield placeholder="DD / MM / YYYY" disabled></sp-textfield>
-                    </div>
-                    <div class="field-group">
-                        <label class="field-label">Time</label>
-                        <sp-textfield placeholder="0 : 00 AM (GMT)" disabled></sp-textfield>
-                    </div>
+                <div class="field-group">
+                    <label class="field-label">Title <span class="required">*</span></label>
+                    <sp-textfield
+                        placeholder="Enter title"
+                        .value=${this.title}
+                        @input=${this.handleTitleChange}
+                    ></sp-textfield>
                 </div>
             </section>
             <mas-bulk-publish-items
@@ -252,6 +284,7 @@ class MasBulkPublishEditor extends LitElement {
                 .urls=${this.urls}
                 @urls-change=${this.handleUrlsChange}
                 @add-by-search=${this.openItemsSelector}
+                @url-remove=${this.handleUrlRemove}
             ></mas-bulk-publish-items>
             <mas-bulk-publish-locales
                 .locales=${this.locales}
@@ -281,38 +314,40 @@ class MasBulkPublishEditor extends LitElement {
                 @publish-cancelled=${this.handleConfirmCancel}
             ></mas-bulk-publish-confirm-dialog>
             ${this.itemsSelectorOpen
-                ? html`<div class="selector-overlay" @click=${(e) => e.target === e.currentTarget && this.closeItemsSelector()}>
-                      <div class="selector-dialog" role="dialog" aria-labelledby="items-dialog-heading">
-                          <div class="dialog-header">
-                              <h2 id="items-dialog-heading">Add by search</h2>
-                              <button class="close-btn" aria-label="Close" @click=${this.closeItemsSelector}>×</button>
-                          </div>
-                          <div class="dialog-body">
-                              <mas-items-selector .targetStore=${Store.bulkPublishProjects}></mas-items-selector>
-                          </div>
-                          <div class="dialog-footer">
-                              <sp-button variant="secondary" @click=${this.closeItemsSelector}>Cancel</sp-button>
-                              <sp-button variant="accent" @click=${this.confirmItemsSelector}>Continue</sp-button>
-                          </div>
-                      </div>
-                  </div>`
+                ? html`<sp-dialog-wrapper
+                      class="add-items-dialog"
+                      open
+                      mode="modal"
+                      size="l"
+                      headline="Add by search"
+                      cancel-label="Cancel"
+                      confirm-label="Add selected items"
+                      underlay
+                      no-divider
+                      @confirm=${this.confirmItemsSelector}
+                      @cancel=${this.closeItemsSelector}
+                      @close=${this.closeItemsSelector}
+                  >
+                      <mas-items-selector hide-selected-toggle .targetStore=${Store.bulkPublishProjects}></mas-items-selector>
+                  </sp-dialog-wrapper>`
                 : nothing}
             ${this.localesPickerOpen
-                ? html`<div class="selector-overlay" @click=${(e) => e.target === e.currentTarget && this.closeLocalesPicker()}>
-                      <div class="selector-dialog" role="dialog" aria-labelledby="locales-dialog-heading">
-                          <div class="dialog-header">
-                              <h2 id="locales-dialog-heading">Select locales</h2>
-                              <button class="close-btn" aria-label="Close" @click=${this.closeLocalesPicker}>×</button>
-                          </div>
-                          <div class="dialog-body">
-                              <mas-translation-languages .targetStore=${Store.bulkPublishProjects}></mas-translation-languages>
-                          </div>
-                          <div class="dialog-footer">
-                              <sp-button variant="secondary" @click=${this.closeLocalesPicker}>Cancel</sp-button>
-                              <sp-button variant="accent" @click=${this.confirmLocalesPicker}>Continue</sp-button>
-                          </div>
-                      </div>
-                  </div>`
+                ? html`<sp-dialog-wrapper
+                      class="add-locales-dialog"
+                      open
+                      mode="modal"
+                      size="l"
+                      headline="Select locales"
+                      cancel-label="Cancel"
+                      confirm-label="Continue"
+                      underlay
+                      no-divider
+                      @confirm=${this.confirmLocalesPicker}
+                      @cancel=${this.closeLocalesPicker}
+                      @close=${this.closeLocalesPicker}
+                  >
+                      <mas-translation-languages .targetStore=${Store.bulkPublishProjects}></mas-translation-languages>
+                  </sp-dialog-wrapper>`
                 : nothing}
         `;
     }

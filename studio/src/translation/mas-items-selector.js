@@ -21,6 +21,7 @@ class MasItemsSelector extends LitElement {
 
     static properties = {
         viewOnly: { type: Boolean, state: true },
+        hideSelectedToggle: { type: Boolean, attribute: 'hide-selected-toggle' },
         targetStore: { type: Object },
         searchQuery: { type: String, state: true },
         selectedTab: { type: String, state: true },
@@ -29,6 +30,7 @@ class MasItemsSelector extends LitElement {
     constructor() {
         super();
         this.viewOnly = false;
+        this.hideSelectedToggle = false;
         this.targetStore = Store.translationProjects;
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
@@ -150,7 +152,7 @@ class MasItemsSelector extends LitElement {
                 )}
             </sp-tabs>
 
-            ${this.viewOnly
+            ${this.viewOnly || this.hideSelectedToggle
                 ? nothing
                 : html`
                       <div class="selected-items-count">

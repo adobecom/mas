@@ -128,6 +128,7 @@ export const PAGE_NAMES = {
     TRANSLATION_EDITOR: 'translation-editor',
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
+    ADVANCED_TOOLS: 'advanced-tools',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';

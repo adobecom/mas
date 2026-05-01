@@ -163,7 +163,7 @@ export class MiniCompareChart extends VariantLayout {
             'top-section',
         );
 
-        let slots = [
+        const slots = [
             'heading-m',
             'subtitle',
             'body-m',

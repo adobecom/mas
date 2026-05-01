@@ -211,6 +211,7 @@ function pageValidator(value) {
         PAGE_NAMES.TRANSLATION_EDITOR,
         PAGE_NAMES.BULK_PUBLISH,
         PAGE_NAMES.BULK_PUBLISH_EDITOR,
+        PAGE_NAMES.ADVANCED_TOOLS,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

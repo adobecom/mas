@@ -2,17 +2,25 @@ import { LitElement, html, nothing } from 'lit';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import { styles } from './mas-bulk-publish-editor.css.js';
-import { QUICK_ACTION, BULK_PUBLISH_STATUS } from '../constants.js';
+import {
+    QUICK_ACTION,
+    BULK_PUBLISH_STATUS,
+    BULK_PUBLISH_PROJECT_MODEL_ID,
+    BULK_PUBLISH_PARENT_PATH,
+    PAGE_NAMES,
+} from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import '../mas-quick-actions.js';
-import '../translation/mas-items-selector.js';
+import './mas-add-items-dialog.js';
 import '../translation/mas-translation-languages.js';
 import './mas-bulk-publish-items.js';
 import './mas-bulk-publish-locales.js';
 import './mas-bulk-publish-success-banner.js';
 import './mas-bulk-publish-confirm-dialog.js';
+import { SAVE_SVG, LINK_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, DELETE_SVG } from './bulk-publish-icons.js';
+import { generateCodeToUse, showToast, normalizeKey } from '../utils.js';
 
 class MasBulkPublishEditor extends LitElement {
     static styles = styles;
@@ -43,15 +51,20 @@ class MasBulkPublishEditor extends LitElement {
                 }
                 if (fragment) {
                     Store.bulkPublishProjects.inEdit.set(new FragmentStore(new Fragment(fragment)));
+                    await this.updateComplete;
+                    if (this.urls && !this.items.length) this.validate();
                 }
             } catch {
                 Store.bulkPublishProjects.inEdit.set(null);
             }
         } else {
+            const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '' };
             Store.bulkPublishProjects.inEdit.set({
                 id: null,
-                getFieldValue: (k) => ({ status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '' })[k],
-                setFieldValue: () => {},
+                getFieldValue: (k) => fields[k],
+                setFieldValue: (k, v) => {
+                    fields[k] = v;
+                },
             });
         }
     }
@@ -65,7 +78,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get items() {
-        const raw = this.project?.getFieldValue('items');
+        const raw = this.getField('items');
         if (!raw) return [];
         try {
             return JSON.parse(raw);
@@ -74,20 +87,37 @@ class MasBulkPublishEditor extends LitElement {
         }
     }
 
+    getField(name) {
+        if (this.isNewProject) return this.project?.getFieldValue(name);
+        return this.project?.value?.getFieldValue(name);
+    }
+
+    getFields(name) {
+        if (this.isNewProject) return this.project?.getFieldValue(name) ?? [];
+        return this.project?.value?.getFieldValues(name) ?? [];
+    }
+
     get status() {
-        return this.project?.getFieldValue('status') ?? BULK_PUBLISH_STATUS.DRAFT;
+        return this.getField('status') ?? BULK_PUBLISH_STATUS.DRAFT;
     }
 
     get urls() {
-        return this.project?.getFieldValue('urls') ?? '';
+        return this.getField('urls') ?? '';
+    }
+
+    get urlLines() {
+        return this.urls
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean);
     }
 
     get locales() {
-        return this.project?.getFieldValue('locales') ?? [];
+        return this.getFields('locales');
     }
 
     get title() {
-        return this.project?.getFieldValue('title') ?? '';
+        return this.getField('title') ?? '';
     }
 
     get hasValidItems() {
@@ -99,8 +129,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get disabledActions() {
-        const disabled = new Set([QUICK_ACTION.DUPLICATE, QUICK_ACTION.COPY, QUICK_ACTION.LOCK]);
-        if (!this.urls.trim()) disabled.add(QUICK_ACTION.VALIDATE);
+        const disabled = new Set([QUICK_ACTION.LINK, QUICK_ACTION.DUPLICATE, QUICK_ACTION.COPY, QUICK_ACTION.LOCK]);
         if (!this.hasValidItems || this.status !== BULK_PUBLISH_STATUS.DRAFT) {
             disabled.add(QUICK_ACTION.PUBLISH);
         }
@@ -120,26 +149,30 @@ class MasBulkPublishEditor extends LitElement {
         this.publish();
     }
 
+    setProjectField(name, value) {
+        if (this.isNewProject) {
+            this.project.setFieldValue(name, value);
+        } else {
+            this.project.updateField(name, [value]);
+        }
+    }
+
     handleTitleChange(e) {
-        this.project?.setFieldValue('title', e.target.value);
+        this.setProjectField('title', e.target.value);
         this.requestUpdate();
     }
 
     handleUrlsChange(e) {
-        this.project?.setFieldValue('urls', e.detail);
+        this.setProjectField('urls', e.detail);
         this.requestUpdate();
     }
 
     handleUrlRemove(e) {
         const urlToRemove = e.detail;
-        const updated = this.urls
-            .split('\n')
-            .map((l) => l.trim())
-            .filter((l) => l && l !== urlToRemove)
-            .join('\n');
-        this.project?.setFieldValue('urls', updated);
+        const updated = this.urlLines.filter((l) => l !== urlToRemove).join('\n');
+        this.setProjectField('urls', updated);
         const updatedItems = this.items.filter((i) => i.url !== urlToRemove);
-        this.project?.setFieldValue('items', JSON.stringify(updatedItems));
+        this.setProjectField('items', JSON.stringify(updatedItems));
         this.requestUpdate();
     }
 
@@ -161,24 +194,19 @@ class MasBulkPublishEditor extends LitElement {
         this.itemsSelectorOpen = false;
     }
 
-    confirmItemsSelector() {
-        const selected = Store.bulkPublishProjects.selectedCards.get();
-        const studioBase = `${window.location.origin}/studio.html`;
-        const urlLines = selected
-            .map((card) => {
-                const id = card?.getFieldValue?.('id') ?? card?.id;
-                if (!id) return null;
-                return `${studioBase}#content-type=merch-card&page=content&path=sandbox&query=${id}`;
-            })
-            .filter(Boolean);
-        const existing = this.urls
-            .split('\n')
-            .map((l) => l.trim())
-            .filter(Boolean);
-        const merged = Array.from(new Set([...existing, ...urlLines])).join('\n');
-        this.project?.setFieldValue('urls', merged);
+    async confirmItemsSelector() {
+        const selected = [
+            ...Store.translationProjects.selectedCards.get(),
+            ...Store.translationProjects.selectedCollections.get(),
+            ...Store.translationProjects.selectedPlaceholders.get(),
+        ];
+        const merged = Array.from(new Set([...this.urlLines, ...selected])).join('\n');
+        this.setProjectField('urls', merged);
+        Store.translationProjects.selectedCards.set([]);
+        Store.translationProjects.selectedCollections.set([]);
+        Store.translationProjects.selectedPlaceholders.set([]);
         this.itemsSelectorOpen = false;
-        this.requestUpdate();
+        await this.validate();
     }
 
     openLocalesPicker() {
@@ -193,47 +221,126 @@ class MasBulkPublishEditor extends LitElement {
 
     confirmLocalesPicker() {
         const selected = Store.bulkPublishProjects.targetLocales.get();
-        this.project?.setFieldValue('locales', [...selected]);
+        if (this.isNewProject) {
+            this.project.setFieldValue('locales', [...selected]);
+        } else {
+            this.project.updateField('locales', selected);
+        }
         this.localesPickerOpen = false;
-        this.requestUpdate();
+    }
+
+    async saveBulkProject() {
+        const surface = Store.search.get()?.path;
+        try {
+            if (this.isNewProject) {
+                const parentPath = `${BULK_PUBLISH_PARENT_PATH}/${surface}`;
+                const title = this.title || 'Untitled bulk publish project';
+                const payload = {
+                    title,
+                    name: normalizeKey(title),
+                    modelId: BULK_PUBLISH_PROJECT_MODEL_ID,
+                    parentPath,
+                    fields: [
+                        { name: 'title', type: 'text', values: [title] },
+                        { name: 'status', type: 'text', values: [this.status] },
+                        { name: 'urls', type: 'text', values: [this.urls] },
+                        { name: 'items', type: 'text', values: [this.getField('items') ?? '[]'] },
+                        { name: 'locales', type: 'text', multiple: true, values: this.locales },
+                    ],
+                };
+                const raw = await this.repository.createFragment(payload, false);
+                if (!raw) throw new Error('Create returned empty response');
+                const fragment = new Fragment(raw);
+                const store = new FragmentStore(fragment);
+                Store.bulkPublishProjects.inEdit.set(store);
+                showToast('Project created successfully.', 'positive');
+            } else {
+                const fields = {
+                    title: this.title,
+                    status: this.status,
+                    urls: this.urls,
+                    items: this.getField('items') ?? '[]',
+                };
+                for (const [name, value] of Object.entries(fields)) {
+                    this.project.updateField(name, [value]);
+                }
+                this.project.updateField('locales', this.locales);
+                await this.repository.saveFragment(this.project, false);
+                showToast('Project saved successfully.', 'positive');
+            }
+        } catch (err) {
+            console.error('Failed to save bulk publish project:', err);
+            showToast('Failed to save the project.', 'negative');
+        }
+    }
+
+    async deleteBulkProject() {
+        if (this.isNewProject) {
+            Store.bulkPublishProjects.inEdit.set(null);
+            return;
+        }
+        try {
+            await this.repository.deleteFragment(this.project.value);
+            Store.bulkPublishProjects.inEdit.set(null);
+        } catch (err) {
+            console.error('Failed to delete bulk publish project:', err);
+            showToast('Failed to delete the project.', 'negative');
+        }
     }
 
     async validate() {
-        const { parseStudioUrl } = await import('./url-to-path.js');
-        const urls = this.urls
-            .split('\n')
-            .map((l) => l.trim())
-            .filter(Boolean);
-        const results = await Promise.all(
-            urls.map(async (raw) => {
-                const parsed = parseStudioUrl(raw);
-                if (!parsed) {
-                    return { url: raw, status: 'error', reason: 'invalid-url' };
+        const { parseStudioUrl, parseAemPath } = await import('./url-to-path.js');
+        const urls = this.urlLines;
+        const existingItems = this.items;
+
+        const newPending = urls.map((raw) => ({ url: raw, status: 'pending' }));
+        this.setProjectField('items', JSON.stringify([...existingItems, ...newPending]));
+        this.setProjectField('urls', '');
+        this.requestUpdate();
+
+        const surface = Store.search.get()?.path;
+        const results = [...newPending];
+        await Promise.all(
+            urls.map(async (raw, i) => {
+                const byId = parseStudioUrl(raw);
+                const byPath = byId ? null : parseAemPath(raw);
+                if (!byId && !byPath) {
+                    results[i] = { url: raw, status: 'error', reason: 'invalid-url' };
+                    this.setProjectField('items', JSON.stringify([...existingItems, ...results]));
+                    this.requestUpdate();
+                    return;
                 }
                 try {
-                    const fragment = await this.repository.getFragmentById(parsed.fragmentId);
-                    return {
+                    const rawFragment = byId
+                        ? await this.repository.getFragmentById(byId.fragmentId)
+                        : await this.repository.aem.sites.cf.fragments.getByPath(byPath.path);
+                    const fragment = new Fragment(rawFragment);
+                    const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                    results[i] = {
                         url: raw,
-                        fragmentId: parsed.fragmentId,
+                        fragmentId: fragment.id,
                         path: fragment.path,
+                        authorPath: authorPath || null,
+                        href: href || null,
                         status: 'valid',
                     };
                 } catch (err) {
-                    return {
+                    results[i] = {
                         url: raw,
-                        fragmentId: parsed.fragmentId,
+                        ...(byId ? { fragmentId: byId.fragmentId } : { path: byPath.path }),
                         status: 'error',
                         reason: err?.response?.status === 404 ? 'not-found' : 'error',
                     };
                 }
+                this.setProjectField('items', JSON.stringify([...existingItems, ...results]));
+                this.requestUpdate();
             }),
         );
-        this.project.setFieldValue('items', JSON.stringify(results));
-        this.requestUpdate();
-        return results;
+        return [...existingItems, ...results];
     }
 
     async publish() {
+        if (this.isNewProject) await this.saveBulkProject();
         const { startPublishing } = await import('./bulk-publish-store.js');
         const { publishBulk } = await import('./bulk-publish-client.js');
         const paths = this.items.filter((i) => i.status === 'valid').map((i) => i.path);
@@ -264,8 +371,8 @@ class MasBulkPublishEditor extends LitElement {
             </header>
             ${published
                 ? html`<mas-bulk-publish-success-banner
-                      .publishedAt=${this.project.getFieldValue('publishedAt')}
-                      .publishedBy=${this.project.getFieldValue('publishedBy')}
+                      .publishedAt=${this.getField('publishedAt')}
+                      .publishedBy=${this.getField('publishedBy')}
                   ></mas-bulk-publish-success-banner>`
                 : nothing}
             <section class="card">
@@ -283,6 +390,7 @@ class MasBulkPublishEditor extends LitElement {
                 .items=${this.items}
                 .urls=${this.urls}
                 @urls-change=${this.handleUrlsChange}
+                @validate-items=${this.validate}
                 @add-by-search=${this.openItemsSelector}
                 @url-remove=${this.handleUrlRemove}
             ></mas-bulk-publish-items>
@@ -291,20 +399,29 @@ class MasBulkPublishEditor extends LitElement {
                 @edit-locales=${this.openLocalesPicker}
             ></mas-bulk-publish-locales>
             <mas-quick-actions
+                drag-handle-style="bar"
                 .actions=${[
                     QUICK_ACTION.SAVE,
-                    QUICK_ACTION.VALIDATE,
+                    QUICK_ACTION.LINK,
                     QUICK_ACTION.DUPLICATE,
                     QUICK_ACTION.PUBLISH,
                     QUICK_ACTION.COPY,
                     QUICK_ACTION.LOCK,
                     QUICK_ACTION.DELETE,
                 ]}
+                .iconOverrides=${{
+                    [QUICK_ACTION.SAVE]: { svg: SAVE_SVG, title: 'Save' },
+                    [QUICK_ACTION.LINK]: { svg: LINK_SVG, title: 'Link' },
+                    [QUICK_ACTION.DUPLICATE]: { svg: CLONE_SVG, title: 'Duplicate' },
+                    [QUICK_ACTION.PUBLISH]: { svg: PUBLISH_SVG, title: 'Publish' },
+                    [QUICK_ACTION.COPY]: { svg: COPY_SVG, title: 'Copy' },
+                    [QUICK_ACTION.LOCK]: { svg: LOCK_SVG, title: 'Lock' },
+                    [QUICK_ACTION.DELETE]: { svg: DELETE_SVG, title: 'Delete', className: 'delete-action' },
+                }}
                 .disabled=${this.disabledActions}
-                @save=${() => this.repository?.saveFragment?.(this.project)}
-                @validate=${() => this.validate()}
+                @save=${this.saveBulkProject}
                 @publish=${this.handlePublish}
-                @delete=${() => this.repository?.deleteFragment?.(this.project)}
+                @delete=${this.deleteBulkProject}
             ></mas-quick-actions>
             <mas-bulk-publish-confirm-dialog
                 .projectTitle=${this.title}
@@ -314,22 +431,12 @@ class MasBulkPublishEditor extends LitElement {
                 @publish-cancelled=${this.handleConfirmCancel}
             ></mas-bulk-publish-confirm-dialog>
             ${this.itemsSelectorOpen
-                ? html`<sp-dialog-wrapper
-                      class="add-items-dialog"
+                ? html`<mas-add-items-dialog
                       open
-                      mode="modal"
-                      size="l"
-                      headline="Add by search"
-                      cancel-label="Cancel"
-                      confirm-label="Add selected items"
-                      underlay
-                      no-divider
+                      .targetStore=${Store.bulkPublishProjects}
                       @confirm=${this.confirmItemsSelector}
                       @cancel=${this.closeItemsSelector}
-                      @close=${this.closeItemsSelector}
-                  >
-                      <mas-items-selector hide-selected-toggle .targetStore=${Store.bulkPublishProjects}></mas-items-selector>
-                  </sp-dialog-wrapper>`
+                  ></mas-add-items-dialog>`
                 : nothing}
             ${this.localesPickerOpen
                 ? html`<sp-dialog-wrapper

@@ -176,6 +176,36 @@ export const styles = [
             }
         }
 
+        sp-table-row.select-all-row {
+            background: var(--spectrum-gray-75);
+            border-bottom: 1px solid var(--spectrum-gray-300);
+        }
+
+        .select-all-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .fragment-count {
+            font-size: var(--spectrum-font-size-75);
+            color: var(--spectrum-gray-700);
+            white-space: nowrap;
+        }
+
+        .offer-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mnemonic-icon {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
         .variation-details-row {
             sp-table-cell {
                 background-color: var(--spectrum-gray-50);

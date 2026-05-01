@@ -29,12 +29,9 @@ class MasBulkPublishItems extends LitElement {
             .filter(Boolean);
     }
 
-    get hasContent() {
-        return this.items.length > 0 || this.urlLines.length > 0;
-    }
-
-    get isEditing() {
-        return this.editing;
+    get rows() {
+        if (this.items.length > 0) return this.items;
+        return this.urlLines.map((url) => ({ url }));
     }
 
     handleInput(e) {
@@ -70,7 +67,7 @@ class MasBulkPublishItems extends LitElement {
     }
 
     renderViewState() {
-        const rows = this.items.length > 0 ? this.items : this.urlLines.map((url) => ({ url }));
+        const { rows } = this;
         if (rows.length === 0) return nothing;
         return html`
             ${this.notFoundCount > 0
@@ -96,7 +93,7 @@ class MasBulkPublishItems extends LitElement {
     }
 
     renderEditState() {
-        const rows = this.items.length > 0 ? this.items : this.urlLines.map((url) => ({ url }));
+        const { rows } = this;
         return html`
             <div class="sublabel">Enter URLs</div>
             ${rows.length > 0
@@ -143,6 +140,11 @@ class MasBulkPublishItems extends LitElement {
         `;
     }
 
+    renderBody() {
+        if (this.collapsed) return nothing;
+        return this.editing ? this.renderEditState() : this.renderViewState();
+    }
+
     render() {
         const count = this.items.length || this.urlLines.length;
         return html`
@@ -152,7 +154,7 @@ class MasBulkPublishItems extends LitElement {
                     <span class="required">*</span>
                 </h3>
                 <div class="header-actions">
-                    ${!this.isEditing
+                    ${!this.editing
                         ? html`<sp-action-button
                               size="s"
                               quiet
@@ -176,7 +178,7 @@ class MasBulkPublishItems extends LitElement {
                     </sp-action-button>
                 </div>
             </div>
-            ${this.collapsed ? nothing : this.isEditing ? this.renderEditState() : this.renderViewState()}
+            ${this.renderBody()}
         `;
     }
 }

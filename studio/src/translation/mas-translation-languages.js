@@ -78,13 +78,9 @@ class MasTranslationLanguages extends LitElement {
         super.connectedCallback();
         const surface = Store.search.value.path;
         this.localesArray = getDefaultLocales(surface)
-            .reduce((acc, item) => {
-                const locale = getLocaleCode(item);
-                if (locale === 'en_US') return acc;
-                acc.push({ ...item, locale });
-                return acc;
-            }, [])
-            .sort((a, b) => (a.locale > b.locale ? 1 : -1));
+            .map((item) => ({ ...item, locale: getLocaleCode(item) }))
+            .filter((item) => item.locale !== 'en_US')
+            .sort((a, b) => a.locale.localeCompare(b.locale));
         this.targetLocalesController = new ReactiveController(this, [this.targetStore?.targetLocales].filter(Boolean));
     }
 
@@ -113,14 +109,14 @@ class MasTranslationLanguages extends LitElement {
     }
 
     get groupedLocales() {
-        const ungrouped = [...this.filteredLocales];
+        const { filteredLocales } = this;
         const groups = [];
         for (const region of REGION_GROUPS) {
-            const locales = ungrouped.filter((item) => region.countries.includes(item.country));
+            const locales = filteredLocales.filter((item) => region.countries.includes(item.country));
             if (locales.length) groups.push({ name: region.name, locales });
         }
-        const grouped = groups.flatMap((g) => g.locales);
-        const other = ungrouped.filter((item) => !grouped.includes(item));
+        const grouped = new Set(groups.flatMap((group) => group.locales));
+        const other = filteredLocales.filter((item) => !grouped.has(item));
         if (other.length) groups.push({ name: 'Other', locales: other });
         return groups;
     }
@@ -130,12 +126,8 @@ class MasTranslationLanguages extends LitElement {
     }
 
     selectAll(e) {
-        if (e.target.checked) {
-            this.targetStore.targetLocales.set(this.localesArray.map((item) => item.locale));
-        } else {
-            this.targetStore.targetLocales.set([]);
-        }
-        this.requestUpdate();
+        const next = e.target.checked ? this.localesArray.map((item) => item.locale) : [];
+        this.targetStore.targetLocales.set(next);
     }
 
     toggleRegion(regionLocales, e) {
@@ -146,7 +138,6 @@ class MasTranslationLanguages extends LitElement {
         } else {
             this.targetStore.targetLocales.set([...new Set([...this.selectedLocales, ...regionCodes])]);
         }
-        this.requestUpdate();
     }
 
     toggleLocale(e) {

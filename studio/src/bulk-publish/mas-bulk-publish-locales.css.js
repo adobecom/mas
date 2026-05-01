@@ -53,10 +53,4 @@ export const styles = css`
         color: var(--spectrum-gray-800, #292929);
         margin: 0;
     }
-    .collapse {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 4px;
-    }
 `;

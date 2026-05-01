@@ -140,40 +140,44 @@ export class MasCollapsibleTableRow extends LitElement {
                       </sp-table-cell>
                   </sp-table-row>
                   <sp-table-body>
-                      ${repeat(filteredVariationPaths, (variationPath) => {
-                          const variation = this.topLevelCardVariationsByPaths.get(variationPath);
-                          const isSelected = this.selectedCards.includes(variationPath);
-                          const isExpanded = this.expandedVariationsPaths.has(variationPath);
-                          return html` <sp-table-row
-                                  value=${variationPath}
-                                  ?selected=${isSelected}
-                                  aria-selected=${isSelected ? 'true' : 'false'}
-                              >
-                                  <sp-table-cell class="translation-table-icon-cell">
-                                      <sp-button
-                                          class="expand-button"
-                                          icon-only
-                                          quiet
-                                          variant="secondary"
-                                          @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
-                                      >
-                                          ${isExpanded
-                                              ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
-                                              : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
-                                      </sp-button>
-                                  </sp-table-cell>
-                                  <sp-table-cell class="translation-table-icon-cell">
-                                      <sp-checkbox
-                                          value=${variationPath}
-                                          ?checked=${isSelected}
-                                          @change=${(e) => this.#toggleSelect(e, variationPath)}
-                                      ></sp-checkbox>
-                                  </sp-table-cell>
-                                  ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
-                              </sp-table-row>
+                      ${repeat(
+                          filteredVariationPaths,
+                          (variationPath) => variationPath,
+                          (variationPath) => {
+                              const variation = this.topLevelCardVariationsByPaths.get(variationPath);
+                              const isSelected = this.selectedCards.includes(variationPath);
+                              const isExpanded = this.expandedVariationsPaths.has(variationPath);
+                              return html` <sp-table-row
+                                      value=${variationPath}
+                                      ?selected=${isSelected}
+                                      aria-selected=${isSelected ? 'true' : 'false'}
+                                  >
+                                      <sp-table-cell class="translation-table-icon-cell">
+                                          <sp-button
+                                              class="expand-button"
+                                              icon-only
+                                              quiet
+                                              variant="secondary"
+                                              @click=${(e) => this.#toggleExpandVariation(e, variationPath)}
+                                          >
+                                              ${isExpanded
+                                                  ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
+                                                  : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
+                                          </sp-button>
+                                      </sp-table-cell>
+                                      <sp-table-cell class="translation-table-icon-cell">
+                                          <sp-checkbox
+                                              value=${variationPath}
+                                              ?checked=${isSelected}
+                                              @change=${(e) => this.#toggleSelect(e, variationPath)}
+                                          ></sp-checkbox>
+                                      </sp-table-cell>
+                                      ${this.cells.map((cell) => this[`render${cell}`](variation) ?? nothing)}
+                                  </sp-table-row>
 
-                              ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
-                      })}
+                                  ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
+                          },
+                      )}
                   </sp-table-body>
               </sp-table>`;
     }
@@ -227,7 +231,7 @@ export class MasCollapsibleTableRow extends LitElement {
                     : html`<sp-table-cell
                           class="translation-table-icon-cell translation-table-icon-cell--chevron"
                       ></sp-table-cell>`}
-                ${repeat(this.cells, (cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
+                ${this.cells.map((cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
             </sp-table-row>
 
             ${this.isTopLevelExpanded ? this.renderGroupedVariationDetailsRow(this.topLevelCard.path) : nothing} `;
@@ -278,7 +282,7 @@ export class MasCollapsibleTableRow extends LitElement {
         if (!tagNames.length) return html`<sp-table-cell>no tags</sp-table-cell>`;
         return html` <sp-table-cell class="tags-cell">
             <div class="tags-label">Grouped variation tags</div>
-            <sp-tags>${repeat(tagNames, (tagName) => html`<sp-tag>${tagName}</sp-tag>`)}</sp-tags>
+            <sp-tags>${tagNames.map((tagName) => html`<sp-tag>${tagName}</sp-tag>`)}</sp-tags>
         </sp-table-cell>`;
     }
 
@@ -458,22 +462,20 @@ export class MasCollapsibleTableRow extends LitElement {
                         @change=${(e) => this.#toggleSelect(e, this.topLevelCard.path)}
                     ></sp-checkbox>
                 </sp-table-cell>
-                ${repeat(this.cells, (cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
+                ${this.cells.map((cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
             </sp-table-row>
 
             ${this.isTopLevelExpanded
                 ? html`<div class="nested-content-container">
                       <div class="nested-content ${this.#hasConnector() ? 'has-connector' : ''}">
                           <sp-tabs quiet .selected=${this.selectedTabKey} @change=${this.#handleTabChange}>
-                              ${repeat(
-                                  this.tabs,
+                              ${this.tabs.map(
                                   (tab) =>
                                       html`<sp-tab value=${tab.key} label=${tab.label} ?disabled=${tab.disabled}>
                                           ${tab.label}
                                       </sp-tab>`,
                               )}
-                              ${repeat(
-                                  this.tabs,
+                              ${this.tabs.map(
                                   (tab) =>
                                       html`<sp-tab-panel value=${tab.key}>
                                           ${this[`${tab.key}TabTemplate`] ?? nothing}

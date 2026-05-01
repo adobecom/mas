@@ -48,7 +48,6 @@ export const styles = css`
         font-size: 12px;
         color: var(--spectrum-gray-800, #4b4b4b);
     }
-    .add-items-dialog,
     .add-locales-dialog {
         --mod-dialog-confirm-large-width: 960px;
         --mod-dialog-confirm-buttongroup-padding-top: 32px;

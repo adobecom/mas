@@ -1219,12 +1219,9 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async copyToUse() {
-        const { code, richText, href } = generateCodeToUse(
-            this.fragment,
-            Store.search.get().path,
-            PAGE_NAMES.CONTENT,
-            'Failed to copy code to clipboard',
-        );
+        const { code, richText, href } =
+            generateCodeToUse(this.fragment, Store.search.get().path, PAGE_NAMES.CONTENT, 'Failed to copy code to clipboard') ??
+            {};
         if (!code || !richText || !href) return;
 
         try {

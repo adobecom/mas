@@ -6,7 +6,6 @@ import Events from './events.js';
 import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { canAccessSettings } from './groups.js';
 
 const EVENT_MAS_READY = 'mas:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
@@ -39,26 +38,22 @@ class MasSideNav extends LitElement {
             width: 68px;
             padding: 32px 12px 12px 5px;
             box-sizing: content-box;
-            overflow-y: overlay;
+            overflow-y: auto;
         }
 
         .nav-container {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            flex: 1;
+            min-height: 0;
         }
 
         .nav-items {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            flex: 1;
             position: relative;
-            min-height: 770px;
-        }
-
-        #settings-nav-item {
-            position: absolute;
-            bottom: 42px;
+            padding-bottom: 76px;
         }
 
         .side-nav-new-window {
@@ -818,21 +813,6 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.deleteFragment();
     }
 
-    get settingsItem() {
-        if (!canAccessSettings(Store.surface())) {
-            return nothing;
-        }
-        return html`
-            <mas-side-nav-item
-                id="settings-nav-item"
-                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS || Store.page.get() === PAGE_NAMES.SETTINGS_EDITOR}
-                @nav-click="${router.navigateToPage(PAGE_NAMES.SETTINGS)}"
-            >
-                <sp-icon-settings slot="icon" size="l"></sp-icon-settings>
-            </mas-side-nav-item>
-        `;
-    }
-
     get defaultNavigation() {
         return html`
             <mas-side-nav-item
@@ -873,13 +853,6 @@ class MasSideNav extends LitElement {
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
             <mas-side-nav-item
-                label="Bulk publish"
-                ?selected=${Store.page.get() === PAGE_NAMES.BULK_PUBLISH}
-                @nav-click="${router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)}"
-            >
-                <sp-icon-publish-check slot="icon"></sp-icon-publish-check>
-            </mas-side-nav-item>
-            <mas-side-nav-item
                 class="side-nav-support"
                 label="Support"
                 @nav-click="${() => window.open('https://adobe.enterprise.slack.com/archives/C02RZERR9CH', '_blank')}"
@@ -887,7 +860,14 @@ class MasSideNav extends LitElement {
                 <sp-icon-help slot="icon"></sp-icon-help>
                 <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
             </mas-side-nav-item>
-            ${this.settingsItem}
+            <mas-side-nav-item
+                class="bottom"
+                label="Advanced tools"
+                ?selected=${Store.page.get() === PAGE_NAMES.ADVANCED_TOOLS}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)}"
+            >
+                <sp-icon-briefcase slot="icon"></sp-icon-briefcase>
+            </mas-side-nav-item>
         `;
     }
 

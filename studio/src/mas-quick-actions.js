@@ -1,4 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
+import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { styles } from './mas-quick-actions.css.js';
 import { QUICK_ACTION } from './constants.js';
 
@@ -48,6 +49,10 @@ const ACTION_CONFIG = {
         icon: 'sp-icon-checkmark',
         title: 'Validate',
     },
+    [QUICK_ACTION.LINK]: {
+        icon: 'custom-icon-link',
+        title: 'Link',
+    },
 };
 
 class MasQuickActions extends LitElement {
@@ -57,6 +62,8 @@ class MasQuickActions extends LitElement {
         isDraggable: { type: Boolean },
         actions: { type: Array },
         disabled: { type: Set },
+        iconOverrides: { type: Object },
+        dragHandleStyle: { type: String, attribute: 'drag-handle-style' },
         _dragging: { type: Boolean, state: true },
     };
 
@@ -72,6 +79,8 @@ class MasQuickActions extends LitElement {
         this.isDraggable = true;
         this.actions = [];
         this.disabled = new Set();
+        this.iconOverrides = {};
+        this.dragHandleStyle = 'dots';
         this._dragging = false;
     }
 
@@ -143,6 +152,16 @@ class MasQuickActions extends LitElement {
 
     get dragHandle() {
         if (!this.isDraggable) return nothing;
+        if (this.dragHandleStyle === 'bar') {
+            return html`
+                <div
+                    class="drag-handle bar"
+                    title="Drag to reposition"
+                    @mousedown=${(e) => this.#handleDragStart(e)}
+                    @touchstart=${(e) => this.#handleDragStart(e)}
+                ></div>
+            `;
+        }
         return html`
             <div
                 class="drag-handle"
@@ -239,14 +258,21 @@ class MasQuickActions extends LitElement {
                 return this.sendToLocIcon;
             case 'sp-icon-checkmark':
                 return html`<sp-icon-checkmark slot="icon"></sp-icon-checkmark>`;
+            case 'sp-icon-link-check':
+                return html`<sp-icon-link-check slot="icon"></sp-icon-link-check>`;
+            case 'sp-icon-copy':
+                return html`<sp-icon-copy slot="icon"></sp-icon-copy>`;
             default:
                 return nothing;
         }
     }
 
     renderAction(action) {
-        const config = ACTION_CONFIG[action];
-        if (!config) return nothing;
+        if (!ACTION_CONFIG[action]) return nothing;
+        const config = { ...ACTION_CONFIG[action], ...this.iconOverrides?.[action] };
+        const iconNode = config.svg
+            ? html`<sp-icon slot="icon">${unsafeSVG(config.svg)}</sp-icon>`
+            : this.renderIcon(config.icon);
         return html`
             <sp-action-button
                 class="${config.className || ''}"
@@ -254,7 +280,7 @@ class MasQuickActions extends LitElement {
                 ?disabled=${this.disabled.has(action)}
                 @click="${() => this.dispatchEvent(new CustomEvent(action, { bubbles: true, composed: true }))}"
             >
-                ${this.renderIcon(config.icon)}
+                ${iconNode}
             </sp-action-button>
         `;
     }

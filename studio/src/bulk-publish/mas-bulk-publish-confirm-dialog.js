@@ -25,8 +25,18 @@ class MasBulkPublishConfirmDialog extends LitElement {
     render() {
         if (!this.open) return nothing;
         return html`
-            <sp-dialog-wrapper headline="Publish project" underlay dismissable @close=${this.cancel}>
-                <h2 slot="heading">Publish project</h2>
+            <sp-dialog-wrapper
+                open
+                mode="modal"
+                headline="Publish project"
+                cancel-label="Cancel"
+                confirm-label="Publish"
+                underlay
+                no-divider
+                @confirm=${this.confirm}
+                @cancel=${this.cancel}
+                @close=${this.cancel}
+            >
                 <p>This project will be published immediately.</p>
                 <dl>
                     <dt>Project:</dt>
@@ -36,8 +46,6 @@ class MasBulkPublishConfirmDialog extends LitElement {
                     <dt>Items:</dt>
                     <dd>${this.itemCount}</dd>
                 </dl>
-                <sp-button slot="button" variant="secondary" data-testid="cancel-btn" @click=${this.cancel}>Cancel</sp-button>
-                <sp-button slot="button" variant="accent" data-testid="publish-btn" @click=${this.confirm}>Publish</sp-button>
             </sp-dialog-wrapper>
         `;
     }

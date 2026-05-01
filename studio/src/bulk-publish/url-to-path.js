@@ -1,4 +1,5 @@
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const AEM_PATH_RE = /^\/content\/dam\/mas\//;
 
 export function parseStudioUrl(raw) {
     if (!raw || typeof raw !== 'string') return null;
@@ -18,4 +19,11 @@ export function parseStudioUrl(raw) {
     if (!fragmentId || !UUID_RE.test(fragmentId)) return null;
 
     return { fragmentId };
+}
+
+export function parseAemPath(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    if (!AEM_PATH_RE.test(trimmed)) return null;
+    return { path: trimmed };
 }

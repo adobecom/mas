@@ -4,17 +4,74 @@ import Store from '../store.js';
 import { getDefaultLocales, getLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
+const REGION_GROUPS = [
+    {
+        name: 'LATAM/Americas',
+        countries: ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC', 'LA'],
+    },
+    {
+        name: 'JAPAC',
+        countries: ['AU', 'NZ', 'JP', 'KR', 'CN', 'TW', 'HK', 'SG', 'IN', 'ID', 'MY', 'PH', 'TH', 'VN'],
+    },
+    {
+        name: 'EMEA',
+        countries: [
+            'GB',
+            'DE',
+            'FR',
+            'IT',
+            'ES',
+            'NL',
+            'BE',
+            'CH',
+            'AT',
+            'LU',
+            'PT',
+            'PL',
+            'CZ',
+            'SK',
+            'HU',
+            'RO',
+            'BG',
+            'EE',
+            'LV',
+            'LT',
+            'FI',
+            'DK',
+            'SE',
+            'NO',
+            'GR',
+            'TR',
+            'RU',
+            'UA',
+            'SI',
+            'SA',
+            'AE',
+            'EG',
+            'KW',
+            'QA',
+            'IL',
+            'NG',
+            'ZA',
+            'IE',
+            'HR',
+        ],
+    },
+];
+
 class MasTranslationLanguages extends LitElement {
     static styles = styles;
 
     static properties = {
         localesArray: { type: Array, state: true },
         targetStore: { type: Object },
+        searchQuery: { type: String, state: true },
     };
 
     constructor() {
         super();
         this.targetStore = Store.translationProjects;
+        this.searchQuery = '';
     }
 
     connectedCallback() {
@@ -27,43 +84,53 @@ class MasTranslationLanguages extends LitElement {
                 acc.push({ ...item, locale });
                 return acc;
             }, [])
-            .sort((a, b) => {
-                return a.locale > b.locale ? 1 : -1;
-            });
-        this.localesMatrix = this.getLocales();
+            .sort((a, b) => (a.locale > b.locale ? 1 : -1));
         this.targetLocalesController = new ReactiveController(this, [this.targetStore?.targetLocales].filter(Boolean));
     }
 
+    get selectedLocales() {
+        return this.targetStore.targetLocales.value;
+    }
+
+    get filteredLocales() {
+        if (!this.searchQuery) return this.localesArray;
+        const q = this.searchQuery.toLowerCase();
+        return this.localesArray.filter((item) => item.locale.toLowerCase().includes(q));
+    }
+
     get selectAllChecked() {
-        return this.targetStore.targetLocales.value.length === this.localesArray.length;
+        return this.selectedLocales.length === this.localesArray.length;
+    }
+
+    get selectAllIndeterminate() {
+        return this.selectedLocales.length > 0 && this.selectedLocales.length < this.localesArray.length;
     }
 
     get numberOfLocales() {
-        const languagesText = this.targetStore.targetLocales.value.length === 1 ? 'language' : 'languages';
-        return this.targetStore.targetLocales.value.length
-            ? `${this.targetStore.targetLocales.value.length} ${languagesText} selected`
-            : `${this.localesArray.length} ${languagesText}`;
+        const count = this.selectedLocales.length;
+        if (count) return `${count} ${count === 1 ? 'language' : 'languages'} selected`;
+        return `${this.localesArray.length} languages`;
     }
 
-    /** The array of locales needs to be transform into the matrix with NMB_CLMN columns
-     *  where the array in the last row needs to be filled with remaining empty objects
-     *  to display the content properly in the table.
-     */
-    getLocales() {
-        const numberOfColumns = 4;
-        const matrix = this.localesArray.reduce((rows, key, index) => {
-            return (index % numberOfColumns == 0 ? rows.push([key]) : rows[rows.length - 1].push(key)) && rows;
-        }, []);
-
-        const lastRowLength = matrix[matrix.length - 1].length;
-        for (let i = 0; i < numberOfColumns - lastRowLength; i++) {
-            matrix[matrix.length - 1].push({});
+    get groupedLocales() {
+        const ungrouped = [...this.filteredLocales];
+        const groups = [];
+        for (const region of REGION_GROUPS) {
+            const locales = ungrouped.filter((item) => region.countries.includes(item.country));
+            if (locales.length) groups.push({ name: region.name, locales });
         }
-        return matrix;
+        const grouped = groups.flatMap((g) => g.locales);
+        const other = ungrouped.filter((item) => !grouped.includes(item));
+        if (other.length) groups.push({ name: 'Other', locales: other });
+        return groups;
     }
 
-    selectAll(event) {
-        if (event.target.checked) {
+    handleSearch(e) {
+        this.searchQuery = e.target.value;
+    }
+
+    selectAll(e) {
+        if (e.target.checked) {
             this.targetStore.targetLocales.set(this.localesArray.map((item) => item.locale));
         } else {
             this.targetStore.targetLocales.set([]);
@@ -71,52 +138,108 @@ class MasTranslationLanguages extends LitElement {
         this.requestUpdate();
     }
 
-    changeCheckboxState(event) {
-        event.stopPropagation();
-        if (event.target.checked) {
-            this.targetStore.targetLocales.set([...this.targetStore.targetLocales.value, event.target.textContent.trim()]);
+    toggleRegion(regionLocales, e) {
+        const regionCodes = regionLocales.map((item) => item.locale);
+        const allSelected = regionCodes.every((code) => this.selectedLocales.includes(code));
+        if (allSelected || e.target.indeterminate) {
+            this.targetStore.targetLocales.set(this.selectedLocales.filter((code) => !regionCodes.includes(code)));
         } else {
-            this.targetStore.targetLocales.set(
-                this.targetStore.targetLocales.value.filter((locale) => locale !== event.target.textContent.trim()),
-            );
+            this.targetStore.targetLocales.set([...new Set([...this.selectedLocales, ...regionCodes])]);
+        }
+        this.requestUpdate();
+    }
+
+    toggleLocale(e) {
+        e.stopPropagation();
+        const locale = e.target.textContent.trim();
+        if (e.target.checked) {
+            this.targetStore.targetLocales.set([...this.selectedLocales, locale]);
+        } else {
+            this.targetStore.targetLocales.set(this.selectedLocales.filter((l) => l !== locale));
         }
     }
 
-    renderTableCell(item) {
+    isRegionAllSelected(locales) {
+        return locales.every((item) => this.selectedLocales.includes(item.locale));
+    }
+
+    isRegionIndeterminate(locales) {
+        const codes = locales.map((item) => item.locale);
+        const selected = codes.filter((code) => this.selectedLocales.includes(code));
+        return selected.length > 0 && selected.length < codes.length;
+    }
+
+    renderLocaleGrid(locales) {
+        const columns = 4;
+        const colSize = Math.ceil(locales.length / columns);
+        const cols = Array.from({ length: columns }, (_, i) => locales.slice(i * colSize, (i + 1) * colSize));
         return html`
-            <sp-table-cell role="gridcell">
-                ${item.locale
-                    ? html`
-                          <sp-checkbox
-                              @change=${this.changeCheckboxState}
-                              ?checked=${this.targetStore.targetLocales.value.includes(item.locale)}
-                          >
-                              ${item.locale}
-                          </sp-checkbox>
-                      `
-                    : nothing}
-            </sp-table-cell>
+            <div class="locale-grid">
+                ${cols.map(
+                    (col) => html`
+                        <div class="locale-col">
+                            ${col.map(
+                                (item) => html`
+                                    <sp-checkbox
+                                        ?checked=${this.selectedLocales.includes(item.locale)}
+                                        @change=${this.toggleLocale}
+                                    >
+                                        ${item.locale}
+                                    </sp-checkbox>
+                                `,
+                            )}
+                        </div>
+                    `,
+                )}
+            </div>
         `;
     }
 
-    renderTableRow(localeArray) {
-        return html` <sp-table-row role="row"> ${localeArray.map((locale) => this.renderTableCell(locale))} </sp-table-row> `;
+    renderRegion(group) {
+        const allSelected = this.isRegionAllSelected(group.locales);
+        const indeterminate = this.isRegionIndeterminate(group.locales);
+        return html`
+            <div class="region-card">
+                <div class="region-header">
+                    <sp-checkbox
+                        ?checked=${allSelected}
+                        ?indeterminate=${indeterminate}
+                        @change=${(e) => this.toggleRegion(group.locales, e)}
+                    ></sp-checkbox>
+                    <span class="region-name">${group.name}</span>
+                </div>
+                ${this.renderLocaleGrid(group.locales)}
+            </div>
+        `;
     }
 
     render() {
         return html`
             <div class="select-lang-content">
-                <div class="select-all-lang">
-                    <sp-checkbox id="cb-select-all" ?checked=${this.selectAllChecked} @change=${this.selectAll} size="m">
-                        Select all
-                    </sp-checkbox>
-                    <div class="nmb-languages">${this.numberOfLocales}</div>
+                <div class="sticky-header">
+                    <sp-search
+                        placeholder="Search locale"
+                        .value=${this.searchQuery}
+                        @input=${this.handleSearch}
+                        @change=${this.handleSearch}
+                    ></sp-search>
+                    <div class="select-all-row">
+                        <sp-checkbox
+                            ?checked=${this.selectAllChecked}
+                            ?indeterminate=${this.selectAllIndeterminate}
+                            @change=${this.selectAll}
+                        >
+                            Select all
+                        </sp-checkbox>
+                        <span class="locale-count">${this.numberOfLocales}</span>
+                    </div>
+                    <sp-divider size="s"></sp-divider>
                 </div>
-                <sp-divider size="s"></sp-divider>
-                <div class="select-lang">
-                    <sp-table quiet role="grid">
-                        ${this.localesMatrix.map((localeArray) => this.renderTableRow(localeArray))}
-                    </sp-table>
+                <div class="regions">
+                    ${this.groupedLocales.map((group) => this.renderRegion(group))}
+                    ${this.groupedLocales.length === 0
+                        ? html`<p class="no-results">No locales match your search.</p>`
+                        : nothing}
                 </div>
             </div>
         `;

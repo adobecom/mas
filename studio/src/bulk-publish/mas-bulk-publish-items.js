@@ -47,6 +47,10 @@ class MasBulkPublishItems extends LitElement {
         );
     }
 
+    handleChange() {
+        this.dispatchEvent(new CustomEvent('validate-items', { bubbles: true, composed: true }));
+    }
+
     emitAddBySearch() {
         this.dispatchEvent(new CustomEvent('add-by-search', { bubbles: true, composed: true }));
     }
@@ -80,17 +84,9 @@ class MasBulkPublishItems extends LitElement {
                     ${rows.map(
                         (item) => html`
                             <li data-testid="item-row">
-                                <a href=${item.url} target="_blank" rel="noopener">${item.url}</a>
-                                <sp-action-button
-                                    size="xs"
-                                    quiet
-                                    href=${item.url}
-                                    target="_blank"
-                                    rel="noopener"
-                                    label="Open link"
+                                <a href=${item.href ?? item.url} target="_blank" rel="noopener"
+                                    >${item.authorPath ?? item.url}</a
                                 >
-                                    <sp-icon-open-in slot="icon"></sp-icon-open-in>
-                                </sp-action-button>
                             </li>
                         `,
                     )}
@@ -103,13 +99,15 @@ class MasBulkPublishItems extends LitElement {
         const rows = this.items.length > 0 ? this.items : this.urlLines.map((url) => ({ url }));
         return html`
             <div class="sublabel">Enter URLs</div>
-            <div class="items-box">
-                ${rows.length > 0
-                    ? html`<ul data-testid="items-list">
+            ${rows.length > 0
+                ? html`<div class="items-box" data-testid="items-list">
+                      <ul>
                           ${rows.map(
                               (item) => html`
-                                  <li data-testid="item-row">
-                                      <a href=${item.url} target="_blank" rel="noopener">${item.url}</a>
+                                  <li class="with-action" data-testid="item-row">
+                                      <a href=${item.href ?? item.url} target="_blank" rel="noopener"
+                                          >${item.authorPath ?? item.url}</a
+                                      >
                                       <sp-action-button
                                           size="xs"
                                           quiet
@@ -121,14 +119,17 @@ class MasBulkPublishItems extends LitElement {
                                   </li>
                               `,
                           )}
-                      </ul>`
-                    : nothing}
-                <textarea
-                    placeholder="For example: https://www.adobe.com/products/firefly.html"
-                    .value=${this.urls}
-                    @input=${this.handleInput}
-                ></textarea>
-            </div>
+                      </ul>
+                  </div>`
+                : nothing}
+            <sp-textfield
+                class="url-input"
+                multiline
+                placeholder="For example: https://www.adobe.com/products/firefly.html"
+                .value=${this.urls}
+                @input=${this.handleInput}
+                @change=${this.handleChange}
+            ></sp-textfield>
             <sp-action-button
                 class="add-by-search"
                 size="s"
@@ -162,11 +163,17 @@ class MasBulkPublishItems extends LitElement {
                               Edit
                           </sp-action-button>`
                         : nothing}
-                    <button class="collapse" aria-label=${this.collapsed ? 'Expand' : 'Collapse'} @click=${this.toggleCollapse}>
+                    <sp-action-button
+                        size="s"
+                        quiet
+                        class="collapse"
+                        label=${this.collapsed ? 'Expand' : 'Collapse'}
+                        @click=${this.toggleCollapse}
+                    >
                         ${this.collapsed
-                            ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
-                            : html`<sp-icon-chevron-up></sp-icon-chevron-up>`}
-                    </button>
+                            ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
+                            : html`<sp-icon-chevron-up slot="icon"></sp-icon-chevron-up>`}
+                    </sp-action-button>
                 </div>
             </div>
             ${this.collapsed ? nothing : this.isEditing ? this.renderEditState() : this.renderViewState()}

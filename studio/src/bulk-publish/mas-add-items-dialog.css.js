@@ -5,6 +5,11 @@ export const styles = css`
         display: contents;
     }
 
+    sp-dialog-wrapper {
+        --mod-dialog-confirm-large-width: 100%;
+        --mod-dialog-confirm-buttongroup-padding-top: 32px;
+    }
+
     .dialog-content {
         display: flex;
         flex-direction: column;
@@ -48,8 +53,12 @@ export const styles = css`
     .table-wrapper {
         flex: 1;
         min-height: 0;
-        overflow-y: auto;
-        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .table-wrapper mas-select-items-table[hidden] {
+        display: none;
     }
 
     .dialog-footer {

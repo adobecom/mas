@@ -29,6 +29,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
     COMPAT_VERSION,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
@@ -99,6 +100,14 @@ function ensureCompatVersionOnMerchCardFieldList(modelPath, fields) {
         return true;
     }
     return false;
+}
+
+function collectionGroupedVariationLabelField(parentFragment) {
+    const raw = parentFragment.fields?.find((f) => f.name === 'label')?.values?.[0];
+    const labelText =
+        (raw != null && String(raw).trim()) || (parentFragment.title != null && String(parentFragment.title).trim()) || '-';
+    const v = String(labelText).trim() || '-';
+    return { name: 'label', type: 'text', multiple: false, locked: false, values: [v] };
 }
 
 export class MasRepository extends LitElement {
@@ -2066,7 +2075,15 @@ export class MasRepository extends LitElement {
             fragmentName = `${fragmentName}-${suffix}`;
         }
 
+        const isCollectionModel =
+            parentFragment.model?.path === COLLECTION_MODEL_PATH ||
+            parentFragment.model?.id === TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
+
         const groupedFields = [];
+        if (isCollectionModel) {
+            groupedFields.push(collectionGroupedVariationLabelField(parentFragment));
+        }
+
         if (pznTags?.length) {
             groupedFields.push({ name: 'pznTags', type: 'tag', multiple: true, values: pznTags });
         }

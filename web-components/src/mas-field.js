@@ -17,7 +17,8 @@ export function priceOptionsProvider(element, options) {
 }
 
 function registerPriceOptionsProvider(service) {
-    if (!service?.providers || service.providers.has(priceOptionsProvider)) return;
+    if (!service?.providers || service.providers.has(priceOptionsProvider))
+        return;
     service.providers.price(priceOptionsProvider);
 }
 

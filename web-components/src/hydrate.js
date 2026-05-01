@@ -234,10 +234,10 @@ export function processBorderColor(fields, merchCard, variantMapping) {
         const isGradient =
             specialValue?.includes('gradient') ||
             /-gradient/.test(fields.borderColor);
-        // Check if it's a spectrum color that needs attribute-based styling
-        const isSpectrumColor = /^spectrum-.*-(plans|special-offers)$/.test(
-            fields.borderColor,
-        );
+        // Spectrum / variation tokens: set border-color attribute for variant CSS (e.g. drop-shadow).
+        const isSpectrumColor =
+            /^spectrum-.*-(plans|special-offers)$/.test(fields.borderColor) ||
+            /^color-.+-variation$/.test(fields.borderColor);
 
         if (isGradient) {
             // For gradients, set both attributes needed for CSS selectors
@@ -260,9 +260,7 @@ export function processBorderColor(fields, merchCard, variantMapping) {
             merchCard.setAttribute('border-color', borderColorKey);
             merchCard.style.removeProperty(customBorderColor);
         } else if (isSpectrumColor) {
-            // For spectrum colors (like spectrum-red-700-plans), set both attribute and CSS variable
-            // Attribute enables CSS selectors like :host([border-color='spectrum-red-700-plans']) for drop-shadow
-            // CSS variable is still needed for border color rendering
+            // Set attribute + CSS var so variant selectors (drop-shadow, etc.) apply.
             merchCard.setAttribute('border-color', fields.borderColor);
             merchCard.style.setProperty(
                 customBorderColor,
@@ -278,7 +276,11 @@ export function processBorderColor(fields, merchCard, variantMapping) {
     }
 }
 
-export function processWhatsIncludedDividerColor(fields, merchCard, variantMapping) {
+export function processWhatsIncludedDividerColor(
+    fields,
+    merchCard,
+    variantMapping,
+) {
     if (!variantMapping?.whatsIncludedDividerColor) return;
     const color = fields.whatsIncludedDividerColor;
     const cssVar = '--merch-whats-included-divider-color';

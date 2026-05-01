@@ -133,11 +133,11 @@ styles.innerHTML = `
     --spectrum-gray-300-special-offers: #D1D1D1;
     --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
 
-    --color-yellow-300-variation: var(--spectrum-yellow-300-plans);
-    --color-green-900-variation: var(--spectrum-green-900-plans);
-    --color-gray-300-variation: var(--spectrum-gray-300-plans);
-    --color-gray-700-variation: var(--spectrum-gray-700-plans);
-    --color-red-700-variation: var(--spectrum-red-700-plans);
+    --color-yellow-300-variation: var(--spectrum-yellow-300);
+    --color-green-900-variation: var(--spectrum-green-900);
+    --color-gray-300-variation: var(--spectrum-gray-300);
+    --color-gray-700-variation: var(--spectrum-gray-700);
+    --color-red-700-variation: var(--spectrum-red-700);
 
     /* simplified-pricing-express colors */
     --spectrum-gray-50: #FFFFFF;
@@ -792,7 +792,9 @@ merch-card merch-whats-included[has-bullets] [slot="content"] {
 }
 
 merch-badge[background-color="spectrum-red-700-plans"],
-merch-badge[background-color="spectrum-green-900-special-offers"] {
+merch-badge[background-color="color-red-700-variation"],
+merch-badge[background-color="spectrum-green-900-special-offers"],
+merch-badge[background-color="color-green-900-variation"] {
   color: #FFFFFF;
 }
 
@@ -808,6 +810,10 @@ merch-badge {
 /* Red border color for merch-cards */
 merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
+}
+
+merch-card[border-color="color-red-700-variation"] {
+  border-color: var(--color-red-700-variation);
 }
 
 @media (max-width: 600px) {

@@ -316,11 +316,19 @@ export class MerchCard extends LitElement {
         if (changedProperties.has('whatsIncludedDividerColor')) {
             const color = this.whatsIncludedDividerColor;
             if (!color || color.toLowerCase() === 'default') {
-                this.style.removeProperty('--merch-whats-included-divider-color');
+                this.style.removeProperty(
+                    '--merch-whats-included-divider-color',
+                );
             } else if (color.toLowerCase() === 'transparent') {
-                this.style.setProperty('--merch-whats-included-divider-color', 'transparent');
+                this.style.setProperty(
+                    '--merch-whats-included-divider-color',
+                    'transparent',
+                );
             } else {
-                this.style.setProperty('--merch-whats-included-divider-color', `var(--${color})`);
+                this.style.setProperty(
+                    '--merch-whats-included-divider-color',
+                    `var(--${color})`,
+                );
             }
         }
         try {

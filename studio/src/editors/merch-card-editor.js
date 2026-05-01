@@ -2521,8 +2521,16 @@ class MerchCardEditor extends LitElement {
                     data-field="${dataField}"
                     data-field-state="${this.#getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor)}"
                     value="${displaySelectedValue ||
-                    (isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isWhatsIncludedDividerColor ? 'Default' : '')}"
-                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isWhatsIncludedDividerColor ? 'Default' : ''}"
+                    (isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isWhatsIncludedDividerColor
+                        ? 'Default'
+                        : '')}"
+                    data-default-value="${isBackground ||
+                    isBadgeColor ||
+                    isBadgeBorderColor ||
+                    isBorder ||
+                    isWhatsIncludedDividerColor
+                        ? 'Default'
+                        : ''}"
                     @change="${handleChange}"
                 >
                     ${options.map(

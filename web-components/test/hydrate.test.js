@@ -1045,6 +1045,78 @@ describe('processBorderColor', () => {
             ),
         ).to.equal('transparent');
     });
+
+    it('sets attribute and CSS var for spectrum-*-plans border tokens', () => {
+        const fields = { borderColor: 'spectrum-red-700-plans' };
+        const borderColorConfig = { attribute: 'border-color' };
+
+        processBorderColor(fields, merchCard, {
+            borderColor: borderColorConfig,
+        });
+
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ),
+        ).to.equal('var(--spectrum-red-700-plans)');
+    });
+
+    it('sets attribute and CSS var for spectrum-*-special-offers border tokens', () => {
+        const fields = { borderColor: 'spectrum-yellow-300-special-offers' };
+        const borderColorConfig = { attribute: 'border-color' };
+
+        processBorderColor(fields, merchCard, {
+            borderColor: borderColorConfig,
+        });
+
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'spectrum-yellow-300-special-offers',
+        );
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ),
+        ).to.equal('var(--spectrum-yellow-300-special-offers)');
+    });
+
+    it('sets attribute and CSS var for color-*-variation border tokens', () => {
+        const fields = { borderColor: 'color-yellow-300-variation' };
+        const borderColorConfig = { attribute: 'border-color' };
+
+        processBorderColor(fields, merchCard, {
+            borderColor: borderColorConfig,
+        });
+
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'color-yellow-300-variation',
+        );
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ),
+        ).to.equal('var(--color-yellow-300-variation)');
+    });
+
+    it('sets attribute and CSS var for color-*-variation border tokens (red)', () => {
+        const fields = { borderColor: 'color-red-700-variation' };
+        const borderColorConfig = { attribute: 'border-color' };
+
+        processBorderColor(fields, merchCard, {
+            borderColor: borderColorConfig,
+        });
+
+        expect(merchCard.getAttribute('border-color')).to.equal(
+            'color-red-700-variation',
+        );
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ),
+        ).to.equal('var(--color-red-700-variation)');
+    });
 });
 
 describe('processTrialBadge', () => {

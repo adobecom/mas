@@ -26,24 +26,37 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
     secureLabel: true,
     planType: true,
     badgeIcon: true,
-    badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300-plans' },
+    badge: { tag: 'div', slot: 'badge', default: 'color-yellow-300-variation' },
     allowedBadgeColors: [
+        'color-yellow-300-variation',
+        'color-gray-300-variation',
+        'color-gray-700-variation',
+        'color-green-900-variation',
+        'color-red-700-variation',
+        'gradient-purple-blue',
         'spectrum-yellow-300-plans',
         'spectrum-gray-300-plans',
         'spectrum-gray-700-plans',
         'spectrum-green-900-plans',
         'spectrum-red-700-plans',
-        'gradient-purple-blue',
     ],
     allowedBorderColors: [
+        'color-yellow-300-variation',
+        'color-gray-300-variation',
+        'color-green-900-variation',
+        'color-red-700-variation',
+        'gradient-purple-blue',
         'spectrum-yellow-300-plans',
         'spectrum-gray-300-plans',
         'spectrum-green-900-plans',
         'spectrum-red-700-plans',
-        'gradient-purple-blue',
     ],
     borderColor: { attribute: 'border-color' },
     allowedWhatsIncludedDividerColors: [
+        'color-yellow-300-variation',
+        'color-gray-300-variation',
+        'color-green-900-variation',
+        'color-red-700-variation',
         'spectrum-yellow-300-plans',
         'spectrum-gray-300-plans',
         'spectrum-green-900-plans',
@@ -850,27 +863,45 @@ export class MiniCompareChart extends VariantLayout {
 
         /* Border color styles */
         :host(
+            [variant='mini-compare-chart'][border-color='color-yellow-300-variation']
+        ),
+        :host(
             [variant='mini-compare-chart'][border-color='spectrum-yellow-300-plans']
         ) {
-            --consonant-merch-card-border-color: #ffd947;
+            --consonant-merch-card-border-color: var(
+                --color-yellow-300-variation
+            );
         }
 
+        :host(
+            [variant='mini-compare-chart'][border-color='color-gray-300-variation']
+        ),
         :host(
             [variant='mini-compare-chart'][border-color='spectrum-gray-300-plans']
         ) {
-            --consonant-merch-card-border-color: #dadada;
+            --consonant-merch-card-border-color: var(
+                --color-gray-300-variation
+            );
         }
 
+        :host(
+            [variant='mini-compare-chart'][border-color='color-green-900-variation']
+        ),
         :host(
             [variant='mini-compare-chart'][border-color='spectrum-green-900-plans']
         ) {
-            --consonant-merch-card-border-color: #05834e;
+            --consonant-merch-card-border-color: var(
+                --color-green-900-variation
+            );
         }
 
         :host(
+            [variant='mini-compare-chart'][border-color='color-red-700-variation']
+        ),
+        :host(
             [variant='mini-compare-chart'][border-color='spectrum-red-700-plans']
         ) {
-            --consonant-merch-card-border-color: #eb1000;
+            --consonant-merch-card-border-color: var(--color-red-700-variation);
             filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
         }
 
@@ -886,42 +917,59 @@ export class MiniCompareChart extends VariantLayout {
 
         /* Badge color styles */
         :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].color-red-700-variation),
+        :host([variant='mini-compare-chart'])
             ::slotted([slot='badge'].spectrum-red-700-plans) {
             filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
         }
 
         :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].color-yellow-300-variation),
+        :host([variant='mini-compare-chart'])
             ::slotted([slot='badge'].spectrum-yellow-300-plans),
+        :host([variant='mini-compare-chart']) #badge.color-yellow-300-variation,
         :host([variant='mini-compare-chart']) #badge.spectrum-yellow-300-plans {
-            background-color: #ffd947;
+            background-color: var(--color-yellow-300-variation);
             color: #2c2c2c;
         }
 
+        :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].color-gray-300-variation),
         :host([variant='mini-compare-chart'])
             ::slotted([slot='badge'].spectrum-gray-300-plans),
+        :host([variant='mini-compare-chart']) #badge.color-gray-300-variation,
         :host([variant='mini-compare-chart']) #badge.spectrum-gray-300-plans {
-            background-color: #dadada;
+            background-color: var(--color-gray-300-variation);
             color: #2c2c2c;
         }
 
         :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].color-gray-700-variation),
+        :host([variant='mini-compare-chart'])
             ::slotted([slot='badge'].spectrum-gray-700-plans),
+        :host([variant='mini-compare-chart']) #badge.color-gray-700-variation,
         :host([variant='mini-compare-chart']) #badge.spectrum-gray-700-plans {
-            background-color: #4b4b4b;
+            background-color: var(--color-gray-700-variation);
             color: #ffffff;
         }
 
+        :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].color-green-900-variation),
         :host([variant='mini-compare-chart'])
             ::slotted([slot='badge'].spectrum-green-900-plans),
+        :host([variant='mini-compare-chart']) #badge.color-green-900-variation,
         :host([variant='mini-compare-chart']) #badge.spectrum-green-900-plans {
-            background-color: #05834e;
+            background-color: var(--color-green-900-variation);
             color: #ffffff;
         }
 
         :host([variant='mini-compare-chart'])
+            ::slotted([slot='badge'].color-red-700-variation),
+        :host([variant='mini-compare-chart'])
             ::slotted([slot='badge'].spectrum-red-700-plans),
+        :host([variant='mini-compare-chart']) #badge.color-red-700-variation,
         :host([variant='mini-compare-chart']) #badge.spectrum-red-700-plans {
-            background-color: #eb1000;
+            background-color: var(--color-red-700-variation);
             color: #ffffff;
         }
     `;

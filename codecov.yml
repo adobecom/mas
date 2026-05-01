@@ -42,3 +42,5 @@ ignore:
     - '**/node_modules/**/*'
     - '**/dist/**/*'
     - 'build/**/*'
+    # Mostly CSS-in-template-string; patch coverage does not reflect runtime risk.
+    - 'web-components/src/global.css.js'

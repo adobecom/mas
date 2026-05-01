@@ -92,6 +92,12 @@ export default class StudioPage {
         this.publishCardButton = this.sideNav.locator('mas-side-nav-item[label="Publish"]');
         this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
         this.versionHistoryButton = this.sideNav.locator('mas-side-nav-item[label="History"]');
+        this.copyFieldButton = this.sideNav.locator('mas-side-nav-item[label="Copy Field"]');
+        // Side-nav renders the Copy Field popover inside its shadow root; Playwright CSS selectors pierce shadow.
+        this.copyFieldPopover = this.sideNav.locator('sp-popover[open]');
+        this.copyFieldRow = (label) =>
+            this.copyFieldPopover.locator('sp-menu-item', { has: this.page.locator(`.field-label:text-is("${label}")`) });
+        this.copyFieldRowValue = (label) => this.copyFieldRow(label).locator('.field-value');
         this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
         this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
         this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');

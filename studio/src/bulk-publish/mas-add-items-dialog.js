@@ -118,10 +118,14 @@ class MasAddItemsDialog extends LitElement {
                           `
                         : nothing}
                     <div class="table-wrapper">
-                        <mas-select-items-table
-                            .type=${this.selectedTab}
-                            .targetStore=${this.targetStore}
-                        ></mas-select-items-table>
+                        ${TABS.map(
+                            (tab) =>
+                                html`<mas-select-items-table
+                                    .type=${tab.value}
+                                    .targetStore=${this.targetStore}
+                                    ?hidden=${this.selectedTab !== tab.value}
+                                ></mas-select-items-table>`,
+                        )}
                     </div>
                     <div class="dialog-footer">
                         <sp-button variant="secondary" treatment="outline" @click=${this.#handleCancel}> Cancel </sp-button>

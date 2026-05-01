@@ -526,12 +526,9 @@ export default class EditorPanel extends LitElement {
     }
 
     async copyToUse() {
-        const { code, richText, href } = generateCodeToUse(
-            this.fragment,
-            Store.search.get().path,
-            Store.page.get(),
-            'Failed to copy code to clipboard',
-        );
+        const { code, richText, href } =
+            generateCodeToUse(this.fragment, Store.search.get().path, Store.page.get(), 'Failed to copy code to clipboard') ??
+            {};
         if (!code || !richText || !href) return;
 
         try {

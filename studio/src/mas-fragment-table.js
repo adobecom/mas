@@ -95,7 +95,7 @@ class MasFragmentTable extends LitElement {
     }
 
     get name() {
-        return generateCodeToUse(this.data, Store.search.get().path, Store.page.get()).authorPath;
+        return generateCodeToUse(this.data, Store.search.get().path, Store.page.get())?.authorPath;
     }
 
     get price() {

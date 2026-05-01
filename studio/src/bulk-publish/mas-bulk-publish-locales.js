@@ -1,6 +1,68 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-locales.css.js';
 
+const REGION_GROUPS = [
+    { name: 'LATAM/Americas', countries: ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC', 'LA'] },
+    { name: 'JAPAC', countries: ['AU', 'NZ', 'JP', 'KR', 'CN', 'TW', 'HK', 'SG', 'IN', 'ID', 'MY', 'PH', 'TH', 'VN'] },
+    {
+        name: 'EMEA',
+        countries: [
+            'GB',
+            'DE',
+            'FR',
+            'IT',
+            'ES',
+            'NL',
+            'BE',
+            'CH',
+            'AT',
+            'LU',
+            'PT',
+            'PL',
+            'CZ',
+            'SK',
+            'HU',
+            'RO',
+            'BG',
+            'EE',
+            'LV',
+            'LT',
+            'FI',
+            'DK',
+            'SE',
+            'NO',
+            'GR',
+            'TR',
+            'RU',
+            'UA',
+            'SI',
+            'SA',
+            'AE',
+            'EG',
+            'KW',
+            'QA',
+            'IL',
+            'NG',
+            'ZA',
+            'IE',
+            'HR',
+        ],
+    },
+];
+
+function groupLocalesByRegion(locales) {
+    const groups = [];
+    const remaining = [...locales];
+    for (const region of REGION_GROUPS) {
+        const inRegion = remaining.filter((locale) => region.countries.includes(locale.split('_').at(-1)));
+        if (inRegion.length) groups.push({ name: region.name, locales: inRegion });
+    }
+    const grouped = groups.flatMap((g) => g.locales);
+    const other = remaining.filter((l) => !grouped.includes(l));
+    if (other.length) groups.push({ name: 'Other', locales: other });
+    return groups;
+}
+
 class MasBulkPublishLocales extends LitElement {
     static styles = styles;
     static properties = {
@@ -43,10 +105,15 @@ class MasBulkPublishLocales extends LitElement {
                 ? nothing
                 : html`
                       ${n > 0
-                          ? html`<div class="locales-box" data-testid="summary">
-                                <ul>
-                                    ${this.locales.map((locale) => html`<li data-testid="locale-row">${locale}</li>`)}
-                                </ul>
+                          ? html`<div class="locales-summary" data-testid="summary">
+                                ${groupLocalesByRegion(this.locales).map(
+                                    (group) => html`
+                                        <div class="region-row" data-testid="locale-row">
+                                            <span class="region-label">${group.name}:</span>
+                                            <span class="region-locales">${group.locales.join(', ')}</span>
+                                        </div>
+                                    `,
+                                )}
                             </div>`
                           : html`<p class="empty" data-testid="no-locales">No locales selected</p>`}
                   `}

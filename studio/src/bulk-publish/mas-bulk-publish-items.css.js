@@ -39,27 +39,12 @@ export const styles = css`
     .items-box {
         border: 1px solid var(--spectrum-gray-300, #dadada);
         border-radius: 12px;
-        padding: 4px 0;
+        padding: 4px;
         overflow: hidden;
     }
-    .items-box textarea {
+    sp-textfield.url-input {
         width: 100%;
-        min-height: 56px;
-        padding: 8px 12px;
-        border: none;
-        border-top: 1px solid var(--spectrum-gray-200, #eaeaea);
-        font-family: inherit;
-        font-size: 14px;
-        resize: vertical;
-        box-sizing: border-box;
-        background: transparent;
-    }
-    .items-box textarea:only-child {
-        border-top: none;
-        min-height: 120px;
-    }
-    .items-box textarea:focus {
-        outline: none;
+        margin-top: 8px;
     }
     .add-by-search {
         margin-top: 8px;
@@ -90,16 +75,13 @@ export const styles = css`
     a {
         color: var(--spectrum-gray-800, #292929);
         text-decoration: underline;
-        flex: 1;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 14px;
     }
-    .collapse {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 4px;
+    li.with-action a {
+        flex: 1;
+        min-width: 0;
     }
 `;

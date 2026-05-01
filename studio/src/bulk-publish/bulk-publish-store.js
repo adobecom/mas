@@ -3,7 +3,11 @@ import { BULK_PUBLISH_STATUS } from '../constants.js';
 import Events from '../events.js';
 
 function setField(project, name, value) {
-    project.setFieldValue(name, value);
+    if (typeof project.updateField === 'function') {
+        project.updateField(name, [value]);
+    } else {
+        project.setFieldValue(name, value);
+    }
 }
 
 export async function startPublishing({ project, paths, locales, token, ioBaseUrl, publishFn, repository }) {
@@ -21,6 +25,8 @@ export async function startPublishing({ project, paths, locales, token, ioBaseUr
         setField(project, 'lastResult', JSON.stringify(result));
         setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
         setField(project, 'publishedAt', new Date().toISOString());
+        const userEmail = window.adobeIMS?.getUserProfile()?.email ?? '';
+        if (userEmail) setField(project, 'publishedBy', userEmail);
         await repository.saveFragment(project, false);
         Events.toast.emit({
             variant: 'positive',

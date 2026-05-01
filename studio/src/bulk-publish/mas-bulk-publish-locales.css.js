@@ -28,25 +28,25 @@ export const styles = css`
         font-weight: 400;
         color: var(--spectrum-gray-600, #505050);
     }
-    .locales-box {
-        border: 1px solid var(--spectrum-gray-300, #dadada);
-        border-radius: 12px;
-        padding: 4px 0;
-        overflow: hidden;
+    .locales-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
-    ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-    }
-    li {
-        padding: 8px 12px;
-        border-bottom: 1px solid var(--spectrum-gray-200, #eaeaea);
-        font-size: 14px;
+    .region-row {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        font-size: 16px;
         color: var(--spectrum-gray-800, #292929);
+        min-height: 32px;
     }
-    li:last-child {
-        border-bottom: none;
+    .region-label {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .region-locales {
+        color: var(--spectrum-gray-800, #292929);
     }
     .empty {
         font-size: 16px;

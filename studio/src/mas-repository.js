@@ -245,6 +245,9 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.TRANSLATIONS:
                 this.loadTranslationProjects();
                 break;
+            case PAGE_NAMES.BULK_PUBLISH:
+                this.loadBulkPublishProjects();
+                break;
         }
     }
 

@@ -52,13 +52,12 @@ const REGION_GROUPS = [
 
 function groupLocalesByRegion(locales) {
     const groups = [];
-    const remaining = [...locales];
     for (const region of REGION_GROUPS) {
-        const inRegion = remaining.filter((locale) => region.countries.includes(locale.split('_').at(-1)));
+        const inRegion = locales.filter((locale) => region.countries.includes(locale.split('_').at(-1)));
         if (inRegion.length) groups.push({ name: region.name, locales: inRegion });
     }
-    const grouped = groups.flatMap((g) => g.locales);
-    const other = remaining.filter((l) => !grouped.includes(l));
+    const grouped = new Set(groups.flatMap((group) => group.locales));
+    const other = locales.filter((locale) => !grouped.has(locale));
     if (other.length) groups.push({ name: 'Other', locales: other });
     return groups;
 }
@@ -94,11 +93,17 @@ class MasBulkPublishLocales extends LitElement {
                         <sp-icon-edit slot="icon"></sp-icon-edit>
                         Edit
                     </sp-action-button>
-                    <button class="collapse" aria-label=${this.collapsed ? 'Expand' : 'Collapse'} @click=${this.toggleCollapse}>
+                    <sp-action-button
+                        size="s"
+                        quiet
+                        class="collapse"
+                        label=${this.collapsed ? 'Expand' : 'Collapse'}
+                        @click=${this.toggleCollapse}
+                    >
                         ${this.collapsed
-                            ? html`<sp-icon-chevron-down></sp-icon-chevron-down>`
-                            : html`<sp-icon-chevron-up></sp-icon-chevron-up>`}
-                    </button>
+                            ? html`<sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>`
+                            : html`<sp-icon-chevron-up slot="icon"></sp-icon-chevron-up>`}
+                    </sp-action-button>
                 </div>
             </div>
             ${this.collapsed

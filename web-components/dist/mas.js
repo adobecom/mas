@@ -8044,6 +8044,7 @@ merch-card[variant="mini"] span.renewal-text {
     --spectrum-green-900-special-offers: #2D9D78;
     --spectrum-gray-300-special-offers: #D1D1D1;
     --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
+    --gradient-firefly-spectrum: linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%);
 
     --color-yellow-300-variation: var(--spectrum-yellow-300-plans);
     --color-green-900-variation: var(--spectrum-green-900-plans);
@@ -10275,7 +10276,7 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
     .spectrum--darkest merch-card[variant="fries"] [slot="body-s"] {
         color: rgb(142, 142, 147);
     }
-`;var jn={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},whatsIncluded:{tag:"div",slot:"whats-included"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300"}}},mr=class extends A{getGlobalCSS(){return Al}get aemFragmentMapping(){return jn}renderLayout(){return g`
+`;var jn={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},whatsIncluded:{tag:"div",slot:"whats-included"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300","gradient-purple-blue":"var(--gradient-purple-blue)","gradient-firefly-spectrum":"var(--gradient-firefly-spectrum)"}}},mr=class extends A{getGlobalCSS(){return Al}get aemFragmentMapping(){return jn}renderLayout(){return g`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -10358,6 +10359,34 @@ merch-card[variant="ccd-slice"] [slot='body-s'] a.spectrum-Link {
             align-items: center;
             gap: 8px;
             margin-top: 15px;
+        }
+
+        :host([variant='fries'][gradient-border='true']) {
+            border: 1px solid transparent;
+            background-image: linear-gradient(
+                    to bottom,
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    ),
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    )
+                ),
+                var(--merch-card-fries-border-gradient);
+            background-origin: padding-box, border-box;
+            background-clip: padding-box, border-box;
+        }
+
+        :host([variant='fries'][border-color='gradient-purple-blue']) {
+            --merch-card-fries-border-gradient: var(--gradient-purple-blue);
+        }
+
+        :host([variant='fries'][border-color='gradient-firefly-spectrum']) {
+            --merch-card-fries-border-gradient: var(
+                --gradient-firefly-spectrum
+            );
         }
     `);G("ccd-suggested",lr,vl,lr.variantStyle);G("ccd-slice",dr,yl,dr.variantStyle);G("ah-try-buy-widget",hr,qn,hr.variantStyle);G("ah-promoted-plans",pr,Vn,pr.variantStyle);G("fries",mr,jn,mr.variantStyle);
 /*! Bundled license information:

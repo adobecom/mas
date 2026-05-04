@@ -157,7 +157,7 @@ export default {
                 locale: 'en_CA',
                 localeName: 'Canada',
                 price: PRICE_PATTERN.CA.mo,
-                referencesBaseUrl: 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments',
+                referencesBaseUrl: 'https://odinpreview.corp.adobe.com/adobe/contentFragments',
                 editedTitle: '[selfref] Edited title',
             },
             tags: '@mas-studio @regional-variations',

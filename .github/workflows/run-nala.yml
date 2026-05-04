@@ -65,7 +65,7 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
             - name: Install Playwright system dependencies
-              run: npx playwright install-deps
+              uses: ./.github/actions/prep-apt
 
             - name: Install/verify Playwright browsers
               run: |
@@ -91,6 +91,9 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
+                  # 4 workers × 45 RPS/worker = 180 RPS combined, safely under the 200 RPS
+                  # per-hostname limit enforced by AEM.live. Raise only if EDS grants a higher cap.
+                  NALA_PLAYWRIGHT_WORKERS: 4
 
             - name: Cleanup cloned cards
               if: always()
@@ -162,6 +165,8 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
+            # Docs tests run on GitHub-hosted runners (ubuntu-latest) — no unattended-upgrades
+            # lock contention, so the prep-apt composite action is not needed here.
             - name: Install Playwright system dependencies
               if: steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install-deps

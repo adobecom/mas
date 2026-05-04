@@ -56,3 +56,4 @@ web-components/commerce.json
 web-components/mas.json
 web-components/stats.json
 *.jsonl
+mcp-server.log

@@ -3583,4 +3583,34 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.placeholders.previewByLocale.get().fr_FR).to.deep.equal({ dictKey: 'dictVal' });
         });
     });
+
+    describe('Store subscription lifecycle', () => {
+        const connectAndDisconnect = (repository) => {
+            sandbox.stub(repository, 'loadFolders').resolves();
+            repository.connectedCallback();
+            repository.disconnectedCallback();
+        };
+
+        it('unsubscribes from Store.filters on disconnectedCallback', () => {
+            const repository = createFullRepository();
+            const subscribeSpy = sandbox.spy(Store.filters, 'subscribe');
+            const unsubscribeSpy = sandbox.spy(Store.filters, 'unsubscribe');
+
+            connectAndDisconnect(repository);
+
+            const subscribedFn = subscribeSpy.firstCall.args[0];
+            expect(unsubscribeSpy.calledWith(subscribedFn)).to.be.true;
+        });
+
+        it('unsubscribes from Store.search on disconnectedCallback', () => {
+            const repository = createFullRepository();
+            const subscribeSpy = sandbox.spy(Store.search, 'subscribe');
+            const unsubscribeSpy = sandbox.spy(Store.search, 'unsubscribe');
+
+            connectAndDisconnect(repository);
+
+            const subscribedFn = subscribeSpy.firstCall.args[0];
+            expect(unsubscribeSpy.calledWith(subscribedFn)).to.be.true;
+        });
+    });
 });

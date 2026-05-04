@@ -166,19 +166,8 @@ export class MasRepository extends LitElement {
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
         this.aem = new AEM(this.bucket, this.baseUrl);
 
-        // Invalidate dictionary cache when filters or search path change
-        Store.filters.subscribe(() => {
-            this.dictionaryCache.clear();
-            Store.placeholders.previewByLocale.set({});
-            if (this.page.value === PAGE_NAMES.CONTENT) {
-                this.#searchCursor = null;
-            }
-        });
-        Store.search.subscribe(() => {
-            this.dictionaryCache.clear();
-            Store.placeholders.previewByLocale.set({});
-            this.#searchCursor = null;
-        });
+        Store.filters.subscribe(this.#onFiltersChange);
+        Store.search.subscribe(this.#onSearchChange);
 
         Events.fragmentAdded.subscribe(this.#stampLastEdit);
         Events.fragmentDeleted.subscribe(this.#stampLastEdit);
@@ -190,12 +179,28 @@ export class MasRepository extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        Store.filters.unsubscribe(this.#onFiltersChange);
+        Store.search.unsubscribe(this.#onSearchChange);
         Events.fragmentAdded.unsubscribe(this.#stampLastEdit);
         Events.fragmentDeleted.unsubscribe(this.#stampLastEdit);
         Events.fragmentSaved.unsubscribe(this.#stampLastEdit);
     }
 
     #stampLastEdit = () => Store.fragments.list.data.setMeta('lastEdit', Date.now());
+
+    #onFiltersChange = () => {
+        this.dictionaryCache.clear();
+        Store.placeholders.previewByLocale.set({});
+        if (this.page.value === PAGE_NAMES.CONTENT) {
+            this.#searchCursor = null;
+        }
+    };
+
+    #onSearchChange = () => {
+        this.dictionaryCache.clear();
+        Store.placeholders.previewByLocale.set({});
+        this.#searchCursor = null;
+    };
 
     /**
      * @param {Error} error
@@ -247,6 +252,10 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.BULK_PUBLISH:
                 this.loadBulkPublishProjects();
+                break;
+            case PAGE_NAMES.TRANSLATION_EDITOR:
+            case PAGE_NAMES.BULK_PUBLISH_EDITOR:
+                this.searchFragments();
                 break;
         }
     }
@@ -494,6 +503,7 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
+        if (Store.fragments.list.hasMore.get()) Store.fragments.list.hasMore.set(false);
         if (dataStore.get().length > 0) {
             dataStore.set([]);
         }

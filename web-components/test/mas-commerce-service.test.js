@@ -53,6 +53,32 @@ describe('commerce service', () => {
                     'defined feature flag with off should be unset',
                 ).to.be.false;
             });
+
+            it('considers mas-ff-unit-defaults independently', async () => {
+                let el = await initMasCommerceService();
+                expect(
+                    el.featureFlags['mas-ff-unit-defaults'],
+                    'undefined unit-defaults flag should be unset',
+                ).to.be.false;
+                el = await initMasCommerceService({
+                    'data-mas-ff-unit-defaults': 'on',
+                });
+                expect(
+                    el.featureFlags['mas-ff-unit-defaults'],
+                    'unit-defaults flag with on should be set',
+                ).to.be.true;
+                expect(
+                    el.featureFlags['mas-ff-defaults'],
+                    'unit-defaults flag should not enable umbrella defaults',
+                ).to.be.false;
+                el = await initMasCommerceService({
+                    'data-mas-ff-unit-defaults': 'off',
+                });
+                expect(
+                    el.featureFlags['mas-ff-unit-defaults'],
+                    'unit-defaults flag with off should be unset',
+                ).to.be.false;
+            });
         });
 
         it('returns "Defaults" object', async () => {

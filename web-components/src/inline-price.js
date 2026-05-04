@@ -1,4 +1,9 @@
-import { STATE_FAILED, FF_DEFAULTS, FF_ANNUAL_PRICE } from './constants.js';
+import {
+    STATE_FAILED,
+    FF_DEFAULTS,
+    FF_UNIT_DEFAULTS,
+    FF_ANNUAL_PRICE,
+} from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
 import { selectOffers, sumOffers, getService } from './utilities.js';
 import { Defaults } from './defaults.js';
@@ -370,11 +375,20 @@ export class InlinePrice extends HTMLSpanElement {
             let offers = selectedOffers;
             const offer = sumOffers(selectedOffers);
 
-            if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
+            // FF_UNIT_DEFAULTS opts pages into unit labels alone, without the geo/tax defaults below.
+            if (
+                service.featureFlags[FF_DEFAULTS] ||
+                options[FF_DEFAULTS] ||
+                service.featureFlags[FF_UNIT_DEFAULTS] ||
+                options[FF_UNIT_DEFAULTS]
+            ) {
                 if (priceOptions.displayPerUnit === undefined) {
                     options.displayPerUnit =
                         offer.customerSegment !== 'INDIVIDUAL';
                 }
+            }
+
+            if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
                 // if displayTax or forceTaxExclusive is not set, we need to resolve the values based on the geo and segment
                 if (
                     priceOptions.displayTax === undefined ||

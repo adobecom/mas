@@ -3,6 +3,7 @@ import * as Constants from './constants.js';
 import {
     EVENT_TYPE_READY,
     FF_DEFAULTS,
+    FF_UNIT_DEFAULTS,
     FF_ANNUAL_PRICE,
     SELECTOR_MAS_ELEMENT,
 } from './constants.js';
@@ -98,6 +99,7 @@ export class MasCommerceService extends HTMLElement {
         if (!this.#featureFlags) {
             this.#featureFlags = {
                 [FF_DEFAULTS]: this.#getFeatureFlag(FF_DEFAULTS),
+                [FF_UNIT_DEFAULTS]: this.#getFeatureFlag(FF_UNIT_DEFAULTS),
                 [FF_ANNUAL_PRICE]: this.#getFeatureFlag(FF_ANNUAL_PRICE),
             };
         }

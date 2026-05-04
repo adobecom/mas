@@ -158,17 +158,20 @@ describe('addParamsFromPageUrl', () => {
 });
 
 describe('pathnameRequiresZhHantLang', () => {
-    it('is true for Taiwan and Hong Kong (zh) product paths', () => {
+    it('is true for Taiwan and Hong Kong (zh) locale paths', () => {
         expect(
             pathnameRequiresZhHantLang('/tw/products/photoshop.html'),
         ).to.be.true;
         expect(
             pathnameRequiresZhHantLang('/hk_zh/products/photoshop.html'),
         ).to.be.true;
+        expect(pathnameRequiresZhHantLang('/tw/photoshop.html')).to.be.true;
     });
 
     it('is false for other paths', () => {
-        expect(pathnameRequiresZhHantLang('/tw/photoshop.html')).to.be.false;
+        expect(
+            pathnameRequiresZhHantLang('/prefix/tw/products/photoshop.html'),
+        ).to.be.false;
         expect(
             pathnameRequiresZhHantLang('/us/products/photoshop.html'),
         ).to.be.false;

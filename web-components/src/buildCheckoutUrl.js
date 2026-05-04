@@ -80,13 +80,50 @@ const ALLOWED_KEYS = new Set([
 ]);
 const REQUIRED_KEYS = ['env', 'workflowStep', 'clientId', 'country'];
 
-/** Taiwan / HK traditional-Chinese product pages must pass zh-Hant to checkout. */
-const ZH_HANT_LANG_PATH_PREFIXES = ['/tw/products/', '/hk_zh/products/'];
+/** Paths under Taiwan or HK traditional-Chinese locales → checkout `lang=zh-Hant`. */
+const ZH_HANT_PRODUCTS_PATH = ['/tw/', '/hk_zh/'];
 
 export function pathnameRequiresZhHantLang(pathname) {
-    return ZH_HANT_LANG_PATH_PREFIXES.some((prefix) =>
-        pathname.startsWith(prefix),
+    const pathnameOrEmpty = pathname ?? '';
+    return ZH_HANT_PRODUCTS_PATH.some((prefix) =>
+        pathnameOrEmpty.startsWith(prefix),
     );
+}
+
+function shouldApplyZhHantCheckoutLang() {
+    if (typeof window === 'undefined') return false;
+    const paths = [window.location.pathname];
+    try {
+        if (window.parent !== window) paths.push(window.parent.location.pathname);
+    } catch {
+        /* cross-origin parent */
+    }
+    return paths.some(pathnameRequiresZhHantLang);
+}
+
+/**
+ * Adjusts checkout URL query params (e.g. `lang`, per-item `lang`) from the current page context.
+ * Add more locale rules here as needed.
+ * @param {URL|string} url
+ * @returns {string}
+ */
+export function applyPageLocaleToCheckoutUrl(url) {
+    if (!shouldApplyZhHantCheckoutLang()) {
+        return url instanceof URL ? url.toString() : String(url);
+    }
+    let checkoutUrl;
+    try {
+        checkoutUrl = url instanceof URL ? url : new URL(url);
+    } catch {
+        return String(url);
+    }
+    checkoutUrl.searchParams.set('lang', 'zh-Hant');
+    for (const paramName of [...checkoutUrl.searchParams.keys()]) {
+        if (/^items\[\d+]\[lang]$/.test(paramName)) {
+            checkoutUrl.searchParams.set(paramName, 'zh-Hant');
+        }
+    }
+    return checkoutUrl.toString();
 }
 
 // Parameters that are allowed to be passed to the checkout URL from the window.location.search of the current page
@@ -271,18 +308,7 @@ export function buildCheckoutUrl(checkoutData) {
             is3in1,
         });
     }
-    if (
-        typeof window !== 'undefined' &&
-        pathnameRequiresZhHantLang(window.location.pathname)
-    ) {
-        url.searchParams.set('lang', 'zh-Hant');
-        for (const key of [...url.searchParams.keys()]) {
-            if (/^items\[\d+]\[lang]$/.test(key)) {
-                url.searchParams.set(key, 'zh-Hant');
-            }
-        }
-    }
-    return url.toString();
+    return applyPageLocaleToCheckoutUrl(url);
 }
 
 /**

@@ -114,6 +114,27 @@ describe('Icon picker field', () => {
         expect(deleteFired).to.be.false;
     });
 
+    it('should not dispatch delete-field when modal closes without icon when description-only row has alt text', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="Lightroom apps"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        let deleteFired = false;
+        el.addEventListener('delete-field', () => {
+            deleteFired = true;
+        });
+
+        const modal = el.shadowRoot.querySelector('mas-icon-picker-modal');
+        modal.dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+        await el.updateComplete;
+
+        expect(el.modalOpen).to.be.false;
+        expect(deleteFired).to.be.false;
+    });
+
     it('should update values and dispatch change when modal saves', async () => {
         const el = await fixture(html`<mas-icon-picker-field></mas-icon-picker-field>`, { parentNode: spTheme() });
 

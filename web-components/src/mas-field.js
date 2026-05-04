@@ -1,7 +1,26 @@
-import { EVENT_AEM_LOAD } from './constants.js';
+import { EVENT_AEM_LOAD, FF_DEFAULTS } from './constants.js';
+import { getService } from './utils.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
+
+/**
+ * Opts headless mas-field-hosted inline-prices into FF_DEFAULTS so they
+ * resolve displayTax / displayPerUnit from country+language defaults
+ * (the same way merch-card does for its aem-fragment-backed prices).
+ * Without this, prices rendered through <mas-field field="prices"> miss
+ * locale-driven labels like the FR_fr "TTC" tax indicator.
+ */
+export function priceOptionsProvider(element, options) {
+    if (!element?.closest?.(MAS_FIELD_TAG)) return options;
+    options[FF_DEFAULTS] = true;
+}
+
+function registerPriceOptionsProvider(service) {
+    if (!service?.providers || service.providers.has(priceOptionsProvider))
+        return;
+    service.providers.price(priceOptionsProvider);
+}
 
 const MAS_FIELD_STYLES = `
 mas-field div[slot="footer"] {
@@ -49,6 +68,7 @@ class MasField extends HTMLElement {
         this.addEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
         this.#ensureContentElement();
         this.aemFragment?.setAttribute('hidden', '');
+        registerPriceOptionsProvider(getService());
     }
 
     /** Cleans up the event listener when removed from the DOM. */

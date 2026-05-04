@@ -1384,6 +1384,7 @@ export default class MasFragmentEditor extends LitElement {
         if (!Fragment.isGroupedVariationPath(this.fragment?.path)) return nothing;
         const pznTags = this.fragment.getFieldValues('pznTags') || [];
         if (pznTags.length === 0) return nothing;
+        // Extract locale codes from tag paths like "/content/cq:tags/mas/locale/fr_FR"
         const localeCodes = pznTags.map((tag) => {
             const parts = tag.split('/');
             return parts[parts.length - 1];

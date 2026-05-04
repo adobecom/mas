@@ -245,9 +245,8 @@ export class MasVariationDialog extends LitElement {
             }
         } catch (err) {
             this.error = err.message || 'Failed to create variation';
-            showToast(`Failed to create variation: ${err.message}`, 'negative');
-        } finally {
             this.loading = false;
+            showToast(`Failed to create variation: ${err.message}`, 'negative');
         }
     }
 

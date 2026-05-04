@@ -94,7 +94,8 @@ function shouldApplyZhHantCheckoutLang() {
     if (typeof window === 'undefined') return false;
     const paths = [window.location.pathname];
     try {
-        if (window.parent !== window) paths.push(window.parent.location.pathname);
+        if (window.parent !== window)
+            paths.push(window.parent.location.pathname);
     } catch {
         /* cross-origin parent */
     }

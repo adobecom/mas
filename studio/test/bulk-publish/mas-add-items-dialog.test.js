@@ -8,6 +8,10 @@ describe('mas-add-items-dialog store reset', () => {
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.groupedVariationsByParent.set(new Map());
         Store.translationProjects.groupedVariationsData.set(new Map());
+        Store.translationProjects.allCollections.set([]);
+        Store.translationProjects.displayCollections.set([]);
+        Store.translationProjects.allPlaceholders.set([]);
+        Store.translationProjects.displayPlaceholders.set([]);
     });
 
     it('clears allCards and groupedVariationsByParent when dialog opens', async () => {

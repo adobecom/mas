@@ -40,12 +40,16 @@ class MasAddItemsDialog extends LitElement {
         ]);
     }
 
-    updated(changedProperties) {
+    willUpdate(changedProperties) {
         if (changedProperties.has('open') && this.open) {
             Store.translationProjects.allCards.set([]);
             Store.translationProjects.displayCards.set([]);
             Store.translationProjects.groupedVariationsByParent.set(new Map());
             Store.translationProjects.groupedVariationsData.set(new Map());
+            Store.translationProjects.allCollections.set([]);
+            Store.translationProjects.displayCollections.set([]);
+            Store.translationProjects.allPlaceholders.set([]);
+            Store.translationProjects.displayPlaceholders.set([]);
         }
     }
 

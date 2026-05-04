@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { transformer as replace, clearDictionaryCache } from '../../src/fragment/transformers/replace.js';
+import { transformer as replace, clearDictionaryCache, getDictionary } from '../../src/fragment/transformers/replace.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_ACOM_FR_FR from './mocks/dictionary-acom-fr-fr.json' with { type: 'json' };
 import DICTIONARY_RESPONSE_CCD_FR_FR from './mocks/dictionary-ccd-fr-fr.json' with { type: 'json' };
@@ -331,6 +331,32 @@ describe('replace', () => {
             const response = await getResponse('foo: {{foo}} bar', null, 'ccd', 'fr_LU');
             expect(response.body.fields.description).to.equal('foo: lfr bar');
         });
+    });
+});
+
+describe('getDictionary', () => {
+    let stub;
+
+    beforeEach(() => {
+        stub = sinon.stub(globalThis, 'fetch');
+        clearDictionaryCache();
+    });
+
+    afterEach(() => {
+        stub.restore();
+        clearDictionaryCache();
+    });
+
+    it('returns empty dictionary when fragment id fetch fails', async () => {
+        stub.returns(createResponse(503, { message: 'not found' }));
+        const context = {
+            surface: DEFAULT_SURFACE,
+            locale: DEFAULT_LOCALE,
+            networkConfig: { retries: 1, retryDelay: 1 },
+            dictionary: {},
+        };
+        const result = await getDictionary(context);
+        expect(result).to.deep.equal({});
     });
 });
 

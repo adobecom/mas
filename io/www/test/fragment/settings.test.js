@@ -108,6 +108,12 @@ describe('settings', () => {
             expect(result).to.be.null;
         });
 
+        it('returns null when fragment id fetch fails', async () => {
+            fetchStub.returns(createResponse(503, { message: 'not found' }));
+            const result = await getSettings(createContext({ networkConfig: { retries: 1, retryDelay: 1 } }));
+            expect(result).to.be.null;
+        });
+
         it('returns grouped settings on success', async () => {
             const referencesBody = {
                 references: {

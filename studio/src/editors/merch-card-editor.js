@@ -7,7 +7,7 @@ import '../aem/aem-tag-picker-field.js';
 import './variant-picker.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
-import { CARD_MODEL_PATH } from '../constants.js';
+import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
@@ -21,9 +21,49 @@ import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
+import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
+const EVENT_COMMERCE_READY = 'wcms:commerce:ready';
+const INLINE_PRICE_SELECTOR = 'span[is="inline-price"][data-wcs-osi]';
+
+function isEditorPriceElement(element) {
+    if (element.closest('#preview-wrapper')) return true;
+    const host = element.getRootNode()?.host;
+    return host?.nodeName === 'RTE-FIELD' && !!host.closest('merch-card-editor');
+}
+
+export function getActiveMerchCardEditor() {
+    return document.querySelector('merch-card-editor');
+}
+
+function groupedPreviewLocaleProvider(element, options) {
+    if (!isEditorPriceElement(element)) return;
+    const localeCode = getActiveMerchCardEditor()?.previewLocaleOverride;
+    if (!localeCode) return;
+
+    const locale = getLocaleByCode(localeCode);
+    if (!locale) return;
+
+    options.locale = localeCode;
+    options.language = locale.lang;
+    options.country = locale.country;
+}
+
+function editorPromoCodeProvider(element, options) {
+    if (!isEditorPriceElement(element)) return;
+    const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
+    if (!promoCode) return;
+    options.promotionCode = promoCode;
+}
+
+function checkoutOptionsProvider(element, options) {
+    if (!isEditorPriceElement(element)) return;
+    const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
+    if (!promoCode) return;
+    options.promotionCode = promoCode;
+}
 
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
@@ -41,6 +81,7 @@ class MerchCardEditor extends LitElement {
         localeDefaultFragment: { type: Object, attribute: false },
         isVariation: { type: Boolean, attribute: false },
         fieldsReady: { type: Boolean, state: true },
+        previewLocaleOverride: { type: String, state: true },
     };
 
     static SECTION_FIELDS = {
@@ -72,6 +113,7 @@ class MerchCardEditor extends LitElement {
         this.isVariation = false;
         this.lastMnemonicState = null;
         this.fieldsReady = false;
+        this.previewLocaleOverride = null;
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
     }
@@ -90,6 +132,44 @@ class MerchCardEditor extends LitElement {
 
     get pznTagsValue() {
         return (this.fragment.getFieldValues('pznTags') || []).filter(Boolean).join(',');
+    }
+
+    #normalizeGroupedPreviewLocaleCode(tagValue) {
+        const localeCode = tagValue?.split('/').pop()?.trim();
+        return getLocaleByCode(localeCode) ? localeCode : null;
+    }
+
+    get groupedPreviewLocales() {
+        if (!this.isGroupedVariation) return [];
+        const tags = this.fragment?.getFieldValues('pznTags') || [];
+        const localeCodes = [...new Set(tags.map((tag) => this.#normalizeGroupedPreviewLocaleCode(tag)).filter(Boolean))];
+        return localeCodes.map((code) => {
+            const locale = getLocaleByCode(code);
+            return {
+                code,
+                lang: locale.lang,
+                country: locale.country,
+                label: `${locale.country} (${locale.lang.toUpperCase()})`,
+            };
+        });
+    }
+
+    #syncGroupedPreviewLocale() {
+        const locales = this.groupedPreviewLocales;
+        if (!locales.length) {
+            if (this.previewLocaleOverride !== null) {
+                this.previewLocaleOverride = null;
+            }
+            return;
+        }
+
+        const codes = locales.map((locale) => locale.code);
+        const globalLocale = Store.localeOrRegion();
+        this.previewLocaleOverride = codes.includes(this.previewLocaleOverride)
+            ? this.previewLocaleOverride
+            : codes.includes(globalLocale)
+              ? globalLocale
+              : codes[0];
     }
 
     #normalizePznTagIds(value) {
@@ -434,17 +514,50 @@ class MerchCardEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        this.registerCommerceProviders();
+        document.addEventListener(EVENT_COMMERCE_READY, this.#handleCommerceReady);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        document.removeEventListener(EVENT_COMMERCE_READY, this.#handleCommerceReady);
         this.lastMnemonicState = null;
+    }
+
+    #handleCommerceReady = (event) => {
+        this.registerCommerceProviders(event.detail);
+    };
+
+    registerCommerceProviders(service = document.querySelector('mas-commerce-service')) {
+        if (!service?.providers) return;
+        if (!service.providers.has(groupedPreviewLocaleProvider)) {
+            service.providers.price(groupedPreviewLocaleProvider);
+            service.providers.checkout(groupedPreviewLocaleProvider);
+        }
+        if (!service.providers.has(editorPromoCodeProvider)) {
+            service.providers.price(editorPromoCodeProvider);
+        }
+        if (!service.providers.has(checkoutOptionsProvider)) {
+            service.providers.checkout(checkoutOptionsProvider);
+        }
+    }
+
+    refreshRenderedPrices() {
+        document.querySelector('mas-commerce-service')?.refreshOffers?.();
+        this.querySelectorAll('rte-field').forEach((field) => {
+            field.shadowRoot?.querySelectorAll(INLINE_PRICE_SELECTOR).forEach((price) => {
+                price.requestUpdate(true);
+            });
+        });
     }
 
     #cachedGlobalDefaults = null;
 
     willUpdate(changedProperties) {
         this.#cachedGlobalDefaults = null;
+        if (this.fragmentStore?.get()) {
+            this.#syncGroupedPreviewLocale();
+        }
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
             this.reactiveController.updateStores([this.fragmentStore, Store.settings.rows, Store.search]);
@@ -611,6 +724,17 @@ class MerchCardEditor extends LitElement {
 
     async updated(changedProperties) {
         super.updated(changedProperties);
+        if (changedProperties.has('previewLocaleOverride')) {
+            this.refreshRenderedPrices();
+            this.dispatchEvent(
+                new CustomEvent('preview-locale-change', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { value: this.previewLocaleOverride },
+                }),
+            );
+        }
+        this.ensurePromoCompatVersion();
         if (!this.fieldsReady && this.fragment) {
             await this.updateComplete;
             await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -618,10 +742,25 @@ class MerchCardEditor extends LitElement {
         }
     }
 
+    ensurePromoCompatVersion() {
+        if (!this.fragment) return;
+        const rawPromo = this.getEffectiveFieldValue('promoCode', 0);
+        const hasPromoCode = String(rawPromo ?? '').trim() !== '';
+        if (!hasPromoCode) return;
+
+        const rawCompat = this.getEffectiveFieldValue('compatVersion', 0);
+        const parsedCompat = Number(rawCompat);
+        const currentCompat = Number.isFinite(parsedCompat) ? parsedCompat : 0;
+        if (currentCompat < COMPAT_VERSION) {
+            this.fragmentStore.updateField('compatVersion', [String(COMPAT_VERSION)]);
+        }
+    }
+
     async toggleFields() {
         if (!this.fragment) {
             return;
         }
+
         // Variations can inherit `variant` from their parent fragment.
         // Use the effective value so template field visibility remains accurate.
         const variantValue = this.getEffectiveFieldValue('variant');

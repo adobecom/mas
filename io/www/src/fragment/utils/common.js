@@ -50,7 +50,11 @@ async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
         const responsePromise = fetch(path, {
-            headers: context.DEFAULT_HEADERS,
+            headers: {
+                ...context.DEFAULT_HEADERS,
+                'X-Request-ID': globalThis.crypto.randomUUID(),
+                'X-Correlation-ID': context.requestId,
+            },
         });
 
         // Race the fetch promise with a timeout

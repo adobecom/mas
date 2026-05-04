@@ -40,6 +40,15 @@ class MasAddItemsDialog extends LitElement {
         ]);
     }
 
+    updated(changedProperties) {
+        if (changedProperties.has('open') && this.open) {
+            Store.translationProjects.allCards.set([]);
+            Store.translationProjects.displayCards.set([]);
+            Store.translationProjects.groupedVariationsByParent.set(new Map());
+            Store.translationProjects.groupedVariationsData.set(new Map());
+        }
+    }
+
     get resultCount() {
         switch (this.selectedTab) {
             case TABLE_TYPE.CARDS:

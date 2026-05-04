@@ -7,6 +7,7 @@ import {
     setItemsParameter,
     buildCheckoutUrl,
     addParamsFromPageUrl,
+    pathnameRequiresZhHantLang,
 } from '../src/buildCheckoutUrl.js';
 import {
     PROVIDER_ENVIRONMENT,
@@ -153,6 +154,24 @@ describe('addParamsFromPageUrl', () => {
         const url = new URL('https://commerce.adobe.com/store/checkout');
         addParamsFromPageUrl(url);
         expect(url.search).to.equal('');
+    });
+});
+
+describe('pathnameRequiresZhHantLang', () => {
+    it('is true for Taiwan and Hong Kong (zh) product paths', () => {
+        expect(
+            pathnameRequiresZhHantLang('/tw/products/photoshop.html'),
+        ).to.be.true;
+        expect(
+            pathnameRequiresZhHantLang('/hk_zh/products/photoshop.html'),
+        ).to.be.true;
+    });
+
+    it('is false for other paths', () => {
+        expect(pathnameRequiresZhHantLang('/tw/photoshop.html')).to.be.false;
+        expect(
+            pathnameRequiresZhHantLang('/us/products/photoshop.html'),
+        ).to.be.false;
     });
 });
 

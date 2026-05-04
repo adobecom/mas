@@ -80,6 +80,15 @@ const ALLOWED_KEYS = new Set([
 ]);
 const REQUIRED_KEYS = ['env', 'workflowStep', 'clientId', 'country'];
 
+/** Taiwan / HK traditional-Chinese product pages must pass zh-Hant to checkout. */
+const ZH_HANT_LANG_PATH_PREFIXES = ['/tw/products/', '/hk_zh/products/'];
+
+export function pathnameRequiresZhHantLang(pathname) {
+    return ZH_HANT_LANG_PATH_PREFIXES.some((prefix) =>
+        pathname.startsWith(prefix),
+    );
+}
+
 // Parameters that are allowed to be passed to the checkout URL from the window.location.search of the current page
 const ALLOWED_URL_PARAMS = new Set([
     'gid',
@@ -261,6 +270,17 @@ export function buildCheckoutUrl(checkoutData) {
             modal,
             is3in1,
         });
+    }
+    if (
+        typeof window !== 'undefined' &&
+        pathnameRequiresZhHantLang(window.location.pathname)
+    ) {
+        url.searchParams.set('lang', 'zh-Hant');
+        for (const key of [...url.searchParams.keys()]) {
+            if (/^items\[\d+]\[lang]$/.test(key)) {
+                url.searchParams.set(key, 'zh-Hant');
+            }
+        }
     }
     return url.toString();
 }

@@ -53,7 +53,7 @@ describe('defaultLanguage transformer', function () {
         expect(result.status).to.equal(503);
     });
 
-    it('getDefaultLanguageVariation returns error when getFragmentId returns no id', async function () {
+    it('getDefaultLanguageVariation propagates error when fragment id fetch returns non-200', async function () {
         const fetchStub = sinon
             .stub(globalThis, 'fetch')
             .returns(createResponse(503, { message: 'upstream error' }, 'Service Unavailable'));

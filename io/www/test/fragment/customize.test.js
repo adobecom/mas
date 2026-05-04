@@ -35,6 +35,56 @@ function mockFrenchFragment() {
 }
 
 describe('customize collections', function () {
+    it('deepMerge is safe against prototype pollution via __proto__ key', function () {
+        const malicious = JSON.parse('{"__proto__": {"polluted": true}}');
+        const result = deepMerge({}, malicious);
+        expect({}.polluted).to.equal(undefined);
+        expect(result.__proto__).to.equal(Object.prototype);
+    });
+
+    it('findRegionalVariation does not throw with regex metacharacters in surface/regionLocale', async function () {
+        const context = {
+            status: 200,
+            surface: 'sand.box+[test]',
+            parsedLocale: 'fr_FR',
+            fragmentPath: 'some/path',
+            preview: false,
+            state: new MockState(),
+            networkConfig: { retries: 1, retryDelay: 0 },
+            body: {
+                id: 'test-id',
+                fields: { variations: [] },
+                references: {},
+                referencesTree: [],
+            },
+            promises: {
+                defaultLanguage: Promise.resolve({
+                    status: 200,
+                    body: {
+                        id: 'test-id',
+                        fields: { variations: [] },
+                        references: {},
+                        referencesTree: [],
+                    },
+                    defaultLocale: 'fr_FR)(.+',
+                    locale: 'fr_FR)(.+',
+                    regionLocale: 'fr_FR)(.+',
+                    surface: 'sand.box+[test]',
+                    fragmentPath: 'some/path',
+                    parsedLocale: 'fr_FR',
+                }),
+                promotions: Promise.resolve(null),
+            },
+        };
+        let error = null;
+        try {
+            await customize.process(context);
+        } catch (e) {
+            error = e;
+        }
+        expect(error).to.equal(null);
+    });
+
     it('should have a working deep Merge function', function () {
         const obj1 = {
             a: 1,

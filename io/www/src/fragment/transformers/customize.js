@@ -3,6 +3,10 @@ import { logDebug } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
 
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
     delete skimmedFragment.references;
@@ -31,6 +35,7 @@ function deepMerge(...objects) {
     const result = {};
     for (const obj of objects) {
         for (const key in obj) {
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
             if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
                 result[key] = deepMerge(result[key] || {}, obj[key]);
             } else {
@@ -54,7 +59,7 @@ function extractVariationBasedOnPath(variations, references, pattern) {
 
 function findRegionalVariation(variations, customizeContext) {
     const { surface, regionLocale, references } = customizeContext;
-    const pattern = new RegExp(`/content/dam/mas/${surface}/${regionLocale}/.+`);
+    const pattern = new RegExp(`/content/dam/mas/${escapeRegex(surface)}/${escapeRegex(regionLocale)}/.+`);
     const regionalVariations = extractVariationBasedOnPath(variations, references, pattern);
     return regionalVariations.length > 0 ? regionalVariations[0] : null;
 }
@@ -110,7 +115,7 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
 
 function findPersonalizationVariation(variations, customizeContext) {
     const { country, pzn, references, regionLocale, surface, defaultLocale } = customizeContext;
-    const pattern = new RegExp(`/content/dam/mas/${surface}/${defaultLocale}/([^/]+)${PZN_FOLDER}.+`);
+    const pattern = new RegExp(`/content/dam/mas/${escapeRegex(surface)}/${escapeRegex(defaultLocale)}/([^/]+)${PZN_FOLDER}.+`);
     const personalizationVariations = extractVariationBasedOnPath(variations, references, pattern);
     if (personalizationVariations.length === 0) {
         logDebug(() => `No personalization variation found for region locale ${regionLocale}`, customizeContext);

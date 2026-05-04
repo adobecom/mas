@@ -29,7 +29,6 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
-    COLLECTION_MODEL_PATH,
     COMPAT_VERSION,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
@@ -1899,8 +1898,6 @@ export class MasRepository extends LitElement {
             throw new Error('Product arrangement code not available. The parent fragment must have a resolved offer.');
         }
 
-        const isCollection = parentFragment.model.path === COLLECTION_MODEL_PATH;
-
         const parentPath = parentFragment.path;
         const surface = extractSurfaceFromPath(parentPath);
         if (!surface) {
@@ -1920,7 +1917,7 @@ export class MasRepository extends LitElement {
         }
 
         const groupedFields = [];
-        if (!isCollection && pznTags?.length) {
+        if (pznTags?.length) {
             groupedFields.push({ name: 'pznTags', type: 'tag', multiple: true, values: pznTags });
         }
         ensureCompatVersionOnMerchCardFieldList(parentFragment.model?.path, groupedFields);
@@ -1934,12 +1931,7 @@ export class MasRepository extends LitElement {
             fields: groupedFields,
         });
 
-        if (isCollection) {
-            const mergedTags = [...(parentFragment.tags || []), ...(pznTags || [])];
-            if (mergedTags.length) {
-                await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, mergedTags);
-            }
-        } else if (parentFragment.tags?.length) {
+        if (parentFragment.tags?.length) {
             await this.aem.sites.cf.fragments.copyFragmentTags(newFragment, parentFragment.tags);
         }
 

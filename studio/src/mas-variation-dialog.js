@@ -141,6 +141,7 @@ export class MasVariationDialog extends LitElement {
     }
 
     get canShowGroupedVariation() {
+        if (this.fragment?.model?.path === COLLECTION_MODEL_PATH) return true;
         return this.sourceLocale === 'en_US';
     }
 
@@ -166,7 +167,7 @@ export class MasVariationDialog extends LitElement {
     async resolveGroupedOfferData() {
         if (this.offerData?.productArrangementCode) return this.offerData;
 
-        if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
+        if (this.fragment?.model?.path === COLLECTION_MODEL_PATH) {
             const offer = { productArrangementCode: COLLECTION_GROUPED_VARIATION_PAC };
             this.offerData = offer;
             return offer;
@@ -244,8 +245,9 @@ export class MasVariationDialog extends LitElement {
             }
         } catch (err) {
             this.error = err.message || 'Failed to create variation';
-            this.loading = false;
             showToast(`Failed to create variation: ${err.message}`, 'negative');
+        } finally {
+            this.loading = false;
         }
     }
 

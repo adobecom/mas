@@ -2,7 +2,6 @@
 
 const CF_REFERENCE_FIELDS = ['cards', 'collections', 'entries', 'variations'];
 const REFERENCE_FIELDS = [...CF_REFERENCE_FIELDS, 'tags'];
-const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 
 function collectPathToIdMap(references, map = {}) {
     if (!references) return map;
@@ -86,20 +85,17 @@ function transformReferences(body, pathToIdMap) {
         }
 
         const fields = transformFields(ref.fields, pathToIdMap);
-        const isCollection = ref.model?.path === COLLECTION_MODEL_PATH;
-        const value = {
-            name: ref.name,
-            title: ref.title,
-            description: ref.description,
-            path: ref.path,
-            id: ref.id,
-            model: { id: ref.model?.id },
-            fields,
-            ...(isCollection && ref.tags?.length ? { tags: ref.tags } : {}),
-        };
         references[ref.id] = {
             type: ref.type,
-            value,
+            value: {
+                name: ref.name,
+                title: ref.title,
+                description: ref.description,
+                path: ref.path,
+                id: ref.id,
+                model: { id: ref.model?.id },
+                fields,
+            },
         };
 
         // If this reference has its own references, process them recursively

@@ -42,8 +42,10 @@ class MasSearchAndFilters extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.#savedSearch = Store.search.get();
-        this.#savedFilters = Store.filters.get();
+        if (this.type === TABLE_TYPE.CARDS) {
+            this.#savedSearch = Store.search.get();
+            this.#savedFilters = Store.filters.get();
+        }
         this.commonDataController = new ReactiveController(this, [
             Store.translationProjects[`all${this.typeUppercased}`],
             Store.translationProjects[`display${this.typeUppercased}`],
@@ -70,11 +72,13 @@ class MasSearchAndFilters extends LitElement {
             Store.translationProjects[`all${this.typeUppercased}`].value,
         );
         this.dataSubscription?.unsubscribe();
-        if (this.#savedSearch !== null) {
-            Store.search.set(this.#savedSearch);
-        }
-        if (this.#savedFilters !== null) {
-            Store.filters.set(this.#savedFilters);
+        if (this.type === TABLE_TYPE.CARDS) {
+            if (this.#savedSearch !== null) {
+                Store.search.set(this.#savedSearch);
+            }
+            if (this.#savedFilters !== null) {
+                Store.filters.set(this.#savedFilters);
+            }
         }
     }
 

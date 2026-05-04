@@ -177,6 +177,7 @@ async function getFragmentId(context, odinUrl, mark) {
         status = 503;
     }
     return {
+        id: null,
         message: response.message || 'Error fetching fragment id',
         status,
     };

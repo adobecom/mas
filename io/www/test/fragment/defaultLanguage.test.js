@@ -1,4 +1,6 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
+import { createResponse } from './mocks/MockFetch.js';
 import { computeRegionLocale, transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 
 describe('computeRegionLocale', function () {
@@ -49,5 +51,34 @@ describe('defaultLanguage transformer', function () {
         });
         expect(result).to.equal(err);
         expect(result.status).to.equal(503);
+    });
+
+    it('getDefaultLanguageVariation returns error when getFragmentId returns no id', async function () {
+        const fetchStub = sinon
+            .stub(globalThis, 'fetch')
+            .returns(createResponse(503, { message: 'upstream error' }, 'Service Unavailable'));
+        try {
+            const promises = {
+                fetchFragment: Promise.resolve({
+                    status: 200,
+                    body: {},
+                    parsedLocale: 'en_US',
+                    surface: 'sandbox',
+                    fragmentPath: 'some/path',
+                }),
+            };
+            const result = await defaultLanguage.init({
+                promises,
+                locale: 'fr_FR',
+                surface: 'sandbox',
+                fragmentPath: 'some/path',
+                preview: false,
+                networkConfig: { retries: 1, retryDelay: 0 },
+            });
+            expect(result.status).to.not.equal(200);
+            expect(result.message).to.be.a('string');
+        } finally {
+            fetchStub.restore();
+        }
     });
 });

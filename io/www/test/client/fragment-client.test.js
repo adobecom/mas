@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { clearCaches, previewFragment, previewStudioFragment } from '../../../../studio/libs/fragment-client.js';
 import { transformer as settingsTransformer } from '../../src/fragment/transformers/settings.js';
+import { odinUrl } from '../../src/fragment/utils/paths.js';
 import sinon from 'sinon';
 import mockCollectionData from '../fragment/mocks/preview-collection.json' with { type: 'json' };
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
@@ -46,7 +47,6 @@ describe('FragmentClient', () => {
         objectKeysStub = sinon.stub(Object, 'keys').callThrough();
         objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
-            // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
@@ -60,10 +60,10 @@ describe('FragmentClient', () => {
             .withArgs(`${baseUrl}/${mockCollectionData.id}?references=all-hydrated`)
             .returns(createResponse(200, mockCollectionData));
         fetchStub
-            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .withArgs(`${baseUrl}/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Fen_US%2Fdictionary%2Findex`)
             .returns(createResponse(200, { id: mockPlaceholders.id }));
         // Settings fetch (preview pipeline now loads settings)
-        const settingsIndexUrl = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/settings/index`;
+        const settingsIndexUrl = `${baseUrl}/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Fsettings%2Findex`;
         const settingsId = 'preview-settings-id';
         const settingsContentUrl = `${baseUrl}/${settingsId}?references=all-hydrated`;
         const settingsBody = {
@@ -112,7 +112,7 @@ describe('FragmentClient', () => {
 
     it('should fetch and transform collection fragment for preview', async () => {
         fetchStub
-            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .withArgs(`${baseUrl}/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Fen_US%2Fdictionary%2Findex`)
             .returns(createResponse(200, { id: mockPlaceholders.id }));
         fetchStub
             .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=all-hydrated`)
@@ -190,8 +190,8 @@ describe('FragmentClient', () => {
     });
 
     it('merges options locale and country over document element', async () => {
-        const dePlaceholderIndex = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
-        const deDictIndex = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
+        const dePlaceholderIndex = `${baseUrl}/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Fde_DE%2Filyas-test-placeholders`;
+        const deDictIndex = `${baseUrl}/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Fde_DE%2Fdictionary%2Findex`;
         const deVariationId = 'de-de-default-locale-fragment';
         fetchStub.withArgs(dePlaceholderIndex).returns(createResponse(200, { id: deVariationId }));
         fetchStub.withArgs(deDictIndex).returns(createResponse(200, { id: mockPlaceholders.id }));
@@ -253,5 +253,18 @@ describe('FragmentClient', () => {
                 consoleErrorSpy.restore();
             }
         });
+    });
+});
+
+describe('odinUrl encoding', function () {
+    it('encodes special characters in fragmentPath', function () {
+        const url = odinUrl('sandbox', { locale: 'en_US', fragmentPath: 'path/with?special&chars' });
+        expect(url).to.include('path%2Fwith%3Fspecial%26chars');
+        expect(url).to.not.include('path/with?special&chars');
+    });
+
+    it('encodes special characters in fragmentPath without locale', function () {
+        const url = odinUrl('sandbox', { fragmentPath: 'path/with#hash' });
+        expect(url).to.not.include('#hash');
     });
 });

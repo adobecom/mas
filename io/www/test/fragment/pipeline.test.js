@@ -40,9 +40,9 @@ const EXPECTED_HEADERS = {
 };
 
 const SETTINGS_INDEX_URL_SANDBOX =
-    'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/settings/index';
+    'https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Fsettings%2Findex';
 const SETTINGS_INDEX_URL_PREVIEW =
-    'https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/settings/index';
+    'https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Fsettings%2Findex';
 const SETTINGS_CONTENT_URL = (settingsId) =>
     `https://odin.adobe.com/adobe/contentFragments/${settingsId}?references=all-hydrated`;
 const SETTINGS_CONTENT_URL_PREVIEW = (settingsId) =>
@@ -70,12 +70,12 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // french fragment by path
     fetchStub
-        .withArgs(`${odinDomain}${odinUriRoot}/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app`)
+        .withArgs(`${odinDomain}${odinUriRoot}/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Ffr_FR%2Fccd-slice-wide-cc-all-app`)
         .returns(createResponse(200, { id: 'some-fr-fr-fragment' }));
 
     // candadian french fragment by path — not found (empty body)
     fetchStub
-        .withArgs(`${odinDomain}${odinUriRoot}/byPath?path=/content/dam/mas/sandbox/fr_CA/ccd-slice-wide-cc-all-app`)
+        .withArgs(`${odinDomain}${odinUriRoot}/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Ffr_CA%2Fccd-slice-wide-cc-all-app`)
         .returns(createResponse(200, {}));
 
     // french fragment by id
@@ -234,7 +234,7 @@ describe('pipeline full use case', () => {
         });
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_CA/dictionary/index',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Ffr_CA%2Fdictionary%2Findex',
             )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
@@ -264,7 +264,7 @@ describe('pipeline full use case', () => {
         });
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Ffr_FR%2Fdictionary%2Findex',
             )
             .returns(createResponse(404, {}, 'Not Found'));
         const state = new MockState();
@@ -293,7 +293,7 @@ describe('pipeline full use case', () => {
 
         // Mock settings for adobe-home surface
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/adobe-home/settings/index')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fadobe-home%2Fsettings%2Findex')
             .returns(createResponse(200, { id: 'adobe-home-settings-id' }));
         fetchStub
             .withArgs('https://odin.adobe.com/adobe/contentFragments/adobe-home-settings-id?references=all-hydrated')
@@ -307,7 +307,7 @@ describe('pipeline full use case', () => {
         // Mock dictionary for adobe-home de_DE (note the path structure matches adobe-home)
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/adobe-home/de_DE/dictionary/index',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fadobe-home%2Fde_DE%2Fdictionary%2Findex',
             )
             .returns(createResponse(200, { id: 'de_DE_dictionary' }));
 

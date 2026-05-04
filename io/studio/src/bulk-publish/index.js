@@ -27,7 +27,7 @@ async function run(params) {
         }
 
         const requiredHeaders = ['Authorization'];
-        const requiredParams = ['paths'];
+        const requiredParams = ['paths', 'allowedClientId'];
         const missing = checkMissingRequestInputs(params, requiredParams, requiredHeaders);
         if (missing) {
             return errorResponse(400, missing, logger);

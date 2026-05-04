@@ -73,6 +73,20 @@ describe('bulk-publish/index.js', () => {
         expect(result.error.statusCode).to.equal(400);
     });
 
+    it('returns 400 when allowedClientId is missing', async () => {
+        const params = { ...baseParams };
+        delete params.allowedClientId;
+        const result = await action.main(params);
+        expect(result.error.statusCode).to.equal(400);
+    });
+
+    it('returns 400 when paths is missing along with allowedClientId', async () => {
+        const params = { ...baseParams, paths: undefined };
+        delete params.allowedClientId;
+        const result = await action.main(params);
+        expect(result.error.statusCode).to.equal(400);
+    });
+
     it('returns 400 when neither aemOdinEndpoint nor odinEndpoint is provided', async () => {
         const { aemOdinEndpoint, ...withoutEndpoint } = baseParams;
         const result = await action.main(withoutEndpoint);

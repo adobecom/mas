@@ -263,8 +263,9 @@ describe('odinUrl encoding', function () {
         expect(url).to.not.include('path/with?special&chars');
     });
 
-    it('encodes special characters in fragmentPath without locale', function () {
-        const url = odinUrl('sandbox', { fragmentPath: 'path/with#hash' });
-        expect(url).to.not.include('#hash');
+    it('encodes percent signs in fragmentPath without locale', function () {
+        const url = odinUrl('sandbox', { fragmentPath: 'path/with%literal' });
+        expect(url).to.include('with%25literal');
+        expect(url).to.not.include('with%literal');
     });
 });

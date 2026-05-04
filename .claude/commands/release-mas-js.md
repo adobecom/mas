@@ -47,21 +47,26 @@ Replace `LAST_RELEASE_DATE` with the ISO date from step 4 (format: `YYYY-MM-DDTH
 ### 6. Extract JIRAs and build release notes
 
 For each merged PR, extract JIRA ticket IDs matching:
+
 - `MWPW-\d+` in the PR title or body
 - `https://jira.corp.adobe.com/browse/(MWPW-\d+)` in the body
 
 Build release notes in this format:
+
 ```markdown
 ## What's Changed
 
 ### Highlights
+
 {2-5 bullet points written as plain functional descriptions of what changed — what the feature does, what was fixed, what behavior changed. Do not reference PR numbers, JIRA IDs, version numbers, or author names here. Example: "Added support for quantity selector on merch cards" or "Fixed price display overflow on mini compare cards".}
 
 ### All Changes
-* {PR title} by @{author} in {PR URL} — [MWPW-XXXXX](https://jira.corp.adobe.com/browse/MWPW-XXXXX) (include one link per JIRA found; omit if none)
+
+- {PR title} by @{author} in {PR URL} — [MWPW-XXXXX](https://jira.corp.adobe.com/browse/MWPW-XXXXX) (include one link per JIRA found; omit if none)
 
 ### JIRAs
-{deduplicated list of all MWPW-* tickets found, one per line}
+
+{deduplicated list of all MWPW-\* tickets found, one per line}
 ```
 
 Show the draft release notes to the user and ask for confirmation or edits before proceeding to the next step.
@@ -85,11 +90,13 @@ This produces `adobecom-mas-{VERSION}.tgz` in the `web-components/` directory.
 ### 9. Create the GitHub release
 
 Verify the active GitHub account has access to `adobecom/mas`:
+
 ```bash
 gh auth status
 ```
 
 Create the release:
+
 ```bash
 gh release create mas-js-v{VERSION} \
   --repo adobecom/mas \
@@ -101,6 +108,7 @@ gh release create mas-js-v{VERSION} \
 ### 10. Commit the version bump
 
 Stage and commit only the package.json and package-lock.json changes:
+
 ```bash
 git add web-components/package.json web-components/package-lock.json
 git commit -m "chore(release): bump @adobecom/mas to v{VERSION}"
@@ -130,6 +138,7 @@ Print a ready-to-copy Slack message for the user to share in team channels:
 ### 13. Clean up local artifacts
 
 Remove the tarball produced by `npm pack`:
+
 ```bash
 rm web-components/adobecom-mas-{VERSION}.tgz
 ```

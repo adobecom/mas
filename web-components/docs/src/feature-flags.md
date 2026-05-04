@@ -81,6 +81,8 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | TH_th (Thailand) | รวม VAT | รวม VAT |
 | VN_en (Vietnam) | \-  | excl. VAT |
 | VN_vi (Vietnam) | \-  | chưa bao gồm VAT |
+| PH_en (Philippines) | incl. VAT | excl. VAT |
+| PH_fil (Philippines) | kasama ang VAT | hindi kasama ang VAT |
 | **Middle East & Africa** |     |     |
 | EG_ar (Egypt) | بالضريبة | باستثناء ضريبة |
 | EG_en (Egypt) | incl. VAT | excl. VAT |

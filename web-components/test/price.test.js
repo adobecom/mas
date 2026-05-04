@@ -941,19 +941,19 @@ describe('class "InlinePrice"', () => {
             {
                 locale: 'PH_en',
                 expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, true],
+                    [true, false],
+                    [true, true],
                 ],
             },
             {
                 locale: 'PH_fil',
                 expected: [
-                    [false, false],
-                    [false, false],
-                    [false, false],
-                    [false, false],
+                    [true, false],
+                    [true, true],
+                    [true, false],
+                    [true, true],
                 ],
             },
             {

@@ -474,12 +474,13 @@ class MasSideNav extends LitElement {
             if (candidateIdx === -1) return;
             usedIndices.add(candidateIdx);
             const candidate = resolvedInlinePrices[candidateIdx];
-            // Use full text (with per-unit/tax) when the source inline-price
-            // requested those labels; otherwise use just the core price amount.
-            const wantsExtras =
-                sourceAttrs.get('data-display-per-unit') === 'true' || sourceAttrs.get('data-display-tax') === 'true';
+            // Mirror the rendered preview: per-unit and tax labels are resolved
+            // from locale defaults (e.g. FR_fr → "TTC"), not authored on the
+            // source span, so the rendered DOM is the source of truth. Fall
+            // back to coreText only if the rendered output had no labels.
+            const renderedText = candidate.formattedText || candidate.coreText;
             const temp = doc.createElement('span');
-            temp.innerHTML = wantsExtras ? candidate.formattedText : candidate.coreText;
+            temp.innerHTML = renderedText;
             inlinePrice.replaceWith(...temp.childNodes);
         });
         return doc.body.innerHTML;

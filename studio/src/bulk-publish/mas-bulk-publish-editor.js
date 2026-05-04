@@ -41,7 +41,6 @@ class MasBulkPublishEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        if (this.project) return;
         const projectId = Store.bulkPublishProjects.projectId.get();
         if (projectId) {
             try {
@@ -185,8 +184,11 @@ class MasBulkPublishEditor extends LitElement {
 
     openItemsSelector() {
         this.ensureSurface();
+        Store.translationProjects.allCards.set([]);
+        Store.translationProjects.displayCards.set([]);
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
+        if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
         this.itemsSelectorOpen = true;
     }
 

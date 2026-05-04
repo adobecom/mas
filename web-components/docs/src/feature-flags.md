@@ -7,6 +7,7 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | Flag Name | Description | Default Value | Valid Values |
 |-----------|-------------|---------------|--------------|
 | `mas-ff-defaults` | Enables good defaults for each locale and segment so that authors don't have to set them manually. This includes automatic tax display settings based on country and customer segment. | `off` | `on`, `off`, `true`, `false` |
+| `mas-ff-unit-defaults` | Narrower opt-in than `mas-ff-defaults`. Enables only the per-unit label default (e.g. "per license") for non-INDIVIDUAL segments without enabling the country-based tax label defaults. | `off` | `on`, `off`, `true`, `false` |
 | `mas-ff-3in1` | Controls the 3-in-1 modal checkout experience. When enabled, TWP (Trial With Purchase), D2P (Direct to Purchase), and CRM (Content Rich Modals) modals will use the unified 3-in-1 checkout flow. | `on` | `on`, `off` |
 | `mas-ff-annual-price` | Enables the display of annual pricing alongside monthly prices. When enabled and `annual` parameter is not set to `false`, prices will show the calculated annual cost. | `off` | `on`, `off`, `true`, `false` |
 | `mas-ff-copy-cta` | Adds a copy-to-clipboard button next to checkout CTAs. Useful for authors who need to copy CTA links for use in other contexts. | `off` | `on`, `off` |
@@ -114,6 +115,37 @@ Or on the commerce service element:
 
 ```html
 <mas-commerce-service data-mas-ff-defaults="on"></mas-commerce-service>
+```
+
+---
+
+### mas-ff-unit-defaults
+
+**Purpose:** Provides a narrower opt-in than `mas-ff-defaults` so pages can enable the per-unit pricing label (e.g. "per license") without also enabling the country-based tax label defaults. Useful when unit labels and tax labels are on independent rollout tracks.
+
+**What it controls:**
+- **Unit label display:** Automatically adds unit labels (e.g., "per license") for non-INDIVIDUAL customer segments, exactly as `mas-ff-defaults` does for that aspect.
+- **Tax label display:** Not affected. Tax label defaults remain off unless `mas-ff-defaults` is enabled, or `data-display-tax` / `data-force-tax-exclusive` are set on individual price elements.
+
+**Relationship with `mas-ff-defaults`:**
+- If `mas-ff-defaults` is on, the unit label is already applied; this flag adds nothing.
+- If `mas-ff-defaults` is off and `mas-ff-unit-defaults` is on, only the unit label fires; tax behavior is unchanged.
+- AEM fragments rendered inside `merch-card` continue to force `mas-ff-defaults` on at the element level, so existing card behavior is preserved regardless of page-level flags.
+
+**When to use:** Enable on pages that need per-unit labels but cannot yet enable the country-based tax label defaults (for example, when the per-unit label rollout is ready but the tax label rollout is still under review, or vice versa).
+
+**Usage:**
+
+Add the feature flag in the page metadata:
+
+```html
+<meta name="mas-ff-unit-defaults" content="on">
+```
+
+Or on the commerce service element:
+
+```html
+<mas-commerce-service data-mas-ff-unit-defaults="on"></mas-commerce-service>
 ```
 
 ---

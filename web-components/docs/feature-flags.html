@@ -44,6 +44,12 @@
 <td><code>on</code>, <code>off</code>, <code>true</code>, <code>false</code></td>
 </tr>
 <tr>
+<td><code>mas-ff-unit-defaults</code></td>
+<td>Narrower opt-in than <code>mas-ff-defaults</code>. Enables only the per-unit label default (e.g. “per license”) for non-INDIVIDUAL segments without enabling the country-based tax label defaults.</td>
+<td><code>off</code></td>
+<td><code>on</code>, <code>off</code>, <code>true</code>, <code>false</code></td>
+</tr>
+<tr>
 <td><code>mas-ff-3in1</code></td>
 <td>Controls the 3-in-1 modal checkout experience. When enabled, TWP (Trial With Purchase), D2P (Direct to Purchase), and CRM (Content Rich Modals) modals will use the unified 3-in-1 checkout flow.</td>
 <td><code>on</code></td>
@@ -451,6 +457,28 @@
 </code></pre>
 <p>Or on the commerce service element:</p>
 <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">mas-commerce-service</span> <span class="hljs-attr">data-mas-ff-defaults</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">mas-commerce-service</span>&gt;</span>
+</code></pre>
+<hr>
+<h3 id="mas-ff-unit-defaults" tabindex="-1">mas-ff-unit-defaults <a class="header-anchor" href="#mas-ff-unit-defaults" href="#mas-ff-unit-defaults" title="Permalink to this heading">#</a></h3>
+<p><strong>Purpose:</strong> Provides a narrower opt-in than <code>mas-ff-defaults</code> so pages can enable the per-unit pricing label (e.g. “per license”) without also enabling the country-based tax label defaults. Useful when unit labels and tax labels are on independent rollout tracks.</p>
+<p><strong>What it controls:</strong></p>
+<ul>
+<li><strong>Unit label display:</strong> Automatically adds unit labels (e.g., “per license”) for non-INDIVIDUAL customer segments, exactly as <code>mas-ff-defaults</code> does for that aspect.</li>
+<li><strong>Tax label display:</strong> Not affected. Tax label defaults remain off unless <code>mas-ff-defaults</code> is enabled, or <code>data-display-tax</code> / <code>data-force-tax-exclusive</code> are set on individual price elements.</li>
+</ul>
+<p><strong>Relationship with <code>mas-ff-defaults</code>:</strong></p>
+<ul>
+<li>If <code>mas-ff-defaults</code> is on, the unit label is already applied; this flag adds nothing.</li>
+<li>If <code>mas-ff-defaults</code> is off and <code>mas-ff-unit-defaults</code> is on, only the unit label fires; tax behavior is unchanged.</li>
+<li>AEM fragments rendered inside <code>merch-card</code> continue to force <code>mas-ff-defaults</code> on at the element level, so existing card behavior is preserved regardless of page-level flags.</li>
+</ul>
+<p><strong>When to use:</strong> Enable on pages that need per-unit labels but cannot yet enable the country-based tax label defaults (for example, when the per-unit label rollout is ready but the tax label rollout is still under review, or vice versa).</p>
+<p><strong>Usage:</strong></p>
+<p>Add the feature flag in the page metadata:</p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;mas-ff-unit-defaults&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span>
+</code></pre>
+<p>Or on the commerce service element:</p>
+<pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">mas-commerce-service</span> <span class="hljs-attr">data-mas-ff-unit-defaults</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">mas-commerce-service</span>&gt;</span>
 </code></pre>
 <hr>
 <h3 id="mas-ff-3in1" tabindex="-1">mas-ff-3in1 <a class="header-anchor" href="#mas-ff-3in1" href="#mas-ff-3in1" title="Permalink to this heading">#</a></h3>

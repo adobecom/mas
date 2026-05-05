@@ -75,6 +75,9 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
+                  # 4 workers × 45 RPS/worker = 180 RPS combined, safely under the 200 RPS
+                  # per-hostname limit enforced by AEM.live. Raise only if EDS grants a higher cap.
+                  NALA_PLAYWRIGHT_WORKERS: 4
 
             - name: Cleanup cloned cards
               if: always()

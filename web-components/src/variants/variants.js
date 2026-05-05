@@ -147,12 +147,7 @@ registerVariant(
 );
 registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
 registerVariant('image', Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
-registerVariant(
-    'fries',
-    FriesCard,
-    FRIES_AEM_FRAGMENT_MAPPING,
-    FriesCard.variantStyle,
-);
+registerVariant('fries', FriesCard, FRIES_AEM_FRAGMENT_MAPPING, FriesCard.variantStyle);
 
 const applyStyleSheet = (card, style, state) => {
     try {

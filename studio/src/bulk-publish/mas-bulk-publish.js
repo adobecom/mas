@@ -77,7 +77,7 @@ class MasBulkPublish extends LitElement {
         const { projectStore } = this.duplicatePending;
         this.duplicatePending = null;
         const data = projectStore.get();
-        const surface = Store.search.get()?.path;
+        const surface = Store.search.get()?.path ?? 'sandbox';
         const title = e.detail.title;
         const items = data.getFieldValue?.('items') ?? data.items ?? '[]';
         const locales = data.getFieldValue?.('locales') ?? data.locales ?? [];

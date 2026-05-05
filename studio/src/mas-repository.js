@@ -1341,8 +1341,8 @@ export class MasRepository extends LitElement {
     }
 
     getBulkPublishProjectsPath() {
-        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
-        return surface ? `/content/dam/mas/bulk-publish-projects/${surface}` : null;
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
+        return `/content/dam/mas/bulk-publish-projects/${surface}`;
     }
 
     async loadBulkPublishProjects() {

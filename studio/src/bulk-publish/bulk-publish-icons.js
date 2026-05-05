@@ -1,7 +1,7 @@
 import { html } from 'lit';
 
 export const SAVE_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <mask id="mask-save" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+    <mask id="mask-save" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20" style="mask-type:alpha">
         <path
             d="M17.4141 4.10352L15.8965 2.58594C15.5185 2.20801 15.0166 2 14.4824 2H4.25C3.00928 2 2 3.00977 2 4.25V15.75C2 16.9902 3.00928 18 4.25 18H15.75C16.9907 18 18 16.9902 18 15.75V5.51758C18 4.99121 17.7866 4.47559 17.4141 4.10352ZM7.75 3.5H12.25V6.5H7.75V3.5ZM13.25 16.5H6.75V12H13.25V16.5ZM16.5 15.75C16.5 16.1631 16.1636 16.5 15.75 16.5H14.75V12C14.75 11.1728 14.0772 10.5 13.25 10.5H6.75C5.92285 10.5 5.25 11.1728 5.25 12V16.5H4.25C3.83643 16.5 3.5 16.1631 3.5 15.75V4.25C3.5 3.83691 3.83643 3.5 4.25 3.5H6.25V6.5C6.25 7.32715 6.92285 8 7.75 8H12.25C13.0772 8 13.75 7.32715 13.75 6.5V3.5H14.4824C14.6157 3.5 14.7412 3.55176 14.8359 3.64648L16.3535 5.16406C16.4468 5.25683 16.5 5.38574 16.5 5.51758V15.75Z"
             fill="currentColor"
@@ -13,7 +13,7 @@ export const SAVE_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fil
 </svg>`;
 
 export const CLONE_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <mask id="mask-clone" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+    <mask id="mask-clone" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20" style="mask-type:alpha">
         <path
             d="M13.75 2.75C13.75 2.33594 13.4141 2 13 2H4.25C3.00928 2 2 3.00928 2 4.25V13C2 13.4141 2.33594 13.75 2.75 13.75C3.16406 13.75 3.5 13.4141 3.5 13V4.25C3.5 3.83643 3.83643 3.5 4.25 3.5H13C13.4141 3.5 13.75 3.16406 13.75 2.75Z"
             fill="currentColor"
@@ -33,7 +33,7 @@ export const CLONE_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fi
 </svg>`;
 
 export const PUBLISH_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <mask id="mask-publish" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+    <mask id="mask-publish" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20" style="mask-type:alpha">
         <path
             d="M18.7791 1.21852C18.5672 1.00758 18.2517 0.943127 17.9744 1.0525L1.47438 7.56129C1.20485 7.66676 1.02126 7.91969 1.00172 8.20875C0.982177 8.49781 1.13063 8.77223 1.38356 8.91285L7.63844 12.408L11.1599 18.6199C11.2937 18.8552 11.5437 18.9998 11.8123 18.9998C11.8298 18.9998 11.8484 18.9988 11.866 18.9978C12.155 18.9773 12.406 18.7918 12.5105 18.5222L18.948 2.02223C19.0564 1.74489 18.99 1.42848 18.7791 1.21852ZM15.1688 3.77125L8.05592 10.9229L3.49684 8.37574L15.1688 3.77125ZM11.6873 16.5076L9.12086 11.981L16.2493 4.81373L11.6873 16.5076Z"
             fill="currentColor"
@@ -45,7 +45,7 @@ export const PUBLISH_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" 
 </svg>`;
 
 export const COPY_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <mask id="mask-copy" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+    <mask id="mask-copy" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20" style="mask-type:alpha">
         <path
             d="M7.25 18H4.25C3.00977 18 2 16.9902 2 15.75V8.25C2 7.00977 3.00977 6 4.25 6C4.66406 6 5 6.33594 5 6.75C5 7.16406 4.66406 7.5 4.25 7.5C3.83691 7.5 3.5 7.83691 3.5 8.25V15.75C3.5 16.1631 3.83691 16.5 4.25 16.5H7.25C7.66406 16.5 8 16.8359 8 17.25C8 17.6641 7.66406 18 7.25 18Z"
             fill="currentColor"
@@ -93,7 +93,7 @@ export const COPY_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fil
 </svg>`;
 
 export const LOCK_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <mask id="mask-lock" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+    <mask id="mask-lock" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20" style="mask-type:alpha">
         <path
             d="M11.25 11.5C11.25 10.8105 10.6895 10.25 10 10.25C9.31055 10.25 8.75 10.8105 8.75 11.5C8.75 11.9026 8.95361 12.2449 9.25 12.4736V13.25C9.25 13.6641 9.58594 14 10 14C10.4141 14 10.75 13.6641 10.75 13.25V12.4736C11.0464 12.2449 11.25 11.9026 11.25 11.5Z"
             fill="currentColor"
@@ -115,7 +115,7 @@ export const LOCK_OPEN_SVG = html`<svg
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
 >
-    <mask id="mask-lock-open" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+    <mask id="mask-lock-open" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20" style="mask-type:alpha">
         <path
             d="M11.25 11.5C11.25 10.8105 10.6895 10.25 10 10.25C9.31055 10.25 8.75 10.8105 8.75 11.5C8.75 11.9026 8.95361 12.2449 9.25 12.4736V13.25C9.25 13.6641 9.58594 14 10 14C10.4141 14 10.75 13.6641 10.75 13.25V12.4736C11.0464 12.2449 11.25 11.9026 11.25 11.5Z"
             fill="currentColor"
@@ -131,7 +131,7 @@ export const LOCK_OPEN_SVG = html`<svg
 </svg>`;
 
 export const DELETE_SVG = html`<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <mask id="mask-delete" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20">
+    <mask id="mask-delete" maskUnits="userSpaceOnUse" x="0" y="0" width="20" height="20" style="mask-type:alpha">
         <path
             d="M8.24915 15.0215C7.84876 15.0215 7.51575 14.7041 7.5011 14.3008L7.2511 7.80078C7.2345 7.38672 7.55774 7.03808 7.97083 7.02246C7.98157 7.02148 7.99134 7.02148 8.0011 7.02148C8.40149 7.02148 8.7345 7.33886 8.74915 7.74218L8.99915 14.2422C9.01575 14.6562 8.69251 15.0049 8.27942 15.0205C8.26868 15.0215 8.25891 15.0215 8.24915 15.0215Z"
             fill="currentColor"

@@ -193,12 +193,19 @@ class MasBulkPublishEditor extends LitElement {
     async #handleLock() {
         await this.#withPendingAction(QUICK_ACTION.LOCK, async () => {
             const locking = !this.isLocked;
+            const prevStatus = this.status;
             const nextStatus = locking ? BULK_PUBLISH_STATUS.LOCKED : BULK_PUBLISH_STATUS.DRAFT;
             try {
                 this.project.updateField('status', [nextStatus]);
-                await this.repository.saveFragment(this.project, false);
+                const saved = await this.repository.saveFragment(this.project, false);
+                if (!saved) {
+                    this.project.updateField('status', [prevStatus]);
+                    showToast('Failed to lock/unlock project.', 'negative');
+                    return;
+                }
                 showToast(locking ? 'Project locked.' : 'Project unlocked.', 'positive');
             } catch (err) {
+                this.project.updateField('status', [prevStatus]);
                 console.error('Failed to lock/unlock project:', err);
                 showToast('Failed to lock/unlock project.', 'negative');
             }
@@ -308,6 +315,7 @@ class MasBulkPublishEditor extends LitElement {
 
     async saveBulkProject() {
         await this.#withPendingAction(QUICK_ACTION.SAVE, async () => {
+            this.ensureSurface();
             const surface = Store.search.get()?.path;
             try {
                 if (this.isNewProject) {
@@ -343,7 +351,8 @@ class MasBulkPublishEditor extends LitElement {
                         this.project.updateField(name, [value]);
                     }
                     this.project.updateField('locales', this.locales);
-                    await this.repository.saveFragment(this.project, false);
+                    const saved = await this.repository.saveFragment(this.project, false);
+                    if (!saved) throw new Error('Save returned empty response');
                     showToast('Project saved successfully.', 'positive');
                 }
             } catch (err) {
@@ -377,6 +386,7 @@ class MasBulkPublishEditor extends LitElement {
 
     async handleDuplicateConfirmed(e) {
         this.duplicateOpen = false;
+        this.ensureSurface();
         const surface = Store.search.get()?.path;
         const title = e.detail.title;
         await this.#withPendingAction(QUICK_ACTION.DUPLICATE, async () => {

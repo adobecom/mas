@@ -56,7 +56,7 @@ export const styles = css`
         position: relative;
     }
     .loading-overlay {
-        position: absolute;
+        position: fixed;
         inset: 0;
         display: flex;
         align-items: center;

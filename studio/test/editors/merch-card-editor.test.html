@@ -89,7 +89,7 @@
             import { Fragment } from '../../src/aem/fragment.js';
             import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
             import Store from '../../src/store.js';
-            import { PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
+            import { COMPAT_VERSION, PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
             import { delay } from '../utils.js';
 
             // Load the existing mock data for a merch card
@@ -1303,6 +1303,106 @@
 
                             store.previewStore.value.getField('description').values = ['<p>Resolved</p>'];
                             expect(store.value.getFieldValues('description')).to.deep.equal([]);
+                        });
+                    });
+
+                    describe('compat version', () => {
+                        it('writes COMPAT_VERSION into the fragment store when effective compat is below the constant', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment({}, 'compat');
+                            await editor.toggleFields();
+                            const field = fragmentStore.get().getField('compatVersion');
+                            expect(field).to.exist;
+                            expect(field.values).to.deep.equal([String(COMPAT_VERSION)]);
+                        });
+
+                        it('bumps compat when own value is below the constant', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment(
+                                { compatVersion: ['0'] },
+                                'compat-bump',
+                            );
+                            await editor.toggleFields();
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
+                        });
+
+                        it('reapplies compat after a refresh replaces the fragment data', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment({}, 'compat-refresh');
+                            await editor.toggleFields();
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
+
+                            const refreshed = structuredClone(fragmentStore.get());
+                            refreshed.fields = refreshed.fields.filter((field) => field.name !== 'compatVersion');
+                            fragmentStore.refreshFrom(refreshed);
+
+                            await editor.updateComplete;
+                            await delay(50);
+
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
+                            expect(fragmentStore.get().hasChanges, 'compat should become dirty again after refresh').to.be.true;
+                        });
+
+                        it('does not change compat when own value already meets the constant', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment(
+                                { compatVersion: [String(COMPAT_VERSION)] },
+                                'compat-ok',
+                            );
+                            await editor.toggleFields();
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal([String(COMPAT_VERSION)]);
+                            expect(fragmentStore.get().hasChanges, 'toggleFields must not bump compat when already current').to
+                                .be.false;
+                        });
+
+                        it('does not bump compat when there is no promoCode value', async () => {
+                            const { fragmentStore, editor } = await setupTestEnvironment(
+                                {
+                                    isVariation: false,
+                                    path: '/content/dam/mas/nala/en_US/test-root-compat-no-promo',
+                                    compatVersion: ['0'],
+                                },
+                                'compat-no-promo',
+                            );
+                            await editor.toggleFields();
+                            expect(fragmentStore.get().getFieldValues('compatVersion')).to.deep.equal(['0']);
+                        });
+                    });
+
+                    describe('commerce price providers', () => {
+                        it('registers both providers and does not duplicate on repeated calls', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'providers');
+                            const registered = [];
+                            const fakeService = {
+                                providers: {
+                                    has: (p) => registered.includes(p),
+                                    price: (p) => registered.push(p),
+                                    checkout: (p) => registered.push(p),
+                                },
+                            };
+                            editor.registerCommerceProviders(fakeService);
+                            expect(registered.length).to.equal(4);
+                            editor.registerCommerceProviders(fakeService);
+                            expect(registered.length).to.equal(4);
+                        });
+
+                        it('registers providers when an unrelated provider is already registered', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'providers-partial');
+                            const registered = [];
+                            const firstProvider = () => {};
+                            registered.push(firstProvider);
+                            const fakeService = {
+                                providers: {
+                                    has: (p) => registered.includes(p),
+                                    price: (p) => registered.push(p),
+                                    checkout: (p) => registered.push(p),
+                                },
+                            };
+                            const before = registered.length;
+                            editor.registerCommerceProviders(fakeService);
+                            // Both editor providers are registered for price and checkout.
+                            expect(registered.length).to.equal(before + 4);
+                        });
+
+                        it('does not throw when commerce service is unavailable', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'providers-missing-service');
+                            expect(() => editor.registerCommerceProviders(null)).to.not.throw();
                         });
                     });
                 });

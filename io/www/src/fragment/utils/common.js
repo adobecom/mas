@@ -68,7 +68,7 @@ async function fetchAttempt(path, context, timeout, marker) {
             return {
                 status: 200,
                 message: 'ok',
-                body: await computeBody(response, context),
+                body: await Promise.race([computeBody(response, context), createTimeoutPromise(timeout)]),
             };
         }
         return response;
@@ -162,38 +162,36 @@ async function getFragmentId(context, odinUrl, mark) {
         }
     }
     const response = await internalFetch(odinUrl, context, mark);
+    let { message, status } = response;
     if (response.status == 200) {
-        const { items } = response.body;
-        if (items?.length > 0) {
-            const id = items[0].id;
+        const { id } = response.body || {};
+        if (id) {
             context.fragmentsIds = context.fragmentsIds || {};
             context.fragmentsIds[mark] = id;
             return {
                 id,
-                status: 200,
-            };
-        } else {
-            return {
-                message: 'Fragment not found',
-                status: 404,
+                status,
             };
         }
+        message = 'No id found in response';
+        status = 503;
     }
     return {
         message: response.message || 'Error fetching fragment id',
-        status: 503,
+        status,
     };
 }
 
 /**
- * get default request information either from state cache, or from fetchFragment promise
+ * get default request information either from state cache, or from the early `requestInfos` promise (first fragment
+ * fetch + path parse).
  * @param {*} context
  * @returns parsedLocale, surface, fragmentPath
  */
 async function getRequestInfos(context) {
     let { body, parsedLocale, surface, fragmentPath } = context;
     if (!parsedLocale || !surface || !fragmentPath || !body) {
-        const fetchResult = await context.promises?.fetchFragment;
+        const fetchResult = await context.promises?.requestInfos;
         if (fetchResult) {
             ({ parsedLocale, surface, fragmentPath, body } = fetchResult);
         }

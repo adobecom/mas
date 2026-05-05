@@ -155,7 +155,8 @@ class MasSideNav extends LitElement {
     #copyFieldMenuOpenedByPointer = false;
     #onMerchCardReady = (event) => {
         const card = this.#getPreviewCard();
-        if (!card || event.target !== card) return;
+        if (!card) return;
+        if (!(event.composedPath?.()?.includes(card) ?? false)) return;
         this.#updateResolvedPrice(this.#getFirstResolvedPriceText(card));
     };
     #onCopyFieldTriggerPointerDown = () => {
@@ -172,6 +173,7 @@ class MasSideNav extends LitElement {
     #onCopyFieldMenuOpened = (event) => {
         if (!this.#copyFieldMenuOpenedByPointer) return;
         this.#copyFieldMenuOpenedByPointer = false;
+        this.requestUpdate();
         const overlayTrigger = event.currentTarget;
         queueMicrotask(() => {
             if (this.#clearFocusedCopyFieldMenuItem(overlayTrigger)) return;
@@ -328,6 +330,18 @@ class MasSideNav extends LitElement {
         return this.fragmentEditor?.querySelector?.('merch-card');
     }
 
+    #queryAllInlinePriceElements(card) {
+        const collected = [];
+        const visit = (root) => {
+            collected.push(...root.querySelectorAll(INLINE_PRICE_SELECTOR));
+            root.querySelectorAll('*').forEach((node) => {
+                if (node.shadowRoot) visit(node.shadowRoot);
+            });
+        };
+        visit(card);
+        return collected;
+    }
+
     #syncPricePreview() {
         const card = this.#getPreviewCard();
         if (!card) return;
@@ -379,7 +393,7 @@ class MasSideNav extends LitElement {
     }
 
     #getFirstResolvedPriceText(card) {
-        const prices = [...card.querySelectorAll(INLINE_PRICE_SELECTOR)];
+        const prices = this.#queryAllInlinePriceElements(card);
         let fallbackText = '';
 
         for (const price of prices) {
@@ -409,7 +423,7 @@ class MasSideNav extends LitElement {
 
     #getResolvedInlinePriceCandidates(card = this.#getPreviewCard()) {
         if (!card) return [];
-        return [...card.querySelectorAll(INLINE_PRICE_SELECTOR)]
+        return this.#queryAllInlinePriceElements(card)
             .map((el) => {
                 const { full, core } = this.#getFormattedPriceTexts(el);
                 return {

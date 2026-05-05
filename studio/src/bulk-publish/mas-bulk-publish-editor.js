@@ -537,15 +537,15 @@ class MasBulkPublishEditor extends LitElement {
                     QUICK_ACTION.DELETE,
                 ]}
                 .iconOverrides=${{
-                    [QUICK_ACTION.SAVE]: { svg: SAVE_SVG, title: 'Save' },
-                    [QUICK_ACTION.DUPLICATE]: { svg: CLONE_SVG, title: 'Duplicate' },
-                    [QUICK_ACTION.PUBLISH]: { svg: PUBLISH_SVG, title: 'Publish' },
-                    [QUICK_ACTION.COPY]: { svg: COPY_SVG, title: 'Copy' },
+                    [QUICK_ACTION.SAVE]: { icon: SAVE_SVG, title: 'Save' },
+                    [QUICK_ACTION.DUPLICATE]: { icon: CLONE_SVG, title: 'Duplicate' },
+                    [QUICK_ACTION.PUBLISH]: { icon: PUBLISH_SVG, title: 'Publish' },
+                    [QUICK_ACTION.COPY]: { icon: COPY_SVG, title: 'Copy' },
                     [QUICK_ACTION.LOCK]: {
-                        svg: this.isLocked ? LOCK_OPEN_SVG : LOCK_SVG,
+                        icon: this.isLocked ? LOCK_OPEN_SVG : LOCK_SVG,
                         title: this.isLocked ? 'Unlock' : 'Lock',
                     },
-                    [QUICK_ACTION.DELETE]: { svg: DELETE_SVG, title: 'Delete', className: 'delete-action' },
+                    [QUICK_ACTION.DELETE]: { icon: DELETE_SVG, title: 'Delete', className: 'delete-action' },
                 }}
                 .disabled=${this.disabledActions}
                 @save=${this.saveBulkProject}

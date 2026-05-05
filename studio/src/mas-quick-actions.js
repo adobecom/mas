@@ -1,5 +1,4 @@
 import { LitElement, html, nothing } from 'lit';
-import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { styles } from './mas-quick-actions.css.js';
 import { QUICK_ACTION } from './constants.js';
 
@@ -270,9 +269,10 @@ class MasQuickActions extends LitElement {
     renderAction(action) {
         if (!ACTION_CONFIG[action]) return nothing;
         const config = { ...ACTION_CONFIG[action], ...this.iconOverrides?.[action] };
-        const iconNode = config.svg
-            ? html`<sp-icon slot="icon">${unsafeSVG(config.svg)}</sp-icon>`
-            : this.renderIcon(config.icon);
+        const iconNode =
+            config.icon && typeof config.icon !== 'string'
+                ? html`<sp-icon slot="icon">${config.icon}</sp-icon>`
+                : this.renderIcon(config.icon);
         return html`
             <sp-action-button
                 class="${config.className || ''}"

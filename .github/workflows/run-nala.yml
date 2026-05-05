@@ -94,7 +94,7 @@ jobs:
                   # Studio tests mutate shared Odyssey fragments; multiple workers cause races
                   # (discard dialogs, price previews). One worker keeps suite deterministic.
                   # ~45 RPS cap per worker still applies via nala/libs/eds-throttle.js.
-                  NALA_PLAYWRIGHT_WORKERS: 1
+                  NALA_PLAYWRIGHT_WORKERS: 4
 
             - name: Cleanup cloned cards
               if: always()

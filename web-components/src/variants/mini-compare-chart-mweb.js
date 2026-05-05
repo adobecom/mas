@@ -133,7 +133,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             return;
         }
 
-        const slots = [
+        let slots = [
             'heading-xs',
             'subtitle',
             'heading-m-price',

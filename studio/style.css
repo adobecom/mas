@@ -91,9 +91,9 @@ sp-sidenav-item sp-icon {
     flex-direction: column;
     height: auto;
     margin-block-start: 16px;
-    margin-block-end: 16px;
+    margin-block-end: 0;
     margin-inline: 12px;
-    border-radius: 16px;
+    border-radius: 16px 16px 0 0;
     background: var(--spectrum-white);
     border: 1px solid var(--spectrum-gray-75, #f3f3f3);
     box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
@@ -740,6 +740,7 @@ sp-table-head-cell {
     background: linear-gradient(180deg, #fff9f0 0%, #ffffff 100%);
     background-color: #ffffff;
     border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     padding: 24px 24px 60px 24px;
     width: 100%;
     box-sizing: border-box;

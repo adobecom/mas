@@ -239,7 +239,7 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
                 variant: 'negative',
                 content: 'Failed to copy code to clipboard',
             });
-        return null;
+        return [];
     }
 
     const code = `<${webComponentName}><aem-fragment fragment="${fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;

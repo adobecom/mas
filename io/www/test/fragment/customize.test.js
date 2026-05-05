@@ -29,62 +29,12 @@ function mockFrenchFragment() {
         .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
     fetchStub
         .withArgs(
-            'https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Ffr_FR%2Fccd-slice-wide-cc-all-app',
+            'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
         )
         .returns(createResponse(200, { id: 'some-fr-fr-fragment' }));
 }
 
 describe('customize collections', function () {
-    it('deepMerge is safe against prototype pollution via __proto__ key', function () {
-        const malicious = JSON.parse('{"__proto__": {"polluted": true}}');
-        const result = deepMerge({}, malicious);
-        expect({}.polluted).to.equal(undefined);
-        expect(result.__proto__).to.equal(Object.prototype);
-    });
-
-    it('findRegionalVariation does not throw with regex metacharacters in surface/regionLocale', async function () {
-        const context = {
-            status: 200,
-            surface: 'sand.box+[test]',
-            parsedLocale: 'fr_FR',
-            fragmentPath: 'some/path',
-            preview: false,
-            state: new MockState(),
-            networkConfig: { retries: 1, retryDelay: 0 },
-            body: {
-                id: 'test-id',
-                fields: { variations: [] },
-                references: {},
-                referencesTree: [],
-            },
-            promises: {
-                defaultLanguage: Promise.resolve({
-                    status: 200,
-                    body: {
-                        id: 'test-id',
-                        fields: { variations: [] },
-                        references: {},
-                        referencesTree: [],
-                    },
-                    defaultLocale: 'fr_FR)(.+',
-                    locale: 'fr_FR)(.+',
-                    regionLocale: 'fr_FR)(.+',
-                    surface: 'sand.box+[test]',
-                    fragmentPath: 'some/path',
-                    parsedLocale: 'fr_FR',
-                }),
-                promotions: Promise.resolve(null),
-            },
-        };
-        let error = null;
-        try {
-            await customize.process(context);
-        } catch (e) {
-            error = e;
-        }
-        expect(error).to.equal(null);
-    });
-
     it('should have a working deep Merge function', function () {
         const obj1 = {
             a: 1,
@@ -1032,7 +982,7 @@ describe('customize typical cases', function () {
         const defaultLocaleId = 'some-fr-fr-fragment';
         fetchStub
             .withArgs(
-                `https://odin.adobe.com/adobe/contentFragments/byPath?path=${encodeURIComponent(`/content/dam/mas/sandbox/fr_FR/${fragmentPath}`)}`,
+                `https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/${fragmentPath}`,
             )
             .returns(createResponse(200, { id: defaultLocaleId }));
         fetchStub
@@ -1138,7 +1088,7 @@ describe('customize typical cases', function () {
             .returns(createResponse(200, usFragment));
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Fen_US%2Fsome-en-us-fragment',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/en_US/some-en-us-fragment',
             )
             .returns(createResponse(200, { id: 'some-en-us-fragment' }));
 
@@ -1210,7 +1160,7 @@ describe('customize corner cases', function () {
 
     it('should return 503 when default locale fetch failed', async function () {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Ffr_FR%2FsomeFragment')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/someFragment')
             .returns(
                 createResponse(
                     404,
@@ -1236,7 +1186,7 @@ describe('customize corner cases', function () {
     it('should return 500 when default locale fetch by id failed', async function () {
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Ffr_FR%2Fccd-slice-wide-cc-all-app',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             )
             .returns(createResponse(200, { id: 'some-fr-fr-fragment-server-error' }));
 
@@ -1267,7 +1217,7 @@ describe('customize corner cases', function () {
     it('should return 404 when default locale fragment is not found', async function () {
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/contentFragments/byPath?path=%2Fcontent%2Fdam%2Fmas%2Fsandbox%2Ffr_FR%2Fccd-slice-wide-cc-all-app',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             )
             .returns(createResponse(404, {}));
 

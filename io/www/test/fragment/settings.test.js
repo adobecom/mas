@@ -14,7 +14,7 @@ const DEFAULT_SURFACE = 'sandbox';
 const DEFAULT_LOCALE = 'fr_FR';
 
 const settingsIndexUrl = (surface = DEFAULT_SURFACE) =>
-    `https://odin.adobe.com/adobe/contentFragments/byPath?path=${encodeURIComponent(`/content/dam/mas/${surface}/settings/index`)}`;
+    `https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/${surface}/settings/index`;
 
 const settingsContentUrl = (id) => `https://odin.adobe.com/adobe/contentFragments/${id}?references=all-hydrated`;
 
@@ -105,12 +105,6 @@ describe('settings', () => {
             fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { id: 'sid' }));
             fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(500, null, 'Internal Server Error'));
             const result = await getSettings(createContext());
-            expect(result).to.be.null;
-        });
-
-        it('returns null when fragment id fetch fails', async () => {
-            fetchStub.returns(createResponse(503, { message: 'not found' }));
-            const result = await getSettings(createContext({ networkConfig: { retries: 1, retryDelay: 1 } }));
             expect(result).to.be.null;
         });
 

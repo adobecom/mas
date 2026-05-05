@@ -40,10 +40,8 @@ function odinReferences(id, allHydrated = false, preview) {
  */
 function odinUrl(surface, { locale, fragmentPath, preview }) {
     const root = fragmentPath ? `${rootURL(preview)}/byPath` : rootURL(preview);
-    const url = new URL(root);
-    const path = locale ? `${MAS_ROOT}/${surface}/${locale}/${fragmentPath}` : `${MAS_ROOT}/${surface}/${fragmentPath}`;
-    url.searchParams.set('path', path);
-    return url.toString();
+    if (!locale) return `${root}?path=${MAS_ROOT}/${surface}/${fragmentPath}`;
+    return `${root}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
 export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, odinUrl, odinId, odinReferences };

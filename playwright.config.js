@@ -36,7 +36,7 @@ const config = {
     workers: (() => {
         const fromEnv = Number.parseInt(process.env.NALA_PLAYWRIGHT_WORKERS ?? '', 10);
         if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
-        return process.env.CI ? 1 : 3;
+        return process.env.CI ? 2 : 3;
     })(),
     /* Reporter to use. */
     reporter: process.env.CI

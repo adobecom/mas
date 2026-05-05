@@ -521,6 +521,27 @@ describe('Router', () => {
             await router.navigateToFragmentEditor('test-id', { locale: 'fr_FR' });
             expect(Store.search.get().region).to.equal('fr_FR');
         });
+
+        it('should use editor-panel for a provided collection fragment store', async () => {
+            Store.page.set(PAGE_NAMES.CONTENT);
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'collection-variation-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [],
+                }),
+            );
+            const mockEditorPanel = {
+                editFragment: sandbox.stub().resolves(),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+
+            await router.navigateToFragmentEditor('collection-variation-id', { fragmentStore: collectionStore });
+
+            expect(mockEditorPanel.editFragment.calledOnceWith(collectionStore)).to.be.true;
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+            expect(Store.viewMode.get()).to.equal('editing');
+        });
     });
 
     describe('navigateToTranslationEditor', () => {

@@ -18,6 +18,7 @@ import { VARIANTS } from './editors/variant-picker.js';
 import { getActiveMerchCardEditor } from './editors/merch-card-editor.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
+import { getFragmentPartsToUse } from './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
@@ -1569,6 +1570,25 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.fragment) return nothing;
         const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
 
+        if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
+            let fragmentParts = '';
+            if (Fragment.isGroupedVariationPath(this.fragment.path) && this.localeDefaultFragment) {
+                const pathParts = this.fragment.path?.split('/') || [];
+                const masIndex = pathParts.indexOf('mas');
+                const surfaceFromPath = masIndex >= 0 && pathParts[masIndex + 1] ? pathParts[masIndex + 1].toUpperCase() : '';
+                const search = Store.search.get();
+                const searchSurface = search?.path ? String(search.path).toUpperCase() : '';
+                const surface = searchSurface || surfaceFromPath;
+                fragmentParts = surface
+                    ? `${surface} / ${this.localeDefaultFragment.title}`
+                    : this.localeDefaultFragment.title;
+            } else {
+                fragmentParts = getFragmentPartsToUse(Store, this.fragment).fragmentParts || '';
+            }
+            if (!fragmentParts) return nothing;
+            return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
+        }
+
         const pathParts = this.fragment.path?.split('/') || [];
         const masIndex = pathParts.indexOf('mas');
         const surface = masIndex >= 0 && pathParts[masIndex + 1] ? pathParts[masIndex + 1].toUpperCase() : '';
@@ -1625,7 +1645,14 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get previewColumn() {
-        if (!this.fragment || this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
+        if (!this.fragment) return nothing;
+        if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
+            const isGroupedVariation =
+                this.editorContextStore.isVariation(this.fragment.id) && Fragment.isGroupedVariationPath(this.fragment.path);
+            if (!isGroupedVariation) return nothing;
+            return html`<div id="preview-column">${this.relatedVariationsSection}</div>`;
+        }
+        if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         if (!this.previewResolved) {
             return this.previewSkeleton;

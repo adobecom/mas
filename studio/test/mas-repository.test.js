@@ -1,7 +1,15 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import { Fragment } from '../src/aem/fragment.js';
+import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '../src/constants.js';
+import {
+    ROOT_PATH,
+    SURFACES,
+    PAGE_NAMES,
+    EDITABLE_FRAGMENT_MODEL_IDS,
+    COLLECTION_MODEL_PATH,
+} from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 
@@ -3170,6 +3178,62 @@ describe('MasRepository dictionary helpers', () => {
             expect(result).to.deep.equal(createdFragment);
         });
 
+        it('snapshots collection cards and collections when creating grouped variation', async () => {
+            const repository = createRepository();
+            const createdDraft = { id: 'new-grouped-id' };
+            const createdFragment = { id: 'new-grouped-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/new-grouped' };
+            const collectionParent = {
+                ...parentFragment,
+                model: { id: 'collection-model', path: COLLECTION_MODEL_PATH },
+                fields: [
+                    { name: 'variations', values: [] },
+                    {
+                        name: 'cards',
+                        type: 'content-reference',
+                        multiple: true,
+                        values: ['/content/mas/cards/a', '/content/mas/cards/b'],
+                    },
+                    {
+                        name: 'collections',
+                        type: 'content-reference',
+                        multiple: true,
+                        values: ['/content/mas/collections/x'],
+                    },
+                ],
+            };
+
+            const getByPathStub = sandbox.stub().callsFake(async (path) => {
+                if (path === createdFragment.path) return createdFragment;
+                return null;
+            });
+
+            const createStub = sandbox.stub().resolves(createdDraft);
+
+            repository.aem = createAemMock({
+                fragments: {
+                    getById: sandbox.stub().resolves(collectionParent),
+                    getByPath: getByPathStub,
+                    ensureFolderExists: sandbox.stub().resolves(),
+                    create: createStub,
+                    copyFragmentTags: sandbox.stub().resolves(),
+                    pollCreatedFragment: sandbox.stub().resolves(createdFragment),
+                },
+            });
+            sandbox.stub(repository, 'updateParentVariations').resolves(collectionParent);
+            sandbox.stub(repository, 'refreshFragment').resolves();
+            sandbox.stub(Store.fragments.list.data, 'get').returns([{ get: () => ({ id: collectionParent.id }) }]);
+
+            await repository.createGroupedVariation(collectionParent.id, ['mas:locale/EG/ar_EG'], {
+                productArrangementCode: 'pac',
+            });
+
+            const createFields = createStub.firstCall.args[0].fields;
+            const cardsField = createFields.find((f) => f.name === 'cards');
+            const collectionsField = createFields.find((f) => f.name === 'collections');
+            expect(cardsField?.values).to.deep.equal(['/content/mas/cards/a', '/content/mas/cards/b']);
+            expect(collectionsField?.values).to.deep.equal(['/content/mas/collections/x']);
+        });
+
         it('resolves parent fragment via repository resolver when source fragment is grouped', async () => {
             const repository = createRepository();
             const groupedSource = {
@@ -3543,6 +3607,25 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.aem.sites.cf.fragments.forceDelete.calledOnceWith({ path: fragment.path })).to.be.true;
             expect(refreshVariationParentInListStub.calledOnceWith(fragment, null)).to.be.true;
             expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
+        });
+
+        it('refreshVariationParentInList refreshes parent store when variation path is only in variations field', async () => {
+            const repository = createRepository();
+            const variationPath = '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-one';
+            const parent = new Fragment({
+                id: 'parent-collection-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: 'variations', values: [variationPath, '/other/var'] }],
+                references: [],
+            });
+            const parentStore = new FragmentStore(parent);
+            sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
+            const refreshStub = sandbox.stub(repository, 'refreshFragment').resolves();
+
+            await repository.refreshVariationParentInList({ id: 'grouped-id', path: variationPath }, null);
+
+            expect(refreshStub.calledOnceWith(parentStore)).to.be.true;
         });
     });
 

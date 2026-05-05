@@ -12,6 +12,7 @@ import './mas-variation-dialog.js';
 class MasFragmentTable extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
+        editFragmentStore: { type: Object, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
@@ -31,6 +32,7 @@ class MasFragmentTable extends LitElement {
     constructor() {
         super();
         this.offerData = null;
+        this.editFragmentStore = null;
         this.expanded = false;
         this.nested = false;
         this.canCreateVariation = true;
@@ -139,10 +141,11 @@ class MasFragmentTable extends LitElement {
 
     handleEditFragment(event) {
         event.stopPropagation();
-        const fragment = this.fragmentStore.value;
+        const editorStore = this.editFragmentStore || this.fragmentStore;
+        const fragment = editorStore?.get?.() || editorStore?.value;
         if (fragment?.id) {
             const locale = extractLocaleFromPath(fragment.path);
-            router.navigateToFragmentEditor(fragment.id, { locale });
+            router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore: editorStore });
         }
     }
 

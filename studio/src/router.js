@@ -210,6 +210,7 @@ export class Router extends EventTarget {
      * @param {string} fragmentId - The fragment ID to edit
      * @param {Object} options - Navigation options
      * @param {string} options.locale - Optional locale to set before navigation
+     * @param {import('./reactivity/fragment-store.js').FragmentStore} [options.fragmentStore] - Optional pre-resolved fragment store
      */
     async navigateToFragmentEditor(fragmentId, options = {}) {
         if (!fragmentId) {
@@ -217,7 +218,7 @@ export class Router extends EventTarget {
             return;
         }
 
-        const { locale } = options;
+        const { locale, fragmentStore: providedFragmentStore } = options;
 
         this.isNavigating = true;
         try {
@@ -228,7 +229,7 @@ export class Router extends EventTarget {
 
             // Check if this is a collection to use editor-panel instead
             const fragmentList = Store.fragments.list.data.get();
-            const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);
+            const fragmentStore = providedFragmentStore ?? fragmentList?.find((f) => f.get()?.id === fragmentId);
 
             if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
                 // Use editor-panel for collections

@@ -278,12 +278,12 @@ runTests(async () => {
             Store.page.set(originalPage);
         });
 
-        const makeStore = (path) =>
+        const makeStore = (path, title = path) =>
             new FragmentStore({
                 id: path,
                 path,
                 model: { path: '/models/collection' },
-                title: path,
+                title,
                 fields: [],
             });
 
@@ -310,10 +310,10 @@ runTests(async () => {
         });
 
         describe('sortedFragments', () => {
-            it('returns fragments unsorted when sortBy is not "path"', () => {
+            it('returns fragments unsorted when sortBy is modifiedAt (delegated to backend)', () => {
                 const stores = [makeStore('/c'), makeStore('/a'), makeStore('/b')];
                 Store.fragments.list.data.set(stores);
-                Store.sort.set({ sortBy: 'title', sortDirection: 'asc' });
+                Store.sort.set({ sortBy: 'modifiedAt', sortDirection: 'desc' });
                 const result = masContent.sortedFragments;
                 expect(result.map((s) => s.get().path)).to.deep.equal(['/c', '/a', '/b']);
             });
@@ -332,6 +332,54 @@ runTests(async () => {
                 Store.sort.set({ sortBy: 'path', sortDirection: 'desc' });
                 const result = masContent.sortedFragments;
                 expect(result.map((s) => s.get().path)).to.deep.equal(['/c', '/b', '/a']);
+            });
+
+            it('sorts by title ascending case-insensitively (mixed case interleaved, not segregated)', () => {
+                const stores = [
+                    makeStore('/p1', 'Banana'),
+                    makeStore('/p2', 'apple'),
+                    makeStore('/p3', 'Cherry'),
+                    makeStore('/p4', 'avocado'),
+                    makeStore('/p5', 'BLUEBERRY'),
+                ];
+                Store.fragments.list.data.set(stores);
+                Store.sort.set({ sortBy: 'title', sortDirection: 'asc' });
+                const result = masContent.sortedFragments;
+                expect(result.map((s) => s.get().title)).to.deep.equal(['apple', 'avocado', 'Banana', 'BLUEBERRY', 'Cherry']);
+            });
+
+            it('sorts by title descending case-insensitively', () => {
+                const stores = [makeStore('/p1', 'apple'), makeStore('/p2', 'Banana'), makeStore('/p3', 'cherry')];
+                Store.fragments.list.data.set(stores);
+                Store.sort.set({ sortBy: 'title', sortDirection: 'desc' });
+                const result = masContent.sortedFragments;
+                expect(result.map((s) => s.get().title)).to.deep.equal(['cherry', 'Banana', 'apple']);
+            });
+
+            it('sorts paths case-insensitively (does not group uppercase before lowercase)', () => {
+                const stores = [
+                    makeStore('/sandbox/Cake'),
+                    makeStore('/sandbox/apple'),
+                    makeStore('/sandbox/Banana'),
+                    makeStore('/sandbox/avocado'),
+                ];
+                Store.fragments.list.data.set(stores);
+                Store.sort.set({ sortBy: 'path', sortDirection: 'asc' });
+                const result = masContent.sortedFragments;
+                expect(result.map((s) => s.get().path)).to.deep.equal([
+                    '/sandbox/apple',
+                    '/sandbox/avocado',
+                    '/sandbox/Banana',
+                    '/sandbox/Cake',
+                ]);
+            });
+
+            it('orders titles naturally when they contain numbers (card2 < card10)', () => {
+                const stores = [makeStore('/p1', 'card10'), makeStore('/p2', 'card2'), makeStore('/p3', 'card1')];
+                Store.fragments.list.data.set(stores);
+                Store.sort.set({ sortBy: 'title', sortDirection: 'asc' });
+                const result = masContent.sortedFragments;
+                expect(result.map((s) => s.get().title)).to.deep.equal(['card1', 'card2', 'card10']);
             });
         });
 

@@ -398,12 +398,15 @@ export class MasRepository extends LitElement {
         const createdByString = createdBy.join(',');
 
         const sort = Store.sort.get();
-        const apiSortFieldMap = { title: 'title', modifiedAt: 'modifiedOrCreated' };
+        // AEM's JCR sort is byte-ordered (uppercase < lowercase), so path/title are
+        // sorted on the client; the backend keeps its default modifiedOrCreated DESC.
+        const apiSortFieldMap = { modifiedAt: 'modifiedOrCreated' };
         const apiSortField = apiSortFieldMap[sort.sortBy];
         const apiSort = apiSortField
             ? [{ on: apiSortField, order: sort.sortDirection.toUpperCase() }]
             : [{ on: 'modifiedOrCreated', order: 'DESC' }];
         const apiSortKey = JSON.stringify(apiSort);
+        const clientSideSortActive = sort.sortBy === 'path' || sort.sortBy === 'title';
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -459,6 +462,15 @@ export class MasRepository extends LitElement {
             }
             Store.fragments.list.loading.set(false);
             Store.fragments.list.firstPageLoaded.set(true);
+            // Client-side sort needs the complete catalog; without this the rest of
+            // pagination would arrive on scroll and reshuffle already-rendered rows.
+            if (clientSideSortActive && this.#searchCursor && Store.fragments.list.hasMore.get()) {
+                Store.fragments.list.hasMore.set(false);
+                this.#abortControllers.search ??= new AbortController();
+                this.#eagerLoadAllPages(this.#searchCursor, this.#abortControllers.search, {
+                    commitProgressively: false,
+                });
+            }
             return;
         }
 
@@ -643,9 +655,11 @@ export class MasRepository extends LitElement {
                 const cursorState = done ? null : { cursor, variants, surface, fragmentStores, lowerClientQuery };
                 this.#searchCursor = cursorState;
                 Store.fragments.list.hasMore.set(!done);
-                if (personalizationOn && cursorState) {
+                if (cursorState && (personalizationOn || clientSideSortActive)) {
                     Store.fragments.list.hasMore.set(false);
-                    this.#eagerLoadAllPznPages(cursorState, searchController);
+                    this.#eagerLoadAllPages(cursorState, searchController, {
+                        commitProgressively: !clientSideSortActive,
+                    });
                 } else {
                     this.#abortControllers.search = null;
                     if (cursorState) {
@@ -677,12 +691,14 @@ export class MasRepository extends LitElement {
 
     static MIN_PAGE_SIZE = 10;
     /**
-     * Soft cap on the eager personalization-page loop in #eagerLoadAllPznPages.
-     * Once the cap is hit, hasMore is set to true and the rest is delivered on
-     * demand by loadNextPage() (one page per scroll-trigger). Pagination is not
-     * lost — it simply stops being eager-prefetched after this many pages.
+     * Soft cap on the eager-load loop in #eagerLoadAllPages. Used both when the
+     * personalization filter is on and when a client-side sort field (path /
+     * title) is active. Once the cap is hit, hasMore is set to true and the rest
+     * is delivered on demand by loadNextPage() (one page per scroll-trigger).
+     * Pagination is not lost — it simply stops being eager-prefetched after this
+     * many pages.
      */
-    static MAX_EAGER_PZN_PAGES = 20;
+    static MAX_EAGER_PAGES = 20;
     /**
      * Visible-row threshold for the post-filter refill loop in #refillBelowThreshold.
      * When a cursor page, after #filterStoresByPersonalizationEnabled has been
@@ -695,10 +711,10 @@ export class MasRepository extends LitElement {
     static MIN_FILTERED_PAGE_RESULTS = 25;
     /**
      * Soft cap on the number of #fillPage rounds the refill loop will run before
-     * giving up. Mirrors MAX_EAGER_PZN_PAGES to keep the non-personalization
-     * refill path bounded when a filter matches very little in the catalog.
-     * When the cap is hit, hasMore stays true so loadNextPage can continue
-     * fetching on scroll.
+     * giving up. Mirrors MAX_EAGER_PAGES to keep the non-personalization refill
+     * path bounded when a filter matches very little in the catalog. When the
+     * cap is hit, hasMore stays true so loadNextPage can continue fetching on
+     * scroll.
      */
     static MAX_REFILL_ROUNDS = 20;
 
@@ -716,12 +732,19 @@ export class MasRepository extends LitElement {
         return false;
     }
 
-    async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
+    async #eagerLoadAllPages(cursorSnapshot, searchController, { commitProgressively = true } = {}) {
         const { cursor, variants, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
+        // When the caller wants a single end-of-load commit (sort path), keep the
+        // skeleton "loading" rows visible throughout so the user sees one transition
+        // (partial → full) instead of N transitions as pages stream in.
+        if (!commitProgressively) Store.fragments.list.loading.set(true);
         let pagesLoaded = 0;
         try {
             while (this.#searchCursor === cursorSnapshot) {
-                if (pagesLoaded >= MasRepository.MAX_EAGER_PZN_PAGES) {
+                if (pagesLoaded >= MasRepository.MAX_EAGER_PAGES) {
+                    // Surfaces past this cap fall back to scroll-driven pagination,
+                    // which under client-side sort reintroduces row reshuffling on
+                    // load. Bump MAX_EAGER_PAGES if a real surface trips this.
                     Store.fragments.list.hasMore.set(true);
                     break;
                 }
@@ -735,10 +758,12 @@ export class MasRepository extends LitElement {
                 );
                 pagesLoaded++;
                 if (this.#searchCursor !== cursorSnapshot) return;
-                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                if (commitProgressively) {
+                    Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+                }
                 if (done) {
                     this.#searchCursor = null;
-                    return;
+                    break;
                 }
             }
         } catch (error) {
@@ -746,6 +771,12 @@ export class MasRepository extends LitElement {
             if (this.#searchCursor === cursorSnapshot) {
                 Store.fragments.list.hasMore.set(true);
             }
+        } finally {
+            const stillCurrent = this.#searchCursor === cursorSnapshot || this.#searchCursor === null;
+            if (!commitProgressively && stillCurrent) {
+                Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
+            }
+            if (stillCurrent) Store.fragments.list.loading.set(false);
         }
     }
 

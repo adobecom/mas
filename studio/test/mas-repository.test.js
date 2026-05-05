@@ -1016,6 +1016,90 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        // Title sort is intentionally handled client-side (Intl.Collator in mas-content) to avoid
+        // AEM's case-sensitive byte ordering. The backend request must therefore stick with the
+        // default modifiedOrCreated DESC when Store.sort.sortBy is 'title'.
+        it('keeps default modifiedOrCreated DESC at the API when Store.sort is title (sorted client-side)', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const originalProfile = Store.profile.value;
+            const originalPage = Store.page.get();
+            const originalSort = Store.sort.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.page.set(PAGE_NAMES.CONTENT);
+            Store.sort.set({ sortBy: 'title', sortDirection: 'asc' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'DESC' }]);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.page.set(originalPage);
+                Store.sort.set(originalSort);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        // Client-side sort eager-loads remaining cursor pages so the sort applies to the
+        // full catalog. Without this the user sees rows reshuffle into the visible list
+        // every time scrolling triggers loadNextPage.
+        it('eager-loads all cursor pages when title sort is active', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const fragmentsPerPage = (p, n) =>
+                Array.from({ length: n }, (_, i) =>
+                    createFragment({ id: `t-${p}-${i}`, path: `${ROOT_PATH}/acom/en_US/t-${p}-${i}`, fields: [] }),
+                );
+            // 3 pages of content; eager load should fetch all of them, not just the first.
+            const cursor = createMockCursor([fragmentsPerPage(0, 3), fragmentsPerPage(1, 3), fragmentsPerPage(2, 3)]);
+            const cursorNextSpy = sandbox.spy(cursor, 'next');
+            repository.aem = createAemMock({ fragments: { search: sandbox.stub().resolves(cursor) } });
+            const originalProfile = Store.profile.value;
+            const originalPage = Store.page.get();
+            const originalSort = Store.sort.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.page.set(PAGE_NAMES.CONTENT);
+            Store.sort.set({ sortBy: 'title', sortDirection: 'asc' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                // Wait for the async eager-load loop to drain the cursor.
+                await new Promise((resolve) => setTimeout(resolve, 50));
+                // 3 page values + 1 done sentinel = 4 cursor.next() calls
+                expect(cursorNextSpy.callCount).to.equal(4);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.page.set(originalPage);
+                Store.sort.set(originalSort);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('searches by UUID when query is a valid UUID', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -2571,7 +2655,7 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
-    describe('eagerLoadAllPznPages cap', () => {
+    describe('eagerLoadAllPages cap', () => {
         const setupPznSearchTest = async (pageCount) => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -2633,8 +2717,8 @@ describe('MasRepository dictionary helpers', () => {
             };
         };
 
-        it('stops eager loading after MAX_EAGER_PZN_PAGES and sets hasMore true', async () => {
-            const pageCount = MasRepository.MAX_EAGER_PZN_PAGES + 5;
+        it('stops eager loading after MAX_EAGER_PAGES and sets hasMore true', async () => {
+            const pageCount = MasRepository.MAX_EAGER_PAGES + 5;
             const { repository, cleanup } = await setupPznSearchTest(pageCount);
             try {
                 await repository.searchFragments();
@@ -2647,7 +2731,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('does not set hasMore when all pages fit within MAX_EAGER_PZN_PAGES', async () => {
+        it('does not set hasMore when all pages fit within MAX_EAGER_PAGES', async () => {
             const pageCount = 2;
             const { repository, cleanup } = await setupPznSearchTest(pageCount);
             try {
@@ -2794,7 +2878,7 @@ describe('MasRepository dictionary helpers', () => {
         it('skips refill when personalization is on (eager-pzn path runs instead)', async () => {
             // Pages of all-pzn items so #filterStoresByPersonalizationEnabled (with pzn ON)
             // returns everything. We just want to confirm the refill method is NOT the one
-            // running; #eagerLoadAllPznPages handles this path.
+            // running; #eagerLoadAllPages handles this path.
             const pages = Array.from({ length: 3 }, (_, p) =>
                 Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) =>
                     createFragment({

@@ -16,6 +16,16 @@ import {
 
 const variantValues = VARIANTS.map((v) => v.value);
 
+// Case-insensitive, accent-insensitive, natural-number-aware collator used for client-side
+// sorting of fragments by path/title. AEM's backend sort is byte-ordered (uppercase before
+// lowercase), so we sort these columns on the client to keep ordering predictable.
+const FRAGMENT_SORT_COLLATOR = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+
+const FRAGMENT_SORT_ACCESSORS = {
+    path: (store) => store.get().path || '',
+    title: (store) => store.get().title || '',
+};
+
 export const cardSkeleton = () =>
     html`<div class="render-fragment-placeholder" aria-busy="true">
         <div class="skeleton-element skeleton-title"></div>
@@ -177,11 +187,14 @@ class MasContent extends LitElement {
     get sortedFragments() {
         const fragments = this.fragments.value.filter((fs) => fs.get() !== null);
         const { sortBy, sortDirection } = this.sort.value;
-        if (sortBy !== 'path') return fragments;
-        return [...fragments].sort((aStore, bStore) => {
-            const cmp = (aStore.get().path || '').localeCompare(bStore.get().path || '');
-            return sortDirection === 'asc' ? cmp : -cmp;
-        });
+        const accessor = FRAGMENT_SORT_ACCESSORS[sortBy];
+        if (!accessor) return fragments;
+        // Decorate-sort-undecorate so each FragmentStore.get() runs once per item,
+        // not twice per O(N log N) comparator invocation.
+        const direction = sortDirection === 'asc' ? 1 : -1;
+        const decorated = fragments.map((store) => ({ store, key: accessor(store) }));
+        decorated.sort((a, b) => direction * FRAGMENT_SORT_COLLATOR.compare(a.key, b.key));
+        return decorated.map((d) => d.store);
     }
 
     sortIndicator(field) {

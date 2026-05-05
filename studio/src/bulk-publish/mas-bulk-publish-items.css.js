@@ -35,16 +35,33 @@ export const styles = css`
         font-size: 14px;
         color: var(--spectrum-gray-700, #6d6d6d);
         margin-bottom: 8px;
+        margin-top: 12px;
     }
     .items-box {
         border: 1px solid var(--spectrum-gray-300, #dadada);
         border-radius: 12px;
-        padding: 4px;
         overflow: hidden;
+        margin-bottom: 4px;
+    }
+    .items-table-header {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        background: var(--spectrum-gray-100, #f3f3f3);
+        border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
+        font-size: 14px;
+        font-weight: 700;
+        user-select: none;
+    }
+    .items-table-header span:first-child {
+        flex: 1;
+    }
+    .items-table-header span:last-child {
+        width: 160px;
+        flex-shrink: 0;
     }
     sp-textfield.url-input {
         width: 100%;
-        margin-top: 8px;
     }
     .add-by-search {
         margin-top: 8px;
@@ -65,23 +82,42 @@ export const styles = css`
     li {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         padding: 8px 12px;
         border-bottom: 1px solid var(--spectrum-gray-200, #eaeaea);
+        gap: 8px;
     }
     li:last-child {
         border-bottom: none;
     }
-    a {
+    li a {
         color: var(--spectrum-gray-800, #292929);
         text-decoration: underline;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 14px;
-    }
-    li.with-action a {
-        flex: 1;
         min-width: 0;
+    }
+    li .url-spacer {
+        flex: 1;
+    }
+    .status-cell {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        white-space: nowrap;
+        width: 160px;
+        flex-shrink: 0;
+        user-select: none;
+    }
+    .status-valid {
+        color: var(--spectrum-green-700, #188153);
+    }
+    .status-error {
+        color: var(--spectrum-orange-600, #d45b00);
+    }
+    .status-pending {
+        color: var(--spectrum-gray-600, #505050);
     }
 `;

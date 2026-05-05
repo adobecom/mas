@@ -66,12 +66,14 @@ class MasBulkPublishLocales extends LitElement {
     static styles = styles;
     static properties = {
         locales: { type: Array },
+        disabled: { type: Boolean },
         collapsed: { state: true },
     };
 
     constructor() {
         super();
         this.locales = [];
+        this.disabled = false;
         this.collapsed = false;
     }
 
@@ -89,7 +91,13 @@ class MasBulkPublishLocales extends LitElement {
             <div class="header">
                 <h3>Locales<span class="count"> (${n})</span></h3>
                 <div class="header-actions">
-                    <sp-action-button size="s" quiet data-testid="edit-locales-btn" @click=${this.emitEdit}>
+                    <sp-action-button
+                        size="s"
+                        quiet
+                        data-testid="edit-locales-btn"
+                        ?disabled=${this.disabled}
+                        @click=${this.emitEdit}
+                    >
                         <sp-icon-edit slot="icon"></sp-icon-edit>
                         Edit
                     </sp-action-button>

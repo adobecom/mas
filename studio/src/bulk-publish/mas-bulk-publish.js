@@ -1,9 +1,13 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import router from '../router.js';
 import { styles } from './mas-bulk-publish.css.js';
-import { BULK_PUBLISH_STATUS, PAGE_NAMES } from '../constants.js';
+import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PARENT_PATH, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '../constants.js';
+import { Fragment } from '../aem/fragment.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
+import { normalizeKey, showToast } from '../utils.js';
+import './mas-bulk-publish-duplicate-dialog.js';
 
 const STATUS_VARIANT = {
     [BULK_PUBLISH_STATUS.DRAFT]: { label: 'Draft', className: 'draft' },
@@ -23,7 +27,17 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
 class MasBulkPublish extends LitElement {
     static styles = styles;
 
+    static properties = {
+        duplicatePending: { state: true },
+    };
+
     list = new StoreController(this, Store.bulkPublishProjects.list.data);
+    loading = new StoreController(this, Store.bulkPublishProjects.list.loading);
+
+    constructor() {
+        super();
+        this.duplicatePending = null;
+    }
 
     onCreate() {
         this.dispatchEvent(new CustomEvent('create-project', { bubbles: true, composed: true }));
@@ -36,12 +50,61 @@ class MasBulkPublish extends LitElement {
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
     }
 
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
     openProject(projectStore) {
         const id = projectStore?.get()?.id;
         if (!id) return;
         Store.bulkPublishProjects.projectId.set(id);
-        Store.bulkPublishProjects.inEdit.set(projectStore.get());
+        Store.bulkPublishProjects.inEdit.set(null);
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
+    }
+
+    openDuplicateDialog(projectStore) {
+        const data = projectStore.get();
+        const srcTitle = data.getFieldValue?.('title') ?? data.title ?? 'Untitled project';
+        this.duplicatePending = { projectStore, proposedTitle: `${srcTitle} (Copy)` };
+    }
+
+    handleDuplicateCancel() {
+        this.duplicatePending = null;
+    }
+
+    async handleDuplicateConfirmed(e) {
+        const { projectStore } = this.duplicatePending;
+        this.duplicatePending = null;
+        const data = projectStore.get();
+        const surface = Store.search.get()?.path;
+        const title = e.detail.title;
+        const items = data.getFieldValue?.('items') ?? data.items ?? '[]';
+        const locales = data.getFieldValue?.('locales') ?? data.locales ?? [];
+        try {
+            const parentPath = `${BULK_PUBLISH_PARENT_PATH}/${surface}`;
+            const payload = {
+                title,
+                name: normalizeKey(title),
+                modelId: BULK_PUBLISH_PROJECT_MODEL_ID,
+                parentPath,
+                fields: [
+                    { name: 'title', type: 'text', values: [title] },
+                    { name: 'status', type: 'text', values: [BULK_PUBLISH_STATUS.DRAFT] },
+                    { name: 'urls', type: 'text', values: [''] },
+                    { name: 'items', type: 'text', values: [items] },
+                    { name: 'locales', type: 'text', multiple: true, values: locales },
+                ],
+            };
+            const raw = await this.repository.createFragment(payload, false);
+            if (!raw) throw new Error('Create returned empty response');
+            const fragment = new Fragment(raw);
+            const store = new FragmentStore(fragment);
+            Store.bulkPublishProjects.inEdit.set(store);
+            router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
+        } catch (err) {
+            console.error('Failed to duplicate bulk publish project:', err);
+            showToast('Failed to duplicate the project.', 'negative');
+        }
     }
 
     parseItems(rawItems) {
@@ -97,7 +160,7 @@ class MasBulkPublish extends LitElement {
                             <sp-icon-edit slot="icon"></sp-icon-edit>
                             Edit
                         </sp-menu-item>
-                        <sp-menu-item disabled>
+                        <sp-menu-item @click=${() => this.openDuplicateDialog(projectStore)}>
                             <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                             Duplicate
                         </sp-menu-item>
@@ -111,6 +174,24 @@ class MasBulkPublish extends LitElement {
         `;
     }
 
+    get tableColumnCount() {
+        return this.renderRoot.querySelector('thead tr')?.cells?.length ?? 8;
+    }
+
+    renderSkeletonRows() {
+        return Array.from(
+            { length: 5 },
+            (_, i) => html`
+                <tr class="skeleton-row" key=${i}>
+                    ${Array.from(
+                        { length: this.tableColumnCount },
+                        () => html`<td><div class="skeleton-element skeleton-table-cell"></div></td>`,
+                    )}
+                </tr>
+            `,
+        );
+    }
+
     renderRow(projectStore) {
         const data = projectStore.get();
         const counts = this.countByType(this.parseItems(data.getFieldValue?.('items') ?? data.items));
@@ -122,9 +203,9 @@ class MasBulkPublish extends LitElement {
         return html`
             <tr data-testid="project-row" class=${isDisabled ? 'disabled' : ''}>
                 <td class="project-name">${title || 'Untitled project'}</td>
-                <td class="numeric">${counts.fragment}</td>
-                <td class="numeric">${counts.collection}</td>
-                <td class="numeric">${counts.placeholder}</td>
+                <td class="center">${counts.fragment}</td>
+                <td class="center">${counts.collection}</td>
+                <td class="center">${counts.placeholder}</td>
                 <td>${createdBy}</td>
                 <td>${this.formatDate(scheduledAt)}</td>
                 <td>${this.renderStatus(status)}</td>
@@ -135,6 +216,8 @@ class MasBulkPublish extends LitElement {
 
     render() {
         const projects = this.list.value || [];
+        const isLoading = this.loading.value;
+        const showEmpty = !isLoading && projects.length === 0;
         return html`
             <header>
                 <div class="header-row">
@@ -146,16 +229,24 @@ class MasBulkPublish extends LitElement {
                 </div>
                 <sp-divider size="s"></sp-divider>
             </header>
-            ${projects.length === 0
+            ${this.duplicatePending
+                ? html`<mas-bulk-publish-duplicate-dialog
+                      open
+                      .proposedTitle=${this.duplicatePending.proposedTitle}
+                      @duplicate-confirmed=${this.handleDuplicateConfirmed}
+                      @duplicate-cancelled=${this.handleDuplicateCancel}
+                  ></mas-bulk-publish-duplicate-dialog>`
+                : nothing}
+            ${showEmpty
                 ? html`<p class="empty" data-testid="empty">No bulk publish projects yet.</p>`
                 : html`
                       <table>
                           <thead>
                               <tr>
                                   <th>Project</th>
-                                  <th>Fragment</th>
-                                  <th>Collection</th>
-                                  <th>Placeholder</th>
+                                  <th class="center">Fragment</th>
+                                  <th class="center">Collection</th>
+                                  <th class="center">Placeholder</th>
                                   <th>Created by</th>
                                   <th>Scheduled publish date</th>
                                   <th>Status</th>
@@ -163,7 +254,7 @@ class MasBulkPublish extends LitElement {
                               </tr>
                           </thead>
                           <tbody>
-                              ${projects.map((p) => this.renderRow(p))}
+                              ${isLoading ? this.renderSkeletonRows() : projects.map((p) => this.renderRow(p))}
                           </tbody>
                       </table>
                   `}

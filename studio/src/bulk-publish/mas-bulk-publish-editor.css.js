@@ -52,4 +52,15 @@ export const styles = css`
         --mod-dialog-confirm-large-width: 960px;
         --mod-dialog-confirm-buttongroup-padding-top: 32px;
     }
+    :host {
+        position: relative;
+    }
+    .loading-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
 `;

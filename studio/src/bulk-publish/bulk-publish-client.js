@@ -1,4 +1,4 @@
-const ENDPOINT = '/api/v1/web/MerchAtScaleStudio/bulk-publish';
+const ENDPOINT = '/bulk-publish';
 const DEFAULT_CONCURRENCY = 5;
 
 export class BulkPublishError extends Error {

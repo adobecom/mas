@@ -50,6 +50,7 @@ class MasSearchAndFilters extends LitElement {
             Store.translationProjects[`all${this.typeUppercased}`],
             Store.translationProjects[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
+            ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
         ]);
         const dataCallback = () => {
             if (!this.searchOnly) {
@@ -87,9 +88,13 @@ class MasSearchAndFilters extends LitElement {
     }
 
     get isLoading() {
-        return this.type === TABLE_TYPE.PLACEHOLDERS
-            ? Store.placeholders.list.loading.get()
-            : Store.fragments.list.loading.get();
+        if (this.type === TABLE_TYPE.PLACEHOLDERS) return Store.placeholders.list.loading.get();
+        return Store.fragments.list.firstPageLoaded.get() === false;
+    }
+
+    get isLoadingMore() {
+        if (this.type === TABLE_TYPE.PLACEHOLDERS) return false;
+        return Store.fragments.list.firstPageLoaded.get() === true && Store.fragments.list.loading.get();
     }
 
     get appliedFilters() {
@@ -325,11 +330,13 @@ class MasSearchAndFilters extends LitElement {
     }
 
     renderCount() {
+        if (this.isLoading) {
+            return html`<div class="result-count"><sp-progress-circle indeterminate size="s"></sp-progress-circle></div>`;
+        }
+        const count = Store.translationProjects[`display${this.typeUppercased}`].value.length;
         return html`<div class="result-count">
-            ${this.isLoading
-                ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
-                : html`${Store.translationProjects[`display${this.typeUppercased}`].value.length}
-                  result${Store.translationProjects[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
+            ${count} result${count !== 1 ? 's' : ''}
+            ${this.isLoadingMore ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>` : nothing}
         </div>`;
     }
 

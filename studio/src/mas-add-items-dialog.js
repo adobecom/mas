@@ -1,11 +1,11 @@
 import { LitElement, html, nothing } from 'lit';
-import { debounce } from '../utils.js';
+import { debounce } from './utils.js';
 import { styles } from './mas-add-items-dialog.css.js';
-import { TABLE_TYPE } from '../constants.js';
-import Store from '../store.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
-import '../translation/mas-select-items-table.js';
-import '../translation/mas-search-and-filters.js';
+import { TABLE_TYPE } from './constants.js';
+import Store from './store.js';
+import ReactiveController from './reactivity/reactive-controller.js';
+import './translation/mas-select-items-table.js';
+import './translation/mas-search-and-filters.js';
 
 const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragment' },
@@ -50,6 +50,27 @@ class MasAddItemsDialog extends LitElement {
             Store.translationProjects.displayCollections.set([]);
             Store.translationProjects.allPlaceholders.set([]);
             Store.translationProjects.displayPlaceholders.set([]);
+        }
+        if (changedProperties.has('searchQuery')) {
+            const query = this.searchQuery?.toLowerCase();
+            const filterConfig = {
+                [TABLE_TYPE.COLLECTIONS]: {
+                    allKey: 'allCollections',
+                    displayKey: 'displayCollections',
+                    match: (c) =>
+                        (c.title ?? '').toLowerCase().includes(query) || (c.studioPath ?? '').toLowerCase().includes(query),
+                },
+                [TABLE_TYPE.PLACEHOLDERS]: {
+                    allKey: 'allPlaceholders',
+                    displayKey: 'displayPlaceholders',
+                    match: (p) => (p.key ?? '').toLowerCase().includes(query) || (p.value ?? '').toLowerCase().includes(query),
+                },
+            };
+            const config = filterConfig[this.selectedTab];
+            if (config) {
+                const all = Store.translationProjects[config.allKey].value ?? [];
+                Store.translationProjects[config.displayKey].set(query ? all.filter(config.match) : all);
+            }
         }
     }
 
@@ -111,17 +132,18 @@ class MasAddItemsDialog extends LitElement {
                         ${TABS.map((tab) => html`<sp-tab value=${tab.value} label=${tab.label}>${tab.label}</sp-tab>`)}
                     </sp-tabs>
                     <sp-divider size="s"></sp-divider>
+                    <div class="search-row">
+                        <sp-search
+                            size="m"
+                            placeholder="Search..."
+                            .value=${this.searchQuery}
+                            @input=${this.#handleSearchInput}
+                            @submit=${this.#handleSearchSubmit}
+                        ></sp-search>
+                        <span class="result-count">${this.resultCount} result(s)</span>
+                    </div>
                     ${isCards
                         ? html`
-                              <div class="search-row">
-                                  <sp-search
-                                      size="m"
-                                      placeholder="Search..."
-                                      @input=${this.#handleSearchInput}
-                                      @submit=${this.#handleSearchSubmit}
-                                  ></sp-search>
-                                  <span class="result-count">${this.resultCount} result(s)</span>
-                              </div>
                               <div class="filter-row">
                                   <mas-search-and-filters
                                       .type=${TABLE_TYPE.CARDS}

@@ -6,16 +6,16 @@ class MasBulkPublishItems extends LitElement {
     static properties = {
         items: { type: Array },
         urls: { type: String },
+        disabled: { type: Boolean },
         collapsed: { state: true },
-        editing: { state: true },
     };
 
     constructor() {
         super();
         this.items = [];
         this.urls = '';
+        this.disabled = false;
         this.collapsed = false;
-        this.editing = false;
     }
 
     get notFoundCount() {
@@ -66,9 +66,26 @@ class MasBulkPublishItems extends LitElement {
         this.collapsed = !this.collapsed;
     }
 
-    renderViewState() {
+    renderStatusCell(item) {
+        if (!item.status || item.status === 'pending') {
+            return html`<span class="status-cell status-pending">Pending…</span>`;
+        }
+        if (item.status === 'valid') {
+            return html`<span class="status-cell status-valid">
+                <sp-icon-checkmark-circle></sp-icon-checkmark-circle>
+                Validated
+            </span>`;
+        }
+        const label = item.reason === 'not-found' ? '404 - URL not found' : 'Invalid URL';
+        return html`<span class="status-cell status-error">
+            <sp-icon-alert></sp-icon-alert>
+            ${label}
+        </span>`;
+    }
+
+    renderBody() {
+        if (this.collapsed) return nothing;
         const { rows } = this;
-        if (rows.length === 0) return nothing;
         return html`
             ${this.notFoundCount > 0
                 ? html`<div class="warning" data-testid="items-warning">
@@ -76,39 +93,26 @@ class MasBulkPublishItems extends LitElement {
                       ${this.notFoundCount} 404 error${this.notFoundCount > 1 ? 's' : ''} found
                   </div>`
                 : nothing}
-            <div class="items-box" data-testid="items-list">
-                <ul>
-                    ${rows.map(
-                        (item) => html`
-                            <li data-testid="item-row">
-                                <a href=${item.href ?? item.url} target="_blank" rel="noopener"
-                                    >${item.authorPath ?? item.url}</a
-                                >
-                            </li>
-                        `,
-                    )}
-                </ul>
-            </div>
-        `;
-    }
-
-    renderEditState() {
-        const { rows } = this;
-        return html`
-            <div class="sublabel">Enter URLs</div>
             ${rows.length > 0
                 ? html`<div class="items-box" data-testid="items-list">
+                      <div class="items-table-header">
+                          <span>URL</span>
+                          <span>Status</span>
+                      </div>
                       <ul>
                           ${rows.map(
                               (item) => html`
-                                  <li class="with-action" data-testid="item-row">
+                                  <li data-testid="item-row">
                                       <a href=${item.href ?? item.url} target="_blank" rel="noopener"
                                           >${item.authorPath ?? item.url}</a
                                       >
+                                      <span class="url-spacer"></span>
+                                      ${this.renderStatusCell(item)}
                                       <sp-action-button
                                           size="xs"
                                           quiet
                                           label="Remove item"
+                                          ?disabled=${this.disabled}
                                           @click=${() => this.removeUrl(item.url)}
                                       >
                                           <sp-icon-delete slot="icon"></sp-icon-delete>
@@ -119,11 +123,13 @@ class MasBulkPublishItems extends LitElement {
                       </ul>
                   </div>`
                 : nothing}
+            <div class="sublabel">Enter URLs</div>
             <sp-textfield
                 class="url-input"
                 multiline
                 placeholder="For example: https://www.adobe.com/products/firefly.html"
                 .value=${this.urls}
+                ?disabled=${this.disabled}
                 @input=${this.handleInput}
                 @change=${this.handleChange}
             ></sp-textfield>
@@ -132,17 +138,13 @@ class MasBulkPublishItems extends LitElement {
                 size="s"
                 quiet
                 data-testid="add-by-search-btn"
+                ?disabled=${this.disabled}
                 @click=${this.emitAddBySearch}
             >
                 <sp-icon-add slot="icon"></sp-icon-add>
                 Add by search
             </sp-action-button>
         `;
-    }
-
-    renderBody() {
-        if (this.collapsed) return nothing;
-        return this.editing ? this.renderEditState() : this.renderViewState();
     }
 
     render() {
@@ -154,17 +156,6 @@ class MasBulkPublishItems extends LitElement {
                     <span class="required">*</span>
                 </h3>
                 <div class="header-actions">
-                    ${!this.editing
-                        ? html`<sp-action-button
-                              size="s"
-                              quiet
-                              data-testid="edit-items-btn"
-                              @click=${() => (this.editing = true)}
-                          >
-                              <sp-icon-edit slot="icon"></sp-icon-edit>
-                              Edit
-                          </sp-action-button>`
-                        : nothing}
                     <sp-action-button
                         size="s"
                         quiet

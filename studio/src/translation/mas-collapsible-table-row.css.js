@@ -177,7 +177,7 @@ export const styles = [
         }
 
         sp-table-row.select-all-row {
-            background: var(--spectrum-gray-75);
+            background: var(--spectrum-gray-50);
             border-bottom: 1px solid var(--spectrum-gray-300);
         }
 

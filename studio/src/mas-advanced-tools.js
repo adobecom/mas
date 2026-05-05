@@ -40,10 +40,9 @@ class MasAdvancedTools extends LitElement {
             color: var(--spectrum-gray-800, #292929);
         }
 
-        .briefcase-icon svg {
-            width: 100%;
-            height: 100%;
-            display: block;
+        .briefcase-icon sp-icon-briefcase {
+            width: 96px;
+            height: 96px;
         }
 
         .title {
@@ -107,7 +106,8 @@ class MasAdvancedTools extends LitElement {
             color: var(--spectrum-gray-800, #292929);
         }
 
-        .tool-card-icon svg {
+        .tool-card-icon sp-icon-publish,
+        .tool-card-icon sp-icon-settings {
             width: 100%;
             height: 100%;
         }
@@ -172,12 +172,7 @@ class MasAdvancedTools extends LitElement {
     get briefcaseIllustration() {
         return html`
             <div class="briefcase-icon" aria-hidden="true">
-                <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M68 28h12a4 4 0 0 1 4 4v44a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V32a4 4 0 0 1 4-4h12v-8a4 4 0 0 1 4-4h32a4 4 0 0 1 4 4v8Zm-4 0v-8H32v8h32Zm-48 4v44h64V32H16Zm32 16a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"
-                        fill="currentColor"
-                    />
-                </svg>
+                <sp-icon-briefcase size="xxl"></sp-icon-briefcase>
             </div>
         `;
     }
@@ -205,12 +200,7 @@ class MasAdvancedTools extends LitElement {
                 @keydown=${this.handleKeyActivate(this.openBulkPublish)}
             >
                 <span class="tool-card-icon" aria-hidden="true">
-                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M33.18 6.82a1.5 1.5 0 0 0-1.59-.34L7.59 15.32a1.5 1.5 0 0 0-.13 2.74l9.94 4.54 4.54 9.94a1.5 1.5 0 0 0 1.36.87h.07a1.5 1.5 0 0 0 1.31-1l8.84-23.99a1.5 1.5 0 0 0-.34-1.6Zm-4.4 4.4L17.95 22.05l-7.32-3.34 18.15-7.49Zm-5.46 17.16-3.34-7.32L31.01 10l-7.69 18.38Z"
-                            fill="currentColor"
-                        />
-                    </svg>
+                    <sp-icon-publish size="xxl"></sp-icon-publish>
                 </span>
                 <div class="tool-card-text">
                     <span class="tool-card-title">Bulk publish</span>
@@ -232,12 +222,7 @@ class MasAdvancedTools extends LitElement {
                 @keydown=${this.handleKeyActivate(this.openSettings)}
             >
                 <span class="tool-card-icon" aria-hidden="true">
-                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M34.7 16.84a1 1 0 0 0-.62-.7l-3.4-1.27-.66-1.6 1.5-3.32a1 1 0 0 0-.2-1.13l-3.13-3.14a1 1 0 0 0-1.13-.2l-3.32 1.5-1.6-.66-1.27-3.4a1 1 0 0 0-.94-.65h-4.42a1 1 0 0 0-.94.65l-1.27 3.4-1.6.66-3.32-1.5a1 1 0 0 0-1.13.2L4.81 8.82a1 1 0 0 0-.2 1.13l1.5 3.32-.66 1.6-3.4 1.27a1 1 0 0 0-.65.94v4.42a1 1 0 0 0 .65.94l3.4 1.27.66 1.6-1.5 3.32a1 1 0 0 0 .2 1.13l3.13 3.14a1 1 0 0 0 1.13.2l3.32-1.5 1.6.66 1.27 3.4a1 1 0 0 0 .94.65h4.42a1 1 0 0 0 .94-.65l1.27-3.4 1.6-.66 3.32 1.5a1 1 0 0 0 1.13-.2l3.13-3.14a1 1 0 0 0 .2-1.13l-1.5-3.32.66-1.6 3.4-1.27a1 1 0 0 0 .65-.94v-4.42a1 1 0 0 0-.03-.24ZM20 26a6 6 0 1 1 0-12 6 6 0 0 1 0 12Z"
-                            fill="currentColor"
-                        />
-                    </svg>
+                    <sp-icon-settings size="xxl"></sp-icon-settings>
                 </span>
                 <div class="tool-card-text">
                     <span class="tool-card-title">Global settings</span>

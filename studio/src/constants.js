@@ -279,6 +279,7 @@ export const BULK_PUBLISH_STATUS = {
     DRAFT: 'Draft',
     PUBLISHING: 'Publishing',
     PUBLISHED: 'Published',
+    LOCKED: 'Locked',
 };
 
 export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';

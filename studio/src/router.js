@@ -476,7 +476,9 @@ export class Router extends EventTarget {
 
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(this.#hashValue());
-            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
+            const currentPage = this.currentParams.get('page') || Store.page.value;
+            const isContentPage = !currentPage || currentPage === PAGE_NAMES.CONTENT || currentPage === PAGE_NAMES.WELCOME;
+            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId') && isContentPage) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
             const page = this.currentParams.get('page');

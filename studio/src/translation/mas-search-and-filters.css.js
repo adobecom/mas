@@ -6,6 +6,9 @@ export const styles = css`
     }
 
     .result-count {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         color: var(--spectrum-gray-700);
         font-size: 14px;
         white-space: nowrap;

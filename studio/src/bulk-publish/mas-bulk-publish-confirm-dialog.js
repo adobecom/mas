@@ -1,6 +1,20 @@
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, nothing, css } from 'lit';
 
 class MasBulkPublishConfirmDialog extends LitElement {
+    static styles = css`
+        dl {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 4px 12px;
+            margin: 12px 0 0;
+        }
+        dt {
+            font-weight: 700;
+        }
+        dd {
+            margin: 0;
+        }
+    `;
     static properties = {
         projectTitle: { type: String },
         itemCount: { type: Number },

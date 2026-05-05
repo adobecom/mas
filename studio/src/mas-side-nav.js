@@ -34,7 +34,7 @@ class MasSideNav extends LitElement {
         :host {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            height: calc(100% - 35px);
             width: 68px;
             padding: 32px 12px 12px 5px;
             box-sizing: content-box;

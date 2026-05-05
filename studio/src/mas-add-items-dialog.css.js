@@ -13,8 +13,11 @@ export const styles = css`
     .dialog-content {
         display: flex;
         flex-direction: column;
-        height: 100%;
-        min-height: 0;
+        width: 85vw;
+        max-width: 100%;
+        height: 65vh;
+        min-height: 50%;
+        max-height: 75vh;
         gap: 0;
     }
 

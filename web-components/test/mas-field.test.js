@@ -1,6 +1,8 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/mas-field.js';
+import { priceOptionsProvider } from '../src/mas-field.js';
+import { FF_DEFAULTS } from '../src/constants.js';
 
 const CTA_HTML =
     '<a data-wcs-osi="ABC123" data-checkout-workflow="UCv3" data-template="checkoutUrl" data-analytics-id="buy-now" class="accent">Buy now</a>';
@@ -438,5 +440,41 @@ describe('mas-field – non-string field values', () => {
             el.querySelector('[data-role="mas-field-content"]')?.innerHTML ??
                 '',
         ).to.equal('');
+    });
+});
+
+describe('mas-field – price options provider (locale defaults)', () => {
+    afterEach(() => {
+        document.body
+            .querySelectorAll('mas-field, span[is="inline-price"]')
+            .forEach((el) => el.remove());
+    });
+
+    it('opts inline-prices inside mas-field into FF_DEFAULTS', () => {
+        const masField = document.createElement('mas-field');
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        masField.append(inline);
+        document.body.append(masField);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options[FF_DEFAULTS]).to.equal(true);
+    });
+
+    it('does not opt into FF_DEFAULTS for inline-prices outside mas-field', () => {
+        const inline = document.createElement('span');
+        inline.setAttribute('is', 'inline-price');
+        document.body.append(inline);
+
+        const options = {};
+        priceOptionsProvider(inline, options);
+        expect(options[FF_DEFAULTS]).to.be.undefined;
+    });
+
+    it('safely no-ops when element is null', () => {
+        const options = {};
+        expect(() => priceOptionsProvider(null, options)).to.not.throw();
+        expect(options[FF_DEFAULTS]).to.be.undefined;
     });
 });

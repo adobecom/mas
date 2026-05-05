@@ -21,16 +21,17 @@ describe('publishBulk', () => {
             paths: ['/content/dam/mas/a/en_US/card'],
             locales: ['fr_FR'],
             token: 'abc',
+            allowedClientId: 'mas-studio',
         });
         const [url, init] = fetchStub.firstCall.args;
-        expect(url).to.equal('https://io.example/api/v1/web/MerchAtScaleStudio/bulk-publish');
+        expect(url).to.equal('https://io.example/bulk-publish');
         expect(init.method).to.equal('POST');
         expect(init.headers.Authorization).to.equal('Bearer abc');
         expect(init.headers['Content-Type']).to.equal('application/json');
         expect(JSON.parse(init.body)).to.deep.equal({
             paths: ['/content/dam/mas/a/en_US/card'],
             locales: ['fr_FR'],
-            concurrencyLimit: 5,
+            allowedClientId: 'mas-studio',
         });
     });
 

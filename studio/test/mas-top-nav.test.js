@@ -143,7 +143,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Settings', 'Create new setting']);
+            expect(items).to.deep.equal(['Global settings', 'Create new setting']);
         });
 
         it('should render setting editor breadcrumbs and label for edit flow', async () => {
@@ -154,7 +154,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Settings', 'Edit setting']);
+            expect(items).to.deep.equal(['Global settings', 'Edit setting']);
         });
 
         it('should not render settings breadcrumbs when no setting id and not creating', async () => {
@@ -281,7 +281,7 @@ describe('MasTopNav', () => {
             const repairedBreadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
             const repairedFirstBreadcrumb = repairedBreadcrumbs[0];
             expect(repairedFirstBreadcrumb.hasAttribute('hidden')).to.equal(false);
-            expect(repairedBreadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Settings', 'Edit setting']);
+            expect(repairedBreadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Global settings', 'Edit setting']);
         });
 
         it('should not render breadcrumbs on content page', async () => {

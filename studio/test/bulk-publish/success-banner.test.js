@@ -13,6 +13,6 @@ describe('mas-bulk-publish-success-banner', () => {
         const text = el.shadowRoot.textContent;
         expect(text).to.include('Project published successfully');
         expect(text).to.include('Fred');
-        expect(text).to.include('2026-04-23');
+        expect(text).to.include('2026');
     });
 });

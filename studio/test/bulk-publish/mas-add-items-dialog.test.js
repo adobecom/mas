@@ -1,6 +1,6 @@
 import { fixture, html, expect } from '@open-wc/testing';
 import Store from '../../src/store.js';
-import '../../src/bulk-publish/mas-add-items-dialog.js';
+import '../../src/mas-add-items-dialog.js';
 
 describe('mas-add-items-dialog store reset', () => {
     afterEach(() => {

@@ -403,6 +403,55 @@ const LANG_TO_LANGUAGE = {
     zh: 'Chinese',
 };
 
+export const REGION_GROUPS = [
+    { name: 'LATAM/Americas', countries: ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC', 'LA'] },
+    { name: 'JAPAC', countries: ['AU', 'NZ', 'JP', 'KR', 'CN', 'TW', 'HK', 'SG', 'IN', 'ID', 'MY', 'PH', 'TH', 'VN'] },
+    {
+        name: 'EMEA',
+        countries: [
+            'GB',
+            'DE',
+            'FR',
+            'IT',
+            'ES',
+            'NL',
+            'BE',
+            'CH',
+            'AT',
+            'LU',
+            'PT',
+            'PL',
+            'CZ',
+            'SK',
+            'HU',
+            'RO',
+            'BG',
+            'EE',
+            'LV',
+            'LT',
+            'FI',
+            'DK',
+            'SE',
+            'NO',
+            'GR',
+            'TR',
+            'RU',
+            'UA',
+            'SI',
+            'SA',
+            'AE',
+            'EG',
+            'KW',
+            'QA',
+            'IL',
+            'NG',
+            'ZA',
+            'IE',
+            'HR',
+        ],
+    },
+];
+
 const regionLocalesCache = {};
 
 export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];

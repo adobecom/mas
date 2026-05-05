@@ -31,6 +31,7 @@ describe('startPublishing', () => {
             locales: [],
             token: 't',
             ioBaseUrl: 'x',
+            allowedClientId: 'mas-studio',
             publishFn: clientStub,
             repository: repo,
         });
@@ -57,6 +58,7 @@ describe('startPublishing', () => {
             locales: [],
             token: 't',
             ioBaseUrl: 'x',
+            allowedClientId: 'mas-studio',
             publishFn: clientStub,
             repository: repo,
         }).catch(() => {});
@@ -66,7 +68,8 @@ describe('startPublishing', () => {
             .filter((c) => c.args[0] === 'status')
             .map((c) => c.args[1]);
         expect(statusCalls[statusCalls.length - 1]).to.equal(BULK_PUBLISH_STATUS.DRAFT);
-        const errorCall = project.setFieldValue.getCalls().find((c) => c.args[0] === 'lastError');
+        const errorCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'lastError');
+        const errorCall = errorCalls[errorCalls.length - 1];
         expect(errorCall.args[1]).to.equal('boom');
     });
 });

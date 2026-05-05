@@ -1,5 +1,4 @@
 const ENDPOINT = '/bulk-publish';
-const DEFAULT_CONCURRENCY = 5;
 
 export class BulkPublishError extends Error {
     constructor(message, { status = null, body = null } = {}) {
@@ -10,7 +9,7 @@ export class BulkPublishError extends Error {
     }
 }
 
-export async function publishBulk({ ioBaseUrl, paths, locales = [], token, concurrencyLimit = DEFAULT_CONCURRENCY }) {
+export async function publishBulk({ ioBaseUrl, paths, locales = [], token, allowedClientId }) {
     if (!Array.isArray(paths) || paths.length === 0) {
         throw new BulkPublishError('paths must be a non-empty array');
     }
@@ -25,7 +24,7 @@ export async function publishBulk({ ioBaseUrl, paths, locales = [], token, concu
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ paths, locales, concurrencyLimit }),
+            body: JSON.stringify({ paths, locales, allowedClientId }),
         });
     } catch (err) {
         throw new BulkPublishError(err.message);

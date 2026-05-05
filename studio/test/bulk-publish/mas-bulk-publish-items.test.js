@@ -2,9 +2,9 @@ import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import '../../src/bulk-publish/mas-bulk-publish-items.js';
 
 describe('mas-bulk-publish-items', () => {
-    it('renders textarea in empty state', async () => {
+    it('renders sp-textfield in empty state', async () => {
         const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
-        expect(el.shadowRoot.querySelector('textarea')).to.exist;
+        expect(el.shadowRoot.querySelector('sp-textfield[multiline]')).to.exist;
         expect(el.shadowRoot.querySelector('[data-testid="items-list"]')).to.be.null;
     });
 
@@ -38,12 +38,12 @@ describe('mas-bulk-publish-items', () => {
         expect(warn.textContent).to.include('1');
     });
 
-    it('dispatches urls-change when textarea input changes', async () => {
+    it('dispatches urls-change when sp-textfield input event fires', async () => {
         const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
-        const textarea = el.shadowRoot.querySelector('textarea');
+        const textfield = el.shadowRoot.querySelector('sp-textfield[multiline]');
         setTimeout(() => {
-            textarea.value = 'hello';
-            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            textfield.value = 'hello';
+            textfield.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true }));
         });
         const ev = await oneEvent(el, 'urls-change');
         expect(ev.detail).to.equal('hello');

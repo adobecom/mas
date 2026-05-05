@@ -1,63 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-translation-languages.css.js';
 import Store from '../store.js';
-import { getDefaultLocales, getLocaleCode } from '../../../io/www/src/fragment/locales.js';
+import { getDefaultLocales, getLocaleCode, REGION_GROUPS } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-
-const REGION_GROUPS = [
-    {
-        name: 'LATAM/Americas',
-        countries: ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC', 'LA'],
-    },
-    {
-        name: 'JAPAC',
-        countries: ['AU', 'NZ', 'JP', 'KR', 'CN', 'TW', 'HK', 'SG', 'IN', 'ID', 'MY', 'PH', 'TH', 'VN'],
-    },
-    {
-        name: 'EMEA',
-        countries: [
-            'GB',
-            'DE',
-            'FR',
-            'IT',
-            'ES',
-            'NL',
-            'BE',
-            'CH',
-            'AT',
-            'LU',
-            'PT',
-            'PL',
-            'CZ',
-            'SK',
-            'HU',
-            'RO',
-            'BG',
-            'EE',
-            'LV',
-            'LT',
-            'FI',
-            'DK',
-            'SE',
-            'NO',
-            'GR',
-            'TR',
-            'RU',
-            'UA',
-            'SI',
-            'SA',
-            'AE',
-            'EG',
-            'KW',
-            'QA',
-            'IL',
-            'NG',
-            'ZA',
-            'IE',
-            'HR',
-        ],
-    },
-];
 
 class MasTranslationLanguages extends LitElement {
     static styles = styles;

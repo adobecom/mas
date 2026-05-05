@@ -127,7 +127,7 @@ class MasBulkPublishItems extends LitElement {
             <sp-textfield
                 class="url-input"
                 multiline
-                placeholder="For example: https://www.adobe.com/products/firefly.html"
+                placeholder="For example: https://main--mas--adobecom.hlx.live/studio.html#query=&lt;fragment-id&gt;"
                 .value=${this.urls}
                 ?disabled=${this.disabled}
                 @input=${this.handleInput}

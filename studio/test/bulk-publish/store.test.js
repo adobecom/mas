@@ -18,6 +18,7 @@ describe('bulk-publish constants + store', () => {
             DRAFT: 'Draft',
             PUBLISHING: 'Publishing',
             PUBLISHED: 'Published',
+            LOCKED: 'Locked',
         });
     });
 

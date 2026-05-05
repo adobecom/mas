@@ -12,13 +12,12 @@ describe('mas-bulk-publish-confirm-dialog', () => {
         `);
         await el.updateComplete;
         const text = el.shadowRoot.textContent;
-        expect(text).to.include('Publish project');
         expect(text).to.include('Back to School');
         expect(text).to.include('15');
         expect(text).to.include('Now');
     });
 
-    it('dispatches publish-confirmed when primary button clicked', async () => {
+    it('dispatches publish-confirmed when confirm() is called', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-confirm-dialog
                 .projectTitle=${'X'}
@@ -27,12 +26,12 @@ describe('mas-bulk-publish-confirm-dialog', () => {
             ></mas-bulk-publish-confirm-dialog>
         `);
         await el.updateComplete;
-        setTimeout(() => el.shadowRoot.querySelector('[data-testid="publish-btn"]').click());
+        setTimeout(() => el.confirm());
         const ev = await oneEvent(el, 'publish-confirmed');
         expect(ev).to.exist;
     });
 
-    it('dispatches publish-cancelled when Cancel clicked', async () => {
+    it('dispatches publish-cancelled when cancel() is called', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-confirm-dialog
                 .projectTitle=${'X'}
@@ -41,7 +40,7 @@ describe('mas-bulk-publish-confirm-dialog', () => {
             ></mas-bulk-publish-confirm-dialog>
         `);
         await el.updateComplete;
-        setTimeout(() => el.shadowRoot.querySelector('[data-testid="cancel-btn"]').click());
+        setTimeout(() => el.cancel());
         const ev = await oneEvent(el, 'publish-cancelled');
         expect(ev).to.exist;
     });

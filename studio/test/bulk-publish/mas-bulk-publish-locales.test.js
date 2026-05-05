@@ -2,9 +2,9 @@ import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import '../../src/bulk-publish/mas-bulk-publish-locales.js';
 
 describe('mas-bulk-publish-locales', () => {
-    it('renders empty dropzone when no locales', async () => {
+    it('renders empty state when no locales', async () => {
         const el = await fixture(html` <mas-bulk-publish-locales .locales=${[]}></mas-bulk-publish-locales> `);
-        expect(el.shadowRoot.querySelector('[data-testid="empty-dropzone"]')).to.exist;
+        expect(el.shadowRoot.querySelector('[data-testid="no-locales"]')).to.exist;
     });
 
     it('renders summary when locales present', async () => {
@@ -18,10 +18,10 @@ describe('mas-bulk-publish-locales', () => {
         expect(summary.textContent).to.include('CA_en');
     });
 
-    it('dispatches edit-locales when clicked', async () => {
+    it('dispatches edit-locales when edit button clicked', async () => {
         const el = await fixture(html` <mas-bulk-publish-locales .locales=${[]}></mas-bulk-publish-locales> `);
         await el.updateComplete;
-        setTimeout(() => el.shadowRoot.querySelector('[data-testid="empty-dropzone"]').click());
+        setTimeout(() => el.shadowRoot.querySelector('[data-testid="edit-locales-btn"]').click());
         const ev = await oneEvent(el, 'edit-locales');
         expect(ev).to.exist;
     });

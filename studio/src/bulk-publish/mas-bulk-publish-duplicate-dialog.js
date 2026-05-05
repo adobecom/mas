@@ -15,7 +15,7 @@ class MasBulkPublishDuplicateDialog extends LitElement {
     }
 
     willUpdate(changed) {
-        if (changed.has('proposedTitle') || changed.has('open')) {
+        if (changed.has('open') && this.open) {
             this.newTitle = this.proposedTitle;
         }
     }

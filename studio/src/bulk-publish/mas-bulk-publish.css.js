@@ -142,6 +142,10 @@ export const styles = [
             --status-color: var(--spectrum-green-700, #2d9d78);
         }
 
+        .status-light.locked {
+            --status-color: var(--spectrum-gray-700, #4b4b4b);
+        }
+
         .actions-cell {
             text-align: center;
         }

@@ -190,7 +190,7 @@ class MasBulkPublishEditor extends LitElement {
         showToast('Items copied to clipboard.', 'positive');
     }
 
-    async handleLock() {
+    async #handleLock() {
         await this.#withPendingAction(QUICK_ACTION.LOCK, async () => {
             const locking = !this.isLocked;
             const nextStatus = locking ? BULK_PUBLISH_STATUS.LOCKED : BULK_PUBLISH_STATUS.DRAFT;
@@ -551,7 +551,7 @@ class MasBulkPublishEditor extends LitElement {
                 @save=${this.saveBulkProject}
                 @duplicate=${this.handleDuplicate}
                 @copy=${this.#handleCopy}
-                @lock=${this.handleLock}
+                @lock=${this.#handleLock}
                 @publish=${this.handlePublish}
                 @delete=${this.deleteBulkProject}
             ></mas-quick-actions>

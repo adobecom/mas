@@ -15,21 +15,15 @@ export async function startPublishing({ project, paths, locales, token, ioBaseUr
     await repository.saveFragment(project, false);
 
     const promise = publishFn({ ioBaseUrl, paths, locales, token });
+    const profilePromise = window.adobeIMS?.getProfile?.().catch(() => null);
     Store.bulkPublishProjects.publishing.set({
         ...Store.bulkPublishProjects.publishing.get(),
         [project.id]: true,
     });
 
-    let userEmail = '';
     try {
-        const profile = await window.adobeIMS?.getProfile?.();
-        userEmail = profile?.email ?? '';
-    } catch {
-        // profile fetch is non-critical
-    }
-
-    try {
-        const result = await promise;
+        const [result, profile] = await Promise.all([promise, profilePromise]);
+        const userEmail = profile?.email ?? '';
         setField(project, 'lastResult', JSON.stringify(result));
         setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
         setField(project, 'publishedAt', new Date().toISOString());

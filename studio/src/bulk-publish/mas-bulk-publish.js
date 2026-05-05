@@ -11,6 +11,7 @@ import './mas-bulk-publish-duplicate-dialog.js';
 
 const STATUS_VARIANT = {
     [BULK_PUBLISH_STATUS.DRAFT]: { label: 'Draft', className: 'draft' },
+    [BULK_PUBLISH_STATUS.LOCKED]: { label: 'Locked', className: 'locked' },
     [BULK_PUBLISH_STATUS.PUBLISHING]: { label: 'Publishing', className: 'publishing' },
     [BULK_PUBLISH_STATUS.PUBLISHED]: { label: 'Published', className: 'published' },
 };
@@ -174,19 +175,12 @@ class MasBulkPublish extends LitElement {
         `;
     }
 
-    get tableColumnCount() {
-        return this.renderRoot.querySelector('thead tr')?.cells?.length ?? 8;
-    }
-
     renderSkeletonRows() {
         return Array.from(
             { length: 5 },
             (_, i) => html`
                 <tr class="skeleton-row" key=${i}>
-                    ${Array.from(
-                        { length: this.tableColumnCount },
-                        () => html`<td><div class="skeleton-element skeleton-table-cell"></div></td>`,
-                    )}
+                    ${Array.from({ length: 8 }, () => html`<td><div class="skeleton-element skeleton-table-cell"></div></td>`)}
                 </tr>
             `,
         );

@@ -11,6 +11,7 @@ class MasBulkPublishSuccessBanner extends LitElement {
         publishedAt: { type: String },
         publishedBy: { type: String },
         error: { type: String },
+        variant: { type: String, reflect: true },
     };
 
     static styles = css`
@@ -58,6 +59,11 @@ class MasBulkPublishSuccessBanner extends LitElement {
         this.publishedAt = '';
         this.publishedBy = '';
         this.error = '';
+        this.variant = 'success';
+    }
+
+    willUpdate(changed) {
+        if (changed.has('error')) this.variant = this.error ? 'error' : 'success';
     }
 
     formatDate(iso) {
@@ -70,7 +76,6 @@ class MasBulkPublishSuccessBanner extends LitElement {
     }
 
     render() {
-        this.setAttribute('variant', this.error ? 'error' : 'success');
         if (this.error) {
             return html`
                 <div class="header">

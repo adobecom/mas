@@ -322,4 +322,60 @@ describe('MasFragmentVariations', () => {
             expect(unsubSpy.calledOnce).to.be.true;
         });
     });
+
+    describe('editing grouped and locale variations', () => {
+        it('passes editFragmentStore to router when handleEdit is called', async () => {
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            const editStore = {
+                value: {
+                    id: 'variation-1',
+                    path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/variation-1',
+                },
+            };
+            const routerModule = await import('../src/router.js');
+            const navigateSpy = sandbox.stub(routerModule.default, 'navigateToFragmentEditor').resolves();
+
+            await el.handleEdit(editStore);
+
+            expect(
+                navigateSpy.calledOnceWith('variation-1', {
+                    locale: 'fr_FR',
+                    fragmentStore: editStore,
+                }),
+            ).to.be.true;
+        });
+
+        it('builds locale variation rows with a dedicated editFragmentStore', async () => {
+            const variation = createVariationFragment();
+            const fragment = {
+                listLocaleVariations: () => [variation],
+                listGroupedVariations: () => [],
+            };
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+
+            const row = el.querySelector('mas-fragment-table');
+            expect(row).to.exist;
+            expect(row.editFragmentStore).to.exist;
+            expect(row.editFragmentStore).to.not.equal(row.fragmentStore);
+        });
+
+        it('builds expanded grouped variation rows with a dedicated editFragmentStore', async () => {
+            const variation = createVariationFragment();
+            const fragment = {
+                listLocaleVariations: () => [],
+                listGroupedVariations: () => [variation],
+            };
+            const el = await fixture(html`<mas-fragment-variations .fragment=${fragment}></mas-fragment-variations>`);
+            el.toggleGroupedVariation('variation-1');
+            await el.updateComplete;
+
+            const row = el.querySelector('mas-fragment-table');
+            expect(row).to.exist;
+            expect(row.editFragmentStore).to.exist;
+            expect(row.editFragmentStore).to.not.equal(row.fragmentStore);
+            expect(el.textContent).to.include('Duplicate');
+        });
+    });
 });

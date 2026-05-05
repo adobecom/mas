@@ -1195,6 +1195,26 @@ describe('MasFragmentEditor', () => {
             expect(ap).to.not.equal(nothing);
             expect(ap.values[1]).to.include('Parent collection title');
         });
+
+        it('renders non-grouped collection author path from fragment parts helper', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'collection-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/root-collection',
+                title: 'Root collection',
+                model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                fields: [{ name: 'label', values: ['L'] }],
+                tags: [],
+            });
+            Store.search.set({ path: 'sandbox' });
+            el.inEdit.value = { get: () => fragment };
+
+            const ap = el.authorPath;
+
+            expect(ap).to.not.equal(nothing);
+            expect(ap.values[1]).to.be.a('string');
+            expect(ap.values[1].length).to.be.greaterThan(0);
+        });
     });
 
     describe('previewBorderColorAttributes', () => {

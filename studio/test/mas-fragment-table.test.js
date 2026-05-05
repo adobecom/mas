@@ -86,6 +86,30 @@ describe('MasFragmentTable', () => {
             el.handleEditFragment(event);
             expect(event.stopPropagation.called).to.be.true;
         });
+
+        it('navigates with editFragmentStore when provided', async () => {
+            const fragmentStore = createFragmentStore();
+            const editFragmentStore = {
+                get: sandbox.stub().returns({
+                    id: 'edit-fragment-1',
+                    path: '/content/dam/mas/sandbox/fr_FR/path',
+                }),
+            };
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .editFragmentStore=${editFragmentStore}
+                ></mas-fragment-table>`,
+            );
+            const event = { stopPropagation: sandbox.stub() };
+            const routerModule = await import('../src/router.js');
+            const navigateSpy = sandbox.stub(routerModule.default, 'navigateToFragmentEditor');
+
+            el.handleEditFragment(event);
+
+            expect(navigateSpy.calledOnceWith('edit-fragment-1', { locale: 'fr_FR', fragmentStore: editFragmentStore })).to.be
+                .true;
+        });
     });
 
     describe('handleCreateVariation', () => {

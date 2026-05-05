@@ -3641,6 +3641,26 @@ describe('MasRepository dictionary helpers', () => {
 
             expect(refreshStub.calledOnceWith(parentStore)).to.be.true;
         });
+
+        it('refreshVariationParentInList matches references and warns when refresh fails', async () => {
+            const repository = createRepository();
+            const variation = { id: 'var-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/v' };
+            const parent = new Fragment({
+                id: 'ref-parent-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/ref-parent',
+                model: { path: COLLECTION_MODEL_PATH },
+                references: [{ id: 'var-id', path: variation.path }],
+            });
+            const parentStore = new FragmentStore(parent);
+            sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
+            sandbox.stub(repository, 'refreshFragment').rejects(new Error('refresh failed'));
+            const warnSpy = sandbox.stub(console, 'warn');
+
+            await repository.refreshVariationParentInList(variation, null);
+
+            expect(warnSpy.calledOnce).to.be.true;
+            expect(warnSpy.firstCall.args[0]).to.include('Failed to refresh parent fragment store after variation save');
+        });
     });
 
     describe('loadPreviewPlaceholders', () => {

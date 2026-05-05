@@ -189,6 +189,7 @@ function validateMCPOperation(operation) {
         'get_offer_by_id',
         'search_offers',
         'list_products',
+        'get_product_by_arrangement_code',
         'create_release_cards',
         'create_tags',
         'create_offer_selector',
@@ -239,6 +240,15 @@ function validateMCPOperation(operation) {
             break;
 
         case 'list_products':
+            break;
+
+        case 'get_product_by_arrangement_code':
+            if (!operation.mcpParams.arrangementCode) {
+                return {
+                    valid: false,
+                    error: 'get_product_by_arrangement_code requires mcpParams.arrangementCode',
+                };
+            }
             break;
 
         case 'create_release_cards':

@@ -241,6 +241,15 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    get-product-by-arrangement-code:
+                        function: src/actions/get-product-by-arrangement-code.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            PRODUCTS_ENDPOINT: $PRODUCTS_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     get-product-detail:
                         function: src/actions/get-product-detail.js
                         web: 'yes'

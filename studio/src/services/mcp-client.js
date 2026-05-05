@@ -313,6 +313,19 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 studioLinks: result.studioLinks,
             };
 
+        case 'get_product_by_arrangement_code': {
+            const product = result.product || null;
+            return {
+                success: true,
+                operation: 'get_product_by_arrangement_code',
+                product,
+                arrangementCode: result.arrangementCode || mcpParams.arrangementCode,
+                message:
+                    result.message || (product ? `Found product for ${mcpParams.arrangementCode}` : 'No MCS product match.'),
+                rawResult: result,
+            };
+        }
+
         case 'list_context_cards': {
             const cards = result.results || [];
             return {

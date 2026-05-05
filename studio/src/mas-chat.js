@@ -1484,23 +1484,16 @@ export class MasChat extends LitElement {
         }
 
         // After get_offer_by_id or resolve_offer_selector succeed, the release
-        // flow needs the product_arrangement_code matched against MCS via
-        // list_products. Auto-send the PA code as a synthetic user turn so the
-        // AI calls list_products next, then continues to the single-match
-        // product preview (Step 3 → Step 4).
+        // flow resolves the product deterministically: we take the
+        // product_arrangement_code from AOS and look it up by exact key in the
+        // MCS product cache via get_product_by_arrangement_code. The LLM is
+        // not re-involved here — it has hallucinated a different arrangement
+        // code in the past, producing the wrong product.
         if (operationType === 'get_offer_by_id' && operationResult?.success) {
             const pa = operationResult.rawResult?.offer?.product_arrangement_code;
             if (pa) {
-                // Strip the raw operation-result message — we only used it to
-                // extract the PA code, the release flow renders its own
-                // "Found your product:" preview downstream.
                 this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
-                await this.handleSendMessage({
-                    detail: {
-                        message: `arrangement_code: ${pa}. Now call list_products with searchText "${pa}" and emit the Step 3 single-match preview.`,
-                        context: { hidden: true },
-                    },
-                });
+                await this.resolveReleaseProductByArrangementCode(pa);
             }
         }
         if (operationType === 'resolve_offer_selector' && operationResult?.success) {
@@ -1509,14 +1502,81 @@ export class MasChat extends LitElement {
                 operationResult.rawResult?.offers?.[0]?.product_arrangement_code;
             if (pa) {
                 this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
-                await this.handleSendMessage({
-                    detail: {
-                        message: `arrangement_code: ${pa}. Now call list_products with searchText "${pa}" and emit the Step 3 single-match preview.`,
-                        context: { hidden: true },
-                    },
-                });
+                await this.resolveReleaseProductByArrangementCode(pa);
             }
         }
+        if (operationType === 'get_product_by_arrangement_code' && operationResult?.success) {
+            this.messages = this.messages.filter((msg) => msg.operationResult !== operationResult);
+            await this.handleResolvedReleaseProduct(operationResult);
+        }
+    }
+
+    async resolveReleaseProductByArrangementCode(arrangementCode) {
+        await this.executeOperation({
+            type: 'mcp_operation',
+            mcpTool: 'get_product_by_arrangement_code',
+            mcpParams: { arrangementCode },
+        });
+    }
+
+    async handleResolvedReleaseProduct(operationResult) {
+        const product = operationResult.product;
+        const arrangementCode = operationResult.arrangementCode;
+
+        if (!product) {
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: `No MCS product found for arrangement code \`${arrangementCode}\`. Pick a different offer or proceed with a minimal card.`,
+                    buttonGroup: {
+                        label: 'Release Recovery',
+                        options: [
+                            { label: 'Pick a different offer', value: 'release_pick_different_offer' },
+                            { label: 'Cancel release flow', value: 'release_cancel' },
+                        ],
+                    },
+                    timestamp: Date.now(),
+                },
+            ];
+            return;
+        }
+
+        const copy = product.copy || {};
+        const assets = product.assets || {};
+        const productCards = [
+            {
+                label: copy.name || product.name || arrangementCode,
+                value: product.arrangement_code || arrangementCode,
+                arrangement_code: product.arrangement_code || arrangementCode,
+                product_code: product.product_code,
+                icon: assets.icons?.svg || product.icon,
+            },
+        ];
+
+        this.selectedReleaseProduct = {
+            arrangement_code: product.arrangement_code || arrangementCode,
+            name: copy.name || product.name || arrangementCode,
+            icon: assets.icons?.svg || product.icon,
+        };
+
+        this.messages = [
+            ...this.messages,
+            {
+                role: 'assistant',
+                content: 'Found your product:',
+                productCards,
+                productCardsSelectedValue: productCards[0].value,
+                timestamp: Date.now(),
+            },
+        ];
+
+        await this.handleSendMessage({
+            detail: {
+                message: `Selected product: ${productCards[0].label} (arrangement_code: ${productCards[0].arrangement_code})`,
+                context: { hidden: true, selectedProduct: this.selectedReleaseProduct },
+            },
+        });
     }
 
     async continueWithMCPResult(tool, result) {

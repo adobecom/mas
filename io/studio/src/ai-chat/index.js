@@ -541,8 +541,8 @@ async function main(params) {
                     headers: { ...getResponseHeaders() },
                     body: {
                         type: 'mcp_operation',
-                        mcpTool: 'list_products',
-                        mcpParams: { searchText: arrangementCode },
+                        mcpTool: 'get_product_by_arrangement_code',
+                        mcpParams: { arrangementCode },
                         message: `Looking up product for arrangement code ${arrangementCode}...`,
                         confirmationRequired: false,
                         conversationHistory: [...conversationHistory, { role: 'user', content: message }],

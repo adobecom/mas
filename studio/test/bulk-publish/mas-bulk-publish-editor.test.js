@@ -50,4 +50,14 @@ describe('mas-bulk-publish-editor', () => {
         await el.updateComplete;
         expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner')).to.exist;
     });
+
+    it('does not update inEdit after disconnecting during async init', async () => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.bulkPublishProjects.projectId.set('test-id');
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        el.remove();
+        await Promise.resolve();
+        expect(Store.bulkPublishProjects.inEdit.value).to.be.oneOf([null, undefined]);
+        Store.bulkPublishProjects.projectId.set(null);
+    });
 });

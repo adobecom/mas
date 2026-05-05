@@ -32,6 +32,8 @@ class MasBulkPublishEditor extends LitElement {
         localesPickerOpen: { state: true },
     };
 
+    #abortController = null;
+
     constructor() {
         super();
         this.confirmOpen = false;
@@ -41,20 +43,26 @@ class MasBulkPublishEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
+        this.#abortController = new AbortController();
+        const { signal } = this.#abortController;
         const projectId = Store.bulkPublishProjects.projectId.get();
         if (projectId) {
             try {
                 let fragment = await getFromFragmentCache(projectId);
+                if (signal.aborted) return;
                 if (!fragment) {
                     fragment = await this.repository.getFragmentById(projectId);
                 }
+                if (signal.aborted) return;
                 if (fragment) {
                     Store.bulkPublishProjects.inEdit.set(new FragmentStore(new Fragment(fragment)));
                     await this.updateComplete;
                     if (this.urls && !this.items.length) this.validate();
                 }
             } catch {
-                Store.bulkPublishProjects.inEdit.set(null);
+                if (!signal.aborted) {
+                    Store.bulkPublishProjects.inEdit.set(null);
+                }
             }
         } else {
             const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '' };
@@ -66,6 +74,11 @@ class MasBulkPublishEditor extends LitElement {
                 },
             });
         }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#abortController?.abort();
     }
 
     get repository() {

@@ -309,7 +309,7 @@ export class Fragment {
         const prepared = new Fragment(this);
 
         // Fields that should never be reset (they're fragment-specific, not inherited)
-        const excludeFields = ['variations', 'tags', 'originalId', 'locReady'];
+        const excludeFields = ['variations', 'tags', 'originalId', 'locReady', 'compatVersion'];
 
         for (const field of prepared.fields) {
             if (excludeFields.includes(field.name)) continue;

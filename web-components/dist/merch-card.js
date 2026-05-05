@@ -7575,7 +7575,7 @@ merch-card[variant="mini"] span.renewal-text {
     .spectrum--darkest merch-card[variant="fries"] [slot="body-s"] {
         color: rgb(142, 142, 147);
     }
-`;var Ht={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},whatsIncluded:{tag:"div",slot:"whats-included"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300"}}},Me=class extends v{getGlobalCSS(){return na}get aemFragmentMapping(){return Ht}renderLayout(){return Si`
+`;var Ht={mnemonics:{size:"s"},title:{tag:"h3",slot:"heading-xxs",maxCount:250,withSuffix:!0},description:{tag:"div",slot:"body-s",maxCount:2e3,withSuffix:!1},whatsIncluded:{tag:"div",slot:"whats-included"},badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300"},trialBadge:{tag:"div",slot:"trial-badge",default:"spectrum-green-800"},prices:{tag:"p",slot:"price"},ctas:{slot:"cta",size:"M"},addonConfirmation:{tag:"div",slot:"addon-confirmation"},borderColor:{attribute:"border-color",specialValues:{gray:"--spectrum-gray-300","gradient-purple-blue":"var(--gradient-purple-blue)","gradient-firefly-spectrum":"var(--gradient-firefly-spectrum)"}}},Me=class extends v{getGlobalCSS(){return na}get aemFragmentMapping(){return Ht}renderLayout(){return Si`
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>
@@ -7658,6 +7658,34 @@ merch-card[variant="mini"] span.renewal-text {
             align-items: center;
             gap: 8px;
             margin-top: 15px;
+        }
+
+        :host([variant='fries'][gradient-border='true']) {
+            border: 1px solid transparent;
+            background-image: linear-gradient(
+                    to bottom,
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    ),
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    )
+                ),
+                var(--merch-card-fries-border-gradient);
+            background-origin: padding-box, border-box;
+            background-clip: padding-box, border-box;
+        }
+
+        :host([variant='fries'][border-color='gradient-purple-blue']) {
+            --merch-card-fries-border-gradient: var(--gradient-purple-blue);
+        }
+
+        :host([variant='fries'][border-color='gradient-firefly-spectrum']) {
+            --merch-card-fries-border-gradient: var(
+                --gradient-firefly-spectrum
+            );
         }
     `);var yt=new Map,oa=new WeakMap,ca=new Map,E=(a,t,e=null,r=null,i)=>{yt.set(a,{class:t,fragmentMapping:e,style:r,collectionOptions:i})};E("catalog",we,Tr,we.variantStyle);E("image",ne);E("inline-heading",ut);E("mini-compare-chart",Ee,Or,Ee.variantStyle);E("mini-compare-chart-mweb",ke,Fr,ke.variantStyle);E("plans",_,xt,_.variantStyle,_.collectionOptions);E("plans-students",_,Br,_.variantStyle,_.collectionOptions);E("plans-education",_,$r,_.variantStyle,_.collectionOptions);E("plans-v2",X,Ur,X.variantStyle,X.collectionOptions);E("product",Se,jr,Se.variantStyle);E("segment",Ce,Wr,Ce.variantStyle);E("media",Ae,Yr,Ae.variantStyle);E("headless",Pe,ra,Pe.variantStyle);E("special-offers",Te,Xr,Te.variantStyle);E("simplified-pricing-express",Le,$t,Le.variantStyle);E("full-pricing-express",ze,Bt,ze.variantStyle);E("mini",_e,ia,_e.variantStyle);E("image",ne,zr,ne.variantStyle);E("fries",Me,Ht,Me.variantStyle);var Ai=(a,t,e)=>{try{let r=ca.get(a.variant);if(r||(r=new CSSStyleSheet,r.replaceSync(t.cssText),ca.set(a.variant,r)),e?.styleSheet&&e.styleSheet!==r){let i=a.shadowRoot.adoptedStyleSheets.indexOf(e.styleSheet);i!==-1&&a.shadowRoot.adoptedStyleSheets.splice(i,1)}return a.shadowRoot.adoptedStyleSheets.includes(r)||a.shadowRoot.adoptedStyleSheets.push(r),{styleSheet:r}}catch{let i=document.createElement("style");i.textContent=t.cssText,i.setAttribute("data-variant-style",a.variant);let n=e?.styleElement||a.shadowRoot.querySelector("[data-variant-style]");return n&&n.remove(),a.shadowRoot.appendChild(i),{styleElement:i}}},Ut=a=>{let t=yt.get(a.variant);if(!t)return;let{class:e,style:r}=t,i=oa.get(a);if(i?.appliedVariant===a.variant)return new e(a);let n=r?Ai(a,r,i):{};return oa.set(a,{appliedVariant:a.variant,...n}),new e(a)};function gt(a){return yt.get(a)?.fragmentMapping}function sa(a){return yt.get(a)?.collectionOptions}var la=document.createElement("style");la.innerHTML=`
 :root {
@@ -7789,6 +7817,7 @@ merch-card[variant="mini"] span.renewal-text {
     --spectrum-green-900-special-offers: #2D9D78;
     --spectrum-gray-300-special-offers: #D1D1D1;
     --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
+    --gradient-firefly-spectrum: linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%);
 
     --color-yellow-300-variation: var(--spectrum-yellow-300-plans);
     --color-green-900-variation: var(--spectrum-green-900-plans);

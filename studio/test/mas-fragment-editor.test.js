@@ -1067,6 +1067,16 @@ describe('MasFragmentEditor', () => {
             expect(navigateSpy.calledWith('copied-id')).to.be.true;
         });
 
+        it('handleFragmentCopied calls cancelCreateVariation and navigates when parentFragment is present', () => {
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+            sandbox.stub(el, 'cancelCreateVariation');
+            el.handleFragmentCopied({
+                detail: { fragment: { id: 'copied-with-parent' }, parentFragment: { id: 'parent-id', path: '/p' } },
+            });
+            expect(el.cancelCreateVariation.calledOnce).to.be.true;
+            expect(navigateSpy.calledWith('copied-with-parent')).to.be.true;
+        });
+
         it('renders locale variation header', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             const header = el.localeVariationHeader;
@@ -1136,6 +1146,54 @@ describe('MasFragmentEditor', () => {
             el.inEdit.value = { get: () => fragment };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
             expect(el.previewColumn).to.equal(nothing);
+        });
+
+        it('returns preview column with related variations for grouped collection variation', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'grouped-var',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-one',
+                model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                fields: [{ name: 'label', values: ['L'] }],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.localeDefaultFragment = {
+                id: 'parent-id',
+                title: 'Parent collection',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent',
+                getLocaleVariationCount: () => 1,
+                getGroupedVariationCount: () => 2,
+                getPromoVariationCount: () => 0,
+            };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            const col = el.previewColumn;
+            expect(col).to.not.equal(nothing);
+            expect(col.strings.join('')).to.include('preview-column');
+            expect(col.values[0]).to.not.equal(nothing);
+        });
+    });
+
+    describe('authorPath for collection grouped variation', () => {
+        it('includes parent title in grouped collection author path', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'var-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/my-var',
+                title: 'Var',
+                model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                fields: [{ name: 'label', values: ['L'] }],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.localeDefaultFragment = {
+                id: 'parent-id',
+                title: 'Parent collection title',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent',
+            };
+            const ap = el.authorPath;
+            expect(ap).to.not.equal(nothing);
+            expect(ap.values[1]).to.include('Parent collection title');
         });
     });
 

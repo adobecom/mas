@@ -5,7 +5,7 @@ import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
-import { PAGE_NAMES, CARD_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
+import { PAGE_NAMES, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
@@ -1100,6 +1100,42 @@ describe('MasFragmentEditor', () => {
         it('renders variation counts', () => {
             const section = el.relatedVariationsSection;
             expect(section).to.not.equal(nothing);
+        });
+    });
+
+    describe('relatedVariationsSection grouped variation counts', () => {
+        it('subtracts grouped count when current fragment is a grouped variation', () => {
+            const el = document.createElement('mas-fragment-editor');
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            const fragment = new Fragment({
+                id: 'grouped-var',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-one',
+            });
+            el.localeDefaultFragment = {
+                id: 'parent',
+                getLocaleVariationCount: () => 0,
+                getPromoVariationCount: () => 0,
+                getGroupedVariationCount: () => 1,
+            };
+            el.inEdit.value = { get: () => fragment };
+            const section = el.relatedVariationsSection;
+            expect(section).to.equal(nothing);
+        });
+    });
+
+    describe('previewColumn for collection grouped variations', () => {
+        it('returns nothing for collection fragment that is not a grouped variation', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'coll-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            expect(el.previewColumn).to.equal(nothing);
         });
     });
 

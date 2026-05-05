@@ -3,13 +3,7 @@ import sinon from 'sinon';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
-import {
-    ROOT_PATH,
-    SURFACES,
-    PAGE_NAMES,
-    EDITABLE_FRAGMENT_MODEL_IDS,
-    COLLECTION_MODEL_PATH,
-} from '../src/constants.js';
+import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 
@@ -3624,6 +3618,26 @@ describe('MasRepository dictionary helpers', () => {
             const refreshStub = sandbox.stub(repository, 'refreshFragment').resolves();
 
             await repository.refreshVariationParentInList({ id: 'grouped-id', path: variationPath }, null);
+
+            expect(refreshStub.calledOnceWith(parentStore)).to.be.true;
+        });
+
+        it('refreshVariationParentInList refreshes list store when parentFragment id matches fragment in list', async () => {
+            const repository = createRepository();
+            const parent = new Fragment({
+                id: 'parent-collection-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                references: [],
+            });
+            const parentStore = new FragmentStore(parent);
+            sandbox.stub(Store.fragments.list.data, 'get').returns([parentStore]);
+            const refreshStub = sandbox.stub(repository, 'refreshFragment').resolves();
+
+            await repository.refreshVariationParentInList(
+                { id: 'var-id', path: '/content/dam/mas/sandbox/en_US/pac/pzn/v' },
+                parent,
+            );
 
             expect(refreshStub.calledOnceWith(parentStore)).to.be.true;
         });

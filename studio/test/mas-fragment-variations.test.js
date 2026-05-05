@@ -265,4 +265,61 @@ describe('MasFragmentVariations', () => {
             expect(picker.disabled).to.be.false;
         });
     });
+
+    describe('fragmentStore subscription', () => {
+        function createSubscribableStore() {
+            const listeners = [];
+            return {
+                subscribe(fn) {
+                    listeners.push(fn);
+                },
+                unsubscribe(fn) {
+                    const i = listeners.indexOf(fn);
+                    if (i >= 0) listeners.splice(i, 1);
+                },
+                notify() {
+                    listeners.forEach((fn) => fn());
+                },
+            };
+        }
+
+        it('subscribes when fragmentStore is set and requestUpdate runs on notify', async () => {
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            const requestUpdateSpy = sandbox.spy(el, 'requestUpdate');
+            const store = createSubscribableStore();
+            el.fragmentStore = store;
+            await el.updateComplete;
+            requestUpdateSpy.resetHistory();
+            store.notify();
+            expect(requestUpdateSpy.calledOnce).to.be.true;
+        });
+
+        it('unsubscribes previous fragmentStore when fragmentStore changes', async () => {
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            const storeA = createSubscribableStore();
+            const unsubSpy = sandbox.spy(storeA, 'unsubscribe');
+            el.fragmentStore = storeA;
+            await el.updateComplete;
+            const storeB = createSubscribableStore();
+            el.fragmentStore = storeB;
+            await el.updateComplete;
+            expect(unsubSpy.calledOnce).to.be.true;
+        });
+
+        it('unsubscribes on disconnect', async () => {
+            const el = await fixture(
+                html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
+            );
+            const store = createSubscribableStore();
+            const unsubSpy = sandbox.spy(store, 'unsubscribe');
+            el.fragmentStore = store;
+            await el.updateComplete;
+            el.remove();
+            expect(unsubSpy.calledOnce).to.be.true;
+        });
+    });
 });

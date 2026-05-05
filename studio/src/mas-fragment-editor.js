@@ -1579,9 +1579,7 @@ export default class MasFragmentEditor extends LitElement {
                 const search = Store.search.get();
                 const searchSurface = search?.path ? String(search.path).toUpperCase() : '';
                 const surface = searchSurface || surfaceFromPath;
-                fragmentParts = surface
-                    ? `${surface} / ${this.localeDefaultFragment.title}`
-                    : this.localeDefaultFragment.title;
+                fragmentParts = surface ? `${surface} / ${this.localeDefaultFragment.title}` : this.localeDefaultFragment.title;
             } else {
                 fragmentParts = getFragmentPartsToUse(Store, this.fragment).fragmentParts || '';
             }

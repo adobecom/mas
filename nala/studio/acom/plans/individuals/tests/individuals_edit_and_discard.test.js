@@ -3,9 +3,6 @@ import ACOMPlansIndividualsSpec from '../specs/individuals_edit_and_discard.spec
 
 const { features } = ACOMPlansIndividualsSpec;
 
-// All cases share the same automation fragment; parallel runs race on Odyssey/AEM state.
-test.describe.configure({ mode: 'serial' });
-
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-edit-discard-variant-change-to-plans-students - Validate variant change for plans individuals card to plans students in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {

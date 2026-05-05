@@ -281,7 +281,10 @@ describe('MasTopNav', () => {
             const repairedBreadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
             const repairedFirstBreadcrumb = repairedBreadcrumbs[0];
             expect(repairedFirstBreadcrumb.hasAttribute('hidden')).to.equal(false);
-            expect(repairedBreadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Global settings', 'Edit setting']);
+            expect(repairedBreadcrumbs.map((item) => item.textContent.trim())).to.deep.equal([
+                'Global settings',
+                'Edit setting',
+            ]);
         });
 
         it('should not render breadcrumbs on content page', async () => {

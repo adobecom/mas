@@ -29,7 +29,7 @@ const localStorageStub = {
 let objectKeysStub;
 
 describe('FragmentClient', () => {
-    const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/sites/cf/fragments';
+    const baseUrl = 'https://odinpreview.corp.adobe.com/adobe/contentFragments';
     let fetchStub;
 
     before(() => {
@@ -45,7 +45,11 @@ describe('FragmentClient', () => {
         globalThis.localStorage = localStorageStub;
         objectKeysStub = sinon.stub(Object, 'keys').callThrough();
         objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
-        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            // eslint-disable-next-line no-console
+            console.warn('[test] unmatched fetch stub:', url);
+            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
+        });
         fetchStub
             .withArgs(`${baseUrl}/${mockCardFragment.id}?references=all-hydrated`)
             .returns(createResponse(200, mockCardFragment));
@@ -55,18 +59,11 @@ describe('FragmentClient', () => {
         fetchStub
             .withArgs(`${baseUrl}/${mockCollectionData.id}?references=all-hydrated`)
             .returns(createResponse(200, mockCollectionData));
-        fetchStub.withArgs(`${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
-            createResponse(200, {
-                items: [
-                    {
-                        id: mockPlaceholders.id,
-                        type: 'dictionary',
-                    },
-                ],
-            }),
-        );
+        fetchStub
+            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .returns(createResponse(200, { id: mockPlaceholders.id }));
         // Settings fetch (preview pipeline now loads settings)
-        const settingsIndexUrl = `${baseUrl}?path=/content/dam/mas/sandbox/settings/index`;
+        const settingsIndexUrl = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/settings/index`;
         const settingsId = 'preview-settings-id';
         const settingsContentUrl = `${baseUrl}/${settingsId}?references=all-hydrated`;
         const settingsBody = {
@@ -92,7 +89,7 @@ describe('FragmentClient', () => {
                 },
             },
         };
-        fetchStub.withArgs(settingsIndexUrl).returns(createResponse(200, { items: [{ id: settingsId }] }));
+        fetchStub.withArgs(settingsIndexUrl).returns(createResponse(200, { id: settingsId }));
         fetchStub.withArgs(settingsContentUrl).returns(createResponse(200, settingsBody));
     });
 
@@ -114,20 +111,9 @@ describe('FragmentClient', () => {
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
-        fetchStub.withArgs(`${baseUrl}?path=/content/dam/mas/sandbox/en_US/dictionary/index`).returns(
-            createResponse(200, {
-                items: [
-                    {
-                        id: mockPlaceholders.id,
-                        type: 'dictionary',
-                        fields: {
-                            name: 'Dictionary',
-                            description: 'Dictionary description',
-                        },
-                    },
-                ],
-            }),
-        );
+        fetchStub
+            .withArgs(`${baseUrl}/byPath?path=/content/dam/mas/sandbox/en_US/dictionary/index`)
+            .returns(createResponse(200, { id: mockPlaceholders.id }));
         fetchStub
             .withArgs(`${baseUrl}/${mockPlaceholders.id}?references=all-hydrated`)
             .returns(createResponse(200, mockPlaceholders));
@@ -197,30 +183,18 @@ describe('FragmentClient', () => {
             surface: 'sandbox',
             locale: 'en_US',
             fullContext: true,
+            networkConfig: { retries: 1, retryDelay: 1 },
         });
         expect([500, 503]).to.include(result.status);
         expect(result).to.have.property('message');
     });
 
     it('merges options locale and country over document element', async () => {
-        const dePlaceholderIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
-        const deDictIndex = `${baseUrl}?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
+        const dePlaceholderIndex = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/de_DE/ilyas-test-placeholders`;
+        const deDictIndex = `${baseUrl}/byPath?path=/content/dam/mas/sandbox/de_DE/dictionary/index`;
         const deVariationId = 'de-de-default-locale-fragment';
-        fetchStub.withArgs(dePlaceholderIndex).returns(
-            createResponse(200, {
-                items: [{ id: deVariationId, type: 'content-fragment' }],
-            }),
-        );
-        fetchStub.withArgs(deDictIndex).returns(
-            createResponse(200, {
-                items: [
-                    {
-                        id: mockPlaceholders.id,
-                        type: 'dictionary',
-                    },
-                ],
-            }),
-        );
+        fetchStub.withArgs(dePlaceholderIndex).returns(createResponse(200, { id: deVariationId }));
+        fetchStub.withArgs(deDictIndex).returns(createResponse(200, { id: mockPlaceholders.id }));
         fetchStub
             .withArgs(`${baseUrl}/${deVariationId}?references=all-hydrated`)
             .returns(createResponse(200, { ...mockCardFragment, id: deVariationId }));
@@ -237,6 +211,29 @@ describe('FragmentClient', () => {
         it('returns processed body with api_key fragment-client-studio', async () => {
             const body = { ...mockCardFragment };
             const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });
+            expect(result).to.have.property('fields');
+        });
+
+        it('uses body.path when options.fragmentPath is omitted', async () => {
+            const customPath = '/content/dam/mas/sandbox/en_US/studio-preview-path';
+            const body = { ...mockCardFragment, path: customPath };
+            const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });
+            expect(result).to.have.property('fields');
+        });
+
+        it('uses options.fragmentPath over body.path when both are set', async () => {
+            const body = { ...mockCardFragment, path: '/content/dam/from-body' };
+            const result = await previewStudioFragment(body, {
+                locale: 'en_US',
+                surface: 'sandbox',
+                fragmentPath: '/content/dam/from-options',
+            });
+            expect(result).to.have.property('fields');
+        });
+
+        it('succeeds when body omits path', async () => {
+            const { path: _omitPath, ...bodyNoPath } = mockCardFragment;
+            const result = await previewStudioFragment(bodyNoPath, { locale: 'en_US', surface: 'sandbox' });
             expect(result).to.have.property('fields');
         });
 

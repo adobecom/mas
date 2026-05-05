@@ -82,25 +82,18 @@ runTests(async () => {
             expect(element.shadowRoot).to.exist;
         });
 
-        // Loading state test
-        it('should display loading indicator when loading', async function () {
-            // Set loading state via Store
+        it('should display skeleton rows when loading', async function () {
             Store.placeholders.list.loading.set(true);
             await elementUpdated(element);
-
-            // Check for progress circle
             await new Promise((r) => setTimeout(r, 50));
-            const progressCircle = element.shadowRoot.querySelector('sp-progress-circle');
-            expect(progressCircle).to.exist;
+            const skeletonRows = element.shadowRoot.querySelectorAll('.skeleton-row');
+            expect(skeletonRows.length).to.be.greaterThan(0);
 
-            // Reset state
             Store.placeholders.list.loading.set(false);
             await elementUpdated(element);
             await new Promise((r) => setTimeout(r, 50));
-
-            // Check progress circle is gone
-            const progressAfter = element.shadowRoot.querySelector('sp-progress-circle');
-            expect(progressAfter).to.not.exist;
+            const skeletonAfter = element.shadowRoot.querySelectorAll('.skeleton-row');
+            expect(skeletonAfter.length).to.equal(0);
         });
 
         // Error display test

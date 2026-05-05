@@ -16,16 +16,38 @@ export default class StudioPage {
         this.searchInput = page.locator('#actions sp-search  input');
         this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-search');
         this.filter = page.locator('sp-action-button[label="Filter"]');
+        this.filterPanel = page.locator('mas-filter-panel');
+        this.createdByTag = this.filterPanel.locator('sp-tag sp-icon-user');
         this.folderPicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.previewMenu = page.locator('#actions sp-action-menu[value="render"]');
         this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');
         this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
-        this.renderView = page.locator('#render');
+        this.renderView = page.locator('#render:not(.next-page-skeletons)');
         this.tableView = page.locator('sp-table');
         this.contentTableBody = page.locator('#content sp-table-body');
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');
         this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);
+        this.groupedVariationsTab = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab[value="grouped"]`,
+            );
+        this.groupedVariationsTabPanel = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"]`,
+            );
+        this.localeVariationsTabPanel = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="locale"]`,
+            );
+        this.regionalVariationsTable = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="locale"] mas-fragment-table`,
+            );
+        this.groupedVariationsTable = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"] mas-fragment-table`,
+            );
         this.tableViewRowByFragmentId = (fragmentId) => this.tableView.locator(`sp-table-row[value="${fragmentId}"]`);
         this.tableViewPathCell = (row) => row.locator('sp-table-cell.name');
         this.tableViewTitleCell = (row) => row.locator('sp-table-cell.title');
@@ -61,7 +83,7 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:has-text("Fragments")');
+        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:not([hidden]):has-text("Fragments")').first();
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
@@ -70,6 +92,12 @@ export default class StudioPage {
         this.publishCardButton = this.sideNav.locator('mas-side-nav-item[label="Publish"]');
         this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
         this.versionHistoryButton = this.sideNav.locator('mas-side-nav-item[label="History"]');
+        this.copyFieldButton = this.sideNav.locator('mas-side-nav-item[label="Copy Field"]');
+        // Side-nav renders the Copy Field popover inside its shadow root; Playwright CSS selectors pierce shadow.
+        this.copyFieldPopover = this.sideNav.locator('sp-popover[open]');
+        this.copyFieldRow = (label) =>
+            this.copyFieldPopover.locator('sp-menu-item', { has: this.page.locator(`.field-label:text-is("${label}")`) });
+        this.copyFieldRowValue = (label) => this.copyFieldRow(label).locator('.field-value');
         this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
         this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
         this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');
@@ -747,7 +775,7 @@ export default class StudioPage {
         await expect(this.variationDialogLocalePicker).toBeEnabled();
         await this.variationDialogLocalePicker.scrollIntoViewIfNeeded();
         await this.page.waitForTimeout(200);
-        await this.variationDialogLocalePicker.click({ timeout: 5000 });
+        await this.variationDialogLocalePicker.click({ force: true, timeout: 5000 });
         await this.page.waitForTimeout(300);
 
         const localeOption = this.page.locator(`sp-menu-item[value="${locale}"]:visible`).first();

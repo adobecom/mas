@@ -3,7 +3,7 @@ import Store from '../store.js';
 import { PAGE_NAMES, QUICK_ACTION } from '../constants.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast } from '../utils.js';
-import { isPowerUser } from '../groups.js';
+import { canAccessSettings } from '../groups.js';
 import './mas-settings-table.js';
 import '../mas-quick-actions.js';
 import '../mas-locale-picker.js';
@@ -1339,7 +1339,7 @@ class MasSettings extends LitElement {
     }
 
     render() {
-        if (!isPowerUser()) return nothing;
+        if (!canAccessSettings(Store.surface())) return nothing;
         return html`${this.headerTemplate}${this.tableTemplate}${this.settingsFormTemplate}${this
             .settingsEditorActionBarTemplate}${this.dialogTemplate}`;
     }

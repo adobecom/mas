@@ -55,7 +55,7 @@ export IMS_EMAIL=<val>
 export IMS_PASS=<val>
 ```
 
-Ask colleagues/slack for IMS_EMAIL ad IMS_PASS values, your user might not work as expected because it's not '@adobetest.com' account.
+Ask colleagues/slack for IMS_EMAIL and IMS_PASS values, your user might not work as expected because it's not '@adobetest.com' account.
 
 `npm run nala local` - to run on local
 `npm run nala MWPW-160756` - to run on branch

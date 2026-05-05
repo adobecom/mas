@@ -5,9 +5,17 @@ import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN, PAGE_NAMES, TAG_PROMOTION_PREFIX } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    MAS_PRODUCT_CODE_PREFIX,
+    ODIN_PREVIEW_ORIGIN,
+    PAGE_NAMES,
+    TAG_PROMOTION_PREFIX,
+} from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
+import { getActiveMerchCardEditor } from './editors/merch-card-editor.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
@@ -89,6 +97,24 @@ export default class MasFragmentEditor extends LitElement {
             border-radius: 12px;
             box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
             overflow-y: auto;
+        }
+
+        .preview-locale-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            padding: 20px 20px 0 20px;
+            box-sizing: border-box;
+        }
+
+        .preview-locale-panel sp-field-label {
+            font-size: 14px;
+            color: var(--spectrum-global-color-gray-800);
+        }
+
+        .preview-locale-panel sp-picker {
+            width: 100%;
         }
 
         @media (max-width: 1200px) {
@@ -478,7 +504,10 @@ export default class MasFragmentEditor extends LitElement {
 
     // Returns true when editor should lazily initialize the fragment for the current route.
     #shouldInitFragment() {
-        return this.fragmentId && !this.inEdit.get() && this.initState !== MasFragmentEditor.INIT_STATE.LOADING;
+        if (!this.fragmentId || this.initState === MasFragmentEditor.INIT_STATE.LOADING) return false;
+        const currentInEdit = this.inEdit.get();
+        if (!currentInEdit) return true;
+        return currentInEdit.get()?.id !== this.fragmentId;
     }
 
     get previewSkeleton() {
@@ -567,7 +596,7 @@ export default class MasFragmentEditor extends LitElement {
         // Analytics ID (from tags with mas:product_code/ prefix)
         const productCodeTag = fragment.tags?.find((tag) => tag.id?.startsWith('mas:product_code/'));
         if (productCodeTag) {
-            const analyticsId = productCodeTag.id.replace('mas:product_code/', '');
+            const analyticsId = productCodeTag.id.replace(MAS_PRODUCT_CODE_PREFIX, '');
             if (analyticsId) attrs.analyticsId = analyticsId;
         }
 
@@ -688,26 +717,43 @@ export default class MasFragmentEditor extends LitElement {
 
     // Initializes editor state when the fragment already exists in the list store cache.
     async #initializeFromCachedStore(fragmentId, existingStore) {
+        if (this.repository.search.value.path) {
+            void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+        }
         const fragmentPath = existingStore.get().path;
-        this.#updateLocaleIfNeeded(fragmentPath);
 
-        // Reload context to correctly determine if this fragment is a variation
+        const fragmentLocale = extractLocaleFromPath(fragmentPath);
+        const pathDetection = this.editorContextStore.detectVariationFromPath(fragmentPath);
+        if (pathDetection.isVariation && fragmentLocale) {
+            Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+        }
+
+        this.#updateLocaleIfNeeded(fragmentPath);
         await this.editorContextStore.loadFragmentContext(fragmentId, fragmentPath);
         const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
 
-        // Consume store-level skip flag (set after copy operation)
         const skipVariation = existingStore.skipVariationDetection;
         if (skipVariation) existingStore.skipVariationDetection = false;
 
         if (isVariationAfterContext && !skipVariation) {
+            const localeChanged = fragmentLocale && fragmentLocale !== Store.localeOrRegion();
+            if (localeChanged) {
+                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                void this.repository.loadPreviewPlaceholders();
+                existingStore.resolvePreviewFragment();
+            }
             await this.#attachParentToCachedVariation(existingStore, fragmentPath);
+            if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                void this.repository.loadPreviewPlaceholders();
+                existingStore.resolvePreviewFragment();
+            }
         } else {
             this.localeDefaultFragment = existingStore.parentFragment;
         }
 
-        this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath); // no need to await
+        this.updateTranslatedLocalesStore(isVariationAfterContext, fragmentPath);
 
-        // Use existing store - just refresh it
         if (existingStore.previewStore) {
             existingStore.previewStore.resolved = false;
         }
@@ -751,8 +797,9 @@ export default class MasFragmentEditor extends LitElement {
     // Initializes editor state for fragments that are not yet present in list store cache.
     async #initializeFromRepository(fragmentId) {
         try {
-            // Start loading placeholders early
-            const placeholdersPromise = this.repository.loadPreviewPlaceholders().catch(() => null);
+            if (this.repository.search.value.path) {
+                void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+            }
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
             const fragment = new Fragment(fragmentData);
 
@@ -763,8 +810,16 @@ export default class MasFragmentEditor extends LitElement {
             const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
-            // Wait for placeholders before creating stores (needed for preview resolution)
-            await placeholdersPromise;
+            if (isVariationForStore) {
+                const fragmentLocale = extractLocaleFromPath(fragment.path);
+                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                    Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
+                }
+            }
+
+            if (this.repository.search.value.path) {
+                void this.repository.loadPreviewPlaceholders();
+            }
 
             const fragmentStore = generateFragmentStore(fragment, parentFragment);
             // Only add to main list if not a variation (variations appear under parent's variations panel)
@@ -778,10 +833,13 @@ export default class MasFragmentEditor extends LitElement {
             // Handle locale-specific placeholder reload for variations
             if (isVariationForStore) {
                 const fragmentLocale = extractLocaleFromPath(fragment.path);
-                if (fragmentLocale && fragmentLocale !== Store.localeOrRegion()) {
+                if (fragmentLocale) {
+                    const localeChanged = fragmentLocale !== Store.localeOrRegion();
                     Store.search.set((prev) => ({ ...prev, region: fragmentLocale }));
-                    await this.repository.loadPreviewPlaceholders();
-                    fragmentStore.resolvePreviewFragment();
+                    if (localeChanged) {
+                        void this.repository.loadPreviewPlaceholders();
+                        fragmentStore.resolvePreviewFragment();
+                    }
                 }
             }
 
@@ -804,18 +862,18 @@ export default class MasFragmentEditor extends LitElement {
             return;
         }
 
+        const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
+
+        if (existingStore) {
+            this.groupedVariationOrphanMessage = null;
+            await this.#initializeFromCachedStore(fragmentId, existingStore);
+            return;
+        }
+
         this.groupedVariationOrphanMessage = null;
         this.previewResolved = false;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
         Store.fragmentEditor.loading.set(true);
-
-        // Check for existing store first
-        const existingStore = Store.fragments.list.data.get().find((store) => store.get()?.id === fragmentId);
-
-        if (existingStore) {
-            await this.#initializeFromCachedStore(fragmentId, existingStore);
-            return;
-        }
 
         await this.#initializeFromRepository(fragmentId);
     }
@@ -1043,6 +1101,9 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         this.fragmentStore.updateField(fieldName, value);
+        if (fieldName === 'promoCode') {
+            getActiveMerchCardEditor()?.refreshRenderedPrices?.();
+        }
     }
 
     async deleteFragment() {
@@ -1333,6 +1394,42 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
+    #handleGroupedPreviewLocaleChange = (event) => {
+        const editor = getActiveMerchCardEditor();
+        if (!editor) return;
+        editor.previewLocaleOverride = event.target.value || null;
+    };
+
+    #handlePreviewLocaleChange = (event) => {
+        if (!this.fragmentStore?.previewStore) return;
+        const localeValue = event.detail?.value ?? null;
+        const changed = this.fragmentStore.previewStore.setPreviewLocaleOverride(localeValue);
+        if (!changed) return;
+        this.fragmentStore.previewStore.resolveFragment();
+        this.requestUpdate();
+    };
+
+    get groupedPreviewLocaleSelector() {
+        const editor = getActiveMerchCardEditor();
+        const locales = editor?.groupedPreviewLocales || [];
+        if (!locales.length) return nothing;
+
+        const selectedLocale = editor?.previewLocaleOverride || locales[0].code;
+
+        return html`
+            <div class="preview-locale-panel">
+                <sp-field-label for="grouped-preview-locale">Preview card for:</sp-field-label>
+                <sp-picker
+                    id="grouped-preview-locale"
+                    value="${selectedLocale}"
+                    @change=${this.#handleGroupedPreviewLocaleChange}
+                >
+                    ${locales.map((locale) => html`<sp-menu-item value="${locale.code}">${locale.label}</sp-menu-item>`)}
+                </sp-picker>
+            </div>
+        `;
+    }
+
     get localeVariationHeader() {
         if (!this.fragment || !this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
@@ -1478,13 +1575,16 @@ export default class MasFragmentEditor extends LitElement {
 
         const variantCode = this.fragment.getField('variant')?.values[0];
         const variantLabel = VARIANTS.find((v) => v.value === variantCode)?.label || '';
-        const customerSegment = this.fragment.getTagTitle('customer_segment') || '';
-        const marketSegment = this.fragment.getTagTitle('market_segment') || '';
-        const product = this.fragment.getTagTitle('mas:product/') || '';
-        const promotion = this.fragment.getTagTitle(TAG_PROMOTION_PREFIX) || '';
+        const customerSegment = this.fragment.getCurrentTagTitle('customer_segment') || '';
+        const marketSegment = this.fragment.getCurrentTagTitle('market_segment') || '';
+        const productCode =
+            this.fragment.getCurrentTagTitle(MAS_PRODUCT_CODE_PREFIX) ||
+            this.fragment.getTagTitle(MAS_PRODUCT_CODE_PREFIX) ||
+            '';
+        const promotion = this.fragment.getCurrentTagTitle(TAG_PROMOTION_PREFIX) || '';
 
         const buildPart = (part) => (part ? ` / ${part}` : '');
-        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(product)}${buildPart(promotion)}`;
+        const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(productCode)}${buildPart(promotion)}`;
 
         return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
     }
@@ -1502,6 +1602,7 @@ export default class MasFragmentEditor extends LitElement {
                         .updateFragment=${this.updateFragment}
                         .localeDefaultFragment=${this.localeDefaultFragment}
                         .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                        @preview-locale-change=${this.#handlePreviewLocaleChange}
                     ></merch-card-editor>
                 `;
                 break;
@@ -1540,6 +1641,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             <div id="preview-column">
                 <div id="preview-wrapper">
+                    ${this.groupedPreviewLocaleSelector}
                     ${this.editorContextStore.isVariation(this.fragment.id)
                         ? Fragment.isGroupedVariationPath(this.fragment.path)
                             ? this.displayGroupedVariationInfo('preview-header')
@@ -1576,6 +1678,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get missingVariationState() {
+        if (this.fragmentId && this.fragment?.id !== this.fragmentId) return null;
         const currentLocale = Store.localeOrRegion();
         const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
 
@@ -1651,7 +1754,7 @@ export default class MasFragmentEditor extends LitElement {
             `;
         }
 
-        if (this.fragmentStore?.loading || this.isLoading) {
+        if (this.initState === MasFragmentEditor.INIT_STATE.LOADING) {
             return html`
                 ${this.styles}
                 <div id="fragment-editor">

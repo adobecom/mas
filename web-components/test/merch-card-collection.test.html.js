@@ -393,6 +393,125 @@ runTests(async () => {
             ).to.exist;
             aemFragment.cache.clear();
         });
+
+        it('should show cards in "all" filter when category override fails to load', async () => {
+            // Override targets a nonexistent fragment — no aem-fragment pre-loaded in DOM
+            [collectionElement, render] = prepareTemplate(
+                'override-failing-category',
+                false,
+            );
+            render();
+            const aemFragment = customElements.get('aem-fragment');
+            await collectionElement.checkReady();
+            // Photo category cards (049231fd, c6727147) should appear with "all" filter
+            // instead of being stuck in an empty or category-named filter
+            const card1 = collectionElement.querySelector(
+                'merch-card[id="049231fd-0c45-4ef5-8792-7fa2dcd5005a"]',
+            );
+            const card2 = collectionElement.querySelector(
+                'merch-card[id="c6727147-7992-4ca4-b566-819c52b0a585"]',
+            );
+            expect(card1).to.exist;
+            expect(card2).to.exist;
+            expect(card1.filters.all).to.exist;
+            expect(card2.filters.all).to.exist;
+            aemFragment.cache.clear();
+        });
+
+        it('should skip cards whose reference is missing and hydrate the rest', async () => {
+            [collectionElement, render] = prepareTemplate(
+                'collection-missing-ref',
+                false,
+            );
+            render();
+            const aemFragment = customElements.get('aem-fragment');
+            await collectionElement.checkReady();
+            // card-a (in references) should render
+            expect(collectionElement.querySelector('merch-card[id="card-a"]'))
+                .to.exist;
+            // card-b-missing (not in references) should be silently skipped
+            expect(
+                collectionElement.querySelector(
+                    'merch-card[id="card-b-missing"]',
+                ),
+            ).to.not.exist;
+            aemFragment.cache.clear();
+        });
+    });
+
+    describe('merch-card checkReady with failing aem-fragment', () => {
+        // Regression test for: checkReady() hangs forever when aem:error fires.
+        // Root cause: #hydrationPromise (created at class init) is never resolved by #fail(),
+        // so `await this.#hydrationPromise` inside checkReady() deadlocks.
+        // Fix: resolve #hydrationPromise inside #fail(), and check this.failed after the await.
+        it('should resolve checkReady within 50ms when the aem-fragment returns a 404', async () => {
+            // "notfound" is handled by the withAem mock → returns 404 → fires aem:error
+            const card = document.createElement('merch-card');
+            const frag = document.createElement('aem-fragment');
+            frag.setAttribute('fragment', 'notfound');
+            card.appendChild(frag);
+            document.getElementById('content').appendChild(card);
+
+            // Wait for the aem:error event to fire (fragment fetch + error dispatch)
+            await delay(20);
+
+            const result = await Promise.race([
+                card.checkReady().then(() => 'resolved'),
+                new Promise((resolve) =>
+                    setTimeout(() => resolve('timeout'), 50),
+                ),
+            ]);
+
+            card.remove();
+            // Fails with current code: checkReady() hangs on the unresolved #hydrationPromise
+            expect(result).to.equal('resolved');
+        });
+
+        it('should set failed=true and hide the card when the aem-fragment returns a 404', async () => {
+            const card = document.createElement('merch-card');
+            const frag = document.createElement('aem-fragment');
+            frag.setAttribute('fragment', 'notfound');
+            card.appendChild(frag);
+            document.getElementById('content').appendChild(card);
+
+            await delay(20);
+
+            expect(card.failed).to.be.true;
+            expect(card.style.display).to.equal('none');
+
+            card.remove();
+        });
+    });
+
+    describe('merch-card-collection failed card handling', () => {
+        it('excludes failed cards from resultCount and keeps them hidden after update', async () => {
+            const collection = document.createElement('merch-card-collection');
+            collection.setAttribute('filter', 'all');
+
+            const makeCard = (order) => {
+                const card = document.createElement('merch-card');
+                card.filters = { all: { order } };
+                return card;
+            };
+
+            const card1 = makeCard(1);
+            const card2 = makeCard(2);
+            const card3 = makeCard(3);
+            // Simulate a card that failed to load (as set by merch-card #fail())
+            card3.failed = true;
+            card3.style.display = 'none';
+
+            collection.append(card1, card2, card3);
+            document.getElementById('content').appendChild(collection);
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(collection.resultCount).to.equal(2);
+            // Failed card must stay hidden — collection update must not un-hide it
+            expect(card3.style.display).to.equal('none');
+
+            collection.remove();
+        });
     });
 });
 

@@ -27,8 +27,13 @@ nala/.auth/
 /.cursor*/
 .CLAUDE.md
 **/CLAUDE.md
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
+.logs/
 .specify/
+.worktrees/
+.pids
 /specs/
 /agents/
 reports/
@@ -44,9 +49,13 @@ masStudio-*.json
 .cursor
 .superpowers/
 
+# Worktree documentation (per-ticket, not committed)
+docs/
+
 # web-components specific
 !web-components/dist
 web-components/commerce.json
 web-components/mas.json
 web-components/stats.json
 *.jsonl
+mcp-server.log

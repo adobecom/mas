@@ -265,6 +265,50 @@
                         expect(filterPanel.tagsByType.pzn).to.have.lengthOf(1);
                         expect(filterPanel.tagsByType.pzn[0].path).to.equal('/content/cq:tags/mas/pzn/general');
                     });
+
+                    it('collapses nested product_code URL tag to parent path for filter chips', async function () {
+                        Store.filters.set({
+                            tags: 'mas:product_code/apptype/mypac',
+                        });
+
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        expect(filterPanel.tagsByType.product_code).to.have.lengthOf(1);
+                        const chip = filterPanel.tagsByType.product_code[0];
+                        expect(chip.path).to.equal('/content/cq:tags/mas/product_code/apptype');
+                        expect(chip.title).to.equal('APPTYPE');
+                        expect(chip.top).to.equal('product_code');
+                    });
+
+                    it('does not duplicate product_code when the same nested tag appears twice in URL', async function () {
+                        Store.filters.set({
+                            tags: 'mas:product_code/apptype/mypac,mas:product_code/apptype/mypac',
+                        });
+
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        expect(filterPanel.tagsByType.product_code).to.have.lengthOf(1);
+                    });
+
+                    it('expands parent-only product_code selection to leaf tags in store filters', async function () {
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        const productCodePicker = filterPanel.shadowRoot.querySelector(
+                            'aem-tag-picker-field[top="product_code"]',
+                        );
+                        expect(productCodePicker).to.not.be.null;
+                        await productCodePicker.loadTags();
+                        await productCodePicker.updateComplete;
+
+                        await productCodePicker.toggleTag('/content/cq:tags/mas/product_code/apptype');
+                        await filterPanel.updateComplete;
+
+                        const tagsParam = Store.filters.get().tags || '';
+                        expect(tagsParam).to.include('mas:product_code/apptype/mypac');
+                    });
                 });
             });
         </script>

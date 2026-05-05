@@ -67,6 +67,7 @@ async function cache(context, settings) {
 
 async function getSettingsId(context) {
     const { surface } = await getRequestInfos(context);
+    if (!surface) return { status: 400, message: 'surface not available' };
     const { preview } = context;
     const settingsUrl = odinUrl(surface, { fragmentPath: SETTINGS_ID_PATH, preview });
     const { id, status, message } = await getFragmentId(context, settingsUrl, 'settings-id');

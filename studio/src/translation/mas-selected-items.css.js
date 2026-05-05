@@ -6,6 +6,8 @@ export const styles = [
     css`
         :host {
             display: flex;
+            min-height: 0;
+            max-height: 100%;
         }
 
         .selected-items {
@@ -17,6 +19,8 @@ export const styles = [
             border: 1px solid var(--spectrum-gray-300);
             border-radius: 12px;
             background: var(--spectrum-gray-50);
+            overflow-y: auto;
+            min-height: 0;
 
             .item {
                 display: grid;

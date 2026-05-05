@@ -263,6 +263,7 @@ export const TABLE_TYPE = {
 };
 
 export const TRANSLATIONS_ALLOWED_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
+export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala'];
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';

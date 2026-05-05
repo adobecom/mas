@@ -73,6 +73,8 @@ const DISPLAY_ALL_TAX_COUNTRIES = [
     'CL_es',
     'PE_es',
     'AR_es',
+    'PH_en',
+    'PH_fil',
 ];
 
 // countries where tax is displayed by default for some segments only

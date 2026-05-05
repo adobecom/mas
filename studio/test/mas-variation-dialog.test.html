@@ -36,7 +36,7 @@
 
             import '../libs/swc.js';
             import '../src/mas-variation-dialog.js';
-            import { EVENT_KEYDOWN } from '../src/constants.js';
+            import { EVENT_KEYDOWN, COLLECTION_MODEL_PATH, COLLECTION_GROUPED_VARIATION_PAC } from '../src/constants.js';
             import { delay, oneEvent } from './utils.js';
             import Store from '../src/store.js';
 
@@ -127,6 +127,18 @@
 
                             const groupedOption = dialog.shadowRoot.querySelector('sp-menu-item[value="grouped"]');
                             expect(groupedOption).to.not.exist;
+                        });
+
+                        it('should render grouped variation option for collection model when source locale is not en_US', async () => {
+                            dialog.fragment = {
+                                ...mockFragment,
+                                path: '/content/dam/mas/commerce/fr_FR/my-collection',
+                                model: { path: COLLECTION_MODEL_PATH },
+                            };
+                            await dialog.updateComplete;
+
+                            const groupedOption = dialog.shadowRoot.querySelector('sp-menu-item[value="grouped"]');
+                            expect(groupedOption).to.exist;
                         });
 
                         it('should render cancel and create buttons', async () => {
@@ -349,6 +361,26 @@
                             ).to.be.true;
                         });
 
+                        it('should resolve collection grouped offer data with collection PAC when offerData is not preloaded', async () => {
+                            dialog.fragment = {
+                                ...mockFragment,
+                                model: { path: COLLECTION_MODEL_PATH },
+                            };
+                            dialog.variationType = 'grouped';
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = null;
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(mockRepository.createGroupedVariation.calledOnce).to.be.true;
+                            expect(
+                                mockRepository.createGroupedVariation.calledWith(mockFragment.id, ['mas:locale/fr_FR'], {
+                                    productArrangementCode: COLLECTION_GROUPED_VARIATION_PAC,
+                                }),
+                            ).to.be.true;
+                        });
+
                         it('should resolve grouped offer data from OSI when offerData is not preloaded', async () => {
                             const service = document.createElement('mas-commerce-service');
                             service.collectPriceOptions = stub().returns({ some: 'options' });
@@ -412,6 +444,19 @@
 
                             expect(dialog.variationType).to.equal('regional');
                             expect(dialog.isGrouped).to.be.false;
+                        });
+
+                        it('should keep grouped variationType for collection model when source locale is not en_US', async () => {
+                            dialog.variationType = 'grouped';
+                            dialog.fragment = {
+                                ...mockFragment,
+                                path: '/content/dam/mas/commerce/de_DE/my-collection',
+                                model: { path: COLLECTION_MODEL_PATH },
+                            };
+                            await dialog.updateComplete;
+
+                            expect(dialog.variationType).to.equal('grouped');
+                            expect(dialog.isGrouped).to.be.true;
                         });
                     });
                 });

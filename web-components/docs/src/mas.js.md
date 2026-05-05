@@ -6,10 +6,10 @@ This is a javasript library that enables M@S on any web surface.
 
 mas.js includes the followings custom elements:
 
-- [inline-price](/libs/features/mas/docs/inline-price.html)
-- [checkout-link](/libs/features/mas/docs/checkout-link.html)
-- [checkout-button](/libs/features/mas/docs/checkout-button.html)
-- [merch-card](/libs/features/mas/docs/merch-card.html)
+- [inline-price](inline-price.html)
+- [checkout-link](checkout-link.html)
+- [checkout-button](checkout-button.html)
+- [merch-card](merch-card.html)
 
 `inline-price`, `checkout-link`, `checkout-button` elements are loaded via WCS.
 In case of network issues, the requests will be retried up to 3 times with 500ms of delay between attempts.
@@ -134,7 +134,7 @@ Toggle the network tab and click on `Refresh` button below
 
 | Locale     | Description                     | Try                                        |
 | ---------- | ------------------------------- | ------------------------------------------ |
-| en_US      | English (United States)         | [Try](/libs/features/mas/docs/mas.js.html) |
+| en_US      | English (United States)         | [Try](mas.js.html)                         |
 |            |                                 |                                            |
 | ar_DZ      | Arabic (Algeria)                | [Try](?locale=ar_DZ)                       |
 | ar_EG      | Arabic (Egypt)                  | [Try](?locale=ar_EG)                       |

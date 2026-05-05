@@ -11,6 +11,7 @@ export const FRIES_AEM_FRAGMENT_MAPPING = {
         maxCount: 2000,
         withSuffix: false,
     },
+    whatsIncluded: { tag: 'div', slot: 'whats-included' },
     badge: { tag: 'div', slot: 'badge', default: 'spectrum-yellow-300' },
     trialBadge: {
         tag: 'div',
@@ -47,6 +48,7 @@ export class FriesCard extends VariantLayout {
                 </div>
                 <slot name="badge"></slot>
                 <slot name="body-s"></slot>
+                <slot name="whats-included"></slot>
                 <div class="footer">
                     <div class="cta">
                         <slot name="cta"></slot>

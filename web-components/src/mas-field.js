@@ -1,7 +1,26 @@
-import { EVENT_AEM_LOAD } from './constants.js';
+import { EVENT_AEM_LOAD, FF_DEFAULTS } from './constants.js';
+import { getService } from './utils.js';
 
 const MAS_FIELD_TAG = 'mas-field';
 const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
+
+/**
+ * Opts headless mas-field-hosted inline-prices into FF_DEFAULTS so they
+ * resolve displayTax / displayPerUnit from country+language defaults
+ * (the same way merch-card does for its aem-fragment-backed prices).
+ * Without this, prices rendered through <mas-field field="prices"> miss
+ * locale-driven labels like the FR_fr "TTC" tax indicator.
+ */
+export function priceOptionsProvider(element, options) {
+    if (!element?.closest?.(MAS_FIELD_TAG)) return options;
+    options[FF_DEFAULTS] = true;
+}
+
+function registerPriceOptionsProvider(service) {
+    if (!service?.providers || service.providers.has(priceOptionsProvider))
+        return;
+    service.providers.price(priceOptionsProvider);
+}
 
 const MAS_FIELD_STYLES = `
 mas-field div[slot="footer"] {
@@ -49,6 +68,7 @@ class MasField extends HTMLElement {
         this.addEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
         this.#ensureContentElement();
         this.aemFragment?.setAttribute('hidden', '');
+        registerPriceOptionsProvider(getService());
     }
 
     /** Cleans up the event listener when removed from the DOM. */
@@ -100,12 +120,39 @@ class MasField extends HTMLElement {
         return value;
     }
 
+    /** Parses "ctas[0]" into { fieldName: "ctas", index: 0 }, or { fieldName, index: null } for plain names. */
+    #parseFieldAndIndex(field) {
+        const match = field?.match(/^(.+)\[(\d+)\]$/);
+        if (!match) return { fieldName: field, index: null };
+        return { fieldName: match[1], index: parseInt(match[2], 10) };
+    }
+
+    /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
+     *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
+     *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
+    #extractIndexedAnchor(html, index) {
+        if (typeof html !== 'string') return null;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        const anchor = [...template.content.querySelectorAll('a')][index - 1];
+        if (!anchor) return null;
+        anchor.removeAttribute('class');
+        return anchor.outerHTML;
+    }
+
     #renderField() {
         if (!this.#fields || !this.#field) return;
-        const fieldValue = this.#normalizeFieldValue(this.#fields[this.#field]);
+        const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
+        const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
         if (fieldValue === undefined) return;
         const content = this.#ensureContentElement();
-        const html = this.#unwrapSingleParagraph(fieldValue);
+        let html;
+        if (index !== null) {
+            html = this.#extractIndexedAnchor(fieldValue, index);
+            if (html === null) return;
+        } else {
+            html = this.#unwrapSingleParagraph(fieldValue);
+        }
         if (typeof html === 'string') {
             if (this.#field === 'ctas') {
                 const ctaEl = this.#renderCtaField(html);

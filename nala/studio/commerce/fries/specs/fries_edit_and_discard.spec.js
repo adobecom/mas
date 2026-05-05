@@ -26,8 +26,8 @@ export default {
                     updated: 'Yellow 300',
                 },
                 colorCSS: {
-                    original: 'rgb(0, 143, 93)',
-                    updated: 'rgb(248, 217, 4)',
+                    original: 'rgb(7, 147, 85)',
+                    updated: 'rgb(255, 222, 44)',
                 },
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
@@ -44,8 +44,8 @@ export default {
                     updated: 'Yellow 300',
                 },
                 colorCSS: {
-                    original: 'rgb(0, 143, 93)',
-                    updated: 'rgb(248, 217, 4)',
+                    original: 'rgb(7, 147, 85)',
+                    updated: 'rgb(255, 222, 44)',
                 },
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',

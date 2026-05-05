@@ -10,11 +10,11 @@ export default {
                 trialBadge: 'Change trial badge',
                 trialBadgeColor: {
                     name: 'Yellow 300',
-                    css: 'rgb(248, 217, 4)',
+                    css: 'rgb(255, 222, 44)',
                 },
                 trialBadgeBorderColor: {
                     name: 'Yellow 300',
-                    css: 'rgb(248, 217, 4)',
+                    css: 'rgb(255, 222, 44)',
                 },
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',

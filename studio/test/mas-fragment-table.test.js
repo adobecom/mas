@@ -88,6 +88,22 @@ describe('MasFragmentTable', () => {
         });
     });
 
+    describe('last modified column', () => {
+        it('shows timestamp and author when fragment.modified is set', async () => {
+            const fragmentStore = createFragmentStore({
+                modified: { at: '2026-03-15T14:30:00.000Z', by: 'alice@adobe.com' },
+            });
+            const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+            await el.updateComplete;
+            const cell = el.querySelector('.last-modified-by');
+            expect(cell).to.exist;
+            expect(cell.querySelector('.modified-by')?.textContent?.trim()).to.equal('alice@adobe.com');
+            const at = cell.querySelector('.modified-at')?.textContent ?? '';
+            expect(at.trim()).to.not.equal('—');
+            expect(at).to.include('2026');
+        });
+    });
+
     describe('handleCreateVariation', () => {
         it('stops propagation', async () => {
             const fragmentStore = createFragmentStore();

@@ -56,6 +56,7 @@ class MasContent extends LitElement {
     renderMode = new StoreController(this, Store.renderMode);
     selecting = new StoreController(this, Store.selecting);
     selection = new StoreController(this, Store.selection);
+    sort = new StoreController(this, Store.sort);
     search = new StoreController(this, Store.search);
     filters = new StoreController(this, Store.filters);
 
@@ -163,6 +164,38 @@ class MasContent extends LitElement {
         Store.selection.set(Array.from(event.target.selectedSet));
     }
 
+    updateSort(field) {
+        const current = Store.sort.get();
+        if (current.sortBy === field) {
+            Store.sort.set({ ...current, sortDirection: current.sortDirection === 'asc' ? 'desc' : 'asc' });
+        } else {
+            const sortDirection = field === 'modifiedAt' ? 'desc' : 'asc';
+            Store.sort.set({ sortBy: field, sortDirection });
+        }
+    }
+
+    get sortedFragments() {
+        const fragments = this.fragments.value.filter((fs) => fs.get() !== null);
+        const { sortBy, sortDirection } = this.sort.value;
+        if (sortBy !== 'path') return fragments;
+        return [...fragments].sort((aStore, bStore) => {
+            const cmp = (aStore.get().path || '').localeCompare(bStore.get().path || '');
+            return sortDirection === 'asc' ? cmp : -cmp;
+        });
+    }
+
+    sortIndicator(field) {
+        const { sortBy, sortDirection } = this.sort.value;
+        if (sortBy === field) {
+            return html`<span class="sort-indicator"
+                >${sortDirection === 'asc'
+                    ? html`<sp-icon-chevron-up size="s"></sp-icon-chevron-up>`
+                    : html`<sp-icon-chevron-down size="s"></sp-icon-chevron-down>`}</span
+            >`;
+        }
+        return html`<span class="sort-indicator"><sp-icon-order size="s"></sp-icon-order></span>`;
+    }
+
     /** @param {import('./reactivity/fragment-store.js').FragmentStore[]} fragmentStores */
     /** Non-country mas:pzn tag ids selected in the filter panel (narrow the Personalization group only). */
     #getSelectedPersonalizationTagIds() {
@@ -225,7 +258,7 @@ class MasContent extends LitElement {
                     <sp-table-head-cell class="title">Fragment Title</sp-table-head-cell>
                     <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
                     <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
+                    <sp-table-head-cell class="last-modified-by">Last modified</sp-table-head-cell>
                     <sp-table-head-cell class="price">Price</sp-table-head-cell>
                     <sp-table-head-cell class="status">Status</sp-table-head-cell>
                     <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
@@ -234,38 +267,47 @@ class MasContent extends LitElement {
                 <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
-        const visibleFragments = this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null);
+        const sortedForTable = this.sortedFragments;
         const personalizationOn = Store.filters.get().personalizationFilterEnabled === true;
         const body = personalizationOn
-            ? this.#renderTableBodyGrouped(visibleFragments)
+            ? this.#renderTableBodyGrouped(sortedForTable)
             : repeat(
-                  visibleFragments,
+                  sortedForTable,
                   (fragmentStore) => fragmentStore.get().path,
                   (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
               );
 
         return html`<sp-table
-                emphasized
-                scroller
-                selects=${this.selecting.value ? 'multiple' : undefined}
-                selected=${JSON.stringify(this.selection.value)}
-                @change=${this.updateTableSelection}
-            >
-                <sp-table-head>
-                    <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                    <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
-                    <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
-                    <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
-                </sp-table-head>
-                <sp-table-body> ${body} ${this.tableLoadingSkeletons} </sp-table-body>
-            </sp-table>
-            ${visibleFragments.length === 0 ? this.emptyState : nothing}`;
+            emphasized
+            scroller
+            selects=${this.selecting.value ? 'multiple' : undefined}
+            selected=${JSON.stringify(this.selection.value)}
+            @change=${this.updateTableSelection}
+        >
+            <sp-table-head>
+                <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
+                <sp-table-head-cell sortable class="name sortable-col" @click=${() => this.updateSort('path')}>
+                    ${this.sortIndicator('path')}Path
+                </sp-table-head-cell>
+                <sp-table-head-cell sortable class="title sortable-col" @click=${() => this.updateSort('title')}>
+                    ${this.sortIndicator('title')}Fragment Title
+                </sp-table-head-cell>
+                <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
+                <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
+                <sp-table-head-cell
+                    sortable
+                    class="last-modified-by sortable-col"
+                    @click=${() => this.updateSort('modifiedAt')}
+                >
+                    ${this.sortIndicator('modifiedAt')}Last modified
+                </sp-table-head-cell>
+                <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
+                <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
+                <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
+                <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
+            </sp-table-head>
+            <sp-table-body> ${body} ${this.tableLoadingSkeletons} </sp-table-body>
+        </sp-table>`;
     }
 
     get tableLoadingSkeletons() {

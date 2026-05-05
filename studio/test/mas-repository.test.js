@@ -5,6 +5,9 @@ import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '..
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 
+/** Default AEM sort meta when `sortBy` is unset or not mapped to a field (see searchFragments). */
+const DEFAULT_CONTENT_LIST_SORT_META = JSON.stringify([{ on: 'modifiedOrCreated', order: 'DESC' }]);
+
 const mockFragmentCache = {
     get: () => null,
     add: () => {},
@@ -851,6 +854,7 @@ describe('MasRepository dictionary helpers', () => {
                     if (key === 'tags') return '';
                     if (key === 'createdBy') return '';
                     if (key === 'personalizationFilterEnabled') return false;
+                    if (key === 'sort') return DEFAULT_CONTENT_LIST_SORT_META;
                     return null;
                 }),
                 set: sandbox.stub(),
@@ -891,6 +895,7 @@ describe('MasRepository dictionary helpers', () => {
                     if (key === 'tags') return 'mas:variant/catalog';
                     if (key === 'createdBy') return '';
                     if (key === 'personalizationFilterEnabled') return false;
+                    if (key === 'sort') return DEFAULT_CONTENT_LIST_SORT_META;
                     return null;
                 }),
                 set: sandbox.stub(),
@@ -971,6 +976,42 @@ describe('MasRepository dictionary helpers', () => {
                 expect(callArg.query).to.equal('photoshop');
             } finally {
                 Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('passes modifiedOrCreated ASC to search when Store.sort is modifiedAt ascending', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub().returns(createMockCursor([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const originalProfile = Store.profile.value;
+            const originalPage = Store.page.get();
+            const originalSort = Store.sort.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.page.set(PAGE_NAMES.CONTENT);
+            Store.sort.set({ sortBy: 'modifiedAt', sortDirection: 'asc' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'ASC' }]);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.page.set(originalPage);
+                Store.sort.set(originalSort);
                 Store.fragments.list.data = originalData;
             }
         });

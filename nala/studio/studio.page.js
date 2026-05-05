@@ -54,6 +54,13 @@ export default class StudioPage {
         this.tableViewPriceCell = (row) => row.locator('sp-table-cell.price');
         this.tableViewActionsMenu = (row) => row.locator('sp-table-cell.actions sp-action-menu');
         this.tableViewCreateVariationOption = (menu) => menu.locator('sp-menu-item:has-text("Create variation")');
+        // Sortable column headers (MWPW-190447). Field names match Store.sort.sortBy.
+        const SORT_HEAD_CELL_CLASS = { path: 'name', title: 'title', modifiedAt: 'last-modified-by' };
+        this.tableViewSortableHeader = (field) =>
+            this.tableView.locator(`sp-table-head-cell.sortable-col.${SORT_HEAD_CELL_CLASS[field]}`);
+        this.tableViewSortIndicatorAsc = (field) => this.tableViewSortableHeader(field).locator('sp-icon-chevron-up');
+        this.tableViewSortIndicatorDesc = (field) => this.tableViewSortableHeader(field).locator('sp-icon-chevron-down');
+        this.tableViewSortIndicatorIdle = (field) => this.tableViewSortableHeader(field).locator('sp-icon-order');
         this.variationDialog = page.locator('mas-variation-dialog > sp-dialog');
         this.variationDialogLocalePicker = this.variationDialog.locator('sp-picker[placeholder="Select a locale"]');
         this.variationDialogCreateButton = this.variationDialog.locator('sp-button:has-text("Create variation")');

@@ -585,8 +585,11 @@ sp-table-cell {
     }
 
     &.last-modified-by {
+        flex-direction: column;
+        align-items: flex-start;
         flex-grow: var(--table-content-last-modified-by-flex-grow);
         word-break: break-word;
+        gap: 3px;
     }
 
     &.price {
@@ -686,6 +689,19 @@ sp-table-head-cell {
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    gap: 5px;
+
+    &.sortable-col {
+        cursor: pointer;
+
+        .sort-indicator {
+            display: inline-flex;
+            align-items: center;
+            width: 1em;
+            flex-shrink: 0;
+            color: black;
+        }
+    }
 
     &.expand-cell {
         /* padding-left: 12px;
@@ -710,6 +726,8 @@ sp-table-head-cell {
 
     &.last-modified-by {
         flex-grow: var(--table-content-last-modified-by-flex-grow);
+        word-break: break-word;
+        gap: 3px;
     }
 
     &.price {

@@ -26,6 +26,16 @@ class MasFragmentTable extends LitElement {
             color: var(--merch-color-error, #d73220);
             font-weight: 600;
         }
+
+        .modified-at {
+            line-height: 1.3;
+        }
+
+        .modified-by {
+            font-size: var(--spectrum-font-size-75);
+            color: var(--spectrum-gray-700);
+            line-height: 1.3;
+        }
     `;
 
     constructor() {
@@ -43,6 +53,21 @@ class MasFragmentTable extends LitElement {
     /** @type {MasRepository} */
     get repository() {
         return document.querySelector('mas-repository');
+    }
+
+    /** @param {string | undefined} iso */
+    #formatModifiedTimestamp(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return Number.isNaN(d.getTime())
+            ? '—'
+            : d.toLocaleString(undefined, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+              });
     }
 
     createRenderRoot() {
@@ -211,7 +236,10 @@ class MasFragmentTable extends LitElement {
                         : ''}
                 </sp-table-cell>
                 <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
-                <sp-table-cell class="last-modified-by">${data.modified?.by}</sp-table-cell>
+                <sp-table-cell class="last-modified-by">
+                    <div class="modified-at">${this.#formatModifiedTimestamp(data.modified?.at)}</div>
+                    ${data.modified?.by ? html`<div class="modified-by">${data.modified.by}</div>` : ''}
+                </sp-table-cell>
                 <sp-table-cell class="price">${this.price}</sp-table-cell>
                 <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
                     ><div class="status-dot"></div>

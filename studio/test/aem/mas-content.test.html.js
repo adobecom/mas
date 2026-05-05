@@ -187,6 +187,7 @@ runTests(async () => {
                 expect(joined).to.include('sp-table');
                 expect(joined).to.include('sp-table-head');
                 expect(joined).to.include('sp-table-body');
+                expect(joined).to.include('Last modified');
                 const skeletons = result.values.find((v) => Array.isArray(v) && v.length === 8);
                 expect(skeletons).to.exist;
             });
@@ -197,6 +198,7 @@ runTests(async () => {
                 const result = masContent.tableView;
                 const joined = result.strings.join('');
                 expect(joined).to.include('sp-table');
+                expect(joined).to.include('Last modified');
             });
         });
 
@@ -247,6 +249,121 @@ runTests(async () => {
                 Store.fragments.list.firstPageLoaded.set(true);
                 Store.renderMode.set('render');
                 expect(masContent.pageLoadingSkeletons).to.equal(nothing);
+            });
+        });
+    });
+
+    describe('sort interactions', () => {
+        let masContent;
+        let originalSort;
+        let originalFragments;
+        let originalPage;
+
+        beforeEach(async () => {
+            originalSort = structuredClone(Store.sort.get());
+            originalFragments = Store.fragments.list.data.get();
+            originalPage = Store.page.get();
+            // The Store.sort validator scopes valid fields to SORT_COLUMNS[currentPage]; setting
+            // page to 'content' is what makes path/title/modifiedAt accepted in these tests.
+            Store.page.set('content');
+            masContent = document.createElement('mas-content');
+            spTheme.append(masContent);
+            await masContent.updateComplete;
+        });
+
+        afterEach(() => {
+            masContent.remove();
+            Store.fragments.list.data.set(originalFragments);
+            Store.sort.set(originalSort);
+            Store.page.set(originalPage);
+        });
+
+        const makeStore = (path) =>
+            new FragmentStore({
+                id: path,
+                path,
+                model: { path: '/models/collection' },
+                title: path,
+                fields: [],
+            });
+
+        describe('updateSort', () => {
+            it('sets sortBy and asc direction when called with a new field', () => {
+                Store.sort.set({ sortBy: null, sortDirection: 'asc' });
+                masContent.updateSort('path');
+                expect(Store.sort.get()).to.deep.equal({ sortBy: 'path', sortDirection: 'asc' });
+            });
+
+            it('defaults modifiedAt to desc on first selection', () => {
+                Store.sort.set({ sortBy: null, sortDirection: 'asc' });
+                masContent.updateSort('modifiedAt');
+                expect(Store.sort.get()).to.deep.equal({ sortBy: 'modifiedAt', sortDirection: 'desc' });
+            });
+
+            it('toggles direction when called with the same field twice', () => {
+                Store.sort.set({ sortBy: 'path', sortDirection: 'asc' });
+                masContent.updateSort('path');
+                expect(Store.sort.get().sortDirection).to.equal('desc');
+                masContent.updateSort('path');
+                expect(Store.sort.get().sortDirection).to.equal('asc');
+            });
+        });
+
+        describe('sortedFragments', () => {
+            it('returns fragments unsorted when sortBy is not "path"', () => {
+                const stores = [makeStore('/c'), makeStore('/a'), makeStore('/b')];
+                Store.fragments.list.data.set(stores);
+                Store.sort.set({ sortBy: 'title', sortDirection: 'asc' });
+                const result = masContent.sortedFragments;
+                expect(result.map((s) => s.get().path)).to.deep.equal(['/c', '/a', '/b']);
+            });
+
+            it('sorts by path ascending when sortBy is "path"', () => {
+                const stores = [makeStore('/c'), makeStore('/a'), makeStore('/b')];
+                Store.fragments.list.data.set(stores);
+                Store.sort.set({ sortBy: 'path', sortDirection: 'asc' });
+                const result = masContent.sortedFragments;
+                expect(result.map((s) => s.get().path)).to.deep.equal(['/a', '/b', '/c']);
+            });
+
+            it('sorts by path descending when sortDirection is "desc"', () => {
+                const stores = [makeStore('/a'), makeStore('/b'), makeStore('/c')];
+                Store.fragments.list.data.set(stores);
+                Store.sort.set({ sortBy: 'path', sortDirection: 'desc' });
+                const result = masContent.sortedFragments;
+                expect(result.map((s) => s.get().path)).to.deep.equal(['/c', '/b', '/a']);
+            });
+        });
+
+        describe('sortIndicator', () => {
+            // The active branch nests a chevron template inside a value expression, so the icon
+            // tag name lives in `values[0].strings`, not the outer `strings` array.
+            const innerJoined = (result) => {
+                const parts = result.strings.slice();
+                for (const v of result.values || []) {
+                    if (v && Array.isArray(v.strings)) parts.push(...v.strings);
+                }
+                return parts.join('');
+            };
+
+            it('renders chevron-up for the active asc field', () => {
+                Store.sort.set({ sortBy: 'path', sortDirection: 'asc' });
+                const joined = innerJoined(masContent.sortIndicator('path'));
+                expect(joined).to.include('sp-icon-chevron-up');
+                expect(joined).to.not.include('sp-icon-chevron-down');
+            });
+
+            it('renders chevron-down for the active desc field', () => {
+                Store.sort.set({ sortBy: 'path', sortDirection: 'desc' });
+                const joined = innerJoined(masContent.sortIndicator('path'));
+                expect(joined).to.include('sp-icon-chevron-down');
+                expect(joined).to.not.include('sp-icon-chevron-up');
+            });
+
+            it('renders idle order icon for inactive fields', () => {
+                Store.sort.set({ sortBy: 'title', sortDirection: 'asc' });
+                const joined = innerJoined(masContent.sortIndicator('path'));
+                expect(joined).to.include('sp-icon-order');
             });
         });
     });

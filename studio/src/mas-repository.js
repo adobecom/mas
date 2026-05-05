@@ -131,6 +131,7 @@ export class MasRepository extends LitElement {
         this.search = new StoreController(this, Store.search);
         this.filters = new StoreController(this, Store.filters);
         this.page = new StoreController(this, Store.page);
+        this.sort = new StoreController(this, Store.sort);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
         this.reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers]);
         this.recentlyUpdatedLimit = new StoreController(this, Store.fragments.recentlyUpdated.limit);
@@ -382,6 +383,7 @@ export class MasRepository extends LitElement {
         const currentPath = dataStore.getMeta('path');
         const currentQuery = dataStore.getMeta('query');
         const currentLocale = dataStore.getMeta('locale');
+        const currentSort = dataStore.getMeta('sort');
         const currentData = dataStore.get();
         const locale = this.filters.value.locale;
         const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
@@ -394,6 +396,14 @@ export class MasRepository extends LitElement {
         const currentCreatedBy = dataStore.getMeta('createdBy');
         const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
         const createdByString = createdBy.join(',');
+
+        const sort = Store.sort.get();
+        const apiSortFieldMap = { title: 'title', modifiedAt: 'modifiedOrCreated' };
+        const apiSortField = apiSortFieldMap[sort.sortBy];
+        const apiSort = apiSortField
+            ? [{ on: apiSortField, order: sort.sortDirection.toUpperCase() }]
+            : [{ on: 'modifiedOrCreated', order: 'DESC' }];
+        const apiSortKey = JSON.stringify(apiSort);
 
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
@@ -432,7 +442,11 @@ export class MasRepository extends LitElement {
             metaPersonalizationOn === personalizationOn;
 
         const identicalFilters =
-            sameSurface && currentQuery === query && currentTags === tagsString && currentCreatedBy === createdByString;
+            sameSurface &&
+            currentQuery === query &&
+            currentTags === tagsString &&
+            currentCreatedBy === createdByString &&
+            currentSort === apiSortKey;
 
         if (identicalFilters) {
             let filteredData = currentData.filter((fragmentStore) => {
@@ -495,7 +509,7 @@ export class MasRepository extends LitElement {
             path: localizedPath,
             tags,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
-            sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+            sort: apiSort,
         };
 
         // AEM's fullText.EDGES index only covers title+description and ANDs across
@@ -648,6 +662,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
             dataStore.setMeta('lastLoad', Date.now());
+            dataStore.setMeta('sort', apiSortKey);
         } catch (error) {
             if (error.name !== 'AbortError') {
                 Store.fragments.list.loading.set(false);

@@ -74,6 +74,72 @@ function textExistsInField(value, find) {
 }
 
 /**
+ * Map an array with bounded concurrency. Mirrors `Promise.all(arr.map(fn))`
+ * semantics (preserves order, fails fast) but caps the number of in-flight
+ * tasks. Used to fan out per-fragment AEM round trips without overwhelming
+ * the upstream service.
+ */
+async function mapWithConcurrency(items, concurrency, mapper) {
+    const results = new Array(items.length);
+    let cursor = 0;
+    const workerCount = Math.min(Math.max(1, concurrency), items.length);
+    if (workerCount === 0) return results;
+    const workers = Array.from({ length: workerCount }, async () => {
+        while (cursor < items.length) {
+            const i = cursor;
+            cursor += 1;
+            results[i] = await mapper(items[i], i);
+        }
+    });
+    await Promise.all(workers);
+    return results;
+}
+
+/**
+ * Pick the most discriminating token from a tokenized title query.
+ * Prefers longer tokens and skips common stop-words that match thousands of cards.
+ */
+function pickStrongestToken(tokens) {
+    if (!tokens?.length) return null;
+    const STOP_WORDS = new Set([
+        'card',
+        'cards',
+        'merch',
+        'plan',
+        'plans',
+        'cc',
+        'opt',
+        'sp',
+        'pzn',
+        'individuals',
+        'individual',
+        'teams',
+        'team',
+        'default',
+        'with',
+        'the',
+        'and',
+        'for',
+        'pro',
+    ]);
+    const ranked = tokens.filter((t) => !STOP_WORDS.has(t)).sort((a, b) => b.length - a.length);
+    return ranked[0] || null;
+}
+
+/**
+ * Extract a single field value from a fragment, handling both the
+ * AEM array-of-fields shape and the legacy keyed-object shape.
+ */
+function extractFieldValue(fragment, name) {
+    if (!fragment) return undefined;
+    const fields = fragment.fields;
+    if (Array.isArray(fields)) {
+        return fields.find((f) => f.name === name)?.values?.[0];
+    }
+    return fields?.[name]?.value || fields?.[name];
+}
+
+/**
  * Studio Operations Tools
  * MCP tools for Studio AI Chat operations (NO AI CALLS - pure execution only)
  *
@@ -423,8 +489,45 @@ export class StudioOperations {
      * Search for cards with filters
      * @param {Object} params - { surface: string, query?: string, tags?: string[], limit?: number, offset?: number, locale?: string, variant?: string, variationType?: string }
      */
+    /**
+     * Search cards by exact fragment title (jcr:title).
+     * The CF Fragments Search API does not index jcr:title in fullText, so we
+     * issue a broad EDGES search using the most distinctive keywords from the
+     * title, then post-filter by exact title match against the returned items.
+     * @param {string} title - Exact fragment title to match
+     * @param {string} surfacePath - Resolved AEM path (may omit locale for all-locale search)
+     * @param {number} limit - Max results to return
+     * @returns {Promise<Array>} Fragments whose title exactly matches
+     */
+    async searchCardsByTitle(title, surfacePath) {
+        console.log(`[StudioOperations] Title search via QueryBuilder: "${title}" under "${surfacePath}"`);
+        try {
+            const hits = await this.aemClient.findFragmentsByTitle(title, surfacePath);
+            console.log(`[StudioOperations] QueryBuilder returned ${hits.length} hit(s)`);
+            return hits;
+        } catch (err) {
+            console.warn(`[StudioOperations] QueryBuilder failed (${err.message}), falling back to CF Fragments scan`);
+            return this.aemClient.findFragmentsByTitleFallback(title, surfacePath);
+        }
+    }
+
     async searchCards(params) {
-        const { surface, query, tags = [], limit = 10, locale = 'en_US', variant, offset = 0, variationType = 'all' } = params;
+        const {
+            surface,
+            query,
+            tags = [],
+            limit = 10,
+            locale = 'en_US',
+            variant,
+            offset = 0,
+            variationType = 'all',
+            osi,
+            titleSearch,
+        } = params;
+
+        if (osi && !surface) {
+            return this.searchCardsByOsi(osi, limit, surface, locale);
+        }
 
         console.log('[StudioOperations] searchCards received params:', {
             surface,
@@ -437,13 +540,69 @@ export class StudioOperations {
         });
 
         if (!surface) {
-            throw new Error('Surface is required for search operation');
+            return {
+                success: false,
+                error: 'SURFACE_REQUIRED',
+                operation: 'search',
+                results: [],
+                count: 0,
+                message: 'Surface is required for search operation',
+            };
         }
 
         const requestLimit = Math.min(limit * 2, 50);
 
         const surfacePath = this.getSurfacePath(surface, locale);
         console.log(`[StudioOperations] getSurfacePath(${surface}, ${locale}) = ${surfacePath}`);
+
+        // Title search: deterministic path used by the AI assistant search router.
+        // Two-stage: AEM full-text (EDGES) narrows to fragments mentioning the
+        // strongest token, then a local case-insensitive substring filter on the
+        // `title` field returns only the title-matches. Faster than scanning all
+        // fragments under the surface, and accurate because we filter locally.
+        const isTitleSearch = titleSearch === true;
+        if (isTitleSearch && query && !tags.length) {
+            const needle = query.trim().toLowerCase();
+            const tokens = needle.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
+            const strongest = pickStrongestToken(tokens) || tokens[0] || needle;
+            console.log(
+                `[StudioOperations] Title-substring search for "${query}" (using token "${strongest}") under ${surfacePath}`,
+            );
+
+            const candidatePages = await mapWithConcurrency([0, 50, 100, 150], 4, async (offset) =>
+                this.aemClient.searchFragments({
+                    path: surfacePath,
+                    query: strongest,
+                    modelIds: [CARD_MODEL_ID],
+                    limit: 50,
+                    offset,
+                    searchMode: 'EDGES',
+                }),
+            );
+
+            const candidates = candidatePages.flat().filter(Boolean);
+            console.log(`[StudioOperations] Title-substring: ${candidates.length} candidates from full-text`);
+
+            const matches = candidates.filter((fragment) => {
+                const cardTitle = (extractFieldValue(fragment, 'title') || fragment.title || '').toLowerCase();
+                return cardTitle.includes(needle);
+            });
+
+            const results = matches.map((fragment) => {
+                const card = this.formatCard(fragment);
+                card.fragmentData = this.formatFragmentForCache(fragment, card);
+                return card;
+            });
+
+            return {
+                success: true,
+                operation: 'search',
+                results,
+                count: results.length,
+                message: `Found ${results.length} card${results.length !== 1 ? 's' : ''} with title containing "${query}"`,
+                studioLinks: { viewFolder: this.urlBuilder.createFolderLink(surface) },
+            };
+        }
 
         // Detect if query has special characters that need exact phrase matching
         let searchMode = 'EDGES';
@@ -474,25 +633,19 @@ export class StudioOperations {
 
         const fragments = await this.aemClient.searchFragments(searchParams);
 
-        const validFragments = await Promise.all(
-            fragments.map(async (fragment, index) => {
-                try {
-                    const fullFragment = await this.aemClient.getFragment(fragment.id);
-                    if (!fullFragment || !fullFragment.id || !fullFragment.fields) {
-                        console.warn(
-                            `[StudioOperations] Fragment ${fragment.id} (index ${index}) invalid: missing id or fields`,
-                        );
-                        return null;
-                    }
-                    return fullFragment;
-                } catch (error) {
-                    console.warn(
-                        `[StudioOperations] Fragment ${fragment.id} (index ${index}) failed to load: ${error.message}`,
-                    );
+        const validFragments = await mapWithConcurrency(fragments, 10, async (fragment, index) => {
+            try {
+                const fullFragment = await this.aemClient.getFragment(fragment.id);
+                if (!fullFragment || !fullFragment.id || !fullFragment.fields) {
+                    console.warn(`[StudioOperations] Fragment ${fragment.id} (index ${index}) invalid: missing id or fields`);
                     return null;
                 }
-            }),
-        );
+                return fullFragment;
+            } catch (error) {
+                console.warn(`[StudioOperations] Fragment ${fragment.id} (index ${index}) failed to load: ${error.message}`);
+                return null;
+            }
+        });
 
         let filteredFragments = validFragments.filter((fragment) => fragment !== null);
 
@@ -522,8 +675,12 @@ export class StudioOperations {
             );
         }
 
+        if (osi) {
+            filteredFragments = filteredFragments.filter((fragment) => extractFieldValue(fragment, 'osi') === osi);
+        }
+
         console.log(
-            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid${variant ? ` (filtered by variant: ${variant})` : ''}${variationType !== 'all' ? ` (filtered by variationType: ${variationType})` : ''}, returning ${Math.min(filteredFragments.length, limit)}`,
+            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid${variant ? ` (filtered by variant: ${variant})` : ''}${variationType !== 'all' ? ` (filtered by variationType: ${variationType})` : ''}${osi ? ` (filtered by osi: ${osi})` : ''}, returning ${Math.min(filteredFragments.length, limit)}`,
         );
 
         const results = filteredFragments.slice(0, limit).map((fragment) => {
@@ -541,6 +698,125 @@ export class StudioOperations {
             studioLinks: {
                 viewFolder: this.urlBuilder.createFolderLink(surface),
             },
+        };
+    }
+
+    async searchCardsByOsi(osi, limit = 200, surface, locale) {
+        const searchPath = surface ? this.getSurfacePath(surface, locale || 'all') : '/content/dam/mas';
+        const fragments = await this.aemClient.searchFragments({
+            path: searchPath,
+            query: osi,
+            modelIds: [CARD_MODEL_ID],
+            limit: Math.min(limit, 50),
+            offset: 0,
+            searchMode: 'EXACT_PHRASE',
+        });
+
+        const validFragments = await mapWithConcurrency(fragments, 10, async (fragment) => {
+            try {
+                const full = await this.aemClient.getFragment(fragment.id);
+                if (!full?.id || !full?.fields) return null;
+                return full;
+            } catch {
+                return null;
+            }
+        });
+
+        const results = validFragments
+            .filter((fragment) => fragment && extractFieldValue(fragment, 'osi') === osi)
+            .map((fragment) => {
+                const card = this.formatCard(fragment);
+                card.fragmentData = this.formatFragmentForCache(fragment, card);
+                return card;
+            });
+
+        return {
+            success: true,
+            operation: 'search',
+            results,
+            count: results.length,
+            message: `Found ${results.length} card${results.length !== 1 ? 's' : ''} using OSI ${osi}`,
+        };
+    }
+
+    /**
+     * Fast-path direct lookup. One of `id` or `osi` must be provided.
+     *
+     * - `id`: single getFragment round trip; misses return an empty result set
+     *   (NOT an error — UUID misses are surfaced as "no card found" by the
+     *   caller).
+     * - `osi`: EXACT_PHRASE search scoped to a surface (or all of MAS if no
+     *   surface), then field-level filter. No N+1 hydration — searchFragments
+     *   already returns full field arrays.
+     */
+    async searchById({ id, osi, surface, locale = 'en_US' }) {
+        if (!id && !osi) {
+            return {
+                success: false,
+                error: 'MISSING_LOOKUP_KEY',
+                operation: 'searchById',
+                results: [],
+                count: 0,
+                message: 'Either `id` or `osi` is required for lookup',
+            };
+        }
+
+        if (id) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+                if (!fragment?.id || !fragment?.fields) {
+                    return {
+                        success: true,
+                        operation: 'searchById',
+                        results: [],
+                        count: 0,
+                        message: `No card found with ID ${id}`,
+                    };
+                }
+                const card = this.formatCard(fragment);
+                card.fragmentData = this.formatFragmentForCache(fragment, card);
+                return {
+                    success: true,
+                    operation: 'searchById',
+                    results: [card],
+                    count: 1,
+                    message: `Found card with ID ${id}`,
+                };
+            } catch {
+                return {
+                    success: true,
+                    operation: 'searchById',
+                    results: [],
+                    count: 0,
+                    message: `No card found with ID ${id}`,
+                };
+            }
+        }
+
+        const searchPath = surface ? this.getSurfacePath(surface, locale === 'en_US' ? locale : 'all') : '/content/dam/mas';
+        const fragments = await this.aemClient.searchFragments({
+            path: searchPath,
+            query: osi,
+            modelIds: [CARD_MODEL_ID],
+            limit: 50,
+            offset: 0,
+            searchMode: 'EXACT_PHRASE',
+        });
+
+        const matched = fragments.filter((fragment) => extractFieldValue(fragment, 'osi') === osi);
+        const results = matched.map((fragment) => {
+            const card = this.formatCard(fragment);
+            card.fragmentData = this.formatFragmentForCache(fragment, card);
+            return card;
+        });
+
+        return {
+            success: true,
+            operation: 'searchById',
+            results,
+            count: results.length,
+            message: `Found ${results.length} card${results.length !== 1 ? 's' : ''} using OSI ${osi}`,
+            studioLinks: surface ? { viewFolder: this.urlBuilder.createFolderLink(surface) } : undefined,
         };
     }
 
@@ -1427,7 +1703,7 @@ export class StudioOperations {
         };
 
         const basePath = surfaceMap[surface] || '/content/dam/mas';
-        return `${basePath}/${locale}`;
+        return locale && locale !== 'all' ? `${basePath}/${locale}` : basePath;
     }
 
     /**

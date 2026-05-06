@@ -36,8 +36,11 @@ export async function executeMCPTool(toolName, params) {
             _aemBaseUrl: aemBaseUrl,
         };
 
+        const ACTION_NAME_OVERRIDES = {
+            get_variations: 'get-fragment-variations',
+        };
         const isLocal = MCP_SERVER_URL.includes('localhost');
-        const actionName = toolName.replace(/_/g, '-');
+        const actionName = ACTION_NAME_OVERRIDES[toolName] ?? toolName.replace(/_/g, '-');
         const endpoint = isLocal ? `${MCP_SERVER_URL}/tools/${toolName}` : `${MCP_SERVER_URL}/${actionName}`;
 
         const response = await fetch(endpoint, {

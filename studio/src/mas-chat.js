@@ -26,6 +26,8 @@ import {
     getAutoSelectedSegmentOption as getAutoSelectedSegmentOptionFn,
     extractKnownSurfaceFromPath,
 } from './utils/mas-chat-helpers.js';
+import { classifySearchIntent, resumeWithSlot } from './utils/ai-chat-search-router.js';
+import { isDeterministicSearchEnabled, recordSearchIntentTelemetry } from './utils/ai-chat-search-telemetry.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, normalizeFragmentForCache, logError } from './utils.js';
 import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
@@ -88,6 +90,7 @@ export class MasChat extends LitElement {
         this.selectedReleaseTrialOffer = null;
         this.selectedReleaseTrialOsi = null;
         this.trialCtaAsked = false;
+        this.pendingSearchIntent = null;
     }
 
     #repositoryEl = null;
@@ -279,6 +282,7 @@ export class MasChat extends LitElement {
         this.selectedReleaseTrialOffer = null;
         this.selectedReleaseTrialOsi = null;
         this.trialCtaAsked = false;
+        this.pendingSearchIntent = null;
     }
 
     handlePromptSelected(event) {
@@ -432,6 +436,14 @@ export class MasChat extends LitElement {
         this.isLoading = true;
         this.error = null;
 
+        if (isDeterministicSearchEnabled() && !context?.skipDeterministicRouter) {
+            const handled = await this.tryDeterministicSearch(message);
+            if (handled) {
+                this.isLoading = false;
+                return;
+            }
+        }
+
         try {
             const currentPath = Store.search?.value?.path || getHashParam('path');
             const enrichedContext = {
@@ -450,14 +462,23 @@ export class MasChat extends LitElement {
             });
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
+                recordSearchIntentTelemetry({
+                    source: 'llm',
+                    intent: response.type === 'mcp_operation' ? response.mcpTool : response.operation,
+                    confidence: 1,
+                    tool: response.type === 'mcp_operation' ? response.mcpTool : response.operation,
+                });
                 if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
-                    const surface =
-                        this.extractSurfaceFromPath(Store.search?.value?.path) ||
-                        this.extractSurfaceFromPath(getHashParam('path')) ||
-                        'acom';
-
-                    response.mcpParams.surface = surface;
-                    response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
+                    if (!response.mcpParams.osi) {
+                        const surface =
+                            this.extractSurfaceFromPath(Store.search?.value?.path) ||
+                            this.extractSurfaceFromPath(getHashParam('path')) ||
+                            'acom';
+                        response.mcpParams.surface = surface;
+                        if (response.mcpParams.locale !== 'all') {
+                            response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
+                        }
+                    }
 
                     if (response.mcpParams.query) {
                         const query = response.mcpParams.query.toLowerCase();
@@ -728,6 +749,127 @@ export class MasChat extends LitElement {
         } finally {
             this.isLoading = false;
         }
+    }
+
+    /**
+     * Run the deterministic search-intent classifier ahead of the LLM call.
+     *
+     * Returns true if the router fully handled the message (either dispatched
+     * a backend operation or rendered a missing-slot follow-up), so the caller
+     * can skip the LLM round-trip entirely. Returns false to let the LLM path
+     * run as a fallback for genuinely fuzzy queries.
+     */
+    async tryDeterministicSearch(message) {
+        const currentSurface =
+            extractKnownSurfaceFromPath(Store.search?.value?.path) || extractKnownSurfaceFromPath(getHashParam('path'));
+        const currentLocale = Store.filters?.value?.locale || 'en_US';
+
+        const classified = this.pendingSearchIntent
+            ? resumeWithSlot(message, this.pendingSearchIntent)
+            : classifySearchIntent(message, { currentSurface, currentLocale });
+
+        recordSearchIntentTelemetry({
+            source: 'router',
+            intent: classified.intent,
+            confidence: classified.confidence,
+            tool: classified.dispatch?.mcpTool || null,
+        });
+
+        if (classified.missingSlot) {
+            this.pendingSearchIntent = classified;
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: classified.missingSlot.prompt,
+                    timestamp: Date.now(),
+                },
+            ];
+            return true;
+        }
+
+        if (classified.dispatch) {
+            this.pendingSearchIntent = null;
+            await this.executeOperation({
+                type: 'mcp_operation',
+                mcpTool: classified.dispatch.mcpTool,
+                mcpParams: classified.dispatch.mcpParams,
+            });
+            this.markLatestOperationLightweight(classified);
+            this.maybeOfferSearchPivots(classified);
+            return true;
+        }
+
+        if (this.pendingSearchIntent) {
+            this.pendingSearchIntent = null;
+        }
+        return false;
+    }
+
+    /**
+     * Tag the most recent operation message so its <mas-operation-result>
+     * renders in lightweight (links-only) mode. Used after the deterministic
+     * router fires — the LLM path keeps the heavyweight default.
+     */
+    markLatestOperationLightweight(classified) {
+        const lastIndex = this.messages.length - 1;
+        const last = this.messages[lastIndex];
+        if (!last?.operationResult) return;
+        const surfaceFromSlots = classified.slots?.surface || null;
+        const localeFromSlots = classified.slots?.locale || 'en_US';
+        const queryFromSlots = classified.slots?.query || classified.slots?.osi || classified.slots?.id || null;
+        this.messages = [
+            ...this.messages.slice(0, lastIndex),
+            {
+                ...last,
+                operationDisplayMode: 'links',
+                operationDisplayContext: {
+                    surface: surfaceFromSlots,
+                    locale: localeFromSlots,
+                    query: queryFromSlots,
+                },
+            },
+        ];
+    }
+
+    /**
+     * After a deterministic search dispatch, append a friendly pivot when the
+     * lookup returned no results. Avoids the silent dead-end users hit today.
+     */
+    maybeOfferSearchPivots(classified) {
+        const lastMessage = this.messages[this.messages.length - 1];
+        const result = lastMessage?.operationResult;
+        if (!result) return;
+
+        const hasNoFragment = classified.intent === 'id-lookup' && !result.fragment;
+        const hasNoResults = classified.intent !== 'id-lookup' && (result.results?.length ?? 0) === 0;
+        if (!hasNoFragment && !hasNoResults) return;
+
+        const surface = classified.slots?.surface;
+        const lookupValue = classified.slots?.id || classified.slots?.osi || classified.slots?.query;
+
+        const lines = [];
+        if (classified.intent === 'id-lookup') {
+            lines.push(`No card found with ID \`${lookupValue}\`.`);
+        } else if (classified.intent === 'osi-lookup' || classified.intent === 'offer-id-lookup') {
+            lines.push(`No cards found using OSI \`${lookupValue}\`${surface ? ` in ${surface}` : ''}.`);
+        } else {
+            lines.push(`No cards matched "${lookupValue}"${surface ? ` in ${surface}` : ''}.`);
+        }
+        if (surface) {
+            lines.push(`You can search by title in **${surface}** or browse the **${surface}** folder in Studio.`);
+        } else {
+            lines.push('You can search by title or paste a fragment ID, OSI, or offer ID.');
+        }
+
+        this.messages = [
+            ...this.messages,
+            {
+                role: 'assistant',
+                content: lines.join('\n\n'),
+                timestamp: Date.now(),
+            },
+        ];
     }
 
     async callAIChatAction(params) {
@@ -1464,18 +1606,40 @@ export class MasChat extends LitElement {
                     : msg,
             );
         } catch (error) {
-            logError('Operation execution error', error);
-            showToast(error.message || 'Operation failed', 'negative');
-            this.messages = this.messages.map((msg) =>
-                msg === loadingMessageObj
-                    ? {
-                          role: 'error',
-                          content: `Operation failed: ${error.message}`,
-                          operationLoading: false,
-                          timestamp: Date.now(),
-                      }
-                    : msg,
-            );
+            const isGetCardNotFound = operationType === 'get_card' && /not found|404/i.test(error?.message || '');
+            if (isGetCardNotFound) {
+                operationResult = {
+                    success: true,
+                    operation: 'get',
+                    fragment: null,
+                    message: 'Card not found',
+                };
+                this.messages = this.messages.map((msg) =>
+                    msg === loadingMessageObj
+                        ? {
+                              role: 'assistant',
+                              content: operationResult.message,
+                              operationResult,
+                              operationType,
+                              operationLoading: false,
+                              timestamp: Date.now(),
+                          }
+                        : msg,
+                );
+            } else {
+                logError('Operation execution error', error);
+                showToast(error.message || 'Operation failed', 'negative');
+                this.messages = this.messages.map((msg) =>
+                    msg === loadingMessageObj
+                        ? {
+                              role: 'error',
+                              content: `Operation failed: ${error.message}`,
+                              operationLoading: false,
+                              timestamp: Date.now(),
+                          }
+                        : msg,
+                );
+            }
         }
 
         if (operationType === 'list_products' && operationResult?.success) {

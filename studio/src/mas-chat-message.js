@@ -507,6 +507,8 @@ export class MasChatMessage extends LitElement {
             operationResult,
             operationType,
             operationLoading,
+            operationDisplayMode,
+            operationDisplayContext,
             fragmentId,
         } = this.message;
 
@@ -672,6 +674,8 @@ export class MasChatMessage extends LitElement {
                         ? html`<mas-operation-result
                               .result=${operationResult}
                               .operationType=${operationType}
+                              .mode=${operationDisplayMode || 'full'}
+                              .displayContext=${operationDisplayContext || null}
                           ></mas-operation-result>`
                         : nothing}
                     ${this.renderFeedbackFooter()}

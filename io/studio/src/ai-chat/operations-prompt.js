@@ -15,7 +15,7 @@ const OPERATIONS_PREAMBLE = `
 
 When the user asks about ANY of the following, you MUST call \`list_products\` first:
 - A specific product name: "Photoshop", "Illustrator", "Creative Cloud", "Acrobat", etc.
-- A PA code (Product Area code matching the pattern PA-\d+, e.g. "PA-1636", "can we do PA-2244"): use the PA code directly as searchText
+- A PA code (Product Area code, e.g. "PA-1636", "PA-2244", or other formats): use the PA code directly as searchText for list_products
 - Product codes, arrangement codes, or icons
 - Which segments or plan types a product supports
 - What products are available (for any segment, market, or use case)
@@ -307,9 +307,32 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 
 **Context Awareness**:
 The system automatically injects these values from the Studio UI:
-- Surface is auto-injected from current folder path (e.g., "acom", "commerce", "ccd")
-- Locale is auto-injected from locale picker (e.g., "en_US", "fr_FR")
-- You DO NOT need to specify surface or locale in mcpParams - they're added automatically
+- Surface is auto-injected from the folder picker selection. Known surfaces: acom, ccd, commerce, adobe-home, sandbox, express, docs, nala.
+- Locale is auto-injected from the locale picker (e.g., "en_US", "fr_FR")
+- You DO NOT need to specify surface or locale in mcpParams — they're added automatically
+- If no surface is detected (user is on an unknown path), keyword and title searches cannot execute. Inform the user: "Please navigate to a surface folder (ACOM, CCD, Commerce, Sandbox, etc.) first so I can scope the search."
+- OSI searches do NOT require a surface — always omit surface for OSI-based searches.
+
+**Locale overrides** (only include locale in mcpParams when user explicitly requests it):
+- User asks for a specific locale → include \`"locale": "fr_FR"\` (exact locale code)
+- User asks for all locales / across all locales → include \`"locale": "all"\`
+- User asks for current locale or doesn't mention locale → omit (auto-injected)
+
+**Title search (fragment name/jcr:title)**: When the user wants to find cards BY THEIR FRAGMENT TITLE (the name shown in the AEM DAM, which often contains colons like "CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo"), use \`titleSearch: true\` in mcpParams. This activates a keyword-extraction + exact-title post-filter that bypasses the full-text index limitation:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "search_cards",
+  "mcpParams": {
+    "query": "CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo",
+    "titleSearch": true,
+    "locale": "all"
+  },
+  "message": "Searching for all cards with that exact fragment title across all locales..."
+}
+\`\`\`
+- Always use \`titleSearch: true\` when the query contains colons (fragment titles contain colons)
+- Always pair with \`"locale": "all"\` when user asks "in all locales"
 
 **IMPORTANT: Message Format for Search Results**:
 When search results are returned, you MUST communicate them clearly in your message:
@@ -344,7 +367,10 @@ User in ACOM/en_US: "find 50% off cards"
 → searchMode: "EXACT_PHRASE", query: "50% off" (contains special character '%')
 
 User in ACOM/en_US: "show me french cards"
-→ RESPOND: "I can only search within the en_US locale you have selected. Please switch to fr_FR using the locale picker to browse French content."
+→ include \`"locale": "fr_FR"\` in mcpParams (override auto-injection)
+
+User in ACOM/en_US: "show me all locale versions of plans cards"
+→ include \`"locale": "all"\` in mcpParams (search across all locales)
 
 ## DELETE FRAGMENT
 Delete a card or collection (requires confirmation).
@@ -1197,6 +1223,91 @@ User: "change to 30+ apps"
 → Use those IDs for bulk update operation
 `;
 
+const OSI_SEARCH_OPS = `
+## SEARCH CARDS BY OSI, OFFER ID, OR TITLE
+
+**When to use**:
+- User pastes or mentions an OSI (Offer Selector ID) and asks to find all cards using it
+- User mentions a fragment title and wants to find cards matching that title
+- User says "show me all cards using this OSI", "find cards with offer X", "which cards use this offer selector"
+- User says "find cards named X", "show me cards with title Y"
+
+### Search by OSI
+
+**MCP Response format**:
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "search_cards",
+  "mcpParams": {
+    "osi": "<the-osi-value>"
+  },
+  "message": "Searching for all cards using OSI <osi>..."
+}
+\`\`\`
+
+**Rules**:
+- Pass the OSI string exactly as provided
+- Omit \`surface\` to search all surfaces; include it to scope to the current surface
+- Omit \`locale\` to search all locales; include \`"locale": "all"\` explicitly for all locales or a specific code like \`"en_US"\` to scope
+- The response is the same card list as a normal search
+
+### Search by title
+
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "search_cards",
+  "mcpParams": {
+    "query": "<fragment title>",
+    "titleSearch": true,
+    "locale": "all"
+  },
+  "message": "Searching for cards with title <title> across all locales..."
+}
+\`\`\`
+
+Surface and locale are auto-injected from the folder picker unless the user specifies otherwise.
+
+**Examples**:
+
+User: "Show me all cards using this OSI: gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM"
+→ { mcpTool: "search_cards", mcpParams: { osi: "gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM" } }
+
+User: "Which cards reference offer selector A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M in all locales?"
+→ { mcpTool: "search_cards", mcpParams: { osi: "A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M", locale: "all" } }
+
+User: "Find en_US cards using OSI gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM"
+→ { mcpTool: "search_cards", mcpParams: { osi: "gYCn_HPAAlYUuXsJNUoFyFBiFE0rePc0uwoFbiI64JM", locale: "en_US" } }
+
+User: "Find cards named 'Creative Cloud All Apps'"
+→ { mcpTool: "search_cards", mcpParams: { query: "Creative Cloud All Apps", searchMode: "EXACT_PHRASE" } }
+
+User: "Show me all versions of the card titled 'Photoshop single app' across all locales"
+→ { mcpTool: "search_cards", mcpParams: { query: "Photoshop single app", searchMode: "EXACT_PHRASE", locale: "all" } }
+
+### Search by arrangement code or PA code (two-step)
+
+When a user asks "find cards using arrangement code phsp_direct_individual", "show me cards for PA-2114", or "which cards use this PA code":
+1. Call \`list_products\` with \`searchText: "<arrangement_code_or_pa_code>"\` to retrieve the product and its OSI
+2. Extract the OSI from the product data returned
+3. Call \`search_cards\` with \`{ osi: "<extracted-osi>" }\` to find all cards referencing that offer
+
+Do NOT call \`search_cards\` with \`query: "<arrangement_code>"\` — arrangement codes and PA codes are not stored as card text fields.
+
+**Examples**:
+
+User: "show me all cards using this PA code: PA-2114"
+→ Step 1: { mcpTool: "list_products", mcpParams: { searchText: "PA-2114" } }
+→ (After getting product with OSI "abc-osi-123")
+→ Step 2: { mcpTool: "search_cards", mcpParams: { osi: "abc-osi-123" } }
+
+User: "find cards using arrangement code phsp_direct_individual"
+→ Step 1: { mcpTool: "list_products", mcpParams: { searchText: "phsp_direct_individual" } }
+→ (After getting product with OSI "abc-osi-123")
+→ Step 2: { mcpTool: "search_cards", mcpParams: { osi: "abc-osi-123" } }
+`;
+
 const KEYWORD_MATCHERS = [
     {
         keywords: ['publish', 'unpublish', 'go live', 'take offline'],
@@ -1244,8 +1355,24 @@ const KEYWORD_MATCHERS = [
         section: VARIATION_OPS,
     },
     {
-        keywords: ['offer', 'pricing', 'price', 'osi', 'product', 'arrangement', 'mcs', 'catalog'],
+        keywords: ['offer', 'pricing', 'price', 'osi', 'product', 'arrangement', 'mcs', 'catalog', 'pa code', 'pa-', ' pa '],
         section: OFFER_OPS,
+    },
+    {
+        keywords: [
+            'cards using',
+            'cards with',
+            'cards that use',
+            'cards for this',
+            'using this osi',
+            'using this offer',
+            'which cards',
+            'cards named',
+            'cards titled',
+            'find cards',
+            'title',
+        ],
+        section: OSI_SEARCH_OPS,
     },
 ];
 
@@ -1294,6 +1421,7 @@ export {
     BULK_OPS,
     VARIATION_OPS,
     OFFER_OPS,
+    OSI_SEARCH_OPS,
     ATTACHED_CARDS_SECTION,
     buildOperationsPrompt,
 };

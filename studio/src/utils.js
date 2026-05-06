@@ -265,6 +265,19 @@ export function buildStudioFragmentHref({ webComponentName, fragmentId, page, pa
 }
 
 /**
+ * Build a "browse this surface folder" link for use in chat search results.
+ * Mirrors the backend StudioURLBuilder.createFolderLink contract.
+ */
+export function buildStudioFolderHref({ surface, query, locale }) {
+    const params = new URLSearchParams();
+    params.set('page', 'content');
+    if (surface) params.set('path', `/content/dam/mas/${surface}`);
+    if (query) params.set('query', query);
+    if (locale && locale !== 'en_US') params.set('locale', locale);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
+/**
  * Generates a rich link for a single fragment field.
  * Used by the "Copy Field" sidebar button to produce a clipboard entry
  * that pastes as a clickable "alias → fieldName" link in SharePoint.

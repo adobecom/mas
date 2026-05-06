@@ -216,6 +216,15 @@ function validateMCPOperation(operation) {
             break;
 
         case 'search_cards':
+            if (!operation.mcpParams.surface && !operation.mcpParams.osi && !operation.mcpParams.titleSearch) {
+                return {
+                    valid: false,
+                    error:
+                        operation.mcpParams.query || operation.mcpParams.tags?.length
+                            ? 'search_cards with query or tags requires a surface. Please navigate to a surface folder (ACOM, CCD, Commerce, Sandbox, etc.) before searching by keyword or title.'
+                            : 'search_cards requires either mcpParams.surface or mcpParams.osi',
+                };
+            }
             break;
 
         case 'get_variations':
@@ -322,13 +331,23 @@ export function processOperation(operation, message) {
 /**
  * Main handler - detects and processes operations from AI response
  * @param {string} responseText - AI response
+ * @param {Object} [enrichedContext] - Optional context for surface/locale injection before validation
  * @returns {Object|null} - Processed operation or null if not an operation
  */
-export function handleOperation(responseText) {
+export function handleOperation(responseText, enrichedContext) {
     const operation = parseOperationRequest(responseText);
 
     if (!operation) {
         return null;
+    }
+
+    if (enrichedContext && operation.mcpTool === 'search_cards') {
+        if (enrichedContext.surface && !operation.mcpParams.surface) {
+            operation.mcpParams.surface = enrichedContext.surface;
+        }
+        if (enrichedContext.locale && !operation.mcpParams.locale) {
+            operation.mcpParams.locale = enrichedContext.locale;
+        }
     }
 
     const message = extractOperationMessage(responseText);

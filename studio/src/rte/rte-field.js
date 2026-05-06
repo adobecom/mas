@@ -1156,6 +1156,13 @@ class RteField extends LitElement {
                 link: (node, view, getPos) => new LinkNodeView(node, view, getPos),
                 mnemonic: (node, view, getPos) => new MnemonicNodeView(node, view, getPos),
             },
+            transformPastedText: (text) => {
+                const trimmed = text.trim();
+                if (/^https?:\/\/\S+$/.test(trimmed)) {
+                    return `<a href="${trimmed}">${trimmed}</a>`;
+                }
+                return text;
+            },
         });
 
         if (this.placeholder) {

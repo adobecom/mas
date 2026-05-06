@@ -241,6 +241,10 @@ function extractSurfaceFromPath(path) {
         ccd: 'ccd',
         commerce: 'commerce',
         ahome: 'adobe-home',
+        sandbox: 'sandbox',
+        express: 'express',
+        docs: 'docs',
+        nala: 'nala',
     };
 
     return surfaceMap[pathSegment] || null;
@@ -499,7 +503,35 @@ async function main(params) {
         //                          >=22 (real OSIs are base64-shaped and
         //                          ~32–48 chars, not short lowercase names).
         //                          Route to resolve_offer_selector.
-        if (releaseIntent) {
+        const searchIntent = /\b(find|show|search|which|get|look\s*up|cards?)\b/i.test(message);
+
+        // Deterministic title search: detect "fragment title" or "title" followed by a quoted or
+        // colon-containing title string. Bypass the LLM entirely.
+        if (searchIntent) {
+            const titleMatch =
+                message.match(
+                    /(?:fragment\s+title|cards?\s+(?:named|with\s+title|titled))\s+[""']?([^""']+?)[""']?\s*(?:in\s+all\s+locales?)?$/i,
+                ) || message.match(/[""']([^""']+:[^""']+)[""']/);
+            if (titleMatch) {
+                const titleQuery = titleMatch[1].trim();
+                const wantsAllLocales = /\ball\s+locales?\b/i.test(message);
+                console.log(`[Backend] Deterministic title search bypass: "${titleQuery}" allLocales=${wantsAllLocales}`);
+                return {
+                    statusCode: 200,
+                    headers: { ...getResponseHeaders() },
+                    body: {
+                        type: 'mcp_operation',
+                        mcpTool: 'search_cards',
+                        mcpParams: { query: titleQuery, titleSearch: true, ...(wantsAllLocales ? { locale: 'all' } : {}) },
+                        message: `Searching for all cards with title "${titleQuery}"${wantsAllLocales ? ' across all locales' : ''}...`,
+                        confirmationRequired: false,
+                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                    },
+                };
+            }
+        }
+
+        if (releaseIntent || searchIntent) {
             const trimmed = (message || '').trim();
             const bareOfferId = /^(?:(?:offer\s*id|osi|selected\s*offer)\s*[:=]\s*)?([a-fA-F0-9]{32})$/i.exec(trimmed);
             const barePaCode = /^(?:arrangement\s*code\s*[:=]\s*)?(PA-\d+)$/i.exec(trimmed);
@@ -550,6 +582,21 @@ async function main(params) {
                 };
             }
             if (looksLikeOsi) {
+                const wantsCards = /\b(cards?|find|show|which|search|using)\b/i.test(trimmed);
+                if (wantsCards) {
+                    return {
+                        statusCode: 200,
+                        headers: { ...getResponseHeaders() },
+                        body: {
+                            type: 'mcp_operation',
+                            mcpTool: 'search_cards',
+                            mcpParams: { osi: osiCandidate },
+                            message: `Searching for all cards using OSI ${osiCandidate}...`,
+                            confirmationRequired: false,
+                            conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                        },
+                    };
+                }
                 return {
                     statusCode: 200,
                     headers: { ...getResponseHeaders() },
@@ -605,19 +652,10 @@ async function main(params) {
             };
         }
 
-        const operationResult = handleOperation(response.message);
+        const operationResult = handleOperation(response.message, enrichedContext);
 
         if (operationResult) {
             if (operationResult.type === 'mcp_operation') {
-                if (operationResult.mcpTool === 'search_cards' && enrichedContext) {
-                    if (enrichedContext.surface && !operationResult.mcpParams.surface) {
-                        operationResult.mcpParams.surface = enrichedContext.surface;
-                    }
-                    if (enrichedContext.locale && !operationResult.mcpParams.locale) {
-                        operationResult.mcpParams.locale = enrichedContext.locale;
-                    }
-                }
-
                 return {
                     statusCode: 200,
                     headers: {

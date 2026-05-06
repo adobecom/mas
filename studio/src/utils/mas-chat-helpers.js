@@ -147,9 +147,18 @@ export function getAutoSelectedSegmentOption(response, offer) {
 
 /**
  * Extract + validate a known MAS surface from a filesystem-style path.
+ * Accepts both "fully qualified" paths (`/content/dam/mas/<surface>/<locale>/...`)
+ * and shorter forms used by Studio's URL hash (`/content/dam/mas/<surface>/<locale>`,
+ * `/content/dam/mas/<surface>`, or just `<surface>`).
  */
 export function extractKnownSurfaceFromPath(path) {
     if (!path || typeof path !== 'string') return null;
-    const surface = path.includes('/') ? extractSurface(path) : path;
-    return KNOWN_SURFACES.has(surface) ? surface : null;
+    if (!path.includes('/')) {
+        return KNOWN_SURFACES.has(path) ? path : null;
+    }
+    const strict = extractSurface(path);
+    if (KNOWN_SURFACES.has(strict)) return strict;
+    const masMatch = path.match(/^\/content\/dam\/mas\/([\w-]+)/);
+    if (masMatch && KNOWN_SURFACES.has(masMatch[1])) return masMatch[1];
+    return null;
 }

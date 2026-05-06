@@ -694,6 +694,126 @@ export class AEMClient {
     }
 
     /**
+     * Find content fragments by exact jcr:title using AEM QueryBuilder.
+     * The CF Fragments Search API does not index jcr:title; QueryBuilder does.
+     * Returns an array of objects with { id, title, path } suitable for
+     * passing to getFragment() for full data.
+     *
+     * @param {string} title - Exact jcr:title to match
+     * @param {string} path - DAM path to scope the search (e.g. /content/dam/mas/sandbox)
+     * @param {number} limit - Max results (capped at 500 by QueryBuilder)
+     */
+    async findFragmentsByTitle(title, path, limit = 200) {
+        const authHeader = await this.authManager.getAuthHeader();
+
+        const params = new URLSearchParams({
+            path,
+            type: 'dam:AssetContent',
+            property: 'jcr:title',
+            'property.value': title,
+            'p.limit': String(Math.min(limit, 500)),
+            'p.hits': 'selective',
+            'p.properties': 'jcr:title jcr:path',
+        });
+
+        const url = `${this.baseUrl}/bin/querybuilder.json?${params}`;
+        console.log('[AEMClient] QueryBuilder title search:', url);
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+
+        let response;
+        try {
+            response = await fetch(url, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: {
+                    Authorization: authHeader,
+                    pragma: 'no-cache',
+                    'cache-control': 'no-cache',
+                },
+            });
+        } finally {
+            clearTimeout(timeout);
+        }
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            console.error('[AEMClient] QueryBuilder failed:', response.status, text.substring(0, 200));
+            throw new Error(`QueryBuilder search failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log(`[AEMClient] QueryBuilder returned ${data.total} hits`);
+
+        return (data.hits || []).map((hit) => ({
+            path: hit['jcr:path']?.replace('/jcr:content', '') || hit['jcr:path'],
+            title: hit['jcr:title'],
+        }));
+    }
+
+    /**
+     * Find fragments whose jcr:title contains the search string (case-insensitive).
+     * Paginates through fragments under the given path using the CF Fragments search API.
+     * Used as fallback when QueryBuilder is unavailable.
+     * @param {string} title - Title substring to match (case-insensitive)
+     * @param {string} path - DAM path to scope the search
+     * @returns {Promise<Array<{path: string, title: string, id: string}>>}
+     */
+    async findFragmentsByTitleFallback(title, path) {
+        const authHeader = await this.authManager.getAuthHeader();
+        const pageSize = 50;
+        const maxPages = 20;
+        const perPageTimeoutMs = 2000;
+        const needle = title.toLowerCase();
+        const matches = [];
+
+        for (let page = 0; page < maxPages; page++) {
+            const filter = { path, modelIds: ['L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ'] };
+            const searchParams = new URLSearchParams({
+                query: JSON.stringify({ filter }),
+                limit: String(pageSize),
+                offset: String(page * pageSize),
+            });
+
+            const url = `${this.baseUrl}/adobe/sites/cf/fragments/search?${searchParams}`;
+            const signal =
+                typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(perPageTimeoutMs) : undefined;
+            let response;
+            try {
+                response = await fetch(url, {
+                    headers: {
+                        Authorization: authHeader,
+                        pragma: 'no-cache',
+                        'cache-control': 'no-cache',
+                        'x-aem-affinity-type': 'api',
+                    },
+                    signal,
+                });
+            } catch (err) {
+                console.warn(`[AEMClient] Fallback title search aborted on page ${page}: ${err.message}`);
+                break;
+            }
+
+            if (!response.ok) break;
+
+            const data = await response.json();
+            const items = data.items || [];
+
+            for (const item of items) {
+                if (item.title?.toLowerCase().includes(needle)) {
+                    matches.push({ path: item.path, title: item.title, id: item.id });
+                }
+            }
+
+            if (items.length < pageSize) break;
+        }
+
+        console.log(`[AEMClient] Fallback title search found ${matches.length} match(es) for "${title}"`);
+        return matches;
+    }
+
+    /**
      * List folders in a path
      */
     async listFolders(path) {

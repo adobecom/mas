@@ -25,6 +25,8 @@ export const FRIES_AEM_FRAGMENT_MAPPING = {
         attribute: 'border-color',
         specialValues: {
             gray: '--spectrum-gray-300',
+            'gradient-purple-blue': 'var(--gradient-purple-blue)',
+            'gradient-firefly-spectrum': 'var(--gradient-firefly-spectrum)',
         },
     },
 };
@@ -125,6 +127,34 @@ export class FriesCard extends VariantLayout {
             align-items: center;
             gap: 8px;
             margin-top: 15px;
+        }
+
+        :host([variant='fries'][gradient-border='true']) {
+            border: 1px solid transparent;
+            background-image: linear-gradient(
+                    to bottom,
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    ),
+                    var(
+                        --merch-card-custom-background-color,
+                        var(--consonant-merch-card-background-color)
+                    )
+                ),
+                var(--merch-card-fries-border-gradient);
+            background-origin: padding-box, border-box;
+            background-clip: padding-box, border-box;
+        }
+
+        :host([variant='fries'][border-color='gradient-purple-blue']) {
+            --merch-card-fries-border-gradient: var(--gradient-purple-blue);
+        }
+
+        :host([variant='fries'][border-color='gradient-firefly-spectrum']) {
+            --merch-card-fries-border-gradient: var(
+                --gradient-firefly-spectrum
+            );
         }
     `;
 }

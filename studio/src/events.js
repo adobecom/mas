@@ -4,6 +4,7 @@ const Events = {
     toast: new MasEvent(),
     fragmentAdded: new MasEvent(),
     fragmentDeleted: new MasEvent(),
+    fragmentSaved: new MasEvent(),
     filtersReset: new MasEvent(),
 };
 

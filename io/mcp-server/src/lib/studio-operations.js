@@ -96,37 +96,6 @@ async function mapWithConcurrency(items, concurrency, mapper) {
 }
 
 /**
- * Pick the most discriminating token from a tokenized title query.
- * Prefers longer tokens and skips common stop-words that match thousands of cards.
- */
-function pickStrongestToken(tokens) {
-    if (!tokens?.length) return null;
-    const STOP_WORDS = new Set([
-        'card',
-        'cards',
-        'merch',
-        'plan',
-        'plans',
-        'cc',
-        'opt',
-        'sp',
-        'pzn',
-        'individuals',
-        'individual',
-        'teams',
-        'team',
-        'default',
-        'with',
-        'the',
-        'and',
-        'for',
-        'pro',
-    ]);
-    const ranked = tokens.filter((t) => !STOP_WORDS.has(t)).sort((a, b) => b.length - a.length);
-    return ranked[0] || null;
-}
-
-/**
  * Extract a single field value from a fragment, handling both the
  * AEM array-of-fields shape and the legacy keyed-object shape.
  */
@@ -556,31 +525,35 @@ export class StudioOperations {
         console.log(`[StudioOperations] getSurfacePath(${surface}, ${locale}) = ${surfacePath}`);
 
         // Title search: deterministic path used by the AI assistant search router.
-        // Two-stage: AEM full-text (EDGES) narrows to fragments mentioning the
-        // strongest token, then a local case-insensitive substring filter on the
-        // `title` field returns only the title-matches. Faster than scanning all
-        // fragments under the surface, and accurate because we filter locally.
+        // Two-stage: AEM full-text (EDGES) using the user's full query narrows
+        // to candidate fragments, then a local case-insensitive substring filter
+        // on the `title` field keeps only the real title matches. Iterates AEM's
+        // cursor (matching studio's production search in studio/src/aem/aem.js)
+        // so we get every match, not a 4-page slice.
         const isTitleSearch = titleSearch === true;
         if (isTitleSearch && query && !tags.length) {
             const needle = query.trim().toLowerCase();
-            const tokens = needle.split(/[^a-z0-9]+/).filter((t) => t.length >= 3);
-            const strongest = pickStrongestToken(tokens) || tokens[0] || needle;
-            console.log(
-                `[StudioOperations] Title-substring search for "${query}" (using token "${strongest}") under ${surfacePath}`,
-            );
+            console.log(`[StudioOperations] Title-substring search for "${query}" under ${surfacePath} (cursor mode)`);
 
-            const candidatePages = await mapWithConcurrency([0, 50, 100, 150], 4, async (offset) =>
-                this.aemClient.searchFragments({
+            const candidates = [];
+            let cursor = null;
+            const MAX_PAGES = 40;
+            for (let page = 0; page < MAX_PAGES; page += 1) {
+                const response = await this.aemClient.searchFragments({
                     path: surfacePath,
-                    query: strongest,
+                    query,
                     modelIds: [CARD_MODEL_ID],
                     limit: 50,
-                    offset,
+                    cursor,
                     searchMode: 'EDGES',
-                }),
-            );
-
-            const candidates = candidatePages.flat().filter(Boolean);
+                    includeCursor: true,
+                });
+                if (response?.items?.length) {
+                    candidates.push(...response.items);
+                }
+                cursor = response?.cursor || null;
+                if (!cursor) break;
+            }
             console.log(`[StudioOperations] Title-substring: ${candidates.length} candidates from full-text`);
 
             const matches = candidates.filter((fragment) => {

@@ -130,6 +130,10 @@ export default class MasPlans {
         return this.page.locator(`merch-card-collection[id="${id}"]`);
     }
 
+    getCollectionCard(collectionId, index) {
+        return this.getCollection(collectionId).locator('merch-card').nth(index);
+    }
+
     getCardSubtitle(id) {
         return this.getCard(id).locator('p[slot="subtitle"]');
     }

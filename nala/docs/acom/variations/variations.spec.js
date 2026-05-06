@@ -2,24 +2,6 @@ import { PRICE_PATTERN, DOCS_GALLERY_PATH } from '../../../utils/commerce.js';
 
 export const FeatureName = 'Merch Acom Cards Feature';
 export const features = [
-    // PLANS CARDS
-    // - grouped variation in collection (CC in Illustrator) en_GR i country=AR
-    // - regional variation in collection (Firefly in Illustrator) en_GR
-    // - regional variation of the collection (Social removed card) en_GR
-    // - grouped card variation in regional collection variation (Adobe express in Social) en_gr
-
-    // regiona card variation in grouped collection variation???
-    // regional in regional ??
-    // grouped in grouped ??
-
-    // - translated card variation in grouped collection variation???
-    // - grouped variation of the collection (reorder) country=AR
-    // - translated grouped variation of the card in the collection (CC in Illustrator) es_AR
-    // - regional variation of translated card in the translated collection (Firefly in Illustrator) es_AR
-
-    // - regional variation of the translated card in the translated (grouped variation) collection (does not work) ?? grouped collection not translated?
-    // translated cards do not work in Social es_ES, but work in Illustration
-    //
     {
         tcid: '0',
         name: '@MAS-Grouped-Variation-in-Collection',
@@ -57,7 +39,7 @@ export const features = [
             id: 'b5486c6e-34c6-40a4-aa31-37eca4edf35d',
             variation_id: 'a74b83a6-116c-4bc0-9cb0-b52e050cc712',
             removed_id: '7545e2eb-8fad-47d8-96cf-e76d3370c9f4',
-            //reorder
+            reorder: ['40d5ebda-a155-4375-91c3-fbb788ab5314', 'd4faa487-d88e-4fb7-b42f-c1a3101ea937'],
         },
         browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
@@ -69,7 +51,11 @@ export const features = [
         data: {
             id: 'b5486c6e-34c6-40a4-aa31-37eca4edf35d',
             variation_id: '553aaaa6-9ec5-43fc-9479-d72e0de0d486',
-            removed_id: 'reorder',
+            reorder: [
+                '7545e2eb-8fad-47d8-96cf-e76d3370c9f4',
+                'd4faa487-d88e-4fb7-b42f-c1a3101ea937',
+                '40d5ebda-a155-4375-91c3-fbb788ab5314',
+            ],
         },
         browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',

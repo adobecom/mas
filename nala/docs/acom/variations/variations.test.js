@@ -5,27 +5,15 @@ import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../../utils/commerc
 
 test.skip(({ browserName }) => browserName !== 'chromium', 'Not supported to run on multiple browsers.');
 
-const PATH_NAMES = {
-    [DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co]: 'GR_co',
-    [DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN]: 'GR_EN',
-    [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co]: 'AR_co',
-    [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES]: 'AR_ES',
-    [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR]: 'AR',
-};
-
-const workerPages = [];
-const seenUrls = new Set();
-for (const feature of features) {
-    const paths = Array.isArray(feature.path) ? feature.path : [feature.path];
-    for (const path of paths) {
-        if (!seenUrls.has(path)) {
-            seenUrls.add(path);
-            workerPages.push({ name: PATH_NAMES[path], url: path });
-        }
-    }
-}
-
-const workerSetup = createWorkerPageSetup({ pages: workerPages });
+const workerSetup = createWorkerPageSetup({
+    pages: [
+        { name: 'GR_co', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co },
+        { name: 'GR_EN', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN },
+        { name: 'AR_co', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co },
+        { name: 'AR_ES', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES },
+        { name: 'AR', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR },
+    ],
+});
 
 test.describe('ACOM MAS Variations feature test suite', () => {
     test.beforeAll(async ({ browser, baseURL }) => {
@@ -109,6 +97,12 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await expect(acomPage.getCollection(data.id)).toBeVisible();
             await expect(acomPage.getCollection(data.id)).toHaveAttribute('variation-id', data.variation_id);
             await expect(acomPage.getCard(data.removed_id)).not.toBeVisible();
+            for (let i = 0; i < data.reorder.length; i++) {
+                await expect(acomPage.getCollectionCard(data.id, i).locator('aem-fragment')).toHaveAttribute(
+                    'fragment',
+                    data.reorder[i],
+                );
+            }
         });
 
         await test.step('step-2: Verify regional collection variation on GR_EN', async () => {
@@ -118,6 +112,12 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await expect(acomPage.getCollection(data.id)).toBeVisible();
             await expect(acomPage.getCollection(data.id)).toHaveAttribute('variation-id', data.variation_id);
             await expect(acomPage.getCard(data.removed_id)).not.toBeVisible();
+            for (let i = 0; i < data.reorder.length; i++) {
+                await expect(acomPage.getCollectionCard(data.id, i).locator('aem-fragment')).toHaveAttribute(
+                    'fragment',
+                    data.reorder[i],
+                );
+            }
         });
     });
 
@@ -131,6 +131,12 @@ test.describe('ACOM MAS Variations feature test suite', () => {
             await workerSetup.verifyPageURL('AR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co, expect);
             await expect(acomPage.getCollection(data.id)).toBeVisible();
             await expect(acomPage.getCollection(data.id)).toHaveAttribute('variation-id', data.variation_id);
+            for (let i = 0; i < data.reorder.length; i++) {
+                await expect(acomPage.getCollectionCard(data.id, i).locator('aem-fragment')).toHaveAttribute(
+                    'fragment',
+                    data.reorder[i],
+                );
+            }
         });
     });
 

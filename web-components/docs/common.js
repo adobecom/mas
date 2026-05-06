@@ -32,7 +32,7 @@ const toggleLocale = (event, params) => {
         const [country, language] = val.split(',');
         params.set('country', country);
         params.set('language', language);
-        params.delete('locale');
+        // params.delete('locale');
     } else {
         params.set('locale', val);
         params.delete('country');

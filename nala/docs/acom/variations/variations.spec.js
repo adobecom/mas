@@ -16,7 +16,6 @@ export const features = [
             badgeText: '[en_GR, AR] grouped variation',
             badgeColor: 'rgb(5, 131, 78)', // Green 900
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
@@ -28,7 +27,6 @@ export const features = [
             variation_id: 'a55c1d3b-2024-4489-931e-6966f345b35f',
             subtitle: 'GR regional variation',
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
     {
@@ -41,7 +39,6 @@ export const features = [
             removed_id: '7545e2eb-8fad-47d8-96cf-e76d3370c9f4',
             reorder: ['40d5ebda-a155-4375-91c3-fbb788ab5314', 'd4faa487-d88e-4fb7-b42f-c1a3101ea937'],
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
     {
@@ -57,7 +54,6 @@ export const features = [
                 '40d5ebda-a155-4375-91c3-fbb788ab5314',
             ],
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
     {
@@ -71,7 +67,6 @@ export const features = [
             variation_collection_id: 'a74b83a6-116c-4bc0-9cb0-b52e050cc712',
             subtitle: 'en_GR grouped variation',
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
     {
@@ -85,7 +80,6 @@ export const features = [
             variation_collection_id: 'a74b83a6-116c-4bc0-9cb0-b52e050cc712',
             subtitle: 'GR regional variation',
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
     {
@@ -99,7 +93,6 @@ export const features = [
             subtitle: 'Grouped variation of ES',
             badgeColor: 'rgb(80, 80, 80)', // Grey 700
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
     {
@@ -112,9 +105,9 @@ export const features = [
             collection_id: '4a466a3c-efa2-4406-ae47-93abd2167e27',
             subtitle: 'AR regional variation from ES',
         },
-        browserParams: '?mas.preview=on',
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
+    // once issue with AR is fixed, add this test
     // {
     //     tcid: '8',
     //     name: '@MAS-Translated-Card-Regional-Variation-in-Translated-Collection-Grouped-Variation',
@@ -126,7 +119,6 @@ export const features = [
     //         variation_collection_id: '',
     //         subtitle: '',
     //     },
-    //     browserParams: '?mas.preview=on',
     //     tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     // },
 ];

@@ -86,7 +86,6 @@ const init = async (params = {}) => {
         commerceEnv,
     );
     await import('../dist/mas.js');
-    await import('../dist/merch-card-collection.js');
 
     document
         .querySelectorAll('a.theme-toggle')

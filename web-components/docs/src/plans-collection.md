@@ -1,3 +1,4 @@
+<script type="module" src="../dist/merch-card-collection.js"></script>
 <div class="plans-gallery-content">
   <h1 id="plans-gallery">Plans Collection Gallery</h1>
 

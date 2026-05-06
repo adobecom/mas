@@ -15,6 +15,21 @@ export const styles = css`
         border: 2px dashed var(--spectrum-blue-500);
     }
 
+    .studio-paste-links {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 6px;
+        background: var(--spectrum-gray-75);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .studio-paste-links sp-textfield {
+        width: 100%;
+    }
+
     /* Default Card Drop Zone Styles */
     .default-card-section {
         margin-bottom: 24px;

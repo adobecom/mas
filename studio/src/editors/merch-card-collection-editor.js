@@ -9,7 +9,8 @@ import router from '../router.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { showToast } from '../utils.js';
+import { parseStudioDeepLinksFromText, showToast } from '../utils.js';
+import { applyCorrectorToFragment } from '../utils/corrector-helper.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 
 const CARDS_SECTION = 'cards-section';
@@ -24,6 +25,7 @@ class MerchCardCollectionEditor extends LitElement {
             isVariation: { type: Boolean },
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
+            studioPasteLinksInput: { type: String, state: true },
         };
     }
 
@@ -37,6 +39,7 @@ class MerchCardCollectionEditor extends LitElement {
         super();
         this.draggingIndex = -1;
         this.hideCards = false;
+        this.studioPasteLinksInput = '';
     }
 
     connectedCallback() {
@@ -343,7 +346,90 @@ class MerchCardCollectionEditor extends LitElement {
                     ? this.getItems({ values: cardsValues }, inherited)
                     : html`<div class="empty-cards-placeholder"></div>`}
             </div>
+            ${this.#studioPasteLinksSection}
         `;
+    }
+
+    get #studioPasteLinksSection() {
+        return html`
+            <div class="studio-paste-links">
+                <sp-field-label for="studio-paste-studio-links">Paste cards links:</sp-field-label>
+                <sp-textfield
+                    id="studio-paste-studio-links"
+                    multiline
+                    grows
+                    .value=${this.studioPasteLinksInput}
+                    @input=${(e) => {
+                        this.studioPasteLinksInput = e.target.value;
+                    }}
+                ></sp-textfield>
+                <sp-button variant="secondary" @click=${this.handleAddStudioPasteLinks}>Add from links</sp-button>
+            </div>
+        `;
+    }
+
+    handleAddStudioPasteLinks = async () => {
+        if (!this.fragment) return;
+        await this.#applyStudioLinksFromText(this.studioPasteLinksInput);
+    };
+
+    /** @param {string} text */
+    async #applyStudioLinksFromText(text) {
+        const repo = document.querySelector('mas-repository');
+        if (!repo?.aem?.sites?.cf?.fragments?.getById) {
+            showToast('Repository not available', 'negative');
+            return;
+        }
+
+        const entries = parseStudioDeepLinksFromText(text);
+        if (!entries.length) {
+            showToast('No valid Studio links found', 'negative');
+            return;
+        }
+
+        const surface =
+            Store.surface()?.split?.('/')?.filter(Boolean)?.[0]?.toLowerCase() || String(Store.surface() || '').toLowerCase();
+
+        let added = 0;
+        let skipped = 0;
+
+        for (const { contentType, fragmentId } of entries) {
+            const targetField =
+                contentType === 'merch-card' ? 'cards' : contentType === 'merch-card-collection' ? 'collections' : null;
+            if (!targetField) {
+                skipped++;
+                continue;
+            }
+            try {
+                const raw = await repo.aem.sites.cf.fragments.getById(fragmentId);
+                if (!raw?.path || !raw.model?.path) {
+                    skipped++;
+                    continue;
+                }
+                applyCorrectorToFragment(raw, surface);
+                const expectedModel = contentType === 'merch-card' ? CARD_MODEL_PATH : COLLECTION_MODEL_PATH;
+                if (raw.model.path !== expectedModel) {
+                    skipped++;
+                    continue;
+                }
+                if (this.isFragmentAlreadyInCollection(raw.path)) {
+                    skipped++;
+                    continue;
+                }
+                this.#handleExternalDrop(raw, targetField, -1, { target: this });
+                added++;
+            } catch {
+                skipped++;
+            }
+        }
+
+        if (added > 0) {
+            this.studioPasteLinksInput = '';
+            showToast(`Added ${added} item(s)${skipped ? `, skipped ${skipped}` : ''}`, 'positive');
+        } else {
+            showToast(skipped ? `Could not add items (${skipped} skipped)` : 'Nothing to add', 'negative');
+        }
+        this.requestUpdate();
     }
 
     get #defaultCardDropZone() {
@@ -680,10 +766,14 @@ class MerchCardCollectionEditor extends LitElement {
     isFragmentAlreadyInCollection(fragmentPath) {
         if (!this.fragment || !fragmentPath) return false;
 
-        const cardsField = this.#getField('cards');
-        const collectionsField = this.#getField('collections');
+        const cardPaths = this.fragment.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation);
+        const collectionPaths = this.fragment.getEffectiveFieldValues(
+            'collections',
+            this.localeDefaultFragment,
+            this.isVariation,
+        );
 
-        return [...(cardsField?.values || []), ...(collectionsField?.values || [])].includes(fragmentPath);
+        return [...cardPaths, ...collectionPaths].includes(fragmentPath);
     }
 
     handleDropOperation(event, targetFieldName = null, targetIndex = -1, isInternalDrop = false) {
@@ -771,10 +861,8 @@ class MerchCardCollectionEditor extends LitElement {
             }
         }
 
-        const field = this.#getField(fieldName);
-
         // Add item to values (field may not exist yet if this is the first item)
-        const newValues = [...(field?.values || [])];
+        const newValues = [...this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.isVariation)];
 
         if (targetIndex !== -1) {
             newValues.splice(targetIndex, 0, fragmentData.path);
@@ -933,10 +1021,8 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     #isCardInCollection(fragmentId) {
-        const cardsField = this.#getField('cards');
-        if (!cardsField?.values) return false;
-
-        return cardsField.values.some((cardPath) => {
+        const cardPaths = this.fragment.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation);
+        return cardPaths.some((cardPath) => {
             const cardStore = this.#fragmentReferencesMap.get(cardPath);
             return cardStore?.get()?.id === fragmentId;
         });

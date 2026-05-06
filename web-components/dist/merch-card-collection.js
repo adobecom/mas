@@ -642,7 +642,10 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
   merch-card[variant="mini-compare-chart"] merch-mnemonic-list {
     width: 100%;
     margin-inline: 0;
-    border-top: 1px solid var(--consonant-merch-card-mini-compare-border-color);
+    border-top: 1px solid var(
+        --consonant-merch-card-whats-included-divider-color,
+        var(--consonant-merch-card-mini-compare-border-color)
+    );
     display: flex;
     gap: var(--consonant-merch-spacing-xs);
     justify-content: start;
@@ -1144,7 +1147,7 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(7) {
 merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;var Ts=32,ba={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m-price"},promoText:{tag:"div",slot:"promo-text"},shortDescription:{tag:"div",slot:"body-xxs"},description:{tag:"div",slot:"body-m"},mnemonics:{size:"l"},quantitySelect:{tag:"div",slot:"quantity-select"},callout:{tag:"div",slot:"callout-content"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"footer-rows"},ctas:{slot:"footer",size:"l"},style:"consonant"},Ze=class extends _{constructor(t){super(t);g(this,"getRowMinHeightPropertyName",t=>`--consonant-merch-card-footer-row-${t}-min-height`);g(this,"getMiniCompareFooter",()=>{let t=this.card.secureLabel?_e`<slot name="secure-transaction-label">
+`;var Ts=32,ba={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m-price"},promoText:{tag:"div",slot:"promo-text"},shortDescription:{tag:"div",slot:"body-xxs"},description:{tag:"div",slot:"body-m"},mnemonics:{size:"l"},quantitySelect:{tag:"div",slot:"quantity-select"},callout:{tag:"div",slot:"callout-content"},addon:!0,secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],whatsIncludedDividerColor:{attribute:"whats-included-divider-color"},allowedWhatsIncludedDividerColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],whatsIncluded:{tag:"div",slot:"footer-rows"},ctas:{slot:"footer",size:"l"},style:"consonant"},Ze=class extends _{constructor(t){super(t);g(this,"getRowMinHeightPropertyName",t=>`--consonant-merch-card-footer-row-${t}-min-height`);g(this,"getMiniCompareFooter",()=>{let t=this.card.secureLabel?_e`<slot name="secure-transaction-label">
                   <span class="secure-transaction-label"
                       >${this.card.secureLabel}</span
                   ></slot
@@ -1394,6 +1397,40 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
             [variant='mini-compare-chart'][border-color='gradient-purple-blue']
         ) {
             --consonant-merch-card-border-color: linear-gradient(
+                135deg,
+                #9256dc,
+                #1473e6
+            );
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-yellow-300-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #ffd947;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-gray-300-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #dadada;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-green-900-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #05834e;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-red-700-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #eb1000;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='gradient-purple-blue']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: linear-gradient(
                 135deg,
                 #9256dc,
                 #1473e6

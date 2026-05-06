@@ -160,7 +160,8 @@ class MasSideNav extends LitElement {
     #copyFieldMenuOpenedByPointer = false;
     #onMerchCardReady = (event) => {
         const card = this.#getPreviewCard();
-        if (!card || event.target !== card) return;
+        if (!card) return;
+        if (!(event.composedPath?.()?.includes(card) ?? false)) return;
         this.#updateResolvedPrice(this.#getFirstResolvedPriceText(card));
     };
     #onCopyFieldTriggerPointerDown = () => {
@@ -177,6 +178,7 @@ class MasSideNav extends LitElement {
     #onCopyFieldMenuOpened = (event) => {
         if (!this.#copyFieldMenuOpenedByPointer) return;
         this.#copyFieldMenuOpenedByPointer = false;
+        this.requestUpdate();
         const overlayTrigger = event.currentTarget;
         queueMicrotask(() => {
             if (this.#clearFocusedCopyFieldMenuItem(overlayTrigger)) return;
@@ -333,6 +335,18 @@ class MasSideNav extends LitElement {
         return this.fragmentEditor?.querySelector?.('merch-card');
     }
 
+    #queryAllInlinePriceElements(card) {
+        const collected = [];
+        const visit = (root) => {
+            collected.push(...root.querySelectorAll(INLINE_PRICE_SELECTOR));
+            root.querySelectorAll('*').forEach((node) => {
+                if (node.shadowRoot) visit(node.shadowRoot);
+            });
+        };
+        visit(card);
+        return collected;
+    }
+
     #syncPricePreview() {
         const card = this.#getPreviewCard();
         if (!card) return;
@@ -384,7 +398,7 @@ class MasSideNav extends LitElement {
     }
 
     #getFirstResolvedPriceText(card) {
-        const prices = [...card.querySelectorAll(INLINE_PRICE_SELECTOR)];
+        const prices = this.#queryAllInlinePriceElements(card);
         let fallbackText = '';
 
         for (const price of prices) {
@@ -414,7 +428,7 @@ class MasSideNav extends LitElement {
 
     #getResolvedInlinePriceCandidates(card = this.#getPreviewCard()) {
         if (!card) return [];
-        return [...card.querySelectorAll(INLINE_PRICE_SELECTOR)]
+        return this.#queryAllInlinePriceElements(card)
             .map((el) => {
                 const { full, core } = this.#getFormattedPriceTexts(el);
                 return {
@@ -474,12 +488,13 @@ class MasSideNav extends LitElement {
             if (candidateIdx === -1) return;
             usedIndices.add(candidateIdx);
             const candidate = resolvedInlinePrices[candidateIdx];
-            // Use full text (with per-unit/tax) when the source inline-price
-            // requested those labels; otherwise use just the core price amount.
-            const wantsExtras =
-                sourceAttrs.get('data-display-per-unit') === 'true' || sourceAttrs.get('data-display-tax') === 'true';
+            // Mirror the rendered preview: per-unit and tax labels are resolved
+            // from locale defaults (e.g. FR_fr → "TTC"), not authored on the
+            // source span, so the rendered DOM is the source of truth. Fall
+            // back to coreText only if the rendered output had no labels.
+            const renderedText = candidate.formattedText || candidate.coreText;
             const temp = doc.createElement('span');
-            temp.innerHTML = wantsExtras ? candidate.formattedText : candidate.coreText;
+            temp.innerHTML = renderedText;
             inlinePrice.replaceWith(...temp.childNodes);
         });
         return doc.body.innerHTML;

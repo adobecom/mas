@@ -39,13 +39,16 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import { delay, initElementFromTemplate } from '../utils.js';
+            import { spy } from 'sinon';
+            import { initElementFromTemplate } from '../utils.js';
 
             import '../../src/swc.js';
             import '../../src/editor-panel.js';
             import '../../src/editors/merch-card-collection-editor.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+            import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
+            import Store from '../../src/store.js';
 
             runTests(async () => {
                 const originalFetch = window.fetch;
@@ -68,6 +71,95 @@
                         const fragmentStore = new FragmentStore(new Fragment(collectionFragment));
                         await editor.editFragment(fragmentStore, 1);
                         expect(editor.querySelector('merch-card-collection-editor')).to.exist;
+                    });
+                });
+
+                describe('grouped variation tags', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let groupedTestHost;
+
+                    beforeEach(() => {
+                        groupedTestHost = document.createElement('div');
+                        groupedTestHost.id = 'grouped-collection-editor-tests';
+                        spTheme().appendChild(groupedTestHost);
+                    });
+
+                    afterEach(() => {
+                        groupedTestHost?.remove();
+                        groupedTestHost = null;
+                        Store.showCloneDialog.set(false);
+                    });
+
+                    function groupedCollectionFragmentData(overrides = {}) {
+                        return {
+                            id: 'grouped-collection-id',
+                            path: '/content/mas/collections/en_US/all/pzn/grouped-collection',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                            title: 'Grouped collection',
+                            tags: [],
+                            fields: [
+                                { name: 'label', type: 'text', multiple: false, values: ['Label'] },
+                                { name: 'queryLabel', type: 'text', multiple: false, values: [''] },
+                                { name: 'icon', type: 'text', multiple: false, values: [''] },
+                                { name: 'iconLight', type: 'text', multiple: false, values: [''] },
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [] },
+                                { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                                {
+                                    name: 'pznTags',
+                                    type: 'text',
+                                    multiple: true,
+                                    values: ['mas:locale/fr_FR', 'mas:locale/de_DE'],
+                                },
+                            ],
+                            references: [],
+                            ...overrides,
+                        };
+                    }
+
+                    it('should render grouped variation tag picker in sidenav when path is a grouped variation', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const fragmentStore = new FragmentStore(new Fragment(groupedCollectionFragmentData()));
+                        editor.fragmentStore = fragmentStore;
+                        groupedTestHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const groupedGroup = editor.shadowRoot.querySelector('#grouped-variation-tags');
+                        expect(groupedGroup).to.exist;
+                        const picker = groupedGroup.querySelector('aem-tag-picker-field');
+                        expect(picker).to.exist;
+                        expect(picker.getAttribute('value')).to.equal('mas:locale/fr_FR,mas:locale/de_DE');
+                    });
+
+                    it('should not render grouped variation tag picker when path is not grouped', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const data = groupedCollectionFragmentData({
+                            path: '/content/mas/collections/en_US/all',
+                        });
+                        const fragmentStore = new FragmentStore(new Fragment(data));
+                        editor.fragmentStore = fragmentStore;
+                        groupedTestHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        expect(editor.shadowRoot.querySelector('#grouped-variation-tags')).to.not.exist;
+                    });
+
+                    it('should update pznTags on tag picker change', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const fragmentStore = new FragmentStore(new Fragment(groupedCollectionFragmentData()));
+                        const updateSpy = spy(fragmentStore, 'updateField');
+                        editor.fragmentStore = fragmentStore;
+                        groupedTestHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const picker = editor.shadowRoot.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        picker.setAttribute('value', 'mas:locale/en_GB,mas:locale/en_IE');
+                        picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        expect(updateSpy.calledWith('pznTags', ['mas:locale/en_GB', 'mas:locale/en_IE'])).to.be.true;
+                        updateSpy.restore();
                     });
                 });
             });

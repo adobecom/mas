@@ -26,6 +26,7 @@ class MerchCardCollectionEditor extends LitElement {
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
             studioPasteLinksInput: { type: String, state: true },
+            studioPasteLinksItems: { type: Array, state: true },
         };
     }
 
@@ -40,6 +41,7 @@ class MerchCardCollectionEditor extends LitElement {
         this.draggingIndex = -1;
         this.hideCards = false;
         this.studioPasteLinksInput = '';
+        this.studioPasteLinksItems = [];
     }
 
     connectedCallback() {
@@ -350,10 +352,73 @@ class MerchCardCollectionEditor extends LitElement {
         `;
     }
 
+    /** @returns {{ line: string, index: number }[]} */
+    #getCardsPasteLinksRows() {
+        return this.studioPasteLinksItems.map((line, index) => ({ line, index })).filter(({ line }) => line.trim().length > 0);
+    }
+
+    #removeCardsPasteLinkLine(lineIndex) {
+        if (lineIndex < 0 || lineIndex >= this.studioPasteLinksItems.length) return;
+        const next = [...this.studioPasteLinksItems];
+        next.splice(lineIndex, 1);
+        this.studioPasteLinksItems = next;
+        this.requestUpdate();
+    }
+
+    /** Pasted clipboard lines are merged into the URL list; editing/deleting the textarea does not remove list rows. */
+    #handleCardsPasteLinksPaste(e) {
+        const clip = e.clipboardData?.getData('text/plain') ?? '';
+        const lines = clip
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean);
+        if (!lines.length) return;
+
+        const seen = new Set(this.studioPasteLinksItems);
+        const merged = [...this.studioPasteLinksItems];
+        for (const line of lines) {
+            if (!seen.has(line)) {
+                seen.add(line);
+                merged.push(line);
+            }
+        }
+        if (merged.length !== this.studioPasteLinksItems.length) {
+            this.studioPasteLinksItems = merged;
+            this.requestUpdate();
+        }
+    }
+
     get #studioPasteLinksSection() {
+        const rows = this.#getCardsPasteLinksRows();
         return html`
             <div class="studio-paste-links">
                 <sp-field-label for="studio-paste-studio-links">Paste cards links:</sp-field-label>
+                ${rows.length
+                    ? html`<div class="studio-paste-url-panel" role="list">
+                          <div class="studio-paste-url-header" role="presentation">
+                              <span class="studio-paste-url-col-url">URL</span>
+                              <span class="studio-paste-url-col-action"></span>
+                          </div>
+                          ${repeat(
+                              rows,
+                              (r) => r.index,
+                              (r) => html`
+                                  <div class="studio-paste-url-row" role="listitem">
+                                      <div class="studio-paste-url-text" title=${r.line}>${r.line}</div>
+                                      <sp-action-button
+                                          quiet
+                                          size="s"
+                                          label="Remove link"
+                                          @click=${() => this.#removeCardsPasteLinkLine(r.index)}
+                                      >
+                                          <sp-icon-delete slot="icon"></sp-icon-delete>
+                                      </sp-action-button>
+                                  </div>
+                              `,
+                          )}
+                      </div>`
+                    : nothing}
+                <sp-field-label for="studio-paste-studio-links">Enter URLs</sp-field-label>
                 <sp-textfield
                     id="studio-paste-studio-links"
                     multiline
@@ -362,6 +427,7 @@ class MerchCardCollectionEditor extends LitElement {
                     @input=${(e) => {
                         this.studioPasteLinksInput = e.target.value;
                     }}
+                    @paste=${this.#handleCardsPasteLinksPaste}
                 ></sp-textfield>
                 <sp-button variant="secondary" @click=${this.handleAddStudioPasteLinks}>Add from links</sp-button>
             </div>
@@ -370,7 +436,15 @@ class MerchCardCollectionEditor extends LitElement {
 
     handleAddStudioPasteLinks = async () => {
         if (!this.fragment) return;
-        await this.#applyStudioLinksFromText(this.studioPasteLinksInput);
+        const text =
+            this.studioPasteLinksItems.length > 0
+                ? this.studioPasteLinksItems.join('\n')
+                : (this.studioPasteLinksInput ?? '').trim();
+        if (!text) {
+            showToast('Paste cards links.', 'negative');
+            return;
+        }
+        await this.#applyStudioLinksFromText(text);
     };
 
     /** @param {string} text */
@@ -425,6 +499,7 @@ class MerchCardCollectionEditor extends LitElement {
 
         if (added > 0) {
             this.studioPasteLinksInput = '';
+            this.studioPasteLinksItems = [];
             showToast(`Added ${added} item(s)${skipped ? `, skipped ${skipped}` : ''}`, 'positive');
         } else {
             showToast(skipped ? `Could not add items (${skipped} skipped)` : 'Nothing to add', 'negative');

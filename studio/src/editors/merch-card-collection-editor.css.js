@@ -23,11 +23,57 @@ export const styles = css`
         background: var(--spectrum-gray-75);
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 10px;
     }
 
     .studio-paste-links sp-textfield {
         width: 100%;
+    }
+
+    .studio-paste-url-panel {
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 6px;
+        background: var(--spectrum-gray-50);
+        overflow: hidden;
+    }
+
+    .studio-paste-url-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--spectrum-gray-700);
+        background: var(--spectrum-gray-200);
+        border-bottom: 1px solid var(--spectrum-gray-300);
+    }
+
+    .studio-paste-url-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--spectrum-gray-200);
+    }
+
+    .studio-paste-url-row:last-child {
+        border-bottom: none;
+    }
+
+    .studio-paste-url-text {
+        min-width: 0;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--spectrum-gray-900);
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .studio-paste-url-col-action {
+        width: 32px;
     }
 
     /* Default Card Drop Zone Styles */

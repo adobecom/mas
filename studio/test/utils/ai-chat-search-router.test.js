@@ -191,6 +191,62 @@ describe('ai-chat-search-router', () => {
         });
     });
 
+    describe('Content search (content-verb pattern)', () => {
+        it('classifies "search for cards containing X" as content-search', () => {
+            const result = classifySearchIntent('search for cards containing firefly', {
+                currentSurface: 'acom',
+                currentLocale: 'en_US',
+            });
+            expect(result.intent).to.equal('content-search');
+            expect(result.confidence).to.equal(0.8);
+            expect(result.dispatch).to.deep.equal({
+                mcpTool: 'search_cards',
+                mcpParams: { query: 'firefly', surface: 'acom', locale: 'en_US' },
+            });
+            expect(result.dispatch.mcpParams.titleSearch).to.equal(undefined);
+        });
+
+        it('handles "find cards mentioning X" phrasing', () => {
+            const result = classifySearchIntent('find cards mentioning Photoshop', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('content-search');
+            expect(result.dispatch.mcpParams.query).to.equal('Photoshop');
+        });
+
+        it('handles "show all cards with X" phrasing', () => {
+            const result = classifySearchIntent('show all cards with Premium', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('content-search');
+            expect(result.dispatch.mcpParams.query).to.equal('Premium');
+        });
+
+        it('handles "list cards about X" phrasing', () => {
+            const result = classifySearchIntent('list cards about firefly', {
+                currentSurface: 'commerce',
+            });
+            expect(result.intent).to.equal('content-search');
+            expect(result.dispatch.mcpParams.query).to.equal('firefly');
+        });
+
+        it('asks for surface when none in context for content-search', () => {
+            const result = classifySearchIntent('search for cards containing firefly');
+            expect(result.intent).to.equal('content-search');
+            expect(result.dispatch).to.equal(null);
+            expect(result.missingSlot.slot).to.equal('surface');
+            expect(result.slots.query).to.equal('firefly');
+        });
+
+        it('content-search honors locale phrasing', () => {
+            const result = classifySearchIntent('find cards containing promo in all locales', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('content-search');
+            expect(result.dispatch.mcpParams.locale).to.equal('all');
+        });
+    });
+
     describe('Quoted title pattern', () => {
         it('classifies a quoted title with a search verb', () => {
             const result = classifySearchIntent('find "Photoshop plan"', {
@@ -245,6 +301,23 @@ describe('ai-chat-search-router', () => {
         it('normalizes case and whitespace on the surface reply', () => {
             const result = resumeWithSlot('  ACOM ', pendingTitleSearch);
             expect(result.dispatch.mcpParams.surface).to.equal('acom');
+        });
+
+        it('completes a content-search dispatch (no titleSearch flag)', () => {
+            const pendingContent = {
+                intent: 'content-search',
+                slots: { query: 'firefly', locale: 'en_US' },
+                confidence: 0.8,
+                missingSlot: { slot: 'surface', prompt: 'Which surface should I search? ...' },
+                dispatch: null,
+            };
+            const result = resumeWithSlot('acom', pendingContent);
+            expect(result.intent).to.equal('content-search');
+            expect(result.dispatch).to.deep.equal({
+                mcpTool: 'search_cards',
+                mcpParams: { query: 'firefly', surface: 'acom', locale: 'en_US' },
+            });
+            expect(result.dispatch.mcpParams.titleSearch).to.equal(undefined);
         });
 
         it('returns unknown for an unrecognized reply', () => {

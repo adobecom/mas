@@ -519,8 +519,6 @@ export class StudioOperations {
             };
         }
 
-        const requestLimit = Math.min(limit * 2, 50);
-
         const surfacePath = this.getSurfacePath(surface, locale);
         console.log(`[StudioOperations] getSurfacePath(${surface}, ${locale}) = ${surfacePath}`);
 
@@ -588,39 +586,40 @@ export class StudioOperations {
             }
         }
 
-        const searchParams = {
+        // Cursor-paginated full-text search across the surface. Capped at
+        // MAX_PAGES so a dilute query can't run forever; the action layer
+        // also wraps this in its own timeout.
+        console.log('[StudioOperations] Cursor-paginated search:', {
             path: surfacePath,
             query,
-            tags,
             modelIds: [CARD_MODEL_ID],
-            limit: requestLimit,
-            offset,
-            searchMode,
-        };
-
-        console.log('[StudioOperations] Search params with modelIds:', {
-            path: surfacePath,
-            modelIds: [CARD_MODEL_ID],
-            limit: requestLimit,
         });
 
-        const fragments = await this.aemClient.searchFragments(searchParams);
-
-        const validFragments = await mapWithConcurrency(fragments, 10, async (fragment, index) => {
-            try {
-                const fullFragment = await this.aemClient.getFragment(fragment.id);
-                if (!fullFragment || !fullFragment.id || !fullFragment.fields) {
-                    console.warn(`[StudioOperations] Fragment ${fragment.id} (index ${index}) invalid: missing id or fields`);
-                    return null;
-                }
-                return fullFragment;
-            } catch (error) {
-                console.warn(`[StudioOperations] Fragment ${fragment.id} (index ${index}) failed to load: ${error.message}`);
-                return null;
+        const fragments = [];
+        let cursor = null;
+        const MAX_PAGES = 40;
+        for (let page = 0; page < MAX_PAGES; page += 1) {
+            const response = await this.aemClient.searchFragments({
+                path: surfacePath,
+                query,
+                tags,
+                modelIds: [CARD_MODEL_ID],
+                limit: 50,
+                cursor,
+                searchMode,
+                includeCursor: true,
+            });
+            if (response?.items?.length) {
+                fragments.push(...response.items);
             }
-        });
+            cursor = response?.cursor || null;
+            if (!cursor) break;
+        }
+        console.log(`[StudioOperations] Cursor search collected ${fragments.length} fragments`);
 
-        let filteredFragments = validFragments.filter((fragment) => fragment !== null);
+        // searchFragments already returns full fields arrays — no N+1 getFragment.
+        // Drop any malformed candidate.
+        let filteredFragments = fragments.filter((fragment) => fragment?.id && fragment?.fields);
 
         if (variant) {
             filteredFragments = filteredFragments.filter((fragment) => {

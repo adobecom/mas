@@ -28,6 +28,8 @@ const OFFER_ID_RE = /\b([A-Fa-f0-9]{32})\b/;
 const QUOTED_TITLE_RE = /(["'])([^"']{2,80})\1/;
 const TITLED_VERB_RE =
     /\b(?:find|show|get|search|search for|look up|list|give me)\s+(?:me\s+)?(?:cards?|fragments?)?\s*(?:titled|named|called|matching)\s+(.+?)(?:\s+in\s+(?:acom|commerce|ccd|sandbox|adobe-home|express|nala|acom-cc|acom-dc)|\s*$)/i;
+const CONTENT_VERB_RE =
+    /\b(?:find|show|get|search|search\s+for|look\s+up|list|give\s+me)\s+(?:me\s+)?(?:all\s+)?(?:cards?|fragments?)\s+(?:that\s+)?(?:contain(?:ing|s)?|with|mentioning|about|having|reference(?:s|ing)?|including)\s+(.+?)(?:\s+in\s+(?:acom|commerce|ccd|sandbox|adobe-home|express|nala|acom-cc|acom-dc)|\s*$)/i;
 const SEARCH_VERB_RE = /\b(?:find|show|get|search|look up|list|give me|grab|where(?:'s|\s+is)?)\b/i;
 const SEARCH_NOUN_RE = /\b(?:cards?|fragments?)\b/i;
 const OSI_KEYWORD_RE = /\b(?:osi|offer\s+selector|os-id|wcs-osi)\b/i;
@@ -40,7 +42,7 @@ const MEDIUM_CONFIDENCE = 0.55;
 
 /**
  * @typedef {Object} ClassifiedIntent
- * @property {'id-lookup'|'osi-lookup'|'offer-id-lookup'|'title-search'|'unknown'} intent
+ * @property {'id-lookup'|'osi-lookup'|'offer-id-lookup'|'title-search'|'content-search'|'unknown'} intent
  * @property {{ id?: string, osi?: string, offerId?: string, query?: string,
  *              surface?: string, locale?: string, titleSearch?: boolean }} slots
  * @property {number} confidence
@@ -113,6 +115,14 @@ export function classifySearchIntent(message, context = {}) {
         }
     }
 
+    const contentMatch = trimmed.match(CONTENT_VERB_RE);
+    if (contentMatch) {
+        const term = stripTrailingPunctuation(contentMatch[1]);
+        if (term) {
+            return buildContentDispatch(term, surface, locale, 0.8);
+        }
+    }
+
     const quotedMatch = trimmed.match(QUOTED_TITLE_RE);
     if (quotedMatch && hasSearchAnchor(trimmed)) {
         const title = stripTrailingPunctuation(quotedMatch[2]);
@@ -145,6 +155,9 @@ export function resumeWithSlot(reply, pending) {
     if (!KNOWN_SURFACE_NAMES.includes(normalized)) return empty;
 
     const slots = { ...pending.slots, surface: normalized };
+    if (pending.intent === 'content-search') {
+        return buildContentDispatchFromSlots(slots, pending.confidence);
+    }
     return buildTitleDispatchFromSlots(slots, pending.confidence);
 }
 
@@ -186,6 +199,51 @@ function buildTitleDispatch(title, surface, locale, confidence) {
         dispatch: {
             mcpTool: 'search_cards',
             mcpParams: { query: title, surface, locale, titleSearch: true },
+        },
+    };
+}
+
+function buildContentDispatch(term, surface, locale, confidence) {
+    const slots = { query: term, locale };
+    if (surface) slots.surface = surface;
+    if (!surface) {
+        return {
+            intent: 'content-search',
+            slots,
+            confidence,
+            missingSlot: {
+                slot: 'surface',
+                prompt: 'Which surface should I search? acom, commerce, ccd, or sandbox?',
+            },
+            dispatch: null,
+        };
+    }
+    return {
+        intent: 'content-search',
+        slots,
+        confidence,
+        missingSlot: null,
+        dispatch: {
+            mcpTool: 'search_cards',
+            mcpParams: { query: term, surface, locale },
+        },
+    };
+}
+
+function buildContentDispatchFromSlots(slots, confidence) {
+    if (!slots.surface) return emptyResult();
+    return {
+        intent: 'content-search',
+        slots,
+        confidence,
+        missingSlot: null,
+        dispatch: {
+            mcpTool: 'search_cards',
+            mcpParams: {
+                query: slots.query,
+                surface: slots.surface,
+                locale: slots.locale || 'en_US',
+            },
         },
     };
 }

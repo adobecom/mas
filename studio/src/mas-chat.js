@@ -853,13 +853,15 @@ export class MasChat extends LitElement {
             lines.push(`No card found with ID \`${lookupValue}\`.`);
         } else if (classified.intent === 'osi-lookup' || classified.intent === 'offer-id-lookup') {
             lines.push(`No cards found using OSI \`${lookupValue}\`${surface ? ` in ${surface}` : ''}.`);
+        } else if (classified.intent === 'content-search') {
+            lines.push(`No cards contain "${lookupValue}"${surface ? ` in ${surface}` : ''}.`);
         } else {
             lines.push(`No cards matched "${lookupValue}"${surface ? ` in ${surface}` : ''}.`);
         }
         if (surface) {
-            lines.push(`You can search by title in **${surface}** or browse the **${surface}** folder in Studio.`);
+            lines.push(`You can search by title or content in **${surface}**, or browse the **${surface}** folder in Studio.`);
         } else {
-            lines.push('You can search by title or paste a fragment ID, OSI, or offer ID.');
+            lines.push('You can search by title, content, or paste a fragment ID, OSI, or offer ID.');
         }
 
         this.messages = [

@@ -167,8 +167,8 @@
             "perUnitAriaLabel": "{perUnit, select, LICENSE {ライセンスごと} other {}}",
             "freeLabel": "無料",
             "freeAriaLabel": "無料",
-            "taxExclusiveLabel": "{taxTerm, select, GST {GST 別} VAT {VAT 別} TAX {税別} IVA {IVA 別} SST {SST 別} KDV {KDV 別} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {GST 込} VAT {VAT 込} TAX {税込} IVA {IVA 込} SST {SST 込} KDV {KDV 込} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {（GST 別）} VAT {（VAT 別）} TAX {（税別）} IVA {（IVA 別）} SST {（SST 別）} KDV {（KDV 別）} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {（GST 込）} VAT {（VAT 込）} TAX {（税込）} IVA {（IVA 込）} SST {（SST 込）} KDV {（KDV 込）} other {}}",
             "alternativePriceAriaLabel": "特別価格 : {alternativePrice}",
             "strikethroughAriaLabel": "通常価格 : {strikethroughPrice}"
         },
@@ -180,8 +180,8 @@
             "perUnitAriaLabel": "{perUnit, select, LICENSE {라이선스당} other {}}",
             "freeLabel": "무료",
             "freeAriaLabel": "무료",
-            "taxExclusiveLabel": "{taxTerm, select, GST {GST 제외} VAT {부가세 별도} TAX {세금 제외} IVA {IVA 제외} SST {SST 제외} KDV {KDV 제외} other {}}",
-            "taxInclusiveLabel": "{taxTerm, select, GST {GST 포함} VAT {부가세 포함} TAX {세금 포함} IVA {IVA 포함} SST {SST 포함} KDV {KDV 포함} other {}}",
+            "taxExclusiveLabel": "{taxTerm, select, GST {（GST 제외）} VAT {（부가세 별도）} TAX {（세금 제외）} IVA {（IVA 제외）} SST {（SST 제외）} KDV {（KDV 제외）} other {}}",
+            "taxInclusiveLabel": "{taxTerm, select, GST {（GST 포함）} VAT {（부가세 포함）} TAX {（세금 포함）} IVA {（IVA 포함）} SST {（SST 포함）} KDV {（KDV 포함）} other {}}",
             "alternativePriceAriaLabel": "또는 {alternativePrice}에",
             "strikethroughAriaLabel": "정가 {strikethroughPrice}"
         },

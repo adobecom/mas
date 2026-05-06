@@ -7,6 +7,8 @@ import {
     setItemsParameter,
     buildCheckoutUrl,
     addParamsFromPageUrl,
+    pathnameRequiresZhHantLang,
+    applyPageLocaleToCheckoutUrl,
 } from '../src/buildCheckoutUrl.js';
 import {
     PROVIDER_ENVIRONMENT,
@@ -153,6 +155,127 @@ describe('addParamsFromPageUrl', () => {
         const url = new URL('https://commerce.adobe.com/store/checkout');
         addParamsFromPageUrl(url);
         expect(url.search).to.equal('');
+    });
+});
+
+describe('pathnameRequiresZhHantLang', () => {
+    it('is true for Taiwan and Hong Kong (zh) locale paths', () => {
+        expect(pathnameRequiresZhHantLang('/tw/products/photoshop.html')).to.be
+            .true;
+        expect(pathnameRequiresZhHantLang('/hk_zh/products/photoshop.html')).to
+            .be.true;
+        expect(pathnameRequiresZhHantLang('/tw/photoshop.html')).to.be.true;
+    });
+
+    it('is false for other paths', () => {
+        expect(pathnameRequiresZhHantLang('/prefix/tw/products/photoshop.html'))
+            .to.be.false;
+        expect(pathnameRequiresZhHantLang('/us/products/photoshop.html')).to.be
+            .false;
+    });
+
+    it('treats nullish pathname as empty', () => {
+        expect(pathnameRequiresZhHantLang(null)).to.be.false;
+        expect(pathnameRequiresZhHantLang(undefined)).to.be.false;
+    });
+});
+
+describe('applyPageLocaleToCheckoutUrl', () => {
+    let savedUrl;
+    let parentStub;
+
+    beforeEach(() => {
+        savedUrl =
+            window.location.pathname +
+            (window.location.search || '') +
+            (window.location.hash || '');
+    });
+
+    afterEach(() => {
+        window.history.replaceState({}, '', savedUrl);
+        parentStub?.restore();
+        parentStub = undefined;
+    });
+
+    it('leaves href unchanged when page is not TW or hk_zh', () => {
+        window.history.replaceState({}, '', '/us/products/foo.html');
+        const href =
+            'https://commerce.adobe.com/store/commitment?lang=en&cli=a&co=US';
+        expect(applyPageLocaleToCheckoutUrl(href)).to.equal(href);
+    });
+
+    it('returns URL.toString() when page is not TW and input is URL', () => {
+        window.history.replaceState({}, '', '/fr/products/foo.html');
+        const commerceUrl = new URL(
+            'https://commerce.adobe.com/store/commitment?lang=fr',
+        );
+        expect(applyPageLocaleToCheckoutUrl(commerceUrl)).to.equal(
+            commerceUrl.toString(),
+        );
+    });
+
+    it('sets lang and items[n][lang] to zh-Hant on /tw/ pages', () => {
+        window.history.replaceState({}, '', '/tw/products/photoshop.html');
+        const href =
+            'https://commerce.adobe.com/store/commitment?lang=en&items%5B0%5D%5Blang%5D=ja&items%5B1%5D%5Blang%5D=de';
+        const out = new URL(applyPageLocaleToCheckoutUrl(href));
+        expect(out.searchParams.get('lang')).to.equal('zh-Hant');
+        expect(out.searchParams.get('items[0][lang]')).to.equal('zh-Hant');
+        expect(out.searchParams.get('items[1][lang]')).to.equal('zh-Hant');
+    });
+
+    it('sets zh-Hant when input is URL on hk_zh pages', () => {
+        window.history.replaceState({}, '', '/hk_zh/products/photoshop.html');
+        const commerceUrl = new URL(
+            'https://commerce.adobe.com/store/commitment?lang=en',
+        );
+        const out = new URL(applyPageLocaleToCheckoutUrl(commerceUrl));
+        expect(out.searchParams.get('lang')).to.equal('zh-Hant');
+    });
+
+    it('returns original string when URL is invalid on TW pages', () => {
+        window.history.replaceState({}, '', '/tw/products/photoshop.html');
+        expect(applyPageLocaleToCheckoutUrl('not-a-valid-url')).to.equal(
+            'not-a-valid-url',
+        );
+    });
+
+    it('uses same-origin parent pathname for locale when parent differs', () => {
+        window.history.replaceState({}, '', '/libs/merch-embed');
+        parentStub = sinon.stub(window, 'parent').value({
+            location: { pathname: '/tw/products/photoshop.html' },
+        });
+        const href = 'https://commerce.adobe.com/store/commitment?lang=en';
+        const out = new URL(applyPageLocaleToCheckoutUrl(href));
+        expect(out.searchParams.get('lang')).to.equal('zh-Hant');
+    });
+
+    it('ignores cross-origin errors when reading parent pathname', () => {
+        window.history.replaceState({}, '', '/us/products/x.html');
+        parentStub = sinon.stub(window, 'parent').value({
+            get location() {
+                throw new DOMException('Blocked', 'SecurityError');
+            },
+        });
+        const href = 'https://commerce.adobe.com/store/commitment?lang=en';
+        expect(applyPageLocaleToCheckoutUrl(href)).to.equal(href);
+    });
+
+    it('buildCheckoutUrl applies page locale for TW paths', () => {
+        window.history.replaceState({}, '', '/tw/products/photoshop.html');
+        const checkoutData = {
+            env: PROVIDER_ENVIRONMENT.PRODUCTION,
+            workflowStep: CheckoutWorkflowStep.COMMITMENT,
+            clientId: 'testClient',
+            country: 'US',
+            lang: 'en',
+            items: [{ quantity: 1, language: 'en' }],
+        };
+        const url = buildCheckoutUrl(checkoutData);
+        expect(new URL(url).searchParams.get('lang')).to.equal('zh-Hant');
+        expect(new URL(url).searchParams.get('items[0][lang]')).to.equal(
+            'zh-Hant',
+        );
     });
 });
 

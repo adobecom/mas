@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-translation-languages.css.js';
 import Store from '../store.js';
-import { getSurfaceLocales, getLocaleCode, REGION_GROUPS } from '../../../io/www/src/fragment/locales.js';
+import { getSurfaceLocales, getLocaleCode, REGION_GROUPS } from '../locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasTranslationLanguages extends LitElement {

@@ -36,6 +36,7 @@ class MasBulkPublishEditor extends LitElement {
     };
 
     #abortController = null;
+    #validateId = 0;
 
     constructor() {
         super();
@@ -419,6 +420,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async validate() {
+        const runId = ++this.#validateId;
         const { parseStudioUrl, parseAemPath } = await import('./url-to-path.js');
         const urls = this.urlLines;
         const existingItems = this.items;
@@ -436,36 +438,36 @@ class MasBulkPublishEditor extends LitElement {
                 const byPath = byId ? null : parseAemPath(raw);
                 if (!byId && !byPath) {
                     results[i] = { url: raw, status: 'error', reason: 'invalid-url' };
-                    this.setProjectField('items', JSON.stringify([...existingItems, ...results]));
-                    this.requestUpdate();
-                    return;
+                } else {
+                    try {
+                        const rawFragment = byId
+                            ? await this.repository.getFragmentById(byId.fragmentId)
+                            : await this.repository.aem.sites.cf.fragments.getByPath(byPath.path);
+                        const fragment = new Fragment(rawFragment);
+                        const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
+                        results[i] = {
+                            url: raw,
+                            fragmentId: fragment.id,
+                            path: fragment.path,
+                            authorPath: authorPath || null,
+                            href: href || null,
+                            status: 'valid',
+                        };
+                    } catch (err) {
+                        results[i] = {
+                            url: raw,
+                            ...(byId ? { fragmentId: byId.fragmentId } : { path: byPath.path }),
+                            status: 'error',
+                            reason: err?.response?.status === 404 ? 'not-found' : 'error',
+                        };
+                    }
                 }
-                try {
-                    const rawFragment = byId
-                        ? await this.repository.getFragmentById(byId.fragmentId)
-                        : await this.repository.aem.sites.cf.fragments.getByPath(byPath.path);
-                    const fragment = new Fragment(rawFragment);
-                    const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
-                    results[i] = {
-                        url: raw,
-                        fragmentId: fragment.id,
-                        path: fragment.path,
-                        authorPath: authorPath || null,
-                        href: href || null,
-                        status: 'valid',
-                    };
-                } catch (err) {
-                    results[i] = {
-                        url: raw,
-                        ...(byId ? { fragmentId: byId.fragmentId } : { path: byPath.path }),
-                        status: 'error',
-                        reason: err?.response?.status === 404 ? 'not-found' : 'error',
-                    };
-                }
+                if (runId !== this.#validateId) return;
                 this.setProjectField('items', JSON.stringify([...existingItems, ...results]));
                 this.requestUpdate();
             }),
         );
+        if (runId !== this.#validateId) return [];
         return [...existingItems, ...results];
     }
 

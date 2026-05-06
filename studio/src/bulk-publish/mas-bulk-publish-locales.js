@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-locales.css.js';
-import { REGION_GROUPS } from '../../../io/www/src/fragment/locales.js';
+import { REGION_GROUPS } from '../locales.js';
 
 function groupLocalesByRegion(locales) {
     const groups = [];

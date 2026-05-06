@@ -1,5 +1,19 @@
 # This workflow will install Python dependencies, run CMR creation in ServiceNow
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# Overview
+# * This workflow will create CMRs for any changes to M@S Studio or M@S IO
+# * The workflow runs when a PR for the main branch is opened or closed, and contains changes under io/ or studio/
+# * On PR open
+#   * The workflow determines exactly what changed and create a CMR for M@S Studio, M@S IO, or both.
+#     * Transaction numbers for those CMRs are written to the PR comments.  The workflow will reference these transaction numbers when closing the CMRs.
+#   * A notification will be sent to the Slack #merch-at-scale channel
+# * On PR close
+#   * The workflow will check PR comments to determine whether any CMRs were opened, and will update and close them
+#     * If the PR was merged, the CMRs will be closed as Successful; if the PR was closed without merging the CMRs will be Cancelled.
+#   * A notification will be sent to the Slack #merch-at-scale channel (only if the PR was merged)
+# * Future enhancements
+#   * Expand this to include other paths (this may require creating and onboarding new services in the Service Registry
+#   * Refactor this workflow so all actions take place on PR close.  This will reduce CMR noise and reduce the time between opening a PR and closing it.
+#   * These will be done in separate JIRA tickets and PRs
 
 name: Create CMR in ServiceNow
 

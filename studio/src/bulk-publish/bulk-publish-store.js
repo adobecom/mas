@@ -9,12 +9,12 @@ function setField(project, name, value) {
     }
 }
 
-export async function startPublishing({ project, paths, locales, token, ioBaseUrl, allowedClientId, publishFn, repository }) {
+export async function startPublishing({ project, paths, locales, token, ioBaseUrl, publishFn, repository }) {
     setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHING);
     setField(project, 'lastError', '');
     await repository.saveFragment(project, false);
 
-    const promise = publishFn({ ioBaseUrl, paths, locales, token, allowedClientId });
+    const promise = publishFn({ ioBaseUrl, paths, locales, token });
     const profilePromise = window.adobeIMS?.getProfile?.().catch(() => null);
     Store.bulkPublishProjects.publishing.set({
         ...Store.bulkPublishProjects.publishing.get(),

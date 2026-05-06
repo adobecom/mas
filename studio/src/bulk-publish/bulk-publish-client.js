@@ -9,7 +9,7 @@ export class BulkPublishError extends Error {
     }
 }
 
-export async function publishBulk({ ioBaseUrl, paths, locales = [], token, allowedClientId }) {
+export async function publishBulk({ ioBaseUrl, paths, locales = [], token }) {
     if (!Array.isArray(paths) || paths.length === 0) {
         throw new BulkPublishError('paths must be a non-empty array');
     }
@@ -24,7 +24,7 @@ export async function publishBulk({ ioBaseUrl, paths, locales = [], token, allow
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ paths, locales, allowedClientId }),
+            body: JSON.stringify({ paths, locales }),
         });
     } catch (err) {
         throw new BulkPublishError(err.message);

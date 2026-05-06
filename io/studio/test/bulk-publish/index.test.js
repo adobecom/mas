@@ -10,13 +10,12 @@ describe('bulk-publish/index.js', () => {
     let action;
     let fetchOdinStub;
     let fetchFragmentByPathStub;
-    let imsValidateStub;
+    let isAllowedStub;
     let loggerStub;
 
     const baseParams = {
         __ow_headers: { authorization: 'Bearer test-token' },
         aemOdinEndpoint: 'https://odin.example',
-        allowedClientId: 'mas-studio',
         paths: ['/content/dam/mas/acom/en_US/nico'],
     };
 
@@ -35,7 +34,7 @@ describe('bulk-publish/index.js', () => {
             return Promise.resolve(successResponseFor(body.paths));
         });
         fetchFragmentByPathStub = sinon.stub();
-        imsValidateStub = sinon.stub().resolves({ valid: true });
+        isAllowedStub = sinon.stub().resolves(true);
         loggerStub = {
             info: sinon.stub(),
             warn: sinon.stub(),
@@ -51,18 +50,12 @@ describe('bulk-publish/index.js', () => {
             },
         });
 
+        const realUtils = require('../../utils.js');
         action = proxyquire('../../src/bulk-publish/index.js', {
             '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
-            '@adobe/aio-lib-ims': {
-                Ims: class {
-                    validateTokenAllowList(...args) {
-                        return imsValidateStub(...args);
-                    }
-                },
-            },
             './resolver.js': { resolvePaths },
             './publisher.js': publisher,
-            '../../utils.js': require('../../utils.js'),
+            '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
         });
     });
 
@@ -73,18 +66,15 @@ describe('bulk-publish/index.js', () => {
         expect(result.error.statusCode).to.equal(400);
     });
 
-    it('returns 400 when allowedClientId is missing', async () => {
-        const params = { ...baseParams };
-        delete params.allowedClientId;
-        const result = await action.main(params);
-        expect(result.error.statusCode).to.equal(400);
+    it('validates token against hardcoded mas-studio client ID', async () => {
+        await action.main({ ...baseParams });
+        expect(isAllowedStub).to.have.been.calledWith(sinon.match.string, 'mas-studio');
     });
 
-    it('returns 400 when paths is missing along with allowedClientId', async () => {
-        const params = { ...baseParams, paths: undefined };
-        delete params.allowedClientId;
-        const result = await action.main(params);
-        expect(result.error.statusCode).to.equal(400);
+    it('returns 401 when IMS validation fails regardless of params', async () => {
+        isAllowedStub.resolves(false);
+        const result = await action.main({ ...baseParams, allowedClientId: 'attacker-id' });
+        expect(result.error.statusCode).to.equal(401);
     });
 
     it('returns 400 when neither aemOdinEndpoint nor odinEndpoint is provided', async () => {
@@ -124,12 +114,6 @@ describe('bulk-publish/index.js', () => {
         const result = await action.main({ ...baseParams, locales });
         expect(result.error.statusCode).to.equal(400);
         expect(result.error.body.error).to.include('50');
-    });
-
-    it('returns 401 when IMS validation fails', async () => {
-        imsValidateStub.resolves({ valid: false });
-        const result = await action.main({ ...baseParams });
-        expect(result.error.statusCode).to.equal(401);
     });
 
     it('never calls fetchFragmentByPath (skip-check removed)', async () => {

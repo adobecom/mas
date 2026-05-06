@@ -1,6 +1,6 @@
 const { Core } = require('@adobe/aio-sdk');
 const { Ims } = require('@adobe/aio-lib-ims');
-const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils');
+const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils');
 const { buildSiblingActionName, fetchOdin, getInternalValue, getValue, getValues, invokeAsyncAction } = require('../common.js');
 const { putJobPayload, putProjectSummary, patchProjectSummary } = require('./state.js');
 const { enqueueJob } = require('./queue.js');
@@ -20,7 +20,7 @@ async function main(params) {
         }
 
         const authToken = getBearerToken(params);
-        const allowed = await isAllowed(authToken, params.allowedClientId, ims);
+        const allowed = await isAllowed(authToken, 'mas-studio', ims);
         if (!allowed) {
             return errorResponse(401, 'Authorization failed', logger);
         }
@@ -115,18 +115,6 @@ async function main(params) {
         logger.error('Error queuing translation project start', error);
         return errorResponse(500, `Internal server error - ${error.message}`, logger);
     }
-}
-
-async function isAllowed(token, allowedClientId, ims = new Ims('prod')) {
-    logger.info(`Validating IMS token for client ID: ${allowedClientId}`);
-    const imsValidation = await ims.validateTokenAllowList(token, [allowedClientId]);
-
-    if (!imsValidation || !imsValidation.valid) {
-        logger.error(`IMS token validation failed: ${JSON.stringify(imsValidation, null, 2)}`);
-        return false;
-    }
-
-    return true;
 }
 
 async function getTranslationProject(params, authToken) {

@@ -39,6 +39,7 @@ const DOCS_GALLERY_PATH = {
     SPECIALOFFER: '/web-components/docs/specialoffer.html',
     IMAGE: '/web-components/docs/image.html',
     CATALOG: '/web-components/docs/catalog.html',
+    FRIES: '/web-components/docs/fries.html',
     CHECKOUT_LINK: '/web-components/docs/checkout-link.html',
     MERCH_CARD: '/web-components/docs/merch-card.html',
     EXPRESS: '/web-components/docs/express.html',

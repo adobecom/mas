@@ -337,6 +337,45 @@ describe('ai-chat-search-router', () => {
         });
     });
 
+    describe('Tag / product-code abstain', () => {
+        it('abstains on "with X as the product code"', () => {
+            const result = classifySearchIntent('get a list of fragment IDs with Firefly Pro as the product code', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains on "tagged with X"', () => {
+            const result = classifySearchIntent('show cards tagged with Photoshop', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('unknown');
+        });
+
+        it('abstains on "find cards with product code X"', () => {
+            const result = classifySearchIntent('find cards with product code firefly-pro', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('unknown');
+        });
+
+        it('abstains on PA code references', () => {
+            const result = classifySearchIntent('find cards for PA-2114', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('unknown');
+        });
+
+        it('abstains on market segment references', () => {
+            const result = classifySearchIntent('cards by market segment NAM', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('unknown');
+        });
+
+        it('does NOT abstain on benign "with" phrasing (still content-search)', () => {
+            const result = classifySearchIntent('find cards with firefly', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('content-search');
+        });
+    });
+
     describe('Adversarial inputs', () => {
         it('handles a UUID inside a markdown link', () => {
             const result = classifySearchIntent(`[card](https://example.com/${UUID})`);

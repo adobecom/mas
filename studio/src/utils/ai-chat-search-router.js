@@ -36,6 +36,12 @@ const OSI_KEYWORD_RE = /\b(?:osi|offer\s+selector|os-id|wcs-osi)\b/i;
 const OFFER_KEYWORD_RE = /\b(?:offer\s*id|offer-id)\b/i;
 const ALL_LOCALES_RE = /\b(?:in|across|for|over)\s+(?:all|every|each)\s+locales?\b/i;
 const LOCALE_RE = /\b(?:in|for)\s+([a-z]{2}_[A-Z]{2,4})\b/;
+// Phrases that imply tag-based filtering (product code, market segment, etc.).
+// We abstain on these so the LLM path can resolve the tag via list_products
+// and dispatch search_cards with the canonical tag id — deterministic
+// substring matching can't satisfy these queries.
+const TAG_KEYWORD_RE =
+    /\b(?:product\s*code|product\s*tag|arrangement\s*code|tagged(?:\s+with)?|with\s+tag|by\s+tag|market\s*segment|customer\s*segment|pa\s*code|pa-\d|with\s+.+\s+as\s+(?:the\s+)?(?:product|tag|code))\b/i;
 
 const HIGH_CONFIDENCE = 0.85;
 const MEDIUM_CONFIDENCE = 0.55;
@@ -73,6 +79,12 @@ export function classifySearchIntent(message, context = {}) {
 
     const surface = context.currentSurface || null;
     const locale = resolveLocale(trimmed, context.currentLocale || 'en_US');
+
+    // Abstain on tag/product-code phrasings — those need MCS resolution which
+    // only the LLM path knows how to do (via list_products + tag mapping).
+    if (TAG_KEYWORD_RE.test(trimmed)) {
+        return empty;
+    }
 
     const uuidMatch = trimmed.match(UUID_RE);
     if (uuidMatch) {

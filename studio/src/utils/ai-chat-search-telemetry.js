@@ -1,20 +1,19 @@
 /**
- * Dark-launch flag and telemetry for the deterministic search router.
+ * Feature flag and telemetry for the deterministic search router.
  *
- * The router is hidden behind `localStorage.masChatDeterministicSearch` so it
- * can be turned on per-user during the rollout window. Once we have a week of
- * dual-classify telemetry confirming the router agrees with the LLM where it
- * fires, the default flips to "on" and the flag is removed.
+ * The router is on by default. `localStorage.masChatDeterministicSearch = 'off'`
+ * provides an emergency opt-out for rollback without a redeploy. Telemetry
+ * still records `source: router` vs `source: llm` so we can monitor real usage.
  */
 
 const FLAG_KEY = 'masChatDeterministicSearch';
 
 export function isDeterministicSearchEnabled() {
-    if (typeof localStorage === 'undefined') return false;
+    if (typeof localStorage === 'undefined') return true;
     try {
-        return localStorage.getItem(FLAG_KEY) === 'on';
+        return localStorage.getItem(FLAG_KEY) !== 'off';
     } catch {
-        return false;
+        return true;
     }
 }
 

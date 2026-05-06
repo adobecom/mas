@@ -126,6 +126,14 @@ export default class MasPlans {
         return this.page.locator(`merch-card:has(aem-fragment[fragment="${id}"])`);
     }
 
+    getCollection(id) {
+        return this.page.locator(`merch-card-collection[id="${id}"]`);
+    }
+
+    getCardSubtitle(id) {
+        return this.getCard(id).locator('p[slot="subtitle"]');
+    }
+
     getCardIcon(id) {
         const card = this.getCard(id);
         return card.locator('merch-icon');

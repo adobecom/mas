@@ -2790,7 +2790,7 @@ mas-prompt-suggestions {
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--spectrum-global-dimension-size-150);
+    gap: var(--spectrum-global-dimension-size-200);
     margin-top: var(--spectrum-global-dimension-size-300);
     padding-top: var(--spectrum-global-dimension-size-200);
     border-top: 1px solid var(--spectrum-gray-300);

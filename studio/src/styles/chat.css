@@ -1278,12 +1278,6 @@
     color: var(--spectrum-global-color-indigo-600);
 }
 
-.search-results-actions {
-    display: flex;
-    justify-content: center;
-    margin-top: var(--spectrum-global-dimension-size-200);
-}
-
 .card-info h4 {
     margin: 0 0 var(--spectrum-global-dimension-size-75) 0;
     font-size: var(--spectrum-global-dimension-size-175);
@@ -1403,9 +1397,18 @@
 .search-results-actions {
     display: flex;
     justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spectrum-global-dimension-size-200);
     margin-top: var(--spectrum-global-dimension-size-300);
     padding-top: var(--spectrum-global-dimension-size-200);
     border-top: 1px solid var(--spectrum-global-color-gray-300);
+}
+
+.search-results-actions sp-button + sp-button,
+.search-results-actions sp-button + a,
+.search-results-actions a + sp-button {
+    margin-left: var(--spectrum-global-dimension-size-100);
 }
 
 /* Fragment Preview in Get Result */

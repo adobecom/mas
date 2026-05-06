@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-translation-languages.css.js';
 import Store from '../store.js';
-import { getDefaultLocales, getLocaleCode, REGION_GROUPS } from '../../../io/www/src/fragment/locales.js';
+import { getSurfaceLocales, getLocaleCode, REGION_GROUPS } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasTranslationLanguages extends LitElement {
@@ -22,7 +22,7 @@ class MasTranslationLanguages extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         const surface = Store.search.value.path;
-        this.localesArray = getDefaultLocales(surface)
+        this.localesArray = getSurfaceLocales(surface)
             .map((item) => ({ ...item, locale: getLocaleCode(item) }))
             .filter((item) => item.locale !== 'en_US')
             .sort((a, b) => a.locale.localeCompare(b.locale));

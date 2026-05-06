@@ -45,12 +45,16 @@ jobs:
             - name: Cache Playwright browsers
               uses: actions/cache@v4
               id: playwright-cache
+              continue-on-error: true
               with:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
-            - name: Install Playwright dependencies
-              run: npx playwright install --with-deps
+            - name: Install Playwright system dependencies
+              uses: ./.github/actions/prep-apt
+
+            - name: Install Playwright browsers
+              run: npx playwright install
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh
@@ -62,6 +66,9 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
+                  # 4 workers × 45 RPS/worker = 180 RPS combined, safely under the 200 RPS
+                  # per-hostname limit enforced by AEM.live. Raise only if EDS grants a higher cap.
+                  NALA_PLAYWRIGHT_WORKERS: 4
 
             - name: Cleanup cloned cards
               if: always()

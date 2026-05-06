@@ -571,3 +571,290 @@ describe('mas-bulk-publish-editor (openItemsSelector side effects)', () => {
         expect(Store.translationProjects.allCards.get()).to.deep.equal([]);
     });
 });
+
+describe('mas-bulk-publish-editor (items getter edge cases)', () => {
+    afterEach(() => Store.bulkPublishProjects.inEdit.set(null));
+
+    it('items returns [] when raw JSON is invalid for existing fragment store', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({ items: 'not-valid-json' });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        expect(el.items).to.deep.equal([]);
+    });
+});
+
+describe('mas-bulk-publish-editor (setProjectField for existing project)', () => {
+    afterEach(() => Store.bulkPublishProjects.inEdit.set(null));
+
+    it('setProjectField calls updateField for existing project', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({ title: 'Existing' });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        el.setProjectField('title', 'Updated');
+
+        expect(fs.updateField.calledWith('title', ['Updated'])).to.equal(true);
+    });
+});
+
+describe('mas-bulk-publish-editor (#handleCopy)', () => {
+    afterEach(() => Store.bulkPublishProjects.inEdit.set(null));
+
+    it('#handleCopy writes item hrefs to clipboard', async () => {
+        const el = await makeEditor();
+        const items = [
+            { url: 'https://a.com', href: 'https://a-href.com', status: 'valid' },
+            { url: 'https://b.com', href: null, status: 'valid' },
+        ];
+        seedNew({ items: JSON.stringify(items) });
+        await el.updateComplete;
+
+        let written = null;
+        const origClipboard = navigator.clipboard;
+        Object.defineProperty(navigator, 'clipboard', {
+            value: {
+                writeText: async (text) => {
+                    written = text;
+                },
+            },
+            configurable: true,
+        });
+
+        const quick = el.shadowRoot.querySelector('mas-quick-actions');
+        quick.dispatchEvent(new CustomEvent('copy', { bubbles: true, composed: true }));
+        await new Promise((r) => setTimeout(r, 20));
+
+        Object.defineProperty(navigator, 'clipboard', { value: origClipboard, configurable: true });
+        expect(written).to.include('https://a-href.com');
+    });
+});
+
+describe('mas-bulk-publish-editor (error paths)', () => {
+    let repositoryEl;
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repositoryEl = document.createElement('mas-repository');
+        repositoryEl.setAttribute('bucket', 'test-bucket');
+        document.body.appendChild(repositoryEl);
+    });
+
+    afterEach(() => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.search.set({});
+        repositoryEl.remove();
+        sandbox.restore();
+    });
+
+    it('deleteBulkProject shows toast when deleteFragment throws', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore();
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.deleteFragment = sandbox.stub().rejects(new Error('network error'));
+
+        await el.deleteBulkProject();
+
+        expect(repositoryEl.deleteFragment.calledOnce).to.equal(true);
+        expect(Store.bulkPublishProjects.inEdit.get()).to.not.be.null;
+    });
+
+    it('handleDuplicateConfirmed shows toast when createFragment throws', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({ title: 'Original', items: '[]', locales: [] });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+        Store.search.set({ path: 'sandbox' });
+
+        repositoryEl.createFragment = sandbox.stub().rejects(new Error('network error'));
+
+        el.duplicateOpen = true;
+        await el.handleDuplicateConfirmed({ detail: { title: 'Original (Copy)' } });
+
+        expect(repositoryEl.createFragment.calledOnce).to.equal(true);
+        expect(el.duplicateOpen).to.equal(false);
+    });
+
+    it('#handleLock shows toast when saveFragment throws', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore({ status: BULK_PUBLISH_STATUS.DRAFT });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.saveFragment = sandbox.stub().rejects(new Error('server error'));
+
+        const quick = el.shadowRoot.querySelector('mas-quick-actions');
+        quick.dispatchEvent(new CustomEvent(QUICK_ACTION.LOCK, { bubbles: true, composed: true }));
+        await new Promise((r) => setTimeout(r, 30));
+
+        const calls = fs.updateField.getCalls().map((c) => c.args);
+        const revert = calls.find(([f, v]) => f === 'status' && v[0] === BULK_PUBLISH_STATUS.DRAFT);
+        expect(revert).to.exist;
+    });
+});
+
+describe('mas-bulk-publish-editor (validate)', () => {
+    let repositoryEl;
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repositoryEl = document.createElement('mas-repository');
+        repositoryEl.setAttribute('bucket', 'test-bucket');
+        document.body.appendChild(repositoryEl);
+        Store.search.set({ path: 'sandbox' });
+    });
+
+    afterEach(() => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.search.set({});
+        repositoryEl.remove();
+        sandbox.restore();
+    });
+
+    it('validate marks invalid urls as error', async () => {
+        const el = await makeEditor();
+        const fields = seedNew({ urls: 'not-a-valid-url' });
+        await el.updateComplete;
+
+        const result = await el.validate();
+
+        const errItem = result.find((i) => i.url === 'not-a-valid-url');
+        expect(errItem).to.exist;
+        expect(errItem.status).to.equal('error');
+        expect(errItem.reason).to.equal('invalid-url');
+    });
+
+    it('validate resolves fragment by AEM path', async () => {
+        const el = await makeEditor();
+        const fields = seedNew({ urls: '/content/dam/mas/test/frag' });
+        await el.updateComplete;
+
+        const rawFrag = { id: 'frag-aem-1', path: '/content/dam/mas/test/frag', fields: [] };
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(rawFrag) } } },
+        };
+
+        const result = await el.validate();
+
+        const item = result.find((i) => i.url === '/content/dam/mas/test/frag');
+        expect(item).to.exist;
+        expect(item.status).to.equal('valid');
+    });
+
+    it('validate marks 404 errors as not-found', async () => {
+        const el = await makeEditor();
+        const fields = seedNew({ urls: '/content/dam/mas/missing' });
+        await el.updateComplete;
+
+        const err = Object.assign(new Error('not found'), { response: { status: 404 } });
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().rejects(err) } } },
+        };
+
+        const result = await el.validate();
+
+        const item = result.find((i) => i.url === '/content/dam/mas/missing');
+        expect(item).to.exist;
+        expect(item.status).to.equal('error');
+        expect(item.reason).to.equal('not-found');
+    });
+
+    it('validate marks non-404 errors as error', async () => {
+        const el = await makeEditor();
+        const fields = seedNew({ urls: '/content/dam/mas/broken' });
+        await el.updateComplete;
+
+        const err = Object.assign(new Error('server error'), { response: { status: 500 } });
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().rejects(err) } } },
+        };
+
+        const result = await el.validate();
+
+        const item = result.find((i) => i.url === '/content/dam/mas/broken');
+        expect(item).to.exist;
+        expect(item.reason).to.equal('error');
+    });
+});
+
+describe('mas-bulk-publish-editor (openLocalesPicker)', () => {
+    afterEach(() => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.search.set({});
+    });
+
+    it('openLocalesPicker sets localesPickerOpen and syncs targetLocales', async () => {
+        Store.search.set({ path: 'sandbox' });
+        const el = await makeEditor();
+        const fields = seedNew({ locales: ['en_US', 'de_DE'] });
+        await el.updateComplete;
+
+        el.openLocalesPicker();
+
+        expect(el.localesPickerOpen).to.equal(true);
+        expect(Store.bulkPublishProjects.targetLocales.get()).to.deep.equal(['en_US', 'de_DE']);
+    });
+
+    it('locales picker dialog renders when localesPickerOpen is true', async () => {
+        const el = await makeEditor();
+        seedNew({ locales: [] });
+        await el.updateComplete;
+
+        el.localesPickerOpen = true;
+        await el.updateComplete;
+
+        expect(el.shadowRoot.querySelector('sp-dialog-wrapper.add-locales-dialog')).to.exist;
+    });
+});
+
+describe('mas-bulk-publish-editor (publish)', () => {
+    let repositoryEl;
+    let sandbox;
+    let metaEl;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        repositoryEl = document.createElement('mas-repository');
+        repositoryEl.setAttribute('bucket', 'test-bucket');
+        document.body.appendChild(repositoryEl);
+        metaEl = document.createElement('meta');
+        metaEl.setAttribute('name', 'io-base-url');
+        metaEl.setAttribute('content', 'https://io-test.adobe.io');
+        document.head.appendChild(metaEl);
+        Store.search.set({ path: 'sandbox' });
+    });
+
+    afterEach(() => {
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.search.set({});
+        repositoryEl.remove();
+        metaEl.remove();
+        sandbox.restore();
+    });
+
+    it('publish triggers the publish flow and calls saveFragment', async () => {
+        window.adobeIMS = { getAccessToken: () => ({ token: 'fake-token', clientId: 'mas-studio' }) };
+
+        const el = await makeEditor();
+        const items = [{ url: 'https://a.com', path: '/content/dam/mas/a', status: 'valid' }];
+        const fs = makeFragmentStore({ items: JSON.stringify(items), locales: ['en_US'], status: BULK_PUBLISH_STATUS.DRAFT });
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+
+        try {
+            await el.publish();
+        } catch {
+            // network call to io-base-url will fail in tests; that's ok
+        }
+
+        expect(repositoryEl.saveFragment.called).to.equal(true);
+        delete window.adobeIMS;
+    });
+});

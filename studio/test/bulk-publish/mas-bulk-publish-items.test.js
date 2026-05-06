@@ -48,4 +48,34 @@ describe('mas-bulk-publish-items', () => {
         const ev = await oneEvent(el, 'urls-change');
         expect(ev.detail).to.equal('hello');
     });
+
+    it('handleChange dispatches validate-items event', async () => {
+        const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
+        setTimeout(() => el.handleChange());
+        const ev = await oneEvent(el, 'validate-items');
+        expect(ev).to.exist;
+    });
+
+    it('emitAddBySearch dispatches add-by-search event', async () => {
+        const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
+        setTimeout(() => el.emitAddBySearch());
+        const ev = await oneEvent(el, 'add-by-search');
+        expect(ev).to.exist;
+    });
+
+    it('removeUrl dispatches url-remove event with url detail', async () => {
+        const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
+        setTimeout(() => el.removeUrl('https://example.com'));
+        const ev = await oneEvent(el, 'url-remove');
+        expect(ev.detail).to.equal('https://example.com');
+    });
+
+    it('toggleCollapse flips collapsed state', async () => {
+        const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
+        expect(el.collapsed).to.equal(false);
+        el.toggleCollapse();
+        expect(el.collapsed).to.equal(true);
+        el.toggleCollapse();
+        expect(el.collapsed).to.equal(false);
+    });
 });

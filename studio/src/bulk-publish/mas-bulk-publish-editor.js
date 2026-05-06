@@ -87,6 +87,7 @@ class MasBulkPublishEditor extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#abortController?.abort();
+        this.#validateId++;
     }
 
     get repository() {

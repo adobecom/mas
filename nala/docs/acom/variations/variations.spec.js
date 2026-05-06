@@ -4,7 +4,7 @@ export const FeatureName = 'Merch Acom Cards Feature';
 export const features = [
     {
         tcid: '0',
-        name: '@MAS-Grouped-Variation-in-Collection',
+        name: '@MAS-Grouped-Variation-Card-in-Collection',
         path: [
             DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co,
             DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN,
@@ -21,7 +21,7 @@ export const features = [
     },
     {
         tcid: '1',
-        name: '@MAS-Regional-Variation-in-Collection',
+        name: '@MAS-Regional-Variation-Card-in-Collection',
         path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN],
         data: {
             id: 'e5e40288-6b53-4a40-8cc2-010037b1ab85',

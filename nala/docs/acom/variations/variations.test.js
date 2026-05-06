@@ -28,7 +28,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         workerSetup.attachWorkerErrorsToFailure(testInfo);
     });
 
-    // @MAS-Grouped-Variation-in-Collection
+    // @MAS-Grouped-Variation-Card-in-Collection
     test(`${features[0].name},${features[0].tags}`, async () => {
         const { data } = features[0];
 
@@ -63,7 +63,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
     });
 
-    // @MAS-Regional-Variation-in-Collection
+    // @MAS-Regional-Variation-Card-in-Collection
     test(`${features[1].name},${features[1].tags}`, async () => {
         const { data } = features[1];
 

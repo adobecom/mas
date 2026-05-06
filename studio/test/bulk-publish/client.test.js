@@ -21,7 +21,6 @@ describe('publishBulk', () => {
             paths: ['/content/dam/mas/a/en_US/card'],
             locales: ['fr_FR'],
             token: 'abc',
-            allowedClientId: 'mas-studio',
         });
         const [url, init] = fetchStub.firstCall.args;
         expect(url).to.equal('https://io.example/bulk-publish');
@@ -31,7 +30,6 @@ describe('publishBulk', () => {
         expect(JSON.parse(init.body)).to.deep.equal({
             paths: ['/content/dam/mas/a/en_US/card'],
             locales: ['fr_FR'],
-            allowedClientId: 'mas-studio',
         });
     });
 

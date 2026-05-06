@@ -31,7 +31,6 @@ describe('startPublishing', () => {
             locales: [],
             token: 't',
             ioBaseUrl: 'x',
-            allowedClientId: 'mas-studio',
             publishFn: clientStub,
             repository: repo,
         });
@@ -58,7 +57,6 @@ describe('startPublishing', () => {
             locales: [],
             token: 't',
             ioBaseUrl: 'x',
-            allowedClientId: 'mas-studio',
             publishFn: clientStub,
             repository: repo,
         }).catch(() => {});

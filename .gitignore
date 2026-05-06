@@ -27,7 +27,9 @@ nala/.auth/
 /.cursor*/
 .CLAUDE.md
 **/CLAUDE.md
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 .logs/
 .specify/
 .superpowers/
@@ -57,6 +59,7 @@ web-components/commerce.json
 web-components/mas.json
 web-components/stats.json
 *.jsonl
+mcp-server.log
 
 # MWPW-183572 workspace-local (not shipped with PR)
 io/knowledge/

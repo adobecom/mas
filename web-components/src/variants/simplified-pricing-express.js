@@ -83,19 +83,19 @@ export class SimplifiedPricingExpress extends VariantLayout {
             return;
         }
 
+        const shadow = this.card.shadowRoot;
+        if (!shadow) return;
+
+        ['header', 'price-container', 'cta'].forEach((className) =>
+            this.updateCardElementMinHeight(
+                shadow.querySelector(`.${className}`),
+                className,
+            ),
+        );
+
         const descriptionSlot = this.card.querySelector('[slot="body-xs"]');
         if (descriptionSlot) {
             this.updateCardElementMinHeight(descriptionSlot, 'description');
-        }
-
-        const priceSlot = this.card.querySelector('[slot="price"]');
-        if (priceSlot) {
-            this.updateCardElementMinHeight(priceSlot, 'price');
-        }
-
-        const calloutSlot = this.card.querySelector('[slot="callout-content"]');
-        if (calloutSlot) {
-            this.updateCardElementMinHeight(calloutSlot, 'callout');
         }
 
         const iconRow = this.card.querySelector(
@@ -115,15 +115,29 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 this.card.prices.map((price) => price.onceSettled?.()),
             );
         }
+        const container = this.getContainer();
+        if (!container) return;
+        const cards = container.querySelectorAll(
+            `merch-card[variant="${this.card.variant}"]`,
+        );
+
+        /* Set small font size button class if button text is too long */
+        const CTA_LONG_TEXT_CHAR_THRESHOLD = 34;
+        cards.forEach((card) => {
+            card.classList.remove('small-font-size-button');
+            const ctas = card.querySelectorAll(
+                '[slot="cta"] sp-button, [slot="cta"] button, [slot="cta"] a.con-button, [slot="cta"] a.spectrum-Button, a[slot="cta"]',
+            );
+            ctas.forEach((cta) => {
+                const isLong =
+                    cta.textContent.trim().length >
+                    CTA_LONG_TEXT_CHAR_THRESHOLD;
+                cta.classList.toggle('small-font-size-button', isLong);
+            });
+        });
 
         if (Media.isDesktopOrUp) {
-            const container = this.getContainer();
-            if (!container) return;
-
             requestAnimationFrame(() => {
-                const cards = container.querySelectorAll(
-                    `merch-card[variant="${this.card.variant}"]`,
-                );
                 cards.forEach((card) => card.variantLayout?.syncHeights?.());
             });
         }
@@ -138,6 +152,27 @@ export class SimplifiedPricingExpress extends VariantLayout {
         if (this.card?.hasAttribute('data-default-card') && !isDesktop()) {
             this.card.setAttribute('data-expanded', 'true');
         }
+        this.observeVisibility();
+    }
+
+    resyncSiblings() {
+        const container = this.getContainer();
+        if (!container) return;
+        container
+            .querySelectorAll(`merch-card[variant="${this.card.variant}"]`)
+            .forEach((card) => card.variantLayout?.syncHeights?.());
+    }
+
+    observeVisibility() {
+        if (typeof ResizeObserver === 'undefined') return;
+        this.lastSyncedWidth = 0;
+        this.sizeObserver = new ResizeObserver(() => {
+            const width = this.card.getBoundingClientRect().width;
+            if (width <= 2 || width === this.lastSyncedWidth) return;
+            this.lastSyncedWidth = width;
+            this.resyncSiblings();
+        });
+        this.sizeObserver.observe(this.card);
     }
 
     setupAccordion() {
@@ -173,6 +208,8 @@ export class SimplifiedPricingExpress extends VariantLayout {
             const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
             mediaQuery.removeEventListener('change', this.mediaQueryListener);
         }
+        this.sizeObserver?.disconnect();
+        this.sizeObserver = null;
     }
 
     handleChevronClick(e) {
@@ -499,12 +536,27 @@ export class SimplifiedPricingExpress extends VariantLayout {
                 height: 100%;
             }
 
+            :host([variant='simplified-pricing-express']) .header {
+                min-height: var(
+                    --consonant-merch-card-simplified-pricing-express-header-height
+                );
+            }
+
             :host([variant='simplified-pricing-express']) .description {
                 flex: 1;
             }
 
+            :host([variant='simplified-pricing-express']) .price-container {
+                min-height: var(
+                    --consonant-merch-card-simplified-pricing-express-price-container-height
+                );
+            }
+
             :host([variant='simplified-pricing-express']) .cta {
                 flex-shrink: 0;
+                min-height: var(
+                    --consonant-merch-card-simplified-pricing-express-cta-height
+                );
             }
         }
 

@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN, VARIATION_TYPES } from './constants.js';
+import { EVENT_KEYDOWN, VARIATION_TYPES, COLLECTION_MODEL_PATH, COLLECTION_GROUPED_VARIATION_PAC } from './constants.js';
 import { showToast, extractLocaleFromPath, getService } from './utils.js';
 import Store from './store.js';
 import { getCountryName, getLocaleCode, getRegionLocales } from '../../io/www/src/fragment/locales.js';
@@ -141,6 +141,7 @@ export class MasVariationDialog extends LitElement {
     }
 
     get canShowGroupedVariation() {
+        if (this.fragment?.model?.path === COLLECTION_MODEL_PATH) return true;
         return this.sourceLocale === 'en_US';
     }
 
@@ -165,6 +166,12 @@ export class MasVariationDialog extends LitElement {
 
     async resolveGroupedOfferData() {
         if (this.offerData?.productArrangementCode) return this.offerData;
+
+        if (this.fragment?.model?.path === COLLECTION_MODEL_PATH) {
+            const offer = { productArrangementCode: COLLECTION_GROUPED_VARIATION_PAC };
+            this.offerData = offer;
+            return offer;
+        }
 
         const wcsOsi = this.fragment?.getFieldValue?.('osi');
         if (!wcsOsi) throw new Error('No OSI value found on the fragment');

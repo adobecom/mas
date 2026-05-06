@@ -5,6 +5,7 @@ import {
     EVENT_OST_OFFER_SELECT,
     EVENT_OST_MULTI_OFFER_SELECT,
     WCS_LANDSCAPE_PUBLISHED,
+    PLACEHOLDER_CTA_SURFACES,
 } from '../constants.js';
 import Store from '../store.js';
 
@@ -152,7 +153,7 @@ export async function onPlaceholderSelect(offerSelectorId, type, offer, options,
 
     const ctaText = CHECKOUT_CTA_TEXTS[options.ctaText]; // no placeholder key support.
     if (ctaText) {
-        attributes['text'] = ['acom', 'sandbox', 'nala'].includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
+        attributes['text'] = PLACEHOLDER_CTA_SURFACES.includes(Store.search.get().path) ? `{{${options.ctaText}}}` : ctaText;
         attributes['data-analytics-id'] = options.ctaText;
     }
 
@@ -235,6 +236,7 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
         }
 
         const searchParameters = new URLSearchParams();
+        const promotionCode = triggerElement?.closest('merch-card-editor')?.getEffectiveFieldValue('promoCode', 0)?.trim();
 
         const offerSelectorPlaceholderOptions = {};
         if (offerElement) {
@@ -257,6 +259,10 @@ export function openOfferSelectorTool(triggerElement, offerElement, initialSearc
                     offerSelectorPlaceholderOptions[newKey] = newValue;
                 }
             });
+
+            if (promotionCode && !offerSelectorPlaceholderOptions.promotionCode) {
+                offerSelectorPlaceholderOptions.promotionCode = promotionCode;
+            }
 
             [
                 'promotionCode', // contextual promo code (e.g. set on card/)

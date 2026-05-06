@@ -33,6 +33,10 @@ import {
 } from './full-pricing-express.js';
 import { Headless, HEADLESS_AEM_FRAGMENT_MAPPING } from './headless.js';
 import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
+import {
+    CompareChart,
+    COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+} from './compare-chart.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -146,6 +150,12 @@ registerVariant(
 );
 registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
 registerVariant('image', Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
+registerVariant(
+    'compare-chart',
+    CompareChart,
+    COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+    CompareChart.variantStyle,
+);
 
 const applyStyleSheet = (card, style, state) => {
     try {

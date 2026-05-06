@@ -16,6 +16,8 @@ import './rte-mnemonic-editor.js';
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
 
+const DEFAULT_EMOJIS = ['ℹ️', '✅', '✔️', '❌'];
+
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
     if (!node) return false;
@@ -176,6 +178,7 @@ class RteField extends LitElement {
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
         divider: { type: Boolean, attribute: 'divider' },
+        emoji: { type: Boolean, attribute: 'emoji' },
         marks: {
             type: Array,
             attribute: 'marks',
@@ -195,6 +198,7 @@ class RteField extends LitElement {
         length: { type: Number, state: true },
         hideOfferSelector: { type: Boolean, attribute: 'hide-offer-selector' },
         hideFormatButtons: { type: Boolean, attribute: 'hide-format-buttons' },
+        floatingToolbar: { type: Boolean, attribute: 'floating-toolbar' },
         osi: { type: String },
         value: { type: String },
     };
@@ -256,6 +260,80 @@ class RteField extends LitElement {
                     display: flex;
                     align-items: center;
                     gap: 8px;
+                }
+
+                :host([floating-toolbar]) {
+                    display: block;
+                    gap: 0;
+                }
+
+                :host([floating-toolbar]) sp-action-group[aria-label='RTE toolbar actions'] {
+                    position: fixed;
+                    top: var(--rte-toolbar-top, 8px);
+                    left: var(--rte-toolbar-left, 8px);
+                    z-index: 1000;
+                    box-sizing: border-box;
+                    max-width: calc(100vw - 16px);
+                    padding: 4px;
+                    border: 1px solid var(--spectrum-gray-300);
+                    border-radius: 8px;
+                    background: var(--spectrum-white);
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+                }
+
+                :host([floating-toolbar]) #editor-row {
+                    align-items: stretch;
+                    gap: 0;
+                }
+
+                :host([floating-toolbar]) #editor {
+                    align-items: center;
+                    box-sizing: border-box;
+                    display: flex;
+                    line-height: inherit;
+                    min-height: inherit;
+                    padding: 0;
+                    border: 0;
+                    border-radius: 0;
+                    background: transparent;
+                    color: inherit;
+                    outline: none;
+                    outline-offset: 0;
+                }
+
+                :host([floating-toolbar]) .ProseMirror {
+                    box-sizing: border-box;
+                    display: block;
+                    line-height: inherit;
+                    min-height: inherit;
+                    min-width: 0;
+                    overflow-wrap: anywhere;
+                    padding: 4px;
+                    transform: translate(-4px, 1px);
+                    width: 100%;
+                    word-break: break-word;
+                }
+
+                :host([floating-toolbar]) .ProseMirror p {
+                    max-width: 100%;
+                    min-height: 1em;
+                    min-width: 1px;
+                    overflow-wrap: anywhere;
+                    word-break: break-word;
+                }
+
+                :host([floating-toolbar]) .ProseMirror:empty::before,
+                :host([floating-toolbar]) .ProseMirror:has(> br.ProseMirror-trailingBreak)::before {
+                    content: '\\200b';
+                }
+
+                :host([floating-toolbar][focused]) #editor {
+                    outline: none;
+                    outline-offset: 0;
+                }
+
+                :host([floating-toolbar]) #counter {
+                    display: none;
                 }
 
                 #editor-row #editor {
@@ -652,9 +730,11 @@ class RteField extends LitElement {
         this.uptLink = false;
         this.mnemonic = false;
         this.divider = false;
+        this.emoji = false;
         this.maxLength = 70;
         this.length = 0;
         this.hideOfferSelector = false;
+        this.floatingToolbar = false;
         this.osi = '';
         this.marks = ['heading-xxxs', 'heading-xxs', 'heading-xs', 'heading-s', 'heading-m', 'promo-text', 'mnemonic-text'];
         this.#boundHandlers = {
@@ -1746,7 +1826,7 @@ class RteField extends LitElement {
                 : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                       ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
                       ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton}
-                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton}
+                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton} ${this.#emojiButton}
                   </sp-action-group>`}
             <div id="editor-row">
                 <div id="editor"></div>
@@ -1785,6 +1865,16 @@ class RteField extends LitElement {
             <sp-action-button emphasized id="addDividerButton" @click=${this.addDivider} title="Add Divider">
                 <sp-icon-stroke-solid slot="icon"></sp-icon-stroke-solid>
             </sp-action-button>
+        `;
+    }
+
+    get #emojiButton() {
+        if (!this.emoji) return nothing;
+        return html`
+            <sp-action-menu id="emojiMenu" title="Insert Emoji" placement="bottom">
+                <span slot="icon">ℹ️</span>
+                ${DEFAULT_EMOJIS.map((e) => html`<sp-menu-item @click=${() => this.#insertEmoji(e)}>${e}</sp-menu-item>`)}
+            </sp-action-menu>
         `;
     }
 
@@ -1941,6 +2031,14 @@ class RteField extends LitElement {
             mnemonicText: '', // Ensure mnemonic fields are reset too
             mnemonicPlacement: 'top',
         });
+    }
+
+    #insertEmoji(emoji) {
+        const { state, dispatch } = this.editorView;
+        const { selection } = state;
+        const tr = state.tr.insertText(emoji, selection.from, selection.to);
+        dispatch(tr);
+        this.editorView.focus();
     }
 
     addDivider() {

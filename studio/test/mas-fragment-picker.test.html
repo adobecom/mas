@@ -1,0 +1,563 @@
+<!doctype html>
+<!--
+  Design reference (Add fragment dialog):
+  https://www.figma.com/design/GDDRLo3S7fz0SMRefpJOpx/M-Studio?node-id=20653-86340
+-->
+<html>
+    <head>
+        <script>
+            window.__swc = { warn: () => {} };
+        </script>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>mas-fragment-picker unit tests</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../style.css" />
+        <script src="../src/swc.js" type="module"></script>
+        <style>
+            body {
+                margin: 0;
+                padding: 20px;
+                background: #f5f5f5;
+            }
+
+            main {
+                display: flex;
+                flex-direction: column;
+                gap: 32px;
+                max-width: 960px;
+                margin: 0 auto;
+            }
+
+            sp-theme {
+                display: contents;
+            }
+
+            .test-section {
+                background: white;
+                padding: 24px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .test-section h2 {
+                margin-top: 0;
+                color: #323232;
+                font-size: 20px;
+                font-family: 'Adobe Clean', sans-serif;
+            }
+
+            .test-section p.figma-ref {
+                margin: 0 0 16px;
+                font-size: 14px;
+            }
+
+            .test-section p.figma-ref a {
+                word-break: break-all;
+            }
+
+            .test-item {
+                padding: 16px;
+                background: #fafafa;
+                border-radius: 4px;
+                border: 1px solid #e0e0e0;
+                margin-bottom: 16px;
+            }
+        </style>
+    </head>
+    <body>
+        <mas-repository bucket="test" base-url="/test/mocks"></mas-repository>
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <main>
+                <section class="test-section">
+                    <h2>mas-fragment-picker — visual fixtures</h2>
+                    <p class="figma-ref">
+                        Compare open dialogs to Figma
+                        <a
+                            href="https://www.figma.com/design/GDDRLo3S7fz0SMRefpJOpx/M-Studio?node-id=20653-86340"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >M-Studio — Add fragment (node 20653-86340)</a
+                        >.
+                    </p>
+                    <p style="margin: 0 0 12px; font-size: 14px; color: #707070">
+                        Templates below are cloned when the suite runs so the picker can use a stubbed fragment search cursor
+                        (fragments only — merch card model, not collection).
+                    </p>
+
+                    <div class="test-item">
+                        <template id="visualPopulated">
+                            <mas-fragment-picker open title="Select items"></mas-fragment-picker>
+                        </template>
+                    </div>
+                    <div class="test-item">
+                        <template id="visualEmpty">
+                            <mas-fragment-picker open title="Add fragment"></mas-fragment-picker>
+                        </template>
+                    </div>
+                    <div class="test-item">
+                        <template id="visualBadges">
+                            <mas-fragment-picker open title="Add fragment"></mas-fragment-picker>
+                        </template>
+                    </div>
+                </section>
+            </main>
+        </sp-theme>
+
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
+
+            import Store from '../src/store.js';
+            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TAG_MODEL_ID_MAPPING } from '../src/constants.js';
+            import '../src/mas-repository.js';
+            import '../src/mas-fragment-picker.js';
+            import { delay, initElementFromTemplate, oneEvent } from './utils.js';
+
+            const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
+            const COLLECTION_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card-collection'];
+
+            const cardFragment = (path, title, extra = {}) => ({
+                path,
+                title,
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                localeDefault: null,
+                ...extra,
+            });
+
+            runTests(async () => {
+                describe('mas-fragment-picker', () => {
+                    let repo;
+                    let searchStub;
+                    let getByIdStub;
+
+                    /** @param {Element} el */
+                    const pr = (el) => el.shadowRoot;
+
+                    beforeEach(() => {
+                        searchStub?.restore();
+                        getByIdStub?.restore();
+                        document.querySelectorAll('mas-fragment-picker').forEach((el) => el.remove());
+                        document.querySelectorAll('mas-commerce-service').forEach((el) => el.remove());
+                        Store.translationProjects.offerDataCache.clear();
+                        Store.search.set({ path: 'sandbox' });
+                        Store.filters.set({ locale: 'en_US', tags: undefined, personalizationFilterEnabled: false });
+                        Store.createdByUsers.set([]);
+                        repo = document.querySelector('mas-repository');
+                        searchStub = sinon.stub(repo.aem.sites.cf.fragments, 'search').callsFake(() => fragmentCursor([[]]));
+                        getByIdStub = sinon.stub(repo.aem.sites.cf.fragments, 'getById').resolves(null);
+                    });
+
+                    function mountPicker(props = {}) {
+                        const picker = document.createElement('mas-fragment-picker');
+                        Object.assign(picker, props);
+                        document.querySelector('sp-theme main').append(picker);
+                        return picker;
+                    }
+
+                    function fragmentCursor(pages) {
+                        return (async function* () {
+                            for (const page of pages) yield page;
+                        })();
+                    }
+
+                    it('visual / Figma: populated list with search and two card rows', async () => {
+                        searchStub.callsFake(() =>
+                            fragmentCursor([
+                                [
+                                    cardFragment('/content/dam/mas/sandbox/en_US/cards/a', 'Alpha Card'),
+                                    cardFragment('/content/dam/mas/sandbox/en_US/cards/b', 'Beta Card'),
+                                ],
+                            ]),
+                        );
+
+                        const populated = initElementFromTemplate('visualPopulated', 'Visual: populated list');
+
+                        await populated.updateComplete;
+                        await delay(50);
+                        await populated.updateComplete;
+                        expect(pr(populated).querySelector('.mas-fragment-picker-dialog')).to.exist;
+                        const spSearch = pr(populated).querySelector('sp-search');
+                        const placeholder = spSearch?.placeholder || spSearch?.getAttribute('placeholder');
+                        expect(placeholder).to.equal('Search');
+                        expect(pr(populated).querySelectorAll('.picker-row').length).to.equal(2);
+                    });
+
+                    it('visual / Figma: empty state (No fragments found)', async () => {
+                        searchStub.callsFake(() => fragmentCursor([[]]));
+                        const empty = initElementFromTemplate('visualEmpty', 'Visual: empty state');
+
+                        await empty.updateComplete;
+                        await delay(50);
+                        await empty.updateComplete;
+                        expect(pr(empty).querySelector('.picker-empty')?.textContent?.trim()).to.equal('No fragments found.');
+                    });
+
+                    it('visual / Figma: Grouped and Variation badges on rows', async () => {
+                        searchStub.callsFake(() =>
+                            fragmentCursor([
+                                [
+                                    cardFragment('/content/dam/mas/sandbox/en_US/pac/pzn/grouped', 'Grouped row', {
+                                        fields: [],
+                                    }),
+                                    cardFragment('/content/dam/mas/sandbox/en_US/cards/var', 'Variation row', {
+                                        localeDefault: { id: 'parent-1' },
+                                        fields: [{ name: 'variant', values: ['plans'] }],
+                                    }),
+                                ],
+                            ]),
+                        );
+                        const badges = initElementFromTemplate('visualBadges', 'Visual: Grouped / Variation badges');
+
+                        await badges.updateComplete;
+                        await delay(50);
+                        await badges.updateComplete;
+                        expect(pr(badges).querySelectorAll('.picker-variation-badge').length).to.equal(2);
+                    });
+
+                    it('searches with card modelIds, sort, limit 50, and omits collection model id', async () => {
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        expect(searchStub.called).to.be.true;
+                        searchStub.getCalls().forEach((call) => {
+                            const [options] = call.args;
+                            expect(options.sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'DESC' }]);
+                            expect(options.modelIds).to.deep.equal([CARD_MODEL_ID]);
+                            expect(options.modelIds).to.not.include(COLLECTION_MODEL_ID);
+                            expect(options.path).to.equal('/content/dam/mas/sandbox/en_US');
+                        });
+                        const limit = searchStub.firstCall.args[1];
+                        expect(limit).to.equal(50);
+                    });
+
+                    it('renders only the filters shown in Figma', async () => {
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        const filters = [...pr(picker).querySelectorAll('aem-tag-picker-field')];
+                        expect(filters.map((filter) => filter.getAttribute('top'))).to.deep.equal([
+                            'variant',
+                            'market_segments',
+                            'customer_segment',
+                            'product_code',
+                        ]);
+                        expect(filters.map((filter) => filter.getAttribute('label'))).to.deep.equal([
+                            'Template',
+                            'Market segment',
+                            'Customer segment',
+                            'Product',
+                        ]);
+                    });
+
+                    it('renders the picker table columns shown in Figma', async () => {
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        const headers = [...pr(picker).querySelectorAll('.picker-table-head span')].map((header) =>
+                            header.textContent.trim(),
+                        );
+                        expect(headers).to.deep.equal(['', '', 'Offer', 'Fragment title', 'Offer ID', 'Path', 'Status']);
+                    });
+
+                    it('passes picker tag filters from Store.filters to fragment search', async () => {
+                        const tagId = 'mas:market_segments/com';
+                        Store.filters.set({ locale: 'en_US', tags: tagId, personalizationFilterEnabled: false });
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        const [options] = searchStub.firstCall.args;
+                        expect(options.tags).to.deep.equal([tagId]);
+                    });
+
+                    it('ignores filters that are not present in the picker', async () => {
+                        Store.createdByUsers.set([{ userPrincipalName: 'alice@example.com', displayName: 'Alice' }]);
+                        Store.filters.set({
+                            locale: 'en_US',
+                            tags: 'mas:status/published,mas:studio/content-type/merch-card,mas:custom/foo',
+                            personalizationFilterEnabled: false,
+                        });
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        const [options] = searchStub.firstCall.args;
+                        expect(options.tags).to.be.undefined;
+                        expect(options.status).to.be.undefined;
+                        expect(options.createdBy).to.be.undefined;
+                    });
+
+                    it('applies variant tag filter client-side (variant stripped from AEM tags array)', async () => {
+                        Store.filters.set({
+                            locale: 'en_US',
+                            tags: 'mas:variant/plans',
+                            personalizationFilterEnabled: false,
+                        });
+                        searchStub.callsFake(() =>
+                            fragmentCursor([
+                                [
+                                    cardFragment('/content/dam/mas/sandbox/en_US/cards/a', 'A', {
+                                        fields: [{ name: 'variant', values: ['plans'] }],
+                                    }),
+                                    cardFragment('/content/dam/mas/sandbox/en_US/cards/b', 'B', {
+                                        fields: [{ name: 'variant', values: ['other'] }],
+                                    }),
+                                ],
+                            ]),
+                        );
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        const [options] = searchStub.firstCall.args;
+                        expect(options.tags).to.be.undefined;
+                        expect(pr(picker).querySelectorAll('.picker-row').length).to.equal(1);
+                    });
+
+                    it('filters out non-card model fragments from results', async () => {
+                        searchStub.callsFake(() =>
+                            fragmentCursor([
+                                [
+                                    cardFragment('/content/dam/mas/sandbox/en_US/cards/only', 'Keeps me'),
+                                    {
+                                        path: '/content/dam/mas/sandbox/en_US/collections/x',
+                                        title: 'Collection row',
+                                        model: { path: COLLECTION_MODEL_PATH },
+                                        fields: [],
+                                    },
+                                    {
+                                        path: '/content/dam/mas/sandbox/en_US/placeholders/index',
+                                        title: 'Placeholder-like',
+                                        model: { path: '/conf/mas/settings/dam/cfm/models/dictionary-index' },
+                                        fields: [],
+                                    },
+                                ],
+                            ]),
+                        );
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(20);
+                        await picker.updateComplete;
+
+                        const rows = pr(picker).querySelectorAll('.picker-row');
+                        expect(rows.length).to.equal(1);
+                        expect(rows[0].querySelector('.picker-cell-title')?.textContent).to.include('Keeps me');
+                    });
+
+                    it('respects excludePaths', async () => {
+                        const p1 = '/content/dam/mas/sandbox/en_US/cards/one';
+                        const p2 = '/content/dam/mas/sandbox/en_US/cards/two';
+                        searchStub.callsFake(() => fragmentCursor([[cardFragment(p1, 'One'), cardFragment(p2, 'Two')]]));
+                        const picker = mountPicker({ open: true, excludePaths: [p1] });
+                        await picker.updateComplete;
+                        await delay(20);
+                        await picker.updateComplete;
+
+                        expect(pr(picker).querySelectorAll('.picker-row').length).to.equal(1);
+                        expect(pr(picker).querySelector('.picker-cell-title')?.textContent).to.include('Two');
+                    });
+
+                    it('passes fullText CONTAINS when the search field changes', async () => {
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+                        const callsAfterOpen = searchStub.callCount;
+
+                        const spSearch = pr(picker).querySelector('sp-search');
+                        spSearch.value = 'photoshop';
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        expect(searchStub.callCount).to.be.greaterThan(callsAfterOpen);
+                        const lastOptions = searchStub.lastCall.args[0];
+                        expect(lastOptions.fullText).to.deep.equal({ text: 'photoshop', queryMode: 'CONTAINS' });
+                    });
+
+                    it('searches by UUID and clears the search field when a merch-card Studio URL is pasted', async () => {
+                        const fragmentId = 'e7563f87-7cf6-4126-b395-e4dc78b9099e';
+                        const fragment = cardFragment('/content/dam/mas/sandbox/en_US/cards/from-link', 'From link', {
+                            id: fragmentId,
+                        });
+                        getByIdStub.withArgs(fragmentId).resolves(fragment);
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+                        const callsAfterOpen = searchStub.callCount;
+
+                        const spSearch = pr(picker).querySelector('sp-search');
+                        spSearch.value = `https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=${fragmentId}`;
+                        spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        expect(searchStub.callCount).to.equal(callsAfterOpen);
+                        expect(getByIdStub.calledWith(fragmentId)).to.be.true;
+                        expect(spSearch.value).to.equal('');
+                        expect(pr(picker).querySelectorAll('.picker-row').length).to.equal(1);
+                        expect(pr(picker).querySelector('.picker-cell-title')?.textContent).to.include('From link');
+                    });
+
+                    it('resolves OSI values to Offer IDs', async () => {
+                        const service = document.createElement('mas-commerce-service');
+                        service.collectPriceOptions = sinon.stub().callsFake(({ wcsOsi }) => [{ wcsOsi }]);
+                        service.resolveOfferSelectors = sinon
+                            .stub()
+                            .callsFake(() => [Promise.resolve([{ offerId: 'offer-12345' }])]);
+                        document.body.append(service);
+                        const fragment = cardFragment('/content/dam/mas/sandbox/en_US/cards/offer', 'Offer card', {
+                            fields: [{ name: 'osi', values: ['test-osi'] }],
+                        });
+                        searchStub.callsFake(() => fragmentCursor([[fragment]]));
+
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(50);
+                        await picker.updateComplete;
+
+                        const offerIdCell = pr(picker).querySelector('.picker-cell-offer-id');
+                        expect(offerIdCell.textContent).to.include('offer-12345');
+                        expect(offerIdCell.textContent).to.not.include('test-osi');
+                        expect(service.collectPriceOptions.calledWith({ wcsOsi: 'test-osi' })).to.be.true;
+                    });
+
+                    it('shows empty message when search returns no fragments', async () => {
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(20);
+                        await picker.updateComplete;
+
+                        expect(pr(picker).querySelector('.picker-empty')?.textContent?.trim()).to.equal('No fragments found.');
+                    });
+
+                    it('loads only the first page until the result list reaches the bottom', async () => {
+                        searchStub.callsFake(() =>
+                            fragmentCursor([
+                                [cardFragment('/content/dam/mas/sandbox/en_US/cards/a', 'A')],
+                                [cardFragment('/content/dam/mas/sandbox/en_US/cards/b', 'B')],
+                            ]),
+                        );
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(20);
+                        await picker.updateComplete;
+
+                        expect(pr(picker).querySelectorAll('.picker-row').length).to.equal(1);
+
+                        const results = pr(picker).querySelector('.picker-table-scroll');
+                        Object.defineProperty(results, 'scrollTop', { value: 100, configurable: true });
+                        Object.defineProperty(results, 'clientHeight', { value: 100, configurable: true });
+                        Object.defineProperty(results, 'scrollHeight', { value: 200, configurable: true });
+                        results.dispatchEvent(new Event('scroll'));
+                        await picker.updateComplete;
+                        await delay(20);
+                        await picker.updateComplete;
+
+                        expect(pr(picker).querySelectorAll('.picker-row').length).to.equal(2);
+                    });
+
+                    it('shows progress while fragment search is pending', async () => {
+                        searchStub.callsFake(() =>
+                            (async function* () {
+                                await delay(120);
+                                yield [];
+                            })(),
+                        );
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(10);
+                        await picker.updateComplete;
+                        expect(pr(picker).querySelector('sp-progress-circle')).to.exist;
+
+                        await delay(150);
+                        await picker.updateComplete;
+                        expect(picker.loading).to.be.false;
+                        expect(pr(picker).querySelector('.picker-empty')).to.exist;
+                    });
+
+                    it('dispatches pick and closes on row click in single mode', async () => {
+                        const frag = cardFragment('/content/dam/mas/sandbox/en_US/cards/pick-me', 'Pick me');
+                        searchStub.callsFake(() => fragmentCursor([[frag]]));
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(20);
+                        await picker.updateComplete;
+
+                        const pickPromise = oneEvent(picker, 'pick');
+                        pr(picker).querySelector('.picker-row')?.click();
+                        const ev = await pickPromise;
+
+                        expect(ev.detail.path).to.equal(frag.path);
+                        expect(ev.detail.fragment.path).to.equal(frag.path);
+                        expect(picker.open).to.be.false;
+                    });
+
+                    it('dispatches close and sets open false when Cancel is clicked', async () => {
+                        searchStub.callsFake(() =>
+                            fragmentCursor([[cardFragment('/content/dam/mas/sandbox/en_US/cards/x', 'X')]]),
+                        );
+                        const picker = mountPicker({ open: true });
+                        await picker.updateComplete;
+                        await delay(20);
+                        await picker.updateComplete;
+
+                        const closePromise = oneEvent(picker, 'close');
+                        const cancel = [...pr(picker).querySelectorAll('sp-button')].find((b) =>
+                            b.textContent?.trim().includes('Cancel'),
+                        );
+                        cancel.click();
+                        await closePromise;
+                        expect(picker.open).to.be.false;
+                    });
+
+                    it('multiple mode keeps the dialog open and dispatches pick with paths and fragments', async () => {
+                        const f1 = cardFragment('/content/dam/mas/sandbox/en_US/cards/m1', 'M1');
+                        const f2 = cardFragment('/content/dam/mas/sandbox/en_US/cards/m2', 'M2');
+                        searchStub.callsFake(() => fragmentCursor([[f1, f2]]));
+                        const picker = mountPicker({ open: true, multiple: true });
+                        await picker.updateComplete;
+                        await delay(20);
+                        await picker.updateComplete;
+
+                        const rows = pr(picker).querySelectorAll('.picker-row');
+                        rows[0].click();
+                        expect(picker.open).to.be.true;
+                        rows[1].click();
+                        await picker.updateComplete;
+
+                        const pickPromise = oneEvent(picker, 'pick');
+                        const addSelected = [...pr(picker).querySelectorAll('sp-button')].find((b) =>
+                            b.textContent?.trim().includes('Add selected items'),
+                        );
+                        addSelected.click();
+                        const ev = await pickPromise;
+
+                        expect(ev.detail.path).to.equal(f1.path);
+                        expect(ev.detail.fragment.path).to.equal(f1.path);
+                        expect(ev.detail.paths).to.deep.equal([f1.path, f2.path]);
+                        expect(ev.detail.fragments.map((f) => f.path)).to.deep.equal([f1.path, f2.path]);
+                        expect(picker.open).to.be.false;
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

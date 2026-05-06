@@ -13,22 +13,19 @@ Rules for AI agents working in this codebase.
 - Prefer `for...of` over `.forEach()`.
 - Prefer early returns over deeply nested conditionals.
 
-## Web Components (Lit + Adobe Spectrum)
+## Web Components
 
 - Use [Lit](https://lit.dev/) for all custom elements.
-- Use Adobe Spectrum Web Components (`@spectrum-web-components/*`) for UI primitives — buttons, dialogs, inputs, menus, etc.
 - Follow Lit best practices:
     - Use reactive properties (`static properties`) with appropriate defaults.
-    - Use `render()` for declarative templates — no imperative DOM manipulation.
+    - Use `render()` for declarative templates; avoid imperative DOM manipulation.
     - Keep components small and composable.
-    - Use CSS custom properties and `static styles` for styling — avoid inline styles in templates.
+    - Use CSS custom properties and `static styles` for styling; avoid inline styles in templates.
     - When dynamic styles are necessary, use Lit directives like `styleMap` or `classMap` instead of template literal interpolation.
-    - Dispatch custom events (not callbacks) for child-to-parent communication.
-    - Use **getters** (e.g., `get headerTemplate()`) for rendering HTML sections — not `renderXyz()` methods.
+    - Dispatch custom events for child-to-parent communication.
+    - Use **getters** (e.g., `get headerTemplate()`) for rendering HTML sections, not `renderXyz()` methods.
     - Only use per-item render functions when iterating over a list (e.g., `renderItem(item)`).
     - Use slots for content projection where appropriate.
-- Prefer Spectrum components over custom-styled HTML elements. Do not reinvent what Spectrum provides.
-- Follow Spectrum design guidelines for spacing, sizing, and color tokens.
 
 ## Performance
 
@@ -50,36 +47,29 @@ Rules for AI agents working in this codebase.
 - Keep functions short and single-purpose.
 - Co-locate related code. Avoid scattering logic across many tiny utility files.
 - Prefer named exports over default exports.
-- Barrel files (`index.js`) should only re-export — no logic.
+- Barrel files (`index.js`) should only re-export; no logic.
 
 ## Testing
 
-- Unit tests live in `.html` files and render **visually verifiable** test cases.
-- Each test file should display the component or behavior under test in a visible, inspectable way.
-- Use descriptive headings and sections in the HTML to label what each test case demonstrates.
-- Test meaningful behavior and visual states — not implementation details.
+- Unit tests live in `.html` and `.js` files under `/test`.
+- Test meaningful behavior and visual states, not implementation details.
 - Cover key states: default, loading, error, empty, populated, disabled, interactive.
-- Do NOT use headless assertion-only test frameworks as the primary approach. The test page itself is the verification artifact.
 
 ### Browser Unit Test Runner
 
-- Browser unit tests must be inspected only through the existing Web Test Runner instance on `http://localhost:2024`.
+- Browser unit tests must be inspected only through the existing Web Test Runner instance on `http://localhost:2023`.
 - Open the specific test URL directly. Do not preflight-check the base URL first.
-- When testing something in `studio`, if any file under `web-components` has been modified, first run `npm run build:bundle` from the `web-components` folder so studio uses the current bundled assets.
 - Do NOT start the test runner.
 - Do NOT add or modify `package.json` scripts.
 - Do NOT run `npm test`, `npm run test`, `yarn test`, `pnpm test`, `web-test-runner`, or any inferred fallback command.
 - Do NOT create temporary test scripts, config files, alternate runners, or Playwright fallbacks.
 - Do NOT change test infrastructure unless the user explicitly asks for that.
-- Resolve `<file>` relative to the `studio/test/` directory before building a WTR URL: strip any leading `studio/test/`, `test/`, or `/test/` from the local path. For example, `studio/test/mas-fragment-editor.test.html` becomes `mas-fragment-editor.test.html`, and `studio/test/editors/mas-compare-chart-editor.test.html` becomes `editors/mas-compare-chart-editor.test.html`.
-- For HTML test pages under `/test`, open `http://localhost:2024/test/<file>?wtr-test-file=<encoded-test-path>`, where `<file>` is the path relative to `/test` and `<encoded-test-path>` is the URL-encoded form of `/test/<file>?wtr-manual-session=true`.
-- Example: for `/test/editors/mas-compare-chart-editor.test.html`, open `http://localhost:2024/test/editors/mas-compare-chart-editor.test.html?wtr-test-file=%2Ftest%2Feditors%2Fmas-compare-chart-editor.test.html%3Fwtr-manual-session%3Dtrue`.
-- For JS-only WTR test files without an HTML page, open `http://localhost:2024/?wtr-test-file=<encoded-test-path>`, where `<encoded-test-path>` is the URL-encoded form of `/test/<file>?wtr-manual-session=true`.
-- If opening the test URL fails because nothing is reachable on port `2024`, stop and report exactly: `The unit test runner is not reachable at http://localhost:2024. Please start it, then tell me to continue.`
+- For any specific test file `<file>` under `/test`, open `http://localhost:2023/?wtr-test-file=<encoded-test-path>`, where `<encoded-test-path>` is the URL-encoded form of `/test/<file>?wtr-manual-session=true`.
+- If opening the test URL fails because nothing is reachable on port `2023`, stop and report exactly: `The unit test runner is not reachable at http://localhost:2023. Please start it, then tell me to continue.`
 
 ## Error Handling
 
-- Let unexpected errors propagate — do not swallow them.
+- Let unexpected errors propagate; do not swallow them.
 - Use typed/custom errors for known failure modes that callers need to handle.
 - Never `catch` an error just to log and rethrow it.
 

@@ -337,6 +337,31 @@ export function processPrices(fields, merchCard, mapping) {
     appendSlot('prices', fields, merchCard, mapping);
 }
 
+export function processFeatures(fields, merchCard) {
+    const values = Array.isArray(fields.features)
+        ? fields.features
+        : fields.features
+          ? [fields.features]
+          : [];
+    if (!values.length) return;
+    const container = createTag('div', {
+        slot: 'features',
+        hidden: '',
+        'data-compare-chart-features': '',
+    });
+    values.forEach((value) => {
+        if (typeof value !== 'string' || !value.trim()) return;
+        const doc = new DOMParser().parseFromString(value, 'text/html');
+        const p = doc.body.querySelector('p[name]');
+        if (p) {
+            container.append(p);
+            return;
+        }
+        container.insertAdjacentHTML('beforeend', value);
+    });
+    if (container.children.length) merchCard.append(container);
+}
+
 function transformLinkToButton(linkElement, merchCard, aemFragmentMapping) {
     const isCheckoutLink =
         linkElement.hasAttribute('data-wcs-osi') &&
@@ -864,6 +889,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping);
+    processFeatures(fields, merchCard);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
     processSecureLabel(fields, merchCard, mapping, settings);

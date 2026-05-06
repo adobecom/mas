@@ -11,7 +11,7 @@ import './merch-quantity-select.js';
 import './merch-badge.js';
 import './merch-whats-included.js';
 import './mas-mnemonic.js';
-import './mas-comparison-table.js';
+import './mas-compare-chart.js';
 
 import { registerVariant } from './variants/variants.js';
 
@@ -39,12 +39,6 @@ import {
 
 //Import fries
 import { FRIES_AEM_FRAGMENT_MAPPING, FriesCard } from './variants/fries.js';
-
-//Import compchart
-import {
-    COMPCHART_AEM_FRAGMENT_MAPPING,
-    Compchart,
-} from './variants/compchart.js';
 
 // Register dynamic variants
 registerVariant(
@@ -76,10 +70,4 @@ registerVariant(
     FriesCard,
     FRIES_AEM_FRAGMENT_MAPPING,
     FriesCard.variantStyle,
-);
-registerVariant(
-    'compchart',
-    Compchart,
-    COMPCHART_AEM_FRAGMENT_MAPPING,
-    Compchart.variantStyle,
 );

@@ -1,11 +1,18 @@
 import { LitElement, html, nothing } from 'lit';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
-import { VARIATION_TYPES } from './constants.js';
 import { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
 import { extractLocaleFromPath, showToast } from './utils.js';
 import router from './router.js';
+import {
+    getGroupedVariationTagsValue,
+    getPromotionCode,
+    hasAnyVariationTabItems,
+    listGroupedVariations,
+    listLocaleVariations,
+    VARIATION_TABS,
+} from './editors/variation-utils.js';
 import './aem/aem-tag-picker-field.js';
 
 const styleElement = document.createElement('style');
@@ -37,11 +44,11 @@ class MasFragmentVariations extends LitElement {
     }
 
     get localeVariations() {
-        return this.fragment.listLocaleVariations();
+        return listLocaleVariations(this.fragment);
     }
 
     get groupedVariations() {
-        return this.fragment.listGroupedVariations();
+        return listGroupedVariations(this.fragment);
     }
 
     get hasLocaleVariations() {
@@ -53,7 +60,7 @@ class MasFragmentVariations extends LitElement {
     }
 
     get hasAnyVariations() {
-        return this.hasLocaleVariations || this.hasGroupedVariations;
+        return hasAnyVariationTabItems(this.fragment);
     }
 
     async handleEdit(fragmentStore) {
@@ -62,27 +69,6 @@ class MasFragmentVariations extends LitElement {
             const locale = extractLocaleFromPath(fragment.path);
             await router.navigateToFragmentEditor(fragment.id, { locale });
         }
-    }
-
-    /**
-     * Returns pznTags value as a comma-separated string for aem-tag-picker-field.
-     * @param {Object} variationFragment
-     * @returns {string}
-     */
-    getGroupedVariationTagsValue(variationFragment) {
-        const pznTagsField = variationFragment.fields?.find((field) => field.name === 'pznTags');
-        const tags = pznTagsField?.values || [];
-        return tags.join(',');
-    }
-
-    /**
-     * Extracts promo code from a fragment's fields.
-     * @param {Object} variationFragment
-     * @returns {string}
-     */
-    getPromoCode(variationFragment) {
-        const promoCodeField = variationFragment.fields?.find((field) => field.name === 'promoCode');
-        return promoCodeField?.values?.[0] || '';
     }
 
     /**
@@ -109,7 +95,7 @@ class MasFragmentVariations extends LitElement {
     }
 
     openDuplicateDialog(variationFragment) {
-        const sourceTags = this.getGroupedVariationTagsValue(variationFragment);
+        const sourceTags = getGroupedVariationTagsValue(variationFragment);
         this.duplicateSource = variationFragment;
         this.duplicatePznTags = sourceTags ? sourceTags.split(',') : [];
     }
@@ -241,8 +227,8 @@ class MasFragmentVariations extends LitElement {
                     ${this.groupedVariations.map((variationFragment) => {
                         const mergedData = createPreviewDataWithParent(variationFragment, this.fragment);
                         const fragmentStore = new FragmentStore(new Fragment(mergedData));
-                        const tagsValue = this.getGroupedVariationTagsValue(variationFragment);
-                        const promoCode = this.getPromoCode(variationFragment);
+                        const tagsValue = getGroupedVariationTagsValue(variationFragment);
+                        const promoCode = getPromotionCode(variationFragment);
                         const isExpanded = this.isGroupedVariationExpanded(variationFragment.id);
                         return html`
                             <mas-fragment-table
@@ -303,9 +289,7 @@ class MasFragmentVariations extends LitElement {
                       ? html`<h3 class="expanded-title">Variations</h3>`
                       : html`<h3 class="expanded-title">No Variations found.</h3>`}
                 <sp-tabs selected="locale" quiet>
-                    <sp-tab value="locale" label="Locale">Locale</sp-tab>
-                    <sp-tab value="promotion" label="Promotion">Promotion</sp-tab>
-                    <sp-tab value="grouped" label="${VARIATION_TYPES.GROUPED}">${VARIATION_TYPES.GROUPED}</sp-tab>
+                    ${VARIATION_TABS.map((tab) => html`<sp-tab value=${tab.id} label=${tab.label}>${tab.label}</sp-tab>`)}
                     <sp-tab-panel value="locale">${this.localeVariationsTemplate}</sp-tab-panel>
                     <sp-tab-panel value="promotion">
                         <div class="tab-content-placeholder">

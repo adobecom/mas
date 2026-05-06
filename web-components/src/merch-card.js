@@ -650,7 +650,7 @@ export class MerchCard extends LitElement {
                             this.#resolveHydration = resolve;
                         });
                     }
-                    hydrate(fragment, this);
+                    await hydrate(fragment, this);
                 } catch (e) {
                     this.#fail(`hydration has failed: ${e.message}`);
                 } finally {

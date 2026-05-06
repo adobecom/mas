@@ -34,6 +34,7 @@ import {
     PZN_FOLDER,
     SURFACES,
     ODIN_PREVIEW_FRAGMENTS_URL,
+    COMPARE_CHART_FIELD,
 } from './constants.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
@@ -1334,7 +1335,14 @@ export class MasRepository extends LitElement {
                     if (key === 'tags') {
                         fields.push({ name: key, type: 'tag', values: value });
                     } else {
-                        const type = key === 'locReady' ? 'boolean' : key === 'compatVersion' ? 'number' : 'text';
+                        const type =
+                            key === 'locReady'
+                                ? 'boolean'
+                                : key === 'compatVersion'
+                                  ? 'number'
+                                  : key === COMPARE_CHART_FIELD
+                                    ? 'long-text'
+                                    : 'text';
                         fields.push({ name: key, type, values: [value] });
                     }
                     return fields;
@@ -1440,6 +1448,7 @@ export class MasRepository extends LitElement {
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
+            await initFragmentCache();
             fragmentCache.remove(savedFragment.id);
             fragmentCache.add(new Fragment(savedFragment));
             if (parentFragment) {

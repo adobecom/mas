@@ -1,6 +1,10 @@
 import { chromeLauncher } from '@web/test-runner-chrome';
 import { importMapsPlugin } from '@web/dev-server-import-maps';
 
+/** Set HEADED=1 so Chrome opens on-screen (for visual HTML tests, e.g. with it.only). */
+const headed = process.env.HEADED === '1';
+const slowMo = headed && process.env.WTR_SLOW_MO ? Number(process.env.WTR_SLOW_MO) : undefined;
+
 const testRunnerHtml = (testFramework) => `
   <html>
   <head>
@@ -18,7 +22,12 @@ const testRunnerHtml = (testFramework) => `
 export default {
     browsers: [
         chromeLauncher({
-            launchOptions: { args: ['--no-sandbox'] },
+            launchOptions: {
+                args: ['--no-sandbox'],
+                headless: !headed,
+                devtools: headed,
+                ...(slowMo != null && !Number.isNaN(slowMo) ? { slowMo } : {}),
+            },
         }),
     ],
     coverageConfig: {
@@ -50,7 +59,7 @@ export default {
         }),
     ],
     nodeResolve: true,
-    port: 2023,
+    port: 2024,
     testFramework: {
         config: {
             timeout: 5000,

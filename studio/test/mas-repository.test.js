@@ -1,7 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '../src/constants.js';
+import { CARD_MODEL_PATH, ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 
@@ -88,6 +88,41 @@ describe('MasRepository dictionary helpers', () => {
             const repository = createRepository();
 
             expect(repository.parseDictionaryPath('/not/the/root')).to.deep.equal({});
+        });
+    });
+
+    describe('saveFragment', () => {
+        it('initializes fragment cache before replacing the saved fragment', async () => {
+            const repository = createRepository();
+            const savedFragment = createFragment({
+                id: 'compchart-card-id',
+                model: { path: CARD_MODEL_PATH },
+                fields: [
+                    { name: 'variant', values: ['compchart'] },
+                    { name: 'osi', values: ['offer-id'] },
+                    { name: 'tags', values: [] },
+                ],
+            });
+            const sourceFragment = {
+                ...savedFragment,
+                getField: (name) => savedFragment.fields.find((field) => field.name === name),
+                getFieldValue: (name, index = 0) => savedFragment.fields.find((field) => field.name === name)?.values?.[index],
+            };
+            const fragmentStore = {
+                get: sandbox.stub().returns(sourceFragment),
+                refreshFrom: sandbox.stub(),
+            };
+            const removeSpy = sandbox.spy(mockFragmentCache, 'remove');
+            const addSpy = sandbox.spy(mockFragmentCache, 'add');
+
+            repository.aem = createAemMock({ fragments: { save: sandbox.stub().resolves(savedFragment) } });
+            repository.operation = { set: sandbox.stub() };
+
+            const result = await repository.saveFragment(fragmentStore, false);
+
+            expect(result).to.equal(savedFragment);
+            expect(removeSpy.calledWith('compchart-card-id')).to.be.true;
+            expect(addSpy.calledOnce).to.be.true;
         });
     });
 

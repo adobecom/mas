@@ -24,6 +24,7 @@ export const VARIANT_NAMES = {
     FULL_PRICING_EXPRESS: 'full-pricing-express',
     HEADLESS: 'headless',
     MEDIA: 'media',
+    COMPCHART: 'compare-chart',
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -110,6 +111,11 @@ export const VARIANTS = [
         value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
         surface: SURFACES.ACOM.name,
     },
+    {
+        label: 'Compare Chart',
+        value: VARIANT_NAMES.COMPCHART,
+        surface: SURFACES.ACOM_CC.name,
+    },
 ];
 
 const ACOM_CC_TEMPLATES = new Set([
@@ -118,6 +124,7 @@ const ACOM_CC_TEMPLATES = new Set([
     VARIANT_NAMES.MINI_COMPARE_CHART,
     VARIANT_NAMES.IMAGE,
     VARIANT_NAMES.SPECIAL_OFFERS,
+    VARIANT_NAMES.COMPCHART,
 ]);
 
 const ACOM_DC_TEMPLATES = new Set([

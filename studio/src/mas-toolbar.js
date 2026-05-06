@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
+import { COMPARE_CHART_CREATE_TYPE } from './constants.js';
 import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
@@ -28,6 +29,10 @@ const contentTypes = [
     {
         value: 'merch-card-collection',
         label: 'Merch Card Collection',
+    },
+    {
+        value: COMPARE_CHART_CREATE_TYPE,
+        label: 'Compare chart',
     },
 ];
 

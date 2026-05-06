@@ -143,6 +143,8 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 // Add the card-related constants from incoming changes
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
+export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
+export const COMPARE_CHART_FIELD = 'compareChart';
 
 export const FIELD_MODEL_MAPPING = {
     [CARD_MODEL_PATH]: 'cards',

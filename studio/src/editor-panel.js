@@ -7,6 +7,7 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import {
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    COMPARE_CHART_FIELD,
     EVENT_KEYDOWN,
     EVENT_OST_OFFER_SELECT,
     MAS_PRODUCT_CODE_PREFIX,
@@ -425,7 +426,12 @@ export default class EditorPanel extends LitElement {
         }
         await this.repository.refreshFragment(store);
         this.inEdit.set(store);
-        this.reactiveController.updateStores([this.inEdit, store, this.operation]);
+        this.reactiveController.updateStores([
+            this.inEdit,
+            store,
+            this.operation,
+            Store.editor.referencedFragmentStoresHaveChanges,
+        ]);
         if (this.needsMask(store.get(id))) {
             this.maskOtherFragments(id);
         }
@@ -1013,7 +1019,7 @@ export default class EditorPanel extends LitElement {
 
         // CRITICAL: Only render side panel for collections
         // Merch cards use the full-page fragment editor
-        if (this.fragment.model.path === CARD_MODEL_PATH) {
+        if (this.fragment.model.path === CARD_MODEL_PATH || this.fragment.getField?.(COMPARE_CHART_FIELD)) {
             return nothing;
         }
 

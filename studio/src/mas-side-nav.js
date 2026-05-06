@@ -150,6 +150,7 @@ class MasSideNav extends LitElement {
             Store.viewMode,
             Store.fragmentEditor.editorContext,
             Store.fragmentEditor.loading,
+            Store.editor.referencedFragmentStoresHaveChanges,
             Store.profile,
             Store.users,
         ],
@@ -213,6 +214,7 @@ class MasSideNav extends LitElement {
             Store.viewMode,
             Store.fragmentEditor.editorContext,
             Store.fragmentEditor.loading,
+            Store.editor.referencedFragmentStoresHaveChanges,
             Store.profile,
             Store.users,
         ];

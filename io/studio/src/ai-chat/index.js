@@ -1038,7 +1038,9 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
         lowerMessage.trim().endsWith('?') || /^(what|how|why|where|when|which|who|can|does|is|are)\b/i.test(lowerMessage);
 
     const operationKeywords = [
+        // Read / mutate ops on existing cards
         'publish',
+        'unpublish',
         'get',
         'find',
         'search',
@@ -1047,8 +1049,12 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
         'copy',
         'duplicate',
         'update',
+        'modify',
+        'edit',
+        'change',
         'show me',
         'fetch',
+        'list',
         'variation',
         'variations',
         'regional',
@@ -1060,6 +1066,26 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
         'terms',
         'commitment',
         'osi',
+        // Card creation phrasings — these are operations, not docs questions.
+        // "make me a card", "create a card", "build a card", "I need a card" all
+        // mean "do something for me using the MCP tools", which is what the
+        // operations prompt enables (it includes create_release_cards).
+        'make me',
+        'make a card',
+        'make a custom card',
+        'create',
+        'build',
+        'build me',
+        'generate',
+        'add card',
+        'add a card',
+        'new card',
+        'i need a card',
+        'i want a card',
+        'release',
+        'merch card',
+        'custom card',
+        'adobe home card',
     ];
     const hasOperationKeyword = operationKeywords.some((keyword) => lowerMessage.includes(keyword));
 

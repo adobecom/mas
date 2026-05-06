@@ -52,6 +52,10 @@ masStudio-*.json
 
 # Worktree documentation (per-ticket, not committed)
 docs/
+# But the AI assistant ships its documentation knowledge as runtime source —
+# those modules must be committed so deploys outside this worktree work.
+!io/studio/src/ai-chat/docs/
+!io/studio/src/ai-chat/docs/**
 
 # web-components specific
 !web-components/dist

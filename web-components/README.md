@@ -89,4 +89,3 @@ npm run lint
 ## Troubleshooting
 
 Reach out in the `#merch-at-scale` Slack channel for support.
-

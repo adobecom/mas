@@ -178,3 +178,4 @@ To add cleanup to new GitHub workflows:
 - Date filtering prevents accidental deletion of older cards
 - Dry-run mode allows safe testing of cleanup logic
 - Authentication is required to perform deletions
+

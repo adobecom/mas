@@ -279,7 +279,17 @@ if __name__ == "__main__":
 
     print("Closing CMR in ServiceNow...")
 
-    close_notes = f"The change request is closed as the change was released successfully.\nPull Request Merged At: {os.environ['PR_MERGED_AT']}"
+    pr_merged_str = os.environ.get('PR_MERGED', 'true')
+    pr_merged = str(pr_merged_str).strip().lower() in ('true', '1', 'yes')
+
+    if pr_merged:
+      close_notes = f"The change request is closed as the change was released successfully.\nPull Request Merged At: {os.environ['PR_MERGED_AT']}"
+      cmr_state = "Closed"
+      close_code = "Successful"
+    else:
+      close_notes = "The change request is cancelled as the change was closed without merging."
+      cmr_state = "Cancelled"
+      close_code = "Cancelled"
 
     headers = {
       "Accept": APPLICATION_JSON,
@@ -291,8 +301,8 @@ if __name__ == "__main__":
       "id": os.environ['RETRIEVED_TRANSACTION_ID'],
       "actualStartDate": actual_start_time,
       "actualEndDate": actual_end_time,
-      "state": "Closed",
-      "closeCode": "Successful",
+      "state": cmr_state,
+      "closeCode": close_code,
       "notes": close_notes
     }
     response = requests.post(SERVICENOW_CMR_URL, headers=headers, json=data)
@@ -310,7 +320,7 @@ if __name__ == "__main__":
       print(f"CMR closure was successful: {response.status_code}")
       print(response.text)
 
-    print("Change Management Request has been closed.")
+    print(f"Change Management Request has been set to {cmr_state}.")
     print(f"You can find the change record in ServiceNow https://adobe.service-now.com/now/change-launchpad/homepage, by searching for this ID: {cmr_id}")
     print("")
     print("If the CMR ID is not found, search for the change record in ServiceNow by the planned start time and/or planned end time found in the slack message sent by the workflow in the #wcms-generic-alerts channel.")

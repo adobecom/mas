@@ -39,6 +39,7 @@ env:
   PR_MERGED_AT: ${{ github.event.pull_request.merged_at }}
   PR_LINK: ${{ github.event.pull_request.html_url }}
   PR_STATE: ${{ github.event.pull_request.state }}
+  PR_MERGED: ${{ github.event.pull_request.merged }}
   SNOW_INSTANCE_ID_IO: ${{ secrets.SNOW_INSTANCE_ID_IO }}
   SNOW_INSTANCE_ID_STUDIO: ${{ secrets.SNOW_INSTANCE_ID_STUDIO }}
 
@@ -94,19 +95,23 @@ jobs:
 
   # matrix.* is not available in job-level `if`. Use step `cmr_row` once, then
   # `steps.cmr_row.outcome == 'success'` on steps that should run for this row.
-  create-cmr:
+  cmr-lifecycle:
     needs: detect-changes
     strategy:
       matrix:
         path: [io, studio]
-    if: ${{ always() && ((github.event.pull_request.state == 'open' && needs.detect-changes.result == 'success') || github.event.pull_request.merged == true) }}
+    if: >-
+      ${{ always() && ((github.event.pull_request.state == 'open' && needs.detect-changes.result == 'success')
+      || github.event.pull_request.merged == true
+      || (github.event.pull_request.state == 'closed' && github.event.pull_request.merged == false)) }}
     runs-on: ubuntu-latest
 
     steps:
-    - name: Matrix row active (merged PR, or open PR and path matches)
+    - name: Matrix row active (merged PR, PR closed without merge, or open PR and path matches)
       id: cmr_row
       if: >-
         ${{ github.event.pull_request.merged == true
+        || (github.event.pull_request.state == 'closed' && github.event.pull_request.merged == false)
         || (github.event.pull_request.state == 'open'
         && (needs.detect-changes.outputs.changed_path == matrix.path
         || needs.detect-changes.outputs.changed_path == 'both')) }}
@@ -167,7 +172,8 @@ jobs:
       if: >-
         ${{ steps.cmr_row.outcome == 'success'
         && ((github.event.pull_request.state == 'open' && steps['create-close-cmr-step'].outputs.transaction_id)
-        || (github.event.pull_request.state == 'closed' && steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id)) }}
+        || (github.event.pull_request.state == 'closed' && github.event.pull_request.merged == true
+        && steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id)) }}
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       env:
         RETRIEVED_TRANSACTION_ID: ${{ steps['retrieve-transactionId-step'].outputs.retrieved_transaction_id }}

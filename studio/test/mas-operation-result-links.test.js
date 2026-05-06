@@ -53,7 +53,7 @@ describe('mas-operation-result — lightweight links mode', () => {
         expect(el.querySelector('aem-fragment')).to.equal(null);
     });
 
-    it('renders a "view all" Studio folder link', async () => {
+    it('renders a "view all" Studio folder button', async () => {
         const el = await fixture(html`
             <mas-operation-result
                 .result=${SAMPLE_RESULT}
@@ -63,9 +63,55 @@ describe('mas-operation-result — lightweight links mode', () => {
             ></mas-operation-result>
         `);
 
-        const viewAll = el.querySelector('a.view-all-link');
+        const viewAll = Array.from(el.querySelectorAll('sp-button')).find((b) => b.textContent.includes('View all'));
         expect(viewAll).to.exist;
+        expect(viewAll.getAttribute('variant')).to.equal('primary');
         expect(viewAll.getAttribute('href')).to.contain('path=%2Fcontent%2Fdam%2Fmas%2Facom');
+        expect(viewAll.getAttribute('target')).to.equal('_blank');
+    });
+
+    it('renders Copy and View buttons in the lightweight mode', async () => {
+        const el = await fixture(html`
+            <mas-operation-result
+                .result=${SAMPLE_RESULT}
+                .operationType=${'search_cards'}
+                .mode=${'links'}
+                .displayContext=${{ surface: 'acom', locale: 'en_US' }}
+            ></mas-operation-result>
+        `);
+
+        const labels = Array.from(el.querySelectorAll('.search-results-actions sp-button')).map(
+            (b) => b.textContent.trim().split(/\s+/)[0],
+        );
+        expect(labels).to.contain('Copy');
+        expect(labels).to.contain('View');
+    });
+
+    it('renders Show-more when result count exceeds displayCount', async () => {
+        const many = {
+            success: true,
+            operation: 'search',
+            count: 10,
+            results: Array.from({ length: 10 }, (_, i) => ({
+                id: `id-${i}`,
+                title: `Card ${i}`,
+                path: `/content/dam/mas/acom/en_US/card-${i}`,
+                status: 'PUBLISHED',
+                fields: [{ name: 'variant', values: ['plans'] }],
+            })),
+        };
+        const el = await fixture(html`
+            <mas-operation-result
+                .result=${many}
+                .operationType=${'search_cards'}
+                .mode=${'links'}
+                .displayContext=${{ surface: 'acom', locale: 'en_US' }}
+            ></mas-operation-result>
+        `);
+        const labels = Array.from(el.querySelectorAll('.search-results-actions sp-button')).map(
+            (b) => b.textContent.trim().split(/\s+/)[0],
+        );
+        expect(labels).to.contain('Show');
     });
 
     it('renders an empty-state with a folder browse link when no results', async () => {

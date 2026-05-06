@@ -115,7 +115,12 @@ export class MasOperationResult extends LitElement {
 
                 <div class="search-results-actions">
                     ${hasMore
-                        ? html`<sp-button size="m" variant="secondary" @click=${() => this.handleShowMore(results.length)}>
+                        ? html`<sp-button
+                              size="m"
+                              variant="secondary"
+                              treatment="outline"
+                              @click=${() => this.handleShowMore(results.length)}
+                          >
                               Show ${Math.min(5, remainingCount)} More (${remainingCount} remaining)
                           </sp-button>`
                         : nothing}
@@ -195,7 +200,12 @@ export class MasOperationResult extends LitElement {
 
                 <div class="search-results-actions">
                     ${hasMore
-                        ? html`<sp-button size="m" variant="secondary" @click=${() => this.handleShowMore(results.length)}>
+                        ? html`<sp-button
+                              size="m"
+                              variant="secondary"
+                              treatment="outline"
+                              @click=${() => this.handleShowMore(results.length)}
+                          >
                               Show ${Math.min(5, remainingCount)} more
                           </sp-button>`
                         : nothing}
@@ -203,9 +213,9 @@ export class MasOperationResult extends LitElement {
                         Copy all links
                     </sp-button>
                     ${allHref
-                        ? html`<a class="view-all-link" href=${allHref} target="_blank" rel="noopener">
+                        ? html`<sp-button size="m" variant="primary" href=${allHref} target="_blank" rel="noopener">
                               View all ${results.length} in Studio →
-                          </a>`
+                          </sp-button>`
                         : nothing}
                 </div>
             </div>

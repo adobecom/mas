@@ -32,8 +32,8 @@ merch-card[variant="mini"] span.renewal-text {
     display: block;
 }
 
-merch-card[variant="mini"] [slot="prices"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
-merch-card[variant="mini"] [slot="prices"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+merch-card[id][variant="mini"] [slot="prices"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
+merch-card[id][variant="mini"] [slot="prices"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
     display: none;
 }
 `;

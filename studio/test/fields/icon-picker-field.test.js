@@ -174,7 +174,7 @@ describe('Icon picker field', () => {
     });
 
     it('should dispatch delete-field when paragraph alt is only non-breaking spaces', async () => {
-        const el = await fixture(html`<mas-icon-picker-field alt="<p>\u00a0\u00a0</p>"></mas-icon-picker-field>`, {
+        const el = await fixture(html`<mas-icon-picker-field alt="<p>  </p>"></mas-icon-picker-field>`, {
             parentNode: spTheme(),
         });
 

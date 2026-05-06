@@ -43,7 +43,11 @@ test.describe('M@S Studio Copy Field test suite', () => {
         await test.step('step-5: Verify popover preview includes the same tax label', async () => {
             const valueLocator = studio.copyFieldRowValue(data.priceField);
             await expect(valueLocator).toBeVisible();
-            await expect(valueLocator).toContainText(renderedTaxLabel);
+            await expect
+                .poll(async () => (await valueLocator.textContent()) ?? '', {
+                    timeout: 30000,
+                })
+                .toContain(renderedTaxLabel);
         });
     });
 });

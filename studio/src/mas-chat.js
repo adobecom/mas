@@ -2293,6 +2293,9 @@ export class MasChat extends LitElement {
                             .disabled=${this.isLoading}
                             placeholder="How can I help you today?"
                         ></mas-chat-input>
+                        <p class="chat-disclaimer">
+                            AI can make mistakes. Verify results before publishing or making bulk changes.
+                        </p>
                     </div>
 
                     <mas-prompt-suggestions .context=${{ surface: this.getCurrentSurface() }}></mas-prompt-suggestions>
@@ -2358,6 +2361,9 @@ export class MasChat extends LitElement {
 
                 <div class="chat-input">
                     <mas-chat-input @send-message=${this.handleSendMessage} .disabled=${this.isLoading}></mas-chat-input>
+                    <p class="chat-disclaimer">
+                        AI can make mistakes. Verify results before publishing or making bulk changes.
+                    </p>
                 </div>
             </div>
         `;

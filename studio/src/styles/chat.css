@@ -831,6 +831,16 @@
     border-top: 1px solid var(--spectrum-global-color-gray-200);
 }
 
+.chat-disclaimer {
+    margin: var(--spectrum-global-dimension-size-100) 0 0 0;
+    text-align: center;
+    font-size: var(--spectrum-global-dimension-size-150);
+    line-height: 1.4;
+    color: var(--spectrum-global-color-gray-600);
+    letter-spacing: 0.01em;
+    user-select: none;
+}
+
 .input-container {
     display: flex;
     flex-direction: column;

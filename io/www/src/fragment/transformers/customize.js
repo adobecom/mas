@@ -1,4 +1,5 @@
-import { getRequestInfos } from '../utils/common.js';
+import { PATH_TOKENS } from '../utils/paths.js';
+import { getRequestInfos, matchesGeo } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
@@ -96,16 +97,11 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
     }
     const tokens = parsePznTokens(pzn);
     const matchedTokens = countMatchedPznTokens(tags, tokens);
-    const regionMatch = Boolean(regionLocale && tags.some((tag) => tag.includes(regionLocale)));
-    const effectiveCountry = country || regionLocale?.split('_')[1];
-    const countryMatch = Boolean(
-        effectiveCountry &&
-            tags.some((tag) => tag.toLowerCase().endsWith(`pzn/country/${String(effectiveCountry).toLowerCase()}`)),
-    );
-    if (matchedTokens === 0 && !regionMatch && !countryMatch) {
+    const geo = matchesGeo(tags, { regionLocale, country });
+    if (matchedTokens === 0 && !geo) {
         return 0;
     }
-    return matchedTokens * 100 + (regionMatch ? 20 : 0) + (countryMatch ? 10 : 0);
+    return matchedTokens * 100 + (geo?.region ? 20 : 0) + (geo?.country ? 10 : 0);
 }
 
 function findPersonalizationVariation(variations, customizeContext) {
@@ -138,6 +134,23 @@ function findPersonalizationVariation(variations, customizeContext) {
     return null;
 }
 
+function findPromoVariation(root, customizeContext) {
+    const { activeProject } = customizeContext.promos;
+    const rootPath = root.path;
+    if (!rootPath) return null;
+    const match = PATH_TOKENS.exec(rootPath);
+    if (!match) return null;
+    const { surface, parsedLocale, fragmentPath } = match.groups;
+    const projectName = activeProject.path?.split('/').pop();
+    if (!projectName) return null;
+    const promoPath = `/content/dam/mas/${surface}/${parsedLocale}/promotions/${projectName}/${fragmentPath}`;
+    for (const varId of activeProject.variations) {
+        const ref = activeProject.references[varId];
+        if (ref?.value?.path === promoPath) return ref.value;
+    }
+    return null;
+}
+
 function mergeVariations(root, customizeContext) {
     const { isRegionLocale } = customizeContext;
     const variations = root?.fields?.variations;
@@ -146,6 +159,16 @@ function mergeVariations(root, customizeContext) {
         return root;
     }
     logDebug(() => `found variations ${JSON.stringify(variations)} in ${root.id}`, customizeContext);
+    if (customizeContext.promos?.fragmentIds.has(root.id)) {
+        const promoVariation = findPromoVariation(root, customizeContext);
+        if (promoVariation) {
+            logDebug(() => `Merging promo variation ${promoVariation.id} for fragment ${root.id}`, customizeContext);
+            const merged = deepMerge(root, promoVariation);
+            merged.id = root.id;
+            merged.variationId = promoVariation.id;
+            return merged;
+        }
+    }
     if (isRegionLocale) {
         const regionalVariation = findRegionalVariation(variations, customizeContext);
         if (regionalVariation) {
@@ -168,6 +191,23 @@ function mergeVariations(root, customizeContext) {
         return merged;
     }
     return root;
+}
+
+function applyPromoCode(fragment, promoMap, context) {
+    const fragOsi = fragment.fields?.osi;
+    if (!fragOsi) return;
+    const osis = Array.isArray(fragOsi) ? fragOsi : [fragOsi];
+    let promoCode = promoMap['*'];
+    for (const osi of osis) {
+        if (promoMap[osi]) {
+            promoCode = promoMap[osi];
+            break;
+        }
+    }
+    if (promoCode) {
+        logDebug(() => `Setting promoCode ${promoCode} on fragment ${fragment.id}`, context);
+        fragment.promoCode = promoCode;
+    }
 }
 
 /**
@@ -220,6 +260,9 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     //start by merging current fragment with its regional variation, and promos if any
     const customizedRoot = mergeVariations(root, customizeContext);
+    if (customizeContext.promos?.fragmentIds.has(customizedRoot.id)) {
+        applyPromoCode(customizedRoot, customizeContext.promos.promoMap, customizeContext);
+    }
 
     //adapt referencesTree to match the customized root's cards/collections
     const adaptedTree = adaptReferencesTree(referencesTree, customizedRoot);
@@ -260,7 +303,11 @@ async function customize(context) {
     const { surface } = requestInfos;
     const fragmentInit = await resolveFragmentInit(context, requestInfos);
     const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
-    const promos = await context.promises?.promotions;
+    const promosResult = await context.promises?.promotions;
+    const activeProject = promosResult?.activeProject;
+    const promos = activeProject
+        ? { activeProject, promoMap: context.promoMap ?? {}, fragmentIds: context.promoFragmentIds ?? new Set() }
+        : null;
 
     if (status != 200) {
         return { ...context, status, message };

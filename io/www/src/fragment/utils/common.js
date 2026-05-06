@@ -199,6 +199,25 @@ async function getRequestInfos(context) {
     return { parsedLocale, surface, fragmentPath, body };
 }
 
+/**
+ * Returns which geo dimensions match between `tags` and the given locale/country,
+ * or null if neither matches.
+ * Tags are CQ tag paths (e.g. /content/cq:tags/mas/geo/en_US), matched by final path segment.
+ * Falls back to extracting country from regionLocale when country is not provided.
+ * @param {string[]} tags
+ * @param {{ regionLocale?: string, country?: string }} param1
+ * @returns {{ region: boolean, country: boolean } | null}
+ */
+function matchesGeo(tags, { regionLocale, country }) {
+    const effectiveCountry = country ?? regionLocale?.split('_')[1];
+    const region = Boolean(regionLocale && tags.some((tag) => tag.toLowerCase().endsWith(`/${regionLocale.toLowerCase()}`)));
+    const countryMatch = Boolean(
+        effectiveCountry && tags.some((tag) => tag.toLowerCase().endsWith(`/${effectiveCountry.toLowerCase()}`)),
+    );
+    if (!region && !countryMatch) return null;
+    return { region, country: countryMatch };
+}
+
 export {
     createTimeoutPromise,
     internalFetch as fetch,
@@ -207,5 +226,6 @@ export {
     getJsonFromState,
     getFromState,
     mark,
+    matchesGeo,
     measureTiming,
 };

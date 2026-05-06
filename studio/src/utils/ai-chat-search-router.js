@@ -32,6 +32,8 @@ const SEARCH_VERB_RE = /\b(?:find|show|get|search|look up|list|give me|grab|wher
 const SEARCH_NOUN_RE = /\b(?:cards?|fragments?)\b/i;
 const OSI_KEYWORD_RE = /\b(?:osi|offer\s+selector|os-id|wcs-osi)\b/i;
 const OFFER_KEYWORD_RE = /\b(?:offer\s*id|offer-id)\b/i;
+const ALL_LOCALES_RE = /\b(?:in|across|for|over)\s+(?:all|every|each)\s+locales?\b/i;
+const LOCALE_RE = /\b(?:in|for)\s+([a-z]{2}_[A-Z]{2,4})\b/;
 
 const HIGH_CONFIDENCE = 0.85;
 const MEDIUM_CONFIDENCE = 0.55;
@@ -68,7 +70,7 @@ export function classifySearchIntent(message, context = {}) {
     if (!trimmed) return empty;
 
     const surface = context.currentSurface || null;
-    const locale = context.currentLocale || 'en_US';
+    const locale = resolveLocale(trimmed, context.currentLocale || 'en_US');
 
     const uuidMatch = trimmed.match(UUID_RE);
     if (uuidMatch) {
@@ -250,4 +252,18 @@ function emptyResult() {
         missingSlot: null,
         dispatch: null,
     };
+}
+
+/**
+ * Resolve the locale slot from message wording, falling back to the user's
+ * current locale.
+ * - "in all locales", "across all locales" → 'all' (backend scans every locale folder)
+ * - "in fr_FR" / "for de_DE"                → that explicit locale
+ * - otherwise                                → currentLocale
+ */
+function resolveLocale(message, currentLocale) {
+    if (ALL_LOCALES_RE.test(message)) return 'all';
+    const match = message.match(LOCALE_RE);
+    if (match) return match[1];
+    return currentLocale;
 }

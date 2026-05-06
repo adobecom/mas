@@ -102,6 +102,48 @@ describe('ai-chat-search-router', () => {
         });
     });
 
+    describe('Locale resolution', () => {
+        it('sets locale=all when message contains "in all locales"', () => {
+            const result = classifySearchIntent('find cards titled "Wide Card" in all locales', {
+                currentSurface: 'acom',
+                currentLocale: 'en_US',
+            });
+            expect(result.intent).to.equal('title-search');
+            expect(result.dispatch.mcpParams.locale).to.equal('all');
+            expect(result.dispatch.mcpParams.surface).to.equal('acom');
+        });
+
+        it('sets locale=all when message contains "across all locales"', () => {
+            const result = classifySearchIntent('find cards titled "Promo" across all locales', {
+                currentSurface: 'acom',
+            });
+            expect(result.dispatch.mcpParams.locale).to.equal('all');
+        });
+
+        it('sets locale=all when message contains "across every locale"', () => {
+            const result = classifySearchIntent('find cards titled "Promo" across every locale', {
+                currentSurface: 'acom',
+            });
+            expect(result.dispatch.mcpParams.locale).to.equal('all');
+        });
+
+        it('uses an explicit locale code from the message', () => {
+            const result = classifySearchIntent('find cards titled "Promo" in fr_FR', {
+                currentSurface: 'acom',
+                currentLocale: 'en_US',
+            });
+            expect(result.dispatch.mcpParams.locale).to.equal('fr_FR');
+        });
+
+        it('falls back to currentLocale when no locale phrasing is present', () => {
+            const result = classifySearchIntent('find cards titled "Promo"', {
+                currentSurface: 'acom',
+                currentLocale: 'de_DE',
+            });
+            expect(result.dispatch.mcpParams.locale).to.equal('de_DE');
+        });
+    });
+
     describe('Title search (titled-verb pattern)', () => {
         it('classifies "find cards titled X" with surface in context', () => {
             const result = classifySearchIntent('find cards titled Photoshop plan', {

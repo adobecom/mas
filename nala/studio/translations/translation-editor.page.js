@@ -106,7 +106,7 @@ export default class TranslationEditorPage {
         await this.addLanguagesButton.click();
         const selectLangsDialog = this.page.getByRole('dialog', { name: 'Select languages' });
         await expect(selectLangsDialog).toBeVisible({ timeout: 10000 });
-        await this.page.locator('.select-all-lang sp-checkbox').click();
+        await this.page.locator('.select-all-row sp-checkbox').click();
         await this.page.locator('sp-dialog-wrapper.add-langs-dialog sp-button[variant="accent"]').click();
         await expect(selectLangsDialog).not.toBeVisible({ timeout: 5000 });
 

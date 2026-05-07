@@ -107,7 +107,7 @@ export class QuantitySelectField extends LitElement {
     };
 
     #handleMinChange = (event) => {
-        if (!isNaN(event.target.value) && this.defaultValue && event.target.value > this.defaultValue) {
+        if (event.target.value && !isNaN(event.target.value) && this.defaultValue && event.target.value > this.defaultValue) {
             event.target.value = this.min;
             Events.toast.emit({
                 variant: 'negative',
@@ -125,7 +125,7 @@ export class QuantitySelectField extends LitElement {
     };
 
     #handleDefaultChange = (event) => {
-        if (!isNaN(event.target.value) && this.min && event.target.value < this.min) {
+        if (event.target.value && !isNaN(event.target.value) && this.min && event.target.value < this.min) {
             event.target.value = this.defaultValue;
             Events.toast.emit({
                 variant: 'negative',

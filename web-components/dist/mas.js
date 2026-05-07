@@ -6660,7 +6660,6 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.spectrum-Button.
         :host([variant='simplified-pricing-express']) .price-container {
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
             margin-top: auto;
         }
 

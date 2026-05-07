@@ -601,7 +601,7 @@
                             expect(quantitySelect.getAttribute('layout')).to.equal('vertical');
 
                             const fieldGroups = quantitySelect.shadowRoot.querySelectorAll('sp-field-group');
-                            expect(fieldGroups.length).to.equal(3);
+                            expect(fieldGroups.length).to.equal(4);
 
                             const textfields = [...quantitySelect.shadowRoot.querySelectorAll('sp-textfield')];
                             expect(textfields.map((field) => field.getAttribute('size'))).to.deep.equal(['m', 'm', 'm']);

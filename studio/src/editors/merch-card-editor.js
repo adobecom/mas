@@ -470,6 +470,7 @@ class MerchCardEditor extends LitElement {
                 title: this.#getQuantitySelectValue(fieldName, 'title', parentValues, currentValues),
                 min: this.#getQuantitySelectValue(fieldName, 'min', parentValues, currentValues),
                 step: this.#getQuantitySelectValue(fieldName, 'step', parentValues, currentValues),
+                defaultValue: this.#getQuantitySelectValue(fieldName, 'defaultValue', parentValues, currentValues),
             });
             if (this.globalSettingsDefaults[QUANTITY_MODEL] === html) {
                 this.fragmentStore.updateField(QUANTITY_MODEL, ['']);
@@ -2121,6 +2122,7 @@ class MerchCardEditor extends LitElement {
             title: this.#getQuantitySelectValue(component, 'title', parentValues, currentValues),
             min: this.#getQuantitySelectValue(component, 'min', parentValues, currentValues),
             step: this.#getQuantitySelectValue(component, 'step', parentValues, currentValues),
+            defaultValue: this.#getQuantitySelectValue(component, 'defaultValue', parentValues, currentValues),
         });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;

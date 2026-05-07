@@ -332,7 +332,6 @@ class RteMnemonicEditor extends LitElement {
                     <sp-field-label for="mnemonicText">Mnemonic Text</sp-field-label>
                     <rte-field
                         id="mnemonicText"
-                        inline
                         .value=${this.mnemonicText}
                         @change=${(e) => (this.mnemonicText = e.target.value)}
                     ></rte-field>
@@ -397,7 +396,6 @@ class RteMnemonicEditor extends LitElement {
                     <sp-field-label for="mnemonicText">Mnemonic Text</sp-field-label>
                     <rte-field
                         id="mnemonicText"
-                        inline
                         .value=${this.mnemonicText}
                         @change=${(e) => (this.mnemonicText = e.target.value)}
                     ></rte-field>

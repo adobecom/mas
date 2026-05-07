@@ -176,7 +176,7 @@ export class QuantitySelectField extends LitElement {
                 <sp-field-label>Default quantity</sp-field-label>
                 <div class="field-row">
                     <sp-textfield
-                        id="quantity-selector-start"
+                        id="quantity-selector-default"
                         size="m"
                         ?disabled=${this.disabled}
                         pattern="[0-9]*"

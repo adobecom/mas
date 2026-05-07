@@ -38,6 +38,7 @@ import {
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
+import { getItemsSelectionStore } from './common/items-selection-store.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
@@ -942,9 +943,11 @@ export class MasRepository extends LitElement {
                 collectionsByPath.set(fragment.path, collection);
             }
 
-            Store.translationProjects.allCollections.set(collections);
-            Store.translationProjects.displayCollections.set(collections);
-            Store.translationProjects.collectionsByPaths.set(collectionsByPath);
+            const s = getItemsSelectionStore();
+            s.allCollections.setMeta('loaded', true);
+            s.allCollections.set(collections);
+            s.displayCollections.set(collections);
+            s.collectionsByPaths.set(collectionsByPath);
         } catch (error) {
             if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load collections.');

@@ -5,8 +5,8 @@ import {
     tableColumnIconStyles,
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
-} from './translation-common-styles.css.js';
-import { skeletonStyles } from '../common/skeleton-styles.css.js';
+} from '../styles/table-styles.css.js';
+import { skeletonStyles } from '../skeleton-styles.css.js';
 
 export const styles = [
     tableHeaderBaseStyles,

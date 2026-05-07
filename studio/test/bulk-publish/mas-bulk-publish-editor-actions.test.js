@@ -1,6 +1,7 @@
 import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { BULK_PUBLISH_STATUS, QUICK_ACTION } from '../../src/constants.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
 
@@ -219,6 +220,7 @@ describe('mas-bulk-publish-editor (ensureSurface)', () => {
 });
 
 describe('mas-bulk-publish-editor (dialog state)', () => {
+    beforeEach(() => setItemsSelectionStore(Store.bulkPublishProjects));
     afterEach(() => Store.bulkPublishProjects.inEdit.set(null));
 
     it('handlePublish opens confirm dialog', async () => {
@@ -487,11 +489,12 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
 });
 
 describe('mas-bulk-publish-editor (confirmItemsSelector)', () => {
+    beforeEach(() => setItemsSelectionStore(Store.bulkPublishProjects));
     afterEach(() => {
         Store.bulkPublishProjects.inEdit.set(null);
-        Store.translationProjects.selectedCards.set([]);
-        Store.translationProjects.selectedCollections.set([]);
-        Store.translationProjects.selectedPlaceholders.set([]);
+        Store.bulkPublishProjects.selectedCards.set([]);
+        Store.bulkPublishProjects.selectedCollections.set([]);
+        Store.bulkPublishProjects.selectedPlaceholders.set([]);
     });
 
     it('merges selected items into urls and calls validate', async () => {
@@ -499,9 +502,9 @@ describe('mas-bulk-publish-editor (confirmItemsSelector)', () => {
         const fields = seedNew({ urls: 'https://existing.com' });
         await el.updateComplete;
 
-        Store.translationProjects.selectedCards.set(['https://new1.com']);
-        Store.translationProjects.selectedCollections.set([]);
-        Store.translationProjects.selectedPlaceholders.set([]);
+        Store.bulkPublishProjects.selectedCards.set(['https://new1.com']);
+        Store.bulkPublishProjects.selectedCollections.set([]);
+        Store.bulkPublishProjects.selectedPlaceholders.set([]);
 
         const validateStub = sinon.stub(el, 'validate').resolves([]);
         el.itemsSelectorOpen = true;
@@ -520,9 +523,9 @@ describe('mas-bulk-publish-editor (confirmItemsSelector)', () => {
         const fields = seedNew({ urls: 'https://a.com' });
         await el.updateComplete;
 
-        Store.translationProjects.selectedCards.set(['https://a.com', 'https://b.com']);
-        Store.translationProjects.selectedCollections.set([]);
-        Store.translationProjects.selectedPlaceholders.set([]);
+        Store.bulkPublishProjects.selectedCards.set(['https://a.com', 'https://b.com']);
+        Store.bulkPublishProjects.selectedCollections.set([]);
+        Store.bulkPublishProjects.selectedPlaceholders.set([]);
 
         sinon.stub(el, 'validate').resolves([]);
         await el.confirmItemsSelector();
@@ -553,6 +556,7 @@ describe('mas-bulk-publish-editor (handleConfirmPublish)', () => {
 });
 
 describe('mas-bulk-publish-editor (openItemsSelector side effects)', () => {
+    beforeEach(() => setItemsSelectionStore(Store.bulkPublishProjects));
     afterEach(() => {
         Store.bulkPublishProjects.inEdit.set(null);
         Store.search.set({});
@@ -560,7 +564,7 @@ describe('mas-bulk-publish-editor (openItemsSelector side effects)', () => {
 
     it('openItemsSelector sets itemsSelectorOpen and clears cards', async () => {
         Store.search.set({ path: 'sandbox' });
-        Store.translationProjects.allCards.set([{ id: 'old' }]);
+        Store.bulkPublishProjects.allCards.set([{ id: 'old' }]);
         const el = await makeEditor();
         seedNew();
         await el.updateComplete;
@@ -568,7 +572,7 @@ describe('mas-bulk-publish-editor (openItemsSelector side effects)', () => {
         el.openItemsSelector();
 
         expect(el.itemsSelectorOpen).to.equal(true);
-        expect(Store.translationProjects.allCards.get()).to.deep.equal([]);
+        expect(Store.bulkPublishProjects.allCards.get()).to.deep.equal([]);
     });
 });
 

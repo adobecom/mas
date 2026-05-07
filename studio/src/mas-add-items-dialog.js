@@ -1,11 +1,12 @@
 import { LitElement, html, nothing } from 'lit';
-import { debounce } from './utils.js';
 import { styles } from './mas-add-items-dialog.css.js';
 import { TABLE_TYPE } from './constants.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import './translation/mas-select-items-table.js';
-import './translation/mas-search-and-filters.js';
+import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
+import { renderFragmentStatusCell } from './common/utils/render-utils.js';
+import './common/components/mas-select-items-table.js';
+import './common/components/mas-search-and-filters.js';
 
 const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragment' },
@@ -18,7 +19,6 @@ class MasAddItemsDialog extends LitElement {
 
     static properties = {
         open: { type: Boolean },
-        targetStore: { type: Object },
         selectedTab: { state: true },
         searchQuery: { state: true },
     };
@@ -26,62 +26,49 @@ class MasAddItemsDialog extends LitElement {
     constructor() {
         super();
         this.open = false;
-        this.targetStore = Store.bulkPublishProjects;
         this.selectedTab = TABLE_TYPE.CARDS;
         this.searchQuery = '';
     }
 
     connectedCallback() {
         super.connectedCallback();
+        setItemsSelectionStore(Store.bulkPublishProjects);
         this.resultsController = new ReactiveController(this, [
-            Store.translationProjects.displayCards,
-            Store.translationProjects.displayCollections,
-            Store.translationProjects.displayPlaceholders,
+            Store.bulkPublishProjects.displayCards,
+            Store.bulkPublishProjects.displayCollections,
+            Store.bulkPublishProjects.displayPlaceholders,
         ]);
+    }
+
+    get repository() {
+        return document.querySelector('mas-repository');
     }
 
     willUpdate(changedProperties) {
         if (changedProperties.has('open') && this.open) {
-            Store.translationProjects.allCards.set([]);
-            Store.translationProjects.displayCards.set([]);
-            Store.translationProjects.groupedVariationsByParent.set(new Map());
-            Store.translationProjects.groupedVariationsData.set(new Map());
-            Store.translationProjects.allCollections.set([]);
-            Store.translationProjects.displayCollections.set([]);
-            Store.translationProjects.allPlaceholders.set([]);
-            Store.translationProjects.displayPlaceholders.set([]);
-        }
-        if (changedProperties.has('searchQuery')) {
-            const query = this.searchQuery?.toLowerCase();
-            const filterConfig = {
-                [TABLE_TYPE.COLLECTIONS]: {
-                    allKey: 'allCollections',
-                    displayKey: 'displayCollections',
-                    match: (c) =>
-                        (c.title ?? '').toLowerCase().includes(query) || (c.studioPath ?? '').toLowerCase().includes(query),
-                },
-                [TABLE_TYPE.PLACEHOLDERS]: {
-                    allKey: 'allPlaceholders',
-                    displayKey: 'displayPlaceholders',
-                    match: (p) => (p.key ?? '').toLowerCase().includes(query) || (p.value ?? '').toLowerCase().includes(query),
-                },
-            };
-            const config = filterConfig[this.selectedTab];
-            if (config) {
-                const all = Store.translationProjects[config.allKey].value ?? [];
-                Store.translationProjects[config.displayKey].set(query ? all.filter(config.match) : all);
-            }
+            const s = Store.bulkPublishProjects;
+            s.allCards.set([]);
+            s.displayCards.set([]);
+            s.groupedVariationsByParent.set(new Map());
+            s.groupedVariationsData.set(new Map());
+            s.allCollections.set([]);
+            s.allCollections.setMeta('loaded', false);
+            s.displayCollections.set([]);
+            s.allPlaceholders.set([]);
+            s.displayPlaceholders.set([]);
+            if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
         }
     }
 
     get resultCount() {
+        const s = getItemsSelectionStore();
         switch (this.selectedTab) {
             case TABLE_TYPE.CARDS:
-                return Store.translationProjects.displayCards.value?.length ?? 0;
+                return s.displayCards.value?.length ?? 0;
             case TABLE_TYPE.COLLECTIONS:
-                return Store.translationProjects.displayCollections.value?.length ?? 0;
+                return s.displayCollections.value?.length ?? 0;
             case TABLE_TYPE.PLACEHOLDERS:
-                return Store.translationProjects.displayPlaceholders.value?.length ?? 0;
+                return s.displayPlaceholders.value?.length ?? 0;
             default:
                 return 0;
         }
@@ -92,12 +79,8 @@ class MasAddItemsDialog extends LitElement {
         this.searchQuery = '';
     }
 
-    #setSearchQuery = debounce((value) => {
-        this.searchQuery = value;
-    }, 300);
-
     #handleSearchInput(e) {
-        this.#setSearchQuery(e.currentTarget?.value ?? '');
+        this.searchQuery = e.currentTarget?.value ?? '';
     }
 
     #handleSearchSubmit(e) {
@@ -157,8 +140,8 @@ class MasAddItemsDialog extends LitElement {
                             (tab) =>
                                 html`<mas-select-items-table
                                     .type=${tab.value}
-                                    .targetStore=${this.targetStore}
                                     ?hidden=${this.selectedTab !== tab.value}
+                                    .renderFragmentStatusCell=${renderFragmentStatusCell}
                                 ></mas-select-items-table>`,
                         )}
                     </div>

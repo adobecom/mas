@@ -3,9 +3,10 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { TABLE_TYPE, FILTER_TYPE } from '../../src/constants.js';
 import '../../src/swc.js';
-import '../../src/translation/mas-search-and-filters.js';
+import '../../src/common/components/mas-search-and-filters.js';
 
 describe('MasSearchAndFilters', () => {
     let sandbox;
@@ -27,6 +28,7 @@ describe('MasSearchAndFilters', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.allCollections.set([]);
@@ -52,6 +54,7 @@ describe('MasSearchAndFilters', () => {
         Store.fragments.list.firstPageLoaded.set(false);
         Store.placeholders.list.loading.set(false);
         Store.placeholders.list.data.set([]);
+        setItemsSelectionStore(null);
     });
 
     describe('initialization', () => {
@@ -212,7 +215,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should render progress circle when loading', async () => {
-            Store.fragments.list.loading.set(true);
+            Store.fragments.list.firstPageLoaded.set(false);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             const progressCircle = el.shadowRoot.querySelector('sp-progress-circle');
             expect(progressCircle).to.exist;
@@ -342,30 +345,37 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('search functionality', () => {
-        it('should update Store.search.query when searchQuery property is set on cards', async () => {
+        it('should filter displayCards locally when searchQuery is set on cards', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'Photoshop' }),
+                createMockFragment({ title: 'Illustrator' }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'test';
             await el.updateComplete;
-            expect(Store.search.get().query).to.equal('test');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
 
-        it('should update Store.search.query when searchQuery changes', async () => {
+        it('should filter displayCards locally when searchQuery changes', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'Photoshop card' }),
+                createMockFragment({ title: 'Illustrator card' }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'photoshop';
-            await el.updateComplete;
-            expect(Store.search.get().query).to.equal('photoshop');
-            el.searchQuery = 'illustrator';
-            await el.updateComplete;
-            expect(Store.search.get().query).to.equal('illustrator');
-        });
-
-        it('should clear Store.search.query when searchQuery is empty', async () => {
-            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'test';
-            await el.updateComplete;
             el.searchQuery = '';
             await el.updateComplete;
-            expect(Store.search.get().query).to.be.undefined;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(2);
+        });
+
+        it('should clear displayCards filter when searchQuery is empty', async () => {
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'test card' })]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'nomatch';
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
+            el.searchQuery = '';
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
         it('should filter placeholders by key', async () => {
@@ -390,11 +400,15 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayPlaceholders.get().length).to.equal(1);
         });
 
-        it('should apply filters when searchQuery property is set on collections', async () => {
+        it('should filter displayCollections locally when searchQuery is set', async () => {
+            Store.translationProjects.allCollections.set([
+                createMockFragment({ title: 'matching collection' }),
+                createMockFragment({ title: 'other collection' }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
             el.searchQuery = 'test';
             await el.updateComplete;
-            expect(Store.search.get().query).to.equal('test');
+            expect(Store.translationProjects.displayCollections.get().length).to.equal(0);
         });
     });
 
@@ -512,57 +526,81 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('filter application', () => {
-        it('should filter by template variant — sets Store.filters.tags', async () => {
+        it('should filter by template variant — excludes non-matching cards', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ fields: [{ name: 'variant', values: ['plans'] }] }),
+                createMockFragment({ fields: [{ name: 'variant', values: ['catalog'] }] }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
             await el.updateComplete;
-            expect(Store.filters.get().tags).to.include('mas:variant/plans');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
-        it('should filter by market segment tag — sets Store.filters.tags', async () => {
+        it('should filter by market segment tag', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }] }),
+                createMockFragment({ tags: [{ id: 'mas:market_segment/edu', title: 'Education' }] }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.marketSegmentFilter = ['mas:market_segment/com'];
             await el.updateComplete;
-            expect(Store.filters.get().tags).to.include('mas:market_segment/com');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
-        it('should filter by customer segment tag — sets Store.filters.tags', async () => {
+        it('should filter by customer segment tag', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ tags: [{ id: 'mas:customer_segment/individual', title: 'Individual' }] }),
+                createMockFragment({ tags: [{ id: 'mas:customer_segment/team', title: 'Team' }] }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.customerSegmentFilter = ['mas:customer_segment/individual'];
             await el.updateComplete;
-            expect(Store.filters.get().tags).to.include('mas:customer_segment/individual');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
-        it('should filter by product tag — sets Store.filters.tags', async () => {
+        it('should filter by product tag', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ tags: [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }] }),
+                createMockFragment({ tags: [{ id: 'mas:product_code/illustrator', title: 'Illustrator' }] }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.productFilter = ['mas:product_code/photoshop'];
             await el.updateComplete;
-            expect(Store.filters.get().tags).to.include('mas:product_code/photoshop');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
-        it('should combine multiple filters — all tags appear in Store.filters.tags', async () => {
+        it('should combine multiple filters — only cards matching all appear', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({
+                    tags: [
+                        { id: 'mas:market_segment/com', title: 'Commercial' },
+                        { id: 'mas:product_code/photoshop', title: 'Photoshop' },
+                    ],
+                }),
+                createMockFragment({ tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }] }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.marketSegmentFilter = ['mas:market_segment/com'];
             el.productFilter = ['mas:product_code/photoshop'];
             await el.updateComplete;
-            const tags = Store.filters.get().tags;
-            expect(tags).to.include('mas:market_segment/com');
-            expect(tags).to.include('mas:product_code/photoshop');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
-        it('should include all selected template ids in Store.filters.tags', async () => {
+        it('should include all cards matching any selected template id', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ fields: [{ name: 'variant', values: ['plans'] }] }),
+                createMockFragment({ fields: [{ name: 'variant', values: ['catalog'] }] }),
+                createMockFragment({ fields: [{ name: 'variant', values: ['other'] }] }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
-            el.templateFilter = ['plans'];
+            el.templateFilter = ['plans', 'catalog'];
             await el.updateComplete;
-            expect(Store.filters.get().tags).to.include('mas:variant/plans');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(2);
         });
 
         it('should exclude fragment if variant field has no values', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({
-                    fields: [{ name: 'variant', values: [] }],
-                }),
-            ]);
+            Store.translationProjects.allCards.set([createMockFragment({ fields: [{ name: 'variant', values: [] }] })]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
             await el.updateComplete;
@@ -570,11 +608,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should exclude fragment if variant field is missing', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({
-                    fields: [{ name: 'other', values: ['value'] }],
-                }),
-            ]);
+            Store.translationProjects.allCards.set([createMockFragment({ fields: [{ name: 'other', values: ['value'] }] })]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
             await el.updateComplete;
@@ -773,11 +807,12 @@ describe('MasSearchAndFilters', () => {
             expect(Store.search.get().query).to.be.undefined;
         });
 
-        it('should handle non-empty search query — sets Store.search.query', async () => {
+        it('should handle non-empty search query — filters displayCards locally', async () => {
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'no-match' })]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'Has';
             await el.updateComplete;
-            expect(Store.search.get().query).to.equal('Has');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
 
         it('should handle placeholders without key or value', async () => {
@@ -791,11 +826,12 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayPlaceholders.get().length).to.equal(1);
         });
 
-        it('should handle non-empty search query — propagates to Store.search.query', async () => {
+        it('should handle non-empty search query — propagates to displayCards local filter', async () => {
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'no-match' })]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'ABC';
             await el.updateComplete;
-            expect(Store.search.get().query).to.equal('ABC');
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
 
         it('should clear Store.search.query when empty search applied', async () => {
@@ -851,11 +887,15 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('collections type', () => {
-        it('should update Store.search.query when searchQuery set for collections', async () => {
+        it('should filter displayCollections locally when searchQuery is set', async () => {
+            Store.translationProjects.allCollections.set([
+                createMockFragment({ title: 'photoshop collection' }),
+                createMockFragment({ title: 'illustrator collection' }),
+            ]);
             const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
             el.searchQuery = 'photoshop';
             await el.updateComplete;
-            expect(Store.search.get().query).to.equal('photoshop');
+            expect(Store.translationProjects.displayCollections.get().length).to.equal(1);
         });
     });
 });

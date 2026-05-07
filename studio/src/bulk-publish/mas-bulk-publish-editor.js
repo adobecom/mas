@@ -267,8 +267,8 @@ class MasBulkPublishEditor extends LitElement {
     openItemsSelector() {
         if (this.isLocked) return;
         this.ensureSurface();
-        Store.translationProjects.allCards.set([]);
-        Store.translationProjects.displayCards.set([]);
+        Store.bulkPublishProjects.allCards.set([]);
+        Store.bulkPublishProjects.displayCards.set([]);
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
@@ -280,16 +280,13 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async confirmItemsSelector() {
-        const selected = [
-            ...Store.translationProjects.selectedCards.get(),
-            ...Store.translationProjects.selectedCollections.get(),
-            ...Store.translationProjects.selectedPlaceholders.get(),
-        ];
+        const s = Store.bulkPublishProjects;
+        const selected = [...s.selectedCards.get(), ...s.selectedCollections.get(), ...s.selectedPlaceholders.get()];
         const merged = Array.from(new Set([...this.urlLines, ...selected])).join('\n');
         this.setProjectField('urls', merged);
-        Store.translationProjects.selectedCards.set([]);
-        Store.translationProjects.selectedCollections.set([]);
-        Store.translationProjects.selectedPlaceholders.set([]);
+        s.selectedCards.set([]);
+        s.selectedCollections.set([]);
+        s.selectedPlaceholders.set([]);
         this.itemsSelectorOpen = false;
         await this.validate();
     }

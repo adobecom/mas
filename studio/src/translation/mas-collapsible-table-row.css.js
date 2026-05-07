@@ -4,7 +4,7 @@ import {
     tableCellBaseStyles,
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
-} from './translation-common-styles.css.js';
+} from '../common/styles/table-styles.css.js';
 
 export const styles = [
     tableColumnIconStyles,
@@ -17,21 +17,26 @@ export const styles = [
             width: 100%;
         }
 
-        .path {
-            word-break: break-word;
+        .path,
+        .offer-id {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .path span {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
 
         .offer-id {
             color: var(--spectrum-blue-900);
 
             div {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
                 overflow: hidden;
-                margin-right: 4px;
-                word-break: break-all;
+                white-space: nowrap;
                 text-overflow: ellipsis;
+                margin-right: 4px;
             }
 
             div:hover {

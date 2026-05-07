@@ -162,7 +162,7 @@ describe('MasTranslation', () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1')];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
-            const table = el.shadowRoot.querySelector('.translation-table');
+            const table = el.shadowRoot.querySelector('.item-table');
             expect(table).to.exist;
         });
 

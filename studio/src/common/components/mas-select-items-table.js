@@ -1,18 +1,17 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-select-items-table.css.js';
-import Store from '../store.js';
-import StoreController from '../reactivity/store-controller.js';
-import { TABLE_TYPE } from '../constants.js';
-import { renderFragmentStatusCell } from './translation-utils.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
-import { MasCollapsibleTableRow } from './mas-collapsible-table-row.js';
+import Store from '../../store.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
+import StoreController from '../../reactivity/store-controller.js';
+import { TABLE_TYPE } from '../../constants.js';
+import ReactiveController from '../../reactivity/reactive-controller.js';
 import {
     loadAllPlaceholders,
     loadAllFragments,
     loadSelectedPlaceholders,
     loadSelectedFragments,
-} from './translation-items-loader.js';
+} from '../utils/items-loader.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -22,12 +21,15 @@ class MasSelectItemsTable extends LitElement {
         viewOnly: { type: Boolean },
         viewOnlyLoading: { type: Boolean, state: true },
         viewOnlyFragments: { type: Array, state: true },
-        collectionsLoading: { type: Boolean, state: true },
+        dataReady: { type: Boolean, state: true },
+        getDisplayName: { type: Function },
+        renderFragmentStatusCell: { type: Function },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
     loading = new StoreController(this, Store.fragments.list.loading);
     firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
+    #collectionsReadyUnsub = null;
 
     constructor() {
         super();
@@ -43,8 +45,9 @@ class MasSelectItemsTable extends LitElement {
         this.selectedCollectionsStoreController = null;
         this.selectedPlaceholdersStoreController = null;
         this.wasLoading = false;
-        this.collectionsLoading = false;
-        this.collectionsLoadingCallback = null;
+        this.dataReady = false;
+        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.renderFragmentStatusCell = () => nothing;
     }
 
     connectedCallback() {
@@ -54,9 +57,9 @@ class MasSelectItemsTable extends LitElement {
         this.dataState.pendingCards = null;
         if (this.viewOnly) {
             if (this.type === TABLE_TYPE.PLACEHOLDERS) {
-                this.viewOnlyLoading = !!Store.translationProjects.selectedPlaceholders.value?.length;
+                this.viewOnlyLoading = !!getItemsSelectionStore().selectedPlaceholders.value?.length;
                 this.dataSubscription = loadSelectedPlaceholders(
-                    Store.translationProjects.selectedPlaceholders.value,
+                    getItemsSelectionStore().selectedPlaceholders.value,
                     (items) => {
                         this.viewOnlyFragments = items;
                         if (!Store.placeholders.list.loading.get()) {
@@ -65,10 +68,10 @@ class MasSelectItemsTable extends LitElement {
                     },
                 );
             } else {
-                this.viewOnlyLoading = !!Store.translationProjects[`selected${this.typeUppercased}`].value?.length;
+                this.viewOnlyLoading = !!getItemsSelectionStore()[`selected${this.typeUppercased}`].value?.length;
                 this.processAbortController = new AbortController();
                 loadSelectedFragments(
-                    Store.translationProjects[`selected${this.typeUppercased}`].value,
+                    getItemsSelectionStore()[`selected${this.typeUppercased}`].value,
                     this.type,
                     this.repository,
                     {
@@ -76,6 +79,7 @@ class MasSelectItemsTable extends LitElement {
                         onItems: (items) => {
                             this.viewOnlyFragments = items;
                         },
+                        getDisplayName: this.getDisplayName,
                     },
                 ).finally(() => {
                     this.viewOnlyLoading = false;
@@ -84,31 +88,39 @@ class MasSelectItemsTable extends LitElement {
         } else {
             if (this.type === TABLE_TYPE.PLACEHOLDERS) {
                 this.dataSubscription = loadAllPlaceholders();
-            } else {
-                this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState);
-                if (this.type === TABLE_TYPE.COLLECTIONS) {
-                    this.collectionsLoading = true;
-                    let skipFirst = true;
-                    this.collectionsLoadingCallback = () => {
-                        if (skipFirst) {
-                            skipFirst = false;
-                            return;
-                        }
-                        this.collectionsLoading = false;
-                        Store.translationProjects.allCollections.unsubscribe(this.collectionsLoadingCallback);
-                        this.collectionsLoadingCallback = null;
+            } else if (this.type === TABLE_TYPE.COLLECTIONS) {
+                const collectionsStore = getItemsSelectionStore().allCollections;
+                if (collectionsStore.getMeta('loaded') || collectionsStore.get()?.length > 0) {
+                    this.dataReady = true;
+                } else {
+                    const onCollectionsLoaded = () => {
+                        if (!collectionsStore.getMeta('loaded') && !collectionsStore.get()?.length) return;
+                        this.dataReady = true;
+                        collectionsStore.unsubscribe(onCollectionsLoaded);
+                        this.#collectionsReadyUnsub = null;
                     };
-                    Store.translationProjects.allCollections.subscribe(this.collectionsLoadingCallback);
+                    this.#collectionsReadyUnsub = onCollectionsLoaded;
+                    collectionsStore.subscribe(onCollectionsLoaded);
                 }
+                this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState, {
+                    getDisplayName: this.getDisplayName,
+                });
+            } else {
+                this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState, {
+                    getDisplayName: this.getDisplayName,
+                    onReady: () => {
+                        this.dataReady = true;
+                    },
+                });
             }
         }
         this[`selected${this.typeUppercased}StoreController`] = new ReactiveController(this, [
             Store.fragments.list.loading,
             Store.placeholders.list.loading,
-            Store.translationProjects[`selected${this.typeUppercased}`],
+            getItemsSelectionStore()[`selected${this.typeUppercased}`],
         ]);
         this[`display${this.typeUppercased}StoreController`] = new ReactiveController(this, [
-            Store.translationProjects[`display${this.typeUppercased}`],
+            getItemsSelectionStore()[`display${this.typeUppercased}`],
         ]);
     }
 
@@ -136,9 +148,9 @@ class MasSelectItemsTable extends LitElement {
         this.dataState.abortController?.abort();
         this.processAbortController?.abort();
         this.processAbortController = null;
-        if (this.collectionsLoadingCallback) {
-            Store.translationProjects.allCollections.unsubscribe(this.collectionsLoadingCallback);
-            this.collectionsLoadingCallback = null;
+        if (this.#collectionsReadyUnsub) {
+            getItemsSelectionStore().allCollections.unsubscribe(this.#collectionsReadyUnsub);
+            this.#collectionsReadyUnsub = null;
         }
     }
 
@@ -154,11 +166,11 @@ class MasSelectItemsTable extends LitElement {
     get isLoading() {
         if (this.type === TABLE_TYPE.CARDS) {
             if (this.viewOnly) return this.viewOnlyLoading;
-            return Store.fragments.list.firstPageLoaded.get() === false;
+            return !this.dataReady || Store.fragments.list.firstPageLoaded.get() === false;
         }
         if (this.type === TABLE_TYPE.COLLECTIONS) {
             if (this.viewOnly) return this.viewOnlyLoading;
-            return this.collectionsLoading;
+            return !this.dataReady;
         }
         if (this.type === TABLE_TYPE.PLACEHOLDERS) {
             if (this.viewOnly) return this.viewOnlyLoading;
@@ -171,29 +183,19 @@ class MasSelectItemsTable extends LitElement {
         if (this.viewOnly) {
             return this.viewOnlyFragments;
         }
-        return Store.translationProjects[`display${this.typeUppercased}`].value;
+        return getItemsSelectionStore()[`display${this.typeUppercased}`].value;
     }
 
     get selectedInTable() {
-        return new Set(Store.translationProjects[`selected${this.typeUppercased}`].value);
+        return new Set(getItemsSelectionStore()[`selected${this.typeUppercased}`].value);
     }
 
     get tableColumns() {
         const TABLE_COLUMNS = {
             cards: {
                 selectable: [
-                    {
-                        label: '',
-                        key: 'chevron',
-                        class: 'translation-table-icon-cell translation-table-icon-cell--chevron',
-                        skeleton: false,
-                    },
-                    {
-                        label: '',
-                        key: 'checkbox',
-                        class: 'translation-table-icon-cell translation-table-icon-cell--checkbox',
-                        skeleton: false,
-                    },
+                    { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
+                    { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Offer', key: 'offer', sortable: true },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
@@ -201,12 +203,7 @@ class MasSelectItemsTable extends LitElement {
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
-                    {
-                        label: '',
-                        key: 'chevron',
-                        class: 'translation-table-icon-cell translation-table-icon-cell--chevron',
-                        skeleton: false,
-                    },
+                    { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
                     { label: 'Offer', key: 'offer', sortable: true },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
@@ -217,12 +214,7 @@ class MasSelectItemsTable extends LitElement {
             },
             collections: {
                 selectable: [
-                    {
-                        label: '',
-                        key: 'checkbox',
-                        class: 'translation-table-icon-cell translation-table-icon-cell--checkbox',
-                        skeleton: false,
-                    },
+                    { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Path', key: 'path' },
                     { label: 'Status', key: 'status' },
@@ -235,12 +227,7 @@ class MasSelectItemsTable extends LitElement {
             },
             placeholders: {
                 selectable: [
-                    {
-                        label: '',
-                        key: 'checkbox',
-                        class: 'translation-table-icon-cell translation-table-icon-cell--checkbox',
-                        skeleton: false,
-                    },
+                    { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Key', key: 'key' },
                     { label: 'Value', key: 'value' },
                     { label: 'Status', key: 'status' },
@@ -260,7 +247,7 @@ class MasSelectItemsTable extends LitElement {
         const newSelected = this.selectedInTable.has(path)
             ? [...this.selectedInTable].filter((p) => p !== path)
             : [...this.selectedInTable, path];
-        Store.translationProjects[`selected${this.typeUppercased}`].set(newSelected);
+        getItemsSelectionStore()[`selected${this.typeUppercased}`].set(newSelected);
     }
 
     #renderTableBody() {
@@ -273,6 +260,8 @@ class MasSelectItemsTable extends LitElement {
                         html`<mas-collapsible-table-row
                             .topLevelCard=${fragment}
                             .viewOnly=${this.viewOnly}
+                            .getDisplayName=${this.getDisplayName}
+                            .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:
@@ -287,7 +276,7 @@ class MasSelectItemsTable extends LitElement {
                         >
                             ${!this.viewOnly
                                 ? html`
-                                      <sp-table-cell class="translation-table-icon-cell translation-table-icon-cell--checkbox">
+                                      <sp-table-cell class="table-icon-cell table-icon-cell--checkbox">
                                           <sp-checkbox
                                               value=${fragment.path}
                                               ?checked=${this.selectedInTable.has(fragment.path)}
@@ -298,7 +287,7 @@ class MasSelectItemsTable extends LitElement {
                                 : nothing}
                             <sp-table-cell> ${fragment.title || '-'} </sp-table-cell>
                             <sp-table-cell>${fragment.studioPath}</sp-table-cell>
-                            ${renderFragmentStatusCell(fragment.status)}
+                            ${this.renderFragmentStatusCell(fragment.status)}
                         </sp-table-row>`,
                 )}`;
             case TABLE_TYPE.PLACEHOLDERS:
@@ -312,7 +301,7 @@ class MasSelectItemsTable extends LitElement {
                             aria-selected=${!this.viewOnly && this.selectedInTable.has(fragment.path) ? 'true' : 'false'}
                         >
                             ${!this.viewOnly
-                                ? html`<sp-table-cell class="translation-table-icon-cell translation-table-icon-cell--checkbox">
+                                ? html`<sp-table-cell class="table-icon-cell table-icon-cell--checkbox">
                                       <sp-checkbox
                                           value=${fragment.path}
                                           ?checked=${this.selectedInTable.has(fragment.path)}
@@ -324,7 +313,7 @@ class MasSelectItemsTable extends LitElement {
                             <sp-table-cell>
                                 ${fragment.value?.length > 100 ? `${fragment.value.slice(0, 100)}...` : fragment.value || '-'}
                             </sp-table-cell>
-                            ${renderFragmentStatusCell(fragment.status)}
+                            ${this.renderFragmentStatusCell(fragment.status)}
                         </sp-table-row>`,
                 )}`;
 
@@ -366,7 +355,7 @@ class MasSelectItemsTable extends LitElement {
         return html`
             ${showEmpty ? html`<p>No items found.</p>` : nothing}
             ${showTable
-                ? html`<sp-table class="fragments-table translation-table" emphasized>
+                ? html`<sp-table class="fragments-table item-table" emphasized>
                       <sp-table-head>
                           ${repeat(
                               this.tableColumns,
@@ -377,8 +366,8 @@ class MasSelectItemsTable extends LitElement {
                                   </sp-table-head-cell>`,
                           )}
                       </sp-table-head>
-                      <sp-table-body> ${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()} </sp-table-body>
-                      ${this.loadingMoreIndicator}
+                      <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>
+                      ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}
                   </sp-table>`
                 : nothing}
         `;

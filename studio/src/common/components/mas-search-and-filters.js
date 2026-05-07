@@ -1,10 +1,11 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { VARIANTS } from '../editors/variant-picker.js';
+import { VARIANTS } from '../../editors/variant-picker.js';
 import { styles } from './mas-search-and-filters.css.js';
-import Store from '../store.js';
-import { FILTER_TYPE, TABLE_TYPE } from '../constants.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
+import Store from '../../store.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
+import { FILTER_TYPE, TABLE_TYPE } from '../../constants.js';
+import ReactiveController from '../../reactivity/reactive-controller.js';
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -47,8 +48,8 @@ class MasSearchAndFilters extends LitElement {
             this.#savedFilters = Store.filters.get();
         }
         this.commonDataController = new ReactiveController(this, [
-            Store.translationProjects[`all${this.typeUppercased}`],
-            Store.translationProjects[`display${this.typeUppercased}`],
+            getItemsSelectionStore()[`all${this.typeUppercased}`],
+            getItemsSelectionStore()[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
             ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
         ]);
@@ -61,16 +62,16 @@ class MasSearchAndFilters extends LitElement {
             }
             this.requestUpdate();
         };
-        Store.translationProjects[`all${this.typeUppercased}`].subscribe(dataCallback);
+        getItemsSelectionStore()[`all${this.typeUppercased}`].subscribe(dataCallback);
         this.dataSubscription = {
-            unsubscribe: () => Store.translationProjects[`all${this.typeUppercased}`].unsubscribe(dataCallback),
+            unsubscribe: () => getItemsSelectionStore()[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        Store.translationProjects[`display${this.typeUppercased}`].set(
-            Store.translationProjects[`all${this.typeUppercased}`].value,
+        getItemsSelectionStore()[`display${this.typeUppercased}`].set(
+            getItemsSelectionStore()[`all${this.typeUppercased}`].value,
         );
         this.dataSubscription?.unsubscribe();
         if (this.type === TABLE_TYPE.CARDS) {
@@ -127,7 +128,7 @@ class MasSearchAndFilters extends LitElement {
         const marketSegments = new Map();
         const customerSegments = new Map();
         const products = new Map();
-        for (const fragment of Store.translationProjects[`all${this.typeUppercased}`].value) {
+        for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
             for (const tag of fragment.tags) {
@@ -293,50 +294,61 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #applyFilters() {
-        if (this.type === TABLE_TYPE.PLACEHOLDERS) {
-            this.#applyLocalFilter();
-            return;
-        }
-        const query = this.searchQuery?.trim() || undefined;
-        Store.search.set((prev) => ({ ...prev, query }));
-
-        const tagIds = this.#buildTagIds();
-        Store.filters.set((prev) => ({ ...prev, tags: tagIds.length ? tagIds.join(',') : undefined }));
-    }
-
-    #applyLocalFilter() {
-        const source = Store.translationProjects[`all${this.typeUppercased}`].value || [];
+        const source = getItemsSelectionStore()[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
+        const hasTemplate = this.templateFilter?.length > 0;
+        const hasMarket = this.marketSegmentFilter?.length > 0;
+        const hasCustomer = this.customerSegmentFilter?.length > 0;
+        const hasProduct = this.productFilter?.length > 0;
+
         const result = source.filter((fragment) => {
             if (query) {
-                const key = fragment.key?.toLowerCase() || '';
-                const value = fragment.value?.toLowerCase() || '';
-                if (!key.includes(query) && !value.includes(query)) return false;
+                if (this.type === TABLE_TYPE.PLACEHOLDERS) {
+                    const key = fragment.key?.toLowerCase() || '';
+                    const value = fragment.value?.toLowerCase() || '';
+                    if (!key.includes(query) && !value.includes(query)) return false;
+                } else {
+                    const title = (fragment.title || '').toLowerCase();
+                    const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
+                    const offerId = fragment.offerData?.offerId || '';
+                    if (
+                        !title.includes(query) &&
+                        !productTag.toLowerCase().includes(query) &&
+                        !offerId.toLowerCase().includes(query)
+                    ) {
+                        return false;
+                    }
+                }
+            }
+            if (hasTemplate) {
+                const variantField = fragment.fields?.find((field) => field.name === 'variant');
+                if (!variantField?.values?.length) return false;
+                if (!variantField.values.some((value) => this.templateFilter.includes(value))) return false;
+            }
+            if (hasMarket) {
+                if (!fragment.tags?.some((tag) => this.marketSegmentFilter.includes(tag.id))) return false;
+            }
+            if (hasCustomer) {
+                if (!fragment.tags?.some((tag) => this.customerSegmentFilter.includes(tag.id))) return false;
+            }
+            if (hasProduct) {
+                if (!fragment.tags?.some((tag) => this.productFilter.includes(tag.id))) return false;
             }
             return true;
         });
-        Store.translationProjects[`display${this.typeUppercased}`].set(result);
-    }
 
-    #buildTagIds() {
-        const ids = [];
-        for (const id of this.templateFilter) {
-            ids.push(`mas:variant/${id}`);
+        if (this.type === TABLE_TYPE.CARDS) {
+            result.sort((a, b) => (b.groupedVariations?.length > 0 ? 1 : 0) - (a.groupedVariations?.length > 0 ? 1 : 0));
         }
-        for (const id of this.marketSegmentFilter) ids.push(id);
-        for (const id of this.customerSegmentFilter) ids.push(id);
-        for (const id of this.productFilter) ids.push(id);
-        return ids;
+        getItemsSelectionStore()[`display${this.typeUppercased}`].set(result);
     }
 
     renderCount() {
-        if (this.isLoading) {
-            return html`<div class="result-count"><sp-progress-circle indeterminate size="s"></sp-progress-circle></div>`;
-        }
-        const count = Store.translationProjects[`display${this.typeUppercased}`].value.length;
         return html`<div class="result-count">
-            ${count} result${count !== 1 ? 's' : ''}
-            ${this.isLoadingMore ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>` : nothing}
+            ${this.isLoading
+                ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
+                : html`${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length}
+                  result${getItemsSelectionStore()[`display${this.typeUppercased}`].value.length !== 1 ? 's' : ''}`}
         </div>`;
     }
 

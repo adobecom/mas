@@ -6,12 +6,15 @@ import { FragmentStore } from '../reactivity/fragment-store.js';
 import { Fragment } from '../aem/fragment.js';
 import { MasRepository, getFromFragmentCache } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
-import './mas-items-selector.js';
+import '../common/components/mas-items-selector.js';
 import '../mas-quick-actions.js';
 import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
+import { getItemsSelectionStore, setItemsSelectionStore } from '../common/items-selection-store.js';
+import { getFragmentName, renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
+import './mas-collapsible-table-row.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -34,6 +37,7 @@ class MasTranslationEditor extends LitElement {
     #collectionsSnapshot = [];
     #placeholdersSnapshot = [];
     #targetLocalesSnapshot = [];
+    #itemsSelectionStoreSnapshot = null;
     #itemsConfirmed = false;
 
     constructor() {
@@ -62,6 +66,8 @@ class MasTranslationEditor extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
+        this.#itemsSelectionStoreSnapshot = getItemsSelectionStore({ allowUnset: true });
+        setItemsSelectionStore(Store.translationProjects);
 
         if (this.repository?.searchFragments) {
             this.repository.searchFragments();
@@ -106,6 +112,12 @@ class MasTranslationEditor extends LitElement {
         if (this.isProjectReadonly) {
             this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
         }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
+        this.#itemsSelectionStoreSnapshot = null;
     }
 
     /** @type {MasRepository} */
@@ -219,12 +231,16 @@ class MasTranslationEditor extends LitElement {
     #validateRequiredFields(translationProject = {}) {
         const title = translationProject.getFieldValue('title');
         if (!title || title.trim() === '') {
-            return false;
+            return { ok: false, message: 'Please fill in all required fields.' };
+        }
+        const taskNameError = getOdinLocTaskNameValidationError(title.trim());
+        if (taskNameError) {
+            return { ok: false, message: taskNameError };
         }
 
         const targetLocales = Store.translationProjects.targetLocales.value;
         if (targetLocales.length === 0) {
-            return false;
+            return { ok: false, message: 'Please fill in all required fields.' };
         }
 
         const fragments = Store.translationProjects.selectedCards.value;
@@ -232,10 +248,10 @@ class MasTranslationEditor extends LitElement {
         const collections = Store.translationProjects.selectedCollections.value;
 
         if (fragments.length === 0 && placeholders.length === 0 && collections.length === 0) {
-            return false;
+            return { ok: false, message: 'Please fill in all required fields.' };
         }
 
-        return true;
+        return { ok: true };
     }
 
     #getValues(field) {
@@ -256,8 +272,9 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #createTranslationProject() {
-        if (!this.#validateRequiredFields(this.translationProject)) {
-            showToast('Please fill in all required fields.', 'negative');
+        const validation = this.#validateRequiredFields(this.translationProject);
+        if (!validation.ok) {
+            showToast(validation.message, 'negative');
             return;
         }
 
@@ -309,8 +326,9 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #updateTranslationProject() {
-        if (!this.#validateRequiredFields(this.translationProject)) {
-            showToast('Please fill in all required fields.', 'negative');
+        const validation = this.#validateRequiredFields(this.translationProject);
+        if (!validation.ok) {
+            showToast(validation.message, 'negative');
             return;
         }
         this.translationProject.updateFieldInternal('title', this.translationProject.getFieldValue('title'));
@@ -558,7 +576,10 @@ class MasTranslationEditor extends LitElement {
                 @cancel=${this.#cancelItemSelection}
                 @close=${this.#restoreItemsSnapshot}
             >
-                <mas-items-selector></mas-items-selector>
+                <mas-items-selector
+                    .getDisplayName=${getFragmentName}
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-items-selector>
             </sp-dialog-wrapper>
         `;
     }
@@ -838,7 +859,11 @@ class MasTranslationEditor extends LitElement {
                                   </div>
                               </div>
                               ${this.isSelectedItemsOpen
-                                  ? html`<mas-items-selector .viewOnly=${true}></mas-items-selector>`
+                                  ? html`<mas-items-selector
+                                        .viewOnly=${true}
+                                        .getDisplayName=${getFragmentName}
+                                        .renderFragmentStatusCell=${renderFragmentStatusCell}
+                                    ></mas-items-selector>`
                                   : nothing}
                           </div>`
                 }

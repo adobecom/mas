@@ -5,7 +5,7 @@ export default class TranslationsPage {
         const translationHost = page.locator('mas-translation');
         this.loadingIndicator = translationHost.locator('.loading-container sp-progress-circle');
 
-        this.translationTable = translationHost.locator('sp-table.translation-table');
+        this.translationTable = translationHost.locator('sp-table.item-table');
         this.tableHeaders = {
             translationProject: translationHost.locator('sp-table-head-cell:has-text("Translation Project")'),
             lastUpdatedBy: translationHost.locator('sp-table-head-cell:has-text("Last updated by")'),
@@ -14,9 +14,9 @@ export default class TranslationsPage {
         };
         this.emptyState = translationHost.locator('.translation-empty-state');
 
-        this.tableRows = translationHost.locator('sp-table.translation-table sp-table-row');
+        this.tableRows = translationHost.locator('sp-table.item-table sp-table-row');
 
-        this.firstRow = translationHost.locator('sp-table.translation-table sp-table-row').first();
+        this.firstRow = translationHost.locator('sp-table.item-table sp-table-row').first();
         this.firstRowTitleCell = this.firstRow.locator('sp-table-cell').nth(0);
         this.firstRowActionMenu = this.firstRow.locator('sp-action-menu');
 

@@ -18,6 +18,27 @@ const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[
 const logger = Core.Logger('translation', { level: 'info' });
 const DEFAULT_BATCH_SIZE = 10;
 const DEFAULT_RPS_LIMIT = 10;
+const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
+
+function getOdinLocTaskNameValidationError(value) {
+    const title = (value ?? '').trim();
+    if (title.length === 0) {
+        return 'Project title cannot be empty.';
+    }
+    if (title.length > ODIN_LOC_TASK_NAME_MAX_LENGTH) {
+        return `Project title must be at most ${ODIN_LOC_TASK_NAME_MAX_LENGTH} characters.`;
+    }
+    if (!/[A-Za-z0-9]/.test(title)) {
+        return 'Project title must include at least one letter or number.';
+    }
+    if (!/^[A-Za-z0-9._-]+$/.test(title)) {
+        return 'Project title may only use letters, numbers, hyphens, underscores and dots.';
+    }
+    if (title.includes('..')) {
+        return 'Project title cannot contain two dots in a row.';
+    }
+    return null;
+}
 
 async function prepareProjectStart(params, options = {}) {
     logger.info('Calling the main action');
@@ -31,6 +52,11 @@ async function prepareProjectStart(params, options = {}) {
 
     const authToken = getBearerToken(params);
     const { projectCF, etag } = await getTranslationProject(params.projectId, authToken, params);
+    const translationTitle = (getValue(projectCF, 'title')?.value ?? '').trim();
+    const taskNameError = getOdinLocTaskNameValidationError(translationTitle);
+    if (taskNameError) {
+        throw createProjectStartError(400, taskNameError);
+    }
     const translationFlow = params.translationFlow || params.translationMapping?.[params.surface] || null;
     const translationData = await getTranslationData(authToken, projectCF, params.surface, translationFlow, params);
     if (!translationData) {
@@ -170,7 +196,7 @@ async function getTranslationData(authToken, projectCF, surface, translationFlow
     logger.info(`Translation flow: ${translationFlow}`);
 
     return {
-        title: getValue(projectCF, 'title')?.value || 'Untitled Project',
+        title: getValue(projectCF, 'title')?.value?.trim(),
         itemsToTranslate,
         itemsToSync,
         locales,

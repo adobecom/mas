@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 function hasSpectrumTooltip() {
     // Only use Spectrum if ALL required components are available
@@ -258,7 +259,7 @@ export default class MasMnemonic extends LitElement {
                         placement="${placement}"
                         variant="${this.variant}"
                     >
-                        ${content}
+                        ${unsafeHTML(content)}
                     </sp-tooltip>
                 </overlay-trigger>
             `;
@@ -266,15 +267,16 @@ export default class MasMnemonic extends LitElement {
             // Use CSS tooltip with pointerType-aware handlers
             // Mouse/pen: hover to show/hide via pointerenter/leave
             // Touch: tap to toggle via click (pointerType === 'touch')
+            const plainContent = content.replace(/<[^>]*>/g, '');
             return html`
                 <span
                     class="css-tooltip ${placement} ${this.tooltipVisible
                         ? 'tooltip-visible'
                         : ''}"
-                    data-tooltip="${content}"
+                    data-tooltip="${plainContent}"
                     tabindex="0"
                     role="img"
-                    aria-label="${content}"
+                    aria-label="${plainContent}"
                     @pointerdown=${(e) => {
                         this.lastPointerType = e.pointerType;
                     }}

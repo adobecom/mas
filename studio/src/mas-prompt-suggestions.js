@@ -54,14 +54,6 @@ export class MasPromptSuggestions extends LitElement {
 
     get surfaceSuggestions() {
         return {
-            acom: [
-                { text: 'Plans Cards', icon: 'Table', prompt: 'Show me all plans cards in the current workspace' },
-                {
-                    text: 'Special Offers',
-                    icon: 'Star',
-                    prompt: 'Find special-offers cards in the current workspace',
-                },
-            ],
             ccd: [{ text: 'CCD Slices', icon: 'Layers', prompt: 'Show CCD slice cards in the current workspace' }],
             commerce: [
                 {

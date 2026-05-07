@@ -86,12 +86,7 @@ class MerchCardEditor extends LitElement {
 
     static SECTION_FIELDS = {
         Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color'],
-        "What's included": [
-            'whatsIncluded',
-            'whatsIncludedIconPicker',
-            'whats-included-divider-color',
-            'quantitySelect',
-        ],
+        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color', 'quantitySelect'],
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
         Footer: ['ctas'],
@@ -821,9 +816,7 @@ class MerchCardEditor extends LitElement {
             if (borderField) borderField.style.display = 'block';
         }
         if (variant.whatsIncludedDividerColor) {
-            const dividerField = this.querySelector(
-                'sp-field-group.toggle#whats-included-divider-color',
-            );
+            const dividerField = this.querySelector('sp-field-group.toggle#whats-included-divider-color');
             if (dividerField) dividerField.style.display = 'block';
         }
         this.#displayBadgeColorFields(this.badgeText);
@@ -1792,12 +1785,7 @@ class MerchCardEditor extends LitElement {
             values = this.whatsIncluded.values;
             bullets = this.whatsIncluded.bullets;
         }
-        const element = this.createIncludedElement(
-            label,
-            values,
-            bullets,
-            this.whatsIncludedDividerFromMarkup,
-        );
+        const element = this.createIncludedElement(label, values, bullets, this.whatsIncludedDividerFromMarkup);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 
@@ -2041,9 +2029,7 @@ class MerchCardEditor extends LitElement {
                 variant.showAllSpectrumColors && curated
                     ? [...curated, ...SPECTRUM_COLORS.filter((c) => !curated.includes(c))]
                     : curated || SPECTRUM_COLORS;
-            this.availableWhatsIncludedDividerColors = resolveDivider(
-                variant.allowedWhatsIncludedDividerColors,
-            );
+            this.availableWhatsIncludedDividerColors = resolveDivider(variant.allowedWhatsIncludedDividerColors);
         } else {
             this.availableWhatsIncludedDividerColors = [];
         }
@@ -2469,18 +2455,14 @@ class MerchCardEditor extends LitElement {
         let variantSpecialValues = {};
         if (this.fragment && (isBorder || isDividerField) && this.currentVariantMapping) {
             const variant = this.currentVariantMapping;
-            const colorConfig = isBorder
-                ? variant.borderColor
-                : variant.whatsIncludedDividerColor;
+            const colorConfig = isBorder ? variant.borderColor : variant.whatsIncludedDividerColor;
             variantSpecialValues = colorConfig?.specialValues || {};
             if (showAllSpectrum && Object.keys(variantSpecialValues).length > 0) {
                 colorArray = [...colorArray, ...Object.keys(variantSpecialValues)];
             }
         }
 
-        const isSpecialValue = (color) =>
-            (isBorder || isDividerField) &&
-            Object.keys(variantSpecialValues).includes(color);
+        const isSpecialValue = (color) => (isBorder || isDividerField) && Object.keys(variantSpecialValues).includes(color);
 
         let displaySelectedValue = selectedValue;
         if ((isBorder || isDividerField) && variantSpecialValues && selectedValue) {
@@ -2505,9 +2487,7 @@ class MerchCardEditor extends LitElement {
             : [
                   'Default',
                   'Transparent',
-                  ...((isBorder || isDividerField) && !showAllSpectrum
-                      ? Object.keys(variantSpecialValues)
-                      : []),
+                  ...((isBorder || isDividerField) && !showAllSpectrum ? Object.keys(variantSpecialValues) : []),
                   ...colorArray,
               ];
 
@@ -2599,7 +2579,9 @@ class MerchCardEditor extends LitElement {
                     data-field-state="${this.#getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor)}"
                     value="${displaySelectedValue ||
                     (isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isDividerField ? 'Default' : '')}"
-                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isDividerField ? 'Default' : ''}"
+                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isDividerField
+                        ? 'Default'
+                        : ''}"
                     @change="${handleChange}"
                 >
                     ${options.map(

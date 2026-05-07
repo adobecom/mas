@@ -615,9 +615,7 @@ export default class MasFragmentEditor extends LitElement {
         const fragment = this.fragmentStore?.previewStore?.value || this.fragment;
         if (!fragment) return '';
 
-        const v =
-            getWhatsIncludedDividerColorFromMarkup(fragment) ||
-            fragment.getFieldValue('whatsIncludedDividerColor', 0);
+        const v = getWhatsIncludedDividerColorFromMarkup(fragment) || fragment.getFieldValue('whatsIncludedDividerColor', 0);
         if (!v || v === 'Default' || v.toLowerCase() === 'default') {
             return '';
         }
@@ -662,20 +660,12 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         const whatsIncludedDividerColor =
-            getWhatsIncludedDividerColorFromMarkup(fragment) ||
-            fragment.getFieldValue('whatsIncludedDividerColor', 0);
+            getWhatsIncludedDividerColorFromMarkup(fragment) || fragment.getFieldValue('whatsIncludedDividerColor', 0);
         if (whatsIncludedDividerColor) {
             if (whatsIncludedDividerColor.toLowerCase() === 'transparent') {
-                styles.push(
-                    '--consonant-merch-card-whats-included-divider-color: transparent',
-                );
-            } else if (
-                !/-gradient/.test(whatsIncludedDividerColor) &&
-                !/^gradient-/.test(whatsIncludedDividerColor)
-            ) {
-                styles.push(
-                    `--consonant-merch-card-whats-included-divider-color: var(--${whatsIncludedDividerColor})`,
-                );
+                styles.push('--consonant-merch-card-whats-included-divider-color: transparent');
+            } else if (!/-gradient/.test(whatsIncludedDividerColor) && !/^gradient-/.test(whatsIncludedDividerColor)) {
+                styles.push(`--consonant-merch-card-whats-included-divider-color: var(--${whatsIncludedDividerColor})`);
             }
         }
 

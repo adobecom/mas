@@ -1058,10 +1058,17 @@ describe('processWhatsIncludedDividerColor', () => {
 
     it('should read divider from merch-whats-included markup (spectrum token)', () => {
         const wi = document.createElement('merch-whats-included');
-        wi.setAttribute('whats-included-divider-color', 'spectrum-yellow-300-plans');
+        wi.setAttribute(
+            'whats-included-divider-color',
+            'spectrum-yellow-300-plans',
+        );
         merchCard.append(wi);
 
-        processWhatsIncludedDividerColor({}, merchCard, MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING);
+        processWhatsIncludedDividerColor(
+            {},
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
 
         expect(
             merchCard.style.getPropertyValue(
@@ -1078,7 +1085,11 @@ describe('processWhatsIncludedDividerColor', () => {
             whatsIncludedDividerColor: 'spectrum-yellow-300-plans',
         };
 
-        processWhatsIncludedDividerColor(fields, merchCard, MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING);
+        processWhatsIncludedDividerColor(
+            fields,
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
 
         expect(
             merchCard.style.getPropertyValue(
@@ -1092,7 +1103,10 @@ describe('processWhatsIncludedDividerColor', () => {
 
     it('should prefer markup attribute over legacy fragment field', () => {
         const wi = document.createElement('merch-whats-included');
-        wi.setAttribute('whats-included-divider-color', 'spectrum-green-900-plans');
+        wi.setAttribute(
+            'whats-included-divider-color',
+            'spectrum-green-900-plans',
+        );
         merchCard.append(wi);
 
         processWhatsIncludedDividerColor(
@@ -1111,7 +1125,11 @@ describe('processWhatsIncludedDividerColor', () => {
             whatsIncludedDividerColor: 'spectrum-yellow-300-plans',
         };
 
-        processWhatsIncludedDividerColor(fields, merchCard, PLANS_AEM_FRAGMENT_MAPPING);
+        processWhatsIncludedDividerColor(
+            fields,
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+        );
 
         expect(
             merchCard.style.getPropertyValue(
@@ -1143,6 +1161,91 @@ describe('processWhatsIncludedDividerColor', () => {
                 '--consonant-merch-card-whats-included-divider-color',
             ),
         ).to.be.empty;
+    });
+
+    it('should set transparent divider via CSS variable only', () => {
+        processWhatsIncludedDividerColor(
+            { whatsIncludedDividerColor: 'transparent' },
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(merchCard.hasAttribute('whats-included-divider-color')).to.be
+            .false;
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.equal('transparent');
+    });
+
+    it('should treat gradient token as attribute styling (gradient- prefix)', () => {
+        const mappingWithSpecialValues = {
+            ...MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+            whatsIncludedDividerColor: {
+                attribute: 'whats-included-divider-color',
+                specialValues: {
+                    'gradient-purple-blue':
+                        'linear-gradient(135deg, #9256dc, #1473e6)',
+                },
+            },
+        };
+
+        processWhatsIncludedDividerColor(
+            {
+                whatsIncludedDividerColor:
+                    'linear-gradient(135deg, #9256dc, #1473e6)',
+            },
+            merchCard,
+            mappingWithSpecialValues,
+        );
+
+        expect(merchCard.getAttribute('whats-included-divider-color')).to.equal(
+            'gradient-purple-blue',
+        );
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.be.empty;
+    });
+
+    it('should set generic divider via CSS variable', () => {
+        processWhatsIncludedDividerColor(
+            { whatsIncludedDividerColor: 'spectrum-gray-800' },
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(merchCard.hasAttribute('whats-included-divider-color')).to.be
+            .false;
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.equal('var(--spectrum-gray-800)');
+    });
+
+    it('should read divider from merch-whats-included inside footer-rows slot', () => {
+        const footer = document.createElement('div');
+        footer.setAttribute('slot', 'footer-rows');
+        const wi = document.createElement('merch-whats-included');
+        wi.setAttribute(
+            'whats-included-divider-color',
+            'spectrum-red-700-plans',
+        );
+        footer.append(wi);
+        merchCard.append(footer);
+
+        processWhatsIncludedDividerColor(
+            {},
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(merchCard.getAttribute('whats-included-divider-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
     });
 });
 

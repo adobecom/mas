@@ -286,8 +286,7 @@ export function processWhatsIncludedDividerColor(
     variantMapping,
 ) {
     const config = variantMapping?.whatsIncludedDividerColor;
-    const customVar =
-        '--consonant-merch-card-whats-included-divider-color';
+    const customVar = '--consonant-merch-card-whats-included-divider-color';
 
     if (!config) return;
 
@@ -335,10 +334,7 @@ export function processWhatsIncludedDividerColor(
                 }
             }
         }
-        merchCard.setAttribute(
-            'whats-included-divider-color',
-            dividerColorKey,
-        );
+        merchCard.setAttribute('whats-included-divider-color', dividerColorKey);
         merchCard.style.removeProperty(customVar);
     } else if (isSpectrumColor) {
         merchCard.setAttribute('whats-included-divider-color', value);

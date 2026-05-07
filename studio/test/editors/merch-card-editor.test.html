@@ -900,6 +900,17 @@
                             expect(indicators.length).to.equal(0);
                         });
 
+                        it('shows quantity selector toggle in locale variation when no global quantitySelect row exists', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                testId: 'variation-qty-no-global-row',
+                                settingsRows: createDefaultSettingsRows().filter((row) => row.value.name !== 'quantitySelect'),
+                            });
+
+                            const toggle = editor.querySelector('#quantity-select-settings-field-toggle');
+                            expect(toggle).to.exist;
+                        });
+
                         it('shows override indicator when card overrides a global setting', async () => {
                             await setupSettingsTest({
                                 isVariation: false,

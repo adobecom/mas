@@ -15,6 +15,7 @@
             import { expect } from '@esm-bundle/chai';
             import sinon from 'sinon';
             import { createQuantitySelectValue, parseQuantitySelectValue } from '../../../src/common/fields/quantity-select.js';
+            import '../../../src/fields/quantity-select-settings-field.js';
             import Events from '../../../src/events.js';
 
             runTests(() => {
@@ -119,6 +120,22 @@
                         expect(stub.firstCall.args[0].variant).to.equal('negative');
                         expect(el.defaultValue).to.equal('5');
                         stub.restore();
+                        el.remove();
+                    });
+                });
+
+                describe('quantity-select-settings-field', () => {
+                    it('renders the switch when settingsDefaults is empty', async () => {
+                        const el = document.createElement('quantity-select-settings-field');
+                        el.id = 'quantity-select-settings-field';
+                        el.label = 'Show quantity selector';
+                        el.settingsDefaults = '';
+                        el.value = '<merch-quantity-select/>';
+                        document.body.append(el);
+                        await el.updateComplete;
+
+                        const toggle = el.querySelector('#quantity-select-settings-field-toggle');
+                        expect(toggle).to.exist;
                         el.remove();
                     });
                 });

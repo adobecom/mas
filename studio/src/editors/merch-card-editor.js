@@ -765,6 +765,11 @@ class MerchCardEditor extends LitElement {
         return value;
     }
 
+    #quantitySelectSettingsDefaultsMarkup() {
+        const raw = this.globalSettingsDefaults[QUANTITY_MODEL];
+        return raw === '' || raw == null ? QUANTITY_EMPTY : raw;
+    }
+
     #handleQuantityFieldChange = (event) => {
         const html = event.detail?.value ?? event.currentTarget?.value;
         if (typeof html !== 'string') return;
@@ -1588,9 +1593,7 @@ class MerchCardEditor extends LitElement {
                                 : this.renderSettingOverrideIndicator('quantitySelect')}
                             .fieldIndicatorTemplate=${this.renderQuantitySelectSettingOverrideIndicator}
                             value="${this.getEffectiveSettingValue(QUANTITY_MODEL)}"
-                            settingsDefaults="${this.globalSettingsDefaults[QUANTITY_MODEL] === ''
-                                ? QUANTITY_EMPTY
-                                : this.globalSettingsDefaults[QUANTITY_MODEL]}"
+                            settingsDefaults="${this.#quantitySelectSettingsDefaultsMarkup()}"
                             .handleQuantityFieldChange=${this.#handleQuantityFieldChange}
                         ></quantity-select-settings-field>
                     </sp-field-group>

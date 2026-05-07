@@ -222,6 +222,12 @@ runTests(async () => {
                 'merch-mnemonic-list[data-placeholder]',
             );
             expect(placeholders.length).to.equal(3);
+            placeholders.forEach((row) => {
+                expect(
+                    row.querySelector('[slot="icon"]'),
+                    'placeholder row mirrors authored icon gutter',
+                ).to.exist;
+            });
         });
 
         it('mini-compare-chart should configure price display options', async () => {
@@ -253,6 +259,182 @@ runTests(async () => {
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
             expect(priceOptions.displayPerUnit).to.equal(false);
+        });
+    });
+
+    describe('whats-included icon column (global CSS)', () => {
+        function buildMnemonicList(iconChild) {
+            const list = document.createElement('merch-mnemonic-list');
+            const iconWrap = document.createElement('div');
+            iconWrap.setAttribute('slot', 'icon');
+            if (iconChild) iconWrap.appendChild(iconChild);
+            const desc = document.createElement('p');
+            desc.setAttribute('slot', 'description');
+            const span = document.createElement('span');
+            span.textContent = 'Included item';
+            desc.appendChild(span);
+            list.append(iconWrap, desc);
+            return list;
+        }
+
+        function buildWhatsIncluded(rows) {
+            const wi = document.createElement('merch-whats-included');
+            const content = document.createElement('div');
+            content.setAttribute('slot', 'content');
+            rows.forEach((row) => content.appendChild(row));
+            wi.appendChild(content);
+            return wi;
+        }
+
+        async function mountCard(variant, whatsIncluded) {
+            const mount = document.createElement('div');
+            mount.style.cssText =
+                'position:absolute;left:-9999px;top:0;width:520px;';
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', variant);
+            whatsIncluded.setAttribute('slot', 'whats-included');
+            card.appendChild(whatsIncluded);
+            mount.appendChild(card);
+            document.body.appendChild(mount);
+            await customElements.whenDefined('merch-card');
+            await card.updateComplete;
+            await delay(50);
+            return { card, mount };
+        }
+
+        function iconDisplay(card, rowIndex) {
+            const iconSlot = card.querySelector(
+                `[slot="whats-included"] [slot="content"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+            );
+            return window.getComputedStyle(iconSlot).display;
+        }
+
+        function bulletIconDisplay(card, rowIndex = 0) {
+            const iconSlot = card.querySelector(
+                `[slot="whats-included"] [slot="contentBullets"] merch-mnemonic-list:nth-of-type(${rowIndex + 1}) [slot="icon"]`,
+            );
+            return window.getComputedStyle(iconSlot).display;
+        }
+
+        it('collapses icon slots when no icons are used (mini-compare-chart)', async () => {
+            const wi = buildWhatsIncluded([
+                buildMnemonicList(null),
+                buildMnemonicList(null),
+            ]);
+            const { card, mount } = await mountCard('mini-compare-chart', wi);
+            try {
+                expect(iconDisplay(card, 0)).to.equal('none');
+                expect(iconDisplay(card, 1)).to.equal('none');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('shows icon slots when any row has an img icon (mini-compare-chart)', async () => {
+            const img = document.createElement('img');
+            img.setAttribute('src', '/test/mocks/img/creative-cloud.svg');
+            img.setAttribute('alt', 'icon');
+            const wi = buildWhatsIncluded([
+                buildMnemonicList(null),
+                buildMnemonicList(img),
+            ]);
+            const { card, mount } = await mountCard('mini-compare-chart', wi);
+            try {
+                expect(iconDisplay(card, 0)).to.equal('flex');
+                expect(iconDisplay(card, 1)).to.equal('flex');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('shows icon slots when any row has a Spectrum .sp-icon (mini-compare-chart)', async () => {
+            const sp = document.createElement('span');
+            sp.className = 'sp-icon';
+            const wi = buildWhatsIncluded([
+                buildMnemonicList(sp),
+                buildMnemonicList(null),
+            ]);
+            const { card, mount } = await mountCard('mini-compare-chart', wi);
+            try {
+                expect(iconDisplay(card, 0)).to.equal('flex');
+                expect(iconDisplay(card, 1)).to.equal('flex');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('shows icon slots when any row has merch-icon with src (mini-compare-chart)', async () => {
+            await customElements.whenDefined('merch-icon');
+            const merchIcon = document.createElement('merch-icon');
+            merchIcon.setAttribute('size', 's');
+            merchIcon.setAttribute('src', '/test/mocks/img/creative-cloud.svg');
+            merchIcon.setAttribute('alt', 'icon');
+            const wi = buildWhatsIncluded([
+                buildMnemonicList(null),
+                buildMnemonicList(merchIcon),
+            ]);
+            const { card, mount } = await mountCard('mini-compare-chart', wi);
+            try {
+                expect(iconDisplay(card, 0)).to.equal('flex');
+                expect(iconDisplay(card, 1)).to.equal('flex');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('shows application icon slots when only bullet rows use icons (mini-compare-chart)', async () => {
+            const img = document.createElement('img');
+            img.setAttribute('src', '/test/mocks/img/creative-cloud.svg');
+            img.setAttribute('alt', 'bullet');
+            const bulletRow = buildMnemonicList(img);
+            const appRow = buildMnemonicList(null);
+            const wi = document.createElement('merch-whats-included');
+            wi.setAttribute('has-bullets', '');
+            const contentBullets = document.createElement('div');
+            contentBullets.setAttribute('slot', 'contentBullets');
+            contentBullets.appendChild(bulletRow);
+            const content = document.createElement('div');
+            content.setAttribute('slot', 'content');
+            content.appendChild(appRow);
+            wi.append(contentBullets, content);
+            const { card, mount } = await mountCard('mini-compare-chart', wi);
+            try {
+                expect(iconDisplay(card, 0)).to.equal('flex');
+                expect(bulletIconDisplay(card, 0)).to.equal('flex');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('collapses icon slots when no icons are used (plans)', async () => {
+            const wi = buildWhatsIncluded([
+                buildMnemonicList(null),
+                buildMnemonicList(null),
+            ]);
+            const { card, mount } = await mountCard('plans', wi);
+            try {
+                expect(iconDisplay(card, 0)).to.equal('none');
+                expect(iconDisplay(card, 1)).to.equal('none');
+            } finally {
+                mount.remove();
+            }
+        });
+
+        it('does not collapse icon slots when any row has an icon (plans)', async () => {
+            const img = document.createElement('img');
+            img.setAttribute('src', '/test/mocks/img/creative-cloud.svg');
+            img.setAttribute('alt', 'icon');
+            const wi = buildWhatsIncluded([
+                buildMnemonicList(null),
+                buildMnemonicList(img),
+            ]);
+            const { card, mount } = await mountCard('plans', wi);
+            try {
+                expect(iconDisplay(card, 0)).to.not.equal('none');
+                expect(iconDisplay(card, 1)).to.not.equal('none');
+            } finally {
+                mount.remove();
+            }
         });
     });
 });

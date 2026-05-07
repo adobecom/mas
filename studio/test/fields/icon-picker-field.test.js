@@ -114,6 +114,81 @@ describe('Icon picker field', () => {
         expect(deleteFired).to.be.false;
     });
 
+    it('should not dispatch delete-field when modal closes without icon when description-only row has alt text', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="Lightroom apps"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        let deleteFired = false;
+        el.addEventListener('delete-field', () => {
+            deleteFired = true;
+        });
+
+        const modal = el.shadowRoot.querySelector('mas-icon-picker-modal');
+        modal.dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+        await el.updateComplete;
+
+        expect(el.modalOpen).to.be.false;
+        expect(deleteFired).to.be.false;
+    });
+
+    it('should not dispatch delete-field when modal closes with RTE paragraph alt and no icon', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="<p>InDesign</p>"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        let deleteFired = false;
+        el.addEventListener('delete-field', () => {
+            deleteFired = true;
+        });
+
+        el.shadowRoot
+            .querySelector('mas-icon-picker-modal')
+            .dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+        await el.updateComplete;
+
+        expect(deleteFired).to.be.false;
+    });
+
+    it('should dispatch delete-field when modal closes with empty paragraph alt only', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="<p></p>"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'delete-field');
+        el.shadowRoot
+            .querySelector('mas-icon-picker-modal')
+            .dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+
+        await listener;
+        expect(el.modalOpen).to.be.false;
+    });
+
+    it('should dispatch delete-field when paragraph alt is only non-breaking spaces', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="<p>  </p>"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'delete-field');
+        el.shadowRoot
+            .querySelector('mas-icon-picker-modal')
+            .dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+
+        await listener;
+    });
+
     it('should update values and dispatch change when modal saves', async () => {
         const el = await fixture(html`<mas-icon-picker-field></mas-icon-picker-field>`, { parentNode: spTheme() });
 

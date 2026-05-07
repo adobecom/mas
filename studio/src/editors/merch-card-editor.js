@@ -660,26 +660,31 @@ class MerchCardEditor extends LitElement {
     }
 
     getWhatsIncludedProps(el, fallback = true) {
-        const desc = el.querySelector('[slot="description"] > span');
-        const descHtml = desc?.innerHTML?.trim();
-        const alt = descHtml ? `<p>${descHtml}</p>` : '';
+        const descParent = el.querySelector('[slot="description"]');
+        const desc = descParent?.querySelector(':scope > span') ?? descParent ?? undefined;
+        const descHtml = desc?.innerHTML?.trim() ?? '';
+        const altWrapped = descHtml ? `<p>${descHtml}</p>` : '';
+        const textAlt = desc?.textContent?.trim() ?? '';
+
+        const variantValue = this.getEffectiveFieldValue('variant');
+        const isMiniChart = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART;
+        const altForVariant = isMiniChart ? altWrapped : textAlt;
 
         const iconEl = el.querySelector('merch-icon');
         if (iconEl) {
-            const variantValue = this.getEffectiveFieldValue('variant');
-            const isMiniChart = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART;
             const icon = iconEl.getAttribute('src') || '';
             const linkEl = el.querySelector('[slot="icon"] a');
             const link = linkEl?.getAttribute('href') || '';
-            return { icon, alt: isMiniChart ? alt : desc?.textContent, link };
+            return { icon, alt: altForVariant, link };
         }
-        // Fallback for spectrum icons (sp-icon-* elements)
         const spIcon = el.querySelector('.sp-icon');
         if (spIcon && fallback) {
             const icon = spIcon.tagName.toLowerCase();
-            return { icon, alt, link: '' };
+            return { icon, alt: altForVariant, link: '' };
         }
-        return { icon: '', alt: '', link: '' };
+        const linkEl = el.querySelector('[slot="icon"] a');
+        const link = linkEl?.getAttribute('href') || '';
+        return { icon: '', alt: altForVariant, link };
     }
 
     get whatsIncluded() {
@@ -1630,6 +1635,25 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
     }
 
+    #whatsIncludedRowIsEmpty(value) {
+        const icon = String(value?.icon ?? '').trim();
+        const link = String(value?.link ?? '').trim();
+        if (icon || link) return false;
+
+        let alt = value?.alt;
+        if (alt == null || alt === '') return true;
+        alt = String(alt).trim();
+        if (!alt) return true;
+        if (!alt.startsWith('<p>')) return false;
+
+        const doc = new DOMParser().parseFromString(alt, 'text/html');
+        const t = doc
+            .querySelector('p')
+            ?.textContent.replace(/\u00a0/g, ' ')
+            .trim();
+        return !t;
+    }
+
     createMnemonicList(value, isBullet) {
         let merchIcon;
         const list = document.createElement('merch-mnemonic-list');
@@ -1672,7 +1696,9 @@ class MerchCardEditor extends LitElement {
     }
 
     createIncludedElement(label, values, bullets) {
-        if (!label && !values?.length) return undefined;
+        const valueItems = (values ?? []).filter((v) => !this.#whatsIncludedRowIsEmpty(v));
+        const bulletItems = (bullets ?? []).filter((v) => !this.#whatsIncludedRowIsEmpty(v));
+        if (!label && !valueItems.length && !bulletItems.length) return undefined;
 
         const element = document.createElement('merch-whats-included');
         const heading = document.createElement('div');
@@ -1682,14 +1708,14 @@ class MerchCardEditor extends LitElement {
         const contentBullets = document.createElement('div');
         contentBullets.setAttribute('slot', 'contentBullets');
         element.append(contentBullets);
-        if (bullets.length) element.setAttribute('has-bullets', 'true');
-        bullets.forEach((value) => {
+        if (bulletItems.length) element.setAttribute('has-bullets', 'true');
+        bulletItems.forEach((value) => {
             contentBullets.append(this.createMnemonicList(value, true));
         });
         const content = document.createElement('div');
         content.setAttribute('slot', 'content');
         element.append(content);
-        values.forEach((value) => {
+        valueItems.forEach((value) => {
             content.append(this.createMnemonicList(value));
         });
 

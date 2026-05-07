@@ -26,7 +26,7 @@ var cr=Object.defineProperty;var sr=a=>{throw TypeError(a)};var Ga=(a,t,e)=>t in
                     @click=${n=>{this.lastPointerType==="touch"&&this.handleTap(n),this.lastPointerType=null}}
                 >
                     ${this.renderIcon()}
-                    <span class="tooltip-content">${ur(t)}</span>
+                    <span class="css-tooltip-body">${ur(t)}</span>
                 </span>
             `}}};d(P,"activeTooltip",null),d(P,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),d(P,"styles",Ka`
         :host {

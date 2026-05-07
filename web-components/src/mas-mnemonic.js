@@ -288,7 +288,7 @@ export default class MasMnemonic extends LitElement {
                     }}
                 >
                     ${this.renderIcon()}
-                    <span class="tooltip-content">${unsafeHTML(content)}</span>
+                    <span class="css-tooltip-body">${unsafeHTML(content)}</span>
                 </span>
             `;
         }

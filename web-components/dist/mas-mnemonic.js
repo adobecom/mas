@@ -26,7 +26,7 @@ var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configura
                     @click=${o=>{this.lastPointerType==="touch"&&this.handleTap(o),this.lastPointerType=null}}
                 >
                     ${this.renderIcon()}
-                    <span class="tooltip-content">${a(t)}</span>
+                    <span class="css-tooltip-body">${a(t)}</span>
                 </span>
             `}}};n(e,"activeTooltip",null),n(e,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),n(e,"styles",m`
         :host {

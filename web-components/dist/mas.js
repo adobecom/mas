@@ -531,7 +531,7 @@ var to=Object.defineProperty;var ro=e=>{throw TypeError(e)};var zl=(e,t,r)=>t in
                     @click=${n=>{this.lastPointerType==="touch"&&this.handleTap(n),this.lastPointerType=null}}
                 >
                     ${this.renderIcon()}
-                    <span class="tooltip-content">${Vr(t)}</span>
+                    <span class="css-tooltip-body">${Vr(t)}</span>
                 </span>
             `}}};m(ue,"activeTooltip",null),m(ue,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),m(ue,"styles",b`
         :host {

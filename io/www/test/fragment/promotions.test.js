@@ -30,7 +30,16 @@ function createContext(overrides = {}) {
 
 const PROMO_TAG = '/content/cq:tags/mas/promotion/black-friday';
 
-function makeProject({ id = 'proj-1', path = '/content/dam/mas/promotions/black-friday', surfaces = ['acom'], geos = [], startDate = START, endDate = END, tags = [PROMO_TAG], offers = [] } = {}) {
+function makeProject({
+    id = 'proj-1',
+    path = '/content/dam/mas/promotions/black-friday',
+    surfaces = ['acom'],
+    geos = [],
+    startDate = START,
+    endDate = END,
+    tags = [PROMO_TAG],
+    offers = [],
+} = {}) {
     return { id, path, fields: { surfaces, geos, startDate, endDate, tags, offers } };
 }
 
@@ -93,7 +102,12 @@ describe('promotions', () => {
         });
 
         it('returns no active project when project start date is in the future', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: '2099-01-01T00:00:00Z', endDate: '2099-12-31T00:00:00Z' });
+            const project = makeProject({
+                surfaces: ['acom'],
+                geos: [],
+                startDate: '2099-01-01T00:00:00Z',
+                endDate: '2099-12-31T00:00:00Z',
+            });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext());
             expect(result).to.deep.equal({ status: 200, activeProject: null });
@@ -192,7 +206,12 @@ describe('promotions', () => {
 
         it('uses Date.now() when mas.instant is not provided', async () => {
             // Wide date range that includes any current Date.now()
-            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: '2000-01-01T00:00:00Z', endDate: '2099-12-31T00:00:00Z' });
+            const project = makeProject({
+                surfaces: ['acom'],
+                geos: [],
+                startDate: '2000-01-01T00:00:00Z',
+                endDate: '2099-12-31T00:00:00Z',
+            });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
@@ -258,9 +277,7 @@ describe('promotions', () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
-            const result = await promotionsTransformer.init(
-                createContext({ 'mas.instant': '2025-02-01T00:00:00Z' }),
-            );
+            const result = await promotionsTransformer.init(createContext({ 'mas.instant': '2025-02-01T00:00:00Z' }));
             expect(result.activeProject).to.not.be.null;
         });
 
@@ -280,13 +297,20 @@ describe('promotions', () => {
             const storage = {};
             globalThis.localStorage = {
                 getItem: (key) => storage[key] ?? null,
-                setItem: (key, val) => { storage[key] = val; },
-                removeItem: (key) => { delete storage[key]; },
+                setItem: (key, val) => {
+                    storage[key] = val;
+                },
+                removeItem: (key) => {
+                    delete storage[key];
+                },
             };
 
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
             const hydrated = makeHydratedProject();
-            const previewCtx = createContext({ regionLocale: 'en_US', preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
+            const previewCtx = createContext({
+                regionLocale: 'en_US',
+                preview: { url: 'https://odin.adobe.com/adobe/contentFragments' },
+            });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
@@ -328,7 +352,10 @@ describe('promotions', () => {
                     promotions: Promise.resolve({
                         status: 200,
                         activeProject: {
-                            fragments: [{ id: 'f1', osi: 'OSI-123', promoCode: 'SUMMER25' }, { id: 'f2', osi: 'OSI-456', promoCode: 'FALL30' }],
+                            fragments: [
+                                { id: 'f1', osi: 'OSI-123', promoCode: 'SUMMER25' },
+                                { id: 'f2', osi: 'OSI-456', promoCode: 'FALL30' },
+                            ],
                             offerOverrides: [],
                         },
                     }),
@@ -390,7 +417,8 @@ describe('promotions', () => {
 
         it('override takes priority over fragment entry for same OSI', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('US',
+                makeCtx(
+                    'US',
                     [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', countries: ['US'] }],
                     [{ osi: 'OSI-1', promoCode: 'REF-PROMO' }],
                 ),
@@ -400,7 +428,8 @@ describe('promotions', () => {
 
         it('preserves fragment entry when override country does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx('CA',
+                makeCtx(
+                    'CA',
                     [{ osis: ['OSI-1'], promoCode: 'US-ONLY', countries: ['US'] }],
                     [{ osi: 'OSI-1', promoCode: 'REF-PROMO' }],
                 ),
@@ -441,9 +470,7 @@ describe('promotions', () => {
             fetchStub.restore();
             clearPromoCache();
 
-            expect(result.activeProject.offerOverrides).to.deep.equal([
-                { osis: ['OSI-2'], promoCode: 'VALID', countries: [] },
-            ]);
+            expect(result.activeProject.offerOverrides).to.deep.equal([{ osis: ['OSI-2'], promoCode: 'VALID', countries: [] }]);
         });
     });
 });

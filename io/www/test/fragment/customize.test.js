@@ -159,7 +159,11 @@ describe('customize collections', function () {
                     title: 'test variation',
                     description: 'has en_KW too, but appears second in the list',
                     fields: {
-                        pznTags: ['/content/cq:tags/mas/geo/en_US', '/content/cq:tags/mas/geo/en_CA', '/content/cq:tags/mas/geo/en_KW'],
+                        pznTags: [
+                            '/content/cq:tags/mas/geo/en_US',
+                            '/content/cq:tags/mas/geo/en_CA',
+                            '/content/cq:tags/mas/geo/en_KW',
+                        ],
                         badge: 'TEST badge',
                     },
                 },
@@ -851,7 +855,10 @@ describe('customize collections', function () {
                         path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/promo',
                         id: pznVariationId,
                         title: 'PZN Promo',
-                        fields: { pznTags: ['/content/cq:tags/mas/geo/en_AE', '/content/cq:tags/mas/geo/fr_FR'], badge: 'Other badge' },
+                        fields: {
+                            pznTags: ['/content/cq:tags/mas/geo/en_AE', '/content/cq:tags/mas/geo/fr_FR'],
+                            badge: 'Other badge',
+                        },
                     },
                 },
             },
@@ -1295,7 +1302,13 @@ describe('customize promo variation', function () {
         };
 
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment, promoFragmentIds: new Set(['root-id']) },
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                promoFragmentIds: new Set(['root-id']),
+            },
             ACTIVE_PROJECT,
         );
 
@@ -1335,7 +1348,13 @@ describe('customize promo variation', function () {
         };
 
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment, promoFragmentIds: new Set(['other-id']) },
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                promoFragmentIds: new Set(['other-id']),
+            },
             ACTIVE_PROJECT,
         );
 
@@ -1352,7 +1371,13 @@ describe('customize promo variation', function () {
         };
 
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment, promoFragmentIds: new Set(['root-id']) },
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                promoFragmentIds: new Set(['root-id']),
+            },
             ACTIVE_PROJECT,
         );
 
@@ -1370,7 +1395,13 @@ describe('customize promo variation', function () {
         };
 
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment, promoFragmentIds: new Set(['root-id']) },
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                promoFragmentIds: new Set(['root-id']),
+            },
             ACTIVE_PROJECT,
         );
 
@@ -1388,7 +1419,13 @@ describe('customize promo variation', function () {
         };
 
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'different-card', parsedLocale: 'en_US', body: rootFragment, promoFragmentIds: new Set(['root-id']) },
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'different-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                promoFragmentIds: new Set(['root-id']),
+            },
             ACTIVE_PROJECT,
         );
 
@@ -1407,7 +1444,13 @@ describe('customize promo variation', function () {
         const projectWithoutPath = { ...ACTIVE_PROJECT, path: null };
 
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment, promoFragmentIds: new Set(['root-id']) },
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'my-card',
+                parsedLocale: 'en_US',
+                body: rootFragment,
+                promoFragmentIds: new Set(['root-id']),
+            },
             projectWithoutPath,
         );
 
@@ -1511,9 +1554,7 @@ describe('customize promoCode application', function () {
                             },
                         },
                     },
-                    referencesTree: [
-                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
-                    ],
+                    referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
                 },
             },
             MINIMAL_PROJECT,

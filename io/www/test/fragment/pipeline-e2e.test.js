@@ -299,7 +299,12 @@ describe('pipeline end to end', () => {
 
         // Offer + promo variation reference in the hydrated project
         const FR_FR_OSI = 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ';
-        const hydrated = makeHydratedProject({ fragmentId: 'some-fr-fr-fragment', osi: FR_FR_OSI, promoCode: 'BF2025', variations: ['promo-var-id'] });
+        const hydrated = makeHydratedProject({
+            fragmentId: 'some-fr-fr-fragment',
+            osi: FR_FR_OSI,
+            promoCode: 'BF2025',
+            variations: ['promo-var-id'],
+        });
         hydrated.references['promo-var-id'] = {
             type: 'content-fragment',
             value: {

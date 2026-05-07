@@ -63,6 +63,8 @@ export const PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
 };
 
 export class Plans extends VariantLayout {
+    #syncObserver;
+
     constructor(card) {
         super(card);
         this.adaptForMedia = this.adaptForMedia.bind(this);
@@ -173,6 +175,33 @@ export class Plans extends VariantLayout {
         }
     }
 
+    syncHeights() {
+        if (this.card.getBoundingClientRect().width <= 2) {
+            if (!this.#syncObserver) {
+                this.#syncObserver = new ResizeObserver(() => {
+                    if (this.card.getBoundingClientRect().width > 2) {
+                        this.#syncObserver?.disconnect();
+                        this.#syncObserver = null;
+                        this.syncHeights();
+                    }
+                });
+                this.#syncObserver.observe(this.card);
+            }
+            return;
+        }
+        const slots = [
+            'heading-xs',
+            'subtitle',
+            'heading-m',
+            'promo-text',
+            'body-xs',
+        ];
+        slots.forEach((slot) => {
+            const el = this.card.querySelector(`[slot="${slot}"]`);
+            if (el) this.updateCardElementMinHeight(el, slot);
+        });
+    }
+
     async adjustEduLists() {
         if (this.card.variant !== 'plans-education') return;
         const existingSpacer = this.card.querySelector('.spacer');
@@ -230,6 +259,28 @@ export class Plans extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
             await this.adjustEduLists();
+        }
+        if (window.matchMedia('(min-width: 768px)').matches) {
+            const container = this.getContainer();
+            if (!container) return;
+            const prefix = `--consonant-merch-card-${this.card.variant}`;
+            const hasExistingVars = container.style.getPropertyValue(
+                `${prefix}-heading-xs-height`,
+            );
+            if (!hasExistingVars) {
+                requestAnimationFrame(() => {
+                    const cards = container.querySelectorAll(
+                        `merch-card[variant="${this.card.variant}"]`,
+                    );
+                    cards.forEach((card) =>
+                        card.variantLayout?.syncHeights?.(),
+                    );
+                });
+            } else {
+                requestAnimationFrame(() => {
+                    this.syncHeights();
+                });
+            }
         }
     }
 
@@ -324,6 +375,8 @@ export class Plans extends VariantLayout {
             'change',
             this.adaptForMedia,
         );
+        this.#syncObserver?.disconnect();
+        this.#syncObserver = null;
     }
 
     renderLayout() {

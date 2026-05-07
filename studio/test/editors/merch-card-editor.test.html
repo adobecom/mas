@@ -146,6 +146,12 @@
                     valueType: 'optional-text',
                     booleanValue: false,
                 }),
+                createSettingRow({
+                    name: 'quantitySelect',
+                    value: '<merch-quantity-select title=\"Select quantity\" min=\"1\" max=\"10\" step=\"1\"></merch-quantity-select>',
+                    valueType: 'optional-text',
+                    booleanValue: true,
+                }),
             ];
 
             runTests(async () => {
@@ -1088,6 +1094,70 @@
                             expectSettingOverrideIndicators(['showPlanType']);
                             expectSettingOverrideFieldState('overridden', ['showPlanType']);
                         });
+                    });
+
+                    it('update quantity selection value and then rollback to the settings value', async () => {
+                        await setupTestEnvironment();
+
+                        const field = editor.querySelector('#quantity-select-settings-field');
+                        const toggle = editor.querySelector('#quantity-select-settings-field-toggle');
+                        const qsTitleEl = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('#quantity-selector-title');
+
+                        expect(toggle.checked).to.be.true;
+                        expect(qsTitleEl.value).to.equal('Select quantity');
+
+                        const settingOverrideIndicator1 = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('.setting-override-indicator');
+                        expect(settingOverrideIndicator1).to.not.exist;
+
+                        qsTitleEl.value = 'QS';
+                        qsTitleEl.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+
+                        const settingOverrideIndicator2 = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('.setting-override-indicator');
+                        expect(settingOverrideIndicator2).to.exist;
+
+                        settingOverrideIndicator2.click();
+
+                        await delay(200);
+
+                        const qsTitleEl2 = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('#quantity-selector-title');
+                        expect(qsTitleEl2.value).to.equal('Select quantity');
+
+                        const settingOverrideIndicator3 = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('.setting-override-indicator');
+                        expect(settingOverrideIndicator3).to.not.exist;
+
+                        const qsStartl = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('#quantity-selector-start');
+                        expect(qsStartl.value).to.equal('1');
+
+                        qsStartl.value = '2';
+                        qsStartl.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+
+                        const settingOverrideIndicatorMain = field.querySelector('.setting-override-indicator');
+                        expect(settingOverrideIndicatorMain).to.exist;
+
+                        settingOverrideIndicatorMain.click();
+
+                        await delay(200);
+
+                        const qsStartl2 = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('#quantity-selector-start');
+                        expect(qsStartl2.value).to.equal('1');
                     });
 
                     describe('getWhatsIncludedProps', () => {

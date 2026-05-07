@@ -3,10 +3,11 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
-import { setCardVariationsByPaths } from '../../src/translation/translation-items-loader.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
+import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../src/constants.js';
 import '../../src/swc.js';
-import '../../src/translation/mas-selected-items.js';
+import '../../src/common/components/mas-selected-items.js';
 
 describe('MasSelectedItems', () => {
     let sandbox;
@@ -58,6 +59,7 @@ describe('MasSelectedItems', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         Store.translationProjects.showSelected.set(false);
         Store.translationProjects.selectedCards.set([]);
         Store.translationProjects.selectedCollections.set([]);
@@ -73,6 +75,7 @@ describe('MasSelectedItems', () => {
         Store.translationProjects.selectedCollections.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
         resetMaps();
+        setItemsSelectionStore(null);
     });
 
     describe('initialization', () => {
@@ -333,7 +336,7 @@ describe('MasSelectedItems', () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
             const typeEl = el.shadowRoot.querySelector('.type');
             expect(typeEl).to.exist;
-            expect(typeEl.textContent.trim()).to.equal('Default card');
+            expect(typeEl.textContent.trim()).to.equal('Default');
         });
 
         it('should render remove button for each item', async () => {
@@ -519,7 +522,7 @@ describe('MasSelectedItems', () => {
 
         it('should handle undefined item gracefully in getType', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.getType(undefined)).to.equal('Unknown type');
+            expect(el.getType(undefined)).to.equal('Unknown');
         });
     });
 });

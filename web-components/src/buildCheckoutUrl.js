@@ -80,6 +80,53 @@ const ALLOWED_KEYS = new Set([
 ]);
 const REQUIRED_KEYS = ['env', 'workflowStep', 'clientId', 'country'];
 
+/** Paths under Taiwan or HK traditional-Chinese locales → checkout `lang=zh-Hant`. */
+const ZH_HANT_PRODUCTS_PATH = ['/tw/', '/hk_zh/'];
+
+export function pathnameRequiresZhHantLang(pathname) {
+    const pathnameOrEmpty = pathname ?? '';
+    return ZH_HANT_PRODUCTS_PATH.some((prefix) =>
+        pathnameOrEmpty.startsWith(prefix),
+    );
+}
+
+function shouldApplyZhHantCheckoutLang() {
+    if (typeof window === 'undefined') return false;
+    const paths = [window.location.pathname];
+    try {
+        if (window.parent !== window)
+            paths.push(window.parent.location.pathname);
+    } catch {
+        /* cross-origin parent */
+    }
+    return paths.some(pathnameRequiresZhHantLang);
+}
+
+/**
+ * Adjusts checkout URL query params (e.g. `lang`, per-item `lang`) from the current page context.
+ * Add more locale rules here as needed.
+ * @param {URL|string} url
+ * @returns {string}
+ */
+export function applyPageLocaleToCheckoutUrl(url) {
+    if (!shouldApplyZhHantCheckoutLang()) {
+        return url instanceof URL ? url.toString() : String(url);
+    }
+    let checkoutUrl;
+    try {
+        checkoutUrl = url instanceof URL ? url : new URL(url);
+    } catch {
+        return String(url);
+    }
+    checkoutUrl.searchParams.set('lang', 'zh-Hant');
+    for (const paramName of [...checkoutUrl.searchParams.keys()]) {
+        if (/^items\[\d+]\[lang]$/.test(paramName)) {
+            checkoutUrl.searchParams.set(paramName, 'zh-Hant');
+        }
+    }
+    return checkoutUrl.toString();
+}
+
 // Parameters that are allowed to be passed to the checkout URL from the window.location.search of the current page
 const ALLOWED_URL_PARAMS = new Set([
     'gid',
@@ -262,7 +309,7 @@ export function buildCheckoutUrl(checkoutData) {
             is3in1,
         });
     }
-    return url.toString();
+    return applyPageLocaleToCheckoutUrl(url);
 }
 
 /**

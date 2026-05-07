@@ -54,7 +54,7 @@ export const softBundleUS =
 
 // JP: softbundle-1-jp (¥3,300) + softbundle-2-jp (¥1,980) = ¥5,280
 export const softBundleJP =
-    '<span is="inline-price" data-quantity="1" data-wcs-osi="softbundle-1-jp,softbundle-2-jp" class="placeholder-resolved"><span class="price"><span class="price-integer">5,280</span><span class="price-decimals-delimiter disabled"></span><span class="price-decimals disabled"></span><span class="price-currency-space">&nbsp;</span><span class="price-currency-symbol">円</span><span class="price-recurrence">/月</span><span class="price-unit-type disabled"></span><span class="price-tax-inclusivity">税込</span></span></span>';
+    '<span is="inline-price" data-quantity="1" data-wcs-osi="softbundle-1-jp,softbundle-2-jp" class="placeholder-resolved"><span class="price"><span class="price-integer">5,280</span><span class="price-decimals-delimiter disabled"></span><span class="price-decimals disabled"></span><span class="price-currency-space">&nbsp;</span><span class="price-currency-symbol">円</span><span class="price-recurrence">/月</span><span class="price-unit-type disabled"></span><span class="price-tax-inclusivity">（税込）</span></span></span>';
 
 // IN: softbundle-1-in (₹944) + softbundle-2-in (₹613.60) = ₹1,557.60
 export const softBundleIN =

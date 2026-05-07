@@ -163,11 +163,12 @@ describe('MAS Icon Picker Modal', () => {
         expect(event.detail.icon).to.equal('https://example.com/custom.svg');
     });
 
-    it('should not dispatch save when icon value is empty on submit', async () => {
+    it('should not dispatch save when icon and plain-text alt are empty on submit', async () => {
         const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, { parentNode: spTheme() });
 
         el.selectedTab = 'icons';
         el.selectedProductId = null;
+        el.alt = '';
         await el.updateComplete;
 
         let saveFired = false;
@@ -179,6 +180,23 @@ describe('MAS Icon Picker Modal', () => {
         await el.updateComplete;
 
         expect(saveFired).to.be.false;
+    });
+
+    it('should dispatch save when icon is empty but plain-text alt has content', async () => {
+        const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, { parentNode: spTheme() });
+
+        el.selectedTab = 'icons';
+        el.selectedProductId = null;
+        el.alt = 'Adobe Express';
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+
+        expect(event.detail.icon).to.equal('');
+        expect(event.detail.alt).to.equal('Adobe Express');
+        expect(el.open).to.be.false;
     });
 
     it('should update selectedProductId and icon on icon item click', async () => {
@@ -202,6 +220,15 @@ describe('MAS Icon Picker Modal', () => {
 
     it('should show heading "Edit Icon" when icon is set', async () => {
         const el = await fixture(html`<mas-icon-picker-modal open icon="sp-icon-star"></mas-icon-picker-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        const heading = el.shadowRoot.querySelector('[slot="heading"]');
+        expect(heading.textContent.trim()).to.equal('Edit Icon');
+    });
+
+    it('should show heading "Edit Icon" when alt text exists without icon', async () => {
+        const el = await fixture(html`<mas-icon-picker-modal open alt="<p>InDesign</p>"></mas-icon-picker-modal>`, {
             parentNode: spTheme(),
         });
 
@@ -259,13 +286,74 @@ describe('MAS Icon Picker Modal', () => {
         expect(el.selectedTab).to.equal('icons');
     });
 
-    it('should not dispatch save when URL tab has empty icon value', async () => {
+    it('should not dispatch save when URL tab has empty icon and empty alt', async () => {
         const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, {
             parentNode: spTheme(),
         });
 
         el.selectedTab = 'url';
         el.icon = '';
+        el.alt = '';
+        await el.updateComplete;
+
+        let saveFired = false;
+        el.addEventListener('save', () => {
+            saveFired = true;
+        });
+
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        await el.updateComplete;
+
+        expect(saveFired).to.be.false;
+    });
+
+    it('should dispatch save from URL tab with description only when icon URL is empty', async () => {
+        const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        el.selectedTab = 'url';
+        el.icon = '';
+        el.alt = '<p>InDesign</p>';
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+
+        expect(event.detail.icon).to.equal('');
+        expect(event.detail.alt).to.equal('<p>InDesign</p>');
+    });
+
+    it('should dispatch save from icons tab when altHtml has RTE markup and icon is empty', async () => {
+        const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        el.selectedTab = 'icons';
+        el.selectedProductId = null;
+        el.alt = '';
+        el.altHtml = '<p>Bridge</p>';
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'save');
+        el.shadowRoot.querySelector('sp-button[variant="accent"]').click();
+        const event = await listener;
+
+        expect(event.detail.icon).to.equal('');
+        expect(event.detail.alt).to.equal('<p>Bridge</p>');
+        expect(el.open).to.be.false;
+    });
+
+    it('should not dispatch save when altHtml is empty paragraph only', async () => {
+        const el = await fixture(html`<mas-icon-picker-modal open></mas-icon-picker-modal>`, {
+            parentNode: spTheme(),
+        });
+
+        el.selectedTab = 'icons';
+        el.selectedProductId = null;
+        el.alt = '';
+        el.altHtml = '<p></p>';
         await el.updateComplete;
 
         let saveFired = false;

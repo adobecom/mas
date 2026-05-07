@@ -69,7 +69,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.searchInput).toBeVisible();
             await expect(await studio.searchIcon).toBeVisible();
             await expect(await studio.renderView).toBeVisible();
-            await studio.waitForCardsLoaded();
+            await studio.waitForCardsLoaded(2);
             const cards = studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
         });
@@ -121,7 +121,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-3: Validate page view', async () => {
-            await studio.waitForCardsLoaded();
+            await studio.waitForCardsLoaded(2);
             await expect(await studio.renderView).toBeVisible();
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
@@ -477,7 +477,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-3: Validate no Created By filter is auto-applied', async () => {
-            await studio.waitForCardsLoaded();
+            await studio.waitForCardsLoaded(2);
             await expect(studio.createdByTag).toHaveCount(0);
             await expect(studio.renderView.locator('merch-card').nth(1)).toBeVisible();
         });

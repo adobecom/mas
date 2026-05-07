@@ -1,4 +1,7 @@
 import { css, html, LitElement } from 'lit';
+import { fieldStatusStyles } from './field-status.css.js';
+
+export const QUANTITY_SELECT_TAG = 'merch-quantity-select';
 
 /**
  * Builds a serialized merch quantity selector HTML value.
@@ -6,7 +9,7 @@ import { css, html, LitElement } from 'lit';
  * @returns {string}
  */
 export const createQuantitySelectValue = ({ title, min, step }) => {
-    const element = document.createElement('merch-quantity-select');
+    const element = document.createElement(QUANTITY_SELECT_TAG);
     element.setAttribute('title', `${title}`);
     element.setAttribute('min', `${min}`);
     element.setAttribute('max', '10');
@@ -23,7 +26,7 @@ export const parseQuantitySelectValue = (value) => {
     if (!value) return { title: '', min: '1', step: '1' };
     const parser = new DOMParser();
     const documentRoot = parser.parseFromString(value, 'text/html');
-    const element = documentRoot.querySelector('merch-quantity-select');
+    const element = documentRoot.querySelector(QUANTITY_SELECT_TAG);
     return {
         title: `${element?.getAttribute('title') ?? ''}`,
         min: `${element?.getAttribute('min') ?? '1'}`,
@@ -42,6 +45,7 @@ export class QuantitySelectField extends LitElement {
         step: { type: String, state: true },
         layout: { type: String, reflect: true },
         disabled: { type: Boolean, reflect: true },
+        fieldIndicatorTemplate: { attribute: false },
     };
 
     static styles = css`
@@ -49,20 +53,11 @@ export class QuantitySelectField extends LitElement {
             display: block;
         }
 
-        .fields {
-            display: grid;
-            gap: 12px;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        :host([layout='vertical']) .fields {
-            display: flex;
-            flex-direction: column;
-        }
-
         sp-field-group {
             width: 100%;
         }
+
+        ${fieldStatusStyles}
     `;
 
     constructor() {
@@ -73,6 +68,7 @@ export class QuantitySelectField extends LitElement {
         this.step = '1';
         this.layout = 'grid';
         this.disabled = false;
+        this.fieldIndicatorTemplate = () => {};
     }
 
     willUpdate(changedProperties) {
@@ -119,9 +115,9 @@ export class QuantitySelectField extends LitElement {
 
     render() {
         return html`
-            <div class="fields">
-                <sp-field-group>
-                    <sp-field-label>Quantity selector title</sp-field-label>
+            <sp-field-group>
+                <sp-field-label>Quantity selector title</sp-field-label>
+                <div class="field-row">
                     <sp-textfield
                         id="quantity-selector-title"
                         size="m"
@@ -130,9 +126,12 @@ export class QuantitySelectField extends LitElement {
                         @change=${this.#suppressNativeChange}
                         @input=${this.#handleTitleChange}
                     ></sp-textfield>
-                </sp-field-group>
-                <sp-field-group>
-                    <sp-field-label>Start quantity</sp-field-label>
+                    ${this.fieldIndicatorTemplate('title')}
+                </div>
+            </sp-field-group>
+            <sp-field-group>
+                <sp-field-label>Start quantity</sp-field-label>
+                <div class="field-row">
                     <sp-textfield
                         id="quantity-selector-start"
                         size="m"
@@ -142,19 +141,23 @@ export class QuantitySelectField extends LitElement {
                         @change=${this.#suppressNativeChange}
                         @input=${this.#handleMinChange}
                     ></sp-textfield>
-                </sp-field-group>
-            </div>
+                    ${this.fieldIndicatorTemplate('min')}
+                </div>
+            </sp-field-group>
             <sp-field-group>
                 <sp-field-label>Step</sp-field-label>
-                <sp-textfield
-                    id="quantity-selector-step"
-                    size="m"
-                    ?disabled=${this.disabled}
-                    pattern="[0-9]*"
-                    .value=${this.step}
-                    @change=${this.#suppressNativeChange}
-                    @input=${this.#handleStepChange}
-                ></sp-textfield>
+                <div class="field-row">
+                    <sp-textfield
+                        id="quantity-selector-step"
+                        size="m"
+                        ?disabled=${this.disabled}
+                        pattern="[0-9]*"
+                        .value=${this.step}
+                        @change=${this.#suppressNativeChange}
+                        @input=${this.#handleStepChange}
+                    ></sp-textfield>
+                    ${this.fieldIndicatorTemplate('step')}
+                </div>
             </sp-field-group>
         `;
     }

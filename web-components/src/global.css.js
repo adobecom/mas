@@ -132,6 +132,7 @@ styles.innerHTML = `
     --spectrum-green-900-special-offers: #2D9D78;
     --spectrum-gray-300-special-offers: #D1D1D1;
     --gradient-purple-blue: linear-gradient(96deg, #B539C8 0%, #7155FA 66%, #3B63FB 100%);
+    --gradient-firefly-spectrum: linear-gradient(96deg, #D73220 0%, #D92361 33%, #7155FA 100%);
 
     --color-yellow-300-variation: var(--spectrum-yellow-300-plans);
     --color-green-900-variation: var(--spectrum-green-900-plans);
@@ -783,6 +784,20 @@ merch-card [slot='callout-content'] .icon-button.hide-tooltip::after {
 
 merch-card merch-whats-included [slot="contentBullets"] [slot="icon"] {
     margin-right: 10px;
+}
+
+/* Collapse the icon column only when no row in this block uses an icon */
+merch-card
+    merch-whats-included:not(
+        :has(
+            merch-mnemonic-list [slot="icon"] .sp-icon,
+            merch-mnemonic-list [slot="icon"] img[src]:not([src=""]),
+            merch-mnemonic-list [slot="icon"] merch-icon[src]:not([src=""])
+        )
+    )
+    merch-mnemonic-list:not([data-placeholder])
+    [slot="icon"] {
+    display: none;
 }
 
 merch-card merch-whats-included[has-bullets] [slot="content"] {

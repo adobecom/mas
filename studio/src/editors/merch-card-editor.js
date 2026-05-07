@@ -10,9 +10,10 @@ import '../rte/osi-field.js';
 import { CARD_MODEL_PATH, COMPAT_VERSION } from '../constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
+import '../fields/quantity-select-settings-field.js';
 import { getFragmentMapping, showToast } from '../utils.js';
 import '../fields/addon-field.js';
-import { createQuantitySelectValue, parseQuantitySelectValue } from '../common/fields/quantity-select.js';
+import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 import Store from '../store.js';
 import Events from '../events.js';
 import { VARIANT_NAMES } from './variant-picker.js';
@@ -21,10 +22,12 @@ import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
 import { toAttribute } from '../aem/tag-path-utils.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
+import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
+const QUANTITY_EMPTY = `<${QUANTITY_SELECT_TAG}/>`;
 const EVENT_COMMERCE_READY = 'wcms:commerce:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"][data-wcs-osi]';
 
@@ -86,14 +89,14 @@ class MerchCardEditor extends LitElement {
 
     static SECTION_FIELDS = {
         Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color'],
-        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'quantitySelect'],
+        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker'],
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
         Footer: ['ctas'],
-        'Options and settings': ['addon', 'planType', 'secureLabel'],
+        'Options and settings': ['addon', 'planType', 'secureLabel', 'quantitySelect'],
     };
 
-    static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel'];
+    static SETTINGS_FIELDS = ['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect'];
 
     availableSizes = [];
     availableColors = [];
@@ -116,6 +119,9 @@ class MerchCardEditor extends LitElement {
         this.previewLocaleOverride = null;
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
+        this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
+        this.resetQuantitySettingToDefault = this.resetQuantitySettingToDefault.bind(this);
+        this.resetSettingToDefault = this.resetSettingToDefault.bind(this);
     }
 
     createRenderRoot() {
@@ -454,8 +460,30 @@ class MerchCardEditor extends LitElement {
         return restored;
     }
 
-    renderSettingOverrideIndicator(fieldName) {
-        if (!this.isSettingVisuallyOverridden(fieldName)) return nothing;
+    resetQuantitySettingToDefault(fieldName) {
+        if (this.effectiveIsVariation) {
+            this.resetQuantityComponentToParent(fieldName);
+        } else {
+            const parentValues = parseQuantitySelectValue(this.globalSettingsDefaults[QUANTITY_MODEL]);
+            const currentValues = parseQuantitySelectValue(this.quantityValue);
+            const html = createQuantitySelectValue({
+                title: this.#getQuantitySelectValue(fieldName, 'title', parentValues, currentValues),
+                min: this.#getQuantitySelectValue(fieldName, 'min', parentValues, currentValues),
+                step: this.#getQuantitySelectValue(fieldName, 'step', parentValues, currentValues),
+            });
+            if (this.globalSettingsDefaults[QUANTITY_MODEL] === html) {
+                this.fragmentStore.updateField(QUANTITY_MODEL, ['']);
+            } else {
+                this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
+            }
+        }
+    }
+
+    isQuantitySelectVariationOverridden() {
+        return !!this.fragment?.getFieldValue(QUANTITY_MODEL, 0);
+    }
+
+    restoreSettingsToDefault(clickHandler, fieldName) {
         return html`
             <sp-action-button
                 slot="indicator"
@@ -463,11 +491,47 @@ class MerchCardEditor extends LitElement {
                 quiet
                 title="Restore setting to default"
                 aria-label="Restore setting to default"
-                @click=${() => this.resetSettingToDefault(fieldName)}
+                @click=${() => clickHandler(fieldName)}
             >
                 <sp-icon-unlink slot="icon"></sp-icon-unlink>
             </sp-action-button>
         `;
+    }
+
+    renderQuantitySelectOverrideIndicator() {
+        if (this.isQuantitySelectVariationOverridden()) {
+            return this.restoreSettingsToDefault(this.resetSettingToDefault, QUANTITY_MODEL);
+        }
+
+        return nothing;
+    }
+
+    renderQuantitySelectSettingOverrideIndicator(field) {
+        const globalSettings = parseQuantitySelectValue(this.globalSettingsDefaults[QUANTITY_MODEL]);
+        const effectiveSettings = parseQuantitySelectValue(this.getEffectiveSettingValue(QUANTITY_MODEL));
+
+        if (this.effectiveIsVariation) {
+            const parentHtml =
+                this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) ||
+                this.globalSettingsDefaults[QUANTITY_MODEL] ||
+                '';
+            const variationHtml = this.fragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
+            const parent = parseQuantitySelectValue(parentHtml);
+            const variation = parseQuantitySelectValue(variationHtml);
+
+            if (!variationHtml || parent[field] === variation[field]) {
+                return nothing;
+            }
+        } else if (effectiveSettings[field] === globalSettings[field]) {
+            return nothing;
+        }
+
+        return this.restoreSettingsToDefault(this.resetQuantitySettingToDefault, field);
+    }
+
+    renderSettingOverrideIndicator(fieldName) {
+        if (!this.isSettingVisuallyOverridden(fieldName)) return nothing;
+        return this.restoreSettingsToDefault(this.resetSettingToDefault, fieldName);
     }
 
     resetAllSettings() {
@@ -576,7 +640,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #ensureSettingsLoaded() {
-        if (this.effectiveIsVariation) return;
+        if (this.effectiveIsVariation && !this.currentVariantMapping?.quantitySelect) return;
         const surface = Store.surface();
         if (surface) {
             Store.settings.ensureSurfaceLoaded(surface);
@@ -596,26 +660,31 @@ class MerchCardEditor extends LitElement {
     }
 
     getWhatsIncludedProps(el, fallback = true) {
-        const desc = el.querySelector('[slot="description"] > span');
-        const descHtml = desc?.innerHTML?.trim();
-        const alt = descHtml ? `<p>${descHtml}</p>` : '';
+        const descParent = el.querySelector('[slot="description"]');
+        const desc = descParent?.querySelector(':scope > span') ?? descParent ?? undefined;
+        const descHtml = desc?.innerHTML?.trim() ?? '';
+        const altWrapped = descHtml ? `<p>${descHtml}</p>` : '';
+        const textAlt = desc?.textContent?.trim() ?? '';
+
+        const variantValue = this.getEffectiveFieldValue('variant');
+        const isMiniChart = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART;
+        const altForVariant = isMiniChart ? altWrapped : textAlt;
 
         const iconEl = el.querySelector('merch-icon');
         if (iconEl) {
-            const variantValue = this.getEffectiveFieldValue('variant');
-            const isMiniChart = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART;
             const icon = iconEl.getAttribute('src') || '';
             const linkEl = el.querySelector('[slot="icon"] a');
             const link = linkEl?.getAttribute('href') || '';
-            return { icon, alt: isMiniChart ? alt : desc?.textContent, link };
+            return { icon, alt: altForVariant, link };
         }
-        // Fallback for spectrum icons (sp-icon-* elements)
         const spIcon = el.querySelector('.sp-icon');
         if (spIcon && fallback) {
             const icon = spIcon.tagName.toLowerCase();
-            return { icon, alt, link: '' };
+            return { icon, alt: altForVariant, link: '' };
         }
-        return { icon: '', alt: '', link: '' };
+        const linkEl = el.querySelector('[slot="icon"] a');
+        const link = linkEl?.getAttribute('href') || '';
+        return { icon: '', alt: altForVariant, link };
     }
 
     get whatsIncluded() {
@@ -690,11 +759,9 @@ class MerchCardEditor extends LitElement {
     }
 
     get fragmentQuantityValue() {
-        return this.fragment?.fields.find((f) => f.name === QUANTITY_MODEL)?.values[0] || '';
-    }
-
-    get quantitySelectorDisplayed() {
-        return !!this.fragmentQuantityValue.trim();
+        const value = this.getEffectiveFieldValue(QUANTITY_MODEL, 0) || '';
+        if (value === QUANTITY_EMPTY) return '';
+        return value;
     }
 
     #handleQuantityFieldChange = (event) => {
@@ -703,24 +770,6 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
     };
-
-    #showQuantityFields = (e) => {
-        this.showQuantityFields(e.target.checked);
-
-        let html = '';
-        if (e.target.checked) {
-            html = this.quantityValue || createQuantitySelectValue({ title: '', min: '1', step: '1' });
-        } else {
-            const qsValues = this.fragmentStore.get().getField(QUANTITY_MODEL)?.values;
-            this.quantitySelectorValues = qsValues?.length ? qsValues[0] : '';
-        }
-        this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
-    };
-
-    showQuantityFields(show) {
-        const element = this.querySelector('#quantitySelector');
-        if (element) element.style.display = show ? 'block' : 'none';
-    }
 
     async updated(changedProperties) {
         super.updated(changedProperties);
@@ -784,7 +833,7 @@ class MerchCardEditor extends LitElement {
             const field = this.querySelector(`sp-field-group.toggle#${key}`);
             if (field) field.style.display = 'block';
         });
-        this.showQuantityFields(this.quantitySelectorDisplayed);
+
         if (variant.borderColor) {
             const borderField = this.querySelector('sp-field-group.toggle#border-color');
             if (borderField) borderField.style.display = 'block';
@@ -906,55 +955,6 @@ class MerchCardEditor extends LitElement {
                     --mod-switch-handle-border-color-selected-default: var(--spectrum-blue-500);
                 }
 
-                .field-status-indicator {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    margin-top: 6px;
-                    font-size: 14px;
-                    line-height: 18px;
-                    color: var(--spectrum-accent-content-color-default, #3b63fb);
-                }
-
-                .field-status-icon {
-                    color: inherit;
-                    flex: none;
-                }
-
-                .field-status-label {
-                    color: inherit;
-                }
-
-                .field-status-restore-link {
-                    position: relative;
-                    color: inherit;
-                    font: inherit;
-                    line-height: inherit;
-                    text-decoration: underline;
-                    cursor: pointer;
-                }
-
-                .field-status-restore-link-prefix {
-                    position: absolute;
-                    width: 1px;
-                    height: 1px;
-                    padding: 0;
-                    margin: -1px;
-                    overflow: hidden;
-                    clip: rect(0, 0, 0, 0);
-                    white-space: nowrap;
-                    border: 0;
-                }
-
-                .field-status-restore-link:hover {
-                    color: var(--spectrum-accent-content-color-hover, #2f55e0);
-                }
-
-                .field-status-restore-link:focus-visible {
-                    outline: 2px solid var(--spectrum-accent-content-color-key-focus, #2f55e0);
-                    outline-offset: 2px;
-                }
-
                 .section-title {
                     font-size: 20px;
                     font-weight: 700;
@@ -982,10 +982,6 @@ class MerchCardEditor extends LitElement {
 
                 .full-width {
                     width: 100%;
-                }
-
-                .quantity-component-restores {
-                    margin-top: 8px;
                 }
 
                 sp-field-group sp-textfield {
@@ -1054,14 +1050,6 @@ class MerchCardEditor extends LitElement {
                     --mod-link-text-color-primary-focus: var(--spectrum-accent-content-color-key-focus);
                 }
 
-                .setting-override-indicator {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: var(--spectrum-blue-700);
-                    line-height: 0;
-                }
-
                 .setting-override-indicator:hover {
                     color: var(--spectrum-blue-800);
                 }
@@ -1113,6 +1101,8 @@ class MerchCardEditor extends LitElement {
                     --mod-combobox-border-color-default: var(--spectrum-blue-400);
                     --mod-combobox-background-color-default: var(--spectrum-blue-100);
                 }
+
+                ${fieldStatusStyles}
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
@@ -1358,32 +1348,6 @@ class MerchCardEditor extends LitElement {
                     </mas-multifield>
                     ${this.renderFieldStatusIndicator('footerRows')}
                 </sp-field-group>
-                <sp-field-group class="toggle" id="quantitySelect">
-                    <div class="section-title">Quantity selection</div>
-                    <sp-checkbox
-                        size="m"
-                        data-field-state="${this.getFieldState('quantitySelect')}"
-                        value="${this.quantitySelectorDisplayed}"
-                        .checked="${this.quantitySelectorDisplayed}"
-                        @change="${this.#showQuantityFields}"
-                        ?disabled=${this.disabled}
-                        >Show quantity selector</sp-checkbox
-                    >
-                    ${this.renderFieldStatusIndicator('quantitySelect')}
-                    <div id="quantitySelector" style="display: ${this.quantitySelectorDisplayed ? 'block' : 'none'};">
-                        <quantity-select-field
-                            data-field-state="${this.getFieldState('quantitySelect')}"
-                            .value=${this.quantityValue}
-                            ?disabled=${this.disabled}
-                            @change=${this.#handleQuantityFieldChange}
-                        ></quantity-select-field>
-                        <div class="quantity-component-restores">
-                            ${this.renderQuantityComponentOverrideIndicator('title')}
-                            ${this.renderQuantityComponentOverrideIndicator('min')}
-                            ${this.renderQuantityComponentOverrideIndicator('step')}
-                        </div>
-                    </div>
-                </sp-field-group>
                 <div class="two-column-grid">
                     <sp-field-group class="toggle" id="backgroundImage">
                         <sp-field-label for="background-image">Background Image</sp-field-label>
@@ -1611,6 +1575,24 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentUpdate}"
                         ></secure-text-field>
                     </sp-field-group>
+                    <sp-field-group id="quantitySelect" class="toggle">
+                        <quantity-select-settings-field
+                            class="settings-toggle-field"
+                            id="quantity-select-settings-field"
+                            label="Show quantity selector"
+                            data-field="quantitySelect"
+                            data-field-state="${this.isQuantitySelectVariationOverridden() ? 'overridden' : 'default'}"
+                            .indicatorTemplate=${this.effectiveIsVariation
+                                ? this.renderQuantitySelectOverrideIndicator()
+                                : this.renderSettingOverrideIndicator('quantitySelect')}
+                            .fieldIndicatorTemplate=${this.renderQuantitySelectSettingOverrideIndicator}
+                            value="${this.getEffectiveSettingValue(QUANTITY_MODEL)}"
+                            settingsDefaults="${this.globalSettingsDefaults[QUANTITY_MODEL] === ''
+                                ? QUANTITY_EMPTY
+                                : this.globalSettingsDefaults[QUANTITY_MODEL]}"
+                            .handleQuantityFieldChange=${this.#handleQuantityFieldChange}
+                        ></quantity-select-settings-field>
+                    </sp-field-group>
                 </div>
                 <sp-field-group id="locReady">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
@@ -1651,6 +1633,25 @@ class MerchCardEditor extends LitElement {
 
     #handleFragmentDescriptionUpdate(e) {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
+    }
+
+    #whatsIncludedRowIsEmpty(value) {
+        const icon = String(value?.icon ?? '').trim();
+        const link = String(value?.link ?? '').trim();
+        if (icon || link) return false;
+
+        let alt = value?.alt;
+        if (alt == null || alt === '') return true;
+        alt = String(alt).trim();
+        if (!alt) return true;
+        if (!alt.startsWith('<p>')) return false;
+
+        const doc = new DOMParser().parseFromString(alt, 'text/html');
+        const t = doc
+            .querySelector('p')
+            ?.textContent.replace(/\u00a0/g, ' ')
+            .trim();
+        return !t;
     }
 
     createMnemonicList(value, isBullet) {
@@ -1695,7 +1696,9 @@ class MerchCardEditor extends LitElement {
     }
 
     createIncludedElement(label, values, bullets) {
-        if (!label && !values?.length) return undefined;
+        const valueItems = (values ?? []).filter((v) => !this.#whatsIncludedRowIsEmpty(v));
+        const bulletItems = (bullets ?? []).filter((v) => !this.#whatsIncludedRowIsEmpty(v));
+        if (!label && !valueItems.length && !bulletItems.length) return undefined;
 
         const element = document.createElement('merch-whats-included');
         const heading = document.createElement('div');
@@ -1705,14 +1708,14 @@ class MerchCardEditor extends LitElement {
         const contentBullets = document.createElement('div');
         contentBullets.setAttribute('slot', 'contentBullets');
         element.append(contentBullets);
-        if (bullets.length) element.setAttribute('has-bullets', 'true');
-        bullets.forEach((value) => {
+        if (bulletItems.length) element.setAttribute('has-bullets', 'true');
+        bulletItems.forEach((value) => {
             contentBullets.append(this.createMnemonicList(value, true));
         });
         const content = document.createElement('div');
         content.setAttribute('slot', 'content');
         element.append(content);
-        values.forEach((value) => {
+        valueItems.forEach((value) => {
             content.append(this.createMnemonicList(value));
         });
 
@@ -2125,24 +2128,25 @@ class MerchCardEditor extends LitElement {
         return ownValue === parentValue ? 'inherited' : 'overridden';
     }
 
-    getQuantityComponentState(component) {
-        return this.#getCompositeComponentState(QUANTITY_MODEL, parseQuantitySelectValue, component, () => this.quantityValue);
-    }
-
-    renderQuantityComponentOverrideIndicator(component) {
-        if (!this.effectiveIsVariation) return nothing;
-        if (this.getQuantityComponentState(component) !== 'overridden') return nothing;
-        return this.#renderOverrideIndicatorLink(() => this.resetQuantityComponentToParent(component));
+    #getQuantitySelectValue(component, field, parentValues, currentValues) {
+        return !component || component === field ? parentValues[field] : currentValues[field];
     }
 
     async resetQuantityComponentToParent(component) {
-        const parentHtml = this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
+        const parentHtml =
+            this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || this.globalSettingsDefaults[QUANTITY_MODEL] || '';
+        if (!component && !parentHtml) {
+            this.fragmentStore.updateField(QUANTITY_MODEL, [parentHtml]);
+            this.quantitySelectorValues = parentHtml;
+            showToast('Field restored to parent value', 'positive');
+            return;
+        }
         const parentValues = parseQuantitySelectValue(parentHtml);
         const currentValues = parseQuantitySelectValue(this.quantityValue);
         const html = createQuantitySelectValue({
-            title: component === 'title' ? parentValues.title : currentValues.title,
-            min: component === 'min' ? parentValues.min : currentValues.min,
-            step: component === 'step' ? parentValues.step : currentValues.step,
+            title: this.#getQuantitySelectValue(component, 'title', parentValues, currentValues),
+            min: this.#getQuantitySelectValue(component, 'min', parentValues, currentValues),
+            step: this.#getQuantitySelectValue(component, 'step', parentValues, currentValues),
         });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
@@ -2391,13 +2395,15 @@ class MerchCardEditor extends LitElement {
         const isBadgeColor = dataField === 'badgeColor' || dataField === 'trialBadgeColor';
         const isBadgeBorderColor = dataField === 'badgeBorderColor' || dataField === 'trialBadgeBorderColor';
 
+        const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
+
         let colorArray = Array.isArray(colors) ? colors : Object.keys(colors || {});
 
         let variantSpecialValues = {};
         if (this.fragment && isBorder && this.currentVariantMapping) {
             const variant = this.currentVariantMapping;
             variantSpecialValues = variant?.borderColor?.specialValues || {};
-            if (variantSpecialValues && Object.keys(variantSpecialValues).length > 0) {
+            if (showAllSpectrum && Object.keys(variantSpecialValues).length > 0) {
                 colorArray = [...colorArray, ...Object.keys(variantSpecialValues)];
             }
         }
@@ -2422,7 +2428,6 @@ class MerchCardEditor extends LitElement {
             displaySelectedValue = 'Transparent';
         }
 
-        const showAllSpectrum = this.currentVariantMapping?.showAllSpectrumColors;
         const options = isBackground
             ? ['Default', 'Transparent', ...colorArray]
             : [

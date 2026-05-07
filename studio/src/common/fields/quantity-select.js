@@ -111,7 +111,7 @@ export class QuantitySelectField extends LitElement {
             event.target.value = this.min;
             Events.toast.emit({
                 variant: 'negative',
-                content: 'Minimum quantity value cannot be smaller than the default quantity value',
+                content: 'Minimum quantity value cannot be higher than the default quantity value',
             });
         } else {
             this.min = event.target.value;
@@ -129,7 +129,7 @@ export class QuantitySelectField extends LitElement {
             event.target.value = this.defaultValue;
             Events.toast.emit({
                 variant: 'negative',
-                content: 'Default quantity value cannot be higher than the minimum quantity value',
+                content: 'Default quantity value cannot be smaller than the minimum quantity value',
             });
         } else {
             this.defaultValue = event.target.value;

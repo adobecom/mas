@@ -386,14 +386,16 @@ export class MasChat extends LitElement {
             });
             return;
         }
-        // Forward the rich intent-bearing value (e.g. "I want to search cards
-        // by product name") if the menu provided one — falls back to label
-        // for menus that only have terse button text. Carry the active
-        // guided flow so the next turn picks up the same system prompt
-        // instead of being re-classified into something else.
-        const messageToSend = value || label;
+        // The user sees the friendly `label` in their message bubble; the
+        // backend gets the rich `value` (e.g. "search-by-product") so it can
+        // route without needing to natural-language-parse a terse label.
+        // If the value differs from the label, we ship label as the displayed
+        // message and value as a hidden routing tag in context.
         const flowContext = this.activeGuidedFlow ? { intentHint: this.activeGuidedFlow } : {};
-        this.handleSendMessage({ detail: { message: messageToSend, context: flowContext } });
+        if (value && value !== label) {
+            flowContext.buttonValue = value;
+        }
+        this.handleSendMessage({ detail: { message: label, context: flowContext } });
     }
 
     handleConfirmationAction(event) {
@@ -481,8 +483,17 @@ export class MasChat extends LitElement {
                 workingSet: this.getRecentFragments(),
             };
 
+            // When the user clicked a button menu, the displayed message is
+            // the friendly label but the model needs the rich routing value
+            // to disambiguate. Send a combined string that contains both so
+            // the model can pattern-match on the value while the user
+            // bubble stays human-readable.
+            const messageForBackend = enrichedContext.buttonValue
+                ? `${message} (selection: ${enrichedContext.buttonValue})`
+                : message;
+
             const response = await this.callAIChatAction({
-                message,
+                message: messageForBackend,
                 conversationHistory: this.conversationHistory,
                 context: enrichedContext,
                 intentHint: enrichedContext.intentHint || null,

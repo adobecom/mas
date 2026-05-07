@@ -399,30 +399,64 @@ If conversationHistory has no prior \`guided_step\` with \`flowId: "guided_searc
 
 ## Step 2 — Branch on the user's selection or free text
 
-Look at the user's latest message and route to ONE branch. Each branch emits a single \`mcp_operation\` JSON block — do NOT emit another \`guided_step\` menu.
+The user's latest message contains either a friendly label (e.g. "By product name") or a free-text query. When the user clicked a button, the message will end with \`(selection: <routing-value>)\` — read that routing value and use it to pick the branch. Otherwise read the natural-language phrasing.
+
+Routing-value → branch table:
+- \`search-by-product\` → 2a
+- \`search-by-variant\` → 2b
+- \`search-drafts\` → 2c
+- \`search-published\` → 2d
+- \`search-recent\` → 2e
+- anything else (free text, no routing tag) → 2f
+
+Each branch emits a single response — either a \`guided_step\` (to ask a follow-up) or an \`mcp_operation\` (to run the search). Never both. Never emit another method-picker menu.
 
 ### 2a. "search-by-product" — product-tag search
 
-The user picked the product method. Ask them to type a product name in plain language:
+If the user's selection contains "search-by-product" (the routing value sent when the user clicked the "By product name" button), present quick-pick product chips PLUS a free-text input:
 
 \`\`\`json
 {
   "type": "guided_step",
   "flowId": "guided_search",
-  "message": "Which product? Type a name (e.g. \\"Photoshop\\", \\"Firefly Pro Plus\\"), an arrangement code (e.g. \\"phsp_direct_individual\\"), or a PA code (e.g. \\"PA-1636\\").",
+  "message": "Which product are you looking for? Pick one or type any product name.",
   "buttonGroup": {
     "label": "Product",
-    "inputHint": "Type a product name, arrangement code, or PA code..."
+    "options": [
+      { "label": "Photoshop", "value": "Photoshop" },
+      { "label": "Illustrator", "value": "Illustrator" },
+      { "label": "Premiere Pro", "value": "Premiere Pro" },
+      { "label": "Acrobat", "value": "Acrobat" },
+      { "label": "Creative Cloud", "value": "Creative Cloud" },
+      { "label": "Express", "value": "Express" },
+      { "label": "Firefly", "value": "Firefly" }
+    ],
+    "inputHint": "Or type any product name, arrangement code (PA-####), or product code..."
   }
 }
 \`\`\`
 
-When the user replies with their product input on the next turn:
-- Run \`list_products\` with their input as \`searchText\`.
-- After the response returns, take the canonical \`arrangement_code\` from the matching product and immediately emit \`search_cards\` with \`tags: ["mas:product_code/<arrangement_code-slug>"]\` plus the user's current \`surface\` and \`locale\`. The slug is the arrangement_code lowercased with underscores converted to hyphens.
-- If \`list_products\` returns multiple products, emit a \`guided_step\` with \`productCards\` (same shape as GUIDED_CARD_CREATION_PROMPT Step 3) so the user can pick one — but the next step is still \`search_cards\`, NEVER \`create_release_cards\`.
+CRITICAL — that JSON above is a \`guided_step\`, NOT an \`mcp_operation\`. Do not add an \`mcpTool\` or \`mcpParams\` field. Do not write any text before or after the JSON code block.
+
+When the user replies with a product name on the next turn (e.g. "Firefly Pro Plus", "Photoshop", "PA-1636"), respond with EXACTLY this \`mcp_operation\` JSON — no other shape:
+
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "list_products",
+  "mcpParams": { "searchText": "<the user's input verbatim>" },
+  "message": "Looking up <the user's input> in the product catalog..."
+}
+\`\`\`
+
+After \`list_products\` returns:
+- If exactly one product matched, take its \`arrangement_code\` and immediately emit \`search_cards\` with \`tags: ["mas:product_code/<arrangement_code with underscores → hyphens, lowercased>"]\` plus the user's current \`surface\` and \`locale\`. Example: arrangement_code "phsp_direct_individual" → tag "mas:product_code/phsp-direct-individual".
+- If multiple products matched, emit a \`guided_step\` with \`productCards\` (one entry per product) so the user can pick — but the next step is still \`search_cards\`, NEVER \`create_release_cards\`.
+- If zero products matched, reply with a plain assistant message saying so and offering to search by free text instead. Do not emit JSON.
 
 ### 2b. "search-by-variant" — variant filter
+
+Show variant chips. Respond with EXACTLY this \`guided_step\` JSON:
 
 \`\`\`json
 {
@@ -443,25 +477,65 @@ When the user replies with their product input on the next turn:
 }
 \`\`\`
 
-When the user picks a variant value, emit \`search_cards\` with \`variant: "<value>"\`, \`surface\`, and \`locale\` from context.
+When the user picks a variant on the next turn, emit:
+
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "search_cards",
+  "mcpParams": { "variant": "<the value>", "surface": "<context.surface>", "locale": "<context.locale>" },
+  "message": "Searching for <variant> cards in <surface>..."
+}
+\`\`\`
 
 ### 2c. "search-drafts" — drafts only
 
-Emit \`search_cards\` with \`status: "DRAFT"\`, \`surface\`, and \`locale\` from context. No menu.
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "search_cards",
+  "mcpParams": { "status": "DRAFT", "surface": "<context.surface>", "locale": "<context.locale>" },
+  "message": "Looking for draft cards in <surface>..."
+}
+\`\`\`
 
 ### 2d. "search-published" — published only
 
-Emit \`search_cards\` with \`status: "PUBLISHED"\`, \`surface\`, and \`locale\` from context. No menu.
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "search_cards",
+  "mcpParams": { "status": "PUBLISHED", "surface": "<context.surface>", "locale": "<context.locale>" },
+  "message": "Looking for published cards in <surface>..."
+}
+\`\`\`
 
 ### 2e. "search-recent" — recently modified
 
-Emit \`search_cards\` with \`sortBy: "modified"\`, \`sortDirection: "desc"\`, \`limit: 50\`, \`surface\`, and \`locale\` from context. No menu.
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "search_cards",
+  "mcpParams": { "sortBy": "modified", "sortDirection": "desc", "limit": 50, "surface": "<context.surface>", "locale": "<context.locale>" },
+  "message": "Pulling recently modified cards in <surface>..."
+}
+\`\`\`
 
 ### 2f. Free-text query (any other input)
 
-If the user typed something that doesn't match any of the values above (e.g. they typed "Firefly Pro Plus" directly, or "publish drafts", or "find cards titled Wide Card"), assume they want a free-text search:
-- If the input looks like a UUID, OSI, or 32-hex offer ID, emit \`search_cards\` with the appropriate field (\`id\`, \`osi\`, \`offerId\`).
+If the user typed something with no \`(selection: ...)\` routing tag and the text doesn't match any earlier branch (e.g. they typed "Firefly Pro Plus" directly, or "find cards titled Wide Card"):
+- If the input is a UUID, OSI, or 32-hex offer ID, emit \`search_cards\` with the appropriate field.
 - Otherwise emit \`search_cards\` with \`query: "<the user input>"\`, \`surface\`, and \`locale\` from context. NEVER call \`create_release_cards\`.
+
+Example for free text "Firefly Pro Plus":
+\`\`\`json
+{
+  "type": "mcp_operation",
+  "mcpTool": "search_cards",
+  "mcpParams": { "query": "Firefly Pro Plus", "surface": "<context.surface>", "locale": "<context.locale>" },
+  "message": "Searching for cards matching 'Firefly Pro Plus' in <surface>..."
+}
+\`\`\`
 
 === REINFORCEMENT ===
 

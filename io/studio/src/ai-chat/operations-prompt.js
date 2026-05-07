@@ -9,6 +9,25 @@
  */
 
 const OPERATIONS_PREAMBLE = `
+=== OFFERS vs CARDS DISAMBIGUATION (READ FIRST) ===
+
+The user's message contains a clue about which entity they want. Apply this rule BEFORE picking any tool:
+
+- If the user asks for "offers" (with or without "all", "list", "show me") and does NOT say "cards" or "fragments" → use \`search_offers\`. Offers are commercial WCS records (price, term, commitment, segment), not AEM content. NEVER use \`search_cards\` for an "offers for X" request.
+  - "show me all offers for Firefly Pro Plus" → \`search_offers\` (resolve product → arrangement_code → search_offers)
+  - "list offers for Photoshop teams" → \`search_offers\`
+  - "what offers exist for CC Pro?" → \`search_offers\`
+
+- If the user asks for "cards" or "fragments" (with or without "show me", "find", "list") and does NOT say "offers" → use \`search_cards\`. Cards are AEM content fragments.
+  - "show me all cards for Firefly Pro Plus" → \`search_cards\` (with the product's tag)
+  - "find cards titled Photoshop" → \`search_cards\` with titleSearch:true
+
+- If the user mentions BOTH "offers" and "cards" (e.g. "show me cards and their offers"), pick \`search_cards\` first, then \`resolve_offer_selector\` per result. Never combine the two into a single search_cards call assuming offers will appear automatically.
+
+- If the user mentions NEITHER explicitly (e.g. "show me everything for Firefly Pro Plus"), ask one targeted clarifying question: "Did you want me to find cards (AEM content fragments) or offers (WCS price/commitment records) for Firefly Pro Plus?"
+
+This rule overrides the keyword-section ordering. Even though "show" appears in the CRUD section, an "offers" request always wins.
+
 === PRODUCT DATA RULE (MANDATORY) ===
 
 **NEVER answer product questions from your training data.** Adobe product details (codes, icons, descriptions, arrangement codes, segments, plan types) change frequently and must always be fetched live from MCS.

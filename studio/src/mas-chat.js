@@ -37,6 +37,21 @@ import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
 
 const RECENT_MCS_PRODUCT_LIMIT = 6;
+
+/**
+ * Intent hints that drive multi-turn guided flows. While one of these is
+ * the active flow, button clicks and free-text replies stay in the same
+ * system prompt instead of being re-classified per turn — that mis-routing
+ * is what made "Find Cards → By product name → Firefly pro plus" try to
+ * create a card instead of searching.
+ */
+const GUIDED_FLOW_HINTS = new Set(['guided_search', 'guided_help', 'release', 'collection']);
+
+/**
+ * Backend response types that mark a guided flow as resolved (no further
+ * sticky-intent forwarding needed).
+ */
+const FLOW_TERMINAL_RESPONSE_TYPES = new Set(['mcp_operation', 'card', 'message']);
 const PRODUCT_TIMESTAMP_PATHS = [
     ['createdAt'],
     ['created_at'],
@@ -91,6 +106,7 @@ export class MasChat extends LitElement {
         this.selectedReleaseTrialOsi = null;
         this.trialCtaAsked = false;
         this.pendingSearchIntent = null;
+        this.activeGuidedFlow = null;
     }
 
     #repositoryEl = null;
@@ -283,12 +299,16 @@ export class MasChat extends LitElement {
         this.selectedReleaseTrialOsi = null;
         this.trialCtaAsked = false;
         this.pendingSearchIntent = null;
+        this.activeGuidedFlow = null;
     }
 
     handlePromptSelected(event) {
         const { prompt, intentHint } = event.detail;
         this.showPromptSuggestions = false;
         this.showWelcomeScreen = false;
+        if (intentHint && GUIDED_FLOW_HINTS.has(intentHint)) {
+            this.activeGuidedFlow = intentHint;
+        }
         this.handleSendMessage({ detail: { message: prompt, context: { intentHint } } });
     }
 
@@ -366,7 +386,14 @@ export class MasChat extends LitElement {
             });
             return;
         }
-        this.handleSendMessage({ detail: { message: label, context: {} } });
+        // Forward the rich intent-bearing value (e.g. "I want to search cards
+        // by product name") if the menu provided one — falls back to label
+        // for menus that only have terse button text. Carry the active
+        // guided flow so the next turn picks up the same system prompt
+        // instead of being re-classified into something else.
+        const messageToSend = value || label;
+        const flowContext = this.activeGuidedFlow ? { intentHint: this.activeGuidedFlow } : {};
+        this.handleSendMessage({ detail: { message: messageToSend, context: flowContext } });
     }
 
     handleConfirmationAction(event) {
@@ -460,6 +487,17 @@ export class MasChat extends LitElement {
                 context: enrichedContext,
                 intentHint: enrichedContext.intentHint || null,
             });
+
+            // If the assistant resolved into a terminal action (operation,
+            // card creation, plain message), the guided flow has completed —
+            // clear the sticky intent so subsequent turns are classified
+            // freshly. Keep it set when the response is another guided_step
+            // so the next button click stays in the same flow.
+            if (this.activeGuidedFlow && response?.type && response.type !== 'guided_step') {
+                if (FLOW_TERMINAL_RESPONSE_TYPES.has(response.type) || response.type === 'operation') {
+                    this.activeGuidedFlow = null;
+                }
+            }
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
                 recordSearchIntentTelemetry({

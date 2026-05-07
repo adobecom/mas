@@ -965,6 +965,33 @@ export function buildCorrectivePrompt(cardConfig, errors) {
 }
 
 /**
+ * Inspect the most recent assistant message and extract its flowId if it
+ * was a guided_step. Returns one of the known flow ids or null.
+ *
+ * The frontend should pass intentHint explicitly during a guided flow,
+ * but this fallback keeps the flow alive when that propagation breaks
+ * (e.g. an older deployed frontend, or a future guided menu type that
+ * forgets to wire the hint through).
+ */
+function inferGuidedFlowFromHistory(conversationHistory) {
+    if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
+        return null;
+    }
+    for (let i = conversationHistory.length - 1; i >= 0; i -= 1) {
+        const msg = conversationHistory[i];
+        if (msg.role !== 'assistant' || typeof msg.content !== 'string') continue;
+        const match = msg.content.match(/"flowId"\s*:\s*"([a-z_]+)"/);
+        if (match && ['guided_search', 'guided_help', 'release', 'collection'].includes(match[1])) {
+            return match[1];
+        }
+        // Stop at the first assistant message — only the most recent one
+        // determines the active flow.
+        return null;
+    }
+    return null;
+}
+
+/**
  * Determine which system prompt to use based on conversation context
  * @param {string} intentHint - Optional hint ('card', 'collection', or 'documentation')
  * @param {Array} conversationHistory - Previous messages
@@ -990,6 +1017,25 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
 
     if (intentHint === 'guided_help') {
         return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
+    }
+
+    // Defense in depth: if the previous assistant message was a guided_step
+    // with a known flowId, stay in that flow even when the frontend forgot
+    // to forward the intentHint. Without this, the user can drift from
+    // search into creation just by clicking a button (the frontend stripped
+    // intent before the fix on Layer 1; this guards against regressions).
+    const inferredFlow = inferGuidedFlowFromHistory(conversationHistory);
+    if (inferredFlow === 'guided_search') {
+        return { prompt: GUIDED_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+    }
+    if (inferredFlow === 'guided_help') {
+        return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
+    }
+    if (inferredFlow === 'release') {
+        return { prompt: GUIDED_CARD_CREATION_PROMPT, isDocumentation: false, isCardCreation: true };
+    }
+    if (inferredFlow === 'collection') {
+        return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
     }
 
     const lowerMessage = message.toLowerCase();

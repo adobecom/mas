@@ -1,14 +1,14 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import Store from '../store.js';
-import ReactiveController from '../reactivity/reactive-controller.js';
-import { TABLE_TYPE } from '../constants.js';
-import { toggleSidebarIcon } from '../icons.js';
+import ReactiveController from '../../reactivity/reactive-controller.js';
+import { getItemsSelectionStore } from '../items-selection-store.js';
+import { TABLE_TYPE } from '../../constants.js';
+import { toggleSidebarIcon } from '../../icons.js';
 import './mas-select-items-table.js';
 import './mas-selected-items.js';
 import './mas-search-and-filters.js';
 import { styles } from './mas-items-selector.css.js';
-import { debounce } from '../utils.js';
+import { debounce } from '../../utils.js';
 
 export const TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
@@ -23,6 +23,9 @@ class MasItemsSelector extends LitElement {
         viewOnly: { type: Boolean, state: true },
         searchQuery: { type: String, state: true },
         selectedTab: { type: String, state: true },
+        /** @type {(fragmentData: object) => string} */
+        getDisplayName: { type: Function },
+        renderFragmentStatusCell: { type: Function },
     };
 
     constructor() {
@@ -30,33 +33,33 @@ class MasItemsSelector extends LitElement {
         this.viewOnly = false;
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
+        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.renderFragmentStatusCell = () => nothing;
     }
 
     connectedCallback() {
         super.connectedCallback();
+        const s = getItemsSelectionStore();
         this.storeController = new ReactiveController(this, [
-            Store.translationProjects.inEdit,
-            Store.translationProjects.showSelected,
-            Store.translationProjects.selectedCards,
-            Store.translationProjects.selectedCollections,
-            Store.translationProjects.selectedPlaceholders,
+            s.inEdit,
+            s.showSelected,
+            s.selectedCards,
+            s.selectedCollections,
+            s.selectedPlaceholders,
         ]);
     }
 
     get showSelected() {
-        return Store.translationProjects.showSelected.value;
+        return getItemsSelectionStore().showSelected.value;
     }
 
     get selectedCount() {
-        return (
-            Store.translationProjects.selectedCards.value.length +
-            Store.translationProjects.selectedPlaceholders.value.length +
-            Store.translationProjects.selectedCollections.value.length
-        );
+        const s = getItemsSelectionStore();
+        return [...s.selectedCards.value, ...s.selectedPlaceholders.value, ...s.selectedCollections.value].length;
     }
 
     #toggleShowSelected() {
-        Store.translationProjects.showSelected.set(!this.showSelected);
+        getItemsSelectionStore().showSelected.set(!this.showSelected);
     }
 
     #setSearchQuery = debounce((value) => {
@@ -79,7 +82,7 @@ class MasItemsSelector extends LitElement {
     #getTabLabel(tab) {
         if (this.viewOnly) {
             const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            return `${tab.label} (${Store.translationProjects[`selected${valueUppercase}`].value.length})`;
+            return `${tab.label} (${getItemsSelectionStore()[`selected${valueUppercase}`].value.length})`;
         }
         return tab.label;
     }
@@ -135,9 +138,13 @@ class MasItemsSelector extends LitElement {
                                 <mas-select-items-table
                                     .viewOnly=${this.viewOnly}
                                     .type=${tab.value}
+                                    .getDisplayName=${this.getDisplayName}
+                                    .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                                     @show-toast=${this.#showToast}
                                 ></mas-select-items-table>
-                                ${this.viewOnly ? nothing : html`<mas-selected-items></mas-selected-items>`}
+                                ${this.viewOnly
+                                    ? nothing
+                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>

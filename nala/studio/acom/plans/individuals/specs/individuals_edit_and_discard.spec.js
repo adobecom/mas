@@ -178,7 +178,7 @@ export default {
             name: '@studio-plans-individuals-edit-discard-quantity-selector',
             path: '/studio.html',
             data: {
-                cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
+                cardid: 'e8364315-f3d0-45c3-ab1d-8fc6455f1fe2',
                 startValue: {
                     original: '3',
                     updated: '2',

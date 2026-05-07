@@ -246,6 +246,10 @@ export class MerchQuantitySelect extends LitElement {
         this.dispatchEvent(customEvent);
     }
 
+    get configured() {
+        return this.title || this.min || this.step;
+    }
+
     get offerSelect() {
         return this.querySelector('merch-offer-select');
     }
@@ -302,6 +306,8 @@ export class MerchQuantitySelect extends LitElement {
     }
 
     render() {
+        if (!this.configured) return nothing;
+
         return html`
             <div class="label" id="qsLabel">${this.title}</div>
             <div class="text-field">

@@ -1214,19 +1214,20 @@
                             expect(result.link).to.equal('');
                         });
 
-                        it('returns empty values when no icon elements are found', async () => {
+                        it('preserves description text when no icon elements are found', async () => {
                             await setupTestEnvironment({}, 'gwip-no-icon');
 
-                            const el = document.createElement('div');
-                            const descEl = document.createElement('span');
+                            const el = document.createElement('merch-mnemonic-list');
+                            const descEl = document.createElement('p');
                             descEl.setAttribute('slot', 'description');
-                            descEl.textContent = 'No icon here';
+                            const span = document.createElement('span');
+                            span.textContent = 'No icon here';
+                            descEl.append(span);
                             el.append(descEl);
 
                             const result = editor.getWhatsIncludedProps(el);
-                            // The no-icon fallback returns empty strings for all fields
                             expect(result.icon).to.equal('');
-                            expect(result.alt).to.equal('');
+                            expect(result.alt).to.equal('No icon here');
                             expect(result.link).to.equal('');
                         });
                     });

@@ -233,6 +233,19 @@ export const CSS = `
     height: var(--consonant-merch-card-mini-compare-chart-icon-size);
   }
 
+  merch-card[variant="mini-compare-chart"]
+      merch-whats-included:not(
+          :has(
+              merch-mnemonic-list [slot="icon"] .sp-icon,
+              merch-mnemonic-list [slot="icon"] img[src]:not([src=""]),
+              merch-mnemonic-list [slot="icon"] merch-icon[src]:not([src=""])
+          )
+      )
+      merch-mnemonic-list:not([data-placeholder])
+      [slot="icon"] {
+      display: none;
+  }
+
   merch-card[variant="mini-compare-chart"] merch-mnemonic-list [slot="icon"] img {
     max-width: initial;
     width: var(--consonant-merch-card-mini-compare-chart-icon-size);

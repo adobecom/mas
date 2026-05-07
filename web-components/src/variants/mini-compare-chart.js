@@ -171,7 +171,7 @@ export class MiniCompareChart extends VariantLayout {
             'top-section',
         );
 
-        let slots = [
+        const slots = [
             'heading-m',
             'subtitle',
             'body-m',
@@ -255,20 +255,29 @@ export class MiniCompareChart extends VariantLayout {
     removeEmptyRows() {
         if (this.isNewVariant) {
             const rows = this.card.querySelectorAll(
-                'merch-whats-included merch-mnemonic-list',
+                'merch-whats-included [slot="content"] merch-mnemonic-list',
             );
             rows.forEach((row) => {
+                if (row.hasAttribute('data-placeholder')) return;
+
+                const iconSlot = row.querySelector('[slot="icon"]');
+                const hasIcon =
+                    !!iconSlot?.querySelector('.sp-icon') ||
+                    !!iconSlot?.querySelector(
+                        'merch-icon[src]:not([src=""]), img[src]:not([src=""])',
+                    );
+
                 const description = row.querySelector('[slot="description"]');
-                if (description) {
-                    const isEmpty = !description.textContent.trim();
-                    if (isEmpty) {
-                        row.remove();
-                    }
-                }
+                const text =
+                    description?.textContent?.replace(/\u00a0/g, ' ')?.trim() ??
+                    '';
+
+                if (!hasIcon && !text) row.remove();
             });
         } else {
             const footerRows = this.card.querySelectorAll('.footer-row-cell');
             footerRows.forEach((row) => {
+                if (row.hasAttribute('data-placeholder')) return;
                 const rowDescription = row.querySelector(
                     '.footer-row-cell-description',
                 );
@@ -324,9 +333,11 @@ export class MiniCompareChart extends VariantLayout {
             for (let i = 0; i < needed; i++) {
                 const empty = document.createElement('merch-mnemonic-list');
                 empty.setAttribute('data-placeholder', '');
+                const iconSlot = document.createElement('div');
+                iconSlot.setAttribute('slot', 'icon');
                 const desc = document.createElement('div');
                 desc.setAttribute('slot', 'description');
-                empty.appendChild(desc);
+                empty.append(iconSlot, desc);
                 contentSlot.appendChild(empty);
             }
         } else {
@@ -642,9 +653,10 @@ export class MiniCompareChart extends VariantLayout {
             this.adjustCallout();
         }
         await this.adjustAddon();
-        if (Media.isMobile) {
+        if (this.isNewVariant) {
             this.removeEmptyRows();
-        } else {
+        }
+        if (!Media.isMobile) {
             this.padFooterRows();
 
             const container = this.getContainer();
@@ -668,6 +680,8 @@ export class MiniCompareChart extends VariantLayout {
                     this.syncHeights();
                 });
             }
+        } else if (!this.isNewVariant) {
+            this.removeEmptyRows();
         }
     }
 

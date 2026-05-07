@@ -795,7 +795,7 @@ merch-card
             merch-mnemonic-list [slot="icon"] merch-icon[src]:not([src=""])
         )
     )
-    merch-mnemonic-list
+    merch-mnemonic-list:not([data-placeholder])
     [slot="icon"] {
     display: none;
 }

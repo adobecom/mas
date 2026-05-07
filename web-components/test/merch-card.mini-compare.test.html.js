@@ -222,6 +222,12 @@ runTests(async () => {
                 'merch-mnemonic-list[data-placeholder]',
             );
             expect(placeholders.length).to.equal(3);
+            placeholders.forEach((row) => {
+                expect(
+                    row.querySelector('[slot="icon"]'),
+                    'placeholder row mirrors authored icon gutter',
+                ).to.exist;
+            });
         });
 
         it('mini-compare-chart should configure price display options', async () => {

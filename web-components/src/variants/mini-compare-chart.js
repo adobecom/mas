@@ -247,7 +247,7 @@ export class MiniCompareChart extends VariantLayout {
     removeEmptyRows() {
         if (this.isNewVariant) {
             const rows = this.card.querySelectorAll(
-                'merch-whats-included merch-mnemonic-list',
+                'merch-whats-included [slot="content"] merch-mnemonic-list',
             );
             rows.forEach((row) => {
                 if (row.hasAttribute('data-placeholder')) return;
@@ -325,9 +325,11 @@ export class MiniCompareChart extends VariantLayout {
             for (let i = 0; i < needed; i++) {
                 const empty = document.createElement('merch-mnemonic-list');
                 empty.setAttribute('data-placeholder', '');
+                const iconSlot = document.createElement('div');
+                iconSlot.setAttribute('slot', 'icon');
                 const desc = document.createElement('div');
                 desc.setAttribute('slot', 'description');
-                empty.appendChild(desc);
+                empty.append(iconSlot, desc);
                 contentSlot.appendChild(empty);
             }
         } else {

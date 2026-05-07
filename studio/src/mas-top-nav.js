@@ -170,9 +170,10 @@ class MasTopNav extends LitElement {
 
     get topNavLocale() {
         if (this.isFragmentEditorPage) {
-            const fragmentId = this.inEdit.get()?.get()?.id;
-            if (this.editorContext.isVariation(fragmentId) && this.editorContext.localeDefaultFragment?.path) {
-                return extractLocaleFromPath(this.editorContext.localeDefaultFragment.path);
+            const fragmentPath = this.inEdit.get()?.get()?.path;
+            const pathLocale = fragmentPath ? extractLocaleFromPath(fragmentPath) : null;
+            if (pathLocale) {
+                return getDefaultLocaleCode(Store.surface(), pathLocale) || pathLocale;
             }
         }
         const locale = Store.localeOrRegion();

@@ -38,6 +38,22 @@ export function syncVariationLocaleInUrlForHash(path) {
     return true;
 }
 
+/**
+ * Aligns store locale with the fragment path locale when still on default (en_US).
+ * Uses filters.locale instead of search.region to avoid the store.js subscriber clearing it.
+ * @param {string} path - fragment path
+ * @returns {string | null} - locale from the path
+ */
+export function alignStoreLocaleFromFragmentPath(path) {
+    const locale = extractLocaleFromPath(path);
+    if (!locale || Store.localeOrRegion() === locale) return locale;
+    if (Store.filters.value.locale === 'en_US') {
+        Store.search.set((prev) => ({ ...prev, region: null }));
+        Store.filters.set((prev) => ({ ...prev, locale }));
+    }
+    return locale;
+}
+
 export default class MasFragmentEditor extends LitElement {
     static styles = css`
         #fragment-editor {
@@ -665,15 +681,8 @@ export default class MasFragmentEditor extends LitElement {
         return attrs;
     }
 
-    // Derives locale from fragment path and applies a region override when it is safe to do so.
     #updateLocaleIfNeeded(path) {
-        const locale = extractLocaleFromPath(path);
-        // Only update region if the current locale filter is the default (en_US)
-        // This preserves the locale when viewing missing variations (e.g., locale=tr_TR with en_US fragment)
-        if (locale && Store.filters.value.locale === 'en_US' && Store.localeOrRegion() !== locale) {
-            Store.search.set((prev) => ({ ...prev, region: locale }));
-        }
-        return locale;
+        return alignStoreLocaleFromFragmentPath(path);
     }
 
     // Activates a fragment store in the editor and wires reactive dependencies.

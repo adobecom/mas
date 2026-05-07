@@ -20,7 +20,7 @@ async function main(params) {
         }
 
         const authToken = getBearerToken(params);
-        const allowed = await isAllowed(authToken, 'mas-studio', ims);
+        const allowed = await isAllowed(authToken, params.allowedClientId, ims);
         if (!allowed) {
             return errorResponse(401, 'Authorization failed', logger);
         }

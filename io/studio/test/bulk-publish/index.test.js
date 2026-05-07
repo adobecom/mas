@@ -16,6 +16,7 @@ describe('bulk-publish/index.js', () => {
     const baseParams = {
         __ow_headers: { authorization: 'Bearer test-token' },
         aemOdinEndpoint: 'https://odin.example',
+        allowedClientId: 'mas-studio',
         paths: ['/content/dam/mas/acom/en_US/nico'],
     };
 
@@ -66,7 +67,7 @@ describe('bulk-publish/index.js', () => {
         expect(result.error.statusCode).to.equal(400);
     });
 
-    it('validates token against hardcoded mas-studio client ID', async () => {
+    it('validates token against allowedClientId from params', async () => {
         await action.main({ ...baseParams });
         expect(isAllowedStub).to.have.been.calledWith(sinon.match.string, 'mas-studio');
     });

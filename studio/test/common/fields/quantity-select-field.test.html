@@ -14,10 +14,7 @@
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
             import sinon from 'sinon';
-            import {
-                createQuantitySelectValue,
-                parseQuantitySelectValue,
-            } from '../../../src/common/fields/quantity-select.js';
+            import { createQuantitySelectValue, parseQuantitySelectValue } from '../../../src/common/fields/quantity-select.js';
             import Events from '../../../src/events.js';
 
             runTests(() => {
@@ -69,9 +66,7 @@
 
                         const stepField = el.shadowRoot.querySelector('#quantity-selector-step');
                         stepField.value = '2';
-                        stepField.dispatchEvent(
-                            new Event('input', { bubbles: true, composed: true }),
-                        );
+                        stepField.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
                         await el.updateComplete;
 
                         expect(el.defaultValue).to.equal('2');

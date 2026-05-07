@@ -46,8 +46,7 @@ export default class MasMnemonic extends LitElement {
             cursor: pointer;
         }
 
-        .css-tooltip[data-tooltip]::before {
-            content: attr(data-tooltip);
+        .css-tooltip .tooltip-content {
             position: absolute;
             z-index: 999;
             background: var(--spectrum-gray-800, #323232);
@@ -68,7 +67,7 @@ export default class MasMnemonic extends LitElement {
             text-align: center;
         }
 
-        .css-tooltip[data-tooltip]::after {
+        .css-tooltip::after {
             content: '';
             position: absolute;
             z-index: 999;
@@ -83,23 +82,23 @@ export default class MasMnemonic extends LitElement {
                 visibility 0.1s ease;
         }
 
-        .css-tooltip.tooltip-visible[data-tooltip]::before,
-        .css-tooltip.tooltip-visible[data-tooltip]::after,
-        .css-tooltip:focus-visible[data-tooltip]::before,
-        .css-tooltip:focus-visible[data-tooltip]::after {
+        .css-tooltip.tooltip-visible .tooltip-content,
+        .css-tooltip.tooltip-visible::after,
+        .css-tooltip:focus-visible .tooltip-content,
+        .css-tooltip:focus-visible::after {
             opacity: 1;
             visibility: visible;
         }
 
         /* Position variants */
-        .css-tooltip.top[data-tooltip]::before {
+        .css-tooltip.top .tooltip-content {
             bottom: 100%;
             left: 50%;
             transform: translateX(-50%);
             margin-bottom: 16px;
         }
 
-        .css-tooltip.top[data-tooltip]::after {
+        .css-tooltip.top::after {
             top: -80%;
             left: 50%;
             transform: translateX(-50%);
@@ -107,14 +106,14 @@ export default class MasMnemonic extends LitElement {
                 transparent transparent;
         }
 
-        .css-tooltip.bottom[data-tooltip]::before {
+        .css-tooltip.bottom .tooltip-content {
             top: 100%;
             left: 50%;
             transform: translateX(-50%);
             margin-top: 10px;
         }
 
-        .css-tooltip.bottom[data-tooltip]::after {
+        .css-tooltip.bottom::after {
             top: 100%;
             left: 50%;
             transform: translateX(-50%);
@@ -122,7 +121,7 @@ export default class MasMnemonic extends LitElement {
             border-bottom-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.left[data-tooltip]::before {
+        .css-tooltip.left .tooltip-content {
             right: 100%;
             top: 50%;
             transform: translateY(-50%);
@@ -130,7 +129,7 @@ export default class MasMnemonic extends LitElement {
             left: var(--tooltip-left-offset, auto);
         }
 
-        .css-tooltip.left[data-tooltip]::after {
+        .css-tooltip.left::after {
             right: 100%;
             top: 50%;
             transform: translateY(-50%);
@@ -138,14 +137,14 @@ export default class MasMnemonic extends LitElement {
             border-left-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.right[data-tooltip]::before {
+        .css-tooltip.right .tooltip-content {
             left: 100%;
             top: 50%;
             transform: translateY(-50%);
             margin-left: 10px;
         }
 
-        .css-tooltip.right[data-tooltip]::after {
+        .css-tooltip.right::after {
             left: 100%;
             top: 50%;
             transform: translateY(-50%);
@@ -273,7 +272,6 @@ export default class MasMnemonic extends LitElement {
                     class="css-tooltip ${placement} ${this.tooltipVisible
                         ? 'tooltip-visible'
                         : ''}"
-                    data-tooltip="${plainContent}"
                     tabindex="0"
                     role="img"
                     aria-label="${plainContent}"
@@ -290,6 +288,7 @@ export default class MasMnemonic extends LitElement {
                     }}
                 >
                     ${this.renderIcon()}
+                    <span class="tooltip-content">${unsafeHTML(content)}</span>
                 </span>
             `;
         }

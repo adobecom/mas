@@ -175,9 +175,8 @@ export class MasCollapsibleTableRow extends LitElement {
                                   ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)}
                               </sp-table-row>
 
-                                  ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
-                          },
-                      )}
+                              ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
+                      })}
                   </sp-table-body>
               </sp-table>`;
     }

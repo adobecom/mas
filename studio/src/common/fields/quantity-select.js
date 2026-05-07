@@ -101,6 +101,26 @@ export class QuantitySelectField extends LitElement {
         );
     }
 
+    #defaultFitsStepLadder() {
+        const min = Number(this.min);
+        const step = Number(this.step);
+        const def = Number(this.defaultValue);
+        const max = 10;
+        if (isNaN(min) || isNaN(step) || step <= 0 || isNaN(def)) {
+            return true;
+        }
+        for (let v = min; v <= max; v += step) {
+            if (v === def) return true;
+        }
+        return false;
+    }
+
+    #ensureDefaultOnStepLadder() {
+        if (!this.#defaultFitsStepLadder()) {
+            this.defaultValue = `${Number(this.min)}`;
+        }
+    }
+
     #handleTitleChange = (event) => {
         this.title = event.target.value;
         this.#dispatchChange();
@@ -115,12 +135,14 @@ export class QuantitySelectField extends LitElement {
             });
         } else {
             this.min = event.target.value;
+            this.#ensureDefaultOnStepLadder();
             this.#dispatchChange();
         }
     };
 
     #handleStepChange = (event) => {
         this.step = event.target.value;
+        this.#ensureDefaultOnStepLadder();
         this.#dispatchChange();
     };
 

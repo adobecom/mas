@@ -1369,6 +1369,78 @@
     color: var(--spectrum-global-color-gray-600);
 }
 
+/* Chat Offers Table — horizontally scrollable so the table reflows on narrow chat panels.
+ * Column widths are class-driven, so adding/reordering columns only requires updating
+ * the markup; no nth-child gymnastics in CSS. The action column is sticky to the right
+ * edge of the scroll container so the Open-in-OST button stays reachable while the
+ * long Offer ID column scrolls under it. */
+.chat-offers-table-scroller {
+    margin-top: var(--spectrum-global-dimension-size-200);
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.chat-offers-table {
+    width: max-content;
+    min-width: 100%;
+}
+
+.chat-offers-table sp-table-head,
+.chat-offers-table sp-table-row {
+    display: flex;
+    width: 100%;
+}
+
+.chat-offers-table .col-product {
+    flex: 0 0 110px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-offers-table .col-plan {
+    flex: 0 0 80px;
+}
+
+.chat-offers-table .col-term,
+.chat-offers-table .col-commitment {
+    flex: 0 0 110px;
+    text-transform: capitalize;
+}
+
+.chat-offers-table .col-offer-id {
+    flex: 1 1 320px;
+    min-width: 280px;
+    font-family: var(--spectrum-global-font-family-code, monospace);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-offers-table .col-action {
+    flex: 0 0 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    right: 0;
+    background: var(--spectrum-global-color-gray-50, #fff);
+    box-shadow: -4px 0 6px -4px rgba(0, 0, 0, 0.12);
+    z-index: 1;
+}
+
+.chat-offers-table sp-table-row:hover .col-action {
+    background: var(--spectrum-global-color-gray-100, #f5f5f5);
+}
+
+.chat-offers-table sp-table-head .col-action {
+    background: var(--spectrum-global-color-gray-100, #f5f5f5);
+}
+
 /* Card Grid for Rendered Merch Cards */
 .search-results-cards-grid {
     display: grid;

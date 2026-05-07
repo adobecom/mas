@@ -160,21 +160,35 @@ export class BedrockClient {
     }
 
     async #invokeBearerToken(payload) {
-        const response = await fetch(this.endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${this.bearerToken}`,
-            },
-            body: JSON.stringify(payload),
-        });
+        const controller = new AbortController();
+        const timeoutMs = Number(process.env.BEDROCK_FETCH_TIMEOUT_MS) || 50000;
+        const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
 
-        if (!response.ok) {
-            const body = await response.text();
-            throw new Error(`Bedrock API returned ${response.status}: ${body}`);
+        try {
+            const response = await fetch(this.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${this.bearerToken}`,
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+            });
+
+            if (!response.ok) {
+                const body = await response.text();
+                throw new Error(`Bedrock API returned ${response.status}: ${body}`);
+            }
+
+            return response.json();
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                throw new Error(`Bedrock fetch aborted after ${timeoutMs}ms`);
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeoutHandle);
         }
-
-        return response.json();
     }
 
     async #invokeSdk(payload) {

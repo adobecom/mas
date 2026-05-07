@@ -340,6 +340,58 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
             };
         }
 
+        case 'search_offers': {
+            const offers = Array.isArray(result.offers) ? result.offers : [];
+            const filterParts = [];
+            if (mcpParams.productArrangementCode) filterParts.push(`product ${mcpParams.productArrangementCode}`);
+            if (mcpParams.customerSegment) filterParts.push(mcpParams.customerSegment);
+            if (mcpParams.marketSegment) filterParts.push(mcpParams.marketSegment);
+            if (mcpParams.offerType) filterParts.push(mcpParams.offerType);
+            if (mcpParams.commitment) filterParts.push(mcpParams.commitment);
+            if (mcpParams.term) filterParts.push(mcpParams.term);
+            const filterDesc = filterParts.length ? ` for ${filterParts.join(' / ')}` : '';
+            const fallbackMessage =
+                offers.length > 0
+                    ? `Found ${offers.length} offer${offers.length !== 1 ? 's' : ''}${filterDesc}`
+                    : `No offers found${filterDesc}. Try widening your filters or browse cards in Studio.`;
+            return {
+                success: true,
+                operation: 'search_offers',
+                offers,
+                count: offers.length,
+                studioLinks: result.studioLinks,
+                message: result.message || fallbackMessage,
+                rawResult: result,
+            };
+        }
+
+        case 'get_offer_by_id': {
+            const offer = result.offer || null;
+            return {
+                success: true,
+                operation: 'get_offer_by_id',
+                offer,
+                studioLinks: result.studioLinks,
+                message: result.message || (offer ? `Found offer ${offer.offerId || mcpParams.offerId}` : 'Offer not found'),
+                rawResult: result,
+            };
+        }
+
+        case 'list_products':
+        case 'search_products': {
+            const products = Array.isArray(result.products) ? result.products : [];
+            return {
+                success: true,
+                operation: mcpTool,
+                products,
+                count: products.length,
+                message:
+                    result.message ||
+                    `Found ${products.length} product${products.length !== 1 ? 's' : ''}${products.length === 0 ? ' matching your search' : ''}`,
+                rawResult: result,
+            };
+        }
+
         default: {
             console.warn(
                 `executeStudioOperation: no explicit mapping for MCP tool "${mcpTool}" — using generic wrapper. Add a case to keep the {success, message, results} contract consistent.`,
@@ -348,10 +400,13 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
             if (items.length === 0 && Array.isArray(result.cards)) {
                 items = result.cards.map((c) => (c && typeof c === 'object' && c.card ? c.card : c)).filter(Boolean);
             }
+            const fallbackMessage =
+                result.message ||
+                `${mcpTool.replace(/_/g, ' ')} completed${items.length > 0 ? ` — ${items.length} result${items.length !== 1 ? 's' : ''}` : ''}.`;
             return {
                 success: true,
                 operation: mcpTool,
-                message: result.message || 'Operation completed',
+                message: fallbackMessage,
                 results: items,
                 count: items.length,
                 rawResult: result,

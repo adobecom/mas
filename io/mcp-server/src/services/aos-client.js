@@ -17,61 +17,62 @@ export class AOSClient {
         this.environment = config.environment || 'PRODUCTION';
     }
 
+    /**
+     * Search offers via the legacy GET /offers endpoint that AOS actually
+     * honours for product-arrangement-code lookups. The v3 POST path is
+     * undocumented for arbitrary searches and silently returns empty when
+     * service_providers/environment/landscape aren't set, so we mirror the
+     * working pattern from mas-ost (src/utils/aos-client.js): GET, snake_case
+     * query string, environment=PROD, landscape=PUBLISHED, comma-joined
+     * arrangement_code, service_providers=PRICING.
+     *
+     * Returns an empty array on 404 and on missing-data so callers can render
+     * a clean "no offers" state without failing the request.
+     */
     async searchOffers(params) {
         const authHeader = await this.authManager.getAuthHeader();
 
-        const searchParams = {
-            ...DEFAULT_AOS_PARAMS,
+        const arrangementCodes = Array.isArray(params.arrangementCode)
+            ? params.arrangementCode.join(',')
+            : params.arrangementCode;
+        const pricePoint = Array.isArray(params.pricePoint) ? params.pricePoint.join(',') : params.pricePoint;
+
+        const queryParams = {
+            arrangement_code: arrangementCodes,
+            buying_program: DEFAULT_AOS_PARAMS.buyingProgram,
+            commitment: params.commitment,
+            country: params.country || 'US',
+            customer_segment: params.customerSegment,
+            language: params.language || 'MULT',
+            market_segment: params.marketSegment,
+            merchant: DEFAULT_AOS_PARAMS.merchant,
+            offer_type: params.offerType,
+            price_point: pricePoint,
+            sales_channel: DEFAULT_AOS_PARAMS.salesChannel,
+            service_providers: 'PRICING',
+            term: params.term,
+            api_key: this.apiKey,
+            environment: 'PROD',
+            landscape: 'PUBLISHED',
+            page: '0',
+            page_size: '1000',
         };
 
-        if (params.arrangementCode) {
-            searchParams.product_arrangement_code = [params.arrangementCode];
+        const filtered = {};
+        for (const [key, value] of Object.entries(queryParams)) {
+            if (value !== undefined && value !== null && value !== '') {
+                filtered[key] = String(value);
+            }
         }
-
-        if (params.commitment) {
-            searchParams.commitment = params.commitment;
-        }
-
-        if (params.term) {
-            searchParams.term = params.term;
-        }
-
-        if (params.customerSegment) {
-            searchParams.customer_segment = params.customerSegment;
-        }
-
-        if (params.marketSegment) {
-            searchParams.market_segment = params.marketSegment;
-        }
-
-        if (params.offerType) {
-            searchParams.offer_type = params.offerType;
-        }
-
-        if (params.country) {
-            searchParams.country = params.country;
-        }
-
-        if (params.language) {
-            searchParams.language = params.language;
-        }
-
-        if (params.pricePoint) {
-            searchParams.price_point = [params.pricePoint];
-        }
-
-        searchParams.country = params.country || 'US';
-
-        const url = `${this.baseUrl}/v3/offers`;
+        const url = `${this.baseUrl}/offers?${new URLSearchParams(filtered).toString()}`;
 
         const response = await fetch(url, {
-            method: 'POST',
+            method: 'GET',
             headers: {
                 Authorization: authHeader,
-                'Content-Type': 'application/json',
+                'X-Api-Key': this.apiKey,
                 'x-api-key': this.apiKey,
             },
-            body: JSON.stringify(searchParams),
         });
 
         if (response.status === 404) {
@@ -83,7 +84,8 @@ export class AOSClient {
         }
 
         const data = await response.json();
-        return this.enrichOffersWithPlanType(data.data || []);
+        const list = Array.isArray(data) ? data : data?.data || [];
+        return this.enrichOffersWithPlanType(list);
     }
 
     async getOffer(offerId, country) {

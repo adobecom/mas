@@ -319,10 +319,35 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
   - surface: NOT NEEDED (auto-injected from context)
   - locale: NOT NEEDED (auto-injected from context)
   - query: Text search (optional)
-  - tags: Tag array (optional)
+  - tags: Tag array (optional) — see "Tag Taxonomy" below
   - limit: Max results (optional, default 10)
   - searchMode: 'FUZZY', 'EXACT_WORDS', or 'EXACT_PHRASE' (optional, default 'FUZZY')
 - message: User-friendly explanation
+
+**Tag Taxonomy** — Tags are stored in AEM under the \`mas:\` namespace with category prefixes. NEVER pass a tag string the user typed verbatim (e.g. "product/photoshop", "photoshop"); you MUST resolve to the canonical tag ID first. The canonical namespaces are:
+
+- \`mas:product_code/<short_code>\` — Product code tag. The short code is the lowercase product abbreviation (e.g. \`phsp\` for Photoshop, \`ilst\` for Illustrator, \`ppro\` for Premiere Pro, \`ai\` for AI, \`ae\` for After Effects, \`au\` for Audition, \`ccsn\` for Creative Cloud single app, \`ccpa\` for Creative Cloud all apps, \`flpr\` for Firefly Pro, \`flpl\` for Firefly Pro Plus, \`flpm\` for Firefly Premium, \`xprs\` for Express, \`acro\` for Acrobat, \`stk\` for Stock).
+- \`mas:offer_type/<type>\` — Offer type. Values: \`base\`, \`promotion\`, \`trial\`.
+- \`mas:plan_type/<type>\` — Plan type. Values: \`m2m\`, \`abm\`, \`puf\`.
+- \`mas:customer_segment/<segment>\` — Customer segment. Values: \`individual\`, \`team\`, \`enterprise\`.
+- \`mas:market_segments/<segment>\` — Market segment (note plural). Values: \`com\`, \`edu\`, \`gov\`.
+- \`mas:studio/variant/<variant>\` — Card variant (e.g. \`plans\`, \`fries\`, \`mini\`, \`ccd-slice\`, \`special-offers\`).
+- \`mas:studio/surface/<surface>\` — Surface (e.g. \`acom\`, \`ccd\`, \`commerce\`, \`sandbox\`).
+- \`mas:promotions/<promo-id>\` — Promotion code.
+
+**Tag resolution rules**:
+1. If the user mentions a product by name (e.g. "Photoshop", "Firefly Pro Plus") for a tag-based card search, FIRST call \`list_products\` with their term, take the matching \`product_code\` from the response, lowercase it, and emit \`search_cards\` with \`tags: ["mas:product_code/<lowercased_code>"]\`. Do NOT guess the short code.
+2. If the user types a partial tag (e.g. "product/photoshop", "photoshop tag"), DO NOT pass it through. Resolve via \`list_products\` first.
+3. If the user types the full canonical form (e.g. "mas:product_code/phsp"), pass it through unchanged.
+4. Variant, offer type, plan type, segment tags: map directly from the user's word to the canonical form (e.g. "trial cards" → \`mas:offer_type/trial\`).
+5. When you call \`list_products\` to resolve a tag, set \`message: "Looking up <product> in the catalog to find its tag..."\` so the user sees the two-step flow.
+6. CRITICAL — the second-step tool name is ALWAYS \`search_cards\`, never \`search_fragments\` or anything else. The user may say "fragments" but the MCP tool name is \`search_cards\` (cards and fragments are the same thing in M@S vocabulary).
+
+**Examples — tag search**:
+- "show me cards with the photoshop tag" → first \`list_products\` searchText "photoshop", then \`search_cards tags=["mas:product_code/phsp"]\`
+- "find trial cards" → \`search_cards tags=["mas:offer_type/trial"]\`
+- "cards with the m2m plan tag" → \`search_cards tags=["mas:plan_type/m2m"]\`
+- "show enterprise cards" → \`search_cards tags=["mas:customer_segment/enterprise"]\`
 
 **Context Awareness**:
 The system automatically injects these values from the Studio UI:

@@ -109,6 +109,14 @@ export function classifySearchIntent(message, context = {}) {
         return empty;
     }
 
+    // Abstain on bare product arrangement codes (e.g. "PA-1375"). A PA code
+    // is a *product* identifier, never a card OSI — letting the router fire
+    // here would hijack release / create-cards flows into a fruitless OSI
+    // lookup. The LLM path resolves PA codes via get_product_by_arrangement_code.
+    if (/^PA-\d+$/i.test(trimmed)) {
+        return empty;
+    }
+
     const uuidMatch = trimmed.match(UUID_RE);
     if (uuidMatch) {
         if (countMatches(trimmed, new RegExp(UUID_RE.source, 'gi')) > 1) {

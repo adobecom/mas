@@ -970,6 +970,258 @@ export class MasOperationResult extends LitElement {
         `;
     }
 
+    normalizeOffer(offer) {
+        if (!offer || typeof offer !== 'object') return {};
+        return {
+            offerId: offer.offerId || offer.offer_id,
+            productArrangementCode: offer.productArrangementCode || offer.product_arrangement_code,
+            commitment: offer.commitment,
+            term: offer.term,
+            planType: offer.planType || offer.plan_type,
+            priceDetails: offer.priceDetails || offer.pricing || {},
+        };
+    }
+
+    renderStudioLinks(studioLinks) {
+        if (!studioLinks || typeof studioLinks !== 'object') return nothing;
+        const entries = Object.entries(studioLinks).filter(([, url]) => typeof url === 'string' && url.length > 0);
+        if (entries.length === 0) return nothing;
+        const labelMap = {
+            viewCardsInStudio: 'View matching cards in Studio',
+            createWithAI: 'Create cards with AI',
+        };
+        return html`
+            <div class="studio-links">
+                ${entries.map(
+                    ([key, url]) => html`
+                        <sp-button size="s" variant="secondary" @click=${() => window.open(url, '_blank')}>
+                            <sp-icon-link-out slot="icon"></sp-icon-link-out>
+                            ${labelMap[key] || key}
+                        </sp-button>
+                    `,
+                )}
+            </div>
+        `;
+    }
+
+    handleOpenOfferInOst(offerRaw) {
+        if (!offerRaw) return;
+        const arrangementCode = offerRaw.product_arrangement_code || offerRaw.productArrangementCode;
+        if (!arrangementCode) return;
+        const searchParams = { arrangement_code: arrangementCode };
+        const commitment = offerRaw.commitment;
+        const term = offerRaw.term;
+        const customerSegment = offerRaw.customer_segment || offerRaw.customerSegment;
+        const marketSegment = Array.isArray(offerRaw.market_segments)
+            ? offerRaw.market_segments[0]
+            : offerRaw.market_segment || offerRaw.marketSegment;
+        const offerType = offerRaw.offer_type || offerRaw.offerType;
+        if (commitment) searchParams.commitment = commitment;
+        if (term) searchParams.term = term;
+        if (customerSegment) searchParams.customerSegment = customerSegment;
+        if (marketSegment) searchParams.marketSegment = marketSegment;
+        if (offerType) searchParams.offerType = offerType;
+        this.dispatchEvent(
+            new CustomEvent('open-ost-from-response', {
+                detail: { searchParams },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    renderOffersListResult() {
+        const { offers = [], count = 0, message } = this.result;
+
+        if (!offers.length) {
+            return html`
+                <div class="operation-result offers-list-result empty">
+                    <div class="result-header">
+                        <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
+                        <span>${message || 'No offers found matching your filters.'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="operation-result offers-list-result">
+                <div class="result-header">
+                    <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
+                    <span>${message || `${count} offer${count !== 1 ? 's' : ''} found`}</span>
+                </div>
+                <div class="chat-offers-table-scroller">
+                    <sp-table size="m" class="chat-offers-table">
+                        <sp-table-head>
+                            <sp-table-head-cell class="col-product">Product</sp-table-head-cell>
+                            <sp-table-head-cell class="col-plan">Plan</sp-table-head-cell>
+                            <sp-table-head-cell class="col-term">Term</sp-table-head-cell>
+                            <sp-table-head-cell class="col-commitment">Commitment</sp-table-head-cell>
+                            <sp-table-head-cell class="col-offer-id">Offer ID</sp-table-head-cell>
+                            <sp-table-head-cell class="col-action"></sp-table-head-cell>
+                        </sp-table-head>
+                        <sp-table-body>
+                            ${offers.map((offerRaw) => {
+                                const offer = this.normalizeOffer(offerRaw);
+                                const { offerId, productArrangementCode, commitment, term, planType } = offer;
+                                return html`
+                                    <sp-table-row value="${offerId || ''}">
+                                        <sp-table-cell class="col-product">${productArrangementCode || '—'}</sp-table-cell>
+                                        <sp-table-cell class="col-plan">
+                                            ${planType ? html`<sp-badge size="s">${planType}</sp-badge>` : '—'}
+                                        </sp-table-cell>
+                                        <sp-table-cell class="col-term">${term || '—'}</sp-table-cell>
+                                        <sp-table-cell class="col-commitment">${commitment || '—'}</sp-table-cell>
+                                        <sp-table-cell class="col-offer-id">
+                                            ${offerId ? html`<code title="${offerId}">${offerId}</code>` : '—'}
+                                        </sp-table-cell>
+                                        <sp-table-cell class="col-action">
+                                            ${offerId
+                                                ? html`<sp-action-button
+                                                      quiet
+                                                      size="s"
+                                                      title="Open offer in OST"
+                                                      @click=${() => this.handleOpenOfferInOst(offerRaw)}
+                                                  >
+                                                      <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                                                  </sp-action-button>`
+                                                : nothing}
+                                        </sp-table-cell>
+                                    </sp-table-row>
+                                `;
+                            })}
+                        </sp-table-body>
+                    </sp-table>
+                </div>
+            </div>
+        `;
+    }
+
+    renderSingleOfferResult() {
+        const { offer: offerRaw, message } = this.result;
+
+        if (!offerRaw) {
+            return html`
+                <div class="operation-result offer-result empty">
+                    <div class="result-header">
+                        <sp-icon-info size="m"></sp-icon-info>
+                        <span>${message || 'Offer not found.'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        const offer = this.normalizeOffer(offerRaw);
+        const { offerId, productArrangementCode, commitment, term, planType, priceDetails = {} } = offer;
+        const price = priceDetails.price;
+        const currency = priceDetails.currency || 'USD';
+
+        return html`
+            <div class="operation-result offer-result">
+                <div class="result-header">
+                    <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
+                    <span>${message || 'Offer details'}</span>
+                </div>
+                <div class="offer-info-grid">
+                    <div class="offer-field">
+                        <span class="field-label">Offer ID</span>
+                        <code class="field-value">${offerId || 'N/A'}</code>
+                    </div>
+                    <div class="offer-field">
+                        <span class="field-label">Product</span>
+                        <span class="field-value">${productArrangementCode || 'N/A'}</span>
+                    </div>
+                    ${price !== undefined
+                        ? html`
+                              <div class="offer-field">
+                                  <span class="field-label">Price</span>
+                                  <span class="field-value price"
+                                      >${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
+                                          price,
+                                      )}/${term === 'MONTHLY' ? 'mo' : 'yr'}</span
+                                  >
+                              </div>
+                          `
+                        : nothing}
+                    ${commitment
+                        ? html`
+                              <div class="offer-field">
+                                  <span class="field-label">Commitment</span>
+                                  <span class="field-value">${commitment}</span>
+                              </div>
+                          `
+                        : nothing}
+                    ${term
+                        ? html`
+                              <div class="offer-field">
+                                  <span class="field-label">Term</span>
+                                  <span class="field-value">${term}</span>
+                              </div>
+                          `
+                        : nothing}
+                    ${planType
+                        ? html`
+                              <div class="offer-field">
+                                  <span class="field-label">Plan Type</span>
+                                  <sp-badge size="s">${planType}</sp-badge>
+                              </div>
+                          `
+                        : nothing}
+                </div>
+                ${offerId
+                    ? html`<div class="offer-actions">
+                          <sp-button size="s" variant="secondary" @click=${() => this.handleOpenOfferInOst(offerRaw)}>
+                              <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                              Open in OST
+                          </sp-button>
+                      </div>`
+                    : nothing}
+            </div>
+        `;
+    }
+
+    renderProductsListResult() {
+        const { products = [], count = 0, message } = this.result;
+
+        if (!products.length) {
+            return html`
+                <div class="operation-result products-list-result empty">
+                    <div class="result-header">
+                        <sp-icon-info size="m"></sp-icon-info>
+                        <span>${message || 'No products matched your search.'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="operation-result products-list-result">
+                <div class="result-header">
+                    <sp-icon-info size="m"></sp-icon-info>
+                    <span>${message || `${count} product${count !== 1 ? 's' : ''} found`}</span>
+                </div>
+                <div class="products-list">
+                    ${products.map((product) => {
+                        const productName = product?.name || product?.code || 'Product';
+                        const productCode = product?.code || '';
+                        const arrangementCode = product?.arrangement_code || '';
+                        return html`
+                            <div class="product-row">
+                                <div class="product-row-main">
+                                    <strong>${productName}</strong>
+                                </div>
+                                <div class="product-row-meta">
+                                    ${productCode ? html`<code>${productCode}</code>` : nothing}
+                                    ${arrangementCode ? html`<code>${arrangementCode}</code>` : nothing}
+                                </div>
+                            </div>
+                        `;
+                    })}
+                </div>
+            </div>
+        `;
+    }
+
     renderDefaultResult() {
         const { message, results = [], count = 0 } = this.result;
 
@@ -1024,7 +1276,17 @@ export class MasOperationResult extends LitElement {
             `;
         }
 
-        return nothing;
+        const fallbackMessage =
+            message ||
+            (this.operationType ? `${String(this.operationType).replace(/_/g, ' ')} completed.` : 'Operation completed.');
+        return html`
+            <div class="operation-result info">
+                <div class="result-header">
+                    <sp-icon-info size="m"></sp-icon-info>
+                    <span>${fallbackMessage}</span>
+                </div>
+            </div>
+        `;
     }
 
     render() {
@@ -1032,7 +1294,9 @@ export class MasOperationResult extends LitElement {
             return nothing;
         }
 
-        switch (this.operationType) {
+        const effectiveType = this.operationType || this.result?.operation || null;
+
+        switch (effectiveType) {
             case 'search':
             case 'search_cards':
                 return this.renderSearchResults();
@@ -1069,6 +1333,13 @@ export class MasOperationResult extends LitElement {
                 return this.renderOfferSelectorResult();
             case 'create_release_cards':
                 return this.renderReleaseCardsResult();
+            case 'search_offers':
+                return this.renderOffersListResult();
+            case 'get_offer_by_id':
+                return this.renderSingleOfferResult();
+            case 'list_products':
+            case 'search_products':
+                return this.renderProductsListResult();
             default:
                 return this.renderDefaultResult();
         }

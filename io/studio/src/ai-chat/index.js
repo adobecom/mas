@@ -16,6 +16,7 @@ import {
     COLLECTION_CREATION_SYSTEM_PROMPT,
     GUIDED_CARD_CREATION_PROMPT,
     GUIDED_SEARCH_PROMPT,
+    GUIDED_OFFER_SEARCH_PROMPT,
     GUIDED_HELP_PROMPT,
 } from './prompt-templates.js';
 import { buildOperationsPrompt } from './operations-prompt.js';
@@ -26,6 +27,7 @@ import { validateAIConfig } from './validation.js';
 import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './variant-configs.js';
 import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
+import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 
 /**
  * IMS client_id allowlist for the AI Chat action.
@@ -485,7 +487,13 @@ async function main(params) {
             prompt: basePrompt,
             isDocumentation,
             isCardCreation,
-        } = determineSystemPromptWithMeta(intentHint, conversationHistory, message, enrichedContext);
+        } = await determineSystemPromptWithMetaAsync({
+            intentHint,
+            conversationHistory,
+            message,
+            context: enrichedContext,
+            params,
+        });
 
         const releaseIntent = isReleaseIntent(message, conversationHistory);
         const effectivePrompt = releaseIntent ? `${basePrompt}\n\n${GUIDED_CARD_CREATION_PROMPT}` : basePrompt;
@@ -981,7 +989,7 @@ function inferGuidedFlowFromHistory(conversationHistory) {
         const msg = conversationHistory[i];
         if (msg.role !== 'assistant' || typeof msg.content !== 'string') continue;
         const match = msg.content.match(/"flowId"\s*:\s*"([a-z_]+)"/);
-        if (match && ['guided_search', 'guided_help', 'release', 'collection'].includes(match[1])) {
+        if (match && ['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection'].includes(match[1])) {
             return match[1];
         }
         // Stop at the first assistant message — only the most recent one
@@ -1015,6 +1023,10 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
         return { prompt: GUIDED_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
     }
 
+    if (intentHint === 'guided_offer_search') {
+        return { prompt: GUIDED_OFFER_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+    }
+
     if (intentHint === 'guided_help') {
         return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
     }
@@ -1027,6 +1039,9 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
     const inferredFlow = inferGuidedFlowFromHistory(conversationHistory);
     if (inferredFlow === 'guided_search') {
         return { prompt: GUIDED_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+    }
+    if (inferredFlow === 'guided_offer_search') {
+        return { prompt: GUIDED_OFFER_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
     }
     if (inferredFlow === 'guided_help') {
         return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
@@ -1166,6 +1181,101 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
         isDocumentation: true,
         isCardCreation: false,
     };
+}
+
+/**
+ * Map an intent label from the Haiku classifier back to a system prompt
+ * + metadata triple, mirroring determineSystemPromptWithMeta's contract.
+ *
+ * Returns null when the label is `unknown` or unrecognized — the caller
+ * should fall back to the keyword classifier in that case so the existing
+ * card-search and card-creation logic keeps working.
+ *
+ * @private
+ */
+function promptFromClassifierLabel(label, message, context) {
+    switch (label) {
+        case 'operations':
+            return {
+                prompt: buildOperationsPrompt(message, context),
+                isDocumentation: false,
+                isCardCreation: false,
+            };
+        case 'documentation':
+            return {
+                prompt: buildDocumentationPrompt(message),
+                isDocumentation: true,
+                isCardCreation: false,
+            };
+        case 'guided_search':
+            return { prompt: GUIDED_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+        case 'guided_offer_search':
+            return { prompt: GUIDED_OFFER_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+        case 'guided_help':
+            return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
+        case 'release':
+            return { prompt: GUIDED_CARD_CREATION_PROMPT, isDocumentation: false, isCardCreation: true };
+        case 'collection':
+            return { prompt: COLLECTION_CREATION_SYSTEM_PROMPT, isDocumentation: false, isCardCreation: true };
+        case 'unknown':
+        default:
+            return null;
+    }
+}
+
+/**
+ * LLM-driven version of determineSystemPromptWithMeta — replaces the
+ * keyword cascade with one cheap Haiku call grounded in the MAS glossary.
+ * Falls back to the keyword classifier on any failure so existing
+ * card-search and card-creation flows keep working.
+ *
+ * Gated by USE_LLM_CLASSIFIER (action input). When the flag is off, falls
+ * straight to the keyword path. When on, runs the classifier and only uses
+ * its label if the call succeeded AND the label is recognized — otherwise
+ * keyword fallback.
+ *
+ * @param {Object} args
+ * @param {string|null} args.intentHint - Frontend-supplied hint (highest priority)
+ * @param {Array} args.conversationHistory
+ * @param {string} args.message
+ * @param {Object} args.context
+ * @param {Object} args.params - IO Runtime action params (env vars)
+ */
+async function determineSystemPromptWithMetaAsync({ intentHint, conversationHistory, message, context, params }) {
+    // intentHint always wins — never re-classify when the frontend told us
+    // exactly which flow to use.
+    if (intentHint) {
+        return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+    }
+
+    if (params?.USE_LLM_CLASSIFIER !== 'true') {
+        return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+    }
+
+    let classifierClient;
+    try {
+        classifierClient = createClassifierClient(params);
+    } catch (err) {
+        console.warn('[classifier] could not create Haiku client; falling back to keyword classifier:', err.message);
+        return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+    }
+
+    const result = await classifyIntent({ message, conversationHistory, client: classifierClient });
+    console.log(
+        `[classifier] intent=${result.intent} success=${result.success} latency=${result.latencyMs}ms${
+            result.error ? ` error="${result.error}"` : ''
+        }`,
+    );
+
+    if (!result.success) {
+        return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+    }
+
+    const fromLabel = promptFromClassifierLabel(result.intent, message, context);
+    if (fromLabel) return fromLabel;
+
+    // Label was 'unknown' or unrecognized — keyword fallback.
+    return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
 }
 
 export { main };

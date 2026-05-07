@@ -31,6 +31,7 @@ export class MasPromptSuggestions extends LitElement {
                 text: 'Search offers',
                 icon: 'Label',
                 prompt: 'Search for offers by product, commitment, or term',
+                intentHint: 'guided_offer_search',
             },
             {
                 text: 'Search products',

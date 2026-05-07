@@ -33,6 +33,10 @@ const SAFE_OPERATION_TYPES = new Set([
     'get_variations',
     'resolve_offer_selector',
     'create_release_cards',
+    'search_offers',
+    'get_offer_by_id',
+    'list_products',
+    'search_products',
 ]);
 
 /**

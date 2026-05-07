@@ -45,7 +45,7 @@ const RECENT_MCS_PRODUCT_LIMIT = 6;
  * is what made "Find Cards → By product name → Firefly pro plus" try to
  * create a card instead of searching.
  */
-const GUIDED_FLOW_HINTS = new Set(['guided_search', 'guided_help', 'release', 'collection']);
+const GUIDED_FLOW_HINTS = new Set(['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection']);
 
 /**
  * Backend response types that mark a guided flow as resolved (no further
@@ -465,7 +465,13 @@ export class MasChat extends LitElement {
         this.isLoading = true;
         this.error = null;
 
-        if (isDeterministicSearchEnabled() && !context?.skipDeterministicRouter) {
+        // Skip the deterministic search router whenever a guided flow is
+        // active (release / guided_help / guided_search / collection). The
+        // flow's LLM prompt is the canonical interpreter inside the flow —
+        // e.g., a release-flow turn that types "PA-1375" means "this is the
+        // product I'm answering with", not "look up an OSI". Letting the
+        // router fire here would hijack the flow into a card search.
+        if (isDeterministicSearchEnabled() && !context?.skipDeterministicRouter && !this.activeGuidedFlow) {
             const handled = await this.tryDeterministicSearch(message);
             if (handled) {
                 this.isLoading = false;
@@ -518,29 +524,7 @@ export class MasChat extends LitElement {
                     tool: response.type === 'mcp_operation' ? response.mcpTool : response.operation,
                 });
                 if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
-                    if (!response.mcpParams.osi) {
-                        const surface =
-                            this.extractSurfaceFromPath(Store.search?.value?.path) ||
-                            this.extractSurfaceFromPath(getHashParam('path')) ||
-                            'acom';
-                        response.mcpParams.surface = surface;
-                        if (response.mcpParams.locale !== 'all') {
-                            response.mcpParams.locale = Store.filters?.value?.locale || 'en_US';
-                        }
-                    }
-
-                    if (response.mcpParams.query) {
-                        const query = response.mcpParams.query.toLowerCase();
-                        const imagePatterns = [
-                            /\b(with|has|have|containing|that have)\s+(background\s*)?(image|images|backgroundimage)\b/i,
-                            /\bbackground\s*image\b/i,
-                            /\bhas\s+image\b/i,
-                        ];
-                        const isImageQuery = imagePatterns.some((pattern) => pattern.test(query));
-                        if (isImageQuery && !query.includes('backgroundimage:')) {
-                            response.mcpParams.query = 'backgroundImage:*';
-                        }
-                    }
+                    this.autoInjectSearchCardsContext(response.mcpParams);
                 }
 
                 const requiresConfirmation = shouldRequireConfirmation(response.mcpTool, response.confirmationRequired);
@@ -1840,6 +1824,9 @@ export class MasChat extends LitElement {
             this.conversationHistory = response.conversationHistory || [];
 
             if (response.type === 'operation' || response.type === 'mcp_operation') {
+                if (response.type === 'mcp_operation' && response.mcpTool === 'search_cards') {
+                    this.autoInjectSearchCardsContext(response.mcpParams);
+                }
                 const requiresConfirmation = shouldRequireConfirmation(response.mcpTool, response.confirmationRequired);
                 const messageData = {
                     role: 'assistant',
@@ -1989,6 +1976,44 @@ export class MasChat extends LitElement {
 
     extractSurfaceFromPath(path) {
         return extractKnownSurfaceFromPath(path);
+    }
+
+    /**
+     * Auto-inject context into a search_cards mcpParams object: the surface
+     * from the current path (default acom), the locale from the locale picker,
+     * and the backgroundImage query rewrite when the user is asking about
+     * cards with images. OSI lookups skip surface injection because the
+     * deterministic OSI path doesn't need it.
+     *
+     * Used by both the direct LLM-response path and the chained
+     * continueWithMCPResult path so the second hop in two-step flows
+     * (list_products → search_cards) doesn't drop surface.
+     */
+    autoInjectSearchCardsContext(mcpParams) {
+        if (!mcpParams || typeof mcpParams !== 'object') return;
+        if (!mcpParams.osi && !mcpParams.surface) {
+            const surface =
+                this.extractSurfaceFromPath(Store.search?.value?.path) ||
+                this.extractSurfaceFromPath(getHashParam('path')) ||
+                'acom';
+            mcpParams.surface = surface;
+            if (mcpParams.locale !== 'all' && !mcpParams.locale) {
+                mcpParams.locale = Store.filters?.value?.locale || 'en_US';
+            }
+        }
+
+        if (mcpParams.query) {
+            const query = mcpParams.query.toLowerCase();
+            const imagePatterns = [
+                /\b(with|has|have|containing|that have)\s+(background\s*)?(image|images|backgroundimage)\b/i,
+                /\bbackground\s*image\b/i,
+                /\bhas\s+image\b/i,
+            ];
+            const isImageQuery = imagePatterns.some((pattern) => pattern.test(query));
+            if (isImageQuery && !query.includes('backgroundimage:')) {
+                mcpParams.query = 'backgroundImage:*';
+            }
+        }
     }
 
     async enrichGuidedStepWithRecentProducts(response) {

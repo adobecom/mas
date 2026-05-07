@@ -586,6 +586,67 @@ export class StudioOperations {
             }
         }
 
+        // Tag-only fast path: when the caller filters by tag(s) and has no
+        // free-text query, AEM's tag filter narrows results sharply. AEM
+        // caps page size at 50, so we walk the cursor but stop as soon as
+        // we have enough results (limit + a small buffer for variant
+        // filtering). This avoids the 40-page sweep / 15s timeout that was
+        // silently returning "0 cards" for tag searches.
+        const isTagOnlySearch = !query && Array.isArray(tags) && tags.length > 0;
+        if (isTagOnlySearch) {
+            console.log('[StudioOperations] Tag-only search (bounded cursor):', {
+                path: surfacePath,
+                tags,
+                modelIds: [CARD_MODEL_ID],
+                limit,
+                variant,
+            });
+            const targetCount = Math.max(limit * 2, 50);
+            const collected = [];
+            let cursor = null;
+            const TAG_MAX_PAGES = 8;
+            for (let page = 0; page < TAG_MAX_PAGES; page += 1) {
+                const response = await this.aemClient.searchFragments({
+                    path: surfacePath,
+                    tags,
+                    modelIds: [CARD_MODEL_ID],
+                    limit: 50,
+                    cursor,
+                    searchMode: 'EDGES',
+                    includeCursor: true,
+                });
+                if (response?.items?.length) collected.push(...response.items);
+                cursor = response?.cursor || null;
+                if (!cursor) break;
+                if (collected.length >= targetCount) break;
+            }
+            console.log(`[StudioOperations] Tag-only search collected ${collected.length} fragments`);
+
+            const filtered = collected.filter((fragment) => fragment?.id && fragment?.fields);
+            const filteredByVariant = variant
+                ? filtered.filter((fragment) => {
+                      const fragmentVariant = Array.isArray(fragment.fields)
+                          ? fragment.fields.find((f) => f.name === 'variant')?.values?.[0]
+                          : fragment.fields?.variant?.value || fragment.fields?.variant;
+                      return fragmentVariant === variant;
+                  })
+                : filtered;
+            const results = filteredByVariant.slice(0, limit).map((fragment) => {
+                const card = this.formatCard(fragment);
+                card.fragmentData = this.formatFragmentForCache(fragment, card);
+                return card;
+            });
+
+            return {
+                success: true,
+                operation: 'search',
+                results,
+                count: results.length,
+                message: `Found ${results.length} card${results.length !== 1 ? 's' : ''} tagged ${tags.join(', ')}`,
+                studioLinks: { viewFolder: this.urlBuilder.createFolderLink(surface) },
+            };
+        }
+
         // Cursor-paginated full-text search across the surface. Capped at
         // MAX_PAGES so a dilute query can't run forever; the action layer
         // also wraps this in its own timeout.

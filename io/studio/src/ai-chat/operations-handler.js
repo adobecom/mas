@@ -148,15 +148,38 @@ export function validateOperation(operation) {
 }
 
 /**
- * Normalize MCP tool name by stripping the 'studio_' prefix if present
+ * Common LLM-hallucinated tool aliases. These map alternate phrasings the
+ * model occasionally emits — usually echoing the user's vocabulary
+ * ("fragments" vs "cards") — onto the canonical MCP tool name. Keeps the
+ * UX flowing instead of returning "Invalid MCP tool: ..." errors.
+ */
+const TOOL_NAME_ALIASES = {
+    search_fragments: 'search_cards',
+    find_cards: 'search_cards',
+    find_fragments: 'search_cards',
+    list_cards: 'search_cards',
+    list_fragments: 'search_cards',
+    get_fragment: 'get_card',
+    publish_fragment: 'publish_card',
+    unpublish_fragment: 'unpublish_card',
+    delete_fragment: 'delete_card',
+    update_fragment: 'update_card',
+    copy_fragment: 'copy_card',
+};
+
+/**
+ * Normalize MCP tool name by stripping the 'studio_' prefix if present and
+ * applying common aliases for LLM hallucinations.
  * @param {string} toolName - Original tool name
  * @returns {string} - Normalized tool name
  */
 function normalizeMCPToolName(toolName) {
-    if (toolName?.startsWith('studio_')) {
-        return toolName.slice(7);
+    if (!toolName) return toolName;
+    let normalized = toolName.startsWith('studio_') ? toolName.slice(7) : toolName;
+    if (TOOL_NAME_ALIASES[normalized]) {
+        normalized = TOOL_NAME_ALIASES[normalized];
     }
-    return toolName;
+    return normalized;
 }
 
 /**

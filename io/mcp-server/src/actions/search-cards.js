@@ -5,7 +5,7 @@ import { StudioOperations } from '../lib/studio-operations.js';
 import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
 const DEFAULT_TIMEOUT_MS = 5000;
-const KEYWORD_SEARCH_TIMEOUT_MS = 15000;
+const KEYWORD_SEARCH_TIMEOUT_MS = 45000;
 const HARD_RESULT_CAP = 200;
 
 const TIMEOUT_SENTINEL = Symbol('search-cards-timeout');
@@ -53,10 +53,13 @@ async function main(params) {
         const studioOps = new StudioOperations(aemClient, urlBuilder);
 
         const isFastPath = (id || osi) && !query && !(tags && tags.length);
-        // Keyword/title search both paginate via cursor and may scan thousands of fragments;
-        // give them the long timeout. Single-card / OSI fast paths use the default.
+        // Keyword, title, and tag-filter searches all paginate via cursor and
+        // may scan thousands of fragments; give them the long timeout.
+        // Single-card / OSI fast paths use the default.
         const isKeywordSearch = !!query;
-        const baseTimeout = isKeywordSearch ? KEYWORD_SEARCH_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
+        const isTagSearch = Array.isArray(tags) && tags.length > 0;
+        const isLongSearch = isKeywordSearch || titleSearch === true || isTagSearch;
+        const baseTimeout = isLongSearch ? KEYWORD_SEARCH_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
         const timeoutMs = parseInt(params.SEARCH_TIMEOUT_MS, 10) || baseTimeout;
 
         const operation = isFastPath

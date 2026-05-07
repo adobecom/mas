@@ -1,4 +1,4 @@
-var d=Object.defineProperty;var b=(s,t,e)=>t in s?d(s,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):s[t]=e;var y=(s,t)=>()=>(s&&(t=s(s=0)),t);var x=(s,t)=>{for(var e in t)d(s,e,{get:t[e],enumerable:!0})};var n=(s,t,e)=>b(s,typeof t!="symbol"?t+"":t,e);var u={};x(u,{default:()=>p});import{LitElement as T,html as c,css as w}from"./lit-all.min.js";import{unsafeHTML as g}from"./lit-all.min.js";function S(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o,p,f=y(()=>{o=class o extends T{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let e=t.composedPath();o.activeTooltip===this&&!e.includes(this)&&this.hideTooltip()}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&(o.activeTooltip.closeOverlay(),o.activeTooltip.tooltipVisible=!1,o.activeTooltip.requestUpdate()),o.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?c`<merch-icon
+var d=Object.defineProperty;var y=(s,t,e)=>t in s?d(s,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):s[t]=e;var v=(s,t)=>()=>(s&&(t=s(s=0)),t);var x=(s,t)=>{for(var e in t)d(s,e,{get:t[e],enumerable:!0})};var n=(s,t,e)=>y(s,typeof t!="symbol"?t+"":t,e);var u={};x(u,{default:()=>p});import{LitElement as T,html as c,css as w}from"./lit-all.min.js";import{unsafeHTML as g}from"./lit-all.min.js";function S(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o,p,f=v(()=>{o=class o extends T{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let e=t.composedPath();o.activeTooltip===this&&!e.includes(this)&&this.hideTooltip()}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&(o.activeTooltip.closeOverlay(),o.activeTooltip.tooltipVisible=!1,o.activeTooltip.requestUpdate()),o.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?c`<merch-icon
             src="${this.src}"
             size="${this.size}"
         ></merch-icon>`:c`<slot></slot>`}render(){let t=this.effectiveContent,e=this.effectivePlacement;if(!t)return this.renderIcon();if(S())return c`
@@ -41,7 +41,7 @@ var d=Object.defineProperty;var b=(s,t,e)=>t in s?d(s,t,{enumerable:!0,configura
             cursor: pointer;
         }
 
-        .css-tooltip .tooltip-content {
+        .css-tooltip .css-tooltip-body {
             position: absolute;
             z-index: 999;
             background: var(--spectrum-gray-800, #323232);
@@ -77,16 +77,16 @@ var d=Object.defineProperty;var b=(s,t,e)=>t in s?d(s,t,{enumerable:!0,configura
                 visibility 0.1s ease;
         }
 
-        .css-tooltip.tooltip-visible .tooltip-content,
+        .css-tooltip.tooltip-visible .css-tooltip-body,
         .css-tooltip.tooltip-visible::after,
-        .css-tooltip:focus-visible .tooltip-content,
+        .css-tooltip:focus-visible .css-tooltip-body,
         .css-tooltip:focus-visible::after {
             opacity: 1;
             visibility: visible;
         }
 
         /* Position variants */
-        .css-tooltip.top .tooltip-content {
+        .css-tooltip.top .css-tooltip-body {
             bottom: 100%;
             left: 50%;
             transform: translateX(-50%);
@@ -101,7 +101,7 @@ var d=Object.defineProperty;var b=(s,t,e)=>t in s?d(s,t,{enumerable:!0,configura
                 transparent transparent;
         }
 
-        .css-tooltip.bottom .tooltip-content {
+        .css-tooltip.bottom .css-tooltip-body {
             top: 100%;
             left: 50%;
             transform: translateX(-50%);
@@ -116,7 +116,7 @@ var d=Object.defineProperty;var b=(s,t,e)=>t in s?d(s,t,{enumerable:!0,configura
             border-bottom-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.left .tooltip-content {
+        .css-tooltip.left .css-tooltip-body {
             right: 100%;
             top: 50%;
             transform: translateY(-50%);
@@ -132,7 +132,7 @@ var d=Object.defineProperty;var b=(s,t,e)=>t in s?d(s,t,{enumerable:!0,configura
             border-left-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.right .tooltip-content {
+        .css-tooltip.right .css-tooltip-body {
             left: 100%;
             top: 50%;
             transform: translateY(-50%);
@@ -146,13 +146,13 @@ var d=Object.defineProperty;var b=(s,t,e)=>t in s?d(s,t,{enumerable:!0,configura
             margin-left: 5px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);p=o;customElements.define("mas-mnemonic",p)});import{LitElement as $,html as v,css as C}from"./lit-all.min.js";function k(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var r=class extends ${constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(k())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let l="",a="top";if(e.tagName==="SP-TOOLTIP")l=e.textContent,a=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let i=e.querySelector("sp-tooltip");i&&(l=i.textContent,a=i.getAttribute("placement")||e.getAttribute("placement")||"top")}if(l){let i=document.createElement("mas-mnemonic");i.setAttribute("content",l),i.setAttribute("placement",a);let h=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(h)?i.appendChild(m):h&&i.appendChild(h),this.innerHTML="",this.appendChild(i),Promise.resolve().then(()=>f())}e.remove()})}render(){let{href:t}=this;return t?v`<a href="${t}">
+    `);p=o;customElements.define("mas-mnemonic",p)});import{LitElement as $,html as b,css as C}from"./lit-all.min.js";function k(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var r=class extends ${constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(k())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(e=>{let l="",a="top";if(e.tagName==="SP-TOOLTIP")l=e.textContent,a=e.getAttribute("placement")||"top";else if(e.tagName==="OVERLAY-TRIGGER"){let i=e.querySelector("sp-tooltip");i&&(l=i.textContent,a=i.getAttribute("placement")||e.getAttribute("placement")||"top")}if(l){let i=document.createElement("mas-mnemonic");i.setAttribute("content",l),i.setAttribute("placement",a);let h=this.querySelector("img"),m=this.querySelector("a");m&&m.contains(h)?i.appendChild(m):h&&i.appendChild(h),this.innerHTML="",this.appendChild(i),Promise.resolve().then(()=>f())}e.remove()})}render(){let{href:t}=this;return t?b`<a href="${t}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>`:v` <img
+              </a>`:b` <img
                   src="${this.src}"
                   alt="${this.alt}"
                   loading="${this.loading}"

@@ -1,4 +1,4 @@
-var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configurable:!0,writable:!0,value:i}):s[t]=i;var n=(s,t,i)=>h(s,typeof t!="symbol"?t+"":t,i);import{LitElement as m,html as l,css as d}from"./lit-all.min.js";import{unsafeHTML as a}from"./lit-all.min.js";function f(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var e=class e extends m{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let i=t.composedPath();e.activeTooltip===this&&!i.includes(this)&&this.hideTooltip()}showTooltip(){e.activeTooltip&&e.activeTooltip!==this&&(e.activeTooltip.closeOverlay(),e.activeTooltip.tooltipVisible=!1,e.activeTooltip.requestUpdate()),e.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){e.activeTooltip===this&&(e.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?l`<merch-icon
+var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configurable:!0,writable:!0,value:i}):s[t]=i;var n=(s,t,i)=>h(s,typeof t!="symbol"?t+"":t,i);import{LitElement as d,html as l,css as m}from"./lit-all.min.js";import{unsafeHTML as a}from"./lit-all.min.js";function f(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var e=class e extends d{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this)}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(t){let i=t.composedPath();e.activeTooltip===this&&!i.includes(this)&&this.hideTooltip()}showTooltip(){e.activeTooltip&&e.activeTooltip!==this&&(e.activeTooltip.closeOverlay(),e.activeTooltip.tooltipVisible=!1,e.activeTooltip.requestUpdate()),e.activeTooltip=this,this.tooltipVisible=!0}hideTooltip(){e.activeTooltip===this&&(e.activeTooltip=null),this.tooltipVisible=!1}handleTap(t){t.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let t=this.shadowRoot?.querySelector("overlay-trigger");t?.open!==void 0&&(t.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?l`<merch-icon
             src="${this.src}"
             size="${this.size}"
         ></merch-icon>`:l`<slot></slot>`}render(){let t=this.effectiveContent,i=this.effectivePlacement;if(!t)return this.renderIcon();if(f())return l`
@@ -28,7 +28,7 @@ var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configura
                     ${this.renderIcon()}
                     <span class="tooltip-content">${a(t)}</span>
                 </span>
-            `}}};n(e,"activeTooltip",null),n(e,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),n(e,"styles",d`
+            `}}};n(e,"activeTooltip",null),n(e,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},tooltipVisible:{type:Boolean,state:!0}}),n(e,"styles",m`
         :host {
             display: contents;
             overflow: visible;
@@ -41,7 +41,7 @@ var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configura
             cursor: pointer;
         }
 
-        .css-tooltip .tooltip-content {
+        .css-tooltip .css-tooltip-body {
             position: absolute;
             z-index: 999;
             background: var(--spectrum-gray-800, #323232);
@@ -77,16 +77,16 @@ var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configura
                 visibility 0.1s ease;
         }
 
-        .css-tooltip.tooltip-visible .tooltip-content,
+        .css-tooltip.tooltip-visible .css-tooltip-body,
         .css-tooltip.tooltip-visible::after,
-        .css-tooltip:focus-visible .tooltip-content,
+        .css-tooltip:focus-visible .css-tooltip-body,
         .css-tooltip:focus-visible::after {
             opacity: 1;
             visibility: visible;
         }
 
         /* Position variants */
-        .css-tooltip.top .tooltip-content {
+        .css-tooltip.top .css-tooltip-body {
             bottom: 100%;
             left: 50%;
             transform: translateX(-50%);
@@ -101,7 +101,7 @@ var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configura
                 transparent transparent;
         }
 
-        .css-tooltip.bottom .tooltip-content {
+        .css-tooltip.bottom .css-tooltip-body {
             top: 100%;
             left: 50%;
             transform: translateX(-50%);
@@ -116,7 +116,7 @@ var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configura
             border-bottom-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.left .tooltip-content {
+        .css-tooltip.left .css-tooltip-body {
             right: 100%;
             top: 50%;
             transform: translateY(-50%);
@@ -132,7 +132,7 @@ var c=Object.defineProperty;var h=(s,t,i)=>t in s?c(s,t,{enumerable:!0,configura
             border-left-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.right .tooltip-content {
+        .css-tooltip.right .css-tooltip-body {
             left: 100%;
             top: 50%;
             transform: translateY(-50%);

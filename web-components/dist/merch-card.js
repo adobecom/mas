@@ -41,7 +41,7 @@ var cr=Object.defineProperty;var sr=a=>{throw TypeError(a)};var Ga=(a,t,e)=>t in
             cursor: pointer;
         }
 
-        .css-tooltip .tooltip-content {
+        .css-tooltip .css-tooltip-body {
             position: absolute;
             z-index: 999;
             background: var(--spectrum-gray-800, #323232);
@@ -77,16 +77,16 @@ var cr=Object.defineProperty;var sr=a=>{throw TypeError(a)};var Ga=(a,t,e)=>t in
                 visibility 0.1s ease;
         }
 
-        .css-tooltip.tooltip-visible .tooltip-content,
+        .css-tooltip.tooltip-visible .css-tooltip-body,
         .css-tooltip.tooltip-visible::after,
-        .css-tooltip:focus-visible .tooltip-content,
+        .css-tooltip:focus-visible .css-tooltip-body,
         .css-tooltip:focus-visible::after {
             opacity: 1;
             visibility: visible;
         }
 
         /* Position variants */
-        .css-tooltip.top .tooltip-content {
+        .css-tooltip.top .css-tooltip-body {
             bottom: 100%;
             left: 50%;
             transform: translateX(-50%);
@@ -101,7 +101,7 @@ var cr=Object.defineProperty;var sr=a=>{throw TypeError(a)};var Ga=(a,t,e)=>t in
                 transparent transparent;
         }
 
-        .css-tooltip.bottom .tooltip-content {
+        .css-tooltip.bottom .css-tooltip-body {
             top: 100%;
             left: 50%;
             transform: translateX(-50%);
@@ -116,7 +116,7 @@ var cr=Object.defineProperty;var sr=a=>{throw TypeError(a)};var Ga=(a,t,e)=>t in
             border-bottom-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.left .tooltip-content {
+        .css-tooltip.left .css-tooltip-body {
             right: 100%;
             top: 50%;
             transform: translateY(-50%);
@@ -132,7 +132,7 @@ var cr=Object.defineProperty;var sr=a=>{throw TypeError(a)};var Ga=(a,t,e)=>t in
             border-left-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.right .tooltip-content {
+        .css-tooltip.right .css-tooltip-body {
             left: 100%;
             top: 50%;
             transform: translateY(-50%);

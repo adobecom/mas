@@ -43,6 +43,16 @@ const LOCALE_RE = /\b(?:in|for)\s+([a-z]{2}_[A-Z]{2,4})\b/;
 const TAG_KEYWORD_RE =
     /\b(?:product\s*code|product\s*tag|arrangement\s*code|tagged(?:\s+with)?|with\s+tag|by\s+tag|market\s*segment|customer\s*segment|pa\s*code|pa-\d|with\s+.+\s+as\s+(?:the\s+)?(?:product|tag|code))\b/i;
 
+// Phrases that imply the user wants commercial records (WCS offers from AOS),
+// not AEM cards. We abstain when "offer(s)" appears WITHOUT "card(s)" or
+// "fragment(s)" — that's the LLM's job (it will route to search_offers via
+// the OFFERS-vs-CARDS disambiguation rule in OPERATIONS_PREAMBLE).
+//
+// This guards against QUOTED_TITLE_RE hijacking a query like
+// `show me all offers for "Firefly Pro Plus"` into a card title search.
+const OFFERS_INTENT_RE = /\boffers?\b/i;
+const CARDS_INTENT_RE = /\b(?:cards?|fragments?)\b/i;
+
 const HIGH_CONFIDENCE = 0.85;
 const MEDIUM_CONFIDENCE = 0.55;
 
@@ -83,6 +93,19 @@ export function classifySearchIntent(message, context = {}) {
     // Abstain on tag/product-code phrasings — those need MCS resolution which
     // only the LLM path knows how to do (via list_products + tag mapping).
     if (TAG_KEYWORD_RE.test(trimmed)) {
+        return empty;
+    }
+
+    // Abstain when the user mentions "offers" without "cards" — they want
+    // WCS commercial records (price/term/commitment), not AEM content. The
+    // LLM path has the OFFERS-vs-CARDS disambiguation rule that routes to
+    // search_offers. The router can't do this deterministically because
+    // resolving a product name to an arrangement_code requires list_products.
+    //
+    // Note: keeping the abstain narrow — "offers AND cards" stays in the
+    // router because the user may actually want to search cards by an
+    // offer attribute, which is a card-search.
+    if (OFFERS_INTENT_RE.test(trimmed) && !CARDS_INTENT_RE.test(trimmed)) {
         return empty;
     }
 

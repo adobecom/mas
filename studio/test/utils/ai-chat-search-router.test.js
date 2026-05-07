@@ -376,6 +376,42 @@ describe('ai-chat-search-router', () => {
         });
     });
 
+    describe('Offers vs cards abstain', () => {
+        it('abstains on "show me all offers for \\"X\\"" (quoted product, no card mention)', () => {
+            const result = classifySearchIntent('can you show me all offers for "Firefly Pro Plus"?', {
+                currentSurface: 'acom',
+                currentLocale: 'en_US',
+            });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains on "list offers for X"', () => {
+            const result = classifySearchIntent('list offers for Photoshop', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('unknown');
+        });
+
+        it('abstains on bare "offer" mentions without "card"', () => {
+            const result = classifySearchIntent('what offers exist for CC Pro?', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('unknown');
+        });
+
+        it('does NOT abstain when message mentions both "offers" and "cards"', () => {
+            const result = classifySearchIntent('find cards with offer Firefly', { currentSurface: 'acom' });
+            // "with offer" → content-search; both keywords present so router can act.
+            expect(result.intent).to.equal('content-search');
+        });
+
+        it('does NOT abstain on legitimate OSI lookup ("offer selector" keyword)', () => {
+            const osi = 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8';
+            const result = classifySearchIntent(`find cards with offer selector ${osi}`, {
+                currentSurface: 'acom',
+            });
+            // "cards" present → router fires (OSI lookup), abstain doesn't trigger
+            expect(result.intent).to.equal('osi-lookup');
+        });
+    });
+
     describe('Adversarial inputs', () => {
         it('handles a UUID inside a markdown link', () => {
             const result = classifySearchIntent(`[card](https://example.com/${UUID})`);

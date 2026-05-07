@@ -412,7 +412,7 @@ function processDescriptionLinks(merchCard, aemFragmentMapping) {
     });
 }
 
-export function processDescription(fields, merchCard, mapping) {
+export function processDescription(fields, merchCard, mapping, settings) {
     if (fields.description) {
         fields.description = processMnemonicElements(fields.description);
     }
@@ -438,8 +438,14 @@ export function processDescription(fields, merchCard, mapping) {
 
     processDescriptionLinks(merchCard, mapping);
     appendSlot('callout', fields, merchCard, mapping);
-    appendSlot('quantitySelect', fields, merchCard, mapping);
+    processQuantitySelect(fields, merchCard, mapping, settings);
     appendSlot('whatsIncluded', fields, merchCard, mapping);
+}
+
+function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
+    if (!mapping.quantitySelect) return;
+    if (!fields.quantitySelect) fields.quantitySelect = settings.quantitySelect;
+    appendSlot('quantitySelect', fields, merchCard, mapping);
 }
 
 export function processAddon(fields, merchCard, mapping, settings = {}) {
@@ -863,7 +869,7 @@ export async function hydrate(fragment, merchCard) {
         mapping.backgroundColor,
     );
     processBorderColor(fields, merchCard, mapping);
-    processDescription(fields, merchCard, mapping);
+    processDescription(fields, merchCard, mapping, settings);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
     processSecureLabel(fields, merchCard, mapping, settings);

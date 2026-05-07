@@ -12,6 +12,7 @@ import './mas-translation-languages.js';
 import router from '../router.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE } from '../constants.js';
+import { getOdinLocTaskNameValidationError } from './translation-utils.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -219,12 +220,16 @@ class MasTranslationEditor extends LitElement {
     #validateRequiredFields(translationProject = {}) {
         const title = translationProject.getFieldValue('title');
         if (!title || title.trim() === '') {
-            return false;
+            return { ok: false, message: 'Please fill in all required fields.' };
+        }
+        const taskNameError = getOdinLocTaskNameValidationError(title.trim());
+        if (taskNameError) {
+            return { ok: false, message: taskNameError };
         }
 
         const targetLocales = Store.translationProjects.targetLocales.value;
         if (targetLocales.length === 0) {
-            return false;
+            return { ok: false, message: 'Please fill in all required fields.' };
         }
 
         const fragments = Store.translationProjects.selectedCards.value;
@@ -232,10 +237,10 @@ class MasTranslationEditor extends LitElement {
         const collections = Store.translationProjects.selectedCollections.value;
 
         if (fragments.length === 0 && placeholders.length === 0 && collections.length === 0) {
-            return false;
+            return { ok: false, message: 'Please fill in all required fields.' };
         }
 
-        return true;
+        return { ok: true };
     }
 
     #getValues(field) {
@@ -256,8 +261,9 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #createTranslationProject() {
-        if (!this.#validateRequiredFields(this.translationProject)) {
-            showToast('Please fill in all required fields.', 'negative');
+        const validation = this.#validateRequiredFields(this.translationProject);
+        if (!validation.ok) {
+            showToast(validation.message, 'negative');
             return;
         }
 
@@ -309,8 +315,9 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #updateTranslationProject() {
-        if (!this.#validateRequiredFields(this.translationProject)) {
-            showToast('Please fill in all required fields.', 'negative');
+        const validation = this.#validateRequiredFields(this.translationProject);
+        if (!validation.ok) {
+            showToast(validation.message, 'negative');
             return;
         }
         this.translationProject.updateFieldInternal('title', this.translationProject.getFieldValue('title'));

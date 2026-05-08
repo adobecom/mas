@@ -29,6 +29,14 @@ const MODEL_WEB_COMPONENT_MAPPING = {
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
+function getWhatsIncludedDividerColorFromMarkup(fragment) {
+    if (!fragment) return '';
+    const html = fragment.getFieldValue('whatsIncluded', 0) || '';
+    if (!html.trim()) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.querySelector('merch-whats-included')?.getAttribute('whats-included-divider-color')?.trim() || '';
+}
+
 export default class MasFragmentEditor extends LitElement {
     static styles = css`
         #fragment-editor {
@@ -603,6 +611,23 @@ export default class MasFragmentEditor extends LitElement {
         return attrs;
     }
 
+    get previewWhatsIncludedDividerAttribute() {
+        const fragment = this.fragmentStore?.previewStore?.value || this.fragment;
+        if (!fragment) return '';
+
+        const v = getWhatsIncludedDividerColorFromMarkup(fragment) || fragment.getFieldValue('whatsIncludedDividerColor', 0);
+        if (!v || v === 'Default' || v.toLowerCase() === 'default') {
+            return '';
+        }
+        if (/-gradient/.test(v) || /^gradient-/.test(v)) {
+            return v;
+        }
+        if (/^spectrum-.*-(plans|special-offers)$/.test(v)) {
+            return v;
+        }
+        return '';
+    }
+
     get previewCSSCustomProperties() {
         const styles = [];
         const fragment = this.fragmentStore?.previewStore?.value || this.fragment;
@@ -631,6 +656,16 @@ export default class MasFragmentEditor extends LitElement {
             } else if (!borderColor.includes('-gradient')) {
                 // Regular color (not gradient)
                 styles.push(`--consonant-merch-card-border-color: var(--${borderColor})`);
+            }
+        }
+
+        const whatsIncludedDividerColor =
+            getWhatsIncludedDividerColorFromMarkup(fragment) || fragment.getFieldValue('whatsIncludedDividerColor', 0);
+        if (whatsIncludedDividerColor) {
+            if (whatsIncludedDividerColor.toLowerCase() === 'transparent') {
+                styles.push('--consonant-merch-card-whats-included-divider-color: transparent');
+            } else if (!/-gradient/.test(whatsIncludedDividerColor) && !/^gradient-/.test(whatsIncludedDividerColor)) {
+                styles.push(`--consonant-merch-card-whats-included-divider-color: var(--${whatsIncludedDividerColor})`);
             }
         }
 
@@ -1634,6 +1669,7 @@ export default class MasFragmentEditor extends LitElement {
         const attrs = this.previewAttributes;
         const borderAttrs = this.previewBorderColorAttributes;
         const cssProps = this.previewCSSCustomProperties;
+        const whatsIncludedDividerAttr = this.previewWhatsIncludedDividerAttribute;
 
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
@@ -1654,6 +1690,7 @@ export default class MasFragmentEditor extends LitElement {
                                 size=${attrs.size || nothing}
                                 name=${attrs.name || nothing}
                                 border-color=${borderAttrs.borderColor || nothing}
+                                whats-included-divider-color=${whatsIncludedDividerAttr || nothing}
                                 background-image=${attrs.backgroundImage || nothing}
                                 stock-offer-osis=${attrs.stockOfferOsis || nothing}
                                 checkbox-label=${attrs.checkboxLabel || nothing}

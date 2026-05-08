@@ -155,6 +155,13 @@ export const styles = [
             --mod-actionbutton-padding-y: 6px;
         }
 
+        .duplicating-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px;
+        }
+
         .skeleton-row td {
             padding: 16px 20px;
             height: 68px;

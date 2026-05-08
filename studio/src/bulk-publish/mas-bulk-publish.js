@@ -4,8 +4,6 @@ import StoreController from '../reactivity/store-controller.js';
 import router from '../router.js';
 import { styles } from './mas-bulk-publish.css.js';
 import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PARENT_PATH, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '../constants.js';
-import { Fragment } from '../aem/fragment.js';
-import { FragmentStore } from '../reactivity/fragment-store.js';
 import { normalizeKey, showToast } from '../utils.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 
@@ -30,6 +28,7 @@ class MasBulkPublish extends LitElement {
 
     static properties = {
         duplicatePending: { state: true },
+        duplicating: { state: true },
     };
 
     list = new StoreController(this, Store.bulkPublishProjects.list.data);
@@ -38,6 +37,7 @@ class MasBulkPublish extends LitElement {
     constructor() {
         super();
         this.duplicatePending = null;
+        this.duplicating = false;
     }
 
     onCreate() {
@@ -81,6 +81,7 @@ class MasBulkPublish extends LitElement {
         const title = e.detail.title;
         const items = data.getFieldValue?.('items') ?? data.items ?? '[]';
         const locales = data.getFieldValues?.('locales') ?? data.locales ?? [];
+        this.duplicating = true;
         try {
             const parentPath = `${BULK_PUBLISH_PARENT_PATH}/${surface}`;
             const payload = {
@@ -98,13 +99,14 @@ class MasBulkPublish extends LitElement {
             };
             const raw = await this.repository.createFragment(payload, false);
             if (!raw) throw new Error('Create returned empty response');
-            const fragment = new Fragment(raw);
-            const store = new FragmentStore(fragment);
-            Store.bulkPublishProjects.inEdit.set(store);
+            Store.bulkPublishProjects.projectId.set(raw.id);
+            Store.bulkPublishProjects.inEdit.set(null);
             router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
         } catch (err) {
             console.error('Failed to duplicate bulk publish project:', err);
             showToast('Failed to duplicate the project.', 'negative');
+        } finally {
+            this.duplicating = false;
         }
     }
 
@@ -230,6 +232,11 @@ class MasBulkPublish extends LitElement {
                       @duplicate-confirmed=${this.handleDuplicateConfirmed}
                       @duplicate-cancelled=${this.handleDuplicateCancel}
                   ></mas-bulk-publish-duplicate-dialog>`
+                : nothing}
+            ${this.duplicating
+                ? html`<div class="duplicating-overlay">
+                      <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
+                  </div>`
                 : nothing}
             ${showEmpty
                 ? html`<p class="empty" data-testid="empty">No bulk publish projects yet.</p>`

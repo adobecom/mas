@@ -115,7 +115,7 @@ describe('mas-bulk-publish (methods)', () => {
         expect(el.duplicatePending).to.be.null;
     });
 
-    it('handleDuplicateConfirmed calls repository.createFragment and navigates', async () => {
+    it('handleDuplicateConfirmed sets projectId and navigates to editor', async () => {
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
 
@@ -124,7 +124,6 @@ describe('mas-bulk-publish (methods)', () => {
 
         const rawFragment = { id: 'new-id', path: '/content/dam/mas/new', fields: [], status: 'Draft' };
         repositoryEl.createFragment = sandbox.stub().resolves(rawFragment);
-
         Store.search.set({ path: 'sandbox' });
 
         await el.handleDuplicateConfirmed({ detail: { title: 'My Copy' } });
@@ -132,7 +131,10 @@ describe('mas-bulk-publish (methods)', () => {
         expect(repositoryEl.createFragment.calledOnce).to.equal(true);
         const [payload] = repositoryEl.createFragment.firstCall.args;
         expect(payload.title).to.equal('My Copy');
+        expect(Store.bulkPublishProjects.projectId.get()).to.equal('new-id');
+        expect(Store.bulkPublishProjects.inEdit.get()).to.be.null;
         expect(navigateStub.calledOnce).to.equal(true);
+        expect(el.duplicating).to.equal(false);
     });
 
     it('handleDuplicateConfirmed passes locales as array to createFragment', async () => {

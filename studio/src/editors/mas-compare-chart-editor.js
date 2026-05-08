@@ -1201,7 +1201,10 @@ class MasCompareChartEditor extends LitElement {
         } else {
             features.push(newHtml);
         }
-        this.#stageColumnFeatures(cardPath, features);
+        const toStage = column.isVariationColumn
+            ? this.#toOverrideFeatureValues(features, this.#featureValues(column.parentFragment))
+            : features;
+        this.#stageColumnFeatures(cardPath, toStage);
     }
 
     #restoreCellFeature(column, group, feature, event) {
@@ -1211,7 +1214,10 @@ class MasCompareChartEditor extends LitElement {
         const idx = features.findIndex((html) => this.#featureNameFromHtml(html) === name);
         if (idx < 0) return;
         features.splice(idx, 1);
-        this.#writeColumnFeatures(column.path, features);
+        const toWrite = column.isVariationColumn
+            ? this.#toOverrideFeatureValues(features, this.#featureValues(column.parentFragment))
+            : features;
+        this.#writeColumnFeatures(column.path, toWrite);
     }
 
     #restoreColumnFeatures(column, event) {
@@ -1227,9 +1233,7 @@ class MasCompareChartEditor extends LitElement {
         this.requestUpdate();
     }
 
-    #findCellHtml(cardPath, group, feature) {
-        const column = this.effectiveColumns.find((c) => c.path === cardPath);
-        if (!column) return '';
+    #cellHtmlForColumnFeature(column, group, feature) {
         const re = this.#featureNameRegex(`${group}@${feature}`);
         return (column.features || []).find((v) => re.test(v)) || '';
     }
@@ -2070,7 +2074,7 @@ class MasCompareChartEditor extends LitElement {
     }
 
     #renderCell(group, row, column) {
-        const cellHtml = this.#findCellHtml(column.path, group.name, row.name);
+        const cellHtml = this.#cellHtmlForColumnFeature(column, group.name, row.name);
         const innerHtml = this.#cellInnerHtml(cellHtml);
         const key = this.#editableCellKey('cell', group.name, row.name, column.path);
         const displayHtml = this.#displayHtml(innerHtml);

@@ -1,9 +1,9 @@
 import { expect } from '@open-wc/testing';
-import { generateFieldLink, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import { generateCodeToUse, generateFieldLink, camelToTitle, stripHtml, previewValue } from '../src/utils.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from '../src/constants.js';
 
 describe('generateFieldLink', () => {
-    function mockFragment(modelPath, id = 'frag-123') {
+    function mockFragment(modelPath, id = 'frag-123', fieldOverrides = {}) {
         return {
             id,
             model: { path: modelPath },
@@ -13,6 +13,7 @@ describe('generateFieldLink', () => {
                     name: { values: ['card-name'] },
                     cardTitle: { values: ['Creative Cloud'] },
                     variant: { values: ['plans'] },
+                    ...fieldOverrides,
                 };
                 return fields[name] || null;
             },
@@ -66,6 +67,41 @@ describe('generateFieldLink', () => {
 
     it('returns null when fragment is null', () => {
         expect(generateFieldLink(null, '/acom', 'prices')).to.be.null;
+    });
+});
+
+describe('generateCodeToUse', () => {
+    function mockFragment(modelPath, id = 'frag-123', fields = {}) {
+        return {
+            id,
+            model: { path: modelPath },
+            title: 'Test Collection',
+            getField: (name) => {
+                const valuesByField = {
+                    name: { values: ['card-name'] },
+                    cardTitle: { values: ['Creative Cloud'] },
+                    variant: { values: ['plans'] },
+                    ...fields,
+                };
+                return valuesByField[name] || null;
+            },
+            getTagTitle: () => null,
+        };
+    }
+
+    it('uses mas-compare-chart as content type for compare chart fragments', () => {
+        const fragment = mockFragment(COLLECTION_MODEL_PATH, 'chart-123', {
+            [COMPARE_CHART_FIELD]: { values: ['<mas-compare-chart></mas-compare-chart>'] },
+        });
+        const result = generateCodeToUse(fragment, '/acom', 'content');
+        expect(result.href).to.include('content-type=mas-compare-chart');
+        expect(result.href).to.include('query=chart-123');
+    });
+
+    it('keeps merch-card-collection as content type for regular collection fragments', () => {
+        const fragment = mockFragment(COLLECTION_MODEL_PATH);
+        const result = generateCodeToUse(fragment, '/acom', 'content');
+        expect(result.href).to.include('content-type=merch-card-collection');
     });
 });
 

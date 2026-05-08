@@ -52,6 +52,7 @@ export function alignStoreLocaleFromFragmentPath(path) {
         Store.filters.set((prev) => ({ ...prev, locale }));
     }
     return locale;
+}
 
 function getWhatsIncludedDividerColorFromMarkup(fragment) {
     if (!fragment) return '';

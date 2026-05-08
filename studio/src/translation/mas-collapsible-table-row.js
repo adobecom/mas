@@ -1,11 +1,10 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../constants.js';
-import { renderFragmentStatusCell } from './translation-utils.js';
 import { Fragment } from '../aem/fragment.js';
-import Store from '../store.js';
-import { loadCardVariations, fetchVariationByPath } from './translation-items-loader.js';
+import { getItemTypeLabel } from '../common/utils/render-utils.js';
+import { getItemsSelectionStore } from '../common/items-selection-store.js';
+import { loadCardVariations, fetchVariationByPath } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
 export class MasCollapsibleTableRow extends LitElement {
@@ -20,10 +19,14 @@ export class MasCollapsibleTableRow extends LitElement {
         isLoadingVariations: { type: Boolean, state: true },
         resizeObserver: { type: Object },
         repository: { type: Object, state: true },
+        getDisplayName: { type: Function },
+        renderFragmentStatusCell: { type: Function },
     };
 
     constructor() {
         super();
+        this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
+        this.renderFragmentStatusCell = () => nothing;
         if (!this.tabs) {
             this.tabs = [
                 {
@@ -41,8 +44,8 @@ export class MasCollapsibleTableRow extends LitElement {
         this.isTopLevelExpanded = false;
         this.expandedVariationsPaths = new Set();
         this.resizeObserver = null;
-        this.variationsController = new ReactiveController(this, [Store.translationProjects.groupedVariationsByParent]);
-        this.selectedCardsController = new ReactiveController(this, [Store.translationProjects.selectedCards]);
+        this.variationsController = new ReactiveController(this, [getItemsSelectionStore().groupedVariationsByParent]);
+        this.selectedCardsController = new ReactiveController(this, [getItemsSelectionStore().selectedCards]);
     }
 
     connectedCallback() {
@@ -77,11 +80,11 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     get topLevelCardVariationsByPaths() {
-        return Store.translationProjects.groupedVariationsByParent.value.get(this.topLevelCard.path) || new Map();
+        return getItemsSelectionStore().groupedVariationsByParent.value.get(this.topLevelCard.path) || new Map();
     }
 
     get selectedCards() {
-        return Store.translationProjects.selectedCards.value || [];
+        return getItemsSelectionStore().selectedCards.value || [];
     }
 
     get cells() {
@@ -117,7 +120,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                   ?selected=${isSelected}
                                   aria-selected=${isSelected ? 'true' : 'false'}
                               >
-                                  <sp-table-cell class="translation-table-icon-cell">
+                                  <sp-table-cell class="table-icon-cell">
                                       <sp-button
                                           class="expand-button"
                                           icon-only
@@ -130,7 +133,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                               : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                                       </sp-button>
                                   </sp-table-cell>
-                                  <sp-table-cell class="translation-table-icon-cell">
+                                  <sp-table-cell class="table-icon-cell">
                                       <sp-checkbox
                                           value=${variationPath}
                                           ?checked=${isSelected}
@@ -153,7 +156,7 @@ export class MasCollapsibleTableRow extends LitElement {
     get viewOnlyTemplate() {
         return html`<sp-table-row value=${this.topLevelCard.path}>
                 ${this.isGroupedVariation
-                    ? html`<sp-table-cell class="translation-table-icon-cell">
+                    ? html`<sp-table-cell class="table-icon-cell">
                           <sp-button
                               class="expand-button"
                               icon-only
@@ -166,9 +169,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                   : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                           </sp-button>
                       </sp-table-cell>`
-                    : html`<sp-table-cell
-                          class="translation-table-icon-cell translation-table-icon-cell--chevron"
-                      ></sp-table-cell>`}
+                    : html`<sp-table-cell class="table-icon-cell table-icon-cell--chevron"></sp-table-cell>`}
                 ${repeat(this.cells, (cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
             </sp-table-row>
 
@@ -226,23 +227,11 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderStatus(item) {
-        return renderFragmentStatusCell(item?.status);
+        return this.renderFragmentStatusCell(item?.status);
     }
 
     renderItemType(item) {
-        if (Fragment.isGroupedVariationPath(item?.path)) {
-            return html`<sp-table-cell>Grouped variation</sp-table-cell>`;
-        }
-        if (item?.model?.path.includes('/dictionary/')) {
-            return html`<sp-table-cell>Placeholder</sp-table-cell>`;
-        }
-        if (item?.model?.path === COLLECTION_MODEL_PATH) {
-            return html`<sp-table-cell>Collection</sp-table-cell>`;
-        }
-        if (item?.model?.path === CARD_MODEL_PATH) {
-            return html`<sp-table-cell>Default</sp-table-cell>`;
-        }
-        return html`<sp-table-cell>no type</sp-table-cell>`;
+        return html`<sp-table-cell>${getItemTypeLabel(item)}</sp-table-cell>`;
     }
 
     async #copyToClipboard(e, text) {
@@ -303,11 +292,11 @@ export class MasCollapsibleTableRow extends LitElement {
 
     #toggleSelect(e, path) {
         e.stopPropagation();
-        const current = Store.translationProjects.selectedCards.value || [];
+        const current = getItemsSelectionStore().selectedCards.value || [];
         if (current.includes(path)) {
-            Store.translationProjects.selectedCards.set(current.filter((p) => p !== path));
+            getItemsSelectionStore().selectedCards.set(current.filter((p) => p !== path));
         } else {
-            Store.translationProjects.selectedCards.set([...current, path]);
+            getItemsSelectionStore().selectedCards.set([...current, path]);
         }
     }
 
@@ -315,19 +304,23 @@ export class MasCollapsibleTableRow extends LitElement {
         e.stopPropagation();
         this.isTopLevelExpanded = !this.isTopLevelExpanded;
         if (this.isGroupedVariation) {
-            if (Store.translationProjects.groupedVariationsData.value?.get(this.topLevelCard.path)) return;
+            if (getItemsSelectionStore().groupedVariationsData.value?.get(this.topLevelCard.path)) return;
             this.isLoadingVariations = true;
-            fetchVariationByPath(this.topLevelCard.path, this.repository).finally(() => {
+            fetchVariationByPath(this.topLevelCard.path, this.repository, {
+                getDisplayName: this.getDisplayName,
+            }).finally(() => {
                 this.isLoadingVariations = false;
             });
         } else {
             if (
-                Store.translationProjects.groupedVariationsByParent.value?.has(this.topLevelCard.path) ||
+                getItemsSelectionStore().groupedVariationsByParent.value?.has(this.topLevelCard.path) ||
                 !this.variationPaths.length
             )
                 return;
             this.isLoadingVariations = true;
-            loadCardVariations(this.topLevelCard.path, this.variationPaths, this.repository).finally(() => {
+            loadCardVariations(this.topLevelCard.path, this.variationPaths, this.repository, {
+                getDisplayName: this.getDisplayName,
+            }).finally(() => {
                 this.isLoadingVariations = false;
             });
         }
@@ -348,8 +341,8 @@ export class MasCollapsibleTableRow extends LitElement {
     renderGroupedVariationDetailsRow(variationPath) {
         return this.isLoadingVariations
             ? html`<sp-table-row class="variation-details-row variation-details-row--loading">
-                  <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
-                  <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
+                  <sp-table-cell class="table-icon-cell"></sp-table-cell>
+                  <sp-table-cell class="table-icon-cell"></sp-table-cell>
                   <sp-table-cell colspan="5">
                       <div class="loading-container--flex">
                           <sp-progress-circle label="Loading variation details" indeterminate size="m"></sp-progress-circle>
@@ -357,11 +350,11 @@ export class MasCollapsibleTableRow extends LitElement {
                   </sp-table-cell>
               </sp-table-row>`
             : html`<sp-table-row class="variation-details-row">
-                  <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
-                  <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
-                  ${this.renderPromoCode(Store.translationProjects.groupedVariationsData.value?.get(variationPath))}
+                  <sp-table-cell class="table-icon-cell"></sp-table-cell>
+                  <sp-table-cell class="table-icon-cell"></sp-table-cell>
+                  ${this.renderPromoCode(getItemsSelectionStore().groupedVariationsData.value?.get(variationPath))}
                   <sp-table-cell></sp-table-cell>
-                  ${this.renderTags(Store.translationProjects.groupedVariationsData.value?.get(variationPath))}
+                  ${this.renderTags(getItemsSelectionStore().groupedVariationsData.value?.get(variationPath))}
                   <sp-table-cell></sp-table-cell>
                   <sp-table-cell></sp-table-cell>
               </sp-table-row>`;
@@ -377,14 +370,14 @@ export class MasCollapsibleTableRow extends LitElement {
                 ?selected=${isSelected}
                 aria-selected=${isSelected ? 'true' : 'false'}
             >
-                <sp-table-cell class="translation-table-icon-cell">
+                <sp-table-cell class="table-icon-cell">
                     <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
                         ${this.isTopLevelExpanded
                             ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
                             : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
                     </sp-button>
                 </sp-table-cell>
-                <sp-table-cell class="translation-table-icon-cell">
+                <sp-table-cell class="table-icon-cell">
                     <sp-checkbox
                         value=${this.topLevelCard.path}
                         ?checked=${isSelected}

@@ -151,7 +151,7 @@ describe('Translation project-start', () => {
             { name: 'placeholders', values: [] },
             { name: 'targetLocales', values: ['de_DE'] },
             { name: 'submissionDate', values: [] },
-            { name: 'title', values: ['Test Project'] },
+            { name: 'title', values: ['Test-Project'] },
             { name: 'projectType', values: ['translation'] },
         ],
         ...overrides,
@@ -292,6 +292,54 @@ describe('Translation project-start', () => {
 
             expect(result.error.statusCode).to.equal(400);
             expect(mockLogger.warn).to.have.been.calledWith('No locales found in translation project');
+        });
+
+        it('should return 400 if translation project title is empty for localization', async () => {
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                title: [''],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+            });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+            });
+
+            const result = await executeProjectStart(projectStartService, baseParams);
+
+            expect(result.error.statusCode).to.equal(400);
+            expect(result.error.body.error).to.include('Project title cannot be empty');
+        });
+
+        it('should return 400 if translation project title is only whitespace', async () => {
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                title: ['   '],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+            });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+            });
+
+            const result = await executeProjectStart(projectStartService, baseParams);
+
+            expect(result.error.statusCode).to.equal(400);
+            expect(result.error.body.error).to.include('Project title cannot be empty');
+        });
+
+        it('should return 400 if translation project title does not respect the name rules', async () => {
+            const mockProjectCF = setProjectFields(createMockProjectCF(), {
+                title: ['bad..name'],
+                fragments: ['/content/dam/mas/foo/en_US/fragment1'],
+            });
+
+            setupFetchStub({
+                '/adobe/sites/cf/fragments/test-project-id': responses.ok(mockProjectCF, '"test-etag"'),
+            });
+
+            const result = await executeProjectStart(projectStartService, baseParams);
+
+            expect(result.error.statusCode).to.equal(400);
+            expect(result.error.body.error).to.include('two dots');
         });
 
         it('should return 500 if translation project fails to start', async () => {
@@ -740,7 +788,7 @@ describe('Translation project-start', () => {
                 targetLocales: ['de_DE', 'fr_FR', 'it_IT'],
                 transcreation: true,
                 cfPaths: ['/content/dam/mas/foo/en_US/fragment1'],
-                taskName: 'Test Project',
+                taskName: 'Test-Project',
             });
 
             expect(locRequestCall.args[1].headers).to.deep.include({
@@ -808,6 +856,7 @@ describe('Translation project-start', () => {
             const mockProjectCF = {
                 id: 'test-project-id',
                 fields: [
+                    { name: 'title', values: ['Test-Project'] },
                     { name: 'fragments', values: ['/content/dam/mas/foo/en_US/fragment1'] },
                     { name: 'collections', values: [] },
                     { name: 'placeholders', values: [] },
@@ -872,7 +921,7 @@ describe('Translation project-start', () => {
                     { name: 'placeholders', values: [] },
                     { name: 'targetLocales', values: ['de_DE'] },
                     { name: 'submissionDate', values: [] },
-                    { name: 'title', values: ['Test Project'] },
+                    { name: 'title', values: ['Test-Project'] },
                     { name: 'projectType', values: ['translation'] },
                 ],
             };

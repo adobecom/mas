@@ -3,9 +3,10 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { TABLE_TYPE, FILTER_TYPE } from '../../src/constants.js';
 import '../../src/swc.js';
-import '../../src/translation/mas-search-and-filters.js';
+import '../../src/common/components/mas-search-and-filters.js';
 
 describe('MasSearchAndFilters', () => {
     let sandbox;
@@ -27,6 +28,7 @@ describe('MasSearchAndFilters', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         Store.translationProjects.allCards.set([]);
         Store.translationProjects.displayCards.set([]);
         Store.translationProjects.allCollections.set([]);
@@ -50,6 +52,7 @@ describe('MasSearchAndFilters', () => {
         Store.fragments.list.loading.set(false);
         Store.placeholders.list.loading.set(false);
         Store.placeholders.list.data.set([]);
+        setItemsSelectionStore(null);
     });
 
     describe('initialization', () => {

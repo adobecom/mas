@@ -552,10 +552,30 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.firstPageLoaded.set(true);
                     return;
                 }
-                const fragmentData = await this.aem.sites.cf.fragments.getById(
+                let fragmentData = await this.aem.sites.cf.fragments.getById(
                     this.search.value.query,
                     this.#abortControllers.search,
                 );
+                if (fragmentData && Fragment.isGroupedVariationPath(fragmentData.path)) {
+                    const parentData = await this.resolveHydratedParentFragment(fragmentData.path);
+                    if (parentData) {
+                        Events.toast.emit({
+                            variant: 'info',
+                            content: `Showing parent fragment for grouped variation ${query}.`,
+                        });
+                        fragmentData = parentData;
+                    } else {
+                        Events.toast.emit({
+                            variant: 'negative',
+                            content: `No default-locale fragment references variation ${query}. It may be orphaned.`,
+                        });
+                        dataStore.set([]);
+                        Store.fragments.list.data.set([]);
+                        Store.fragments.list.firstPageLoaded.set(true);
+                        Store.fragments.list.loading.set(false);
+                        return;
+                    }
+                }
                 const fragmentSurface = extractSurfaceFromPath(fragmentData?.path)?.toLowerCase() || null;
                 const fragmentLocale = extractLocaleFromPath(fragmentData?.path);
                 const matchesSurface = !fragmentSurface || fragmentSurface === path;
@@ -567,18 +587,13 @@ export class MasRepository extends LitElement {
                 const canSyncLocale = syncedLocaleQuery !== query || Store.filters.value.locale === syncedLocale;
                 const matchesLocale = !fragmentLocale || fragmentLocale === locale;
 
-                if (
-                    fragmentData &&
-                    (canSyncSurface || matchesSurface) &&
-                    (canSyncLocale || matchesLocale) &&
-                    !Fragment.isGroupedVariationPath(fragmentData.path)
-                ) {
+                if (fragmentData && (canSyncSurface || matchesSurface) && (canSyncLocale || matchesLocale)) {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
                     resolvedPath = canSyncSurface ? fragmentSurface || path : path;
                     applyCorrectorToFragment(fragmentData, fragmentSurface);
                     const fragment = await this.#addToCache(fragmentData);
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
-                    dataStore.set(this.#filterStoresByPersonalizationEnabled([sourceStore]));
+                    dataStore.set([sourceStore]);
 
                     if (fragmentSurface) {
                         Store.search.setMeta('uuid-query', query);

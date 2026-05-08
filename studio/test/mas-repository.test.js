@@ -1057,6 +1057,103 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('redirects UUID search of a grouped variation to its hydrated parent fragment', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            const variationUuid = '69363df0-31d2-4b68-be81-1aa6a77b4000';
+            const parentUuid = '3b262889-7ab2-4555-8e9d-147f92fc7c4c';
+            repository.search = { value: { path: 'acom', query: variationUuid } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            const variation = createFragment({
+                id: variationUuid,
+                path: `${ROOT_PATH}/acom/en_US/ccsn_direct_individual/pzn/cc-all-apps`,
+                fields: [{ name: 'variant', values: [] }],
+            });
+            const parent = createFragment({
+                id: parentUuid,
+                path: `${ROOT_PATH}/acom/en_US/cc-pro-individuals`,
+                fields: [{ name: 'variant', values: ['plans'] }],
+            });
+            const getByIdStub = sandbox.stub().resolves(variation);
+            repository.aem = createAemMock({
+                fragments: { getById: getByIdStub, search: sandbox.stub() },
+            });
+            const resolveParentStub = sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parent);
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            let dataValue = [];
+            const mockDataStore = {
+                get: sandbox.stub().callsFake(() => dataValue),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub().callsFake((value) => {
+                    dataValue = value;
+                }),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            const originalFolders = Store.folders.data.get();
+            Store.fragments.list.data = mockDataStore;
+            Store.folders.data.set(['acom', 'sandbox']);
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(resolveParentStub.calledOnce).to.be.true;
+                expect(resolveParentStub.firstCall.args[0]).to.equal(variation.path);
+                expect(dataValue).to.have.lengthOf(1);
+                expect(dataValue[0].get().id).to.equal(parentUuid);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+                Store.folders.data.set(originalFolders);
+            }
+        });
+
+        it('shows empty state when grouped variation UUID is orphaned (no parent fragment found)', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            const variationUuid = '69363df0-31d2-4b68-be81-1aa6a77b4000';
+            repository.search = { value: { path: 'acom', query: variationUuid } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            const variation = createFragment({
+                id: variationUuid,
+                path: `${ROOT_PATH}/acom/en_US/orphan/pzn/lonely`,
+                fields: [],
+            });
+            const getByIdStub = sandbox.stub().resolves(variation);
+            repository.aem = createAemMock({
+                fragments: { getById: getByIdStub, search: sandbox.stub() },
+            });
+            const resolveParentStub = sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(null);
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            let dataValue = ['stale'];
+            const mockDataStore = {
+                get: sandbox.stub().callsFake(() => dataValue),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub().callsFake((value) => {
+                    dataValue = value;
+                }),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            const originalFolders = Store.folders.data.get();
+            Store.fragments.list.data = mockDataStore;
+            Store.folders.data.set(['acom']);
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(resolveParentStub.calledOnce).to.be.true;
+                expect(dataValue).to.deep.equal([]);
+                expect(Store.fragments.list.firstPageLoaded.get()).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+                Store.folders.data.set(originalFolders);
+            }
+        });
+
         it('infers the surface for a UUID deep link when the path is missing', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };

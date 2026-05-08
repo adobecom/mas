@@ -786,6 +786,20 @@ merch-card merch-whats-included [slot="contentBullets"] [slot="icon"] {
     margin-right: 10px;
 }
 
+/* Collapse the icon column only when no row in this block uses an icon */
+merch-card
+    merch-whats-included:not(
+        :has(
+            merch-mnemonic-list [slot="icon"] .sp-icon,
+            merch-mnemonic-list [slot="icon"] img[src]:not([src=""]),
+            merch-mnemonic-list [slot="icon"] merch-icon[src]:not([src=""])
+        )
+    )
+    merch-mnemonic-list:not([data-placeholder])
+    [slot="icon"] {
+    display: none;
+}
+
 merch-card merch-whats-included[has-bullets] [slot="content"] {
     display: flex;
     flex-wrap: wrap;

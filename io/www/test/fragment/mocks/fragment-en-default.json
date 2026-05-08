@@ -250,6 +250,7 @@
                 "trialBadge": { "type": "long-text" },
                 "backgroundColor": { "type": "text" },
                 "borderColor": { "type": "text" },
+                "whatsIncludedDividerColor": { "type": "text" },
                 "backgroundImage": { "type": "text" },
                 "backgroundImageAltText": { "type": "text" },
                 "cardTitle": { "type": "text" },

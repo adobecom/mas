@@ -278,6 +278,73 @@ export function processBorderColor(fields, merchCard, variantMapping) {
     }
 }
 
+const DEFAULT_FIELD_SENTINELS = new Set(['', 'default']);
+
+export function processWhatsIncludedDividerColor(
+    fields,
+    merchCard,
+    variantMapping,
+) {
+    const config = variantMapping?.whatsIncludedDividerColor;
+    const customVar = '--consonant-merch-card-whats-included-divider-color';
+
+    if (!config) return;
+
+    const wi =
+        merchCard.querySelector('[slot="footer-rows"] merch-whats-included') ??
+        merchCard.querySelector('merch-whats-included');
+    const fromMarkup = wi?.getAttribute('whats-included-divider-color')?.trim();
+    const fromField =
+        fields.whatsIncludedDividerColor != null
+            ? String(fields.whatsIncludedDividerColor).trim()
+            : '';
+    const raw = fromMarkup || fromField;
+
+    if (
+        raw == null ||
+        DEFAULT_FIELD_SENTINELS.has(String(raw).trim().toLowerCase())
+    ) {
+        merchCard.removeAttribute('whats-included-divider-color');
+        merchCard.style.removeProperty(customVar);
+        return;
+    }
+
+    const value = String(raw).trim();
+
+    if (value.toLowerCase() === 'transparent') {
+        merchCard.removeAttribute('whats-included-divider-color');
+        merchCard.style.setProperty(customVar, 'transparent');
+        return;
+    }
+
+    const specialValue = config.specialValues?.[value];
+    const isGradient =
+        specialValue?.includes('gradient') ||
+        /-gradient/.test(value) ||
+        /^gradient-/.test(value);
+    const isSpectrumColor = /^spectrum-.*-(plans|special-offers)$/.test(value);
+
+    if (isGradient) {
+        let dividerColorKey = value;
+        if (config.specialValues) {
+            for (const [key, v] of Object.entries(config.specialValues)) {
+                if (v === value) {
+                    dividerColorKey = key;
+                    break;
+                }
+            }
+        }
+        merchCard.setAttribute('whats-included-divider-color', dividerColorKey);
+        merchCard.style.removeProperty(customVar);
+    } else if (isSpectrumColor) {
+        merchCard.setAttribute('whats-included-divider-color', value);
+        merchCard.style.setProperty(customVar, `var(--${value})`);
+    } else {
+        merchCard.removeAttribute('whats-included-divider-color');
+        merchCard.style.setProperty(customVar, `var(--${value})`);
+    }
+}
+
 export function processBackgroundImage(
     fields,
     merchCard,
@@ -798,6 +865,7 @@ export function cleanup(merchCard) {
         'background-image',
         'background-color',
         'border-color',
+        'whats-included-divider-color',
         'badge-background-color',
         'badge-color',
         'badge-text',
@@ -870,6 +938,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
+    processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
     processSecureLabel(fields, merchCard, mapping, settings);

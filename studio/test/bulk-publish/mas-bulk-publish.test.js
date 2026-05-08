@@ -52,6 +52,7 @@ function makeProjectStore(data = {}) {
         get: () => ({
             ...merged,
             getFieldValue: (k) => merged[k],
+            getFieldValues: (k) => (Array.isArray(merged[k]) ? merged[k] : merged[k] !== undefined ? [merged[k]] : []),
         }),
     };
 }
@@ -132,6 +133,24 @@ describe('mas-bulk-publish (methods)', () => {
         const [payload] = repositoryEl.createFragment.firstCall.args;
         expect(payload.title).to.equal('My Copy');
         expect(navigateStub.calledOnce).to.equal(true);
+    });
+
+    it('handleDuplicateConfirmed passes locales as array to createFragment', async () => {
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+
+        const ps = makeProjectStore({ title: 'Original', items: '[]', locales: ['en_US', 'fr_FR'] });
+        el.duplicatePending = { projectStore: ps, proposedTitle: 'Original (Copy)' };
+
+        const rawFragment = { id: 'new-id', path: '/content/dam/mas/new', fields: [], status: 'Draft' };
+        repositoryEl.createFragment = sandbox.stub().resolves(rawFragment);
+        Store.search.set({ path: 'sandbox' });
+
+        await el.handleDuplicateConfirmed({ detail: { title: 'My Copy' } });
+
+        const [payload] = repositoryEl.createFragment.firstCall.args;
+        const localesField = payload.fields.find((f) => f.name === 'locales');
+        expect(localesField.values).to.deep.equal(['en_US', 'fr_FR']);
     });
 
     it('duplicatePending banner renders when set', async () => {

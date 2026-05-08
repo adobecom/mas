@@ -80,7 +80,7 @@ class MasBulkPublish extends LitElement {
         const surface = Store.search.get()?.path ?? 'sandbox';
         const title = e.detail.title;
         const items = data.getFieldValue?.('items') ?? data.items ?? '[]';
-        const locales = data.getFieldValue?.('locales') ?? data.locales ?? [];
+        const locales = data.getFieldValues?.('locales') ?? data.locales ?? [];
         try {
             const parentPath = `${BULK_PUBLISH_PARENT_PATH}/${surface}`;
             const payload = {

@@ -6,11 +6,13 @@ import {
     CARD_MODEL_PATH,
     MAS_PRODUCT_CODE_PREFIX,
     PATH_TOKENS,
+    TAG_COMPARE_CHART,
     TAG_PROMOTION_PREFIX,
 } from '../constants.js';
 import Store from '../store.js';
 import { generateCodeToUse, getService, normalizeKey } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
+import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore, { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -36,6 +38,7 @@ export const DEFAULT_COMPARE_CHART_HTML =
 
 const PREVIEW_SLOT = 'compare-chart-preview';
 const MAX_COMPARE_CHART_CARDS = 4;
+const COMPARE_CHART_RTE_MARKS = ['small'];
 
 class MasCompareChartEditor extends LitElement {
     static properties = {
@@ -92,7 +95,10 @@ class MasCompareChartEditor extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        if (this.fragmentStore) this.#initFragmentReferencesMap();
+        if (this.fragmentStore) {
+            this.#ensureCompareChartTag();
+            this.#initFragmentReferencesMap();
+        }
     }
 
     disconnectedCallback() {
@@ -102,6 +108,9 @@ class MasCompareChartEditor extends LitElement {
     }
 
     update(changedProperties) {
+        if (changedProperties.has('fragmentStore')) {
+            this.#ensureCompareChartTag();
+        }
         if (changedProperties.has('fragmentStore') || changedProperties.has('localeDefaultFragment')) {
             this.#initFragmentReferencesMap();
         }
@@ -203,6 +212,19 @@ class MasCompareChartEditor extends LitElement {
 
     get effectiveValue() {
         return this.fragment?.getEffectiveFieldValue(COMPARE_CHART_FIELD, this.localeDefaultFragment, this.isVariation) || '';
+    }
+
+    #ensureCompareChartTag() {
+        if (!this.fragmentStore || !this.fragment) return;
+        const tagIds = [
+            ...(this.fragment.newTags || []),
+            ...(this.fragment.getFieldValues?.('tags') || []),
+            ...(this.fragment.tags || []),
+        ]
+            .map((tag) => normalizeTagId(tag))
+            .filter(Boolean);
+        if (tagIds.includes(TAG_COMPARE_CHART)) return;
+        this.fragmentStore.updateField('tags', [...new Set([...tagIds, TAG_COMPARE_CHART])]);
     }
 
     get effectiveColumns() {
@@ -684,6 +706,7 @@ class MasCompareChartEditor extends LitElement {
     #emitValue(table) {
         if (!this.fragmentStore || !table) return;
         const newValue = table.outerHTML;
+        this.#ensureCompareChartTag();
         this.fragmentStore.updateField(COMPARE_CHART_FIELD, [newValue]);
         this.requestUpdate();
 
@@ -1921,11 +1944,13 @@ class MasCompareChartEditor extends LitElement {
                 inline
                 link
                 emoji
+                styling
                 floating-toolbar
                 data-rte-key=${key}
                 data-group=${editor.group}
                 data-feature=${editor.feature}
                 data-card-path=${editor.cardPath || ''}
+                .marks=${COMPARE_CHART_RTE_MARKS}
                 .value=${activeEditor.value}
                 @change=${changeHandler}
                 @focusout=${(event) => this.#deactivateRteCell(key, event)}

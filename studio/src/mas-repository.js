@@ -29,12 +29,16 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
     COMPAT_VERSION,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
     ODIN_PREVIEW_FRAGMENTS_URL,
     COMPARE_CHART_FIELD,
+    TAG_COMPARE_CHART,
+    TAG_MERCH_CARD,
+    TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
@@ -321,6 +325,43 @@ export class MasRepository extends LitElement {
         return !this.#queryHaystack(item).includes(query);
     }
 
+    #hasNonEmptyCompareChart(item) {
+        const values =
+            item?.getFieldValues?.(COMPARE_CHART_FIELD) ||
+            item?.getField?.(COMPARE_CHART_FIELD)?.values ||
+            item?.fields?.find((field) => field.name === COMPARE_CHART_FIELD)?.values ||
+            [];
+        return values.some((value) => {
+            if (typeof value === 'string') return value.trim() !== '';
+            return value !== null && value !== undefined && value !== '';
+        });
+    }
+
+    #matchesContentTypeFilter(contentTypes, item) {
+        if (!contentTypes.length) return true;
+        const modelPath = item?.model?.path;
+        if (modelPath === CARD_MODEL_PATH) return contentTypes.includes(TAG_MERCH_CARD);
+        if (modelPath === COLLECTION_MODEL_PATH) {
+            const isCompareChart = this.#hasNonEmptyCompareChart(item);
+            return isCompareChart ? contentTypes.includes(TAG_COMPARE_CHART) : contentTypes.includes(TAG_MERCH_CARD_COLLECTION);
+        }
+        return false;
+    }
+
+    #resolveContentTypeFilters(tags) {
+        const contentTypes = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE));
+        const modelIds = [
+            ...new Set(
+                contentTypes
+                    .map((tag) =>
+                        tag === TAG_COMPARE_CHART ? TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION] : TAG_MODEL_ID_MAPPING[tag],
+                    )
+                    .filter(Boolean),
+            ),
+        ];
+        return { contentTypes, modelIds };
+    }
+
     /**
      * Returns true when every dimension of `next` is "same or narrower" than `prev`.
      * Caller has already established the two filter sets are not identical, so any "same or narrower"
@@ -334,8 +375,14 @@ export class MasRepository extends LitElement {
         const isSubset = (prevArr, nextArr) => nextArr.every((v) => prevArr.includes(v));
         const variantsNarrowed =
             prev.variants.length === 0 || (next.variants.length > 0 && isSubset(prev.variants, next.variants));
+        const contentTypesNarrowed =
+            prev.contentTypes.length === 0 || (next.contentTypes.length > 0 && isSubset(prev.contentTypes, next.contentTypes));
         return (
-            queryNarrowed && isSuperset(prev.tags, next.tags) && variantsNarrowed && isSuperset(prev.createdBy, next.createdBy)
+            queryNarrowed &&
+            isSuperset(prev.tags, next.tags) &&
+            variantsNarrowed &&
+            contentTypesNarrowed &&
+            isSuperset(prev.createdBy, next.createdBy)
         );
     }
 
@@ -351,7 +398,7 @@ export class MasRepository extends LitElement {
         return true;
     }
 
-    #applyInMemoryFilter(stores, { query, tags, variants, createdBy }) {
+    #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy }) {
         const tagPredicate = filterByTags(tags);
         const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         const lowerQuery = query?.toLowerCase() || '';
@@ -361,6 +408,7 @@ export class MasRepository extends LitElement {
             if (!item) return false;
             if (Fragment.isGroupedVariationPath(item.path)) return false;
             if (this.#skipVariant(variants, item)) return false;
+            if (!this.#matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
             if (createdByLc.length) {
                 const itemCreatedBy = (item.created?.by || '').toLowerCase();
@@ -415,13 +463,15 @@ export class MasRepository extends LitElement {
             return isPznCountryTagId(tag);
         });
 
-        let modelIds = tags.filter((tag) => tag.startsWith(TAG_STUDIO_CONTENT_TYPE)).map((tag) => TAG_MODEL_ID_MAPPING[tag]);
+        const { contentTypes, modelIds: contentTypeModelIds } = this.#resolveContentTypeFilters(tags);
+        let modelIds = contentTypeModelIds;
 
         if (modelIds.length === 0) modelIds = EDITABLE_FRAGMENT_MODEL_IDS;
 
         const variants = tags
             .filter((tag) => tag.startsWith(TAG_VARIANT_PREFIX))
             .map((tag) => tag.replace(TAG_VARIANT_PREFIX, ''));
+        const shouldPassCompareChartTag = contentTypes.length === 1 && contentTypes[0] === TAG_COMPARE_CHART;
         tags = tags.filter((tag) => !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(TAG_VARIANT_PREFIX));
 
         const tracing = typeof localStorage !== 'undefined' && localStorage.getItem('mas-perf-trace');
@@ -461,14 +511,21 @@ export class MasRepository extends LitElement {
             const prevTagsNonVariant = prevTagsAll.filter(
                 (t) => !t.startsWith(TAG_VARIANT_PREFIX) && !t.startsWith(TAG_STUDIO_CONTENT_TYPE),
             );
+            const prevContentTypes = prevTagsAll.filter((t) => t.startsWith(TAG_STUDIO_CONTENT_TYPE));
             const prevCreatedBy = currentCreatedBy ? currentCreatedBy.split(',').filter(Boolean) : [];
             const narrowed = this.#isNarrowing(
-                { query: currentQuery || '', tags: prevTagsNonVariant, variants: prevVariants, createdBy: prevCreatedBy },
-                { query: query || '', tags, variants, createdBy },
+                {
+                    query: currentQuery || '',
+                    tags: prevTagsNonVariant,
+                    variants: prevVariants,
+                    contentTypes: prevContentTypes,
+                    createdBy: prevCreatedBy,
+                },
+                { query: query || '', tags, variants, contentTypes, createdBy },
             );
             if (narrowed) {
                 if (tracing) console.time('searchFragments:in-memory');
-                const filtered = this.#applyInMemoryFilter(currentData, { query, tags, variants, createdBy });
+                const filtered = this.#applyInMemoryFilter(currentData, { query, tags, variants, contentTypes, createdBy });
                 if (filtered.length !== currentData.length) {
                     dataStore.set(filtered);
                 }
@@ -531,6 +588,9 @@ export class MasRepository extends LitElement {
             tags.splice(publishedTagIndex, 1);
             localSearch.status = STATUS_PUBLISHED;
         }
+        if (shouldPassCompareChartTag) {
+            localSearch.tags = [TAG_COMPARE_CHART, ...tags];
+        }
 
         if (tracing) console.time('searchFragments:aem');
         let refilling = false;
@@ -572,6 +632,7 @@ export class MasRepository extends LitElement {
                     fragmentData &&
                     (canSyncSurface || matchesSurface) &&
                     (canSyncLocale || matchesLocale) &&
+                    this.#matchesContentTypeFilter(contentTypes, fragmentData) &&
                     !Fragment.isGroupedVariationPath(fragmentData.path)
                 ) {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
@@ -616,6 +677,7 @@ export class MasRepository extends LitElement {
                 const done = await this.#fillPage(
                     cursor,
                     variants,
+                    contentTypes,
                     surface,
                     fragmentStores,
                     lowerClientQuery,
@@ -627,7 +689,7 @@ export class MasRepository extends LitElement {
                 }
                 Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
-                const cursorState = done ? null : { cursor, variants, surface, fragmentStores, lowerClientQuery };
+                const cursorState = done ? null : { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery };
                 this.#searchCursor = cursorState;
                 Store.fragments.list.hasMore.set(!done);
                 if (personalizationOn && cursorState) {
@@ -688,12 +750,13 @@ export class MasRepository extends LitElement {
      */
     static MAX_REFILL_ROUNDS = 20;
 
-    async #fillPage(cursor, variants, surface, fragmentStores, lowerClientQuery, signal) {
+    async #fillPage(cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery, signal) {
         if (signal?.aborted) return false;
         const page = await cursor.next();
         if (page.done) return true;
         for await (const item of page.value) {
             if (this.#skipVariant(variants, item)) continue;
+            if (!this.#matchesContentTypeFilter(contentTypes, item)) continue;
             if (this.#skipQuery(lowerClientQuery, item)) continue;
             applyCorrectorToFragment(item, surface);
             const fragment = await this.#addToCache(item);
@@ -703,7 +766,7 @@ export class MasRepository extends LitElement {
     }
 
     async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
-        const { cursor, variants, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
+        const { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         let pagesLoaded = 0;
         try {
             while (this.#searchCursor === cursorSnapshot) {
@@ -714,6 +777,7 @@ export class MasRepository extends LitElement {
                 const done = await this.#fillPage(
                     cursor,
                     variants,
+                    contentTypes,
                     surface,
                     fragmentStores,
                     lowerClientQuery,
@@ -736,7 +800,7 @@ export class MasRepository extends LitElement {
     }
 
     async #refillBelowThreshold(cursorSnapshot, searchController) {
-        const { cursor, variants, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
+        const { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         let rounds = 0;
         Store.fragments.list.loading.set(true);
         try {
@@ -751,6 +815,7 @@ export class MasRepository extends LitElement {
                 const done = await this.#fillPage(
                     cursor,
                     variants,
+                    contentTypes,
                     surface,
                     fragmentStores,
                     lowerClientQuery,
@@ -786,11 +851,12 @@ export class MasRepository extends LitElement {
         const cursorSnapshot = this.#searchCursor;
         if (!cursorSnapshot) return;
         Store.fragments.list.loading.set(true);
-        const { cursor, variants, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
+        const { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         try {
             const done = await this.#fillPage(
                 cursor,
                 variants,
+                contentTypes,
                 surface,
                 fragmentStores,
                 lowerClientQuery,

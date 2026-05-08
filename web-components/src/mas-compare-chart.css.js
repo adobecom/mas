@@ -353,8 +353,7 @@ export const styles = css`
     /* ---------- cells (rendered in shadow from captured data) ----------
        The cell <p> is a borderless flex column. The bordered "chip" lives
        inside as <span class="compare-chart-chip"> (created by the WC at capture
-       time). Captions live as <small> siblings BELOW the chip. Inline styles
-       persist because the captured innerHTML is re-emitted via Lit's unsafeHTML. */
+       time). Captions live as <small> siblings BELOW the chip. */
     .table-row p[role='cell'] {
         margin: 0;
         padding: 0;
@@ -370,13 +369,62 @@ export const styles = css`
         grid-column: calc(var(--col, 1) + 1);
         position: relative;
     }
-    /* Cell-level primary glyph tint (per Figma: ✅ primary feature). */
-    .table-row p.primary-cell span[aria-hidden='true'] {
-        color: var(--primary-cell-path-color);
+    .compare-chart-chip {
+        align-items: center;
+        background: #fff;
+        border: 1px solid var(--spectrum-gray-300, #d3d3d3);
+        border-radius: 4px;
+        box-sizing: border-box;
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        min-height: 18px;
+        padding: 8px 10px;
+        width: 100%;
     }
+
+    .table-row p[role='cell'] > small {
+        color: var(--color-text, #2c2c2c);
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-top: 6px;
+        text-align: center;
+    }
+
+    .table-row p.primary-cell > small {
+        color: var(--primary-cell-path-color, #05834e);
+    }
+
+    .table-row p.emoji-primary-cell .compare-chart-chip,
+    .table-row p.emoji-primary-cell > small {
+        color: var(--primary-cell-path-color, #05834e);
+    }
+
+    .compare-chart-glyph.excluded {
+        color: var(--color-text, #2c2c2c);
+    }
+
+    /* Cell-level primary glyph tint (per Figma: ✅ primary feature). */
+    .compare-chart-glyph.included.primary {
+        color: var(--primary-cell-path-color, #05834e);
+        font-weight: 700;
+    }
+
     /* Item-cell rows: no chip border, plain text. */
     .table-row p.item-cell {
+        color: var(--color-text-secondary, #6e6e6e);
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
         gap: 0;
+        line-height: 1.4;
+        text-align: center;
+    }
+
+    .table-row p.item-cell.primary-cell {
+        color: var(--primary-cell-path-color, #05834e);
     }
 
     /* ---------- tooltip (Figma: Table tool tip, 7 positions) ---------- */

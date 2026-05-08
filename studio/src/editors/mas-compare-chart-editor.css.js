@@ -15,7 +15,8 @@ export const styles = css`
             padding: 16px;
             background: var(--spectrum-white);
             width: 100%;
-            min-height: 100%;
+            height: 100%;
+            min-height: 0;
             overflow: auto;
         }
 

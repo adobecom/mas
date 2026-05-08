@@ -16,7 +16,7 @@ import './rte-mnemonic-editor.js';
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
 
-const DEFAULT_EMOJIS = ['ℹ️', '✅', '✔️', '❌'];
+const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '❌'];
 
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {
@@ -39,6 +39,7 @@ const CUSTOM_MARKS_DATA = [
     [],
     ['text-s', 'Text S'],
     ['text-l', 'Text L'],
+    ['small', 'Small'],
     [],
     ['promo-text', 'Promo text'],
     ['promo-duration-text', 'Promo duration text'],
@@ -188,6 +189,7 @@ class RteField extends LitElement {
         },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
+        smallActive: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
         showLinkEditor: { type: Boolean, state: true },
@@ -702,6 +704,12 @@ class RteField extends LitElement {
                     font-size: 14px;
                     font-weight: bold;
                 }
+
+                .small-icon {
+                    font-family: sans-serif;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
             `,
             prosemirrorStyles,
         ];
@@ -719,6 +727,7 @@ class RteField extends LitElement {
         super();
         this.readOnly = false;
         this.isLinkSelected = false;
+        this.smallActive = false;
         this.priceSelected = false;
         this.showLinkEditor = false;
         this.showIconEditor = false;
@@ -789,6 +798,16 @@ class RteField extends LitElement {
     }
 
     getStylingMark(stylingType, ariaLevel) {
+        if (stylingType === 'small') {
+            return {
+                small: {
+                    group: 'styling',
+                    parseDOM: [{ tag: 'small' }],
+                    toDOM: () => ['small', 0],
+                },
+            };
+        }
+
         return {
             [stylingType]: {
                 attrs: {
@@ -1610,6 +1629,18 @@ class RteField extends LitElement {
     #updateSelection(state) {
         const { selection } = state;
         this.isLinkSelected = selection.node?.type.name === 'link' && !selection.node.attrs['data-wcs-osi'];
+        this.smallActive = this.#isMarkActive(state, 'small');
+    }
+
+    #isMarkActive(state, markName) {
+        const markType = state.schema.marks[markName];
+        if (!markType) return false;
+
+        const { empty, from, to, $from } = state.selection;
+        if (empty) {
+            return Boolean((state.storedMarks || $from.marks()).some((mark) => mark.type === markType));
+        }
+        return state.doc.rangeHasMark(from, to, markType);
     }
 
     #updateLength() {
@@ -1960,6 +1991,18 @@ class RteField extends LitElement {
             >
                 <span slot="icon" class="superscript-icon">x²</span>
             </sp-action-button>
+            ${this.marks?.includes('small')
+                ? html`<sp-action-button
+                      id="smallButton"
+                      ?selected=${this.smallActive}
+                      aria-pressed=${this.smallActive ? 'true' : 'false'}
+                      @click=${() => this.handleStylingAction('small')}
+                      @mousedown=${(e) => e.preventDefault()}
+                      title="Small"
+                  >
+                      <span slot="icon" class="small-icon">S</span>
+                  </sp-action-button>`
+                : nothing}
         `;
     }
 

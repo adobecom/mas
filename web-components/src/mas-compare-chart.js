@@ -530,9 +530,12 @@ export class MasCompareChart extends LitElement {
                     continue;
                 }
                 const p = source.cloneNode(true);
-                // Cell-level `primary` (green glyph in cells).
+                // Cell-level `primary` (green glyph in cells), plus `✅`
+                // shorthand for a primary green check and green cell text.
+                const isEmojiPrimary = p.textContent.includes('✅');
                 const cellPrimary = p.hasAttribute('primary');
                 if (cellPrimary) p.classList.add('primary-cell');
+                if (isEmojiPrimary) p.classList.add('emoji-primary-cell');
                 // Item-cell row: smaller typography, optional green tint.
                 const isItem = p.hasAttribute('item');
                 if (isItem) p.classList.add('item-cell');
@@ -544,6 +547,7 @@ export class MasCompareChart extends LitElement {
                     cardId,
                     col,
                     isCellPrimary: cellPrimary,
+                    isEmojiPrimary,
                     isItem,
                     title: cellTitle,
                     tooltipPosition:
@@ -621,26 +625,14 @@ export class MasCompareChart extends LitElement {
      * (and any inline non-`<small>` content) plus caption text rendered
      * below the chip. Implemented by wrapping the chip portion in a
      * `<span class="compare-chart-chip">` so the cell `<p>` itself can be a
-     * borderless flex column. Inline styles are used because shadow CSS
-     * can't reach descendants of slotted elements.
+     * borderless flex column.
      */
     #layoutChip(p) {
         // Item-cell rows render as plain text (no chip border). Figma:
         // "Table item cell" — Description Body XXXS, no white card chrome.
         if (p.classList.contains('item-cell')) {
-            const isItemPrimary = p.classList.contains('primary-cell');
-            // Style the cell content as Body XXXS, optional green tint.
-            p.style.cssText =
-                `display:block;font-size:11px;line-height:1.4;` +
-                `text-align:center;font-weight:400;${
-                    isItemPrimary
-                        ? 'color:var(--primary-cell-path-color,#05834e);'
-                        : 'color:var(--color-text-secondary,#6e6e6e);'
-                }`;
             return;
         }
-        const isPrimary = p.classList.contains('primary-cell');
-        const smalls = Array.from(p.querySelectorAll(':scope > small'));
         const chip = document.createElement('span');
         chip.className = 'compare-chart-chip';
         const nodes = Array.from(p.childNodes);
@@ -651,20 +643,6 @@ export class MasCompareChart extends LitElement {
             chip.appendChild(n);
         }
         p.insertBefore(chip, p.firstChild);
-        chip.style.cssText =
-            'display:flex;align-items:center;justify-content:center;gap:6px;' +
-            'border:1px solid var(--spectrum-gray-300,#d3d3d3);' +
-            'border-radius:4px;background:#fff;padding:8px 10px;' +
-            'min-height:18px;width:100%;box-sizing:border-box;';
-        smalls.forEach((s) => {
-            s.style.cssText =
-                `display:block;text-align:center;font-size:12px;` +
-                `font-weight:700;line-height:1.3;margin-top:6px;${
-                    isPrimary
-                        ? 'color:var(--primary-cell-path-color,#05834e);'
-                        : 'color:var(--color-text,#2c2c2c);'
-                }`;
-        });
     }
 
     #wrapGlyphs(p) {
@@ -685,15 +663,13 @@ export class MasCompareChart extends LitElement {
                 if (all.includes(ch)) {
                     const span = document.createElement('span');
                     span.setAttribute('aria-hidden', 'true');
-                    span.textContent = ch;
-                    if (isPrimary && GLYPH_ALIASES.included.includes(ch)) {
-                        span.style.color =
-                            'var(--primary-cell-path-color, #05834e)';
-                        span.style.fontWeight = '700';
-                    } else if (GLYPH_ALIASES.excluded.includes(ch)) {
-                        // ✗ — stay black per Figma's "not a feature" variant.
-                        span.style.color = 'var(--color-text, #2c2c2c)';
-                    }
+                    span.classList.add('compare-chart-glyph');
+                    span.textContent = ch === '✅' ? '✓' : ch;
+                    if (GLYPH_ALIASES.included.includes(ch))
+                        span.classList.add('included');
+                    if (GLYPH_ALIASES.excluded.includes(ch))
+                        span.classList.add('excluded');
+                    if (isPrimary || ch === '✅') span.classList.add('primary');
                     frag.appendChild(span);
                 } else {
                     frag.appendChild(document.createTextNode(ch));
@@ -1124,6 +1100,7 @@ export class MasCompareChart extends LitElement {
     #renderCell(c) {
         const classes = ['cell'];
         if (c.isCellPrimary) classes.push('primary-cell');
+        if (c.isEmojiPrimary) classes.push('emoji-primary-cell');
         if (c.isItem) classes.push('item-cell');
         return html`<p
             role="cell"

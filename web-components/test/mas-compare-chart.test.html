@@ -162,6 +162,85 @@
                         chart.remove();
                     });
 
+                    it('keeps text after checkmarks inside the chip unless wrapped in small', async () => {
+                        const chart =
+                            document.createElement('mas-compare-chart');
+                        chart.setAttribute('expanded-groups', 'all');
+                        chart.innerHTML = `
+                            <merch-card slot="cards" variant="compare-chart">
+                                <h3 slot="header">Plan</h3>
+                                <div slot="features">
+                                    <p name="group@feature">✅ Premium tools</p>
+                                    <p name="group@plain-count">✓ 519,000+</p>
+                                    <p name="group@captioned">✓<small>519,000+</small></p>
+                                </div>
+                            </merch-card>
+                            <div name="group">
+                                <h4>Group</h4>
+                                <p name="feature">Feature</p>
+                                <p name="plain-count">Plain count</p>
+                                <p name="captioned">Captioned</p>
+                            </div>
+                        `;
+                        document.body.append(chart);
+                        await chart.updateComplete;
+                        await chart.updateComplete;
+
+                        const cells =
+                            chart.shadowRoot.querySelectorAll('p[role="cell"]');
+                        expect(
+                            cells[0].querySelector('.compare-chart-chip')
+                                .textContent,
+                        ).to.equal('✓ Premium tools');
+                        expect(
+                            cells[0].classList.contains('emoji-primary-cell'),
+                        ).to.be.true;
+                        expect(
+                            cells[0]
+                                .querySelector('.compare-chart-glyph')
+                                .classList.contains('primary'),
+                        ).to.be.true;
+                        expect(
+                            getComputedStyle(
+                                cells[0].querySelector('.compare-chart-chip'),
+                            ).color,
+                        ).to.equal('rgb(5, 131, 78)');
+                        expect(cells[0].querySelector('small')).to.not.exist;
+                        expect(
+                            cells[1].querySelector('.compare-chart-chip')
+                                .textContent,
+                        ).to.equal('✓ 519,000+');
+                        expect(cells[1].querySelector('small')).to.not.exist;
+                        expect(
+                            cells[1]
+                                .querySelector('.compare-chart-chip')
+                                .hasAttribute('style'),
+                        ).to.be.false;
+                        expect(
+                            cells[1]
+                                .querySelector('.compare-chart-glyph')
+                                .hasAttribute('style'),
+                        ).to.be.false;
+                        expect(
+                            cells[2].querySelector('.compare-chart-chip')
+                                .textContent,
+                        ).to.equal('✓');
+                        expect(
+                            cells[2].querySelector('small').textContent.trim(),
+                        ).to.equal('519,000+');
+                        expect(
+                            cells[2]
+                                .querySelector('.compare-chart-chip')
+                                .hasAttribute('style'),
+                        ).to.be.false;
+                        expect(
+                            cells[2]
+                                .querySelector('small')
+                                .hasAttribute('style'),
+                        ).to.be.false;
+                        chart.remove();
+                    });
+
                     it('aligns price cell heights across cards', async () => {
                         const chart =
                             document.createElement('mas-compare-chart');

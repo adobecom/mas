@@ -651,7 +651,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await individualsCard).toBeVisible();
-            await expect(await individualsCard).toHaveAttribute('variant', 'plans');
+            await expect(await individualsCard).toHaveAttribute('variant', 'plans-education');
         });
 
         await test.step('step-2: Toggle quantity selector', async () => {
@@ -677,21 +677,25 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             await expect(await individualsCard.locator(plans.cardQuantitySelector)).toBeVisible();
         });
 
-        await test.step('step-6: Edit quantity selector start value', async () => {
+        await test.step('step-6: Restore values from settings', async () => {
+            await editor.quantitySelectorFields.locator('.setting-override-indicator').first().click();
+        });
+
+        await test.step('step-7: Edit quantity selector start value', async () => {
             await expect(await editor.quantitySelectorStart).toBeVisible();
             await expect(await editor.quantitySelectorStart).toHaveValue(data.startValue.original);
             await editor.quantitySelectorStart.fill(data.startValue.updated);
             await expect(await editor.quantitySelectorStart).toHaveValue(data.startValue.updated);
         });
 
-        await test.step('step-7: Edit quantity selector step value', async () => {
+        await test.step('step-8: Edit quantity selector step value', async () => {
             await expect(await editor.quantitySelectorStep).toBeVisible();
             await expect(await editor.quantitySelectorStep).toHaveValue(data.stepValue.original);
             await editor.quantitySelectorStep.fill(data.stepValue.updated);
             await expect(await editor.quantitySelectorStep).toHaveValue(data.stepValue.updated);
         });
 
-        await test.step('step-8: Validate quantity selector step value on card', async () => {
+        await test.step('step-9: Validate quantity selector step value on card', async () => {
             await expect(await individualsCard.locator(plans.cardQuantitySelector)).toHaveAttribute(
                 'step',
                 data.stepValue.updated,
@@ -709,11 +713,11 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
             );
         });
 
-        await test.step('step-9: Close the editor and verify discard is triggered', async () => {
+        await test.step('step-10: Close the editor and verify discard is triggered', async () => {
             await studio.discardEditorChanges(editor);
         });
 
-        await test.step('step-10: Verify quantity selector is unchanged', async () => {
+        await test.step('step-11: Verify quantity selector is unchanged', async () => {
             await expect(await individualsCard.locator(plans.cardQuantitySelector)).toBeVisible();
         });
     });

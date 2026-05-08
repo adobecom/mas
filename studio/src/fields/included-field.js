@@ -107,10 +107,29 @@ class IncludedField extends LitElement {
         this.#handleEditClick();
     }
 
+    #hasAltContent(altCombined) {
+        const raw = (altCombined ?? '').trim();
+        if (!raw) return false;
+        if (raw.startsWith('<p>')) {
+            const doc = new DOMParser().parseFromString(raw, 'text/html');
+            const txt = doc
+                .querySelector('p')
+                ?.textContent?.replace(/\u00a0/g, ' ')
+                .trim();
+            return !!txt;
+        }
+        return true;
+    }
+
+    #hasIncludedContent() {
+        if (this.icon?.trim()) return true;
+        if (this.link?.trim()) return true;
+        return this.#hasAltContent(this.alt);
+    }
+
     #handleModalClose() {
         this.modalOpen = false;
-        // If field is empty (no icon selected), remove it
-        if (!this.icon) {
+        if (!this.#hasIncludedContent()) {
             this.#handleDeleteClick();
         }
     }
@@ -165,6 +184,14 @@ class IncludedField extends LitElement {
         return value || html`<span class="empty">${placeholder}</span>`;
     }
 
+    parseTextFromHtml(htmlMarkup) {
+        if (!htmlMarkup || !htmlMarkup.startsWith('<p>')) return htmlMarkup;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlMarkup, 'text/html');
+        return doc.querySelector('p')?.textContent;
+    }
+
     #getIconName() {
         if (!this.icon) return 'No icon selected';
 
@@ -211,7 +238,9 @@ class IncludedField extends LitElement {
                 </div>
 
                 <div class="included-info">
-                    <div class="value">${this.#getDisplayText(this.#getIconName(), 'No icon selected')}</div>
+                    <div class="value">
+                        ${this.#getDisplayText(this.parseTextFromHtml(this.alt) || this.#getIconName(), 'No icon selected')}
+                    </div>
                 </div>
 
                 <sp-action-menu class="action-menu" quiet size="s" placement="bottom-end" @change=${this.#handleMenuChange}>

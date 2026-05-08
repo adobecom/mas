@@ -42,6 +42,14 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
         'spectrum-red-700-plans',
         'gradient-purple-blue',
     ],
+    whatsIncludedDividerColor: { attribute: 'whats-included-divider-color' },
+    allowedWhatsIncludedDividerColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
+    ],
     borderColor: { attribute: 'border-color' },
     size: ['wide', 'super-wide'],
     whatsIncluded: { tag: 'div', slot: 'footer-rows' },
@@ -163,7 +171,7 @@ export class MiniCompareChart extends VariantLayout {
             'top-section',
         );
 
-        let slots = [
+        const slots = [
             'heading-m',
             'subtitle',
             'body-m',
@@ -247,20 +255,29 @@ export class MiniCompareChart extends VariantLayout {
     removeEmptyRows() {
         if (this.isNewVariant) {
             const rows = this.card.querySelectorAll(
-                'merch-whats-included merch-mnemonic-list',
+                'merch-whats-included [slot="content"] merch-mnemonic-list',
             );
             rows.forEach((row) => {
+                if (row.hasAttribute('data-placeholder')) return;
+
+                const iconSlot = row.querySelector('[slot="icon"]');
+                const hasIcon =
+                    !!iconSlot?.querySelector('.sp-icon') ||
+                    !!iconSlot?.querySelector(
+                        'merch-icon[src]:not([src=""]), img[src]:not([src=""])',
+                    );
+
                 const description = row.querySelector('[slot="description"]');
-                if (description) {
-                    const isEmpty = !description.textContent.trim();
-                    if (isEmpty) {
-                        row.remove();
-                    }
-                }
+                const text =
+                    description?.textContent?.replace(/\u00a0/g, ' ')?.trim() ??
+                    '';
+
+                if (!hasIcon && !text) row.remove();
             });
         } else {
             const footerRows = this.card.querySelectorAll('.footer-row-cell');
             footerRows.forEach((row) => {
+                if (row.hasAttribute('data-placeholder')) return;
                 const rowDescription = row.querySelector(
                     '.footer-row-cell-description',
                 );
@@ -316,9 +333,11 @@ export class MiniCompareChart extends VariantLayout {
             for (let i = 0; i < needed; i++) {
                 const empty = document.createElement('merch-mnemonic-list');
                 empty.setAttribute('data-placeholder', '');
+                const iconSlot = document.createElement('div');
+                iconSlot.setAttribute('slot', 'icon');
                 const desc = document.createElement('div');
                 desc.setAttribute('slot', 'description');
-                empty.appendChild(desc);
+                empty.append(iconSlot, desc);
                 contentSlot.appendChild(empty);
             }
         } else {
@@ -634,9 +653,10 @@ export class MiniCompareChart extends VariantLayout {
             this.adjustCallout();
         }
         await this.adjustAddon();
-        if (Media.isMobile) {
+        if (this.isNewVariant) {
             this.removeEmptyRows();
-        } else {
+        }
+        if (!Media.isMobile) {
             this.padFooterRows();
 
             const container = this.getContainer();
@@ -660,6 +680,8 @@ export class MiniCompareChart extends VariantLayout {
                     this.syncHeights();
                 });
             }
+        } else if (!this.isNewVariant) {
+            this.removeEmptyRows();
         }
     }
 
@@ -871,6 +893,40 @@ export class MiniCompareChart extends VariantLayout {
             [variant='mini-compare-chart'][border-color='gradient-purple-blue']
         ) {
             --consonant-merch-card-border-color: linear-gradient(
+                135deg,
+                #9256dc,
+                #1473e6
+            );
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-yellow-300-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #ffd947;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-gray-300-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #dadada;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-green-900-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #05834e;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-red-700-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #eb1000;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='gradient-purple-blue']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: linear-gradient(
                 135deg,
                 #9256dc,
                 #1473e6

@@ -1,9 +1,11 @@
 import { css } from 'lit';
-import { ghostButtonStyles, loadingContainerCenteredStyles } from './translation-common-styles.css.js';
+import { ghostButtonStyles, selectItemsFormSectionStyles } from '../common/styles/table-styles.css.js';
+import { loadingContainerCenteredStyles } from './translation-common-styles.css.js';
 
 export const styles = [
     ghostButtonStyles,
     loadingContainerCenteredStyles,
+    selectItemsFormSectionStyles,
     css`
         .translation-editor-form {
             padding: 32px;
@@ -86,8 +88,7 @@ export const styles = [
             }
         }
 
-        .select-langs,
-        .select-items {
+        .select-langs {
             sp-button {
                 --mod-button-background-color-default: transparent;
                 --mod-button-background-color-hover: var(--spectrum-gray-200);
@@ -103,8 +104,7 @@ export const styles = [
             }
         }
 
-        .languages-empty-state,
-        .items-empty-state {
+        .languages-empty-state {
             display: flex;
             flex-direction: row;
             gap: 12px;
@@ -117,33 +117,31 @@ export const styles = [
             --mod-dialog-confirm-buttongroup-padding-top: 82px;
         }
 
-        .selected-langs,
-        .selected-items {
+        .selected-langs {
             display: flex;
             flex-direction: column;
             gap: 20px;
 
-            .selected-langs-header,
-            .selected-items-header {
+            .selected-langs-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
 
-                    h2 {
-                        margin: 0;
+                h2 {
+                    margin: 0;
 
-                        span {
-                            font-weight: 500;
-                        }
-                    }
-
-                    .toggle-btn {
-                        --mod-button-background-color-down: var(--spectrum-gray-300);
-                        --mod-button-content-color-default: var(--spectrum-gray-800);
-                        --mod-button-content-color-hover: var(--spectrum-gray-900);
+                    span {
+                        font-weight: 500;
                     }
                 }
+
+                .toggle-btn {
+                    --mod-button-background-color-down: var(--spectrum-gray-300);
+                    --mod-button-content-color-default: var(--spectrum-gray-800);
+                    --mod-button-content-color-hover: var(--spectrum-gray-900);
+                }
             }
+
             h2 sp-icon-asterisk100 {
                 width: 10px;
                 height: 10px;

@@ -372,6 +372,8 @@ class MerchCardEditor extends LitElement {
             settingsContextFragment.tags = structuredClone(this.localeDefaultFragment.tags);
         }
 
+        if (!settingsContextFragment.locale) settingsContextFragment.locale = this.fragment.locale;
+
         return settingsContextFragment;
     }
 

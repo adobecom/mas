@@ -42,6 +42,14 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
         'spectrum-red-700-plans',
         'gradient-purple-blue',
     ],
+    whatsIncludedDividerColor: { attribute: 'whats-included-divider-color' },
+    allowedWhatsIncludedDividerColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
+    ],
     borderColor: { attribute: 'border-color' },
     size: ['wide', 'super-wide'],
     whatsIncluded: { tag: 'div', slot: 'footer-rows' },
@@ -885,6 +893,40 @@ export class MiniCompareChart extends VariantLayout {
             [variant='mini-compare-chart'][border-color='gradient-purple-blue']
         ) {
             --consonant-merch-card-border-color: linear-gradient(
+                135deg,
+                #9256dc,
+                #1473e6
+            );
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-yellow-300-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #ffd947;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-gray-300-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #dadada;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-green-900-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #05834e;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-red-700-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #eb1000;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='gradient-purple-blue']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: linear-gradient(
                 135deg,
                 #9256dc,
                 #1473e6

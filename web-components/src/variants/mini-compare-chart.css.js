@@ -313,7 +313,10 @@ export const CSS = `
   merch-card[variant="mini-compare-chart"] merch-mnemonic-list {
     width: 100%;
     margin-inline: 0;
-    border-top: 1px solid var(--consonant-merch-card-mini-compare-border-color);
+    border-top: 1px solid var(
+        --consonant-merch-card-whats-included-divider-color,
+        var(--consonant-merch-card-mini-compare-border-color)
+    );
     display: flex;
     gap: var(--consonant-merch-spacing-xs);
     justify-content: start;

@@ -804,18 +804,6 @@ export class MasCompareChart extends LitElement {
     #setStickyHeaderActive(active) {
         const headerContent = this.shadowRoot?.querySelector('.header-content');
         if (active === this.#isStickyHeaderActive) return;
-        if (active) {
-            const headerHeight =
-                headerContent?.getBoundingClientRect().height || 0;
-            this.style.setProperty(
-                '--compare-chart-sticky-header-spacer-height',
-                `${headerHeight}px`,
-            );
-        } else {
-            this.style.removeProperty(
-                '--compare-chart-sticky-header-spacer-height',
-            );
-        }
         this.#isStickyHeaderActive = active;
         this.toggleAttribute('data-sticky-header', active);
         headerContent?.classList.toggle('sticky', active);
@@ -829,7 +817,7 @@ export class MasCompareChart extends LitElement {
         if (this.#expandedGroupIndices.has(groupIndex)) {
             this.#expandedGroupIndices.delete(groupIndex);
         } else {
-            this.#expandedGroupIndices.add(groupIndex);
+            this.#expandedGroupIndices = new Set([groupIndex]);
             opened = true;
         }
         this.expandedGroups = this.#serializeExpanded();

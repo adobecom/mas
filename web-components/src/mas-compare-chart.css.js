@@ -15,20 +15,21 @@ export const styles = css`
             var(--compare-chart-cols),
             minmax(100px, 1fr)
         );
+        --compare-chart-sticky-inline-inset: 0px;
 
         /* Typography tokens (Figma: Heading XS, Body bold S/XS/XXS, Body XS, Body XXXS) */
         --type-heading-xs: 700 18px/22px 'Adobe Clean', sans-serif;
         --type-body-bold-s: 700 16px/24px 'Adobe Clean', sans-serif;
         --type-body-bold-xs: 700 14px/20px 'Adobe Clean', sans-serif;
-        --type-body-bold-xxs: 700 12px/16px 'Adobe Clean', sans-serif;
+        --type-body-bold-xxs: 700 12px/15px 'Adobe Clean', sans-serif;
         --type-body-xs: 400 14px/20px 'Adobe Clean', sans-serif;
-        --type-body-italic-xxs: italic 400 12px/16px 'Adobe Clean', sans-serif;
+        --type-body-italic-xxs: italic 400 12px/15px 'Adobe Clean', sans-serif;
         --type-body-xxxs: 400 11px/14px 'Adobe Clean', sans-serif;
         --compare-chart-header-title-font: 700 16px/24px 'Adobe Clean',
             sans-serif;
         --compare-chart-header-price-font: 700 16px/20px 'Adobe Clean',
             sans-serif;
-        --compare-chart-header-detail-font: italic 400 12px/18px 'Adobe Clean',
+        --compare-chart-header-detail-font: italic 400 12px/15px 'Adobe Clean',
             sans-serif;
         --compare-chart-header-cta-font: 700 15px/19px 'Adobe Clean',
             sans-serif;
@@ -66,8 +67,8 @@ export const styles = css`
         pointer-events: none;
     }
     :host([data-sticky-header]) .sticky-header-spacer {
-        display: block;
-        height: var(--compare-chart-sticky-header-spacer-height, 0px);
+        display: none;
+        height: 0;
     }
     .header-content {
         position: sticky;
@@ -98,25 +99,22 @@ export const styles = css`
             opacity var(--transition-fade, 0.2s ease);
     }
     .sticky-header.is-stuck {
-        position: fixed;
-        left: 0;
-        right: 0;
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
         z-index: 9;
         background: #fff;
         box-shadow: 0 var(--border-width-2, 2px) 4px rgba(0, 0, 0, 0.1);
-        top: var(
-            --spacing-50,
-            calc(
-                var(--compare-chart-sticky-top, 0px) +
-                    var(--compare-chart-sticky-gap, 0px)
-            )
-        );
         transform: translateY(0) translateZ(0);
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         opacity: 1;
     }
     .sticky-header.is-stuck .sticky-header-wrapper {
+        width: calc(100% - var(--compare-chart-sticky-inline-inset));
+        max-width: var(--compare-chart-desktop-max-width);
+        margin-right: auto;
+        margin-left: auto;
         padding-top: var(--compare-chart-spacing);
         padding-bottom: var(--compare-chart-spacing);
     }
@@ -613,6 +611,7 @@ export const styles = css`
     @container compare-chart (max-width: 599px) {
         :host {
             --compare-chart-leading-col: 0px;
+            --compare-chart-sticky-inline-inset: 24px;
             padding: 0 12px;
         }
         .sticky-header-wrapper {
@@ -683,6 +682,7 @@ export const styles = css`
     @container compare-chart (min-width: 600px) and (max-width: 899px) {
         :host {
             --compare-chart-leading-col: 0px;
+            --compare-chart-sticky-inline-inset: 50px;
             padding: 0 25px;
         }
         .sticky-header-wrapper {
@@ -740,12 +740,14 @@ export const styles = css`
 
     @container compare-chart (min-width: 900px) {
         :host {
+            --compare-chart-sticky-inline-inset: 50px;
             padding: 0 25px;
         }
     }
 
     @container compare-chart (min-width: 1200px) {
         :host {
+            --compare-chart-sticky-inline-inset: 0px;
             max-width: var(--compare-chart-desktop-max-width);
             padding: 0;
         }

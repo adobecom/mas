@@ -157,7 +157,7 @@
                         expect(requestBody).to.have.property('title', 'Test Compare Chart');
                         expect(compareChartField).to.exist;
                         expect(compareChartField.type).to.equal('long-text');
-                        expect(compareChartField.values[0]).to.include('<mas-compare-chart expanded-groups="all">');
+                        expect(compareChartField.values[0]).to.include('<mas-compare-chart>');
                         expect(compareChartField.values[0]).to.include('<span slot="compare-features">Compare Features</span>');
                     });
 

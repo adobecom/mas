@@ -23,6 +23,7 @@ import {
     appendSlot,
     processAddon,
     processTrialBadge,
+    processFeatures,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -535,6 +536,56 @@ describe('processAnalytics', () => {
         expect(
             merchCard.querySelectorAll(`a[${ANALYTICS_LINK_ATTR}]`).length,
         ).to.equal(2);
+    });
+});
+
+describe('processFeatures', () => {
+    it('unwraps author-style { value, mimeType } entries for compare-chart cells', () => {
+        const merchCard = document.createElement('merch-card');
+        document.body.appendChild(merchCard);
+        processFeatures(
+            {
+                features: [
+                    {
+                        value: '<p name="group@a">✓</p>',
+                        mimeType: 'text/html',
+                    },
+                    {
+                        value: '<p name="group@b">—</p>',
+                        mimeType: 'text/html',
+                    },
+                ],
+            },
+            merchCard,
+        );
+        const slot = merchCard.querySelector(':scope > [slot="features"]');
+        expect(slot).to.exist;
+        expect(slot.querySelectorAll('p[name]')).to.have.length(2);
+        expect(slot.querySelector('p[name="group@a"]').textContent.trim()).to.equal(
+            '✓',
+        );
+        merchCard.remove();
+    });
+
+    it('unwraps publish-style features envelope { value: string[] }', () => {
+        const merchCard = document.createElement('merch-card');
+        document.body.appendChild(merchCard);
+        processFeatures(
+            {
+                features: {
+                    mimeType: 'text/html',
+                    value: [
+                        '<p name="g@x">✓</p>',
+                        '<p name="g@y">—</p>',
+                    ],
+                },
+            },
+            merchCard,
+        );
+        const slot = merchCard.querySelector(':scope > [slot="features"]');
+        expect(slot).to.exist;
+        expect(slot.querySelectorAll('p[name]')).to.have.length(2);
+        merchCard.remove();
     });
 });
 

@@ -6,8 +6,6 @@ import {
     EVENT_MAS_READY,
 } from './constants.js';
 import { styles } from './mas-compare-chart.css.js';
-import './aem-fragment.js';
-import './merch-card.js';
 
 const MAS_COMPARE_CHART = 'mas-compare-chart';
 const MAS_COMPARE_CHART_LOAD_TIMEOUT = 30000;
@@ -1071,6 +1069,21 @@ export class MasCompareChart extends LitElement {
         `;
     }
 
+    /** When column card fragments omit `features`, still render a full row grid. */
+    #syntheticNotApplicableCell(cardId, col) {
+        return {
+            cardId,
+            col,
+            isCellPrimary: false,
+            isEmojiPrimary: false,
+            isItem: false,
+            title: undefined,
+            tooltipPosition: 'top-center',
+            html: '<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">—</span></span>',
+            ariaLabel: placeholder(this, 'not-applicable', 'Not applicable'),
+        };
+    }
+
     #renderRow(r) {
         const meta = this.#rowMeta.get(r.slot) ?? {};
         const cellsByCardId = new Map(
@@ -1079,9 +1092,23 @@ export class MasCompareChart extends LitElement {
                 cell,
             ]),
         );
-        const cells = this.#visibleCardIdList()
+        const visibleIds = this.#visibleCardIdList();
+        let cells = visibleIds
             .map((cardId) => cellsByCardId.get(cardId))
             .filter(Boolean);
+        if (
+            !cells.length &&
+            visibleIds.length > 0 &&
+            this.#rowMeta.has(r.slot)
+        ) {
+            cells = visibleIds.map((cardId) => {
+                const card = this.#cards.find(
+                    (c) => c.dataset.cardId === cardId,
+                );
+                const col = parseInt(card?.dataset.columnIndex ?? '1', 10);
+                return this.#syntheticNotApplicableCell(cardId, col);
+            });
+        }
         const rowClasses = ['table-row'];
         if (meta.isItemRow) rowClasses.push('description-row');
         return html`

@@ -16,7 +16,7 @@ import './rte-mnemonic-editor.js';
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
 
-const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '❌'];
+const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '✔', '❌', '✗', '✘', '✖', '×', '—', '-'];
 
 // Function to check if a node is a checkout link
 const isNodeCheckoutLink = (node) => {

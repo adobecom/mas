@@ -149,7 +149,7 @@
                         expect(el.shadowRoot.querySelector('.compchart-preview-grid')).to.not.exist;
                         expect(el.shadowRoot.querySelectorAll('.compchart-card-row')).to.have.lengthOf(3);
                         expect(el.shadowRoot.querySelectorAll('.compchart-group-header').length).to.be.greaterThan(5);
-                        expect(el.shadowRoot.querySelectorAll('.compchart-row-label').length).to.be.greaterThan(30);
+                        expect(el.shadowRoot.querySelectorAll('.compchart-row-label')).to.have.lengthOf(4);
                         const editHeaders = [...el.shadowRoot.querySelectorAll('.compchart-header-cell')].map((node) =>
                             node.textContent.trim(),
                         );
@@ -182,23 +182,28 @@
 
                         el.shadowRoot.querySelector('.compchart-chevron').click();
                         await el.updateComplete;
-                        expect(el.effectiveValue).to.include('expanded-groups="2,3,4,5,6,7,8,9"');
+                        expect(el.effectiveValue).to.include('expanded-groups="none"');
                         el.shadowRoot.querySelector('.compchart-chevron').click();
                         await el.updateComplete;
-                        expect(el.effectiveValue).to.include('expanded-groups="all"');
+                        expect(el.effectiveValue).to.include('expanded-groups="1"');
 
                         el.shadowRoot.querySelector('.editor-view-toggle button[role="tab"]:last-child').click();
                         await el.updateComplete;
+                        let chart;
+                        for (let i = 0; i < 10; i += 1) {
+                            await nextFrame();
+                            chart = el.querySelector('[slot="compare-chart-preview"] mas-compare-chart');
+                            if (chart?.querySelector(':scope > aem-fragment')) break;
+                        }
 
                         const preview = el.shadowRoot.querySelector('.compchart-preview');
-                        const chart = el.querySelector('[slot="compare-chart-preview"] mas-compare-chart');
                         expect(el.editorView).to.equal('preview');
                         expect(el.shadowRoot.querySelector('.compchart-grid')).to.not.exist;
-                        expect(preview).to.exist;
-                        expect(chart).to.exist;
+                        expect(preview, 'preview container').to.exist;
+                        expect(chart, 'preview chart').to.exist;
                         expect(chart.hasAttribute('consonant')).to.be.true;
                         expect(preview.querySelector('mas-compare-chart')).to.not.exist;
-                        expect(chart.querySelector(':scope > aem-fragment')).to.exist;
+                        expect(chart.querySelector(':scope > aem-fragment'), 'preview aem fragment').to.exist;
                         expect(await chart.checkReady()).to.be.true;
                         await chart.updateComplete;
                         await nextFrame();

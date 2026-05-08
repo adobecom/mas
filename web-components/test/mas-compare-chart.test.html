@@ -21,7 +21,6 @@
         <template id="compare-chart-shared-fixture">
             <mas-compare-chart
                 id="t"
-                expanded-groups="all"
                 consonant
                 spectrum="swc"
             >
@@ -51,6 +50,12 @@
                         document.body.append(fixture.content.cloneNode(true));
                     });
 
+                    afterEach(() => {
+                        document
+                            .querySelectorAll('mas-compare-chart:not(#t)')
+                            .forEach((chart) => chart.remove());
+                    });
+
                     it('hydrates a compare chart fragment with card CTAs', async () => {
                         const chart = document.querySelector('#t');
                         await customElements.whenDefined('mas-compare-chart');
@@ -76,15 +81,72 @@
                         expect(
                             chart.querySelectorAll(':scope > [slot$="-cta"]')
                                 .length,
-                        ).to.equal(3);
+                        ).to.equal(5);
 
                         const ctaText = Array.from(
                             chart.querySelectorAll(':scope > [slot$="-cta"]'),
                             (cta) => cta.textContent.trim(),
                         );
-                        expect(ctaText).to.include('Start 14-day free trial');
-                        expect(ctaText).to.include('Get free plan');
-                        expect(ctaText).to.include('Start 7-day free trial');
+                        expect(ctaText).to.include('{{buy-now}}');
+                        expect(ctaText).to.include('{{free-trial}}');
+                        const headerText = Array.from(
+                            chart.querySelectorAll(':scope > [slot$="-header"]'),
+                            (header) => header.textContent.trim(),
+                        );
+                        expect(headerText).to.deep.equal([
+                            'Adobe Express Free',
+                            'Adobe Express Premium',
+                            'Adobe Firefly Pro',
+                        ]);
+                        expect(
+                            chart.querySelector(
+                                ':scope > [slot="compare-features"]',
+                            ).textContent.trim(),
+                        ).to.equal('Compare Features');
+                        expect(
+                            chart.shadowRoot.querySelectorAll(
+                                '.table-column-header',
+                            ).length,
+                        ).to.equal(9);
+                        expect(
+                            chart.shadowRoot.querySelectorAll('.table-row')
+                                .length,
+                        ).to.equal(90);
+                        expect(
+                            chart.shadowRoot.querySelectorAll(
+                                '.tooltip-wrapper',
+                            ).length,
+                        ).to.equal(47);
+                        expect(
+                            chart.shadowRoot.querySelectorAll(
+                                '.row-label a.secondary-link',
+                            ).length,
+                        ).to.equal(0);
+                        const checkoutCta = chart.querySelector(
+                            ':scope > [slot="card-3-cta"][is="checkout-link"]',
+                        );
+                        expect(checkoutCta).to.exist;
+                        expect(checkoutCta.dataset.wcsOsi).to.equal(
+                            'F-WCwWOvQUv9kuFxnb9Zh2fN0Zh_oi_yVUxAQ4_Z0gY',
+                        );
+                        expect(checkoutCta.dataset.analyticsId).to.equal(
+                            'buy-now',
+                        );
+                        expect(
+                            chart.querySelector(
+                                ':scope > [slot="card-3-price"] p',
+                            ),
+                        ).to.not.exist;
+
+                        const headers = chart.shadowRoot.querySelectorAll(
+                            '.table-column-header',
+                        );
+                        expect(headers[0].getAttribute('aria-expanded')).to.equal(
+                            'true',
+                        );
+                        expect(headers[1].getAttribute('aria-expanded')).to.equal(
+                            'false',
+                        );
                     });
 
                     it('persists each section expand state in expanded-groups', async () => {
@@ -99,7 +161,7 @@
                         headers[0].click();
                         await chart.updateComplete;
                         expect(chart.getAttribute('expanded-groups')).to.equal(
-                            '2,3,4,5,6,7,8,9',
+                            'none',
                         );
                         expect(
                             chart.shadowRoot
@@ -110,14 +172,14 @@
                             chart.shadowRoot
                                 .querySelectorAll('.table-column-header')[1]
                                 .getAttribute('aria-expanded'),
-                        ).to.equal('true');
+                        ).to.equal('false');
 
                         chart.shadowRoot
                             .querySelectorAll('.table-column-header')[0]
                             .click();
                         await chart.updateComplete;
                         expect(chart.getAttribute('expanded-groups')).to.equal(
-                            'all',
+                            '1',
                         );
                     });
 
@@ -292,6 +354,8 @@
                         chart.innerHTML = `
                             <merch-card slot="cards" variant="compare-chart">
                                 <h3 slot="header">Plan</h3>
+                                <p slot="price">US$29.99/mo</p>
+                                <p slot="detail">Annual, billed monthly</p>
                                 <div slot="cta">
                                     <a href="#">Buy now</a>
                                     <a href="#">Learn more</a>
@@ -324,6 +388,148 @@
                         const second = ctas[1].getBoundingClientRect();
                         expect(Math.round(second.top - first.bottom)).to.equal(
                             8,
+                        );
+                        chart.remove();
+                    });
+
+                    it('applies Figma header typography to generated column slots', async () => {
+                        const chart =
+                            document.createElement('mas-compare-chart');
+                        chart.innerHTML = `
+                            <span slot="compare-features">Compare Features</span>
+                            <merch-card slot="cards" variant="compare-chart">
+                                <h3 slot="header">Plan</h3>
+                                <div slot="price">
+                                    <span class="price price-strikethrough">US$69.99/mo</span>
+                                    <span class="price">US$29.99/mo</span>
+                                    <span class="price-recurrence">Annual, billed monthly</span>
+                                </div>
+                                <p slot="detail">First year price, then $39.99/mo only.</p>
+                                <div slot="cta">
+                                    <a href="#">Buy now</a>
+                                </div>
+                                <div slot="features">
+                                    <p name="group@feature">Included</p>
+                                </div>
+                            </merch-card>
+                            <div name="group">
+                                <h4>Group</h4>
+                                <p name="feature">Feature</p>
+                            </div>
+                        `;
+                        document.body.append(chart);
+                        await chart.updateComplete;
+                        await chart.updateComplete;
+
+                        const typographyCases = [
+                            ['[slot="compare-features"]', '16px', '24px', '700'],
+                            ['[slot="card-1-header"]', '16px', '24px', '700'],
+                            ['[slot="card-1-price"]', '16px', '20px', '700'],
+                            ['[slot="card-1-detail"]', '12px', '18px', '400', 'italic'],
+                            ['[slot="card-1-cta"]', '15px', '19px', '700'],
+                        ];
+                        typographyCases.forEach(
+                            ([
+                                selector,
+                                fontSize,
+                                lineHeight,
+                                fontWeight,
+                                fontStyle = 'normal',
+                            ]) => {
+                                const style = getComputedStyle(
+                                    chart.querySelector(selector),
+                                );
+                                expect(style.fontSize).to.equal(fontSize);
+                                expect(style.lineHeight).to.equal(lineHeight);
+                                expect(style.fontWeight).to.equal(fontWeight);
+                                expect(style.fontStyle).to.equal(fontStyle);
+                                expect(style.letterSpacing).to.equal('normal');
+                            },
+                        );
+                        const headerStyle = getComputedStyle(
+                            chart.querySelector('[slot="card-1-header"]'),
+                        );
+                        expect(headerStyle.display).to.equal('flex');
+                        expect(headerStyle.flexDirection).to.equal('column');
+                        expect(headerStyle.justifyContent).to.equal('center');
+                        expect(headerStyle.alignItems).to.equal('center');
+                        expect(headerStyle.height).to.equal('24px');
+                        expect(headerStyle.paddingTop).to.equal('0px');
+                        expect(headerStyle.paddingRight).to.equal('0px');
+                        expect(headerStyle.paddingBottom).to.equal('0px');
+                        expect(headerStyle.paddingLeft).to.equal('0px');
+
+                        const priceSlot = chart.querySelector(
+                            '[slot="card-1-price"]',
+                        );
+                        const priceSlotStyle = getComputedStyle(priceSlot);
+                        expect(priceSlotStyle.display).to.equal('flex');
+                        expect(priceSlotStyle.flexDirection).to.equal('column');
+                        expect(priceSlotStyle.justifyContent).to.equal(
+                            'center',
+                        );
+                        expect(priceSlotStyle.alignItems).to.equal('center');
+                        expect(priceSlotStyle.height).to.equal('66px');
+                        expect(priceSlotStyle.paddingTop).to.equal('8px');
+                        expect(priceSlotStyle.paddingRight).to.equal('8px');
+                        expect(priceSlotStyle.paddingBottom).to.equal('8px');
+                        expect(priceSlotStyle.paddingLeft).to.equal('8px');
+
+                        const discountStyle = getComputedStyle(
+                            priceSlot.querySelector('.price-strikethrough'),
+                        );
+                        expect(discountStyle.width).to.equal('144px');
+                        expect(discountStyle.height).to.equal('15px');
+                        expect(discountStyle.fontSize).to.equal('12px');
+                        expect(discountStyle.lineHeight).to.equal('15px');
+                        expect(discountStyle.fontWeight).to.equal('700');
+                        expect(discountStyle.textDecorationLine).to.include(
+                            'line-through',
+                        );
+
+                        const priceStyle = getComputedStyle(
+                            priceSlot.querySelector(
+                                '.price:not(.price-strikethrough)',
+                            ),
+                        );
+                        expect(priceStyle.width).to.equal('144px');
+                        expect(priceStyle.height).to.equal('20px');
+                        expect(priceStyle.fontSize).to.equal('16px');
+                        expect(priceStyle.lineHeight).to.equal('20px');
+                        expect(priceStyle.fontWeight).to.equal('700');
+
+                        const detailStyle = getComputedStyle(
+                            priceSlot.querySelector('.price-recurrence'),
+                        );
+                        expect(detailStyle.width).to.equal('144px');
+                        expect(detailStyle.height).to.equal('15px');
+                        expect(detailStyle.fontSize).to.equal('12px');
+                        expect(detailStyle.lineHeight).to.equal('15px');
+                        expect(detailStyle.fontWeight).to.equal('400');
+                        expect(detailStyle.fontStyle).to.equal('italic');
+
+                        const headerDetail = chart.querySelector(
+                            '[slot="card-1-detail"]',
+                        );
+                        const headerDetailStyle =
+                            getComputedStyle(headerDetail);
+                        expect(headerDetailStyle.display).to.equal('flex');
+                        expect(headerDetailStyle.flexDirection).to.equal(
+                            'column',
+                        );
+                        expect(headerDetailStyle.alignItems).to.equal('center');
+                        expect(headerDetailStyle.alignSelf).to.equal('stretch');
+                        expect(headerDetailStyle.height).to.equal('52px');
+                        expect(headerDetailStyle.paddingTop).to.equal('8px');
+                        expect(headerDetailStyle.paddingRight).to.equal('8px');
+                        expect(headerDetailStyle.paddingBottom).to.equal('8px');
+                        expect(headerDetailStyle.paddingLeft).to.equal('8px');
+                        expect(headerDetailStyle.fontSize).to.equal('12px');
+                        expect(headerDetailStyle.lineHeight).to.equal('18px');
+                        expect(headerDetailStyle.fontWeight).to.equal('400');
+                        expect(headerDetailStyle.fontStyle).to.equal('italic');
+                        expect(headerDetailStyle.color).to.equal(
+                            'rgb(44, 44, 44)',
                         );
                         chart.remove();
                     });

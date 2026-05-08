@@ -34,7 +34,7 @@ import { dragHandleIcon } from '../icons.js';
 import { styles } from './mas-compare-chart-editor.css.js';
 
 export const DEFAULT_COMPARE_CHART_HTML =
-    '<mas-compare-chart expanded-groups="all"><span slot="compare-features">Compare Features</span><div name="top-features"><h4>Top features</h4></div></mas-compare-chart>';
+    '<mas-compare-chart><span slot="compare-features">Compare Features</span><div name="top-features"><h4>Top features</h4></div></mas-compare-chart>';
 
 const PREVIEW_SLOT = 'compare-chart-preview';
 const MAX_COMPARE_CHART_CARDS = 4;

@@ -33,6 +33,7 @@ class MasBulkPublishEditor extends LitElement {
         itemsSelectorOpen: { state: true },
         localesPickerOpen: { state: true },
         pendingActions: { state: true },
+        hasChanges: { state: true },
     };
 
     #abortController = null;
@@ -45,6 +46,7 @@ class MasBulkPublishEditor extends LitElement {
         this.itemsSelectorOpen = false;
         this.localesPickerOpen = false;
         this.pendingActions = new Set();
+        this.hasChanges = false;
     }
 
     async connectedCallback() {
@@ -64,6 +66,7 @@ class MasBulkPublishEditor extends LitElement {
                     const store = new FragmentStore(new Fragment(fragment));
                     store.updateField('lastError', ['']);
                     Store.bulkPublishProjects.inEdit.set(store);
+                    this.hasChanges = false;
                     await this.updateComplete;
                     if (this.urls && !this.items.length) this.validate();
                 }
@@ -179,6 +182,9 @@ class MasBulkPublishEditor extends LitElement {
             disabled.add(QUICK_ACTION.DUPLICATE);
             disabled.add(QUICK_ACTION.LOCK);
         }
+        if (!this.isNewProject && !this.hasChanges) {
+            disabled.add(QUICK_ACTION.SAVE);
+        }
         if (!this.items.length) disabled.add(QUICK_ACTION.COPY);
         if (!this.hasValidItems || this.status !== BULK_PUBLISH_STATUS.DRAFT) {
             disabled.add(QUICK_ACTION.PUBLISH);
@@ -233,6 +239,7 @@ class MasBulkPublishEditor extends LitElement {
         } else {
             this.project.updateField(name, [value]);
         }
+        this.hasChanges = true;
     }
 
     handleTitleChange(e) {
@@ -309,6 +316,7 @@ class MasBulkPublishEditor extends LitElement {
         } else {
             this.project.updateField('locales', selected);
         }
+        this.hasChanges = true;
         this.localesPickerOpen = false;
     }
 
@@ -338,6 +346,7 @@ class MasBulkPublishEditor extends LitElement {
                     const fragment = new Fragment(raw);
                     const store = new FragmentStore(fragment);
                     Store.bulkPublishProjects.inEdit.set(store);
+                    this.hasChanges = false;
                     showToast('Project created successfully.', 'positive');
                 } else {
                     const fields = {
@@ -352,6 +361,7 @@ class MasBulkPublishEditor extends LitElement {
                     this.project.updateField('locales', this.locales);
                     const saved = await this.repository.saveFragment(this.project, false);
                     if (!saved) throw new Error('Save returned empty response');
+                    this.hasChanges = false;
                     showToast('Project saved successfully.', 'positive');
                 }
             } catch (err) {

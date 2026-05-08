@@ -6,6 +6,7 @@ export const styles = [
     css`
         :host {
             display: block;
+            position: relative;
             padding: 32px;
             background: var(--spectrum-gray-50, #ffffff);
             height: 100%;
@@ -156,10 +157,13 @@ export const styles = [
         }
 
         .duplicating-overlay {
+            position: absolute;
+            inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 48px;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 10;
         }
 
         .skeleton-row td {

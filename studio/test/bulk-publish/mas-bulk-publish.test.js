@@ -155,6 +155,36 @@ describe('mas-bulk-publish (methods)', () => {
         expect(localesField.values).to.deep.equal(['en_US', 'fr_FR']);
     });
 
+    it('handleDeleteProject removes project from list after confirmed delete', async () => {
+        const ps = makeProjectStore({ title: 'To Delete' });
+        Store.bulkPublishProjects.list.data.set([ps]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+
+        sandbox.stub(window, 'confirm').returns(true);
+        repositoryEl.deleteFragment = sandbox.stub().resolves(true);
+
+        await el.handleDeleteProject(ps);
+
+        expect(repositoryEl.deleteFragment.calledOnce).to.equal(true);
+        expect(Store.bulkPublishProjects.list.data.get()).to.deep.equal([]);
+    });
+
+    it('handleDeleteProject does not delete when confirm is cancelled', async () => {
+        const ps = makeProjectStore({ title: 'Keep Me' });
+        Store.bulkPublishProjects.list.data.set([ps]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+
+        sandbox.stub(window, 'confirm').returns(false);
+        repositoryEl.deleteFragment = sandbox.stub().resolves(true);
+
+        await el.handleDeleteProject(ps);
+
+        expect(repositoryEl.deleteFragment.called).to.equal(false);
+        expect(Store.bulkPublishProjects.list.data.get()).to.have.lengthOf(1);
+    });
+
     it('duplicatePending banner renders when set', async () => {
         Store.bulkPublishProjects.list.data.set([makeProjectStore()]);
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);

@@ -63,6 +63,18 @@ class MasBulkPublish extends LitElement {
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
     }
 
+    async handleDeleteProject(projectStore) {
+        const data = projectStore.get();
+        const title = data.getFieldValue?.('title') ?? data.title ?? 'this project';
+        if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+        const fragment = data;
+        const ok = await this.repository.deleteFragment(fragment);
+        if (ok) {
+            const current = Store.bulkPublishProjects.list.data.get() ?? [];
+            Store.bulkPublishProjects.list.data.set(current.filter((s) => s !== projectStore));
+        }
+    }
+
     openDuplicateDialog(projectStore) {
         const data = projectStore.get();
         const srcTitle = data.getFieldValue?.('title') ?? data.title ?? 'Untitled project';
@@ -152,6 +164,9 @@ class MasBulkPublish extends LitElement {
     }
 
     renderActions(projectStore) {
+        const data = projectStore.get();
+        const status = data.getFieldValue?.('status') ?? data.status ?? BULK_PUBLISH_STATUS.DRAFT;
+        const isPublishing = status === BULK_PUBLISH_STATUS.PUBLISHING;
         return html`
             <overlay-trigger placement="bottom-end" offset="4">
                 <sp-action-button slot="trigger" quiet aria-label="More actions">
@@ -167,7 +182,7 @@ class MasBulkPublish extends LitElement {
                             <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                             Duplicate
                         </sp-menu-item>
-                        <sp-menu-item disabled>
+                        <sp-menu-item ?disabled=${isPublishing} @click=${() => this.handleDeleteProject(projectStore)}>
                             <sp-icon-delete slot="icon"></sp-icon-delete>
                             Delete
                         </sp-menu-item>

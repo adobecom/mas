@@ -2,7 +2,6 @@ import { css } from 'lit';
 export const styles = css`
     :host {
         display: block;
-        background: var(--spectrum-gray-50, #fff);
         border: 1px solid var(--spectrum-gray-300, #dadada);
         border-radius: 12px;
         padding: 20px;
@@ -56,8 +55,12 @@ export const styles = css`
     .items-table-header span:first-child {
         flex: 1;
     }
-    .items-table-header span:last-child {
+    .items-table-header span:nth-child(2) {
         width: 160px;
+        flex-shrink: 0;
+    }
+    .items-table-header span:last-child {
+        width: 120px;
         flex-shrink: 0;
     }
     sp-textfield.url-input {
@@ -67,12 +70,7 @@ export const styles = css`
         margin-top: 8px;
     }
     .warning {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--spectrum-orange-600, #d45b00);
-        font-size: 14px;
-        margin-bottom: 8px;
+        display: none;
     }
     ul {
         list-style: none;
@@ -100,6 +98,21 @@ export const styles = css`
     }
     li .url-spacer {
         flex: 1;
+    }
+    .actions-cell {
+        width: 120px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+    }
+    li.footer-row {
+        border-top: 1px solid var(--spectrum-gray-300, #dadada);
+        border-bottom: none;
+        font-weight: 700;
+        font-size: 14px;
+    }
+    .footer-count {
+        white-space: nowrap;
     }
     .status-cell {
         display: flex;

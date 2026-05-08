@@ -1,6 +1,12 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-locales.css.js';
-import { REGION_GROUPS } from '../locales.js';
+import { REGION_GROUPS, getLocaleByCode, getLanguageName, getCountryName } from '../locales.js';
+
+function localeLabel(code) {
+    const locale = getLocaleByCode(code);
+    if (!locale) return code;
+    return `${getLanguageName(locale.lang)} (${getCountryName(locale.country)})`;
+}
 
 function groupLocalesByRegion(locales) {
     const groups = [];
@@ -41,18 +47,20 @@ class MasBulkPublishLocales extends LitElement {
         const n = this.locales.length;
         return html`
             <div class="header">
-                <h3>Locales<span class="count"> (${n})</span></h3>
+                <h3>Locales${n > 0 ? html`<span class="count"> (${n})</span>` : nothing}</h3>
                 <div class="header-actions">
-                    <sp-action-button
-                        size="s"
-                        quiet
-                        data-testid="edit-locales-btn"
-                        ?disabled=${this.disabled}
-                        @click=${this.emitEdit}
-                    >
-                        <sp-icon-edit slot="icon"></sp-icon-edit>
-                        Edit
-                    </sp-action-button>
+                    ${n > 0
+                        ? html`<sp-action-button
+                              size="s"
+                              quiet
+                              data-testid="edit-locales-btn"
+                              ?disabled=${this.disabled}
+                              @click=${this.emitEdit}
+                          >
+                              <sp-icon-edit slot="icon"></sp-icon-edit>
+                              Edit
+                          </sp-action-button>`
+                        : nothing}
                     <sp-action-button
                         size="s"
                         quiet
@@ -66,6 +74,7 @@ class MasBulkPublishLocales extends LitElement {
                     </sp-action-button>
                 </div>
             </div>
+            <p class="description">A selection here is only needed if the URLs above don't include locales already.</p>
             ${this.collapsed
                 ? nothing
                 : html`
@@ -75,12 +84,23 @@ class MasBulkPublishLocales extends LitElement {
                                     (group) => html`
                                         <div class="region-row" data-testid="locale-row">
                                             <span class="region-label">${group.name}:</span>
-                                            <span class="region-locales">${group.locales.join(', ')}</span>
+                                            <span class="region-locales">${group.locales.map(localeLabel).join(', ')}</span>
                                         </div>
                                     `,
                                 )}
                             </div>`
-                          : html`<p class="empty" data-testid="no-locales">No locales selected</p>`}
+                          : html`<button
+                                class="add-locales-zone"
+                                data-testid="add-locales-zone"
+                                ?disabled=${this.disabled}
+                                @click=${this.emitEdit}
+                            >
+                                <span class="add-locales-icon">+</span>
+                                <span class="add-locales-text">
+                                    <strong>Add locales</strong>
+                                    <span>Choose one or more locales for your bulk publish project.</span>
+                                </span>
+                            </button>`}
                   `}
         `;
     }

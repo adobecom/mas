@@ -155,34 +155,46 @@ describe('mas-bulk-publish (methods)', () => {
         expect(localesField.values).to.deep.equal(['en_US', 'fr_FR']);
     });
 
-    it('handleDeleteProject removes project from list after confirmed delete', async () => {
+    it('handleDeleteConfirmed removes project from list', async () => {
         const ps = makeProjectStore({ title: 'To Delete' });
         Store.bulkPublishProjects.list.data.set([ps]);
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
 
-        sandbox.stub(window, 'confirm').returns(true);
         repositoryEl.deleteFragment = sandbox.stub().resolves(true);
+        el.deletePending = { projectStore: ps, title: 'To Delete' };
 
-        await el.handleDeleteProject(ps);
+        await el.handleDeleteConfirmed();
 
         expect(repositoryEl.deleteFragment.calledOnce).to.equal(true);
         expect(Store.bulkPublishProjects.list.data.get()).to.deep.equal([]);
     });
 
-    it('handleDeleteProject does not delete when confirm is cancelled', async () => {
+    it('handleDeleteCancel clears deletePending without deleting', async () => {
         const ps = makeProjectStore({ title: 'Keep Me' });
         Store.bulkPublishProjects.list.data.set([ps]);
         const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
         await el.updateComplete;
 
-        sandbox.stub(window, 'confirm').returns(false);
         repositoryEl.deleteFragment = sandbox.stub().resolves(true);
-
-        await el.handleDeleteProject(ps);
+        el.deletePending = { projectStore: ps, title: 'Keep Me' };
+        el.handleDeleteCancel();
 
         expect(repositoryEl.deleteFragment.called).to.equal(false);
+        expect(el.deletePending).to.equal(null);
         expect(Store.bulkPublishProjects.list.data.get()).to.have.lengthOf(1);
+    });
+
+    it('openDeleteDialog sets deletePending with title', async () => {
+        const ps = makeProjectStore({ title: 'My Project' });
+        Store.bulkPublishProjects.list.data.set([ps]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        await el.updateComplete;
+
+        el.openDeleteDialog(ps);
+
+        expect(el.deletePending).to.deep.include({ title: 'My Project' });
+        expect(el.deletePending.projectStore).to.equal(ps);
     });
 
     it('duplicatePending banner renders when set', async () => {

@@ -112,16 +112,28 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
         expect(el.disabledActions.has(QUICK_ACTION.COPY)).to.equal(true);
     });
 
-    it('disabledActions disables PUBLISH when status is not Draft', async () => {
+    it('disabledActions disables PUBLISH when status is PUBLISHING', async () => {
         const el = await makeEditor();
         Store.bulkPublishProjects.inEdit.set(
             makeFragmentStore({
-                status: BULK_PUBLISH_STATUS.PUBLISHED,
+                status: BULK_PUBLISH_STATUS.PUBLISHING,
                 items: JSON.stringify([{ status: 'valid' }]),
             }),
         );
         await el.updateComplete;
         expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
+    });
+
+    it('disabledActions enables PUBLISH when published (status resets to DRAFT on save)', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(
+            makeFragmentStore({
+                status: BULK_PUBLISH_STATUS.DRAFT,
+                items: JSON.stringify([{ status: 'valid' }]),
+            }),
+        );
+        await el.updateComplete;
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(false);
     });
 
     it('renders loading placeholder when project is null', async () => {

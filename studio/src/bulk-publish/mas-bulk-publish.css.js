@@ -8,7 +8,6 @@ export const styles = [
             display: block;
             position: relative;
             padding: 32px;
-            background: var(--spectrum-gray-50, #ffffff);
             height: 100%;
             box-sizing: border-box;
             overflow-y: auto;

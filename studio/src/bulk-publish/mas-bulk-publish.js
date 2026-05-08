@@ -6,6 +6,7 @@ import { styles } from './mas-bulk-publish.css.js';
 import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PARENT_PATH, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '../constants.js';
 import { normalizeKey, showToast } from '../utils.js';
 import './mas-bulk-publish-duplicate-dialog.js';
+import './mas-bulk-publish-delete-dialog.js';
 
 const STATUS_VARIANT = {
     [BULK_PUBLISH_STATUS.DRAFT]: { label: 'Draft', className: 'draft' },
@@ -23,12 +24,21 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
     hour12: true,
 });
 
+function getProjectField(data, name, fallback) {
+    return data.getFieldValue?.(name) ?? data[name] ?? fallback;
+}
+
+function getProjectFieldList(data, name) {
+    return data.getFieldValues?.(name) ?? data[name] ?? [];
+}
+
 class MasBulkPublish extends LitElement {
     static styles = styles;
 
     static properties = {
         duplicatePending: { state: true },
         duplicating: { state: true },
+        deletePending: { state: true },
     };
 
     list = new StoreController(this, Store.bulkPublishProjects.list.data);
@@ -38,6 +48,7 @@ class MasBulkPublish extends LitElement {
         super();
         this.duplicatePending = null;
         this.duplicating = false;
+        this.deletePending = null;
     }
 
     onCreate() {
@@ -63,12 +74,19 @@ class MasBulkPublish extends LitElement {
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
     }
 
-    async handleDeleteProject(projectStore) {
-        const data = projectStore.get();
-        const title = data.getFieldValue?.('title') ?? data.title ?? 'this project';
-        if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
-        const fragment = data;
-        const ok = await this.repository.deleteFragment(fragment);
+    openDeleteDialog(projectStore) {
+        const title = getProjectField(projectStore.get(), 'title', 'Untitled project');
+        this.deletePending = { projectStore, title };
+    }
+
+    handleDeleteCancel() {
+        this.deletePending = null;
+    }
+
+    async handleDeleteConfirmed() {
+        const { projectStore } = this.deletePending;
+        this.deletePending = null;
+        const ok = await this.repository.deleteFragment(projectStore.get());
         if (ok) {
             const current = Store.bulkPublishProjects.list.data.get() ?? [];
             Store.bulkPublishProjects.list.data.set(current.filter((s) => s !== projectStore));
@@ -76,8 +94,7 @@ class MasBulkPublish extends LitElement {
     }
 
     openDuplicateDialog(projectStore) {
-        const data = projectStore.get();
-        const srcTitle = data.getFieldValue?.('title') ?? data.title ?? 'Untitled project';
+        const srcTitle = getProjectField(projectStore.get(), 'title', 'Untitled project');
         this.duplicatePending = { projectStore, proposedTitle: `${srcTitle} (Copy)` };
     }
 
@@ -91,16 +108,15 @@ class MasBulkPublish extends LitElement {
         const data = projectStore.get();
         const surface = Store.search.get()?.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
         const title = e.detail.title;
-        const items = data.getFieldValue?.('items') ?? data.items ?? '[]';
-        const locales = data.getFieldValues?.('locales') ?? data.locales ?? [];
+        const items = getProjectField(data, 'items', '[]');
+        const locales = getProjectFieldList(data, 'locales');
         this.duplicating = true;
         try {
-            const parentPath = `${BULK_PUBLISH_PARENT_PATH}/${surface}`;
             const payload = {
                 title,
                 name: normalizeKey(title),
                 modelId: BULK_PUBLISH_PROJECT_MODEL_ID,
-                parentPath,
+                parentPath: `${BULK_PUBLISH_PARENT_PATH}/${surface}`,
                 fields: [
                     { name: 'title', type: 'text', values: [title] },
                     { name: 'status', type: 'text', values: [BULK_PUBLISH_STATUS.DRAFT] },
@@ -136,8 +152,8 @@ class MasBulkPublish extends LitElement {
         for (const item of items) {
             if (!item || item.status !== 'valid') continue;
             const type = item.type ?? 'fragment';
-            if (counts[type] !== undefined) counts[type] += 1;
-            else counts.fragment += 1;
+            const bucket = counts[type] !== undefined ? type : 'fragment';
+            counts[bucket] += 1;
         }
         return counts;
     }
@@ -146,7 +162,7 @@ class MasBulkPublish extends LitElement {
         if (!value) return '—';
         const date = new Date(value);
         if (isNaN(date.getTime())) return '—';
-        return DATE_FORMATTER.format(date).replace(',', ',');
+        return DATE_FORMATTER.format(date);
     }
 
     statusVariant(status) {
@@ -164,8 +180,7 @@ class MasBulkPublish extends LitElement {
     }
 
     renderActions(projectStore) {
-        const data = projectStore.get();
-        const status = data.getFieldValue?.('status') ?? data.status ?? BULK_PUBLISH_STATUS.DRAFT;
+        const status = getProjectField(projectStore.get(), 'status', BULK_PUBLISH_STATUS.DRAFT);
         const isPublishing = status === BULK_PUBLISH_STATUS.PUBLISHING;
         return html`
             <overlay-trigger placement="bottom-end" offset="4">
@@ -182,7 +197,7 @@ class MasBulkPublish extends LitElement {
                             <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                             Duplicate
                         </sp-menu-item>
-                        <sp-menu-item ?disabled=${isPublishing} @click=${() => this.handleDeleteProject(projectStore)}>
+                        <sp-menu-item ?disabled=${isPublishing} @click=${() => this.openDeleteDialog(projectStore)}>
                             <sp-icon-delete slot="icon"></sp-icon-delete>
                             Delete
                         </sp-menu-item>
@@ -205,11 +220,11 @@ class MasBulkPublish extends LitElement {
 
     renderRow(projectStore) {
         const data = projectStore.get();
-        const counts = this.countByType(this.parseItems(data.getFieldValue?.('items') ?? data.items));
-        const title = data.getFieldValue?.('title') ?? data.title ?? '';
-        const status = data.getFieldValue?.('status') ?? data.status ?? BULK_PUBLISH_STATUS.DRAFT;
+        const counts = this.countByType(this.parseItems(getProjectField(data, 'items')));
+        const title = getProjectField(data, 'title', '');
+        const status = getProjectField(data, 'status', BULK_PUBLISH_STATUS.DRAFT);
         const createdBy = data.created?.fullName ?? data.created?.by ?? '—';
-        const scheduledAt = data.getFieldValue?.('publishedAt') ?? data.publishedAt;
+        const scheduledAt = getProjectField(data, 'publishedAt');
         const isDisabled = status === BULK_PUBLISH_STATUS.PUBLISHING;
         return html`
             <tr data-testid="project-row" class=${isDisabled ? 'disabled' : ''}>
@@ -247,6 +262,14 @@ class MasBulkPublish extends LitElement {
                       @duplicate-confirmed=${this.handleDuplicateConfirmed}
                       @duplicate-cancelled=${this.handleDuplicateCancel}
                   ></mas-bulk-publish-duplicate-dialog>`
+                : nothing}
+            ${this.deletePending
+                ? html`<mas-bulk-publish-delete-dialog
+                      open
+                      .projectTitle=${this.deletePending.title}
+                      @delete-confirmed=${this.handleDeleteConfirmed}
+                      @delete-cancelled=${this.handleDeleteCancel}
+                  ></mas-bulk-publish-delete-dialog>`
                 : nothing}
             ${this.duplicating
                 ? html`<div class="duplicating-overlay">

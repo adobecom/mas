@@ -24,18 +24,52 @@ describe('mas-bulk-publish-items', () => {
         expect(list.querySelectorAll('[data-testid="item-row"]')).to.have.lengthOf(2);
     });
 
-    it('renders a 404 warning when any item has reason="not-found"', async () => {
+    it('footer row shows error count when errors exist', async () => {
         const el = await fixture(html`
             <mas-bulk-publish-items
-                .items=${[{ url: 'https://b', status: 'error', reason: 'not-found' }]}
+                .items=${[
+                    { url: 'https://a', status: 'valid' },
+                    { url: 'https://b', status: 'error', reason: 'not-found' },
+                ]}
                 .urls=${'x'}
             ></mas-bulk-publish-items>
         `);
         await el.updateComplete;
-        const warn = el.shadowRoot.querySelector('[data-testid="items-warning"]');
-        expect(warn).to.exist;
-        expect(warn.textContent).to.include('404 error');
-        expect(warn.textContent).to.include('1');
+        const footer = el.shadowRoot.querySelector('[data-testid="items-footer"]');
+        expect(footer).to.exist;
+        expect(footer.textContent).to.include('2 URLs');
+        expect(footer.textContent).to.include('1 error');
+    });
+
+    it('footer row shows URL count and Remove all button', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://a', status: 'valid' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const footer = el.shadowRoot.querySelector('[data-testid="items-footer"]');
+        expect(footer.textContent).to.include('1 URL');
+    });
+
+    it('removeAll dispatches remove-all event', async () => {
+        const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
+        setTimeout(() => el.removeAll());
+        const ev = await oneEvent(el, 'remove-all');
+        expect(ev).to.exist;
+    });
+
+    it('Actions column header is present', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://a', status: 'valid' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const headers = el.shadowRoot.querySelectorAll('.items-table-header span');
+        expect(headers[2].textContent.trim()).to.equal('Actions');
     });
 
     it('dispatches urls-change when sp-textfield input event fires', async () => {
@@ -68,6 +102,32 @@ describe('mas-bulk-publish-items', () => {
         setTimeout(() => el.removeUrl('https://example.com'));
         const ev = await oneEvent(el, 'url-remove');
         expect(ev.detail).to.equal('https://example.com');
+    });
+
+    it('shows "Duplicate item" label for reason="duplicate"', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://dup', status: 'error', reason: 'duplicate' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const cell = el.shadowRoot.querySelector('.status-error');
+        expect(cell).to.exist;
+        expect(cell.textContent).to.include('Duplicate item');
+    });
+
+    it('shows "Invalid URL" label for unknown reason', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ url: 'https://bad', status: 'error', reason: 'invalid-url' }]}
+                .urls=${'x'}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const cell = el.shadowRoot.querySelector('.status-error');
+        expect(cell).to.exist;
+        expect(cell.textContent).to.include('Invalid URL');
     });
 
     it('toggleCollapse flips collapsed state', async () => {

@@ -20,7 +20,6 @@ export const styles = css`
         margin: 0;
     }
     .card {
-        background: var(--spectrum-gray-50, #fff);
         border: 1px solid var(--spectrum-gray-200, #eaeaea);
         border-radius: 12px;
         padding: 20px;

@@ -1,6 +1,15 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
 
+const ERROR_LABELS = {
+    'not-found': '404 - URL not found',
+    duplicate: 'Duplicate item',
+};
+
+function emit(target, type, detail) {
+    target.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
+}
+
 class MasBulkPublishItems extends LitElement {
     static styles = styles;
     static properties = {
@@ -18,8 +27,8 @@ class MasBulkPublishItems extends LitElement {
         this.collapsed = false;
     }
 
-    get notFoundCount() {
-        return this.items.filter((i) => i.reason === 'not-found').length;
+    get errorCount() {
+        return this.items.filter((i) => i.status === 'error').length;
     }
 
     get urlLines() {
@@ -35,31 +44,23 @@ class MasBulkPublishItems extends LitElement {
     }
 
     handleInput(e) {
-        this.dispatchEvent(
-            new CustomEvent('urls-change', {
-                detail: e.target.value,
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        emit(this, 'urls-change', e.target.value);
     }
 
     handleChange() {
-        this.dispatchEvent(new CustomEvent('validate-items', { bubbles: true, composed: true }));
+        emit(this, 'validate-items');
     }
 
     emitAddBySearch() {
-        this.dispatchEvent(new CustomEvent('add-by-search', { bubbles: true, composed: true }));
+        emit(this, 'add-by-search');
     }
 
     removeUrl(url) {
-        this.dispatchEvent(
-            new CustomEvent('url-remove', {
-                detail: url,
-                bubbles: true,
-                composed: true,
-            }),
-        );
+        emit(this, 'url-remove', url);
+    }
+
+    removeAll() {
+        emit(this, 'remove-all');
     }
 
     toggleCollapse() {
@@ -76,7 +77,7 @@ class MasBulkPublishItems extends LitElement {
                 Validated
             </span>`;
         }
-        const label = item.reason === 'not-found' ? '404 - URL not found' : 'Invalid URL';
+        const label = ERROR_LABELS[item.reason] ?? 'Invalid URL';
         return html`<span class="status-cell status-error">
             <sp-icon-alert></sp-icon-alert>
             ${label}
@@ -86,18 +87,14 @@ class MasBulkPublishItems extends LitElement {
     renderBody() {
         if (this.collapsed) return nothing;
         const { rows } = this;
+        const errorCount = this.errorCount;
         return html`
-            ${this.notFoundCount > 0
-                ? html`<div class="warning" data-testid="items-warning">
-                      <sp-icon-alert></sp-icon-alert>
-                      ${this.notFoundCount} 404 error${this.notFoundCount > 1 ? 's' : ''} found
-                  </div>`
-                : nothing}
             ${rows.length > 0
                 ? html`<div class="items-box" data-testid="items-list">
                       <div class="items-table-header">
                           <span>URL</span>
                           <span>Status</span>
+                          <span>Actions</span>
                       </div>
                       <ul>
                           ${rows.map(
@@ -108,18 +105,43 @@ class MasBulkPublishItems extends LitElement {
                                       >
                                       <span class="url-spacer"></span>
                                       ${this.renderStatusCell(item)}
-                                      <sp-action-button
-                                          size="xs"
-                                          quiet
-                                          label="Remove item"
-                                          ?disabled=${this.disabled}
-                                          @click=${() => this.removeUrl(item.url)}
-                                      >
-                                          <sp-icon-delete slot="icon"></sp-icon-delete>
-                                      </sp-action-button>
+                                      <span class="actions-cell">
+                                          <sp-action-button
+                                              size="xs"
+                                              quiet
+                                              label="Remove item"
+                                              ?disabled=${this.disabled}
+                                              @click=${() => this.removeUrl(item.url)}
+                                          >
+                                              <sp-icon-delete slot="icon"></sp-icon-delete>
+                                              Remove
+                                          </sp-action-button>
+                                      </span>
                                   </li>
                               `,
                           )}
+                          <li class="footer-row" data-testid="items-footer">
+                              <span class="footer-count">${rows.length} URL${rows.length !== 1 ? 's' : ''}</span>
+                              <span class="url-spacer"></span>
+                              ${errorCount > 0
+                                  ? html`<span class="status-cell status-error">
+                                        <sp-icon-alert></sp-icon-alert>
+                                        ${errorCount} error${errorCount !== 1 ? 's' : ''} found
+                                    </span>`
+                                  : html`<span class="status-cell"></span>`}
+                              <span class="actions-cell">
+                                  <sp-action-button
+                                      size="xs"
+                                      quiet
+                                      label="Remove all"
+                                      ?disabled=${this.disabled}
+                                      @click=${this.removeAll}
+                                  >
+                                      <sp-icon-delete slot="icon"></sp-icon-delete>
+                                      Remove all
+                                  </sp-action-button>
+                              </span>
+                          </li>
                       </ul>
                   </div>`
                 : nothing}
@@ -127,7 +149,7 @@ class MasBulkPublishItems extends LitElement {
             <sp-textfield
                 class="url-input"
                 multiline
-                placeholder="For example: https://main--mas--adobecom.hlx.live/studio.html#query=&lt;fragment-id&gt;"
+                placeholder="https://mas.adobe.com/studio.html#&lt;fragment-id&gt;"
                 .value=${this.urls}
                 ?disabled=${this.disabled}
                 @input=${this.handleInput}

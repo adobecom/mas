@@ -53,7 +53,7 @@ class MasSideNav extends LitElement {
             flex-direction: column;
             flex: 1;
             position: relative;
-            padding-bottom: 76px;
+            padding-bottom: 116px;
         }
 
         .side-nav-new-window {

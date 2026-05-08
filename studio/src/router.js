@@ -211,6 +211,7 @@ export class Router extends EventTarget {
      * @param {Object} options - Navigation options
      * @param {string} options.locale - Optional locale to set before navigation
      * @param {import('./reactivity/fragment-store.js').FragmentStore} [options.fragmentStore] - Optional pre-resolved fragment store
+     * @param {boolean} [options.viewPage] - View page instead of editing
      */
     async navigateToFragmentEditor(fragmentId, options = {}) {
         if (!fragmentId) {
@@ -218,20 +219,15 @@ export class Router extends EventTarget {
             return;
         }
 
-        const { locale, fragmentStore: providedFragmentStore } = options;
+        const { locale, fragmentStore: providedFragmentStore, viewPage } = options;
 
         this.isNavigating = true;
         try {
-            // Set locale BEFORE setting page to include it in the first URL change
-            if (locale && locale !== Store.filters.value.locale) {
-                Store.search.set((prev) => ({ ...prev, region: locale }));
-            }
-
             // Check if this is a collection to use editor-panel instead
             const fragmentList = Store.fragments.list.data.get();
             const fragmentStore = providedFragmentStore ?? fragmentList?.find((f) => f.get()?.id === fragmentId);
 
-            if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
+            if (!viewPage && fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
                 // Use editor-panel for collections
                 const editorPanel = document.querySelector('editor-panel');
                 if (editorPanel) {
@@ -246,6 +242,10 @@ export class Router extends EventTarget {
             }
 
             // Default: use full-page fragment editor for regular cards
+            if (locale && locale !== Store.filters.value.locale) {
+                Store.search.set((prev) => ({ ...prev, region: locale }));
+            }
+
             if (Store.editor.hasChanges) {
                 const fragmentEditor = document.querySelector('mas-fragment-editor');
                 const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;

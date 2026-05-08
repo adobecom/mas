@@ -142,9 +142,11 @@
                 describe('editor-panel collection author path and delete', () => {
                     let editorPanel;
                     let previousPage;
+                    let previousFilters;
 
                     beforeEach(async () => {
                         previousPage = Store.page.get();
+                        previousFilters = structuredClone(Store.filters.get());
                         Store.page.value = PAGE_NAMES.CONTENT;
                         editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
                         editorPanel.repository.refreshFragment = async () => {};
@@ -152,6 +154,8 @@
 
                     afterEach(() => {
                         Store.page.value = previousPage;
+                        Store.filters.set(previousFilters);
+                        Store.fragments.inEdit.set(null);
                         sandbox.restore();
                     });
 
@@ -181,6 +185,24 @@
 
                         expect(editorPanel.textContent).to.include('Grouped variation');
                         expect(editorPanel.textContent).to.include('locale-a, locale-b');
+                    });
+
+                    it('authorPath renders regional variation subline in the panel', async () => {
+                        const regional = new Fragment({
+                            id: 'abababab-abab-abab-abab-abababababab',
+                            path: '/content/dam/mas/sandbox/en_BE/pac/regional-collection',
+                            title: 'Regional collection',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        editorPanel.inEdit.set(new FragmentStore(regional));
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(false);
+                        editorPanel.requestUpdate();
+                        await editorPanel.updateComplete;
+
+                        expect(editorPanel.textContent).to.include('Regional variation');
+                        expect(editorPanel.textContent).to.include('Belgium (EN)');
                     });
 
                     it('confirmDelete skips removeFromParentVariations when no parent resolves', async () => {
@@ -236,6 +258,29 @@
 
                         expect(deleteSpy.calledOnceWith(collection)).to.be.true;
                         expect(resetSpy.callCount).to.equal(2);
+                    });
+
+                    it('does not update locale filter when opening a collection locale variation in side editor', async () => {
+                        const regional = new Fragment({
+                            id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+                            path: '/content/dam/mas/sandbox/en_IL/pac/regional-collection',
+                            title: 'Regional coll',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        const store = new FragmentStore(regional);
+                        editorPanel.inEdit.set(store);
+                        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+                        sandbox.stub(editorPanel.editorContextStore, 'loadFragmentContext').resolves();
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
+                        sandbox.stub(editorPanel, 'fetchLocaleDefaultFragment').resolves();
+                        const loadPreviewSpy = sandbox.stub(editorPanel.repository, 'loadPreviewPlaceholders').resolves();
+
+                        await editorPanel.loadLocaleDefaultFragmentContext(regional.id);
+
+                        expect(Store.filters.get().locale).to.equal('en_US');
+                        expect(loadPreviewSpy.called).to.be.false;
                     });
                 });
 

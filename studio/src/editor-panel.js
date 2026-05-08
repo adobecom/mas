@@ -17,6 +17,7 @@ import {
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, showToast, extractLocaleFromPath } from './utils.js';
+import { getCountryName } from '../../io/www/src/fragment/locales.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import router from './router.js';
@@ -456,7 +457,8 @@ export default class EditorPanel extends LitElement {
             if (this.editorContextStore.isVariation(fragmentId)) {
                 await this.fetchLocaleDefaultFragment();
                 const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
-                if (fragmentLocale && fragmentLocale !== Store.filters.value.locale) {
+                const isCollection = this.fragment?.model?.path === COLLECTION_MODEL_PATH;
+                if (!isCollection && fragmentLocale && fragmentLocale !== Store.filters.value.locale) {
                     Store.filters.set((prev) => ({ ...prev, locale: fragmentLocale }));
                     void this.repository.loadPreviewPlaceholders();
                     this.fragmentStore?.resolvePreviewFragment?.();
@@ -1048,8 +1050,14 @@ export default class EditorPanel extends LitElement {
         if (!fragmentParts) return nothing;
         const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
 
+        const isGroupedVariation = Fragment.isGroupedVariationPath(this.fragment.path);
+        const pathVariation = this.editorContextStore.detectVariationFromPath(this.fragment.path)?.isVariation;
+        const isCollectionVariation =
+            this.fragment.model.path === COLLECTION_MODEL_PATH &&
+            (isGroupedVariation || this.editorContextStore.isVariation(this.fragment.id) || pathVariation);
+
         let groupedSubline = nothing;
-        if (this.fragment.model.path === COLLECTION_MODEL_PATH && Fragment.isGroupedVariationPath(this.fragment.path)) {
+        if (isCollectionVariation && isGroupedVariation) {
             const pznTags = this.fragment.getFieldValues('pznTags') || [];
             if (pznTags.length) {
                 const localeCodes = pznTags.map((tag) => {
@@ -1062,10 +1070,21 @@ export default class EditorPanel extends LitElement {
             }
         }
 
+        let regionalVariationInfo = nothing;
+        if (isCollectionVariation && !isGroupedVariation) {
+            const localeCode = extractLocaleFromPath(this.fragment.path);
+            const [lang, country] = localeCode?.split('_') || [];
+            if (lang && country) {
+                regionalVariationInfo = html`<p class="locale-variation-header">
+                    <span>Regional variation: <strong>${getCountryName(country)} (${lang.toUpperCase()})</strong></span>
+                </p>`;
+            }
+        }
+
         return html`
             <div>
                 <p id="author-path">${modelName}: ${fragmentParts}</p>
-                ${groupedSubline}
+                ${groupedSubline} ${regionalVariationInfo}
             </div>
         `;
     }

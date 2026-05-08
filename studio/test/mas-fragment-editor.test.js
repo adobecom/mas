@@ -1064,7 +1064,8 @@ describe('MasFragmentEditor', () => {
         it('handles fragment copied', () => {
             const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
             el.handleFragmentCopied({ detail: { fragment: { id: 'copied-id' } } });
-            expect(navigateSpy.calledWith('copied-id')).to.be.true;
+            expect(navigateSpy.calledOnce).to.be.true;
+            expect(navigateSpy.firstCall.args[0]).to.equal('copied-id');
         });
 
         it('handleFragmentCopied calls cancelCreateVariation and navigates when parentFragment is present', () => {
@@ -1074,7 +1075,8 @@ describe('MasFragmentEditor', () => {
                 detail: { fragment: { id: 'copied-with-parent' }, parentFragment: { id: 'parent-id', path: '/p' } },
             });
             expect(el.cancelCreateVariation.calledOnce).to.be.true;
-            expect(navigateSpy.calledWith('copied-with-parent')).to.be.true;
+            expect(navigateSpy.calledOnce).to.be.true;
+            expect(navigateSpy.firstCall.args[0]).to.equal('copied-with-parent');
         });
 
         it('renders locale variation header', async () => {

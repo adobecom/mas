@@ -1367,7 +1367,9 @@ export default class MasFragmentEditor extends LitElement {
             if (AemFragment?.cache) {
                 AemFragment.cache.add(copiedFragment);
             }
-            router.navigateToFragmentEditor(copiedFragment.id);
+            const locale = extractLocaleFromPath(copiedFragment.path);
+            const viewPage = this.fragment?.model?.path === COLLECTION_MODEL_PATH;
+            router.navigateToFragmentEditor(copiedFragment.id, { locale, viewPage });
         }
     }
 

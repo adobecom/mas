@@ -2,11 +2,18 @@ import { LitElement, html, nothing, css } from 'lit';
 
 class MasBulkPublishConfirmDialog extends LitElement {
     static styles = css`
+        p {
+            margin: 0 0 4px;
+        }
+        .warning {
+            font-weight: 700;
+            margin: 0 0 16px;
+        }
         dl {
             display: grid;
             grid-template-columns: auto 1fr;
             gap: 4px 12px;
-            margin: 12px 0 0;
+            margin: 0;
         }
         dt {
             font-weight: 700;
@@ -15,16 +22,19 @@ class MasBulkPublishConfirmDialog extends LitElement {
             margin: 0;
         }
     `;
+
     static properties = {
         projectTitle: { type: String },
-        itemCount: { type: Number },
+        validCount: { type: Number },
+        skippedCount: { type: Number },
         open: { type: Boolean },
     };
 
     constructor() {
         super();
         this.projectTitle = '';
-        this.itemCount = 0;
+        this.validCount = 0;
+        this.skippedCount = 0;
         this.open = false;
     }
 
@@ -38,6 +48,7 @@ class MasBulkPublishConfirmDialog extends LitElement {
 
     render() {
         if (!this.open) return nothing;
+        const total = this.validCount + this.skippedCount;
         return html`
             <sp-dialog-wrapper
                 open
@@ -52,13 +63,18 @@ class MasBulkPublishConfirmDialog extends LitElement {
                 @close=${this.cancel}
             >
                 <p>This project will be published immediately.</p>
+                ${this.skippedCount > 0
+                    ? html`<p class="warning">
+                          Note that ${this.skippedCount}
+                          ${this.skippedCount === 1 ? 'item has' : 'items have'} a false URL and will be skipped. The
+                          remaining ${this.validCount} ${this.validCount === 1 ? 'item' : 'items'} will be published.
+                      </p>`
+                    : nothing}
                 <dl>
                     <dt>Project:</dt>
                     <dd>${this.projectTitle}</dd>
-                    <dt>Scheduled:</dt>
-                    <dd>Now</dd>
                     <dt>Items:</dt>
-                    <dd>${this.itemCount}</dd>
+                    <dd>${this.validCount} of ${total}</dd>
                 </dl>
             </sp-dialog-wrapper>
         `;

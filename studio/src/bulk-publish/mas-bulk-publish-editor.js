@@ -577,7 +577,8 @@ class MasBulkPublishEditor extends LitElement {
             ></mas-quick-actions>
             <mas-bulk-publish-confirm-dialog
                 .projectTitle=${this.title}
-                .itemCount=${this.items.filter((i) => i.status === 'valid').length}
+                .validCount=${this.items.filter((i) => i.status === 'valid').length}
+                .skippedCount=${this.items.filter((i) => i.status !== 'valid').length}
                 .open=${this.confirmOpen}
                 @publish-confirmed=${this.handleConfirmPublish}
                 @publish-cancelled=${this.handleConfirmCancel}

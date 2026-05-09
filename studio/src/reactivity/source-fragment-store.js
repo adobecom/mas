@@ -1,6 +1,8 @@
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from './fragment-store.js';
-import { PreviewFragmentStore } from './preview-fragment-store.js';
+import { PreviewFragmentStore, INHERITED_SETTINGS_FIELDS } from './preview-fragment-store.js';
+import Store from '../store.js';
+import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
 
 export class SourceFragmentStore extends FragmentStore {
     /** @type {PreviewFragmentStore} */
@@ -148,6 +150,40 @@ export function createPreviewDataWithParent(sourceFragment, parentFragment) {
             }
         }
     });
+
+    const settingsRows = Store.settings.rows.get?.();
+    if (parentFragment && Array.isArray(settingsRows) && settingsRows.length > 0) {
+        const defaults = getGlobalSettingsDefaults(parentFragment, settingsRows);
+        for (const fieldName of INHERITED_SETTINGS_FIELDS) {
+            const previewField = previewData.fields?.find((f) => f.name === fieldName);
+            const previewVals = previewField?.values ?? [];
+
+            const isExplicitInheritSentinel =
+                previewVals.length === 1 && previewVals[0] === '' && previewField?.multiple !== true;
+            if (isExplicitInheritSentinel) {
+                continue;
+            }
+            if (previewVals.length > 0) {
+                continue;
+            }
+
+            const fallback = defaults[fieldName];
+            if (fallback === undefined || fallback === null || fallback === '') {
+                continue;
+            }
+
+            if (previewField) {
+                previewField.values = [fallback];
+            } else {
+                previewData.fields.push({
+                    name: fieldName,
+                    values: [fallback],
+                    multiple: false,
+                    type: 'text',
+                });
+            }
+        }
+    }
 
     return previewData;
 }

@@ -66,7 +66,6 @@ export class QuantitySelectSettingsField extends LitElement {
     }
 
     render() {
-        if (!this.settingsDefaults) return nothing;
         return html`
             <sp-field-group id="${this.id}">
                 <div class="field-row">

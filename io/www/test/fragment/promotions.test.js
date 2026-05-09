@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { transformer as promotionsTransformer, clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { createResponse } from './mocks/MockFetch.js';
 
-const FOLDER_URL = 'https://odin.adobe.com/adobe/contentFragments?path=/content/dam/mas/promotions';
+const FOLDER_URL = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions';
 const hydrateUrl = (id) => `https://odin.adobe.com/adobe/contentFragments/${id}?references=all-hydrated`;
 
 // Fixed reference instant: 2025-06-15 12:00 UTC
@@ -28,7 +28,7 @@ function createContext(overrides = {}) {
     };
 }
 
-const PROMO_TAG = '/content/cq:tags/mas/promotion/black-friday';
+const PROMO_TAG = 'mas:promotion/black-friday';
 
 function makeProject({
     id = 'proj-1',

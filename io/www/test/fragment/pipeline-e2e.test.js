@@ -226,7 +226,7 @@ describe('pipeline end to end', () => {
 
         // Mock promotions folder for adobe-home
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments?path=/content/dam/mas/promotions')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions')
             .returns(createResponse(200, { items: [] }));
 
         const state = new MockState();

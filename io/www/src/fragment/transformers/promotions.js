@@ -72,7 +72,7 @@ async function fetchProjects(context) {
     }
 
     const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
-    const folderUrl = `${baseUrl}?path=${PROMOTIONS_PATH}`;
+    const folderUrl = `${baseUrl}/?path=${PROMOTIONS_PATH}`;
     const response = await fetch(folderUrl, context, 'promotions-folder');
     if (response.status !== 200) {
         logDebug(() => `Failed to fetch promotions folder: ${response.message}`, context);
@@ -80,9 +80,10 @@ async function fetchProjects(context) {
     }
 
     const items = response.body?.items ?? [];
-    const projects = items.map(({ id, path, fields }) => ({
+    const projects = items.map(({ id, path, name, fields }) => ({
         id,
         path,
+        name,
         surfaces: fields?.surfaces ?? [],
         geos: fields?.geos ?? [],
         startDate: fields?.startDate ?? null,
@@ -100,7 +101,7 @@ function toInstant(value) {
     return new Date(value).getTime();
 }
 
-const PROMO_TAG_PREFIX = '/content/cq:tags/mas/promotion';
+const PROMO_TAG_PREFIX = 'mas:promotion/';
 
 /**
  * Parses project-level offer override lines of the form "<osis>:<promocode>:<countries>"

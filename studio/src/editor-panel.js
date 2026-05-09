@@ -603,7 +603,6 @@ export default class EditorPanel extends LitElement {
     async confirmDelete() {
         this.showDeleteDialog = false;
         try {
-            Store.editor.resetChanges();
             if (this.editorContextStore.isVariation(this.fragment.id)) {
                 let parent = this.localeDefaultFragment;
                 if (!parent) {

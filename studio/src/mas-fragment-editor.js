@@ -843,7 +843,20 @@ export default class MasFragmentEditor extends LitElement {
             await this.editorContextStore.loadFragmentContext(fragmentId, fragment.path);
 
             const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
-            const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
+            let parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
+            if (parentFragment?.path && fragment.model?.path === COLLECTION_MODEL_PATH) {
+                try {
+                    const hydrated = await this.repository.aem.sites.cf.fragments.getByPath(parentFragment.path, {
+                        references: 'direct-hydrated',
+                    });
+                    if (Store.fragmentEditor.fragmentId.get() === fragmentId) {
+                        parentFragment = new Fragment(hydrated);
+                        this.localeDefaultFragment = parentFragment;
+                    }
+                } catch (e) {
+                    console.debug('Hydrated collection parent fetch failed', e);
+                }
+            }
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
             if (isVariationForStore) {

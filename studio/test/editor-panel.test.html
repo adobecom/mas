@@ -235,7 +235,7 @@
                                 endToast: false,
                             }),
                         ).to.be.true;
-                        expect(resetSpy.callCount).to.equal(2);
+                        expect(resetSpy.callCount).to.equal(1);
                     });
 
                     it('confirmDelete calls deleteFragment with fragment only for non-variation', async () => {
@@ -257,7 +257,7 @@
                         await editorPanel.confirmDelete();
 
                         expect(deleteSpy.calledOnceWith(collection)).to.be.true;
-                        expect(resetSpy.callCount).to.equal(2);
+                        expect(resetSpy.callCount).to.equal(1);
                     });
 
                     it('does not update locale filter when opening a collection locale variation in side editor', async () => {
@@ -327,7 +327,7 @@
                         await editorPanel.confirmDelete();
 
                         expect(editorPanel.showDeleteDialog).to.be.false;
-                        expect(resetSpy.callCount).to.equal(2);
+                        expect(resetSpy.callCount).to.equal(1);
                         expect(removeSpy.calledOnceWith(parentFrag, grouped.path)).to.be.true;
                         expect(
                             deleteSpy.calledOnceWith(grouped, {

@@ -179,12 +179,14 @@ export class MerchQuantitySelect extends LitElement {
             changedProperties.has('defaultValue')
         ) {
             this.options = this.generateOptionsArray();
-            this.highlightedIndex = this.defaultValue
-                ? this.options.indexOf(this.defaultValue)
-                : 0;
-            this.handleMenuOption(
-                this.defaultValue ? this.defaultValue : this.options[0],
-            );
+            const fallback = this.options[0];
+            const resolved =
+                this.defaultValue != null &&
+                this.options.includes(this.defaultValue)
+                    ? this.defaultValue
+                    : fallback;
+            this.highlightedIndex = this.options.indexOf(resolved);
+            this.handleMenuOption(resolved);
         }
         super.update(changedProperties);
     }

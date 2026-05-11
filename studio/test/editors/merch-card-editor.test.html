@@ -900,6 +900,17 @@
                             expect(indicators.length).to.equal(0);
                         });
 
+                        it('shows quantity selector toggle in locale variation when no global quantitySelect row exists', async () => {
+                            await setupSettingsTest({
+                                isVariation: true,
+                                testId: 'variation-qty-no-global-row',
+                                settingsRows: createDefaultSettingsRows().filter((row) => row.value.name !== 'quantitySelect'),
+                            });
+
+                            const toggle = editor.querySelector('#quantity-select-settings-field-toggle');
+                            expect(toggle).to.exist;
+                        });
+
                         it('shows override indicator when card overrides a global setting', async () => {
                             await setupSettingsTest({
                                 isVariation: false,
@@ -1158,6 +1169,28 @@
                             .querySelector('quantity-select-field')
                             .shadowRoot.querySelector('#quantity-selector-start');
                         expect(qsStartl2.value).to.equal('1');
+
+                        const qsDefault = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('#quantity-selector-default');
+                        expect(qsDefault.value).to.equal('1');
+
+                        qsDefault.value = '2';
+                        qsDefault.dispatchEvent(new CustomEvent('input', { bubbles: true, composed: true }));
+
+                        await editor.updateComplete;
+
+                        const settingOverrideIndicatorMain2 = field.querySelector('.setting-override-indicator');
+                        expect(settingOverrideIndicatorMain2).to.exist;
+
+                        settingOverrideIndicatorMain2.click();
+
+                        await delay(200);
+
+                        const qsDefault2 = field
+                            .querySelector('quantity-select-field')
+                            .shadowRoot.querySelector('#quantity-selector-default');
+                        expect(qsDefault2.value).to.equal('1');
                     });
 
                     describe('getWhatsIncludedProps', () => {

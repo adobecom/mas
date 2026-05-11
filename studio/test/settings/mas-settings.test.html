@@ -601,10 +601,10 @@
                             expect(quantitySelect.getAttribute('layout')).to.equal('vertical');
 
                             const fieldGroups = quantitySelect.shadowRoot.querySelectorAll('sp-field-group');
-                            expect(fieldGroups.length).to.equal(3);
+                            expect(fieldGroups.length).to.equal(4);
 
                             const textfields = [...quantitySelect.shadowRoot.querySelectorAll('sp-textfield')];
-                            expect(textfields.map((field) => field.getAttribute('size'))).to.deep.equal(['m', 'm', 'm']);
+                            expect(textfields.map((field) => field.getAttribute('size'))).to.deep.equal(['m', 'm', 'm', 'm']);
                         });
                     });
 
@@ -799,7 +799,7 @@
                             quantitySelect.dispatchEvent(
                                 new CustomEvent('change', {
                                     detail: {
-                                        value: '<merch-quantity-select title="Qty" min="2" max="10" step="2"></merch-quantity-select>',
+                                        value: '<merch-quantity-select title="Qty" min="2" default-value="2" max="10" step="2"></merch-quantity-select>',
                                     },
                                     bubbles: true,
                                     composed: true,
@@ -817,7 +817,7 @@
                                 templateIds: ['catalog'],
                                 tags: [],
                                 valueType: 'optional-text',
-                                value: '<merch-quantity-select title="Qty" min="2" max="10" step="2"></merch-quantity-select>',
+                                value: '<merch-quantity-select title="Qty" min="2" default-value="2" max="10" step="2"></merch-quantity-select>',
                                 booleanValue: true,
                             });
                             Store.settings.createSetting = originalCreate;

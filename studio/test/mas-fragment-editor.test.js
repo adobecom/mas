@@ -176,6 +176,78 @@ describe('MasFragmentEditor', () => {
         expect(css).to.contain('--consonant-merch-card-border-color: transparent');
     });
 
+    it('adds transparent whats-included divider to preview CSS custom properties', () => {
+        const fragment = new Fragment({
+            id: 'test-id',
+            fields: [{ name: 'whatsIncludedDividerColor', values: ['transparent'] }],
+        });
+        const el = document.createElement('mas-fragment-editor');
+        el.inEdit.value = { get: () => fragment };
+
+        expect(el.previewCSSCustomProperties).to.contain('--consonant-merch-card-whats-included-divider-color: transparent');
+    });
+
+    it('adds non-gradient whats-included divider as var() in preview CSS custom properties', () => {
+        const fragment = new Fragment({
+            id: 'test-id',
+            fields: [{ name: 'whatsIncludedDividerColor', values: ['gray-100'] }],
+        });
+        const el = document.createElement('mas-fragment-editor');
+        el.inEdit.value = { get: () => fragment };
+
+        expect(el.previewCSSCustomProperties).to.contain(
+            '--consonant-merch-card-whats-included-divider-color: var(--gray-100)',
+        );
+    });
+
+    it('omits gradient divider from preview CSS (attribute-only tokens)', () => {
+        const fragment = new Fragment({
+            id: 'test-id',
+            fields: [{ name: 'whatsIncludedDividerColor', values: ['gradient-purple-blue'] }],
+        });
+        const el = document.createElement('mas-fragment-editor');
+        el.inEdit.value = { get: () => fragment };
+
+        expect(el.previewCSSCustomProperties).to.not.contain('--consonant-merch-card-whats-included-divider-color');
+    });
+
+    it('prefers markup whats-included divider over fragment field for preview attribute', () => {
+        const html = '<merch-whats-included whats-included-divider-color="spectrum-green-900-plans"></merch-whats-included>';
+        const fragment = new Fragment({
+            id: 'test-id',
+            fields: [
+                { name: 'whatsIncluded', values: [html] },
+                { name: 'whatsIncludedDividerColor', values: ['spectrum-yellow-300-plans'] },
+            ],
+        });
+        const el = document.createElement('mas-fragment-editor');
+        el.inEdit.value = { get: () => fragment };
+
+        expect(el.previewWhatsIncludedDividerAttribute).to.equal('spectrum-green-900-plans');
+    });
+
+    it('exposes gradient divider on previewWhatsIncludedDividerAttribute', () => {
+        const fragment = new Fragment({
+            id: 'test-id',
+            fields: [{ name: 'whatsIncludedDividerColor', values: ['gradient-purple-blue'] }],
+        });
+        const el = document.createElement('mas-fragment-editor');
+        el.inEdit.value = { get: () => fragment };
+
+        expect(el.previewWhatsIncludedDividerAttribute).to.equal('gradient-purple-blue');
+    });
+
+    it('returns empty previewWhatsIncludedDividerAttribute for non-spectrum tokens', () => {
+        const fragment = new Fragment({
+            id: 'test-id',
+            fields: [{ name: 'whatsIncludedDividerColor', values: ['gray-100'] }],
+        });
+        const el = document.createElement('mas-fragment-editor');
+        el.inEdit.value = { get: () => fragment };
+
+        expect(el.previewWhatsIncludedDividerAttribute).to.equal('');
+    });
+
     describe('initFragment', () => {
         let el;
         let mockRepo;

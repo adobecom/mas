@@ -15,6 +15,10 @@ export const features = [
             variation_id: '4c850ef8-9295-4699-a9dd-0bac385df487',
             badgeText: '[en_GR, AR] grouped variation',
             badgeColor: 'rgb(5, 131, 78)', // Green 900
+            price: {
+                gr_en: PRICE_PATTERN.GR.mo_en,
+                ar_en: PRICE_PATTERN.AR.mo_en,
+            },
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
@@ -26,6 +30,7 @@ export const features = [
             id: 'e5e40288-6b53-4a40-8cc2-010037b1ab85',
             variation_id: 'a55c1d3b-2024-4489-931e-6966f345b35f',
             subtitle: 'GR regional variation',
+            price: PRICE_PATTERN.GR.mo_en,
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
@@ -66,6 +71,7 @@ export const features = [
             collection_id: 'b5486c6e-34c6-40a4-aa31-37eca4edf35d',
             variation_collection_id: 'a74b83a6-116c-4bc0-9cb0-b52e050cc712',
             subtitle: 'en_GR grouped variation',
+            price: PRICE_PATTERN.GR.mo_en,
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
@@ -79,6 +85,7 @@ export const features = [
             collection_id: 'b5486c6e-34c6-40a4-aa31-37eca4edf35d',
             variation_collection_id: 'a74b83a6-116c-4bc0-9cb0-b52e050cc712',
             subtitle: 'GR regional variation',
+            price: PRICE_PATTERN.GR.mo_en,
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
@@ -92,6 +99,10 @@ export const features = [
             collection_id: '4a466a3c-efa2-4406-ae47-93abd2167e27',
             subtitle: 'Grouped variation of ES',
             badgeColor: 'rgb(80, 80, 80)', // Grey 700
+            price: {
+                ar: PRICE_PATTERN.AR.mo,
+                ar_en: PRICE_PATTERN.AR.mo_en,
+            },
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },
@@ -104,6 +115,10 @@ export const features = [
             variation_card_id: '9e201d14-c100-4397-a9a7-7ee1116e09f9',
             collection_id: '4a466a3c-efa2-4406-ae47-93abd2167e27',
             subtitle: 'AR regional variation from ES',
+            price: {
+                ar: PRICE_PATTERN.AR.mo,
+                ar_en: PRICE_PATTERN.AR.mo_en,
+            },
         },
         tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
     },

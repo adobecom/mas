@@ -1,4 +1,4 @@
-import { PRICE_PATTERN, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
+import { PRICE_PATTERN, DOCS_GALLERY_PATH } from '../../../utils/commerce.js';
 
 export const FeatureName = 'Merch Acom Cards Feature';
 export const features = [

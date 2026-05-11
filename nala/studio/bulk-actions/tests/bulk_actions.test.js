@@ -31,14 +31,14 @@ test.describe('M@S Studio Bulk Actions Test Suite', () => {
         });
 
         await test.step('step-5: Verify Copy URLs button is visible in the selection action bar', async () => {
-            const copyUrlsButton = page.locator('mas-selection-panel >> sp-action-button[label="Copy URLs"]');
+            const copyUrlsButton = page.locator('mas-selection-panel >> sp-action-button[label="Copy Code"]');
             await expect(copyUrlsButton).toBeVisible({ timeout: 5000 });
         });
 
         await test.step('step-6: Click Copy URLs and verify success toast', async () => {
             await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-            const copyUrlsButton = page.locator('mas-selection-panel >> sp-action-button[label="Copy URLs"]');
+            const copyUrlsButton = page.locator('mas-selection-panel >> sp-action-button[label="Copy Code"]');
             await copyUrlsButton.click();
 
             await expect(studio.toastPositive).toBeVisible({ timeout: 10000 });

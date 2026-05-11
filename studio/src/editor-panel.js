@@ -16,7 +16,7 @@ import {
 } from './constants.js';
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
-import { generateCodeToUse, showToast, extractLocaleFromPath } from './utils.js';
+import { generateCodeToUse, showToast, extractLocaleFromPath, previewFragmentOnPage } from './utils.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import router from './router.js';
@@ -158,14 +158,14 @@ export default class EditorPanel extends LitElement {
         this.variationsToDelete = [];
 
         // MWPW-182720: Drag properties
-        this.dragX = window.innerWidth - 480;
+        this.dragX = window.innerWidth - 520;
         this.dragY = 20;
         this.isDragging = false;
         this.dragStartX = 0;
         this.dragStartY = 0;
 
         // MWPW-182720: Resize properties
-        this.editorWidth = 460;
+        this.editorWidth = 500;
         this.editorHeight = null;
         this.isResizing = false;
         this.resizeDirection = null;
@@ -525,6 +525,10 @@ export default class EditorPanel extends LitElement {
         });
     }
 
+    previewOnPage() {
+        previewFragmentOnPage(this.fragment);
+    }
+
     async copyToUse() {
         const { code, richText, href } = generateCodeToUse(
             this.fragment,
@@ -789,6 +793,10 @@ export default class EditorPanel extends LitElement {
                             : html` <sp-icon-duplicate slot="icon"></sp-icon-duplicate>`}
 
                         <sp-tooltip self-managed placement="bottom">Clone (Ctrl+L)</sp-tooltip>
+                    </sp-action-button>
+                    <sp-action-button label="Preview" title="Preview on page" value="preview" @click="${this.previewOnPage}">
+                        <sp-icon-preview slot="icon"></sp-icon-preview>
+                        <sp-tooltip self-managed placement="bottom">Preview on page</sp-tooltip>
                     </sp-action-button>
                     <sp-action-button label="Publish" title="Publish (Ctrl+U)" value="publish" @click="${this.publishFragment}">
                         ${this.operation.equals(OPERATIONS.PUBLISH)

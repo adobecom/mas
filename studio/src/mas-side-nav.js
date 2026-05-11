@@ -3,7 +3,7 @@ import router from './router.js';
 import Store from './store.js';
 import { PAGE_NAMES, SURFACES, TRANSLATIONS_ALLOWED_SURFACES } from './constants.js';
 import Events from './events.js';
-import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue } from './utils.js';
+import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue, previewFragmentOnPage } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { canAccessSettings } from './groups.js';
@@ -302,6 +302,10 @@ class MasSideNav extends LitElement {
     async publishFragment() {
         if (!this.fragmentEditor) return;
         await this.fragmentEditor.publishFragment();
+    }
+
+    previewFragment() {
+        previewFragmentOnPage(this.fragmentEditor?.fragment);
     }
 
     async copyCode() {
@@ -917,6 +921,9 @@ class MasSideNav extends LitElement {
                       </mas-side-nav-item>
                   `
                 : ''}
+            <mas-side-nav-item label="Preview" ?disabled=${loading} @nav-click="${this.previewFragment}">
+                <sp-icon-preview slot="icon"></sp-icon-preview>
+            </mas-side-nav-item>
             <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>

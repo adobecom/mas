@@ -28,9 +28,7 @@ describe('mas-bulk-publish-locales', () => {
     });
 
     it('shows Edit button when locales present, not when empty', async () => {
-        const withLocales = await fixture(html`
-            <mas-bulk-publish-locales .locales=${['US']}></mas-bulk-publish-locales>
-        `);
+        const withLocales = await fixture(html` <mas-bulk-publish-locales .locales=${['US']}></mas-bulk-publish-locales> `);
         await withLocales.updateComplete;
         expect(withLocales.shadowRoot.querySelector('[data-testid="edit-locales-btn"]')).to.exist;
 

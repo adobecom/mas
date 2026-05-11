@@ -68,6 +68,15 @@ export const styles = css`
     }
     .add-by-search {
         margin-top: 8px;
+        --mod-actionbutton-background-color-default: var(--spectrum-gray-100, #f5f5f5);
+        --mod-actionbutton-background-color-hover: var(--spectrum-gray-200, #eaeaea);
+        --mod-actionbutton-background-color-down: var(--spectrum-gray-300, #e1e1e1);
+        --mod-actionbutton-background-color-focus: var(--spectrum-gray-100, #f5f5f5);
+        --mod-actionbutton-border-color-default: transparent;
+        --mod-actionbutton-border-color-hover: transparent;
+        --mod-actionbutton-border-color-down: transparent;
+        --mod-actionbutton-border-color-focus: transparent;
+        border-radius: var(--spectrum-corner-radius-100, 4px);
     }
     .warning {
         display: none;

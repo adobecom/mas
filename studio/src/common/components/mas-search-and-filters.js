@@ -309,10 +309,14 @@ class MasSearchAndFilters extends LitElement {
                     if (!key.includes(query) && !value.includes(query)) return false;
                 } else {
                     const title = (fragment.title || '').toLowerCase();
+                    const studioPath = (fragment.studioPath || '').toLowerCase();
+                    const path = (fragment.path || '').toLowerCase();
                     const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
                     const offerId = fragment.offerData?.offerId || '';
                     if (
                         !title.includes(query) &&
+                        !studioPath.includes(query) &&
+                        !path.includes(query) &&
                         !productTag.toLowerCase().includes(query) &&
                         !offerId.toLowerCase().includes(query)
                     ) {

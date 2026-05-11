@@ -1,7 +1,23 @@
 import { LitElement, html, nothing, css } from 'lit';
+import { ALERT_DIAMOND_SVG } from './bulk-publish-icons.js';
 
 class MasBulkPublishConfirmDialog extends LitElement {
     static styles = css`
+        .heading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 16px;
+            font-family: var(--spectrum-sans-font-family-stack, 'Adobe Clean', sans-serif);
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 26px;
+            color: var(--spectrum-heading-color, #131313);
+        }
+        .heading svg {
+            flex-shrink: 0;
+            color: #d45b00;
+        }
         p {
             margin: 0 0 4px;
         }
@@ -49,11 +65,11 @@ class MasBulkPublishConfirmDialog extends LitElement {
     render() {
         if (!this.open) return nothing;
         const total = this.validCount + this.skippedCount;
+        const hasSkipped = this.skippedCount > 0;
         return html`
             <sp-dialog-wrapper
                 open
                 mode="modal"
-                headline="Publish project"
                 cancel-label="Cancel"
                 confirm-label="Publish"
                 underlay
@@ -62,17 +78,23 @@ class MasBulkPublishConfirmDialog extends LitElement {
                 @cancel=${this.cancel}
                 @close=${this.cancel}
             >
+                <h2 class="heading">
+                    ${hasSkipped ? ALERT_DIAMOND_SVG : nothing}
+                    <span>Publish project</span>
+                </h2>
                 <p>This project will be published immediately.</p>
-                ${this.skippedCount > 0
+                ${hasSkipped
                     ? html`<p class="warning">
-                          Note that ${this.skippedCount}
-                          ${this.skippedCount === 1 ? 'item has' : 'items have'} a false URL and will be skipped. The
-                          remaining ${this.validCount} ${this.validCount === 1 ? 'item' : 'items'} will be published.
+                          Note that ${this.skippedCount} ${this.skippedCount === 1 ? 'item has' : 'items have'} a false URL and
+                          will be skipped. The remaining ${this.validCount} ${this.validCount === 1 ? 'item' : 'items'} will be
+                          published.
                       </p>`
                     : nothing}
                 <dl>
                     <dt>Project:</dt>
                     <dd>${this.projectTitle}</dd>
+                    <dt>Scheduled:</dt>
+                    <dd>Now</dd>
                     <dt>Items:</dt>
                     <dd>${this.validCount} of ${total}</dd>
                 </dl>

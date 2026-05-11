@@ -347,11 +347,11 @@ describe('MasSearchAndFilters', () => {
     describe('search functionality', () => {
         it('should filter displayCards locally when searchQuery is set on cards', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({ title: 'Photoshop' }),
-                createMockFragment({ title: 'Illustrator' }),
+                createMockFragment({ title: 'Photoshop', path: '/content/dam/mas/acom/en_US/photoshop' }),
+                createMockFragment({ title: 'Illustrator', path: '/content/dam/mas/acom/en_US/illustrator' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'test';
+            el.searchQuery = 'nomatch';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
@@ -400,15 +400,49 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayPlaceholders.get().length).to.equal(1);
         });
 
-        it('should filter displayCollections locally when searchQuery is set', async () => {
+        it('should filter displayCollections by studioPath when searchQuery matches', async () => {
             Store.translationProjects.allCollections.set([
-                createMockFragment({ title: 'matching collection' }),
-                createMockFragment({ title: 'other collection' }),
+                createMockFragment({ title: '', studioPath: 'sandbox/promo-collection' }),
+                createMockFragment({ title: '', studioPath: 'sandbox/other-collection' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
-            el.searchQuery = 'test';
+            el.searchQuery = 'promo';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCollections.get().length).to.equal(0);
+            const result = Store.translationProjects.displayCollections.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].studioPath).to.equal('sandbox/promo-collection');
+        });
+
+        it('should filter displayCollections by path when studioPath is missing', async () => {
+            Store.translationProjects.allCollections.set([
+                createMockFragment({
+                    title: '',
+                    path: '/content/dam/mas/acom/en_US/special-collection',
+                }),
+                createMockFragment({
+                    title: '',
+                    path: '/content/dam/mas/acom/en_US/regular-collection',
+                }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
+            el.searchQuery = 'special';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayCollections.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].path).to.include('special-collection');
+        });
+
+        it('should filter displayPlaceholders by exact key value', async () => {
+            Store.translationProjects.allPlaceholders.set([
+                createMockPlaceholder({ key: 'cta-promo', value: 'Buy now' }),
+                createMockPlaceholder({ key: 'cta-learn', value: 'Learn more' }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="placeholders"></mas-search-and-filters>`);
+            el.searchQuery = 'cta-promo';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayPlaceholders.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].key).to.equal('cta-promo');
         });
     });
 

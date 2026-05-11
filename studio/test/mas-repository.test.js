@@ -432,13 +432,14 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('loadFolders', () => {
-        it('should filter out images and promotions by default', async () => {
+        it('should filter out images, promotions and bulk-publish-projects by default', async () => {
             const repository = createRepository();
             const mockChildren = [
                 { name: 'acom' },
                 { name: 'ccd' },
                 { name: 'images' },
                 { name: 'promotions' },
+                { name: 'bulk-publish-projects' },
                 { name: 'express' },
             ];
             repository.aem = createAemMock({
@@ -463,6 +464,7 @@ describe('MasRepository dictionary helpers', () => {
                 expect(setFoldersCall).to.deep.equal(['acom', 'ccd', 'express']);
                 expect(setFoldersCall).to.not.include('images');
                 expect(setFoldersCall).to.not.include('promotions');
+                expect(setFoldersCall).to.not.include('bulk-publish-projects');
             } finally {
                 Store.folders.loaded.set = originalStoreLoaded;
                 Store.folders.data.set = originalStoreData;

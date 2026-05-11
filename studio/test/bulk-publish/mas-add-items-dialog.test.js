@@ -36,4 +36,23 @@ describe('mas-add-items-dialog store reset', () => {
         await el.updateComplete;
         expect(Store.bulkPublishProjects.selectedCards.value).to.deep.equal(['/keep-me']);
     });
+
+    it('renders search-only mas-search-and-filters on Collections tab', async () => {
+        const el = await fixture(html`<mas-add-items-dialog></mas-add-items-dialog>`);
+        el.open = true;
+        el.selectedTab = 'collections';
+        await el.updateComplete;
+        const search = el.shadowRoot.querySelector('mas-search-and-filters[search-only]');
+        expect(search).to.exist;
+        expect(search.getAttribute('search-only')).to.not.be.null;
+    });
+
+    it('renders search-only mas-search-and-filters on Placeholders tab', async () => {
+        const el = await fixture(html`<mas-add-items-dialog></mas-add-items-dialog>`);
+        el.open = true;
+        el.selectedTab = 'placeholders';
+        await el.updateComplete;
+        const search = el.shadowRoot.querySelector('mas-search-and-filters[search-only]');
+        expect(search).to.exist;
+    });
 });

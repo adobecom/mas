@@ -1,6 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
+import router from '../router.js';
 import { styles } from './mas-bulk-publish-editor.css.js';
 import {
     QUICK_ACTION,
@@ -8,6 +9,7 @@ import {
     BULK_PUBLISH_PROJECT_MODEL_ID,
     BULK_PUBLISH_PARENT_PATH,
     PAGE_NAMES,
+    STATUS_PUBLISHED,
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
@@ -22,6 +24,12 @@ import './mas-bulk-publish-confirm-dialog.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, LOCK_OPEN_SVG, DELETE_SVG } from './bulk-publish-icons.js';
 import { generateCodeToUse, showToast, normalizeKey } from '../utils.js';
+
+const PUBLISH_BLOCKED_REASON = {
+    UNSAVED: 'Project must be saved before publishing',
+    ALREADY_PUBLISHED: 'Project is already published',
+    ALL_ITEMS_PUBLISHED: 'All items are already published',
+};
 
 function buildProjectPayload({ surface, title, status, urls, items, locales }) {
     return {
@@ -167,6 +175,20 @@ class MasBulkPublishEditor extends LitElement {
         return this.items.some((i) => i.status === 'valid');
     }
 
+    get allAlreadyPublished() {
+        if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) return true;
+        const valid = this.items.filter((i) => i.status === 'valid');
+        return valid.length > 0 && valid.every((i) => i.alreadyPublished);
+    }
+
+    get publishBlockedReason() {
+        if (this.isNewProject || this.hasChanges) return PUBLISH_BLOCKED_REASON.UNSAVED;
+        if (!this.hasValidItems) return '';
+        if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) return PUBLISH_BLOCKED_REASON.ALREADY_PUBLISHED;
+        if (this.allAlreadyPublished) return PUBLISH_BLOCKED_REASON.ALL_ITEMS_PUBLISHED;
+        return '';
+    }
+
     get isNewProject() {
         return !this.project?.id;
     }
@@ -204,7 +226,7 @@ class MasBulkPublishEditor extends LitElement {
             disabled.add(QUICK_ACTION.SAVE);
         }
         if (!this.items.length) disabled.add(QUICK_ACTION.COPY);
-        if (!this.hasValidItems || this.status === BULK_PUBLISH_STATUS.PUBLISHING) {
+        if (!this.hasValidItems || this.publishBlockedReason || this.status === BULK_PUBLISH_STATUS.PUBLISHING) {
             disabled.add(QUICK_ACTION.PUBLISH);
         }
         return disabled;
@@ -416,17 +438,18 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async deleteBulkProject() {
-        if (this.isNewProject) {
-            Store.bulkPublishProjects.inEdit.set(null);
-            return;
+        if (!this.isNewProject) {
+            try {
+                await this.repository.deleteFragment(this.project.value);
+            } catch (err) {
+                console.error('Failed to delete bulk publish project:', err);
+                showToast('Failed to delete the project.', 'negative');
+                return;
+            }
         }
-        try {
-            await this.repository.deleteFragment(this.project.value);
-            Store.bulkPublishProjects.inEdit.set(null);
-        } catch (err) {
-            console.error('Failed to delete bulk publish project:', err);
-            showToast('Failed to delete the project.', 'negative');
-        }
+        Store.bulkPublishProjects.inEdit.set(null);
+        Store.bulkPublishProjects.projectId.set(null);
+        router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)();
     }
 
     handleDuplicate() {
@@ -502,6 +525,7 @@ class MasBulkPublishEditor extends LitElement {
                                 authorPath: authorPath || null,
                                 href: href || null,
                                 status: 'valid',
+                                alreadyPublished: fragment.status === STATUS_PUBLISHED,
                             };
                         }
                     } catch (err) {
@@ -524,7 +548,6 @@ class MasBulkPublishEditor extends LitElement {
 
     async publish() {
         await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
-            if (this.isNewProject) await this.saveBulkProject();
             const { startPublishing } = await import('./bulk-publish-store.js');
             const { publishBulk } = await import('./bulk-publish-client.js');
             const paths = this.items.filter((i) => i.status === 'valid').map((i) => i.path);
@@ -603,7 +626,7 @@ class MasBulkPublishEditor extends LitElement {
                 .iconOverrides=${{
                     [QUICK_ACTION.SAVE]: { icon: SAVE_SVG, title: 'Save' },
                     [QUICK_ACTION.DUPLICATE]: { icon: CLONE_SVG, title: 'Duplicate' },
-                    [QUICK_ACTION.PUBLISH]: { icon: PUBLISH_SVG, title: 'Publish' },
+                    [QUICK_ACTION.PUBLISH]: { icon: PUBLISH_SVG, title: this.publishBlockedReason || 'Publish' },
                     [QUICK_ACTION.COPY]: { icon: COPY_SVG, title: 'Copy' },
                     [QUICK_ACTION.LOCK]: {
                         icon: this.isLocked ? LOCK_OPEN_SVG : LOCK_SVG,
@@ -656,7 +679,10 @@ class MasBulkPublishEditor extends LitElement {
                       @cancel=${this.closeLocalesPicker}
                       @close=${this.closeLocalesPicker}
                   >
-                      <mas-translation-languages .targetStore=${Store.bulkPublishProjects}></mas-translation-languages>
+                      <mas-translation-languages
+                          .targetStore=${Store.bulkPublishProjects}
+                          include-source
+                      ></mas-translation-languages>
                   </sp-dialog-wrapper>`
                 : nothing}
             ${this.discardDialogOpen

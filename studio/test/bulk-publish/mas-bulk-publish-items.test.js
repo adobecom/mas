@@ -43,10 +43,7 @@ describe('mas-bulk-publish-items', () => {
 
     it('footer row shows URL count and Remove all button', async () => {
         const el = await fixture(html`
-            <mas-bulk-publish-items
-                .items=${[{ url: 'https://a', status: 'valid' }]}
-                .urls=${'x'}
-            ></mas-bulk-publish-items>
+            <mas-bulk-publish-items .items=${[{ url: 'https://a', status: 'valid' }]} .urls=${'x'}></mas-bulk-publish-items>
         `);
         await el.updateComplete;
         const footer = el.shadowRoot.querySelector('[data-testid="items-footer"]');
@@ -62,10 +59,7 @@ describe('mas-bulk-publish-items', () => {
 
     it('Actions column header is present', async () => {
         const el = await fixture(html`
-            <mas-bulk-publish-items
-                .items=${[{ url: 'https://a', status: 'valid' }]}
-                .urls=${'x'}
-            ></mas-bulk-publish-items>
+            <mas-bulk-publish-items .items=${[{ url: 'https://a', status: 'valid' }]} .urls=${'x'}></mas-bulk-publish-items>
         `);
         await el.updateComplete;
         const headers = el.shadowRoot.querySelectorAll('.items-table-header span');
@@ -128,6 +122,23 @@ describe('mas-bulk-publish-items', () => {
         const cell = el.shadowRoot.querySelector('.status-error');
         expect(cell).to.exist;
         expect(cell.textContent).to.include('Invalid URL');
+    });
+
+    it('Add by search button applies light-grey background via Spectrum mod custom property', async () => {
+        const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
+        await el.updateComplete;
+        const btn = el.shadowRoot.querySelector('sp-action-button.add-by-search');
+        expect(btn).to.exist;
+        const styles = getComputedStyle(btn);
+        const bg = styles.getPropertyValue('--mod-actionbutton-background-color-default').trim();
+        expect(bg).to.not.equal('');
+    });
+
+    it('Add by search button renders the plus icon', async () => {
+        const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
+        await el.updateComplete;
+        const btn = el.shadowRoot.querySelector('sp-action-button.add-by-search');
+        expect(btn.querySelector('sp-icon-add')).to.exist;
     });
 
     it('toggleCollapse flips collapsed state', async () => {

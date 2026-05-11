@@ -11,21 +11,22 @@ class MasTranslationLanguages extends LitElement {
         localesArray: { type: Array, state: true },
         targetStore: { type: Object },
         searchQuery: { type: String, state: true },
+        includeSource: { type: Boolean, attribute: 'include-source' },
     };
 
     constructor() {
         super();
         this.targetStore = Store.translationProjects;
         this.searchQuery = '';
+        this.includeSource = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         const surface = Store.search.value.path;
-        this.localesArray = getSurfaceLocales(surface)
-            .map((item) => ({ ...item, locale: getLocaleCode(item) }))
-            .filter((item) => item.locale !== 'en_US')
-            .sort((a, b) => a.locale.localeCompare(b.locale));
+        const all = getSurfaceLocales(surface).map((item) => ({ ...item, locale: getLocaleCode(item) }));
+        const filtered = this.includeSource ? all : all.filter((item) => item.locale !== 'en_US');
+        this.localesArray = filtered.sort((a, b) => a.locale.localeCompare(b.locale));
         this.targetLocalesController = new ReactiveController(this, [this.targetStore?.targetLocales].filter(Boolean));
     }
 

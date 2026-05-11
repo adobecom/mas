@@ -134,7 +134,11 @@ class MasAddItemsDialog extends LitElement {
                                   ></mas-search-and-filters>
                               </div>
                           `
-                        : nothing}
+                        : html`<mas-search-and-filters
+                              search-only
+                              .type=${this.selectedTab}
+                              .searchQuery=${this.searchQuery}
+                          ></mas-search-and-filters>`}
                     <div class="table-wrapper">
                         ${TABS.map(
                             (tab) =>

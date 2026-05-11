@@ -1,8 +1,9 @@
 import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import router from '../../src/router.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { BULK_PUBLISH_STATUS, QUICK_ACTION } from '../../src/constants.js';
+import { BULK_PUBLISH_STATUS, PAGE_NAMES, QUICK_ACTION } from '../../src/constants.js';
 import '../../src/bulk-publish/mas-bulk-publish-editor.js';
 
 function seedNew(data = {}) {
@@ -133,6 +134,69 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
             }),
         );
         await el.updateComplete;
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(false);
+    });
+
+    it('disabledActions disables PUBLISH for a new (unsaved) project even with valid items', async () => {
+        const el = await makeEditor();
+        seedNew({ items: JSON.stringify([{ status: 'valid' }]) });
+        await el.updateComplete;
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
+        expect(el.publishBlockedReason).to.equal('Project must be saved before publishing');
+    });
+
+    it('disabledActions disables PUBLISH when an existing project has unsaved changes', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
+        await el.updateComplete;
+        el.hasChanges = true;
+        await el.updateComplete;
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
+        expect(el.publishBlockedReason).to.equal('Project must be saved before publishing');
+    });
+
+    it('disabledActions disables PUBLISH when all valid items are alreadyPublished', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(
+            makeFragmentStore({
+                items: JSON.stringify([
+                    { status: 'valid', alreadyPublished: true },
+                    { status: 'valid', alreadyPublished: true },
+                ]),
+            }),
+        );
+        await el.updateComplete;
+        expect(el.allAlreadyPublished).to.equal(true);
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
+        expect(el.publishBlockedReason).to.equal('All items are already published');
+    });
+
+    it('disabledActions disables PUBLISH when project status is PUBLISHED (even if items lack alreadyPublished flag)', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(
+            makeFragmentStore({
+                status: BULK_PUBLISH_STATUS.PUBLISHED,
+                items: JSON.stringify([{ status: 'valid' }, { status: 'valid' }]),
+            }),
+        );
+        await el.updateComplete;
+        expect(el.allAlreadyPublished).to.equal(true);
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
+        expect(el.publishBlockedReason).to.equal('Project is already published');
+    });
+
+    it('disabledActions enables PUBLISH when at least one valid item is not alreadyPublished', async () => {
+        const el = await makeEditor();
+        Store.bulkPublishProjects.inEdit.set(
+            makeFragmentStore({
+                items: JSON.stringify([
+                    { status: 'valid', alreadyPublished: true },
+                    { status: 'valid', alreadyPublished: false },
+                ]),
+            }),
+        );
+        await el.updateComplete;
+        expect(el.allAlreadyPublished).to.equal(false);
         expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(false);
     });
 
@@ -421,28 +485,55 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         expect(repositoryEl.saveFragment.calledOnce).to.equal(true);
     });
 
-    it('deleteBulkProject clears inEdit for new project without calling repo', async () => {
+    it('deleteBulkProject clears inEdit and navigates home for new project without calling repo', async () => {
         const el = await makeEditor();
         seedNew();
         await el.updateComplete;
 
+        const navigateFn = sandbox.stub();
+        const navStub = sandbox.stub(router, 'navigateToPage').returns(navigateFn);
+
         await el.deleteBulkProject();
 
         expect(Store.bulkPublishProjects.inEdit.value).to.be.null;
+        expect(Store.bulkPublishProjects.projectId.value).to.be.null;
+        expect(navStub.calledWith(PAGE_NAMES.BULK_PUBLISH)).to.equal(true);
+        expect(navigateFn.calledOnce).to.equal(true);
     });
 
-    it('deleteBulkProject calls deleteFragment for existing project', async () => {
+    it('deleteBulkProject calls deleteFragment and navigates home for existing project', async () => {
         const el = await makeEditor();
         const fs = makeFragmentStore();
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
 
         repositoryEl.deleteFragment = sandbox.stub().resolves();
+        const navigateFn = sandbox.stub();
+        const navStub = sandbox.stub(router, 'navigateToPage').returns(navigateFn);
 
         await el.deleteBulkProject();
 
         expect(repositoryEl.deleteFragment.calledOnce).to.equal(true);
         expect(Store.bulkPublishProjects.inEdit.value).to.be.null;
+        expect(Store.bulkPublishProjects.projectId.value).to.be.null;
+        expect(navStub.calledWith(PAGE_NAMES.BULK_PUBLISH)).to.equal(true);
+        expect(navigateFn.calledOnce).to.equal(true);
+    });
+
+    it('deleteBulkProject does NOT navigate when deleteFragment rejects', async () => {
+        const el = await makeEditor();
+        const fs = makeFragmentStore();
+        Store.bulkPublishProjects.inEdit.set(fs);
+        await el.updateComplete;
+
+        repositoryEl.deleteFragment = sandbox.stub().rejects(new Error('boom'));
+        const navigateFn = sandbox.stub();
+        sandbox.stub(router, 'navigateToPage').returns(navigateFn);
+
+        await el.deleteBulkProject();
+
+        expect(navigateFn.called).to.equal(false);
+        expect(Store.bulkPublishProjects.inEdit.value).to.equal(fs);
     });
 
     it('#handleLock saves locked status and shows toast', async () => {
@@ -762,6 +853,48 @@ describe('mas-bulk-publish-editor (validate)', () => {
         expect(item.status).to.equal('valid');
     });
 
+    it('validate sets alreadyPublished=true when fragment.status is PUBLISHED', async () => {
+        const el = await makeEditor();
+        seedNew({ urls: '/content/dam/mas/published-frag' });
+        await el.updateComplete;
+
+        const rawFrag = {
+            id: 'frag-pub-1',
+            path: '/content/dam/mas/published-frag',
+            status: 'PUBLISHED',
+            fields: [],
+        };
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(rawFrag) } } },
+        };
+
+        const result = await el.validate();
+        const item = result.find((i) => i.url === '/content/dam/mas/published-frag');
+        expect(item.status).to.equal('valid');
+        expect(item.alreadyPublished).to.equal(true);
+    });
+
+    it('validate sets alreadyPublished=false when fragment.status is MODIFIED', async () => {
+        const el = await makeEditor();
+        seedNew({ urls: '/content/dam/mas/modified-frag' });
+        await el.updateComplete;
+
+        const rawFrag = {
+            id: 'frag-mod-1',
+            path: '/content/dam/mas/modified-frag',
+            status: 'MODIFIED',
+            fields: [],
+        };
+        repositoryEl.aem = {
+            sites: { cf: { fragments: { getByPath: sandbox.stub().resolves(rawFrag) } } },
+        };
+
+        const result = await el.validate();
+        const item = result.find((i) => i.url === '/content/dam/mas/modified-frag');
+        expect(item.status).to.equal('valid');
+        expect(item.alreadyPublished).to.equal(false);
+    });
+
     it('validate marks 404 errors as not-found', async () => {
         const el = await makeEditor();
         const fields = seedNew({ urls: '/content/dam/mas/missing' });
@@ -825,6 +958,19 @@ describe('mas-bulk-publish-editor (openLocalesPicker)', () => {
         await el.updateComplete;
 
         expect(el.shadowRoot.querySelector('sp-dialog-wrapper.add-locales-dialog')).to.exist;
+    });
+
+    it('locales picker passes include-source so en_US is included', async () => {
+        const el = await makeEditor();
+        seedNew({ locales: [] });
+        await el.updateComplete;
+
+        el.localesPickerOpen = true;
+        await el.updateComplete;
+
+        const langPicker = el.shadowRoot.querySelector('mas-translation-languages');
+        expect(langPicker).to.exist;
+        expect(langPicker.hasAttribute('include-source')).to.equal(true);
     });
 });
 

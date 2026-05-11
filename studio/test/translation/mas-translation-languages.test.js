@@ -68,6 +68,13 @@ describe('MasTranslationLanguages', () => {
             expect(el.localesArray.length).to.be.greaterThan(0);
             expect(el.localesArray.some((item) => item.lang === 'en' && item.country === 'US')).to.be.false;
         });
+
+        it('should include en_US when include-source is set', async () => {
+            Store.search.set({ path: 'acom' });
+            const el = await fixture(html`<mas-translation-languages include-source></mas-translation-languages>`);
+            expect(el.includeSource).to.equal(true);
+            expect(el.localesArray.some((item) => item.locale === 'en_US')).to.be.true;
+        });
     });
 
     describe('selectAllChecked getter', () => {

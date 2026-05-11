@@ -171,6 +171,10 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.SETTINGS_EDITOR;
     }
 
+    get isBulkPublishEditorPage() {
+        return this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR;
+    }
+
     get topNavLocale() {
         if (this.isFragmentEditorPage) {
             const fragmentId = this.inEdit.get()?.get()?.id;
@@ -397,7 +401,8 @@ class MasTopNav extends LitElement {
                               <mas-nav-folder-picker
                                   ?disabled=${this.isFragmentEditorPage ||
                                   this.isTranslationEditorPage ||
-                                  this.isSettingsEditorPage}
+                                  this.isSettingsEditorPage ||
+                                  this.isBulkPublishEditorPage}
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"

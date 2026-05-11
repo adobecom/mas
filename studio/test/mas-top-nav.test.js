@@ -333,6 +333,24 @@ describe('MasTopNav', () => {
             expect(folderPicker.hasAttribute('disabled')).to.be.false;
         });
 
+        it('should disable folder picker on bulk publish editor page', async () => {
+            Store.page.value = PAGE_NAMES.BULK_PUBLISH_EDITOR;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should not disable folder picker on bulk publish list page', async () => {
+            Store.page.value = PAGE_NAMES.BULK_PUBLISH;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.false;
+        });
+
         it('should enable locale picker on fragment editor page', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);

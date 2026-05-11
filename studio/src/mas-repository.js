@@ -264,7 +264,7 @@ export class MasRepository extends LitElement {
     async loadFolders() {
         try {
             const { children } = await this.aem.folders.list(ROOT_PATH);
-            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions'];
+            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions', 'bulk-publish-projects'];
             const folders = children.map((folder) => folder.name).filter((child) => !ignore.includes(child));
 
             Store.folders.loaded.set(true);

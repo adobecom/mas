@@ -829,6 +829,65 @@ describe('MasSearchAndFilters', () => {
             await el.updateComplete;
             expect(el.shadowRoot.querySelector('.result-count')).to.exist;
         });
+
+        it('re-applies search filter on cards when allCards grows mid-search', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters type="cards" .searchQuery=${'vip'}></mas-search-and-filters>`,
+            );
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'VIP Plan' })]);
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.value).to.have.lengthOf(1);
+
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'VIP Plan' }),
+                createMockFragment({ title: 'Other Plan' }),
+                createMockFragment({ title: 'Free Trial' }),
+            ]);
+            await el.updateComplete;
+
+            const result = Store.translationProjects.displayCards.value;
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].title).to.equal('VIP Plan');
+        });
+
+        it('re-applies search filter on collections when allCollections grows mid-search', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters type="collections" .searchQuery=${'vip'}></mas-search-and-filters>`,
+            );
+            Store.translationProjects.allCollections.set([createMockFragment({ title: 'VIP Bundle' })]);
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCollections.value).to.have.lengthOf(1);
+
+            Store.translationProjects.allCollections.set([
+                createMockFragment({ title: 'VIP Bundle' }),
+                createMockFragment({ title: 'Standard Bundle' }),
+            ]);
+            await el.updateComplete;
+
+            const result = Store.translationProjects.displayCollections.value;
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].title).to.equal('VIP Bundle');
+        });
+
+        it('re-applies search filter on placeholders when allPlaceholders grows mid-search', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters type="placeholders" .searchQuery=${'price'}></mas-search-and-filters>`,
+            );
+            Store.translationProjects.allPlaceholders.set([createMockPlaceholder({ key: 'price-tag', value: 'foo' })]);
+            await el.updateComplete;
+            expect(Store.translationProjects.displayPlaceholders.value).to.have.lengthOf(1);
+
+            Store.translationProjects.allPlaceholders.set([
+                createMockPlaceholder({ key: 'price-tag', value: 'foo' }),
+                createMockPlaceholder({ key: 'name', value: 'bar' }),
+                createMockPlaceholder({ key: 'label', value: 'baz' }),
+            ]);
+            await el.updateComplete;
+
+            const result = Store.translationProjects.displayPlaceholders.value;
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].key).to.equal('price-tag');
+        });
     });
 
     describe('edge cases', () => {

@@ -57,9 +57,7 @@ class MasSearchAndFilters extends LitElement {
             if (!this.searchOnly) {
                 this.#extractFilterOptions();
             }
-            if (this.type === TABLE_TYPE.PLACEHOLDERS) {
-                this.#applyFilters();
-            }
+            this.#applyFilters();
             this.requestUpdate();
         };
         getItemsSelectionStore()[`all${this.typeUppercased}`].subscribe(dataCallback);

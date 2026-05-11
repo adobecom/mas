@@ -5,6 +5,10 @@ export const styles = css`
         display: block;
     }
 
+    :host([hidden]) {
+        display: none;
+    }
+
     .result-count {
         display: flex;
         align-items: center;

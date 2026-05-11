@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { extractLocaleFromPath, generateCodeToUse, getService, showToast } from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
@@ -146,6 +146,11 @@ class MasFragmentTable extends LitElement {
         }
     }
 
+    previewOnPage(event) {
+        event.stopPropagation();
+        previewFragmentOnPage(this.fragmentStore.value);
+    }
+
     getTruncatedOfferId() {
         const offerId = this.offerData?.offerId;
         if (!offerId || offerId.length <= 5) return offerId;
@@ -232,6 +237,10 @@ class MasFragmentTable extends LitElement {
                               <sp-menu-item @click=${this.handleEditFragment}>
                                   <sp-icon-edit slot="icon"></sp-icon-edit>
                                   Edit fragment
+                              </sp-menu-item>
+                              <sp-menu-item @click=${this.previewOnPage}>
+                                  <sp-icon-preview slot="icon"></sp-icon-preview>
+                                  Preview on page
                               </sp-menu-item>
                           </sp-action-menu>`}
                 </sp-table-cell>

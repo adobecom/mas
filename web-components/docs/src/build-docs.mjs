@@ -52,7 +52,7 @@ const outputPath = path.join(targetFile);
 const inputContent = fs.readFileSync(inputPath, 'utf8');
 
 // depending on surface, load either Milo consonant or Spectrum styles
-const styleDependecy = ['plans.md'].includes(sourceFile)
+const styleDependecy = ['plans.md', 'plans-collection.md'].includes(sourceFile)
     ? '<link rel="stylesheet" href="../styles/styles.css">'
     : '<link rel="stylesheet" href="spectrum.css">';
 

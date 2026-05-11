@@ -6,25 +6,32 @@ import { createResponse } from './mocks/MockFetch.js';
 const FOLDER_URL = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions';
 const hydrateUrl = (id) => `https://odin.adobe.com/adobe/contentFragments/${id}?references=all-hydrated`;
 
-// Fixed reference instant: 2025-06-15 12:00 UTC
-const NOW = new Date('2025-06-15T12:00:00Z').getTime();
-const START = '2025-01-01T00:00:00Z';
-const END = '2025-12-31T23:59:59Z';
-const EXPIRED_END = '2025-03-01T00:00:00Z';
+const START = '2020-01-01T00:00:00Z';
+const END = '2099-12-31T23:59:59Z';
+const EXPIRED_END = '2020-03-01T00:00:00Z';
+// Fixed instant for preview-only time-travel tests
+const PREVIEW_INSTANT = new Date('2020-02-01T00:00:00Z').getTime();
+
+const DEFAULT_LANG_PROMISE = Promise.resolve({
+    status: 200,
+    defaultLocale: 'en_US',
+    regionLocale: 'en_US',
+    surface: 'acom',
+});
 
 let fetchStub;
 
 function createContext(overrides = {}) {
+    const { promises: promiseOverrides, ...rest } = overrides;
     return {
         surface: 'acom',
         locale: 'en_US',
         country: undefined,
         regionLocale: undefined,
         preview: undefined,
-        'mas.instant': NOW,
         networkConfig: { retries: 1, retryDelay: 1, fetchTimeout: 500 },
-        promises: {},
-        ...overrides,
+        promises: { defaultLanguage: DEFAULT_LANG_PROMISE, ...promiseOverrides },
+        ...rest,
     };
 }
 
@@ -43,24 +50,30 @@ function makeProject({
     return { id, path, fields: { surfaces, geos, startDate, endDate, tags, offers } };
 }
 
-function makeHydratedProject({ fragmentId = 'frag-1', osi = 'OSI-123', promoCode = 'PROMO10', variations = [] } = {}) {
+function makeHydratedProject({
+    fragmentId = 'frag-1',
+    fragmentPath = '/content/dam/mas/acom/en_US/offers/offer-1',
+    promoCode = 'PROMO10',
+} = {}) {
     return {
-        fields: { fragments: [fragmentId], variations },
+        fields: { fragments: [fragmentId], promoCode },
         references: {
             [fragmentId]: {
                 type: 'content-fragment',
-                value: { id: fragmentId, fields: { osi, promoCode } },
+                value: { id: fragmentId, path: fragmentPath, fields: {} },
             },
         },
     };
 }
 
-export { makeProject, makeHydratedProject, FOLDER_URL, hydrateUrl };
+export { makeProject, makeHydratedProject, FOLDER_URL, hydrateUrl, DEFAULT_LANG_PROMISE };
 
 describe('promotions', () => {
     describe('init', () => {
         beforeEach(() => {
             fetchStub = sinon.stub(globalThis, 'fetch');
+            // Default: any unmocked URL returns 404 (avoids TypeError on undefined response)
+            fetchStub.returns(createResponse(404, null, 'Not Found'));
         });
 
         afterEach(() => {
@@ -122,28 +135,47 @@ describe('promotions', () => {
 
         it('selects active project matching surface, geo and date range', async () => {
             const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
-            const hydrated = makeHydratedProject({ osi: 'OSI-123', promoCode: 'SAVE20' });
+            const hydrated = makeHydratedProject({ promoCode: 'SAVE20' });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result.status).to.equal(200);
             expect(result.activeProject.id).to.equal('proj-1');
-            expect(result.activeProject.fragments).to.have.length(1);
-            expect(result.activeProject.fragments[0]).to.deep.include({ osi: 'OSI-123', promoCode: 'SAVE20' });
+            expect(result.activeProject.fragmentPaths).to.have.length(1);
+            expect(result.activeProject.promoCode).to.equal('SAVE20');
         });
 
-        it('supports mas.instant for time-travel testing', async () => {
+        it('supports mas.instant for time-travel testing in preview mode', async () => {
+            const storage = {};
+            globalThis.localStorage = {
+                getItem: (key) => storage[key] ?? null,
+                setItem: (key, val) => { storage[key] = val; },
+                removeItem: (key) => { delete storage[key]; },
+            };
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
-            // Travel back to within the expired window
-            const pastInstant = new Date('2025-02-01T00:00:00Z').getTime();
-            const result = await promotionsTransformer.init(createContext({ 'mas.instant': pastInstant }));
+            const result = await promotionsTransformer.init(
+                createContext({ preview: true, 'mas.instant': PREVIEW_INSTANT }),
+            );
             expect(result.activeProject).to.not.be.null;
             expect(result.activeProject.id).to.equal('proj-1');
+            clearPromoCache(true);
+            delete globalThis.localStorage;
+        });
+
+        it('ignores mas.instant when not in preview mode', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+
+            // EXPIRED_END is in the past — without preview, mas.instant is ignored and Date.now() is used
+            const result = await promotionsTransformer.init(
+                createContext({ 'mas.instant': PREVIEW_INSTANT }),
+            );
+            expect(result).to.deep.equal({ status: 200, activeProject: null });
         });
 
         it('matches project by country when locale does not match geos', async () => {
@@ -232,14 +264,20 @@ describe('promotions', () => {
             expect(result.activeProject).to.not.be.null;
         });
 
-        it('skips offer refs missing from references or with no osi/promoCode', async () => {
+        it('skips refs missing from references or with no parseable path', async () => {
             const hydrated = {
-                fields: { fragments: ['valid-ref', 'missing-ref', 'no-osi-ref', 'no-fields-ref'] },
+                fields: {
+                    fragments: ['valid-ref', 'missing-ref', 'no-fields-ref', 'no-path-ref'],
+                    promoCode: 'P1',
+                },
                 references: {
-                    'valid-ref': { type: 'content-fragment', value: { id: 'v', fields: { osi: 'OSI-1', promoCode: 'P1' } } },
+                    'valid-ref': {
+                        type: 'content-fragment',
+                        value: { id: 'v', path: '/content/dam/mas/acom/en_US/offers/offer-1', fields: {} },
+                    },
                     // 'missing-ref' not present — ref will be null
-                    'no-osi-ref': { type: 'content-fragment', value: { id: 'n', fields: { promoCode: 'P2' } } },
-                    'no-fields-ref': { type: 'content-fragment', value: { id: 'nf' } }, // no fields property
+                    'no-fields-ref': { type: 'content-fragment', value: { id: 'nf', path: '/content/dam/mas/acom/en_US/offers/offer-3' } },
+                    'no-path-ref': { type: 'content-fragment', value: { id: 'np', fields: {} } },
                 },
             };
             const project = makeProject({ surfaces: ['acom'], geos: [] });
@@ -247,8 +285,10 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(createContext());
-            expect(result.activeProject.fragments).to.have.length(1);
-            expect(result.activeProject.fragments[0].osi).to.equal('OSI-1');
+            // valid-ref and no-fields-ref have parseable paths; missing-ref and no-path-ref are skipped
+            expect(result.activeProject.fragmentPaths).to.have.length(2);
+            expect(result.activeProject.fragmentPaths).to.include('offers/offer-1');
+            expect(result.activeProject.fragmentPaths).to.include('offers/offer-3');
         });
 
         it('returns no active project when hydrated project has no fragments', async () => {
@@ -271,14 +311,24 @@ describe('promotions', () => {
             expect(result).to.deep.equal({ status: 200, activeProject: null });
         });
 
-        it('supports mas.instant as an ISO string for time-travel testing', async () => {
+        it('supports mas.instant as an ISO string in preview mode', async () => {
+            const storage = {};
+            globalThis.localStorage = {
+                getItem: (key) => storage[key] ?? null,
+                setItem: (key, val) => { storage[key] = val; },
+                removeItem: (key) => { delete storage[key]; },
+            };
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
-            const result = await promotionsTransformer.init(createContext({ 'mas.instant': '2025-02-01T00:00:00Z' }));
+            const result = await promotionsTransformer.init(
+                createContext({ preview: true, 'mas.instant': '2020-02-01T00:00:00Z' }),
+            );
             expect(result.activeProject).to.not.be.null;
+            clearPromoCache(true);
+            delete globalThis.localStorage;
         });
 
         it('uses cache on second call without re-fetching folder', async () => {
@@ -327,6 +377,33 @@ describe('promotions', () => {
 
             delete globalThis.localStorage;
         });
+
+        it('returns no active project when defaultLanguage resolves without defaultLocale', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(
+                createContext({ promises: { defaultLanguage: Promise.resolve({ status: 200 }) } }),
+            );
+            expect(result).to.deep.equal({ status: 200, activeProject: null });
+        });
+
+        it('handles variation folder response with missing items field', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            // Variation folder returns 200 but no items field
+            const varUrl = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday';
+            fetchStub.withArgs(varUrl).returns(createResponse(200, {}));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProject.defaultVariations).to.deep.equal({});
+        });
     });
 
     describe('process', () => {
@@ -346,35 +423,50 @@ describe('promotions', () => {
             expect(result.promoMap).to.be.undefined;
         });
 
-        it('builds promoMap and promoFragmentIds from active project fragments', async () => {
+        it('builds promoMap from project promoCode and promoFragmentPaths from fragmentPaths', async () => {
             const context = createContext({
                 promises: {
                     promotions: Promise.resolve({
                         status: 200,
                         activeProject: {
-                            fragments: [
-                                { id: 'f1', osi: 'OSI-123', promoCode: 'SUMMER25' },
-                                { id: 'f2', osi: 'OSI-456', promoCode: 'FALL30' },
-                            ],
+                            fragmentPaths: ['offers/offer-1', 'offers/offer-2'],
                             offerOverrides: [],
+                            promoCode: 'SUMMER25',
                         },
                     }),
                 },
             });
             const result = await promotionsTransformer.process(context);
-            expect(result.promoMap).to.deep.equal({ 'OSI-123': 'SUMMER25', 'OSI-456': 'FALL30' });
-            expect([...result.promoFragmentIds]).to.have.members(['f1', 'f2']);
+            expect(result.promoMap).to.deep.equal({ '*': 'SUMMER25' });
+            expect([...result.promoFragmentPaths]).to.have.members(['offers/offer-1', 'offers/offer-2']);
+        });
+
+        it('uses project-level promoCode as wildcard in promoMap', async () => {
+            const context = createContext({
+                promises: {
+                    promotions: Promise.resolve({
+                        status: 200,
+                        activeProject: {
+                            fragments: [],
+                            offerOverrides: [],
+                            promoCode: 'NICOPROMO',
+                        },
+                    }),
+                },
+            });
+            const result = await promotionsTransformer.process(context);
+            expect(result.promoMap).to.deep.equal({ '*': 'NICOPROMO' });
         });
     });
 
     describe('promoMap building', () => {
-        function makeCtx(country, offerOverrides, refFragments = []) {
+        function makeCtx(country, offerOverrides, promoCode) {
             return createContext({
                 country,
                 promises: {
                     promotions: Promise.resolve({
                         status: 200,
-                        activeProject: { fragments: refFragments, offerOverrides },
+                        activeProject: { fragmentPaths: [], offerOverrides, promoCode },
                     }),
                 },
             });
@@ -415,26 +507,20 @@ describe('promotions', () => {
             expect(result.promoMap).to.deep.equal({});
         });
 
-        it('override takes priority over fragment entry for same OSI', async () => {
+        it('override takes priority over project-level promoCode for same OSI', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx(
-                    'US',
-                    [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', countries: ['US'] }],
-                    [{ osi: 'OSI-1', promoCode: 'REF-PROMO' }],
-                ),
+                makeCtx('US', [{ osis: ['OSI-1'], promoCode: 'OVERRIDE', countries: ['US'] }], 'DEFAULT'),
             );
             expect(result.promoMap['OSI-1']).to.equal('OVERRIDE');
+            expect(result.promoMap['*']).to.equal('DEFAULT');
         });
 
-        it('preserves fragment entry when override country does not match', async () => {
+        it('falls back to project-level promoCode when override country does not match', async () => {
             const result = await promotionsTransformer.process(
-                makeCtx(
-                    'CA',
-                    [{ osis: ['OSI-1'], promoCode: 'US-ONLY', countries: ['US'] }],
-                    [{ osi: 'OSI-1', promoCode: 'REF-PROMO' }],
-                ),
+                makeCtx('CA', [{ osis: ['OSI-1'], promoCode: 'US-ONLY', countries: ['US'] }], 'DEFAULT'),
             );
-            expect(result.promoMap['OSI-1']).to.equal('REF-PROMO');
+            expect(result.promoMap['OSI-1']).to.be.undefined;
+            expect(result.promoMap['*']).to.equal('DEFAULT');
         });
 
         it('parses offerLines from project folder and includes offerOverrides on activeProject', async () => {

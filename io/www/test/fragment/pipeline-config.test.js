@@ -3,15 +3,20 @@ import sinon from 'sinon';
 import { getFragment, setupFragmentMocks, EXPECTED_BODY } from './pipeline.test.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
+import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
+import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 
 let fetchStub;
 
 describe('pipeline configuration caching', () => {
     beforeEach(() => {
-        fetchStub = sinon.stub(globalThis, 'fetch');
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake(() => {
+            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
+        });
         resetCache();
         clearSettingsCache();
+        clearPromoCache();
     });
 
     afterEach(() => {

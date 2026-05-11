@@ -18,8 +18,11 @@
  * **`init`** runs in parallel with other transformer inits:
  *   - Fetches the promotions folder (cached for 5 min).
  *   - Filters projects by promotion tag, surface, geo, and date window.
- *   - Hydrates the first matching project (its references contain promo variation fragments).
- *   - Returns `{ activeProject }` consumed by `customize` for promo variation merging.
+ *   - Awaits `defaultLanguage` to resolve `defaultLocale` / `regionLocale`.
+ *   - Hydrates the first matching project (for fragment OSI/promoCode data).
+ *   - Folder-searches promo variations for `defaultLocale` and `regionLocale` (in parallel
+ *     with hydration). Returns `{ activeProject }` with `defaultVariations` / `regionVariations`
+ *     maps (keyed by fragmentPath) consumed by `customize` for promo variation merging.
  *
  * **`process`** runs sequentially before `customize`:
  *   - Builds a flat `promoMap` (OSI → promoCode) from the active project's fragments
@@ -28,7 +31,7 @@
  *   - The `promoMap` is placed on context; `customize` reads it via `context.promoMap`
  *     and applies promo codes to each fragment during tree traversal.
  */
-import { FRAGMENT_URL_PREFIX, MAS_ROOT, odinReferences } from '../utils/paths.js';
+import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences } from '../utils/paths.js';
 import { fetch, getRequestInfos, matchesGeo } from '../utils/common.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
@@ -36,12 +39,15 @@ const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
 
 let projectsCache;
+let promoVariationsCache = {};
 
 export function clearPromoCache(preview = false) {
     if (preview) {
         localStorage.removeItem('promotions');
+        localStorage.removeItem('promo-variations');
     } else {
         projectsCache = undefined;
+        promoVariationsCache = {};
     }
 }
 
@@ -175,27 +181,81 @@ function matchesProject(project, { surface, country, regionLocale, instant }, co
 }
 
 /**
- * Extracts { id, osi, promoCode } from the hydrated project's offer references.
- * The id is the fragment reference key — used to gate promo treatment in customizeTree.
+ * Extracts fragment paths from the hydrated project's fragment references.
+ * These paths gate which fragments receive promo treatment in customizeTree.
+ * Matching is by fragmentPath (locale-independent) so translated fragments are handled correctly.
  */
-function parseFragments(hydratedProject) {
+function parseFragmentPaths(hydratedProject) {
     const { references } = hydratedProject;
     const fragmentRefs = hydratedProject.fields?.fragments ?? [];
     return fragmentRefs
         .map((refId) => {
             const ref = references?.[refId]?.value;
             if (!ref) return null;
-            const { osi, promoCode } = ref.fields ?? {};
-            if (!osi || !promoCode) return null;
-            return { id: refId, osi, promoCode };
+            const match = PATH_TOKENS.exec(ref.path ?? '');
+            return match?.groups.fragmentPath ?? null;
         })
         .filter(Boolean);
 }
 
+function getCachedVariations(preview, key) {
+    const store = preview ? JSON.parse(localStorage.getItem('promo-variations') ?? '{}') : promoVariationsCache;
+    const entry = store[key];
+    if (entry) {
+        entry.isExpired = Date.now() - entry.timestamp > CONFIG_CACHE_TTL;
+        return entry;
+    }
+    return null;
+}
+
+function cacheVariations(preview, key, variations) {
+    const entry = { variations, timestamp: Date.now() };
+    if (preview) {
+        const store = JSON.parse(localStorage.getItem('promo-variations') ?? '{}');
+        store[key] = entry;
+        localStorage.setItem('promo-variations', JSON.stringify(store));
+    } else {
+        promoVariationsCache[key] = entry;
+    }
+    return variations;
+}
+
 /**
- * Fetches promotion projects, selects the first matching one, hydrates it,
- * and returns { activeProject } with fragments, offer overrides, and references
- * for promo variation merging in the customize transformer.
+ * Fetches all promo variation fragments from a locale-specific promotions folder.
+ * Results are cached by surface/projectName/locale with the same TTL as projects.
+ * Returns a map of fragmentPath → fragment item.
+ */
+async function fetchPromoVariations(baseUrl, surface, locale, projectName, context) {
+    const cacheKey = `${surface}/${projectName}/${locale}`;
+    const cached = getCachedVariations(context.preview, cacheKey);
+    if (cached && !cached.isExpired) {
+        logDebug(() => `Using cached promo variations for ${cacheKey}`, context);
+        return cached.variations;
+    }
+
+    const path = `${MAS_ROOT}/${surface}/${locale}/promotions/${projectName}`;
+    const url = `${baseUrl}/?path=${path}`;
+    const response = await fetch(url, context, 'promo-variations');
+    if (response.status !== 200) return cacheVariations(context.preview, cacheKey, {});
+    const items = response.body?.items ?? [];
+    const variations = {};
+    const prefix = `promotions/${projectName}/`;
+    for (const item of items) {
+        const match = PATH_TOKENS.exec(item.path);
+        if (match) {
+            const fullFragPath = match.groups.fragmentPath;
+            if (fullFragPath.startsWith(prefix)) {
+                variations[fullFragPath.slice(prefix.length)] = item;
+            }
+        }
+    }
+    return cacheVariations(context.preview, cacheKey, variations);
+}
+
+/**
+ * Fetches promotion projects, selects the first matching one, hydrates it for
+ * OSI/promoCode data, and fetches promo variation folders for defaultLocale and
+ * regionLocale. Returns { activeProject } consumed by `customize`.
  */
 async function init(context) {
     // Fire projects fetch immediately — needs no context dependencies
@@ -208,13 +268,14 @@ async function init(context) {
     const projects = await projectsPromise;
     if (!projects?.length) return { status: 200, activeProject: null };
 
-    const instant = toInstant(context['mas.instant']);
+    const instant = toInstant(context.preview ? context['mas.instant'] : undefined);
     const { locale, country, regionLocale } = context;
+    const effectiveRegionLocale = regionLocale ?? locale;
 
     let active = null;
     let matchCount = 0;
     for (const project of projects) {
-        if (matchesProject(project, { surface, locale, country, regionLocale, instant }, context)) {
+        if (matchesProject(project, { surface, locale, country, regionLocale: effectiveRegionLocale, instant }, context)) {
             matchCount++;
             if (!active) active = project;
         }
@@ -224,43 +285,68 @@ async function init(context) {
     }
     if (!active) return { status: 200, activeProject: null };
 
-    const response = await fetch(odinReferences(active.id, true, context.preview), context, 'promotions-hydrate');
-    if (response.status !== 200) {
-        logError(`Failed to hydrate promotion project ${active.id}: ${response.message}`, context);
+    // Await defaultLanguage to get resolved locale info for variation folder searches
+    const defaultLangResult = await context.promises?.defaultLanguage;
+    const defaultLocale = defaultLangResult?.defaultLocale;
+    if (!defaultLocale) return { status: 200, activeProject: null };
+    const resolvedRegionLocale = defaultLangResult.regionLocale;
+
+    const promoTag = active.tags.find((tag) => tag.startsWith(PROMO_TAG_PREFIX));
+    const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
+    const baseUrl = context.preview?.url ?? FRAGMENT_URL_PREFIX;
+
+    // Hydrate project (for fragments/OSI data) and fetch variation folders in parallel
+    const [hydrateResponse, defaultVariations, regionVariations] = await Promise.all([
+        fetch(odinReferences(active.id, true, context.preview), context, 'promotions-hydrate'),
+        fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
+        resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
+            ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
+            : {},
+    ]);
+
+    if (hydrateResponse.status !== 200) {
+        logError(`Failed to hydrate promotion project ${active.id}: ${hydrateResponse.message}`, context);
         return { status: 200, activeProject: null };
     }
 
-    const hydratedProject = response.body;
-    const fragments = parseFragments(hydratedProject);
-    if (!fragments.length) {
-        logDebug(() => `Promotion project ${active.id} has no fragments, skipping`, context);
+    const hydratedProject = hydrateResponse.body;
+    const fragmentPaths = parseFragmentPaths(hydratedProject);
+    const offerOverrides = parseOfferOverrides(active.offerLines);
+    const promoCode = hydratedProject.fields?.promoCode ?? null;
+    if (!fragmentPaths.length && !offerOverrides.length) {
+        logDebug(() => `Promotion project ${active.id} has no fragments or offer overrides, skipping`, context);
         return { status: 200, activeProject: null };
     }
-    logDebug(() => `Active promotion project ${active.id} with ${fragments.length} fragments`, context);
+    logDebug(
+        () =>
+            `Active promotion project ${active.id} with ${fragmentPaths.length} fragments, ${offerOverrides.length} offer overrides, promoCode="${promoCode}", ${Object.keys(defaultVariations).length} default variations, ${Object.keys(regionVariations).length} region variations`,
+        context,
+    );
 
     return {
         status: 200,
         activeProject: {
             id: active.id,
             path: active.path,
-            fields: hydratedProject.fields,
-            fragments,
-            variations: hydratedProject.fields?.variations ?? [],
-            offerOverrides: parseOfferOverrides(active.offerLines),
-            references: hydratedProject.references,
+            promoCode,
+            fragmentPaths,
+            offerOverrides,
+            defaultVariations,
+            regionVariations,
         },
     };
 }
 
 /**
- * Builds a flat OSI → promoCode lookup map from fragment references and offer overrides.
- * Overrides take priority over fragment entries for the same OSI.
- * Wildcard overrides (empty osis list) are stored under the '*' key.
+ * Builds a flat OSI → promoCode lookup map from project-level promoCode and offer overrides.
+ * Project-level promoCode is the default wildcard ('*').
+ * Overrides can target specific OSIs or act as wildcards (empty osis list).
+ * Specific OSI overrides take priority over the wildcard.
  */
-function buildPromoMap(fragments, offerOverrides, country) {
+function buildPromoMap(offerOverrides, country, projectPromoCode) {
     const map = {};
-    for (const { osi, promoCode } of fragments) {
-        map[osi] = promoCode;
+    if (projectPromoCode) {
+        map['*'] = projectPromoCode;
     }
     for (const override of offerOverrides) {
         const countryMatch = override.countries.length === 0 || (country && override.countries.includes(country));
@@ -277,17 +363,17 @@ function buildPromoMap(fragments, offerOverrides, country) {
 }
 
 /**
- * Builds the promoMap and promoFragmentIds from the active project and places them on context
+ * Builds the promoMap and promoFragmentPaths from the active project and places them on context
  * for the customize transformer to apply during fragment tree traversal.
- * Only fragments whose id is in promoFragmentIds will receive promo treatment.
+ * Matching is done by fragmentPath (locale-independent) so translated fragments are handled correctly.
  */
 async function promotions(context) {
     const { activeProject } = (await context.promises?.promotions) ?? {};
     if (!activeProject) return { ...context, status: 200 };
-    const { fragments = [], offerOverrides = [] } = activeProject;
-    const promoMap = buildPromoMap(fragments, offerOverrides, context.country);
-    const promoFragmentIds = new Set(fragments.map((f) => f.id));
-    return { ...context, status: 200, promoMap, promoFragmentIds };
+    const { fragmentPaths = [], offerOverrides = [], promoCode } = activeProject;
+    const promoMap = buildPromoMap(offerOverrides, context.country, promoCode);
+    const promoFragmentPaths = new Set(fragmentPaths);
+    return { ...context, status: 200, promoMap, promoFragmentPaths };
 }
 
 export const transformer = {

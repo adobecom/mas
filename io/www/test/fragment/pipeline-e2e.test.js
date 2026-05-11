@@ -261,9 +261,12 @@ describe('pipeline end to end', () => {
         });
         fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
 
-        // Offer matches the fr_FR fragment OSI
-        const FR_FR_OSI = 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ';
-        const hydrated = makeHydratedProject({ fragmentId: 'some-fr-fr-fragment', osi: FR_FR_OSI, promoCode: 'BF2025' });
+        // Project-level promoCode applies to all matching fragments
+        const hydrated = makeHydratedProject({
+            fragmentId: 'some-fr-fr-fragment',
+            fragmentPath: '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app',
+            promoCode: 'BF2025',
+        });
         fetchStub.withArgs(hydrateUrl('proj-bf')).returns(createResponse(200, hydrated));
 
         const state = new MockState();
@@ -272,7 +275,7 @@ describe('pipeline end to end', () => {
         expect(result.statusCode).to.equal(200);
         // replace transformer resolved {{select}} placeholder
         expect(result.body.fields.ctas.value).to.include('data-analytics-id="buy-now"');
-        // promotion applied promoCode
+        // promotion applied promoCode from project-level wildcard
         expect(result.body.promoCode).to.equal('BF2025');
     });
 
@@ -297,23 +300,27 @@ describe('pipeline end to end', () => {
         });
         fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
 
-        // Offer + promo variation reference in the hydrated project
-        const FR_FR_OSI = 'Mutn1LYoGojkrcMdCLO7LQlx1FyTHw27ETsfLv0h8DQ';
+        // Project-level promoCode applies as wildcard
         const hydrated = makeHydratedProject({
             fragmentId: 'some-fr-fr-fragment',
-            osi: FR_FR_OSI,
+            fragmentPath: '/content/dam/mas/sandbox/en_US/ccd-slice-wide-cc-all-app',
             promoCode: 'BF2025',
-            variations: ['promo-var-id'],
         });
-        hydrated.references['promo-var-id'] = {
-            type: 'content-fragment',
-            value: {
-                id: 'promo-var-id',
-                path: '/content/dam/mas/sandbox/fr_FR/promotions/black-friday/ccd-slice-wide-cc-all-app',
-                fields: { promoText: 'Black Friday Sale' },
-            },
-        };
         fetchStub.withArgs(hydrateUrl('proj-bf')).returns(createResponse(200, hydrated));
+
+        // Promo variation folder — fr_FR default locale variation
+        const variationFolderUrl = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/black-friday';
+        fetchStub.withArgs(variationFolderUrl).returns(
+            createResponse(200, {
+                items: [
+                    {
+                        id: 'promo-var-id',
+                        path: '/content/dam/mas/sandbox/fr_FR/promotions/black-friday/ccd-slice-wide-cc-all-app',
+                        fields: { promoText: 'Black Friday Sale' },
+                    },
+                ],
+            }),
+        );
 
         const state = new MockState();
         // fr_FR + CA country → regionLocale resolves to fr_CA → fr_CA regional variation would normally win

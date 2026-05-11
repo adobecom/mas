@@ -1286,29 +1286,21 @@ describe('customize promo variation', function () {
     const ACTIVE_PROJECT = {
         id: 'promo-proj-id',
         path: '/content/dam/mas/promotions/black-friday',
-        variations: ['promo-var-id'],
-        references: {
-            'promo-var-id': { type: 'content-fragment', value: PROMO_VARIATION },
-        },
+        defaultVariations: { 'my-card': PROMO_VARIATION },
+        regionVariations: {},
     };
 
-    it('should merge promo variation when matching path found in activeProject references', async function () {
+    it('should merge promo variation when matching fragmentPath found in defaultVariations', async function () {
         const rootFragment = {
             id: 'root-id',
             path: '/content/dam/mas/sandbox/en_US/my-card',
-            fields: { variations: ['promo-var-id'], title: 'Original Title', badge: 'ORIGINAL' },
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
             references: {},
             referencesTree: [],
         };
 
         const result = await processWithPromos(
-            {
-                ...FAKE_CONTEXT,
-                fragmentPath: 'my-card',
-                parsedLocale: 'en_US',
-                body: rootFragment,
-                promoFragmentIds: new Set(['root-id']),
-            },
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
             ACTIVE_PROJECT,
         );
 
@@ -1319,11 +1311,59 @@ describe('customize promo variation', function () {
         expect(result.body.fields.badge).to.equal('PROMO');
     });
 
-    it('should default to empty fragmentIds and promoMap when not provided on context', async function () {
+    it('should merge region variation over default when both exist', async function () {
+        const regionVar = {
+            id: 'promo-region-id',
+            path: '/content/dam/mas/sandbox/fr_BE/promotions/black-friday/my-card',
+            fields: { title: 'Region Promo Title' },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: { 'my-card': PROMO_VARIATION },
+            regionVariations: { 'my-card': regionVar },
+        };
         const rootFragment = {
             id: 'root-id',
             path: '/content/dam/mas/sandbox/en_US/my-card',
-            fields: { variations: ['promo-var-id'], title: 'Original Title', osi: 'OSI-1' },
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-region-id');
+        expect(result.body.fields.title).to.equal('Region Promo Title');
+        expect(result.body.fields.badge).to.equal('PROMO');
+    });
+
+    it('should skip promo variation when no activeProject', async function () {
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', osi: 'OSI-1' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            null,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.be.undefined;
+        expect(result.body.promoCode).to.be.undefined;
+    });
+
+    it('should skip promo variation when fragment has no path', async function () {
+        const rootFragment = {
+            id: 'root-id',
+            fields: { title: 'Original Title' },
             references: {},
             referencesTree: [],
         };
@@ -1335,73 +1375,19 @@ describe('customize promo variation', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.be.undefined;
-        expect(result.body.promoCode).to.be.undefined;
-    });
-
-    it('should skip promo variation when fragment id is not in promoFragmentIds', async function () {
-        const rootFragment = {
-            id: 'root-id',
-            path: '/content/dam/mas/sandbox/en_US/my-card',
-            fields: { variations: ['promo-var-id'], title: 'Original Title' },
-            references: {},
-            referencesTree: [],
-        };
-
-        const result = await processWithPromos(
-            {
-                ...FAKE_CONTEXT,
-                fragmentPath: 'my-card',
-                parsedLocale: 'en_US',
-                body: rootFragment,
-                promoFragmentIds: new Set(['other-id']),
-            },
-            ACTIVE_PROJECT,
-        );
-
-        expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.be.undefined;
-    });
-
-    it('should skip promo variation when fragment has no path', async function () {
-        const rootFragment = {
-            id: 'root-id',
-            fields: { variations: ['promo-var-id'], title: 'Original Title' },
-            references: {},
-            referencesTree: [],
-        };
-
-        const result = await processWithPromos(
-            {
-                ...FAKE_CONTEXT,
-                fragmentPath: 'my-card',
-                parsedLocale: 'en_US',
-                body: rootFragment,
-                promoFragmentIds: new Set(['root-id']),
-            },
-            ACTIVE_PROJECT,
-        );
-
-        expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.be.undefined;
     });
 
     it('should skip promo variation when fragment path does not match expected pattern', async function () {
         const rootFragment = {
             id: 'root-id',
             path: '/unexpected/path/structure',
-            fields: { variations: ['promo-var-id'], title: 'Original Title' },
+            fields: { title: 'Original Title' },
             references: {},
             referencesTree: [],
         };
 
         const result = await processWithPromos(
-            {
-                ...FAKE_CONTEXT,
-                fragmentPath: 'my-card',
-                parsedLocale: 'en_US',
-                body: rootFragment,
-                promoFragmentIds: new Set(['root-id']),
-            },
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
             ACTIVE_PROJECT,
         );
 
@@ -1409,49 +1395,18 @@ describe('customize promo variation', function () {
         expect(result.body.variationId).to.be.undefined;
     });
 
-    it('should skip promo variation when no matching reference found in project', async function () {
+    it('should skip promo variation when no matching fragmentPath in variations', async function () {
         const rootFragment = {
             id: 'root-id',
             path: '/content/dam/mas/sandbox/en_US/different-card',
-            fields: { variations: ['promo-var-id'], title: 'Original Title' },
+            fields: { title: 'Original Title' },
             references: {},
             referencesTree: [],
         };
 
         const result = await processWithPromos(
-            {
-                ...FAKE_CONTEXT,
-                fragmentPath: 'different-card',
-                parsedLocale: 'en_US',
-                body: rootFragment,
-                promoFragmentIds: new Set(['root-id']),
-            },
+            { ...FAKE_CONTEXT, fragmentPath: 'different-card', parsedLocale: 'en_US', body: rootFragment },
             ACTIVE_PROJECT,
-        );
-
-        expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.be.undefined;
-    });
-
-    it('should skip promo variation when activeProject has no path', async function () {
-        const rootFragment = {
-            id: 'root-id',
-            path: '/content/dam/mas/sandbox/en_US/my-card',
-            fields: { variations: ['promo-var-id'], title: 'Original Title' },
-            references: {},
-            referencesTree: [],
-        };
-        const projectWithoutPath = { ...ACTIVE_PROJECT, path: null };
-
-        const result = await processWithPromos(
-            {
-                ...FAKE_CONTEXT,
-                fragmentPath: 'my-card',
-                parsedLocale: 'en_US',
-                body: rootFragment,
-                promoFragmentIds: new Set(['root-id']),
-            },
-            projectWithoutPath,
         );
 
         expect(result.status).to.equal(200);
@@ -1460,8 +1415,8 @@ describe('customize promo variation', function () {
 });
 
 describe('customize promoCode application', function () {
-    const MINIMAL_PROJECT = { id: 'promo-proj', path: '/content/dam/mas/promotions/test', references: {} };
-    const CARD_IDS = new Set(['test-card']);
+    const MINIMAL_PROJECT = { id: 'promo-proj', path: '/content/dam/mas/promotions/test', defaultVariations: {}, regionVariations: {} };
+    const CARD_PATHS = new Set(['test-card']);
 
     function makeBody(osiValue, extra = {}) {
         return {
@@ -1476,7 +1431,7 @@ describe('customize promoCode application', function () {
 
     it('should apply promoCode from promoMap when OSI matches', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-123'), promoFragmentIds: CARD_IDS },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-123'), promoFragmentPaths: CARD_PATHS },
             MINIMAL_PROJECT,
             { 'OSI-123': 'SUMMER25' },
         );
@@ -1486,7 +1441,7 @@ describe('customize promoCode application', function () {
 
     it('should apply promoCode for array OSI field', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody(['OSI-001', 'OSI-002']), promoFragmentIds: CARD_IDS },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody(['OSI-001', 'OSI-002']), promoFragmentPaths: CARD_PATHS },
             MINIMAL_PROJECT,
             { 'OSI-002': 'MULTI10' },
         );
@@ -1496,7 +1451,7 @@ describe('customize promoCode application', function () {
 
     it('should apply wildcard promoCode when no specific OSI match', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-UNKNOWN'), promoFragmentIds: CARD_IDS },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-UNKNOWN'), promoFragmentPaths: CARD_PATHS },
             MINIMAL_PROJECT,
             { '*': 'UNIVERSAL' },
         );
@@ -1506,7 +1461,7 @@ describe('customize promoCode application', function () {
 
     it('should prefer specific OSI match over wildcard', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-1'), promoFragmentIds: CARD_IDS },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-1'), promoFragmentPaths: CARD_PATHS },
             MINIMAL_PROJECT,
             { '*': 'WILDCARD', 'OSI-1': 'SPECIFIC' },
         );
@@ -1514,9 +1469,9 @@ describe('customize promoCode application', function () {
         expect(result.body.promoCode).to.equal('SPECIFIC');
     });
 
-    it('should not set promoCode when fragment id is not in promoFragmentIds', async function () {
+    it('should not set promoCode when fragment path is not in promoFragmentPaths', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-123'), promoFragmentIds: new Set(['other-id']) },
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-123'), promoFragmentPaths: new Set(['other-path']) },
             MINIMAL_PROJECT,
             { 'OSI-123': 'SUMMER25' },
         );
@@ -1539,7 +1494,7 @@ describe('customize promoCode application', function () {
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'test-collection',
-                promoFragmentIds: new Set(['card-1']),
+                promoFragmentPaths: new Set(['card-1']),
                 body: {
                     path: '/content/dam/mas/sandbox/en_US/test-collection',
                     id: 'test-collection',

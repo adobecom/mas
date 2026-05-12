@@ -202,6 +202,12 @@ export default class MasMnemonic extends LitElement {
             left: -6px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
+
+        /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */
+        .icon-only {
+            display: inline-block;
+            vertical-align: middle;
+        }
     `;
 
     constructor() {
@@ -353,7 +359,7 @@ export default class MasMnemonic extends LitElement {
         const placement = this.effectivePlacement;
 
         if (!content) {
-            return this.renderIcon();
+            return html`<span class="icon-only">${this.renderIcon()}</span>`;
         }
 
         // Check for Spectrum components at render time for better timing

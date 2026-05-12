@@ -1,7 +1,7 @@
-var $=Object.defineProperty;var P=(f,e,t)=>e in f?$(f,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):f[e]=t;var x=(f,e,t)=>P(f,typeof e!="symbol"?e+"":e,t);import{LitElement as S,html as b,css as C}from"./lit-all.min.js";import{unsafeHTML as T}from"./lit-all.min.js";function k(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o=class o extends S{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.smartPlacement=!1,this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this),this._tooltipTop=0,this._tooltipLeft=0,this._arrowOffset=0,this._computedPlacement="top"}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside),!this.smartPlacement&&this.closest('merch-card[variant="fries"]')&&(this.smartPlacement=!0)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(e){let t=e.composedPath();o.activeTooltip===this&&!t.includes(this)&&this.hideTooltip()}_computeTooltipPosition(){let e=this.shadowRoot?.querySelector(".css-tooltip");if(!e)return;let t=e.getBoundingClientRect(),g=window.innerWidth,m=window.innerHeight,r=14,p=200,i=60,d=this.shadowRoot?.querySelector(".css-tooltip-body"),l=d?d.offsetWidth:p,a=d?d.offsetHeight:i,s=this.effectivePlacement;s==="top"&&t.top-a-r<0?s="bottom":s==="bottom"&&t.bottom+a+r>m?s="top":s==="left"&&t.left-l-r<0?s="right":s==="right"&&t.right+l+r>g&&(s="left");let y=t.left+t.width/2,v=t.top+t.height/2,n=6,c,h,u;s==="top"?(c=t.top-a-r,h=Math.max(0,Math.min(g-l,y-l/2)),u=Math.max(n,Math.min(l-n*2,y-h-n))):s==="bottom"?(c=t.bottom+r,h=Math.max(0,Math.min(g-l,y-l/2)),u=Math.max(n,Math.min(l-n*2,y-h-n))):s==="left"?(h=t.left-l-r,c=Math.max(0,Math.min(m-a,v-a/2)),u=Math.max(n,Math.min(a-n*2,v-c-n))):(h=t.right+r,c=Math.max(0,Math.min(m-a,v-a/2)),u=Math.max(n,Math.min(a-n*2,v-c-n))),this._tooltipTop=c,this._tooltipLeft=h,this._arrowOffset=u,this._computedPlacement=s,this._anchorRect=t}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&(o.activeTooltip.closeOverlay(),o.activeTooltip.tooltipVisible=!1,o.activeTooltip.requestUpdate()),o.activeTooltip=this,this.smartPlacement&&this._computeTooltipPosition(),this.tooltipVisible=!0,this.smartPlacement&&this.updateComplete.then(()=>this._computeTooltipPosition())}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTap(e){e.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let e=this.shadowRoot?.querySelector("overlay-trigger");e?.open!==void 0&&(e.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?b`<merch-icon
+var O=Object.defineProperty;var z=(h,e,t)=>e in h?O(h,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):h[e]=t;var y=(h,e,t)=>z(h,typeof e!="symbol"?e+"":e,t);import{LitElement as H,html as m,css as L,nothing as _}from"./lit-all.min.js";import{unsafeHTML as S}from"./lit-all.min.js";import{ifDefined as E}from"./lit-all.min.js";function V(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o=class o extends H{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.smartPlacement=!1,this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this),this._tooltipTop=0,this._tooltipLeft=0,this._arrowOffset=0,this._computedPlacement="top"}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside),!this.smartPlacement&&this.closest('merch-card[variant="fries"]')&&(this.smartPlacement=!0)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(e){let t=e.composedPath();o.activeTooltip===this&&!t.includes(this)&&this.hideTooltip()}_computeTooltipPosition(){let e=this.shadowRoot?.querySelector(".css-tooltip");if(!e)return;let t=e.getBoundingClientRect(),x=window.innerWidth,f=window.innerHeight,s=14,a=200,d=60,p=this.shadowRoot?.querySelector(".css-tooltip-body"),n=p?p.offsetWidth:a,r=p?p.offsetHeight:d,i=this.effectivePlacement;i==="top"&&t.top-r-s<0?i="bottom":i==="bottom"&&t.bottom+r+s>f?i="top":i==="left"&&t.left-n-s<0?i="right":i==="right"&&t.right+n+s>x&&(i="left");let T=t.left+t.width/2,P=t.top+t.height/2,c=6,u=($,C,k)=>Math.max($,Math.min(C,k)),b,g,w;i==="top"||i==="bottom"?(b=i==="top"?t.top-r-s:t.bottom+s,g=u(0,x-n,T-n/2),w=u(c,n-c*2,T-g-c)):(g=i==="left"?t.left-n-s:t.right+s,b=u(0,f-r,P-r/2),w=u(c,r-c*2,P-b-c)),this._tooltipTop=b,this._tooltipLeft=g,this._arrowOffset=w,this._computedPlacement=i}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&(o.activeTooltip.closeOverlay(),o.activeTooltip.tooltipVisible=!1,o.activeTooltip.requestUpdate()),o.activeTooltip=this,this.smartPlacement&&this._computeTooltipPosition(),this.tooltipVisible=!0,this.smartPlacement&&this.updateComplete.then(()=>this._computeTooltipPosition())}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTap(e){e.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let e=this.shadowRoot?.querySelector("overlay-trigger");e?.open!==void 0&&(e.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?m`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:b`<slot></slot>`}render(){let e=this.effectiveContent,t=this.effectivePlacement;if(!e)return this.renderIcon();if(k())return b`
+        ></merch-icon>`:m`<slot></slot>`}render(){let e=this.effectiveContent,t=this.effectivePlacement;if(!e)return m`<span class="icon-only">${this.renderIcon()}</span>`;if(V())return m`
                 <overlay-trigger
                     placement="${t}"
                     @sp-opened=${()=>this.showTooltip()}
@@ -11,46 +11,32 @@ var $=Object.defineProperty;var P=(f,e,t)=>e in f?$(f,e,{enumerable:!0,configura
                         placement="${t}"
                         variant="${this.variant}"
                     >
-                        ${T(e)}
+                        ${S(e)}
                     </sp-tooltip>
                 </overlay-trigger>
-            `;{let m=e.replace(/<[^>]*>/g,""),r=this.tooltipVisible?"tooltip-visible":"",p={pointerdown:i=>{this.lastPointerType=i.pointerType},pointerenter:i=>i.pointerType!=="touch"&&this.showTooltip(),pointerleave:i=>i.pointerType!=="touch"&&this.hideTooltip(),click:i=>{this.lastPointerType==="touch"&&this.handleTap(i),this.lastPointerType=null}};if(this.smartPlacement){let i=this._computedPlacement,d=i==="top"||i==="bottom",l=`top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`,a=d?`left:${this._arrowOffset}px`:`top:${this._arrowOffset}px`;return b`
-                    <span
-                        class="css-tooltip smart ${r}"
-                        tabindex="0"
-                        role="img"
-                        aria-label="${m}"
-                        @pointerdown=${p.pointerdown}
-                        @pointerenter=${p.pointerenter}
-                        @pointerleave=${p.pointerleave}
-                        @click=${p.click}
-                    >
-                        ${this.renderIcon()}
-                        <span class="css-tooltip-body" style="${l}">
-                            ${T(e)}
-                            <span
-                                aria-hidden="true"
-                                role="presentation"
-                                class="css-tooltip-tip ${i}"
-                                style="${a}"
-                            ></span>
-                        </span>
-                    </span>
-                `}return b`
-                <span
-                    class="css-tooltip ${t} ${r}"
-                    tabindex="0"
-                    role="img"
-                    aria-label="${m}"
-                    @pointerdown=${p.pointerdown}
-                    @pointerenter=${p.pointerenter}
-                    @pointerleave=${p.pointerleave}
-                    @click=${p.click}
-                >
-                    ${this.renderIcon()}
-                    <span class="css-tooltip-body">${T(e)}</span>
+            `;let f=e.replace(/<[^>]*>/g,""),s=this.tooltipVisible?"tooltip-visible":"",a={pointerdown:l=>{this.lastPointerType=l.pointerType},pointerenter:l=>l.pointerType!=="touch"&&this.showTooltip(),pointerleave:l=>l.pointerType!=="touch"&&this.hideTooltip(),click:l=>{this.lastPointerType==="touch"&&this.handleTap(l),this.lastPointerType=null}},d=this._computedPlacement,p=d==="top"||d==="bottom",n=this.smartPlacement?`top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`:void 0,r=p?`left:${this._arrowOffset}px`:`top:${this._arrowOffset}px`;return m`
+            <span
+                class="css-tooltip ${this.smartPlacement?"smart":t} ${s}"
+                tabindex="0"
+                role="img"
+                aria-label="${f}"
+                @pointerdown=${a.pointerdown}
+                @pointerenter=${a.pointerenter}
+                @pointerleave=${a.pointerleave}
+                @click=${a.click}
+            >
+                ${this.renderIcon()}
+                <span class="css-tooltip-body" style=${E(n)}>
+                    ${S(e)}
+                    ${this.smartPlacement?m`<span
+                                  aria-hidden="true"
+                                  role="presentation"
+                                  class="css-tooltip-tip ${d}"
+                                  style="${r}"
+                              ></span>`:_}
                 </span>
-            `}}};x(o,"activeTooltip",null),x(o,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),x(o,"styles",C`
+            </span>
+        `}};y(o,"activeTooltip",null),y(o,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),y(o,"styles",L`
         :host {
             display: contents;
             overflow: visible;
@@ -215,4 +201,10 @@ var $=Object.defineProperty;var P=(f,e,t)=>e in f?$(f,e,{enumerable:!0,configura
             left: -6px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);var w=o;customElements.define("mas-mnemonic",w);export{w as default};
+
+        /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */
+        .icon-only {
+            display: inline-block;
+            vertical-align: middle;
+        }
+    `);var v=o;customElements.define("mas-mnemonic",v);export{v as default};

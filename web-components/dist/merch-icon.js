@@ -1,7 +1,7 @@
-var $=Object.defineProperty;var z=(n,e,t)=>e in n?$(n,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):n[e]=t;var O=(n,e)=>()=>(n&&(e=n(n=0)),e);var E=(n,e)=>{for(var t in e)$(n,t,{get:e[t],enumerable:!0})};var g=(n,e,t)=>z(n,typeof e!="symbol"?e+"":e,t);var P={};E(P,{default:()=>x});import{LitElement as L,html as v,css as q}from"./lit-all.min.js";import{unsafeHTML as S}from"./lit-all.min.js";function H(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var r,x,C=O(()=>{r=class r extends L{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.smartPlacement=!1,this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this),this._tooltipTop=0,this._tooltipLeft=0,this._arrowOffset=0,this._computedPlacement="top"}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside),!this.smartPlacement&&this.closest('merch-card[variant="fries"]')&&(this.smartPlacement=!0)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(e){let t=e.composedPath();r.activeTooltip===this&&!t.includes(this)&&this.hideTooltip()}_computeTooltipPosition(){let e=this.shadowRoot?.querySelector(".css-tooltip");if(!e)return;let t=e.getBoundingClientRect(),m=window.innerWidth,h=window.innerHeight,i=14,s=200,o=60,u=this.shadowRoot?.querySelector(".css-tooltip-body"),p=u?u.offsetWidth:s,c=u?u.offsetHeight:o,l=this.effectivePlacement;l==="top"&&t.top-c-i<0?l="bottom":l==="bottom"&&t.bottom+c+i>h?l="top":l==="left"&&t.left-p-i<0?l="right":l==="right"&&t.right+p+i>m&&(l="left");let w=t.left+t.width/2,T=t.top+t.height/2,a=6,d,f,y;l==="top"?(d=t.top-c-i,f=Math.max(0,Math.min(m-p,w-p/2)),y=Math.max(a,Math.min(p-a*2,w-f-a))):l==="bottom"?(d=t.bottom+i,f=Math.max(0,Math.min(m-p,w-p/2)),y=Math.max(a,Math.min(p-a*2,w-f-a))):l==="left"?(f=t.left-p-i,d=Math.max(0,Math.min(h-c,T-c/2)),y=Math.max(a,Math.min(c-a*2,T-d-a))):(f=t.right+i,d=Math.max(0,Math.min(h-c,T-c/2)),y=Math.max(a,Math.min(c-a*2,T-d-a))),this._tooltipTop=d,this._tooltipLeft=f,this._arrowOffset=y,this._computedPlacement=l,this._anchorRect=t}showTooltip(){r.activeTooltip&&r.activeTooltip!==this&&(r.activeTooltip.closeOverlay(),r.activeTooltip.tooltipVisible=!1,r.activeTooltip.requestUpdate()),r.activeTooltip=this,this.smartPlacement&&this._computeTooltipPosition(),this.tooltipVisible=!0,this.smartPlacement&&this.updateComplete.then(()=>this._computeTooltipPosition())}hideTooltip(){r.activeTooltip===this&&(r.activeTooltip=null),this.tooltipVisible=!1}handleTap(e){e.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let e=this.shadowRoot?.querySelector("overlay-trigger");e?.open!==void 0&&(e.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?v`<merch-icon
+var P=Object.defineProperty;var H=(n,e,t)=>e in n?P(n,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):n[e]=t;var V=(n,e)=>()=>(n&&(e=n(n=0)),e);var _=(n,e)=>{for(var t in e)P(n,t,{get:e[t],enumerable:!0})};var d=(n,e,t)=>H(n,typeof e!="symbol"?e+"":e,t);var k={};_(k,{default:()=>y});import{LitElement as A,html as u,css as R,nothing as Y}from"./lit-all.min.js";import{unsafeHTML as C}from"./lit-all.min.js";import{ifDefined as I}from"./lit-all.min.js";function N(){return customElements.get("sp-tooltip")!==void 0&&customElements.get("overlay-trigger")!==void 0&&document.querySelector("sp-theme")!==null}var o,y,z=V(()=>{o=class o extends A{constructor(){super(),this.content="",this.placement="top",this.variant="info",this.size="xs",this.smartPlacement=!1,this.tooltipVisible=!1,this.lastPointerType=null,this.handleClickOutside=this.handleClickOutside.bind(this),this._tooltipTop=0,this._tooltipLeft=0,this._arrowOffset=0,this._computedPlacement="top"}connectedCallback(){super.connectedCallback(),window.addEventListener("mousedown",this.handleClickOutside),!this.smartPlacement&&this.closest('merch-card[variant="fries"]')&&(this.smartPlacement=!0)}disconnectedCallback(){super.disconnectedCallback(),window.removeEventListener("mousedown",this.handleClickOutside)}handleClickOutside(e){let t=e.composedPath();o.activeTooltip===this&&!t.includes(this)&&this.hideTooltip()}_computeTooltipPosition(){let e=this.shadowRoot?.querySelector(".css-tooltip");if(!e)return;let t=e.getBoundingClientRect(),a=window.innerWidth,p=window.innerHeight,i=14,r=200,l=60,f=this.shadowRoot?.querySelector(".css-tooltip-body"),c=f?f.offsetWidth:r,h=f?f.offsetHeight:l,s=this.effectivePlacement;s==="top"&&t.top-h-i<0?s="bottom":s==="bottom"&&t.bottom+h+i>p?s="top":s==="left"&&t.left-c-i<0?s="right":s==="right"&&t.right+c+i>a&&(s="left");let S=t.left+t.width/2,$=t.top+t.height/2,g=6,v=(E,L,q)=>Math.max(E,Math.min(L,q)),x,w,T;s==="top"||s==="bottom"?(x=s==="top"?t.top-h-i:t.bottom+i,w=v(0,a-c,S-c/2),T=v(g,c-g*2,S-w-g)):(w=s==="left"?t.left-c-i:t.right+i,x=v(0,p-h,$-h/2),T=v(g,h-g*2,$-x-g)),this._tooltipTop=x,this._tooltipLeft=w,this._arrowOffset=T,this._computedPlacement=s}showTooltip(){o.activeTooltip&&o.activeTooltip!==this&&(o.activeTooltip.closeOverlay(),o.activeTooltip.tooltipVisible=!1,o.activeTooltip.requestUpdate()),o.activeTooltip=this,this.smartPlacement&&this._computeTooltipPosition(),this.tooltipVisible=!0,this.smartPlacement&&this.updateComplete.then(()=>this._computeTooltipPosition())}hideTooltip(){o.activeTooltip===this&&(o.activeTooltip=null),this.tooltipVisible=!1}handleTap(e){e.preventDefault(),this.tooltipVisible?this.hideTooltip():this.showTooltip()}closeOverlay(){let e=this.shadowRoot?.querySelector("overlay-trigger");e?.open!==void 0&&(e.open=!1)}get effectiveContent(){return this.tooltipText||this.mnemonicText||this.content||""}get effectivePlacement(){return this.tooltipPlacement||this.mnemonicPlacement||this.placement||"top"}renderIcon(){return this.src?u`<merch-icon
             src="${this.src}"
             size="${this.size}"
-        ></merch-icon>`:v`<slot></slot>`}render(){let e=this.effectiveContent,t=this.effectivePlacement;if(!e)return this.renderIcon();if(H())return v`
+        ></merch-icon>`:u`<slot></slot>`}render(){let e=this.effectiveContent,t=this.effectivePlacement;if(!e)return u`<span class="icon-only">${this.renderIcon()}</span>`;if(N())return u`
                 <overlay-trigger
                     placement="${t}"
                     @sp-opened=${()=>this.showTooltip()}
@@ -11,46 +11,32 @@ var $=Object.defineProperty;var z=(n,e,t)=>e in n?$(n,e,{enumerable:!0,configura
                         placement="${t}"
                         variant="${this.variant}"
                     >
-                        ${S(e)}
+                        ${C(e)}
                     </sp-tooltip>
                 </overlay-trigger>
-            `;{let h=e.replace(/<[^>]*>/g,""),i=this.tooltipVisible?"tooltip-visible":"",s={pointerdown:o=>{this.lastPointerType=o.pointerType},pointerenter:o=>o.pointerType!=="touch"&&this.showTooltip(),pointerleave:o=>o.pointerType!=="touch"&&this.hideTooltip(),click:o=>{this.lastPointerType==="touch"&&this.handleTap(o),this.lastPointerType=null}};if(this.smartPlacement){let o=this._computedPlacement,u=o==="top"||o==="bottom",p=`top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`,c=u?`left:${this._arrowOffset}px`:`top:${this._arrowOffset}px`;return v`
-                    <span
-                        class="css-tooltip smart ${i}"
-                        tabindex="0"
-                        role="img"
-                        aria-label="${h}"
-                        @pointerdown=${s.pointerdown}
-                        @pointerenter=${s.pointerenter}
-                        @pointerleave=${s.pointerleave}
-                        @click=${s.click}
-                    >
-                        ${this.renderIcon()}
-                        <span class="css-tooltip-body" style="${p}">
-                            ${S(e)}
-                            <span
-                                aria-hidden="true"
-                                role="presentation"
-                                class="css-tooltip-tip ${o}"
-                                style="${c}"
-                            ></span>
-                        </span>
-                    </span>
-                `}return v`
-                <span
-                    class="css-tooltip ${t} ${i}"
-                    tabindex="0"
-                    role="img"
-                    aria-label="${h}"
-                    @pointerdown=${s.pointerdown}
-                    @pointerenter=${s.pointerenter}
-                    @pointerleave=${s.pointerleave}
-                    @click=${s.click}
-                >
-                    ${this.renderIcon()}
-                    <span class="css-tooltip-body">${S(e)}</span>
+            `;let p=e.replace(/<[^>]*>/g,""),i=this.tooltipVisible?"tooltip-visible":"",r={pointerdown:m=>{this.lastPointerType=m.pointerType},pointerenter:m=>m.pointerType!=="touch"&&this.showTooltip(),pointerleave:m=>m.pointerType!=="touch"&&this.hideTooltip(),click:m=>{this.lastPointerType==="touch"&&this.handleTap(m),this.lastPointerType=null}},l=this._computedPlacement,f=l==="top"||l==="bottom",c=this.smartPlacement?`top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`:void 0,h=f?`left:${this._arrowOffset}px`:`top:${this._arrowOffset}px`;return u`
+            <span
+                class="css-tooltip ${this.smartPlacement?"smart":t} ${i}"
+                tabindex="0"
+                role="img"
+                aria-label="${p}"
+                @pointerdown=${r.pointerdown}
+                @pointerenter=${r.pointerenter}
+                @pointerleave=${r.pointerleave}
+                @click=${r.click}
+            >
+                ${this.renderIcon()}
+                <span class="css-tooltip-body" style=${I(c)}>
+                    ${C(e)}
+                    ${this.smartPlacement?u`<span
+                                  aria-hidden="true"
+                                  role="presentation"
+                                  class="css-tooltip-tip ${l}"
+                                  style="${h}"
+                              ></span>`:Y}
                 </span>
-            `}}};g(r,"activeTooltip",null),g(r,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),g(r,"styles",q`
+            </span>
+        `}};d(o,"activeTooltip",null),d(o,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),d(o,"styles",R`
         :host {
             display: contents;
             overflow: visible;
@@ -215,17 +201,23 @@ var $=Object.defineProperty;var z=(n,e,t)=>e in n?$(n,e,{enumerable:!0,configura
             left: -6px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
-    `);x=r;customElements.define("mas-mnemonic",x)});import{LitElement as M,html as k,css as _}from"./lit-all.min.js";function R(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var b=class extends M{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(R())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(t=>{let m="",h="top";if(t.tagName==="SP-TOOLTIP")m=t.textContent,h=t.getAttribute("placement")||"top";else if(t.tagName==="OVERLAY-TRIGGER"){let i=t.querySelector("sp-tooltip");i&&(m=i.textContent,h=i.getAttribute("placement")||t.getAttribute("placement")||"top")}if(m){let i=document.createElement("mas-mnemonic");i.setAttribute("content",m),i.setAttribute("placement",h);let s=this.querySelector("img"),o=this.querySelector("a");o&&o.contains(s)?i.appendChild(o):s&&i.appendChild(s),this.innerHTML="",this.appendChild(i),Promise.resolve().then(()=>C())}t.remove()})}render(){let{href:e}=this;return e?k`<a href="${e}">
+
+        /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */
+        .icon-only {
+            display: inline-block;
+            vertical-align: middle;
+        }
+    `);y=o;customElements.define("mas-mnemonic",y)});import{LitElement as X,html as O,css as W}from"./lit-all.min.js";function B(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var b=class extends X{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(B())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(t=>{let a="",p="top";if(t.tagName==="SP-TOOLTIP")a=t.textContent,p=t.getAttribute("placement")||"top";else if(t.tagName==="OVERLAY-TRIGGER"){let i=t.querySelector("sp-tooltip");i&&(a=i.textContent,p=i.getAttribute("placement")||t.getAttribute("placement")||"top")}if(a){let i=document.createElement("mas-mnemonic");i.setAttribute("content",a),i.setAttribute("placement",p);let r=this.querySelector("img"),l=this.querySelector("a");l&&l.contains(r)?i.appendChild(l):r&&i.appendChild(r),this.innerHTML="",this.appendChild(i),Promise.resolve().then(()=>z())}t.remove()})}render(){let{href:e}=this;return e?O`<a href="${e}">
                   <img
                       src="${this.src}"
                       alt="${this.alt}"
                       loading="${this.loading}"
                   />
-              </a>`:k` <img
+              </a>`:O` <img
                   src="${this.src}"
                   alt="${this.alt}"
                   loading="${this.loading}"
-              />`}};g(b,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),g(b,"styles",_`
+              />`}};d(b,"properties",{size:{type:String,attribute:!0},src:{type:String,attribute:!0},alt:{type:String,attribute:!0},href:{type:String,attribute:!0},loading:{type:String,attribute:!0}}),d(b,"styles",W`
         :host {
             --img-width: 32px;
             --img-height: 32px;

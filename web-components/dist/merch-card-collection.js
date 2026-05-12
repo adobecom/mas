@@ -7054,6 +7054,7 @@ merch-card[variant="mini"] span.renewal-text {
 
     merch-card[variant='fries'] merch-whats-included {
         row-gap: 6px;
+        flex-wrap: nowrap;
     }
 
     merch-card[variant='fries'] merch-whats-included > [slot="heading"]:empty {

@@ -139,7 +139,7 @@ export class MerchCardCollection extends LitElement {
     }
 
     render() {
-        if (this.failed) {
+        if (this.failed && this.#service?.isPreview()) {
             const fragmentId = this.id ?? 'unknown';
             return html`<div class="not-found">
                 <div class="not-found-badge">NOT FOUND</div>
@@ -339,6 +339,7 @@ export class MerchCardCollection extends LitElement {
     #fail(error, details = {}, dispatch = true) {
         this.#log?.error(`merch-card-collection: ${error}`, details);
         this.failed = true;
+        if (!this.#service?.isPreview()) this.style.display = 'none';
         if (!dispatch) return;
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_ERROR, {

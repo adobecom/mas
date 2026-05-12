@@ -467,7 +467,7 @@ runTests(async () => {
             expect(result).to.equal('resolved');
         });
 
-        it('should set failed=true and render a not-found card when the aem-fragment returns a 404', async () => {
+        it('should set failed=true and hide the card in non-preview mode when the aem-fragment returns a 404', async () => {
             const card = document.createElement('merch-card');
             const frag = document.createElement('aem-fragment');
             frag.setAttribute('fragment', 'notfound');
@@ -478,8 +478,10 @@ runTests(async () => {
             await card.updateComplete;
 
             expect(card.failed).to.be.true;
-            expect(card.style.display).to.not.equal('none');
-            expect(card.shadowRoot.querySelector('.not-found-badge')).to.exist;
+            // non-preview: card hidden, no error UI rendered
+            expect(card.style.display).to.equal('none');
+            expect(card.shadowRoot.querySelector('.not-found-badge')).to.not
+                .exist;
 
             card.remove();
         });

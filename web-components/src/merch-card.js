@@ -325,7 +325,7 @@ export class MerchCard extends LitElement {
     }
 
     render() {
-        if (!this.isConnected) return;
+        if (!this.isConnected || this.style.display === 'none') return;
         if (this.failed) {
             const fragmentId =
                 this.aemFragment?.getAttribute('fragment') ?? 'unknown';
@@ -335,7 +335,7 @@ export class MerchCard extends LitElement {
                     <code>${fragmentId}</code>
                 </div>`;
         }
-        if (!this.variantLayout || this.style.display === 'none') return;
+        if (!this.variantLayout) return;
         return this.variantLayout.renderLayout();
     }
 
@@ -682,7 +682,7 @@ export class MerchCard extends LitElement {
         this.failed = true;
         this.#resolveHydration?.();
         this.#resolveHydration = undefined;
-        this.style.removeProperty('display');
+        if (!this.#service.isPreview()) this.style.display = 'none';
         if (!dispatch) return;
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_ERROR, {

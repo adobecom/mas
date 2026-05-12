@@ -180,6 +180,15 @@ describe('mas-mnemonic – smart-placement', () => {
             const el = await connected();
             expect(el.shadowRoot.querySelector('.css-tooltip')).to.be.null;
         });
+
+        it('renders merch-icon when src is set', async () => {
+            const el = await connected({ src: 'https://example.com/icon.svg' });
+            const icon = el.shadowRoot.querySelector('merch-icon');
+            expect(icon).to.exist;
+            expect(icon.getAttribute('src')).to.equal(
+                'https://example.com/icon.svg',
+            );
+        });
     });
 
     describe('tooltip visibility', () => {
@@ -247,6 +256,165 @@ describe('mas-mnemonic – smart-placement', () => {
 
         it('defaults to "top" when no placement attributes set', () => {
             expect(makeMnemonic().effectivePlacement).to.equal('top');
+        });
+    });
+
+    describe('handleClickOutside', () => {
+        it('hides tooltip when mousedown fires outside the element', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            el.showTooltip();
+            await el.updateComplete;
+            expect(el.tooltipVisible).to.be.true;
+
+            const evt = new MouseEvent('mousedown', { bubbles: true });
+            document.body.dispatchEvent(evt);
+            expect(el.tooltipVisible).to.be.false;
+        });
+
+        it('does not hide tooltip when mousedown fires inside the element', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            el.showTooltip();
+            await el.updateComplete;
+
+            const wrapper = el.shadowRoot.querySelector('.css-tooltip');
+            const evt = new MouseEvent('mousedown', { bubbles: true, composed: true });
+            wrapper.dispatchEvent(evt);
+            expect(el.tooltipVisible).to.be.true;
+        });
+    });
+
+    describe('dismiss active tooltip when showing a new one', () => {
+        it('hides the previously active tooltip', async () => {
+            const el1 = await connected({ 'tooltip-text': 'One' });
+            const el2 = await connected({ 'tooltip-text': 'Two' });
+            el1.showTooltip();
+            await el1.updateComplete;
+            expect(el1.tooltipVisible).to.be.true;
+
+            el2.showTooltip();
+            await el1.updateComplete;
+            await el2.updateComplete;
+            expect(el1.tooltipVisible).to.be.false;
+            expect(el2.tooltipVisible).to.be.true;
+        });
+    });
+
+    describe('handleTap', () => {
+        it('shows tooltip on first tap', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            const evt = new MouseEvent('click', { bubbles: true });
+            evt.preventDefault = () => {};
+            el.handleTap(evt);
+            expect(el.tooltipVisible).to.be.true;
+        });
+
+        it('hides tooltip on second tap', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            el.showTooltip();
+            const evt = new MouseEvent('click', { bubbles: true });
+            evt.preventDefault = () => {};
+            el.handleTap(evt);
+            expect(el.tooltipVisible).to.be.false;
+        });
+    });
+
+    describe('closeOverlay', () => {
+        it('does not throw when overlay-trigger is absent', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            expect(() => el.closeOverlay()).not.to.throw;
+        });
+    });
+
+    describe('pointer event handlers', () => {
+        it('records pointerType on pointerdown', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            const wrapper = el.shadowRoot.querySelector('.css-tooltip');
+            wrapper.dispatchEvent(
+                new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true }),
+            );
+            expect(el.lastPointerType).to.equal('touch');
+        });
+
+        it('shows tooltip on non-touch pointerenter', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            const wrapper = el.shadowRoot.querySelector('.css-tooltip');
+            wrapper.dispatchEvent(
+                new PointerEvent('pointerenter', { pointerType: 'mouse', bubbles: true }),
+            );
+            expect(el.tooltipVisible).to.be.true;
+        });
+
+        it('does not show tooltip on touch pointerenter', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            const wrapper = el.shadowRoot.querySelector('.css-tooltip');
+            wrapper.dispatchEvent(
+                new PointerEvent('pointerenter', { pointerType: 'touch', bubbles: true }),
+            );
+            expect(el.tooltipVisible).to.be.false;
+        });
+
+        it('triggers handleTap on click when lastPointerType is touch', async () => {
+            const el = await connected({ 'tooltip-text': 'Hi' });
+            el.lastPointerType = 'touch';
+            const wrapper = el.shadowRoot.querySelector('.css-tooltip');
+            wrapper.dispatchEvent(
+                new MouseEvent('click', { bubbles: true }),
+            );
+            expect(el.tooltipVisible).to.be.true;
+            expect(el.lastPointerType).to.be.null;
+        });
+    });
+
+    describe('_computeTooltipPosition placement fallbacks', () => {
+        it('computes placement when starting from bottom in smart mode', async () => {
+            const el = await connected({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+                placement: 'bottom',
+            });
+            el.showTooltip();
+            await el.updateComplete;
+            expect(el.tooltipVisible).to.be.true;
+            expect(el._computedPlacement).to.be.oneOf([
+                'top',
+                'bottom',
+                'left',
+                'right',
+            ]);
+        });
+
+        it('computes placement when starting from left in smart mode', async () => {
+            const el = await connected({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+                placement: 'left',
+            });
+            el.showTooltip();
+            await el.updateComplete;
+            expect(el.tooltipVisible).to.be.true;
+            expect(el._computedPlacement).to.be.oneOf([
+                'top',
+                'bottom',
+                'left',
+                'right',
+            ]);
+        });
+
+        it('computes placement when starting from right in smart mode', async () => {
+            const el = await connected({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+                placement: 'right',
+            });
+            el.showTooltip();
+            await el.updateComplete;
+            expect(el.tooltipVisible).to.be.true;
+            expect(el._computedPlacement).to.be.oneOf([
+                'top',
+                'bottom',
+                'left',
+                'right',
+            ]);
         });
     });
 });

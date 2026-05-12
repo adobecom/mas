@@ -1,4 +1,10 @@
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, MAS_PRODUCT_CODE_PREFIX, TAG_PROMOTION_PREFIX } from './constants.js';
+import {
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    MAS_PRODUCT_CODE_PREFIX,
+    TAG_PROMOTION_PREFIX,
+    STATUS_PUBLISHED,
+} from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
@@ -377,6 +383,18 @@ export function extractLocaleFromPath(fragmentPath) {
     if (!fragmentPath) return null;
     const match = fragmentPath.match(PATH_TOKENS);
     return match?.groups?.parsedLocale ?? null;
+}
+
+export function previewFragmentOnPage(fragment) {
+    if (!fragment?.id) return;
+
+    const locale = extractLocaleFromPath(fragment.path);
+    const type = fragment?.model?.path === CARD_MODEL_PATH ? 'merch-card' : 'merch-card-collection';
+    const hostname = fragment?.status === STATUS_PUBLISHED ? 'milo.adobe.com' : 'main--milo--adobecom.aem.page';
+    window.open(
+        `https://${hostname}/merch/mas/preview?fragment-id=${fragment?.id}&content-type=${type}&locale=${locale}`,
+        '_blank',
+    );
 }
 
 /**

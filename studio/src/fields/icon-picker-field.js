@@ -101,10 +101,28 @@ class IconPickerField extends LitElement {
         this.#handleEditClick();
     }
 
+    #hasAltContent(altCombined) {
+        const raw = (altCombined ?? '').trim();
+        if (!raw) return false;
+        if (raw.startsWith('<p>')) {
+            const doc = new DOMParser().parseFromString(raw, 'text/html');
+            const txt = doc
+                .querySelector('p')
+                ?.textContent?.replace(/\u00a0/g, ' ')
+                .trim();
+            return !!txt;
+        }
+        return true;
+    }
+
+    #hasIncludedContent() {
+        if (this.icon?.trim()) return true;
+        return this.#hasAltContent(this.alt);
+    }
+
     #handleModalClose() {
         this.modalOpen = false;
-        // If field is empty (no icon selected), remove it
-        if (!this.icon) {
+        if (!this.#hasIncludedContent()) {
             this.#handleDeleteClick();
         }
     }

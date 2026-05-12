@@ -141,7 +141,7 @@ const extractNumberMask = (formatString, usePrecision = true) => {
         // As the formatString could be container non-symbol like `A #,##0.00 B` so using regex here.
         numberMask = numberMask.replace(
             /\s?(#.*0)(?!\s)?/,
-            '$&' + getPossibleDecimalsDelimiter(formatString),
+            `$&${getPossibleDecimalsDelimiter(formatString)}`,
         );
     } else if (!usePrecision) {
         // Trim the 0s after the decimalsDelimiter. `#,##0.00` will become `#,##0.`

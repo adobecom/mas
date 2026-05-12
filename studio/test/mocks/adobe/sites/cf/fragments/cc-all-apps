@@ -187,6 +187,13 @@
             "values": []
         },
         {
+            "name": "quantitySelect",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
             "name": "secure",
             "type": "boolean",
             "multiple": false,

@@ -3,9 +3,12 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, TABLE_TYPE, FRAGMENT_STATUS } from '../../src/constants.js';
+import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
-import '../../src/translation/mas-select-items-table.js';
+import '../../src/translation/mas-collapsible-table-row.js';
+import '../../src/common/components/mas-select-items-table.js';
 
 describe('MasSelectItemsTable', () => {
     let sandbox;
@@ -109,6 +112,7 @@ describe('MasSelectItemsTable', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         resetStore();
         mockCommerceService = createMockCommerceService();
     });
@@ -118,6 +122,7 @@ describe('MasSelectItemsTable', () => {
         sandbox.restore();
         resetStore();
         removeMockCommerceService();
+        setItemsSelectionStore(null);
     });
 
     describe('initialization', () => {
@@ -540,10 +545,14 @@ describe('MasSelectItemsTable', () => {
 
     describe('rendering - status cell', () => {
         it('should render Published status with green dot', async () => {
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
-            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1', { status: FRAGMENT_STATUS.PUBLISHED })];
             setupCardsInStore(cards);
+            const el = await fixture(
+                html`<mas-select-items-table
+                    type="cards"
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-select-items-table>`,
+            );
             await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const statusCell = collapsibleRow.shadowRoot.querySelector('.status-cell');
@@ -553,10 +562,14 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should render Modified status with blue dot', async () => {
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
-            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1', { status: FRAGMENT_STATUS.MODIFIED })];
             setupCardsInStore(cards);
+            const el = await fixture(
+                html`<mas-select-items-table
+                    type="cards"
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-select-items-table>`,
+            );
             await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const statusCell = collapsibleRow.shadowRoot.querySelector('.status-cell');
@@ -566,10 +579,14 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should render Draft status without color class', async () => {
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
-            await el.updateComplete;
             const cards = [createMockCard('/path/card1', 'Card 1', { status: FRAGMENT_STATUS.DRAFT })];
             setupCardsInStore(cards);
+            const el = await fixture(
+                html`<mas-select-items-table
+                    type="cards"
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-select-items-table>`,
+            );
             await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const statusCell = collapsibleRow.shadowRoot.querySelector('.status-cell');

@@ -31,6 +31,11 @@ export default class MasMnemonic extends LitElement {
         mnemonicPlacement: { type: String, attribute: 'mnemonic-placement' },
         // Tooltip visibility state
         tooltipVisible: { type: Boolean, state: true },
+        // Computed positioning state for CSS fallback tooltip
+        _tooltipTop: { type: Number, state: true },
+        _tooltipLeft: { type: Number, state: true },
+        _arrowOffset: { type: Number, state: true },
+        _computedPlacement: { type: String, state: true },
     };
 
     static styles = css`
@@ -47,15 +52,16 @@ export default class MasMnemonic extends LitElement {
         }
 
         .css-tooltip .css-tooltip-body {
-            position: absolute;
-            z-index: 999;
+            position: fixed;
+            z-index: 100000;
             background: var(--spectrum-gray-800, #323232);
             color: #fff;
             padding: var(--mas-mnemonic-tooltip-padding, 8px 12px);
             border-radius: 4px;
             white-space: normal;
             width: max-content;
-            max-width: 60px;
+            max-width: 200px;
+            overflow: visible;
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
@@ -67,88 +73,38 @@ export default class MasMnemonic extends LitElement {
             text-align: center;
         }
 
-        .css-tooltip::after {
-            content: '';
+        .css-tooltip-tip {
             position: absolute;
-            z-index: 999;
             width: 0;
             height: 0;
             border: 6px solid transparent;
-            opacity: 0;
-            visibility: hidden;
             pointer-events: none;
-            transition:
-                opacity 0.1s ease,
-                visibility 0.1s ease;
         }
 
         .css-tooltip.tooltip-visible .css-tooltip-body,
-        .css-tooltip.tooltip-visible::after,
-        .css-tooltip:focus-visible .css-tooltip-body,
-        .css-tooltip:focus-visible::after {
+        .css-tooltip:focus-visible .css-tooltip-body {
             opacity: 1;
             visibility: visible;
         }
 
-        /* Position variants */
-        .css-tooltip.top .css-tooltip-body {
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            margin-bottom: 16px;
-        }
-
-        .css-tooltip.top::after {
-            top: -80%;
-            left: 50%;
-            transform: translateX(-50%);
-            border-color: var(--spectrum-gray-800, #323232) transparent
-                transparent transparent;
-        }
-
-        .css-tooltip.bottom .css-tooltip-body {
+        /* Arrow: child of body, positioned on the side facing the icon */
+        .css-tooltip-tip.top {
             top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            margin-top: 10px;
+            border-top-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.bottom::after {
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            margin-top: 5px;
+        .css-tooltip-tip.bottom {
+            top: -6px;
             border-bottom-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.left .css-tooltip-body {
-            right: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            margin-right: 10px;
-            left: var(--tooltip-left-offset, auto);
-        }
-
-        .css-tooltip.left::after {
-            right: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            margin-right: 5px;
+        .css-tooltip-tip.left {
+            left: 100%;
             border-left-color: var(--spectrum-gray-800, #323232);
         }
 
-        .css-tooltip.right .css-tooltip-body {
-            left: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            margin-left: 10px;
-        }
-
-        .css-tooltip.right::after {
-            left: 100%;
-            top: 50%;
-            transform: translateY(-50%);
-            margin-left: 5px;
+        .css-tooltip-tip.right {
+            left: -6px;
             border-right-color: var(--spectrum-gray-800, #323232);
         }
     `;
@@ -162,6 +118,10 @@ export default class MasMnemonic extends LitElement {
         this.tooltipVisible = false;
         this.lastPointerType = null;
         this.handleClickOutside = this.handleClickOutside.bind(this);
+        this._tooltipTop = 0;
+        this._tooltipLeft = 0;
+        this._arrowOffset = 0;
+        this._computedPlacement = 'top';
     }
 
     connectedCallback() {
@@ -181,6 +141,98 @@ export default class MasMnemonic extends LitElement {
         }
     }
 
+    _computeTooltipPosition() {
+        const anchor = this.shadowRoot?.querySelector('.css-tooltip');
+        if (!anchor) return;
+
+        const rect = anchor.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const gap = 14;
+        const tooltipMaxWidth = 200;
+        const tooltipEstHeight = 60; // conservative estimate before paint
+
+        // Measure actual tooltip body if already rendered
+        const body = this.shadowRoot?.querySelector('.css-tooltip-body');
+        const tooltipW = body ? body.offsetWidth : tooltipMaxWidth;
+        const tooltipH = body ? body.offsetHeight : tooltipEstHeight;
+
+        const preferred = this.effectivePlacement;
+        let placement = preferred;
+
+        // Flip logic
+        if (placement === 'top' && rect.top - tooltipH - gap < 0) {
+            placement = 'bottom';
+        } else if (placement === 'bottom' && rect.bottom + tooltipH + gap > vh) {
+            placement = 'top';
+        } else if (placement === 'left' && rect.left - tooltipW - gap < 0) {
+            placement = 'right';
+        } else if (placement === 'right' && rect.right + tooltipW + gap > vw) {
+            placement = 'left';
+        }
+
+        const iconCenterX = rect.left + rect.width / 2;
+        const iconCenterY = rect.top + rect.height / 2;
+        const arrowSize = 6;
+
+        let top, left, arrowOffset;
+
+        if (placement === 'top') {
+            top = rect.top - tooltipH - gap;
+            // Center horizontally, clamp to viewport
+            left = Math.max(
+                0,
+                Math.min(vw - tooltipW, iconCenterX - tooltipW / 2),
+            );
+            // Arrow left offset relative to tooltip left edge, pointing at icon center
+            arrowOffset = Math.max(
+                arrowSize,
+                Math.min(tooltipW - arrowSize * 2, iconCenterX - left - arrowSize),
+            );
+        } else if (placement === 'bottom') {
+            top = rect.bottom + gap;
+            left = Math.max(
+                0,
+                Math.min(vw - tooltipW, iconCenterX - tooltipW / 2),
+            );
+            arrowOffset = Math.max(
+                arrowSize,
+                Math.min(tooltipW - arrowSize * 2, iconCenterX - left - arrowSize),
+            );
+        } else if (placement === 'left') {
+            left = rect.left - tooltipW - gap;
+            // Center vertically, clamp to viewport
+            top = Math.max(
+                0,
+                Math.min(vh - tooltipH, iconCenterY - tooltipH / 2),
+            );
+            // Arrow top offset relative to tooltip top edge, pointing at icon center
+            arrowOffset = Math.max(
+                arrowSize,
+                Math.min(tooltipH - arrowSize * 2, iconCenterY - top - arrowSize),
+            );
+        } else {
+            // right
+            left = rect.right + gap;
+            top = Math.max(
+                0,
+                Math.min(vh - tooltipH, iconCenterY - tooltipH / 2),
+            );
+            arrowOffset = Math.max(
+                arrowSize,
+                Math.min(tooltipH - arrowSize * 2, iconCenterY - top - arrowSize),
+            );
+        }
+
+        this._tooltipTop = top;
+        this._tooltipLeft = left;
+        this._arrowOffset = arrowOffset;
+        this._computedPlacement = placement;
+
+        // Store anchor rect for arrow absolute positioning in render
+        this._anchorRect = rect;
+    }
+
     showTooltip() {
         if (MasMnemonic.activeTooltip && MasMnemonic.activeTooltip !== this) {
             MasMnemonic.activeTooltip.closeOverlay();
@@ -188,7 +240,10 @@ export default class MasMnemonic extends LitElement {
             MasMnemonic.activeTooltip.requestUpdate();
         }
         MasMnemonic.activeTooltip = this;
+        this._computeTooltipPosition();
         this.tooltipVisible = true;
+        // Re-compute after first paint to use actual rendered dimensions
+        this.updateComplete.then(() => this._computeTooltipPosition());
     }
 
     hideTooltip() {
@@ -267,9 +322,15 @@ export default class MasMnemonic extends LitElement {
             // Mouse/pen: hover to show/hide via pointerenter/leave
             // Touch: tap to toggle via click (pointerType === 'touch')
             const plainContent = content.replace(/<[^>]*>/g, '');
+            const cp = this._computedPlacement;
+            const isHorizontal = cp === 'top' || cp === 'bottom';
+            const bodyStyle = `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`;
+            const tipOffset = isHorizontal
+                ? `left:${this._arrowOffset}px`
+                : `top:${this._arrowOffset}px`;
             return html`
                 <span
-                    class="css-tooltip ${placement} ${this.tooltipVisible
+                    class="css-tooltip ${this.tooltipVisible
                         ? 'tooltip-visible'
                         : ''}"
                     tabindex="0"
@@ -288,7 +349,15 @@ export default class MasMnemonic extends LitElement {
                     }}
                 >
                     ${this.renderIcon()}
-                    <span class="css-tooltip-body">${unsafeHTML(content)}</span>
+                    <span class="css-tooltip-body" style="${bodyStyle}">
+                        ${unsafeHTML(content)}
+                        <span
+                            aria-hidden="true"
+                            role="presentation"
+                            class="css-tooltip-tip ${cp}"
+                            style="${tipOffset}"
+                        ></span>
+                    </span>
                 </span>
             `;
         }

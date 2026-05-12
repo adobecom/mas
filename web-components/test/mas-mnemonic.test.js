@@ -277,7 +277,10 @@ describe('mas-mnemonic – smart-placement', () => {
             await el.updateComplete;
 
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
-            const evt = new MouseEvent('mousedown', { bubbles: true, composed: true });
+            const evt = new MouseEvent('mousedown', {
+                bubbles: true,
+                composed: true,
+            });
             wrapper.dispatchEvent(evt);
             expect(el.tooltipVisible).to.be.true;
         });
@@ -330,7 +333,10 @@ describe('mas-mnemonic – smart-placement', () => {
             const el = await connected({ 'tooltip-text': 'Hi' });
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
             wrapper.dispatchEvent(
-                new PointerEvent('pointerdown', { pointerType: 'touch', bubbles: true }),
+                new PointerEvent('pointerdown', {
+                    pointerType: 'touch',
+                    bubbles: true,
+                }),
             );
             expect(el.lastPointerType).to.equal('touch');
         });
@@ -339,7 +345,10 @@ describe('mas-mnemonic – smart-placement', () => {
             const el = await connected({ 'tooltip-text': 'Hi' });
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
             wrapper.dispatchEvent(
-                new PointerEvent('pointerenter', { pointerType: 'mouse', bubbles: true }),
+                new PointerEvent('pointerenter', {
+                    pointerType: 'mouse',
+                    bubbles: true,
+                }),
             );
             expect(el.tooltipVisible).to.be.true;
         });
@@ -348,7 +357,10 @@ describe('mas-mnemonic – smart-placement', () => {
             const el = await connected({ 'tooltip-text': 'Hi' });
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
             wrapper.dispatchEvent(
-                new PointerEvent('pointerenter', { pointerType: 'touch', bubbles: true }),
+                new PointerEvent('pointerenter', {
+                    pointerType: 'touch',
+                    bubbles: true,
+                }),
             );
             expect(el.tooltipVisible).to.be.false;
         });
@@ -357,9 +369,7 @@ describe('mas-mnemonic – smart-placement', () => {
             const el = await connected({ 'tooltip-text': 'Hi' });
             el.lastPointerType = 'touch';
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
-            wrapper.dispatchEvent(
-                new MouseEvent('click', { bubbles: true }),
-            );
+            wrapper.dispatchEvent(new MouseEvent('click', { bubbles: true }));
             expect(el.tooltipVisible).to.be.true;
             expect(el.lastPointerType).to.be.null;
         });

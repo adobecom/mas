@@ -6864,13 +6864,20 @@ merch-card[variant="mini"] span.renewal-text {
         }
     `);import{html as qs,css as Vs}from"./lit-all.min.js";var Gi=`
     merch-card[variant='compare-chart'] {
-        --compare-chart-cell-border-color: var(--spectrum-gray-300, #d3d3d3);
-        --compare-chart-cell-bg: #fff;
-        --compare-chart-cell-bg-alt: var(--color-gray-100, #f8f8f8);
-        --consonant-merch-card-border-width: 1px;
-        --consonant-merch-card-border-radius: 8px;
-        background-color: var(--compare-chart-cell-bg);
-        display: block;
+        --compare-chart-cell-border-color: var(--spectrum-gray-300, #d3d3d3) !important;
+        --compare-chart-cell-bg: #fff !important;
+        --compare-chart-cell-bg-alt: var(--color-gray-100, #f8f8f8) !important;
+        --consonant-merch-card-border-width: 1px !important;
+        --consonant-merch-card-border-radius: 8px !important;
+        background-color: var(--compare-chart-cell-bg) !important;
+        display: block !important;
+    }
+
+    merch-card[variant='compare-chart'] p,
+    merch-card[variant='compare-chart'] a,
+    mas-compare-chart [data-compare-chart-slot] p,
+    mas-compare-chart [data-compare-chart-slot] a {
+        margin: 0 !important;
     }
 `;var ca={mnemonics:{size:"l"},title:{tag:"h3",slot:"header",maxCount:100},prices:{tag:"p",slot:"price"},description:{tag:"div",slot:"detail",maxCount:1e3},ctas:{slot:"cta",size:"M"},features:{tag:"div",slot:"features",unwrap:!0}},js=[{key:"header",selector:".seg-header"},{key:"price",selector:".seg-price"},{key:"detail",selector:".seg-detail"},{key:"cta",selector:".seg-cta"}],er,qi,st=class extends _{constructor(r){super(r);G(this,er);this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return Gi}get aemFragmentMapping(){return ca}getContainer(){return this.card.closest("mas-compare-chart")??this.card.parentElement}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}async postCardUpdateHook(){this.card.isConnected&&(await this.card.updateComplete,Re(this,er,qi).call(this))}renderLayout(){return qs`
             <div class="card">
@@ -6960,6 +6967,10 @@ merch-card[variant="mini"] span.renewal-text {
         :host([variant='compare-chart']) ::slotted([slot='detail']) a {
             color: var(--hover-border-color, #357beb);
             text-decoration: underline;
+        }
+        :host([variant='compare-chart']) ::slotted(p),
+        :host([variant='compare-chart']) ::slotted(a) {
+            margin: 0 !important;
         }
 
         :host([variant='compare-chart']) .seg-cta {

@@ -336,9 +336,7 @@ export class MasCompareChart extends LitElement {
             sourceCard.dataset.cardId = cardId;
             sourceCard.dataset.columnIndex = String(i + 1);
             sourceCard.style.setProperty('--col', i + 1);
-            const cellColor =
-                sourceCard.getAttribute('cell-color') ??
-                ((i + 1) % 2 === 0 ? 'grey' : 'default');
+            const cellColor = sourceCard.getAttribute('cell-color') ?? 'default';
             cardHeaders.push(
                 this.#extractCardHeader(sourceCard, cardId, i, cellColor),
             );
@@ -367,7 +365,7 @@ export class MasCompareChart extends LitElement {
                 }
                 const clone = child.cloneNode(true);
                 clone.setAttribute('slot', targetSlot);
-                clone.dataset.compareChartSlot = targetSlot;
+                clone.toggleAttribute('data-compare-chart-slot', true);
                 this.#stripInlineStyles(clone);
                 this.appendChild(clone);
             }
@@ -402,7 +400,7 @@ export class MasCompareChart extends LitElement {
         if (!actions.length) {
             const clone = root.cloneNode(true);
             clone.setAttribute('slot', targetSlot);
-            clone.dataset.compareChartSlot = targetSlot;
+            clone.toggleAttribute('data-compare-chart-slot', true);
             this.#stripInlineStyles(clone);
             this.appendChild(clone);
             return;
@@ -410,7 +408,7 @@ export class MasCompareChart extends LitElement {
         for (const action of actions) {
             const clone = action.cloneNode(true);
             clone.setAttribute('slot', targetSlot);
-            clone.dataset.compareChartSlot = targetSlot;
+            clone.toggleAttribute('data-compare-chart-slot', true);
             this.#stripInlineStyles(clone);
             this.appendChild(clone);
         }
@@ -690,6 +688,7 @@ export class MasCompareChart extends LitElement {
         this.toggleAttribute('data-mobile', isMobile);
         if (isMobile) this.#enterMobile();
         else this.#exitMobile();
+        this.#setStickyTopOffset();
         if (changed) this.requestUpdate();
     }
 
@@ -749,15 +748,23 @@ export class MasCompareChart extends LitElement {
 
     /* ---------- sticky ---------- */
 
-    #setupSticky() {
-        this.#teardownStickyHeader();
-        // Offset for `position: sticky` top — global nav + optional gap.
+    #setStickyTopOffset() {
+        if (this.#isMobile) {
+            this.style.setProperty('--compare-chart-sticky-top', '0px');
+            return;
+        }
         const headerEl = document.querySelector('header');
         const localnav = document.querySelector('.feds-localnav');
         const top =
             (headerEl?.getBoundingClientRect().height || 0) +
             (localnav?.getBoundingClientRect().height || 0);
         this.style.setProperty('--compare-chart-sticky-top', `${top}px`);
+    }
+
+    #setupSticky() {
+        this.#teardownStickyHeader();
+        // Offset for `position: sticky` top — global nav + optional gap.
+        this.#setStickyTopOffset();
         const gapAttr = this.getAttribute('sticky-top');
         if (gapAttr) {
             const gap = /^\d+$/.test(gapAttr.trim()) ? `${gapAttr}px` : gapAttr;
@@ -796,7 +803,7 @@ export class MasCompareChart extends LitElement {
         const hostRect = this.getBoundingClientRect();
         this.#setStickyHeaderActive(
             hostRect.top < top &&
-                hostRect.bottom > top + headerRect.height &&
+                hostRect.bottom > top &&
                 headerRect.top <= top + 1,
         );
     }

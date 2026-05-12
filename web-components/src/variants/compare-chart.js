@@ -159,6 +159,10 @@ export class CompareChart extends VariantLayout {
             color: var(--hover-border-color, #357beb);
             text-decoration: underline;
         }
+        :host([variant='compare-chart']) ::slotted(p),
+        :host([variant='compare-chart']) ::slotted(a) {
+            margin: 0 !important;
+        }
 
         :host([variant='compare-chart']) .seg-cta {
             padding: 0;

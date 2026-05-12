@@ -39,6 +39,8 @@ nala/.auth/
 reports/
 /.superpowers
 .logs
+.scout/
+
 
 # IO Runtime Config
 config.json

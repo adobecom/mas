@@ -2,6 +2,11 @@ import { css } from 'lit';
 
 export const styles = css`
     :host {
+        --comparison-border-radius: 8px;
+        --comparison-row-border-color: #e9e9e9;
+        --comparison-desktop-max-width: 1200px;
+        --comparison-tablet-spacing: 50px;
+        --comparison-table-spacing: 12px;
         --compare-chart-row-border-color: #e9e9e9;
         --compare-chart-desktop-max-width: 1200px;
         --compare-chart-spacing: 12px;
@@ -79,10 +84,10 @@ export const styles = css`
         background: transparent;
         box-shadow: none;
         box-sizing: border-box;
+        padding-bottom: var(--spacing-s, 24px);
         transform: translateZ(0);
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-        margin-bottom: var(--compare-chart-spacing);
     }
     .sticky-header-wrapper {
         box-sizing: border-box;
@@ -90,8 +95,9 @@ export const styles = css`
         grid-template-columns: var(--compare-chart-leading-col) var(
                 --compare-chart-data-cols
             );
-        gap: var(--compare-chart-spacing);
-        padding: var(--compare-chart-spacing) 20px;
+        gap: var(--comparison-table-spacing);
+        max-width: calc(100% - 60px);
+        margin: 0 auto;
         align-items: end;
         transition:
             transform var(--transition-smooth, 0.3s ease),
@@ -103,19 +109,14 @@ export const styles = css`
         margin-right: calc(50% - 50vw);
         z-index: 9;
         background: #fff;
-        box-shadow: 0 var(--border-width-2, 2px) 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 6px 0 rgb(0 0 0 / 12%);
         transform: translateY(0) translateZ(0);
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         opacity: 1;
     }
     .sticky-header.is-stuck .sticky-header-wrapper {
-        width: calc(100% - var(--compare-chart-sticky-inline-inset));
-        max-width: var(--compare-chart-desktop-max-width);
-        margin-right: auto;
-        margin-left: auto;
-        padding-top: var(--compare-chart-spacing);
-        padding-bottom: var(--compare-chart-spacing);
+        justify-content: space-between;
     }
     slot[name='cards'] {
         display: none;
@@ -157,9 +158,10 @@ export const styles = css`
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 4px;
         color: var(--color-text);
         text-align: center;
+        align-self: stretch;
     }
     .header-card-segment slot {
         display: block;
@@ -167,9 +169,9 @@ export const styles = css`
     }
     .header-segment,
     .price-segment {
-        border: 1px solid var(--spectrum-gray-300, #d3d3d3);
-        border-radius: 4px;
-        padding: 12px;
+        border: 1px solid var(--color-gray-300, #d5d5d5);
+        border-radius: var(--comparison-border-radius);
+        padding: var(--spacing-xxs, 8px);
         background: #fff;
     }
     .header-segment[data-cell-color='grey'],
@@ -179,20 +181,19 @@ export const styles = css`
     .header-segment {
         grid-row: 1;
         position: relative;
-        min-height: 104px;
+        justify-content: flex-start;
     }
     .price-segment {
         grid-row: 2;
         align-self: stretch;
-        min-height: 48px;
     }
     .description-segment {
         grid-row: 3;
-        padding: 0 12px;
+        padding: 0 var(--comparison-table-spacing);
     }
     .detail-segment {
         grid-row: 4;
-        padding: 0 12px;
+        padding: 0 var(--comparison-table-spacing);
     }
     .cta-segment {
         grid-row: 5;
@@ -207,12 +208,14 @@ export const styles = css`
     .mobile-filter-select {
         display: none;
         width: 100%;
-        height: 32px;
-        margin: 8px -12px -12px;
+        height: 22px;
         padding: 0;
+        position: absolute;
+        bottom: 1px;
         border: none;
-        border-top: 1px solid var(--spectrum-gray-300, #d3d3d3);
-        border-radius: 0 0 4px 4px;
+        border-top: 1px solid var(--color-gray-300, #d5d5d5);
+        border-radius: 0 0 var(--comparison-border-radius)
+            var(--comparison-border-radius);
         color: transparent;
         cursor: pointer;
         appearance: none;
@@ -222,10 +225,11 @@ export const styles = css`
                     url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><path d="M4 7.01a1 1 0 0 1 1.706-.706L8.993 9.59l3.29-3.285A1 1 0 0 1 13.72 7.69l-.024.025L9.7 11.707a1 1 0 0 1-1.413 0L4.293 7.716A.995.995 0 0 1 4 7.01z" fill="%23292929"/></svg>')
                 )
                 center / 18px 18px no-repeat,
-            var(--color-gray-100, #f8f8f8);
+            #ebeeff;
     }
     .mobile-filter-select option {
-        color: var(--color-text);
+        background: #6e6e6e;
+        color: #fff;
     }
     .sticky-header.is-stuck .header-segment,
     .sticky-header.is-stuck .price-segment {
@@ -245,7 +249,7 @@ export const styles = css`
         margin: 0;
         text-align: center;
         font:
-            700 18px/24px 'Adobe Clean',
+            700 var(--type-heading-s-size, 18px) / 1.25 'Adobe Clean',
             sans-serif;
         color: var(--color-text);
     }
@@ -256,24 +260,34 @@ export const styles = css`
     ::slotted([slot^='card-']) {
         max-width: 100%;
     }
+    ::slotted(p[slot^='card-']),
+    ::slotted(a[slot^='card-']) {
+        margin: 0 !important;
+    }
     ::slotted([slot='compare-features']) {
         font: var(--compare-chart-header-title-font);
         letter-spacing: 0;
     }
     ::slotted([slot$='-header']) {
-        display: flex;
-        flex: none;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        align-self: stretch;
-        width: 100%;
-        height: 24px;
-        padding: 0;
-        box-sizing: border-box;
-        font: var(--compare-chart-header-title-font);
-        letter-spacing: 0;
-        text-align: center;
+        display: flex !important;
+        flex: none !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        align-self: stretch !important;
+        width: 100% !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        font:
+            normal var(--type-heading-all-weight, 700)
+                var(--type-heading-xs-size, 18px) / 1.5 'Adobe Clean',
+            sans-serif !important;
+        -webkit-hyphens: manual !important;
+        hyphens: manual !important;
+        letter-spacing: 0 !important;
+        margin: 0 !important;
+        margin-block: 0 !important;
+        text-align: center !important;
     }
     ::slotted([slot$='-price']) {
         display: flex;
@@ -283,11 +297,14 @@ export const styles = css`
         align-items: center;
         align-self: stretch;
         width: 100%;
-        height: 66px;
-        padding: 8px;
+        padding: var(--spacing-xxs, 8px);
         box-sizing: border-box;
-        font: var(--compare-chart-header-price-font);
+        font:
+            normal var(--type-detail-all-weight, 700)
+                var(--type-body-s-size, 16px) / 1.25 'Adobe Clean',
+            sans-serif !important;
         letter-spacing: 0;
+        margin: 0 !important;
         text-align: center;
     }
     ::slotted([slot$='-description']),
@@ -299,18 +316,22 @@ export const styles = css`
         align-self: stretch;
         flex-grow: 1;
         width: 100%;
-        height: 52px;
-        padding: 8px;
+        padding: var(--spacing-xxs, 8px);
         box-sizing: border-box;
         background: rgba(255, 255, 255, 0.001);
-        font: var(--compare-chart-header-detail-font);
+        font:
+            italic 400 var(--type-body-xxs-size, 12px) / 1.25
+                'Adobe Clean',
+            sans-serif !important;
         letter-spacing: 0;
+        margin: 0 !important;
         text-align: center;
         color: #2c2c2c;
     }
     ::slotted([slot$='-cta']) {
         font: var(--compare-chart-header-cta-font);
         letter-spacing: 0;
+        margin: 0 !important;
         text-align: center;
     }
 
@@ -326,37 +347,55 @@ export const styles = css`
 
     /* ---------- per-group container ---------- */
     .table-container {
-        border: 1px solid var(--compare-chart-row-border-color);
+        max-width: calc(100% - 60px);
+        box-sizing: border-box;
+        margin: var(--spacing-xs, 16px) auto 0;
+        border: 1px solid var(--color-gray-300, #d5d5d5);
+        border-radius: var(--comparison-border-radius);
         overflow: hidden;
-        margin-bottom: var(--compare-chart-spacing);
+        background-color: var(--color-white, #fff);
+    }
+    .accessibility-header-row + .table-container {
+        margin-top: 0;
     }
 
     .table-column-header {
         all: unset;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
+        position: relative;
         width: 100%;
         box-sizing: border-box;
-        padding: 16px 20px;
+        padding: var(--spacing-s, 24px);
         background: var(--color-gray-100, #f8f8f8);
         font-size: var(--type-heading-s-size, 18px);
         font-weight: 700;
-        line-height: 1.25;
+        line-height: var(--type-heading-s-lh, 22.5px);
         min-height: 72px;
+        border-radius: var(--comparison-border-radius)
+            var(--comparison-border-radius) 0 0;
+        font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
+        color: var(--color-black, #000);
+        text-align: center;
         cursor: pointer;
     }
     .table-column-header:focus-visible {
         outline: 2px solid var(--hover-border-color);
         outline-offset: -2px;
     }
+    .table-column-header[aria-expanded='false'] {
+        border-radius: var(--comparison-border-radius);
+    }
 
     /* Toggle icon — background from --compare-chart-toggle-icon-* in :host. */
     .toggle-icon {
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
         flex-shrink: 0;
         display: block;
+        position: absolute;
+        inset-inline-end: 24px;
         background: var(--compare-chart-toggle-icon-plus) center / contain
             no-repeat;
     }
@@ -373,28 +412,36 @@ export const styles = css`
 
     /* ---------- rows ---------- */
     .table-row {
+        margin: 0 var(--spacing-s, 24px);
         display: grid;
         grid-template-columns: var(--compare-chart-leading-col) var(
                 --compare-chart-data-cols
             );
-        gap: var(--compare-chart-spacing);
+        gap: var(--comparison-table-spacing);
         /* Top-align so chips line up across columns regardless of whether
            sibling cells have a <small> caption below their chip. */
         align-items: start;
-        padding: var(--compare-chart-spacing) 20px;
-        border-top: 1px solid var(--compare-chart-row-border-color);
+        padding: 0;
     }
-    .table-row:first-child {
-        border-top: none;
+    .table-row:not(:last-child) {
+        border-bottom: 1px solid var(--comparison-row-border-color);
     }
 
     .row-header {
-        font: var(--type-body-bold-xs);
-        color: var(--color-text);
+        color: var(--color-black, #000);
         display: flex;
         gap: 6px;
         align-items: center;
         position: relative;
+        grid-column: 1 / -1;
+        justify-content: center;
+        margin: 0 auto;
+        padding: var(--spacing-xs, 16px) 0 0 0;
+        text-align: center;
+        font-size: var(--type-body-xs-size, 14px);
+        font-style: normal;
+        font-weight: var(--type-detail-all-weight, 700);
+        line-height: 1.3;
     }
     .row-label {
         flex: 1 1 auto;
@@ -419,15 +466,16 @@ export const styles = css`
        time). Captions live as <small> siblings BELOW the chip. */
     .table-row p[role='cell'] {
         margin: 0;
-        padding: 0;
+        padding: 0 0 var(--spacing-s, 24px) 0;
         border: none;
         background: transparent;
         text-align: center;
-        font: var(--type-body-xs);
-        color: var(--color-text);
+        font-size: var(--type-body-xs-size, 14px);
+        line-height: var(--type-body-xs-lh, 20px);
+        color: var(--color-black, #000);
         display: flex;
         flex-direction: column;
-        align-items: stretch;
+        align-items: center;
         gap: 4px;
         grid-column: calc(var(--col, 1) + 1);
         position: relative;
@@ -435,25 +483,25 @@ export const styles = css`
     .compare-chart-chip {
         align-items: center;
         background: #fff;
-        border: 1px solid var(--spectrum-gray-300, #d3d3d3);
+        border: 1px solid var(--color-gray-300, #d5d5d5);
         border-radius: 4px;
         box-sizing: border-box;
         display: flex;
         gap: 6px;
         justify-content: center;
         min-height: 18px;
-        padding: 8px 10px;
-        width: 100%;
+        padding: var(--spacing-xs, 16px) var(--comparison-table-spacing);
+        width: calc(100% - 2 * var(--comparison-table-spacing) - 2px);
     }
 
     .table-row p[role='cell'] > small {
-        color: var(--color-text, #2c2c2c);
+        color: var(--color-black, #000);
         display: block;
-        font-size: 12px;
-        font-weight: 700;
-        line-height: 1.3;
-        margin-top: 6px;
-        text-align: center;
+        font-size: var(--type-body-xxs-size, 12px) !important;
+        font-weight: 400 !important;
+        line-height: var(--type-body-xxs-lh, 15px) !important;
+        margin-top: 4px !important;
+        text-align: center !important;
     }
 
     .table-row p.primary-cell > small {
@@ -610,53 +658,54 @@ export const styles = css`
     @container compare-chart (max-width: 599px) {
         :host {
             --compare-chart-leading-col: 0px;
-            --compare-chart-sticky-inline-inset: 24px;
-            padding: 0 12px;
+            --compare-chart-sticky-top: 0px !important;
+            padding: 0;
         }
         .sticky-header-wrapper {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            padding: 0 var(--spacing-200, 20px);
         }
         .header-leading {
             display: none;
         }
         .header-leading-cta {
-            display: flex;
-            grid-column: 1 / -1;
-            grid-row: 1;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: var(--spacing-200, 20px) 0 0;
+            display: none;
         }
         .header-card-segment {
             grid-column: var(--col);
+            align-self: stretch;
         }
         .header-segment {
-            grid-row: 2;
+            grid-row: 1;
         }
         .price-segment {
-            grid-row: 3;
+            grid-row: 2;
         }
         .description-segment {
-            grid-row: 4;
+            grid-row: 3;
         }
         .detail-segment {
-            grid-row: 5;
+            grid-row: 4;
         }
         .cta-segment {
-            grid-row: 6;
+            grid-row: 5;
+        }
+        .header-segment:has(.mobile-filter-select) {
+            padding-bottom: 30px;
         }
         .mobile-filter-select {
             display: block;
+        }
+        .sticky-header.is-stuck .header-segment {
+            padding-bottom: 0;
+        }
+        .sticky-header.is-stuck .price-segment {
+            display: none;
         }
         .table-row {
             grid-template-columns: 1fr 1fr;
         }
         .row-header {
             grid-column: 1 / -1;
-            margin-bottom: 4px;
-            font-weight: 600;
             justify-content: center;
             text-align: center;
         }
@@ -681,52 +730,61 @@ export const styles = css`
     @container compare-chart (min-width: 600px) and (max-width: 899px) {
         :host {
             --compare-chart-leading-col: 0px;
-            --compare-chart-sticky-inline-inset: 50px;
-            padding: 0 25px;
+            --compare-chart-sticky-top: 0px !important;
+            padding: 0;
         }
         .sticky-header-wrapper {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+            max-width: calc(100% - 160px);
+        }
+        .table-container {
+            max-width: calc(100% - 130px);
+        }
+        .table-column-header {
+            padding: var(--comparison-table-spacing);
         }
         .header-leading {
             display: none;
         }
         .header-leading-cta {
-            display: flex;
-            grid-column: 1 / -1;
-            grid-row: 1;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding-top: var(--spacing-200, 20px);
+            display: none;
         }
         .header-card-segment {
             grid-column: var(--col);
+            align-self: stretch;
         }
         .header-segment {
-            grid-row: 2;
+            grid-row: 1;
         }
         .price-segment {
-            grid-row: 3;
+            grid-row: 2;
         }
         .description-segment {
-            grid-row: 4;
+            grid-row: 3;
         }
         .detail-segment {
-            grid-row: 5;
+            grid-row: 4;
         }
         .cta-segment {
-            grid-row: 6;
+            grid-row: 5;
+        }
+        .header-segment:has(.mobile-filter-select) {
+            padding-bottom: 30px;
         }
         .mobile-filter-select {
             display: block;
+        }
+        .sticky-header.is-stuck .header-segment {
+            padding-bottom: 0;
+        }
+        .sticky-header.is-stuck .price-segment {
+            display: none;
         }
         .table-row {
             grid-template-columns: 1fr 1fr;
         }
         .row-header {
             grid-column: 1 / -1;
-            margin-bottom: 4px;
-            font-weight: 600;
             justify-content: center;
             text-align: center;
         }
@@ -739,16 +797,55 @@ export const styles = css`
 
     @container compare-chart (min-width: 900px) {
         :host {
-            --compare-chart-sticky-inline-inset: 50px;
-            padding: 0 25px;
+            padding: 0;
+        }
+        .sticky-header-wrapper {
+            max-width: calc(100% - 4 * var(--spacing-s, 24px));
+        }
+        .table-container {
+            max-width: calc(100% - var(--comparison-tablet-spacing));
+        }
+        .header-leading {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .row-header {
+            display: inline-flex;
+            grid-column: auto;
+            justify-content: flex-start;
+            margin: 0;
+            margin-inline-end: var(--comparison-table-spacing);
+            padding: var(--spacing-s, 24px) var(--spacing-s, 24px)
+                var(--spacing-s, 24px) 0;
+            text-align: start;
+        }
+        .table-row p[role='cell'] {
+            padding: var(--spacing-s, 24px) 0;
+        }
+        .table-column-header {
+            justify-content: space-between;
+            position: static;
+            padding: var(--spacing-s, 24px);
+        }
+        .toggle-icon {
+            position: static;
         }
     }
 
     @container compare-chart (min-width: 1200px) {
         :host {
-            --compare-chart-sticky-inline-inset: 0px;
-            max-width: var(--compare-chart-desktop-max-width);
+            max-width: var(--comparison-desktop-max-width);
             padding: 0;
+        }
+        .sticky-header-wrapper {
+            max-width: calc(
+                var(--comparison-desktop-max-width) -
+                    2 * var(--spacing-s, 24px) - 2px
+            );
+        }
+        .table-container {
+            max-width: var(--comparison-desktop-max-width);
         }
         :host([data-child-count='3']) {
             --compare-chart-leading-col: minmax(268px, 1fr);

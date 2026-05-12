@@ -1,5 +1,10 @@
-var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in d?je(d,m,{enumerable:!0,configurable:!0,writable:!0,value:e}):d[m]=e;var ee=(d,m,e)=>Ke(d,typeof m!="symbol"?m+"":m,e),te=(d,m,e)=>m.has(d)||fe("Cannot "+e);var a=(d,m,e)=>(te(d,m,"read from private field"),e?e.call(d):m.get(d)),g=(d,m,e)=>m.has(d)?fe("Cannot add the same private member more than once"):m instanceof WeakSet?m.add(d):m.set(d,e),p=(d,m,e,t)=>(te(d,m,"write to private field"),t?t.call(d,e):m.set(d,e),e),s=(d,m,e)=>(te(d,m,"access private method"),e);import{html as v,LitElement as Je,nothing as w}from"./lit-all.min.js";import{unsafeHTML as Ee}from"./lit-all.min.js";var ct=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),lt=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var We='span[is="inline-price"][data-wcs-osi]',Xe='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var Ze='a[is="upt-link"]',dt=`${We},${Xe},${Ze}`;var re="aem:load",oe="aem:error",ie="mas:ready";var pt=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var ht=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});import{css as Qe}from"./lit-all.min.js";var xe=Qe`
+var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in p?Ke(p,m,{enumerable:!0,configurable:!0,writable:!0,value:e}):p[m]=e;var ee=(p,m,e)=>We(p,typeof m!="symbol"?m+"":m,e),te=(p,m,e)=>m.has(p)||xe("Cannot "+e);var i=(p,m,e)=>(te(p,m,"read from private field"),e?e.call(p):m.get(p)),g=(p,m,e)=>m.has(p)?xe("Cannot add the same private member more than once"):m instanceof WeakSet?m.add(p):m.set(p,e),d=(p,m,e,t)=>(te(p,m,"write to private field"),t?t.call(p,e):m.set(p,e),e),s=(p,m,e)=>(te(p,m,"access private method"),e);import{html as v,LitElement as et,nothing as w}from"./lit-all.min.js";import{unsafeHTML as ye}from"./lit-all.min.js";var ct=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),pt=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var Xe='span[is="inline-price"][data-wcs-osi]',Ze='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var Qe='a[is="upt-link"]',dt=`${Xe},${Ze},${Qe}`;var re="aem:load",oe="aem:error",ae="mas:ready";var ht=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var mt=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});import{css as Je}from"./lit-all.min.js";var be=Je`
     :host {
+        --comparison-border-radius: 8px;
+        --comparison-row-border-color: #e9e9e9;
+        --comparison-desktop-max-width: 1200px;
+        --comparison-tablet-spacing: 50px;
+        --comparison-table-spacing: 12px;
         --compare-chart-row-border-color: #e9e9e9;
         --compare-chart-desktop-max-width: 1200px;
         --compare-chart-spacing: 12px;
@@ -77,10 +82,10 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
         background: transparent;
         box-shadow: none;
         box-sizing: border-box;
+        padding-bottom: var(--spacing-s, 24px);
         transform: translateZ(0);
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-        margin-bottom: var(--compare-chart-spacing);
     }
     .sticky-header-wrapper {
         box-sizing: border-box;
@@ -88,8 +93,9 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
         grid-template-columns: var(--compare-chart-leading-col) var(
                 --compare-chart-data-cols
             );
-        gap: var(--compare-chart-spacing);
-        padding: var(--compare-chart-spacing) 20px;
+        gap: var(--comparison-table-spacing);
+        max-width: calc(100% - 60px);
+        margin: 0 auto;
         align-items: end;
         transition:
             transform var(--transition-smooth, 0.3s ease),
@@ -101,19 +107,14 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
         margin-right: calc(50% - 50vw);
         z-index: 9;
         background: #fff;
-        box-shadow: 0 var(--border-width-2, 2px) 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 6px 0 rgb(0 0 0 / 12%);
         transform: translateY(0) translateZ(0);
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
         opacity: 1;
     }
     .sticky-header.is-stuck .sticky-header-wrapper {
-        width: calc(100% - var(--compare-chart-sticky-inline-inset));
-        max-width: var(--compare-chart-desktop-max-width);
-        margin-right: auto;
-        margin-left: auto;
-        padding-top: var(--compare-chart-spacing);
-        padding-bottom: var(--compare-chart-spacing);
+        justify-content: space-between;
     }
     slot[name='cards'] {
         display: none;
@@ -155,9 +156,10 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 4px;
         color: var(--color-text);
         text-align: center;
+        align-self: stretch;
     }
     .header-card-segment slot {
         display: block;
@@ -165,9 +167,9 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
     }
     .header-segment,
     .price-segment {
-        border: 1px solid var(--spectrum-gray-300, #d3d3d3);
-        border-radius: 4px;
-        padding: 12px;
+        border: 1px solid var(--color-gray-300, #d5d5d5);
+        border-radius: var(--comparison-border-radius);
+        padding: var(--spacing-xxs, 8px);
         background: #fff;
     }
     .header-segment[data-cell-color='grey'],
@@ -177,20 +179,19 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
     .header-segment {
         grid-row: 1;
         position: relative;
-        min-height: 104px;
+        justify-content: flex-start;
     }
     .price-segment {
         grid-row: 2;
         align-self: stretch;
-        min-height: 48px;
     }
     .description-segment {
         grid-row: 3;
-        padding: 0 12px;
+        padding: 0 var(--comparison-table-spacing);
     }
     .detail-segment {
         grid-row: 4;
-        padding: 0 12px;
+        padding: 0 var(--comparison-table-spacing);
     }
     .cta-segment {
         grid-row: 5;
@@ -205,12 +206,14 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
     .mobile-filter-select {
         display: none;
         width: 100%;
-        height: 32px;
-        margin: 8px -12px -12px;
+        height: 22px;
         padding: 0;
+        position: absolute;
+        bottom: 1px;
         border: none;
-        border-top: 1px solid var(--spectrum-gray-300, #d3d3d3);
-        border-radius: 0 0 4px 4px;
+        border-top: 1px solid var(--color-gray-300, #d5d5d5);
+        border-radius: 0 0 var(--comparison-border-radius)
+            var(--comparison-border-radius);
         color: transparent;
         cursor: pointer;
         appearance: none;
@@ -220,10 +223,11 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
                     url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><path d="M4 7.01a1 1 0 0 1 1.706-.706L8.993 9.59l3.29-3.285A1 1 0 0 1 13.72 7.69l-.024.025L9.7 11.707a1 1 0 0 1-1.413 0L4.293 7.716A.995.995 0 0 1 4 7.01z" fill="%23292929"/></svg>')
                 )
                 center / 18px 18px no-repeat,
-            var(--color-gray-100, #f8f8f8);
+            #ebeeff;
     }
     .mobile-filter-select option {
-        color: var(--color-text);
+        background: #6e6e6e;
+        color: #fff;
     }
     .sticky-header.is-stuck .header-segment,
     .sticky-header.is-stuck .price-segment {
@@ -243,7 +247,7 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
         margin: 0;
         text-align: center;
         font:
-            700 18px/24px 'Adobe Clean',
+            700 var(--type-heading-s-size, 18px) / 1.25 'Adobe Clean',
             sans-serif;
         color: var(--color-text);
     }
@@ -254,24 +258,34 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
     ::slotted([slot^='card-']) {
         max-width: 100%;
     }
+    ::slotted(p[slot^='card-']),
+    ::slotted(a[slot^='card-']) {
+        margin: 0 !important;
+    }
     ::slotted([slot='compare-features']) {
         font: var(--compare-chart-header-title-font);
         letter-spacing: 0;
     }
     ::slotted([slot$='-header']) {
-        display: flex;
-        flex: none;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        align-self: stretch;
-        width: 100%;
-        height: 24px;
-        padding: 0;
-        box-sizing: border-box;
-        font: var(--compare-chart-header-title-font);
-        letter-spacing: 0;
-        text-align: center;
+        display: flex !important;
+        flex: none !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        align-self: stretch !important;
+        width: 100% !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        font:
+            normal var(--type-heading-all-weight, 700)
+                var(--type-heading-xs-size, 18px) / 1.5 'Adobe Clean',
+            sans-serif !important;
+        -webkit-hyphens: manual !important;
+        hyphens: manual !important;
+        letter-spacing: 0 !important;
+        margin: 0 !important;
+        margin-block: 0 !important;
+        text-align: center !important;
     }
     ::slotted([slot$='-price']) {
         display: flex;
@@ -281,11 +295,14 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
         align-items: center;
         align-self: stretch;
         width: 100%;
-        height: 66px;
-        padding: 8px;
+        padding: var(--spacing-xxs, 8px);
         box-sizing: border-box;
-        font: var(--compare-chart-header-price-font);
+        font:
+            normal var(--type-detail-all-weight, 700)
+                var(--type-body-s-size, 16px) / 1.25 'Adobe Clean',
+            sans-serif !important;
         letter-spacing: 0;
+        margin: 0 !important;
         text-align: center;
     }
     ::slotted([slot$='-description']),
@@ -297,18 +314,22 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
         align-self: stretch;
         flex-grow: 1;
         width: 100%;
-        height: 52px;
-        padding: 8px;
+        padding: var(--spacing-xxs, 8px);
         box-sizing: border-box;
         background: rgba(255, 255, 255, 0.001);
-        font: var(--compare-chart-header-detail-font);
+        font:
+            italic 400 var(--type-body-xxs-size, 12px) / 1.25
+                'Adobe Clean',
+            sans-serif !important;
         letter-spacing: 0;
+        margin: 0 !important;
         text-align: center;
         color: #2c2c2c;
     }
     ::slotted([slot$='-cta']) {
         font: var(--compare-chart-header-cta-font);
         letter-spacing: 0;
+        margin: 0 !important;
         text-align: center;
     }
 
@@ -324,37 +345,55 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
 
     /* ---------- per-group container ---------- */
     .table-container {
-        border: 1px solid var(--compare-chart-row-border-color);
+        max-width: calc(100% - 60px);
+        box-sizing: border-box;
+        margin: var(--spacing-xs, 16px) auto 0;
+        border: 1px solid var(--color-gray-300, #d5d5d5);
+        border-radius: var(--comparison-border-radius);
         overflow: hidden;
-        margin-bottom: var(--compare-chart-spacing);
+        background-color: var(--color-white, #fff);
+    }
+    .accessibility-header-row + .table-container {
+        margin-top: 0;
     }
 
     .table-column-header {
         all: unset;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
+        position: relative;
         width: 100%;
         box-sizing: border-box;
-        padding: 16px 20px;
+        padding: var(--spacing-s, 24px);
         background: var(--color-gray-100, #f8f8f8);
         font-size: var(--type-heading-s-size, 18px);
         font-weight: 700;
-        line-height: 1.25;
+        line-height: var(--type-heading-s-lh, 22.5px);
         min-height: 72px;
+        border-radius: var(--comparison-border-radius)
+            var(--comparison-border-radius) 0 0;
+        font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
+        color: var(--color-black, #000);
+        text-align: center;
         cursor: pointer;
     }
     .table-column-header:focus-visible {
         outline: 2px solid var(--hover-border-color);
         outline-offset: -2px;
     }
+    .table-column-header[aria-expanded='false'] {
+        border-radius: var(--comparison-border-radius);
+    }
 
     /* Toggle icon — background from --compare-chart-toggle-icon-* in :host. */
     .toggle-icon {
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
         flex-shrink: 0;
         display: block;
+        position: absolute;
+        inset-inline-end: 24px;
         background: var(--compare-chart-toggle-icon-plus) center / contain
             no-repeat;
     }
@@ -371,28 +410,36 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
 
     /* ---------- rows ---------- */
     .table-row {
+        margin: 0 var(--spacing-s, 24px);
         display: grid;
         grid-template-columns: var(--compare-chart-leading-col) var(
                 --compare-chart-data-cols
             );
-        gap: var(--compare-chart-spacing);
+        gap: var(--comparison-table-spacing);
         /* Top-align so chips line up across columns regardless of whether
            sibling cells have a <small> caption below their chip. */
         align-items: start;
-        padding: var(--compare-chart-spacing) 20px;
-        border-top: 1px solid var(--compare-chart-row-border-color);
+        padding: 0;
     }
-    .table-row:first-child {
-        border-top: none;
+    .table-row:not(:last-child) {
+        border-bottom: 1px solid var(--comparison-row-border-color);
     }
 
     .row-header {
-        font: var(--type-body-bold-xs);
-        color: var(--color-text);
+        color: var(--color-black, #000);
         display: flex;
         gap: 6px;
         align-items: center;
         position: relative;
+        grid-column: 1 / -1;
+        justify-content: center;
+        margin: 0 auto;
+        padding: var(--spacing-xs, 16px) 0 0 0;
+        text-align: center;
+        font-size: var(--type-body-xs-size, 14px);
+        font-style: normal;
+        font-weight: var(--type-detail-all-weight, 700);
+        line-height: 1.3;
     }
     .row-label {
         flex: 1 1 auto;
@@ -417,15 +464,16 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
        time). Captions live as <small> siblings BELOW the chip. */
     .table-row p[role='cell'] {
         margin: 0;
-        padding: 0;
+        padding: 0 0 var(--spacing-s, 24px) 0;
         border: none;
         background: transparent;
         text-align: center;
-        font: var(--type-body-xs);
-        color: var(--color-text);
+        font-size: var(--type-body-xs-size, 14px);
+        line-height: var(--type-body-xs-lh, 20px);
+        color: var(--color-black, #000);
         display: flex;
         flex-direction: column;
-        align-items: stretch;
+        align-items: center;
         gap: 4px;
         grid-column: calc(var(--col, 1) + 1);
         position: relative;
@@ -433,25 +481,25 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
     .compare-chart-chip {
         align-items: center;
         background: #fff;
-        border: 1px solid var(--spectrum-gray-300, #d3d3d3);
+        border: 1px solid var(--color-gray-300, #d5d5d5);
         border-radius: 4px;
         box-sizing: border-box;
         display: flex;
         gap: 6px;
         justify-content: center;
         min-height: 18px;
-        padding: 8px 10px;
-        width: 100%;
+        padding: var(--spacing-xs, 16px) var(--comparison-table-spacing);
+        width: calc(100% - 2 * var(--comparison-table-spacing) - 2px);
     }
 
     .table-row p[role='cell'] > small {
-        color: var(--color-text, #2c2c2c);
+        color: var(--color-black, #000);
         display: block;
-        font-size: 12px;
-        font-weight: 700;
-        line-height: 1.3;
-        margin-top: 6px;
-        text-align: center;
+        font-size: var(--type-body-xxs-size, 12px) !important;
+        font-weight: 400 !important;
+        line-height: var(--type-body-xxs-lh, 15px) !important;
+        margin-top: 4px !important;
+        text-align: center !important;
     }
 
     .table-row p.primary-cell > small {
@@ -608,53 +656,54 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
     @container compare-chart (max-width: 599px) {
         :host {
             --compare-chart-leading-col: 0px;
-            --compare-chart-sticky-inline-inset: 24px;
-            padding: 0 12px;
+            --compare-chart-sticky-top: 0px !important;
+            padding: 0;
         }
         .sticky-header-wrapper {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            padding: 0 var(--spacing-200, 20px);
         }
         .header-leading {
             display: none;
         }
         .header-leading-cta {
-            display: flex;
-            grid-column: 1 / -1;
-            grid-row: 1;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: var(--spacing-200, 20px) 0 0;
+            display: none;
         }
         .header-card-segment {
             grid-column: var(--col);
+            align-self: stretch;
         }
         .header-segment {
-            grid-row: 2;
+            grid-row: 1;
         }
         .price-segment {
-            grid-row: 3;
+            grid-row: 2;
         }
         .description-segment {
-            grid-row: 4;
+            grid-row: 3;
         }
         .detail-segment {
-            grid-row: 5;
+            grid-row: 4;
         }
         .cta-segment {
-            grid-row: 6;
+            grid-row: 5;
+        }
+        .header-segment:has(.mobile-filter-select) {
+            padding-bottom: 30px;
         }
         .mobile-filter-select {
             display: block;
+        }
+        .sticky-header.is-stuck .header-segment {
+            padding-bottom: 0;
+        }
+        .sticky-header.is-stuck .price-segment {
+            display: none;
         }
         .table-row {
             grid-template-columns: 1fr 1fr;
         }
         .row-header {
             grid-column: 1 / -1;
-            margin-bottom: 4px;
-            font-weight: 600;
             justify-content: center;
             text-align: center;
         }
@@ -679,52 +728,61 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
     @container compare-chart (min-width: 600px) and (max-width: 899px) {
         :host {
             --compare-chart-leading-col: 0px;
-            --compare-chart-sticky-inline-inset: 50px;
-            padding: 0 25px;
+            --compare-chart-sticky-top: 0px !important;
+            padding: 0;
         }
         .sticky-header-wrapper {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+            max-width: calc(100% - 160px);
+        }
+        .table-container {
+            max-width: calc(100% - 130px);
+        }
+        .table-column-header {
+            padding: var(--comparison-table-spacing);
         }
         .header-leading {
             display: none;
         }
         .header-leading-cta {
-            display: flex;
-            grid-column: 1 / -1;
-            grid-row: 1;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding-top: var(--spacing-200, 20px);
+            display: none;
         }
         .header-card-segment {
             grid-column: var(--col);
+            align-self: stretch;
         }
         .header-segment {
-            grid-row: 2;
+            grid-row: 1;
         }
         .price-segment {
-            grid-row: 3;
+            grid-row: 2;
         }
         .description-segment {
-            grid-row: 4;
+            grid-row: 3;
         }
         .detail-segment {
-            grid-row: 5;
+            grid-row: 4;
         }
         .cta-segment {
-            grid-row: 6;
+            grid-row: 5;
+        }
+        .header-segment:has(.mobile-filter-select) {
+            padding-bottom: 30px;
         }
         .mobile-filter-select {
             display: block;
+        }
+        .sticky-header.is-stuck .header-segment {
+            padding-bottom: 0;
+        }
+        .sticky-header.is-stuck .price-segment {
+            display: none;
         }
         .table-row {
             grid-template-columns: 1fr 1fr;
         }
         .row-header {
             grid-column: 1 / -1;
-            margin-bottom: 4px;
-            font-weight: 600;
             justify-content: center;
             text-align: center;
         }
@@ -737,16 +795,55 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
 
     @container compare-chart (min-width: 900px) {
         :host {
-            --compare-chart-sticky-inline-inset: 50px;
-            padding: 0 25px;
+            padding: 0;
+        }
+        .sticky-header-wrapper {
+            max-width: calc(100% - 4 * var(--spacing-s, 24px));
+        }
+        .table-container {
+            max-width: calc(100% - var(--comparison-tablet-spacing));
+        }
+        .header-leading {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        .row-header {
+            display: inline-flex;
+            grid-column: auto;
+            justify-content: flex-start;
+            margin: 0;
+            margin-inline-end: var(--comparison-table-spacing);
+            padding: var(--spacing-s, 24px) var(--spacing-s, 24px)
+                var(--spacing-s, 24px) 0;
+            text-align: start;
+        }
+        .table-row p[role='cell'] {
+            padding: var(--spacing-s, 24px) 0;
+        }
+        .table-column-header {
+            justify-content: space-between;
+            position: static;
+            padding: var(--spacing-s, 24px);
+        }
+        .toggle-icon {
+            position: static;
         }
     }
 
     @container compare-chart (min-width: 1200px) {
         :host {
-            --compare-chart-sticky-inline-inset: 0px;
-            max-width: var(--compare-chart-desktop-max-width);
+            max-width: var(--comparison-desktop-max-width);
             padding: 0;
+        }
+        .sticky-header-wrapper {
+            max-width: calc(
+                var(--comparison-desktop-max-width) -
+                    2 * var(--spacing-s, 24px) - 2px
+            );
+        }
+        .table-container {
+            max-width: var(--comparison-desktop-max-width);
         }
         :host([data-child-count='3']) {
             --compare-chart-leading-col: minmax(268px, 1fr);
@@ -762,11 +859,11 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
     :host([data-dark]) .header-content.is-stuck {
         background: #2c2c2c;
     }
-`;var be="mas-compare-chart",et=3e4,X=4,tt=900,rt=["icons","header","badge","price","description","detail","cta"],N={included:["\u2713","\u2714","\u2705"],excluded:["\u2717","\u2718","\u2716","\xD7"],notApplicable:["\u2014","-"]},ot=d=>N.included.includes(d),it=d=>N.excluded.includes(d),at=d=>!d||N.notApplicable.includes(d)||/^-+$/.test(d),D=(d,m,e)=>d.placeholders?.[m]??e,G,E,_,L,k,T,B,b,Y,H,y,A,V,M,P,q,S,$,z,j,K,r,ae,se,ye,Ae,ve,we,Ce,O,_e,Te,Se,Z,Re,ne,Ne,Le,ce,ke,Me,Q,le,st,J,de,pe,Pe,Ie,Oe,He,he,me,$e,ge,De,Ue,Ge,Be,R,U,Ye,Ve,Fe,qe,ze,ue,F=class extends Je{constructor(){super();g(this,r);g(this,G);g(this,E,[]);g(this,_,[]);g(this,L,new Map);g(this,k,new Map);g(this,T,[]);g(this,B,new Map);g(this,b,new Set);g(this,Y);g(this,H,!1);g(this,y,0);g(this,A,1);g(this,V,!1);g(this,M,null);g(this,P,null);g(this,q,!1);g(this,S,0);g(this,$,()=>s(this,r,me).call(this));g(this,z,e=>{let t=e.target;if(t?.parentElement===this){s(this,r,Ce).call(this,e.detail,t);return}t?.closest?.("merch-card")?.parentElement===this&&s(this,r,O).call(this)});g(this,j,e=>{var t;e.target?.parentElement===this&&(p(this,T,[]),p(this,_,[]),p(this,E,[]),a(this,L).clear(),a(this,k).clear(),this.requestUpdate(),(t=a(this,P))==null||t.call(this,!1),p(this,M,null),p(this,P,null))});g(this,K,e=>{e.target?.parentElement===this&&s(this,r,O).call(this)});p(this,G,this.attachInternals?.()),a(this,G)&&(a(this,G).role="table")}connectedCallback(){super.connectedCallback(),this.addEventListener("mas-compare-chart:rehydrate",()=>s(this,r,O).call(this)),this.addEventListener(re,a(this,z)),this.addEventListener(oe,a(this,j)),this.addEventListener(ie,a(this,K)),p(this,Y,new ResizeObserver(()=>s(this,r,le).call(this))),a(this,Y).observe(this)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(re,a(this,z)),this.removeEventListener(oe,a(this,j)),this.removeEventListener(ie,a(this,K)),a(this,Y)?.disconnect(),s(this,r,he).call(this)}firstUpdated(){s(this,r,O).call(this),s(this,r,He).call(this)}updated(e){e.has("expandedGroups")&&s(this,r,ne).call(this),(e.has("consonant")||e.has("spectrum"))&&s(this,r,se).call(this)}checkReady(){if(!this.querySelector(":scope > aem-fragment"))return Promise.resolve(!0);s(this,r,ae).call(this);let t=new Promise(o=>setTimeout(()=>o(!1),et));return Promise.race([a(this,M),t])}render(){return this.collapsed?w:v`
+`;var Ee="mas-compare-chart",tt=3e4,X=4,rt=900,ot=["icons","header","badge","price","description","detail","cta"],k={included:["\u2713","\u2714","\u2705"],excluded:["\u2717","\u2718","\u2716","\xD7"],notApplicable:["\u2014","-"]},at=p=>k.included.includes(p),it=p=>k.excluded.includes(p),st=p=>!p||k.notApplicable.includes(p)||/^-+$/.test(p),D=(p,m,e)=>p.placeholders?.[m]??e,G,b,_,N,L,T,B,y,Y,M,E,A,V,P,I,z,S,$,q,j,K,r,ie,se,Ae,ve,we,Ce,_e,H,Te,Se,Re,Z,ke,ne,Ne,Le,le,Me,Pe,Q,ce,nt,J,pe,de,Ie,Oe,He,he,$e,me,ge,De,ue,Ue,Ge,Be,Ye,R,U,Ve,Fe,ze,qe,je,fe,F=class extends et{constructor(){super();g(this,r);g(this,G);g(this,b,[]);g(this,_,[]);g(this,N,new Map);g(this,L,new Map);g(this,T,[]);g(this,B,new Map);g(this,y,new Set);g(this,Y);g(this,M,!1);g(this,E,0);g(this,A,1);g(this,V,!1);g(this,P,null);g(this,I,null);g(this,z,!1);g(this,S,0);g(this,$,()=>s(this,r,ge).call(this));g(this,q,e=>{let t=e.target;if(t?.parentElement===this){s(this,r,_e).call(this,e.detail,t);return}t?.closest?.("merch-card")?.parentElement===this&&s(this,r,H).call(this)});g(this,j,e=>{var t;e.target?.parentElement===this&&(d(this,T,[]),d(this,_,[]),d(this,b,[]),i(this,N).clear(),i(this,L).clear(),this.requestUpdate(),(t=i(this,I))==null||t.call(this,!1),d(this,P,null),d(this,I,null))});g(this,K,e=>{e.target?.parentElement===this&&s(this,r,H).call(this)});d(this,G,this.attachInternals?.()),i(this,G)&&(i(this,G).role="table")}connectedCallback(){super.connectedCallback(),this.addEventListener("mas-compare-chart:rehydrate",()=>s(this,r,H).call(this)),this.addEventListener(re,i(this,q)),this.addEventListener(oe,i(this,j)),this.addEventListener(ae,i(this,K)),d(this,Y,new ResizeObserver(()=>s(this,r,ce).call(this))),i(this,Y).observe(this)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(re,i(this,q)),this.removeEventListener(oe,i(this,j)),this.removeEventListener(ae,i(this,K)),i(this,Y)?.disconnect(),s(this,r,me).call(this)}firstUpdated(){s(this,r,H).call(this),s(this,r,$e).call(this)}updated(e){e.has("expandedGroups")&&s(this,r,ne).call(this),(e.has("consonant")||e.has("spectrum"))&&s(this,r,se).call(this)}checkReady(){if(!this.querySelector(":scope > aem-fragment"))return Promise.resolve(!0);s(this,r,ie).call(this);let t=new Promise(o=>setTimeout(()=>o(!1),tt));return Promise.race([i(this,P),t])}render(){return this.collapsed?w:v`
             <div class="sticky-header-spacer" aria-hidden="true"></div>
             <div class="header-content sticky-header">
                 <div class="sticky-header-wrapper">
-                    ${s(this,r,Ge).call(this)}
+                    ${s(this,r,Be).call(this)}
                 </div>
             </div>
             <slot name="cards" hidden></slot>
@@ -775,59 +872,59 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
                 aria-hidden="false"
                 role="row"
             >
-                ${s(this,r,de).call(this).map(e=>v`<span role="columnheader">${e.title}</span>`)}
+                ${s(this,r,pe).call(this).map(e=>v`<span role="columnheader">${e.title}</span>`)}
             </div>
-            ${a(this,T).map(e=>s(this,r,Ve).call(this,e))}
-        `}};G=new WeakMap,E=new WeakMap,_=new WeakMap,L=new WeakMap,k=new WeakMap,T=new WeakMap,B=new WeakMap,b=new WeakMap,Y=new WeakMap,H=new WeakMap,y=new WeakMap,A=new WeakMap,V=new WeakMap,M=new WeakMap,P=new WeakMap,q=new WeakMap,S=new WeakMap,$=new WeakMap,z=new WeakMap,j=new WeakMap,K=new WeakMap,r=new WeakSet,ae=function(){a(this,M)||p(this,M,new Promise(e=>{p(this,P,e)}))},se=function(e=a(this,E)){e.forEach(t=>{t.consonant=this.consonant,t.toggleAttribute("consonant",!!this.consonant),this.spectrum?(t.spectrum=this.spectrum,t.setAttribute("spectrum",this.spectrum)):t.removeAttribute("spectrum")})},ye=function(e,t){let o=e?.fields||{};if(Array.isArray(o)){let n=o.find(c=>c.name===t);return n?.multiple?n.values||[]:n?.values?.[0]||""}let i=o[t];return Array.isArray(i)?i[0]||"":i?.value??i??""},Ae=function(e,t){let o=e?.fields||{};if(Array.isArray(o))return o.find(n=>n.name===t)?.values||[];let i=o[t];return Array.isArray(i)?i:i==null||i===""?[]:[i?.value??i]},ve=function(e){let t=e?.references||{};return Array.isArray(t)?t.map(o=>({identifier:o.identifier||o.id||o.path,value:o.value||o})).filter(o=>o.value):Object.entries(t).map(([o,i])=>({identifier:o,value:i?.value||i})).filter(o=>o.value)},we=function(e){let t=s(this,r,ve).call(this,e),o=c=>t.find(({identifier:l,value:h})=>l===c||h.id===c||h.path===c)?.value,i=s(this,r,Ae).call(this,e,"cards").map(o).filter(Boolean);if(i.length)return i.slice(0,X);let n=(e.referencesTree||[]).filter(c=>c.fieldName==="cards").map(c=>o(c.identifier)).filter(Boolean);return n.length?n.slice(0,X):t.map(({value:c})=>c).filter(c=>c?.fields).slice(0,X)},Ce=async function(e,t){var I;if(!e)return;s(this,r,ae).call(this),this.querySelectorAll("[data-compare-chart-generated]").forEach(u=>u.remove());let o=new DOMParser,i=s(this,r,ye).call(this,e,"compareChart"),n=o.parseFromString(i||"","text/html"),c=n.body.querySelector("mas-compare-chart")||n.body;c.hasAttribute?.("expanded-groups")&&(this.expandedGroups=c.getAttribute("expanded-groups"));let l=c.querySelector(':scope > [slot="compare-features"]');if(l){let u=l.cloneNode(!0);u.dataset.compareChartGenerated="true",this.append(u)}c.querySelectorAll(":scope > div[name]").forEach(u=>{let C=u.cloneNode(!0);C.dataset.compareChartGenerated="true",this.append(C)});let h=t?.hasAttribute("author"),f=s(this,r,we).call(this,e),x=[];f.forEach(u=>{t?.cache?.add(u);let C=document.createElement("merch-card");C.setAttribute("slot","cards"),C.dataset.compareChartGenerated="true",s(this,r,se).call(this,[C]);let W=document.createElement("aem-fragment");W.setAttribute("fragment",u.id),h&&W.setAttribute("author",""),W.setAttribute("loading","cache"),C.append(W),this.append(C),x.push(C)}),s(this,r,O).call(this),await Promise.all(x.map(u=>u.checkReady?.().catch(()=>!1))),s(this,r,O).call(this),(I=a(this,P))==null||I.call(this,!0),p(this,M,null),p(this,P,null)},O=function(){if(!a(this,V)){p(this,V,!0);try{s(this,r,_e).call(this),s(this,r,Re).call(this),s(this,r,ne).call(this),s(this,r,Le).call(this),s(this,r,le).call(this),this.requestUpdate()}finally{p(this,V,!1)}}},_e=function(){let e=Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).slice(0,X);this.querySelectorAll(":scope > [data-compare-chart-slot]").forEach(o=>o.remove());let t=[];e.forEach((o,i)=>{let n=`card-${i+1}`;o.dataset.cardId=n,o.dataset.columnIndex=String(i+1),o.style.setProperty("--col",i+1);let c=o.getAttribute("cell-color")??((i+1)%2===0?"grey":"default");t.push(s(this,r,Te).call(this,o,n,i,c))}),p(this,E,e),p(this,_,t),this.setAttribute("data-child-count",String(e.length)),this.style.setProperty("--compare-chart-cols",e.length)},Te=function(e,t,o,i){let n={},c=new Set;for(let h of rt){let f=`${t}-${h}`;if(n[h]=f,!e)continue;let x=Array.from(e.querySelectorAll(`:scope > [slot="${h}"]`));x.length&&c.add(h);for(let I of x){if(h==="cta"){s(this,r,Se).call(this,I,f);continue}let u=I.cloneNode(!0);u.setAttribute("slot",f),u.dataset.compareChartSlot=f,s(this,r,Z).call(this,u),this.appendChild(u)}}e&&(e.hidden=!0,e.setAttribute("aria-hidden","true"),e.dataset.cardId=t,e.dataset.columnIndex=String(o+1),e.dataset.cellColor=i);let l=Array.from(this.querySelectorAll(`:scope > [slot="${n.header}"]`)).map(h=>h.textContent.trim()).filter(Boolean).join(" ");return{cardId:t,col:o+1,cellColor:i,slots:n,presentSlots:c,title:l||`Card ${o+1}`}},Se=function(e,t){let o=e.matches("a,button")?[e]:Array.from(e.querySelectorAll("a,button"));if(!o.length){let i=e.cloneNode(!0);i.setAttribute("slot",t),i.dataset.compareChartSlot=t,s(this,r,Z).call(this,i),this.appendChild(i);return}for(let i of o){let n=i.cloneNode(!0);n.setAttribute("slot",t),n.dataset.compareChartSlot=t,s(this,r,Z).call(this,n),this.appendChild(n)}},Z=function(e){e.removeAttribute("style"),e.querySelectorAll("[style]").forEach(t=>t.removeAttribute("style"))},Re=function(){p(this,T,[]),a(this,B).clear();let e=1;Array.from(this.querySelectorAll(":scope > div[name]")).forEach((t,o)=>{let i=t.getAttribute("name"),n=t.querySelector(":scope > h4")?.textContent.trim()??"",c=o+1,l={heading:n,groupIndex:c,groupKey:i,rows:[]};a(this,T).push(l),t.querySelectorAll(":scope > p[name]").forEach(h=>{let f=h.getAttribute("name"),x=`${i}@${f}`;e++,l.rows.push({slot:x,rowIndex:e}),a(this,B).set(x,{rowIndex:e,groupIndex:c})})})},ne=function(){let e=(this.expandedGroups??"").trim(),t=a(this,T).length;if(p(this,b,new Set),!e)t>0&&a(this,b).add(1);else if(e==="all")for(let o=1;o<=t;o+=1)a(this,b).add(o);else{if(e==="none")return;e.split(",").map(o=>parseInt(o.trim(),10)).filter(o=>!isNaN(o)&&o>=1&&o<=t).forEach(o=>a(this,b).add(o))}},Ne=function(){let e=a(this,T).length;return a(this,b).size?e&&a(this,b).size===e?"all":[...a(this,b)].sort((t,o)=>t-o).join(","):"none"},Le=function(){a(this,k).clear(),a(this,L).clear(),Array.from(this.querySelectorAll(":scope > div[name]")).forEach(e=>{let t=e.getAttribute("name");e.querySelectorAll(":scope > p[name]").forEach(o=>{let i=`${t}@${o.getAttribute("name")}`,n=o.cloneNode(!0),c=s(this,r,ce).call(this,n);a(this,k).set(i,{labelHTML:n.innerHTML,title:c,tooltipPosition:o.getAttribute("data-tooltip-position")??"top-center",isItemRow:o.hasAttribute("item")})})}),Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).forEach(e=>{let t=e.dataset.cardId,o=parseInt(e.dataset.columnIndex,10),i=new Map;e.querySelectorAll(':scope > p[name], :scope > [slot="features"] p[name]').forEach(n=>{let c=n.getAttribute("name");!c||!c.includes("@")||i.set(c,n)});for(let[n,c]of i){if(!a(this,B).has(n))continue;let l=c.cloneNode(!0),h=l.textContent.includes("\u2705"),f=l.hasAttribute("primary");f&&l.classList.add("primary-cell"),h&&l.classList.add("emoji-primary-cell");let x=l.hasAttribute("item");x&&l.classList.add("item-cell");let I=s(this,r,ce).call(this,l);s(this,r,ke).call(this,l);let u=a(this,L).get(n)??[];u.push({cardId:t,col:o,isCellPrimary:f,isEmojiPrimary:h,isItem:x,title:I,tooltipPosition:l.getAttribute("data-tooltip-position")??"top-center",html:l.innerHTML,ariaLabel:l.getAttribute("aria-label")}),a(this,L).set(n,u)}})},ce=function(e){let t=e.querySelector(":scope > a.secondary-link[title]"),o=t?.getAttribute("title")||e.getAttribute("title")||void 0;return t?.remove(),o&&e.removeAttribute("title"),o},ke=function(e){let t=e.querySelector(":scope > .compare-chart-chip");if(t){for(;t.firstChild;)e.insertBefore(t.firstChild,t);t.remove()}let o=e.textContent.trim();if(ot(o))e.setAttribute("aria-label",D(this,"included","Included")),s(this,r,Q).call(this,e);else if(it(o))e.setAttribute("aria-label",D(this,"not-included","Not included")),s(this,r,Q).call(this,e);else if(at(o)){if(e.setAttribute("aria-label",D(this,"not-applicable","Not applicable")),!o){let i=document.createElement("span");i.className="empty-cell-sr",i.textContent=D(this,"empty-table-cell","Not applicable"),e.textContent="\u2014";let n=document.createElement("span");n.setAttribute("aria-hidden","true"),n.textContent="\u2014",e.replaceChildren(n,i)}}else e.removeAttribute("aria-label"),s(this,r,Q).call(this,e);s(this,r,Me).call(this,e)},Me=function(e){if(e.classList.contains("item-cell"))return;let t=document.createElement("span");t.className="compare-chart-chip";let o=Array.from(e.childNodes);for(let i of o){if(i.nodeType===Node.ELEMENT_NODE&&i.tagName==="SMALL")break;t.appendChild(i)}e.insertBefore(t,e.firstChild)},Q=function(e){let t=[...N.included,...N.excluded,...N.notApplicable],o=e.classList.contains("primary-cell");Array.from(e.childNodes).forEach(i=>{if(i.nodeType!==Node.TEXT_NODE)return;let n=i.textContent;if(!t.some(l=>n.includes(l)))return;let c=document.createDocumentFragment();for(let l of n)if(t.includes(l)){let h=document.createElement("span");h.setAttribute("aria-hidden","true"),h.classList.add("compare-chart-glyph"),h.textContent=l==="\u2705"?"\u2713":l,N.included.includes(l)&&h.classList.add("included"),N.excluded.includes(l)&&h.classList.add("excluded"),(o||l==="\u2705")&&h.classList.add("primary"),c.appendChild(h)}else c.appendChild(document.createTextNode(l));i.replaceWith(c)})},le=function(){let e=this.getBoundingClientRect().width||this.offsetWidth||window.innerWidth,t=e>0&&e<tt,o=t!==a(this,H);p(this,H,t),this.toggleAttribute("data-mobile",t),t?s(this,r,pe).call(this):s(this,r,Ie).call(this),o&&this.requestUpdate()},st=function(){return new Set(s(this,r,J).call(this))},J=function(){return!a(this,H)||a(this,E).length<=2?a(this,E).map(e=>e.dataset.cardId):[a(this,E)[a(this,y)],a(this,E)[a(this,A)]].filter(Boolean).map(e=>e.dataset.cardId)},de=function(){return s(this,r,J).call(this).map(e=>a(this,_).find(t=>t.cardId===e)).filter(Boolean)},pe=function(){this.style.setProperty("--compare-chart-cols",2),!(a(this,E).length<=2)&&s(this,r,Pe).call(this)},Pe=function(){let e=a(this,E).length;e<=2||(a(this,y)>=e&&p(this,y,0),a(this,A)>=e&&p(this,A,Math.min(1,e-1)),a(this,y)===a(this,A)&&p(this,A,(a(this,y)+1)%e))},Ie=function(){this.style.setProperty("--compare-chart-cols",a(this,E).length)},Oe=function(e,t){e==="A"?(t===a(this,A)&&p(this,A,a(this,y)),p(this,y,t)):(t===a(this,y)&&p(this,y,a(this,A)),p(this,A,t)),s(this,r,pe).call(this),this.requestUpdate()},He=function(){s(this,r,he).call(this);let e=document.querySelector("header"),t=document.querySelector(".feds-localnav"),o=(e?.getBoundingClientRect().height||0)+(t?.getBoundingClientRect().height||0);this.style.setProperty("--compare-chart-sticky-top",`${o}px`);let i=this.getAttribute("sticky-top");if(i){let n=/^\d+$/.test(i.trim())?`${i}px`:i;this.style.setProperty("--compare-chart-sticky-gap",n)}window.addEventListener("scroll",a(this,$),!0),window.addEventListener("resize",a(this,$)),s(this,r,me).call(this)},he=function(){window.removeEventListener("scroll",a(this,$),!0),window.removeEventListener("resize",a(this,$)),a(this,S)&&(cancelAnimationFrame(a(this,S)),p(this,S,0))},me=function(){a(this,S)||p(this,S,requestAnimationFrame(()=>{p(this,S,0),s(this,r,$e).call(this)}))},$e=function(){let e=this.shadowRoot?.querySelector(".header-content");if(this.collapsed||!e){s(this,r,ge).call(this,!1);return}let t=parseFloat(getComputedStyle(e).top)||0,o=e.getBoundingClientRect(),i=this.getBoundingClientRect();s(this,r,ge).call(this,i.top<t&&i.bottom>t+o.height&&o.top<=t+1)},ge=function(e){let t=this.shadowRoot?.querySelector(".header-content");e!==a(this,q)&&(p(this,q,e),this.toggleAttribute("data-sticky-header",e),t?.classList.toggle("sticky",e),t?.classList.toggle("is-stuck",e))},De=function(e){let t=!1;a(this,b).has(e)?a(this,b).delete(e):(p(this,b,new Set([e])),t=!0),this.expandedGroups=s(this,r,Ne).call(this),this.dispatchEvent(new CustomEvent("expanded-groups-change",{detail:{value:this.expandedGroups},bubbles:!0,composed:!0})),this.requestUpdate(),t&&this.updateComplete.then(()=>s(this,r,Ue).call(this,e))},Ue=function(e){if(this.collapsed)return;let t=this.shadowRoot?.querySelector(`.table-container[data-group-index="${String(e)}"]`);if(!t)return;let o=this.shadowRoot?.querySelector(".header-content"),i=getComputedStyle(this),n=parseFloat(i.getPropertyValue("--compare-chart-sticky-top"))||0,c=i.getPropertyValue("--compare-chart-sticky-gap").trim(),l=c&&parseFloat(c)||0,h=o?.getBoundingClientRect().height??0,f=n+l+h,x=t.style.scrollMarginTop;t.style.scrollMarginTop=`${f}px`,t.scrollIntoView({block:"start",behavior:"smooth"}),requestAnimationFrame(()=>{t.style.scrollMarginTop=x})},Ge=function(){let e=s(this,r,de).call(this),t=s(this,r,Be).call(this,e);return v`
+            ${i(this,T).map(e=>s(this,r,Fe).call(this,e))}
+        `}};G=new WeakMap,b=new WeakMap,_=new WeakMap,N=new WeakMap,L=new WeakMap,T=new WeakMap,B=new WeakMap,y=new WeakMap,Y=new WeakMap,M=new WeakMap,E=new WeakMap,A=new WeakMap,V=new WeakMap,P=new WeakMap,I=new WeakMap,z=new WeakMap,S=new WeakMap,$=new WeakMap,q=new WeakMap,j=new WeakMap,K=new WeakMap,r=new WeakSet,ie=function(){i(this,P)||d(this,P,new Promise(e=>{d(this,I,e)}))},se=function(e=i(this,b)){e.forEach(t=>{t.consonant=this.consonant,t.toggleAttribute("consonant",!!this.consonant),this.spectrum?(t.spectrum=this.spectrum,t.setAttribute("spectrum",this.spectrum)):t.removeAttribute("spectrum")})},Ae=function(e,t){let o=e?.fields||{};if(Array.isArray(o)){let n=o.find(l=>l.name===t);return n?.multiple?n.values||[]:n?.values?.[0]||""}let a=o[t];return Array.isArray(a)?a[0]||"":a?.value??a??""},ve=function(e,t){let o=e?.fields||{};if(Array.isArray(o))return o.find(n=>n.name===t)?.values||[];let a=o[t];return Array.isArray(a)?a:a==null||a===""?[]:[a?.value??a]},we=function(e){let t=e?.references||{};return Array.isArray(t)?t.map(o=>({identifier:o.identifier||o.id||o.path,value:o.value||o})).filter(o=>o.value):Object.entries(t).map(([o,a])=>({identifier:o,value:a?.value||a})).filter(o=>o.value)},Ce=function(e){let t=s(this,r,we).call(this,e),o=l=>t.find(({identifier:c,value:h})=>c===l||h.id===l||h.path===l)?.value,a=s(this,r,ve).call(this,e,"cards").map(o).filter(Boolean);if(a.length)return a.slice(0,X);let n=(e.referencesTree||[]).filter(l=>l.fieldName==="cards").map(l=>o(l.identifier)).filter(Boolean);return n.length?n.slice(0,X):t.map(({value:l})=>l).filter(l=>l?.fields).slice(0,X)},_e=async function(e,t){var O;if(!e)return;s(this,r,ie).call(this),this.querySelectorAll("[data-compare-chart-generated]").forEach(u=>u.remove());let o=new DOMParser,a=s(this,r,Ae).call(this,e,"compareChart"),n=o.parseFromString(a||"","text/html"),l=n.body.querySelector("mas-compare-chart")||n.body;l.hasAttribute?.("expanded-groups")&&(this.expandedGroups=l.getAttribute("expanded-groups"));let c=l.querySelector(':scope > [slot="compare-features"]');if(c){let u=c.cloneNode(!0);u.dataset.compareChartGenerated="true",this.append(u)}l.querySelectorAll(":scope > div[name]").forEach(u=>{let C=u.cloneNode(!0);C.dataset.compareChartGenerated="true",this.append(C)});let h=t?.hasAttribute("author"),x=s(this,r,Ce).call(this,e),f=[];x.forEach(u=>{t?.cache?.add(u);let C=document.createElement("merch-card");C.setAttribute("slot","cards"),C.dataset.compareChartGenerated="true",s(this,r,se).call(this,[C]);let W=document.createElement("aem-fragment");W.setAttribute("fragment",u.id),h&&W.setAttribute("author",""),W.setAttribute("loading","cache"),C.append(W),this.append(C),f.push(C)}),s(this,r,H).call(this),await Promise.all(f.map(u=>u.checkReady?.().catch(()=>!1))),s(this,r,H).call(this),(O=i(this,I))==null||O.call(this,!0),d(this,P,null),d(this,I,null)},H=function(){if(!i(this,V)){d(this,V,!0);try{s(this,r,Te).call(this),s(this,r,ke).call(this),s(this,r,ne).call(this),s(this,r,Le).call(this),s(this,r,ce).call(this),this.requestUpdate()}finally{d(this,V,!1)}}},Te=function(){let e=Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).slice(0,X);this.querySelectorAll(":scope > [data-compare-chart-slot]").forEach(o=>o.remove());let t=[];e.forEach((o,a)=>{let n=`card-${a+1}`;o.dataset.cardId=n,o.dataset.columnIndex=String(a+1),o.style.setProperty("--col",a+1);let l=o.getAttribute("cell-color")??"default";t.push(s(this,r,Se).call(this,o,n,a,l))}),d(this,b,e),d(this,_,t),this.setAttribute("data-child-count",String(e.length)),this.style.setProperty("--compare-chart-cols",e.length)},Se=function(e,t,o,a){let n={},l=new Set;for(let h of ot){let x=`${t}-${h}`;if(n[h]=x,!e)continue;let f=Array.from(e.querySelectorAll(`:scope > [slot="${h}"]`));f.length&&l.add(h);for(let O of f){if(h==="cta"){s(this,r,Re).call(this,O,x);continue}let u=O.cloneNode(!0);u.setAttribute("slot",x),u.toggleAttribute("data-compare-chart-slot",!0),s(this,r,Z).call(this,u),this.appendChild(u)}}e&&(e.hidden=!0,e.setAttribute("aria-hidden","true"),e.dataset.cardId=t,e.dataset.columnIndex=String(o+1),e.dataset.cellColor=a);let c=Array.from(this.querySelectorAll(`:scope > [slot="${n.header}"]`)).map(h=>h.textContent.trim()).filter(Boolean).join(" ");return{cardId:t,col:o+1,cellColor:a,slots:n,presentSlots:l,title:c||`Card ${o+1}`}},Re=function(e,t){let o=e.matches("a,button")?[e]:Array.from(e.querySelectorAll("a,button"));if(!o.length){let a=e.cloneNode(!0);a.setAttribute("slot",t),a.toggleAttribute("data-compare-chart-slot",!0),s(this,r,Z).call(this,a),this.appendChild(a);return}for(let a of o){let n=a.cloneNode(!0);n.setAttribute("slot",t),n.toggleAttribute("data-compare-chart-slot",!0),s(this,r,Z).call(this,n),this.appendChild(n)}},Z=function(e){e.removeAttribute("style"),e.querySelectorAll("[style]").forEach(t=>t.removeAttribute("style"))},ke=function(){d(this,T,[]),i(this,B).clear();let e=1;Array.from(this.querySelectorAll(":scope > div[name]")).forEach((t,o)=>{let a=t.getAttribute("name"),n=t.querySelector(":scope > h4")?.textContent.trim()??"",l=o+1,c={heading:n,groupIndex:l,groupKey:a,rows:[]};i(this,T).push(c),t.querySelectorAll(":scope > p[name]").forEach(h=>{let x=h.getAttribute("name"),f=`${a}@${x}`;e++,c.rows.push({slot:f,rowIndex:e}),i(this,B).set(f,{rowIndex:e,groupIndex:l})})})},ne=function(){let e=(this.expandedGroups??"").trim(),t=i(this,T).length;if(d(this,y,new Set),!e)t>0&&i(this,y).add(1);else if(e==="all")for(let o=1;o<=t;o+=1)i(this,y).add(o);else{if(e==="none")return;e.split(",").map(o=>parseInt(o.trim(),10)).filter(o=>!isNaN(o)&&o>=1&&o<=t).forEach(o=>i(this,y).add(o))}},Ne=function(){let e=i(this,T).length;return i(this,y).size?e&&i(this,y).size===e?"all":[...i(this,y)].sort((t,o)=>t-o).join(","):"none"},Le=function(){i(this,L).clear(),i(this,N).clear(),Array.from(this.querySelectorAll(":scope > div[name]")).forEach(e=>{let t=e.getAttribute("name");e.querySelectorAll(":scope > p[name]").forEach(o=>{let a=`${t}@${o.getAttribute("name")}`,n=o.cloneNode(!0),l=s(this,r,le).call(this,n);i(this,L).set(a,{labelHTML:n.innerHTML,title:l,tooltipPosition:o.getAttribute("data-tooltip-position")??"top-center",isItemRow:o.hasAttribute("item")})})}),Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).forEach(e=>{let t=e.dataset.cardId,o=parseInt(e.dataset.columnIndex,10),a=new Map;e.querySelectorAll(':scope > p[name], :scope > [slot="features"] p[name]').forEach(n=>{let l=n.getAttribute("name");!l||!l.includes("@")||a.set(l,n)});for(let[n,l]of a){if(!i(this,B).has(n))continue;let c=l.cloneNode(!0),h=c.textContent.includes("\u2705"),x=c.hasAttribute("primary");x&&c.classList.add("primary-cell"),h&&c.classList.add("emoji-primary-cell");let f=c.hasAttribute("item");f&&c.classList.add("item-cell");let O=s(this,r,le).call(this,c);s(this,r,Me).call(this,c);let u=i(this,N).get(n)??[];u.push({cardId:t,col:o,isCellPrimary:x,isEmojiPrimary:h,isItem:f,title:O,tooltipPosition:c.getAttribute("data-tooltip-position")??"top-center",html:c.innerHTML,ariaLabel:c.getAttribute("aria-label")}),i(this,N).set(n,u)}})},le=function(e){let t=e.querySelector(":scope > a.secondary-link[title]"),o=t?.getAttribute("title")||e.getAttribute("title")||void 0;return t?.remove(),o&&e.removeAttribute("title"),o},Me=function(e){let t=e.querySelector(":scope > .compare-chart-chip");if(t){for(;t.firstChild;)e.insertBefore(t.firstChild,t);t.remove()}let o=e.textContent.trim();if(at(o))e.setAttribute("aria-label",D(this,"included","Included")),s(this,r,Q).call(this,e);else if(it(o))e.setAttribute("aria-label",D(this,"not-included","Not included")),s(this,r,Q).call(this,e);else if(st(o)){if(e.setAttribute("aria-label",D(this,"not-applicable","Not applicable")),!o){let a=document.createElement("span");a.className="empty-cell-sr",a.textContent=D(this,"empty-table-cell","Not applicable"),e.textContent="\u2014";let n=document.createElement("span");n.setAttribute("aria-hidden","true"),n.textContent="\u2014",e.replaceChildren(n,a)}}else e.removeAttribute("aria-label"),s(this,r,Q).call(this,e);s(this,r,Pe).call(this,e)},Pe=function(e){if(e.classList.contains("item-cell"))return;let t=document.createElement("span");t.className="compare-chart-chip";let o=Array.from(e.childNodes);for(let a of o){if(a.nodeType===Node.ELEMENT_NODE&&a.tagName==="SMALL")break;t.appendChild(a)}e.insertBefore(t,e.firstChild)},Q=function(e){let t=[...k.included,...k.excluded,...k.notApplicable],o=e.classList.contains("primary-cell");Array.from(e.childNodes).forEach(a=>{if(a.nodeType!==Node.TEXT_NODE)return;let n=a.textContent;if(!t.some(c=>n.includes(c)))return;let l=document.createDocumentFragment();for(let c of n)if(t.includes(c)){let h=document.createElement("span");h.setAttribute("aria-hidden","true"),h.classList.add("compare-chart-glyph"),h.textContent=c==="\u2705"?"\u2713":c,k.included.includes(c)&&h.classList.add("included"),k.excluded.includes(c)&&h.classList.add("excluded"),(o||c==="\u2705")&&h.classList.add("primary"),l.appendChild(h)}else l.appendChild(document.createTextNode(c));a.replaceWith(l)})},ce=function(){let e=this.getBoundingClientRect().width||this.offsetWidth||window.innerWidth,t=e>0&&e<rt,o=t!==i(this,M);d(this,M,t),this.toggleAttribute("data-mobile",t),t?s(this,r,de).call(this):s(this,r,Oe).call(this),s(this,r,he).call(this),o&&this.requestUpdate()},nt=function(){return new Set(s(this,r,J).call(this))},J=function(){return!i(this,M)||i(this,b).length<=2?i(this,b).map(e=>e.dataset.cardId):[i(this,b)[i(this,E)],i(this,b)[i(this,A)]].filter(Boolean).map(e=>e.dataset.cardId)},pe=function(){return s(this,r,J).call(this).map(e=>i(this,_).find(t=>t.cardId===e)).filter(Boolean)},de=function(){this.style.setProperty("--compare-chart-cols",2),!(i(this,b).length<=2)&&s(this,r,Ie).call(this)},Ie=function(){let e=i(this,b).length;e<=2||(i(this,E)>=e&&d(this,E,0),i(this,A)>=e&&d(this,A,Math.min(1,e-1)),i(this,E)===i(this,A)&&d(this,A,(i(this,E)+1)%e))},Oe=function(){this.style.setProperty("--compare-chart-cols",i(this,b).length)},He=function(e,t){e==="A"?(t===i(this,A)&&d(this,A,i(this,E)),d(this,E,t)):(t===i(this,E)&&d(this,E,i(this,A)),d(this,A,t)),s(this,r,de).call(this),this.requestUpdate()},he=function(){if(i(this,M)){this.style.setProperty("--compare-chart-sticky-top","0px");return}let e=document.querySelector("header"),t=document.querySelector(".feds-localnav"),o=(e?.getBoundingClientRect().height||0)+(t?.getBoundingClientRect().height||0);this.style.setProperty("--compare-chart-sticky-top",`${o}px`)},$e=function(){s(this,r,me).call(this),s(this,r,he).call(this);let e=this.getAttribute("sticky-top");if(e){let t=/^\d+$/.test(e.trim())?`${e}px`:e;this.style.setProperty("--compare-chart-sticky-gap",t)}window.addEventListener("scroll",i(this,$),!0),window.addEventListener("resize",i(this,$)),s(this,r,ge).call(this)},me=function(){window.removeEventListener("scroll",i(this,$),!0),window.removeEventListener("resize",i(this,$)),i(this,S)&&(cancelAnimationFrame(i(this,S)),d(this,S,0))},ge=function(){i(this,S)||d(this,S,requestAnimationFrame(()=>{d(this,S,0),s(this,r,De).call(this)}))},De=function(){let e=this.shadowRoot?.querySelector(".header-content");if(this.collapsed||!e){s(this,r,ue).call(this,!1);return}let t=parseFloat(getComputedStyle(e).top)||0,o=e.getBoundingClientRect(),a=this.getBoundingClientRect();s(this,r,ue).call(this,a.top<t&&a.bottom>t&&o.top<=t+1)},ue=function(e){let t=this.shadowRoot?.querySelector(".header-content");e!==i(this,z)&&(d(this,z,e),this.toggleAttribute("data-sticky-header",e),t?.classList.toggle("sticky",e),t?.classList.toggle("is-stuck",e))},Ue=function(e){let t=!1;i(this,y).has(e)?i(this,y).delete(e):(d(this,y,new Set([e])),t=!0),this.expandedGroups=s(this,r,Ne).call(this),this.dispatchEvent(new CustomEvent("expanded-groups-change",{detail:{value:this.expandedGroups},bubbles:!0,composed:!0})),this.requestUpdate(),t&&this.updateComplete.then(()=>s(this,r,Ge).call(this,e))},Ge=function(e){if(this.collapsed)return;let t=this.shadowRoot?.querySelector(`.table-container[data-group-index="${String(e)}"]`);if(!t)return;let o=this.shadowRoot?.querySelector(".header-content"),a=getComputedStyle(this),n=parseFloat(a.getPropertyValue("--compare-chart-sticky-top"))||0,l=a.getPropertyValue("--compare-chart-sticky-gap").trim(),c=l&&parseFloat(l)||0,h=o?.getBoundingClientRect().height??0,x=n+c+h,f=t.style.scrollMarginTop;t.style.scrollMarginTop=`${x}px`,t.scrollIntoView({block:"start",behavior:"smooth"}),requestAnimationFrame(()=>{t.style.scrollMarginTop=f})},Be=function(){let e=s(this,r,pe).call(this),t=s(this,r,Ye).call(this,e);return v`
             <div class="header-leading header-leading-header"></div>
-            ${e.map((o,i)=>s(this,r,U).call(this,o,"header",i+1,i,t))}
+            ${e.map((o,a)=>s(this,r,U).call(this,o,"header",a+1,a,t))}
             <div class="header-leading header-leading-price"></div>
-            ${e.map((o,i)=>s(this,r,U).call(this,o,"price",i+1,i,t))}
+            ${e.map((o,a)=>s(this,r,U).call(this,o,"price",a+1,a,t))}
             <div class="header-leading header-leading-description"></div>
-            ${e.map((o,i)=>s(this,r,U).call(this,o,"description",i+1,i,t))}
+            ${e.map((o,a)=>s(this,r,U).call(this,o,"description",a+1,a,t))}
             <div class="header-leading header-leading-detail"></div>
-            ${e.map((o,i)=>s(this,r,U).call(this,o,"detail",i+1,i,t))}
+            ${e.map((o,a)=>s(this,r,U).call(this,o,"detail",a+1,a,t))}
             <div class="header-leading header-leading-cta">
                 <slot name="compare-features"></slot>
             </div>
-            ${e.map((o,i)=>s(this,r,U).call(this,o,"cta",i+1,i,t))}
-        `},Be=function(e){let t=new Set;for(let o of e)for(let i of o.presentSlots)t.add(i);return t},R=function(e,t,o){return o.has(t)?v`<slot name=${e.slots[t]}></slot>`:w},U=function(e,t,o,i,n){let c=["header-card-segment",`${t}-segment`],l=e.cellColor;return v`<div
-            class=${c.join(" ")}
+            ${e.map((o,a)=>s(this,r,U).call(this,o,"cta",a+1,a,t))}
+        `},Ye=function(e){let t=new Set;for(let o of e)for(let a of o.presentSlots)t.add(a);return t},R=function(e,t,o){return o.has(t)?v`<slot name=${e.slots[t]}></slot>`:w},U=function(e,t,o,a,n){let l=["header-card-segment",`${t}-segment`],c=e.cellColor;return v`<div
+            class=${l.join(" ")}
             data-card-id=${e.cardId}
             data-card-index=${e.col-1}
-            data-cell-color=${l}
+            data-cell-color=${c}
             style="--col: ${o};"
         >
             ${t==="header"?v`
                       ${s(this,r,R).call(this,e,"icons",n)}
                       ${s(this,r,R).call(this,e,"header",n)}
                       ${s(this,r,R).call(this,e,"badge",n)}
-                      ${s(this,r,Ye).call(this,e,i)}
+                      ${s(this,r,Ve).call(this,e,a)}
                   `:w}
             ${t==="price"?s(this,r,R).call(this,e,"price",n):w}
             ${t==="description"?s(this,r,R).call(this,e,"description",n):w}
             ${t==="detail"?s(this,r,R).call(this,e,"detail",n):w}
             ${t==="cta"?s(this,r,R).call(this,e,"cta",n):w}
-        </div>`},Ye=function(e,t){if(!a(this,H)||a(this,_).length<=2)return w;let o=a(this,_).findIndex(c=>c.cardId===e.cardId),i=t===0?"A":"B",n=i==="A"?a(this,A):a(this,y);return v`<select
+        </div>`},Ve=function(e,t){if(!i(this,M)||i(this,_).length<=2)return w;let o=i(this,_).findIndex(l=>l.cardId===e.cardId),a=t===0?"A":"B",n=a==="A"?i(this,A):i(this,E);return v`<select
             class="mobile-filter-select"
             name="column-filter"
             aria-label=${D(this,"choose-table-column","Choose column")}
             .value=${String(o)}
-            @change=${c=>s(this,r,Oe).call(this,i,parseInt(c.target.value,10))}
+            @change=${l=>s(this,r,He).call(this,a,parseInt(l.target.value,10))}
         >
-            ${a(this,_).map((c,l)=>l===n?w:v`<option
-                    value=${l}
-                    ?selected=${l===o}
+            ${i(this,_).map((l,c)=>c===n?w:v`<option
+                    value=${c}
+                    ?selected=${c===o}
                 >
-                    ${c.title}
+                    ${l.title}
                 </option>`)}
-        </select>`},Ve=function(e){let t=a(this,b).has(e.groupIndex);return v`
+        </select>`},Fe=function(e){let t=i(this,y).has(e.groupIndex);return v`
             <div class="table-container" data-group-index=${e.groupIndex}>
                 <button
                     class="table-column-header"
                     aria-expanded=${t}
                     aria-controls="g-${e.groupIndex}"
-                    @click=${()=>s(this,r,De).call(this,e.groupIndex)}
+                    @click=${()=>s(this,r,Ue).call(this,e.groupIndex)}
                 >
                     <span class="group-title">${e.heading}</span>
                     <span
@@ -844,27 +941,27 @@ var je=Object.defineProperty;var fe=d=>{throw TypeError(d)};var Ke=(d,m,e)=>m in
                     ${e.rows.map(o=>s(this,r,qe).call(this,o))}
                 </div>
             </div>
-        `},Fe=function(e,t){return{cardId:e,col:t,isCellPrimary:!1,isEmojiPrimary:!1,isItem:!1,title:void 0,tooltipPosition:"top-center",html:'<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">\u2014</span></span>',ariaLabel:D(this,"not-applicable","Not applicable")}},qe=function(e){let t=a(this,k).get(e.slot)??{},o=new Map((a(this,L).get(e.slot)??[]).map(l=>[l.cardId,l])),i=s(this,r,J).call(this),n=i.map(l=>o.get(l)).filter(Boolean);!n.length&&i.length>0&&a(this,k).has(e.slot)&&(n=i.map(l=>{let h=a(this,E).find(x=>x.dataset.cardId===l),f=parseInt(h?.dataset.columnIndex??"1",10);return s(this,r,Fe).call(this,l,f)}));let c=["table-row"];return t.isItemRow&&c.push("description-row"),v`
-            <div class=${c.join(" ")} role="row">
+        `},ze=function(e,t){return{cardId:e,col:t,isCellPrimary:!1,isEmojiPrimary:!1,isItem:!1,title:void 0,tooltipPosition:"top-center",html:'<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">\u2014</span></span>',ariaLabel:D(this,"not-applicable","Not applicable")}},qe=function(e){let t=i(this,L).get(e.slot)??{},o=new Map((i(this,N).get(e.slot)??[]).map(c=>[c.cardId,c])),a=s(this,r,J).call(this),n=a.map(c=>o.get(c)).filter(Boolean);!n.length&&a.length>0&&i(this,L).has(e.slot)&&(n=a.map(c=>{let h=i(this,b).find(f=>f.dataset.cardId===c),x=parseInt(h?.dataset.columnIndex??"1",10);return s(this,r,ze).call(this,c,x)}));let l=["table-row"];return t.isItemRow&&l.push("description-row"),v`
+            <div class=${l.join(" ")} role="row">
                 <div class="row-header" role="rowheader">
                     <span class="row-label"
-                        >${Ee(t.labelHTML??"")}</span
+                        >${ye(t.labelHTML??"")}</span
                     >
-                    ${s(this,r,ue).call(this,t.title,t.tooltipPosition)}
+                    ${s(this,r,fe).call(this,t.title,t.tooltipPosition)}
                 </div>
-                ${n.map(l=>s(this,r,ze).call(this,l))}
+                ${n.map(c=>s(this,r,je).call(this,c))}
             </div>
-        `},ze=function(e){let t=["cell"];return e.isCellPrimary&&t.push("primary-cell"),e.isEmojiPrimary&&t.push("emoji-primary-cell"),e.isItem&&t.push("item-cell"),v`<p
+        `},je=function(e){let t=["cell"];return e.isCellPrimary&&t.push("primary-cell"),e.isEmojiPrimary&&t.push("emoji-primary-cell"),e.isItem&&t.push("item-cell"),v`<p
             role="cell"
             class=${t.join(" ")}
             data-card-id=${e.cardId}
             style="--col: ${e.col};"
             aria-label=${e.ariaLabel??w}
         >
-            ${Ee(e.html)}${s(this,r,ue).call(this,e.title,e.tooltipPosition)}
-        </p>`},ue=function(e,t){return e?v`<span class="tooltip-wrapper" data-tooltip-position=${t||"top-center"}>
+            ${ye(e.html)}${s(this,r,fe).call(this,e.title,e.tooltipPosition)}
+        </p>`},fe=function(e,t){return e?v`<span class="tooltip-wrapper" data-tooltip-position=${t||"top-center"}>
             <button class="tooltip-trigger" aria-label="More info" tabindex="0">
                 <span aria-hidden="true">i</span>
             </button>
             <span class="tooltip-popover" role="tooltip">${e}</span>
-        </span>`:w},ee(F,"properties",{expandedGroups:{type:String,attribute:"expanded-groups",reflect:!0},collapsed:{type:Boolean,attribute:"collapsed",reflect:!0},consonant:{type:Boolean,attribute:"consonant"},spectrum:{type:String,attribute:"spectrum"},placeholders:{type:Object}}),ee(F,"styles",xe);customElements.get(be)||customElements.define(be,F);export{F as MasCompareChart};
+        </span>`:w},ee(F,"properties",{expandedGroups:{type:String,attribute:"expanded-groups",reflect:!0},collapsed:{type:Boolean,attribute:"collapsed",reflect:!0},consonant:{type:Boolean,attribute:"consonant"},spectrum:{type:String,attribute:"spectrum"},placeholders:{type:Object}}),ee(F,"styles",be);customElements.get(Ee)||customElements.define(Ee,F);export{F as MasCompareChart};

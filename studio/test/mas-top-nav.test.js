@@ -143,7 +143,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Settings', 'Create new setting']);
+            expect(items).to.deep.equal(['Global settings', 'Create new setting']);
         });
 
         it('should render setting editor breadcrumbs and label for edit flow', async () => {
@@ -154,7 +154,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Settings', 'Edit setting']);
+            expect(items).to.deep.equal(['Global settings', 'Edit setting']);
         });
 
         it('should not render settings breadcrumbs when no setting id and not creating', async () => {
@@ -281,7 +281,10 @@ describe('MasTopNav', () => {
             const repairedBreadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
             const repairedFirstBreadcrumb = repairedBreadcrumbs[0];
             expect(repairedFirstBreadcrumb.hasAttribute('hidden')).to.equal(false);
-            expect(repairedBreadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Settings', 'Edit setting']);
+            expect(repairedBreadcrumbs.map((item) => item.textContent.trim())).to.deep.equal([
+                'Global settings',
+                'Edit setting',
+            ]);
         });
 
         it('should not render breadcrumbs on content page', async () => {
@@ -323,6 +326,24 @@ describe('MasTopNav', () => {
 
         it('should not disable folder picker on content page', async () => {
             Store.page.value = PAGE_NAMES.CONTENT;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.false;
+        });
+
+        it('should disable folder picker on bulk publish editor page', async () => {
+            Store.page.value = PAGE_NAMES.BULK_PUBLISH_EDITOR;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should not disable folder picker on bulk publish list page', async () => {
+            Store.page.value = PAGE_NAMES.BULK_PUBLISH;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');

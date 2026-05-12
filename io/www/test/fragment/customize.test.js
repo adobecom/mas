@@ -1357,7 +1357,7 @@ describe('customize promo variation', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.be.undefined;
-        expect(result.body.promoCode).to.be.undefined;
+        expect(result.body.fields.promoCode).to.be.undefined;
     });
 
     it('should skip promo variation when fragment has no path', async function () {
@@ -1415,7 +1415,12 @@ describe('customize promo variation', function () {
 });
 
 describe('customize promoCode application', function () {
-    const MINIMAL_PROJECT = { id: 'promo-proj', path: '/content/dam/mas/promotions/test', defaultVariations: {}, regionVariations: {} };
+    const MINIMAL_PROJECT = {
+        id: 'promo-proj',
+        path: '/content/dam/mas/promotions/test',
+        defaultVariations: {},
+        regionVariations: {},
+    };
     const CARD_PATHS = new Set(['test-card']);
 
     function makeBody(osiValue, extra = {}) {
@@ -1436,17 +1441,22 @@ describe('customize promoCode application', function () {
             { 'OSI-123': 'SUMMER25' },
         );
         expect(result.status).to.equal(200);
-        expect(result.body.promoCode).to.equal('SUMMER25');
+        expect(result.body.fields.promoCode).to.equal('SUMMER25');
     });
 
     it('should apply promoCode for array OSI field', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody(['OSI-001', 'OSI-002']), promoFragmentPaths: CARD_PATHS },
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody(['OSI-001', 'OSI-002']),
+                promoFragmentPaths: CARD_PATHS,
+            },
             MINIMAL_PROJECT,
             { 'OSI-002': 'MULTI10' },
         );
         expect(result.status).to.equal(200);
-        expect(result.body.promoCode).to.equal('MULTI10');
+        expect(result.body.fields.promoCode).to.equal('MULTI10');
     });
 
     it('should apply wildcard promoCode when no specific OSI match', async function () {
@@ -1456,7 +1466,7 @@ describe('customize promoCode application', function () {
             { '*': 'UNIVERSAL' },
         );
         expect(result.status).to.equal(200);
-        expect(result.body.promoCode).to.equal('UNIVERSAL');
+        expect(result.body.fields.promoCode).to.equal('UNIVERSAL');
     });
 
     it('should prefer specific OSI match over wildcard', async function () {
@@ -1466,17 +1476,22 @@ describe('customize promoCode application', function () {
             { '*': 'WILDCARD', 'OSI-1': 'SPECIFIC' },
         );
         expect(result.status).to.equal(200);
-        expect(result.body.promoCode).to.equal('SPECIFIC');
+        expect(result.body.fields.promoCode).to.equal('SPECIFIC');
     });
 
     it('should not set promoCode when fragment path is not in promoFragmentPaths', async function () {
         const result = await processWithPromos(
-            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-123'), promoFragmentPaths: new Set(['other-path']) },
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody('OSI-123'),
+                promoFragmentPaths: new Set(['other-path']),
+            },
             MINIMAL_PROJECT,
             { 'OSI-123': 'SUMMER25' },
         );
         expect(result.status).to.equal(200);
-        expect(result.body.promoCode).to.be.undefined;
+        expect(result.body.fields.promoCode).to.be.undefined;
     });
 
     it('should not set promoCode when no active project', async function () {
@@ -1486,7 +1501,7 @@ describe('customize promoCode application', function () {
             body: makeBody('OSI-123'),
         });
         expect(result.status).to.equal(200);
-        expect(result.body.promoCode).to.be.undefined;
+        expect(result.body.fields.promoCode).to.be.undefined;
     });
 
     it('should apply promoCode to child card fragments in collection', async function () {
@@ -1516,6 +1531,6 @@ describe('customize promoCode application', function () {
             { 'OSI-CARD': 'CARD-PROMO' },
         );
         expect(result.status).to.equal(200);
-        expect(result.body.references['card-1'].value.promoCode).to.equal('CARD-PROMO');
+        expect(result.body.references['card-1'].value.fields.promoCode).to.equal('CARD-PROMO');
     });
 });

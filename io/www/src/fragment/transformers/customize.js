@@ -202,7 +202,7 @@ function applyPromoCode(fragment, promoMap, context) {
     }
     if (promoCode) {
         logDebug(() => `Setting promoCode ${promoCode} on fragment ${fragment.id}`, context);
-        fragment.promoCode = promoCode;
+        fragment.fields.promoCode = promoCode;
     }
 }
 

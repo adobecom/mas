@@ -276,7 +276,7 @@ describe('pipeline end to end', () => {
         // replace transformer resolved {{select}} placeholder
         expect(result.body.fields.ctas.value).to.include('data-analytics-id="buy-now"');
         // promotion applied promoCode from project-level wildcard
-        expect(result.body.promoCode).to.equal('BF2025');
+        expect(result.body.fields.promoCode).to.equal('BF2025');
     });
 
     it('should use promo variation over fr_CA regional variation when both match', async () => {
@@ -309,7 +309,8 @@ describe('pipeline end to end', () => {
         fetchStub.withArgs(hydrateUrl('proj-bf')).returns(createResponse(200, hydrated));
 
         // Promo variation folder — fr_FR default locale variation
-        const variationFolderUrl = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/black-friday';
+        const variationFolderUrl =
+            'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/sandbox/fr_FR/promotions/black-friday';
         fetchStub.withArgs(variationFolderUrl).returns(
             createResponse(200, {
                 items: [
@@ -332,6 +333,6 @@ describe('pipeline end to end', () => {
         // fr_CA regional variation NOT applied: badge has no "canadian card"
         expect(result.body.fields.badge?.value).to.not.equal('canadian card');
         // promoCode also applied from promotion
-        expect(result.body.promoCode).to.equal('BF2025');
+        expect(result.body.fields.promoCode).to.equal('BF2025');
     });
 });

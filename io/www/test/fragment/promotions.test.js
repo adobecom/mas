@@ -150,17 +150,19 @@ describe('promotions', () => {
             const storage = {};
             globalThis.localStorage = {
                 getItem: (key) => storage[key] ?? null,
-                setItem: (key, val) => { storage[key] = val; },
-                removeItem: (key) => { delete storage[key]; },
+                setItem: (key, val) => {
+                    storage[key] = val;
+                },
+                removeItem: (key) => {
+                    delete storage[key];
+                },
             };
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
-            const result = await promotionsTransformer.init(
-                createContext({ preview: true, 'mas.instant': PREVIEW_INSTANT }),
-            );
+            const result = await promotionsTransformer.init(createContext({ preview: true, 'mas.instant': PREVIEW_INSTANT }));
             expect(result.activeProject).to.not.be.null;
             expect(result.activeProject.id).to.equal('proj-1');
             clearPromoCache(true);
@@ -172,9 +174,7 @@ describe('promotions', () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
 
             // EXPIRED_END is in the past — without preview, mas.instant is ignored and Date.now() is used
-            const result = await promotionsTransformer.init(
-                createContext({ 'mas.instant': PREVIEW_INSTANT }),
-            );
+            const result = await promotionsTransformer.init(createContext({ 'mas.instant': PREVIEW_INSTANT }));
             expect(result).to.deep.equal({ status: 200, activeProject: null });
         });
 
@@ -276,7 +276,10 @@ describe('promotions', () => {
                         value: { id: 'v', path: '/content/dam/mas/acom/en_US/offers/offer-1', fields: {} },
                     },
                     // 'missing-ref' not present — ref will be null
-                    'no-fields-ref': { type: 'content-fragment', value: { id: 'nf', path: '/content/dam/mas/acom/en_US/offers/offer-3' } },
+                    'no-fields-ref': {
+                        type: 'content-fragment',
+                        value: { id: 'nf', path: '/content/dam/mas/acom/en_US/offers/offer-3' },
+                    },
                     'no-path-ref': { type: 'content-fragment', value: { id: 'np', fields: {} } },
                 },
             };
@@ -315,8 +318,12 @@ describe('promotions', () => {
             const storage = {};
             globalThis.localStorage = {
                 getItem: (key) => storage[key] ?? null,
-                setItem: (key, val) => { storage[key] = val; },
-                removeItem: (key) => { delete storage[key]; },
+                setItem: (key, val) => {
+                    storage[key] = val;
+                },
+                removeItem: (key) => {
+                    delete storage[key];
+                },
             };
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             const hydrated = makeHydratedProject();
@@ -397,7 +404,8 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             // Variation folder returns 200 but no items field
-            const varUrl = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday';
+            const varUrl =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday';
             fetchStub.withArgs(varUrl).returns(createResponse(200, {}));
 
             const result = await promotionsTransformer.init(createContext());

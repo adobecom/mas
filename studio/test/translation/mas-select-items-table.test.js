@@ -216,10 +216,8 @@ describe('MasSelectItemsTable', () => {
         });
 
         it('should return true for collections when firstPageLoaded is false', async () => {
-            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
-            await el.updateComplete;
             Store.fragments.list.firstPageLoaded.set(false);
-            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
             await el.updateComplete;
             expect(el.isLoading).to.be.true;
         });
@@ -318,26 +316,24 @@ describe('MasSelectItemsTable', () => {
     });
 
     describe('rendering - loading state', () => {
-        it('should render loading indicator when loading', async () => {
+        it('should render skeleton rows when loading', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             Store.fragments.list.firstPageLoaded.set(false);
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             await el.updateComplete;
-            const loadingContainer = el.shadowRoot.querySelector('.loading-container--flex');
-            const progressCircle = el.shadowRoot.querySelector('sp-progress-circle');
-            expect(loadingContainer).to.exist;
-            expect(progressCircle).to.exist;
+            const skeletonRows = el.shadowRoot.querySelectorAll('.skeleton-row');
+            expect(skeletonRows.length).to.be.greaterThan(0);
         });
 
-        it('should not render loading indicator when not loading', async () => {
+        it('should not render skeleton rows when not loading', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
             Store.fragments.list.firstPageLoaded.set(true);
             setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
             await el.updateComplete;
-            const loadingContainer = el.shadowRoot.querySelector('.loading-container--flex');
-            expect(loadingContainer).to.be.null;
+            const skeletonRows = el.shadowRoot.querySelectorAll('.skeleton-row');
+            expect(skeletonRows.length).to.equal(0);
         });
     });
 
@@ -1316,44 +1312,41 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
-    describe('scroll sentinel', () => {
-        it('should not render sentinel when items list is empty even if hasMore is true', async () => {
-            Store.fragments.list.hasMore.set(true);
-            Store.fragments.list.firstPageLoaded.set(true);
-            Store.translationProjects.displayCards.set([]);
-
+    describe('loading more indicator', () => {
+        it('should render loading-more indicator when loading subsequent pages', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
 
-            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
-            expect(sentinel).to.be.null;
-        });
-
-        it('should render sentinel when items are present and hasMore is true', async () => {
-            Store.fragments.list.hasMore.set(true);
-            Store.fragments.list.firstPageLoaded.set(true);
-
-            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
-            await el.updateComplete;
-
-            // Set displayCards after initial subscription fires (which overwrites with empty data)
             setupCardsInStore([createMockCard('/card/1', 'Card 1')]);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.loading.set(true);
             await el.updateComplete;
 
-            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
-            expect(sentinel).to.not.be.null;
+            const loadingMore = el.renderRoot.querySelector('.loading-more');
+            expect(loadingMore).to.not.be.null;
         });
 
-        it('should not render sentinel when hasMore is false even if items are present', async () => {
-            Store.fragments.list.hasMore.set(false);
+        it('should not render loading-more indicator when first page not yet loaded', async () => {
+            Store.fragments.list.firstPageLoaded.set(false);
+            Store.fragments.list.loading.set(true);
+
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await el.updateComplete;
+
+            const loadingMore = el.renderRoot.querySelector('.loading-more');
+            expect(loadingMore).to.be.null;
+        });
+
+        it('should not render loading-more indicator when not loading', async () => {
             Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.loading.set(false);
             setupCardsInStore([createMockCard('/card/1', 'Card 1')]);
 
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
 
-            const sentinel = el.renderRoot.querySelector('.scroll-sentinel');
-            expect(sentinel).to.be.null;
+            const loadingMore = el.renderRoot.querySelector('.loading-more');
+            expect(loadingMore).to.be.null;
         });
     });
 });

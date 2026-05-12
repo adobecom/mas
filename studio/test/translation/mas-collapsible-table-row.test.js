@@ -72,22 +72,25 @@ describe('MasCollapsibleTableRow', () => {
             expect(el.isTopLevelExpanded).to.be.false;
             expect(el.viewOnly).to.not.equal(true);
             expect(el.tabs).to.be.an('array');
-            expect(el.tabs).to.have.lengthOf(2);
+            expect(el.tabs).to.have.lengthOf(3);
         });
 
-        it('should have default tabs with Promotion and Grouped variation', async () => {
+        it('should have default tabs with Locale, Promotion and Grouped variation', async () => {
             const topLevelCard = createMockTopLevelCard();
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
+            const localeTab = el.tabs.find((t) => t.key === 'locale');
             const promotionTab = el.tabs.find((t) => t.key === 'promotion');
             const groupedTab = el.tabs.find((t) => t.key === 'groupedVariation');
+            expect(localeTab).to.exist;
+            expect(localeTab.label).to.equal('Locale');
             expect(promotionTab).to.exist;
             expect(promotionTab.label).to.equal('Promotion');
             expect(promotionTab.disabled).to.be.true;
             expect(groupedTab).to.exist;
             expect(groupedTab.label).to.equal('Grouped variation');
-            expect(groupedTab.selected).to.be.true;
+            expect(el.selectedTabKey).to.equal('locale');
         });
 
         it('should accept viewOnly property', async () => {
@@ -188,6 +191,7 @@ describe('MasCollapsibleTableRow', () => {
                     .isTopLevelExpanded=${true}
                 ></mas-collapsible-table-row>`,
             );
+            el.selectedTabKey = 'groupedVariation';
             await el.updateComplete;
             const nestedContent = el.shadowRoot.querySelector('.nested-content');
             expect(nestedContent?.classList.contains('has-connector')).to.be.true;
@@ -603,8 +607,10 @@ describe('MasCollapsibleTableRow', () => {
                     .isTopLevelExpanded=${true}
                 ></mas-collapsible-table-row>`,
             );
+            el.selectedTabKey = 'groupedVariation';
             await el.updateComplete;
-            const emptyMsg = el.shadowRoot.querySelector('.empty-grouped-variations');
+            const groupedVariationPanel = el.shadowRoot.querySelector('sp-tab-panel[value="groupedVariation"]');
+            const emptyMsg = groupedVariationPanel?.querySelector('.empty-grouped-variations');
             expect(emptyMsg).to.exist;
             expect(emptyMsg.textContent).to.include('No grouped variations found');
         });

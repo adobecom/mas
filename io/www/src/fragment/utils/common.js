@@ -53,7 +53,6 @@ async function fetchAttempt(path, context, timeout, marker) {
             headers: {
                 ...context.DEFAULT_HEADERS,
                 'X-Request-ID': globalThis.crypto.randomUUID(),
-                'X-Correlation-ID': context.requestId,
             },
         });
 

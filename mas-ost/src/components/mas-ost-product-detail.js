@@ -234,8 +234,25 @@ export class MasOstProductDetail extends LitElement {
     }
 
     handleChangeOffer() {
+        // Clearing only selectedOffer was a no-op in the common case: when
+        // the OST was deep-linked from an existing CTA, the AOS filters
+        // (commitment/term/segments/offerType) were narrowed to exactly the
+        // one matching offer. Clicking Change would leave the user staring
+        // at a one-card list and the auto-resolve path would put them right
+        // back in configure. Reset those filters here so Change actually
+        // surfaces all offers for the product. arrangementCode is kept so
+        // we stay on the same product.
         store.selectedOffer = undefined;
         store.selectedOsi = undefined;
+        store.aosParams = {
+            ...store.aosParams,
+            commitment: '',
+            term: '',
+            customerSegment: '',
+            marketSegment: '',
+            offerType: '',
+            pricePoint: '',
+        };
         store.notify();
     }
 

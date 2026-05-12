@@ -3,7 +3,9 @@ import { OstStore } from '../../src/store/ost-store.js';
 
 describe('OstStore', () => {
     let store;
-    beforeEach(() => { store = new OstStore(); });
+    beforeEach(() => {
+        store = new OstStore();
+    });
 
     it('initializes with default aosParams', () => {
         expect(store.aosParams.customerSegment).to.equal('');
@@ -13,7 +15,9 @@ describe('OstStore', () => {
 
     it('notifies subscribers on setCountry', () => {
         let notified = false;
-        store.subscribe(() => { notified = true; });
+        store.subscribe(() => {
+            notified = true;
+        });
         store.setCountry('JP');
         expect(notified).to.be.true;
         expect(store.country).to.equal('JP');
@@ -21,7 +25,9 @@ describe('OstStore', () => {
 
     it('unsubscribes correctly', () => {
         let count = 0;
-        const handler = () => { count++; };
+        const handler = () => {
+            count++;
+        };
         store.subscribe(handler);
         store.setCountry('JP');
         store.unsubscribe(handler);
@@ -144,12 +150,27 @@ describe('OstStore', () => {
             expect(store.allProducts).to.deep.equal(products);
         });
 
-        it('resets authoringFlow to tryBuy and selectedOffers', () => {
+        it('resets authoringFlow to single (default) and clears selectedOffers', () => {
+            // The default authoringFlow is 'single' so a deep-linked open
+            // (e.g. RTE double-click on an existing CTA — passes
+            // searchOfferSelectorId but no explicit flow) lands in
+            // single-offer authoring, not try/buy. Try/buy must be opted
+            // into explicitly via multiSelect=true or authoringFlow='tryBuy'.
             store.authoringFlow = 'bundle';
             store.selectedOffers = [{ offer: {}, osi: 'test' }];
             store.init({});
-            expect(store.authoringFlow).to.equal('tryBuy');
+            expect(store.authoringFlow).to.equal('single');
+            expect(store.flowChosen).to.be.false;
             expect(store.selectedOffers).to.deep.equal([]);
+        });
+
+        it('defaults to single + flowChosen=false on empty init (welcome screen still shows)', () => {
+            // Empty init = fresh open with no deep-link. flowChosen stays
+            // false so the welcome screen renders (per viewState gate); the
+            // default flow only takes effect once a product is selected.
+            store.init({});
+            expect(store.authoringFlow).to.equal('single');
+            expect(store.flowChosen).to.be.false;
         });
 
         it('sets authoringFlow to tryBuy when multiSelect config is true', () => {
@@ -182,9 +203,9 @@ describe('OstStore', () => {
             expect(store.flowChosen).to.be.true;
         });
 
-        it('ignores invalid authoringFlow value from config', () => {
+        it('ignores invalid authoringFlow value from config (falls back to single default)', () => {
             store.init({ authoringFlow: 'bogus' });
-            expect(store.authoringFlow).to.equal('tryBuy');
+            expect(store.authoringFlow).to.equal('single');
             expect(store.flowChosen).to.be.false;
         });
 
@@ -234,10 +255,10 @@ describe('OstStore', () => {
             expect(store.authoringFlow).to.equal('consult');
         });
 
-        it('ignores invalid authoringFlow param value', () => {
+        it('ignores invalid authoringFlow param value (default is single)', () => {
             const params = new URLSearchParams('authoringFlow=bogus');
             store.applySearchParams(params);
-            expect(store.authoringFlow).to.equal('tryBuy');
+            expect(store.authoringFlow).to.equal('single');
             expect(store.flowChosen).to.be.false;
         });
     });
@@ -249,7 +270,9 @@ describe('OstStore', () => {
 
         it('toggles helpMode and notifies', () => {
             let notified = false;
-            store.subscribe(() => { notified = true; });
+            store.subscribe(() => {
+                notified = true;
+            });
             store.toggleHelp();
             expect(store.helpMode).to.be.true;
             expect(notified).to.be.true;
@@ -328,11 +351,13 @@ describe('OstStore', () => {
     });
 
     describe('authoringFlow', () => {
-        it('defaults to tryBuy', () => {
-            expect(store.authoringFlow).to.equal('tryBuy');
+        it('defaults to single (single-offer authoring is the safe default)', () => {
+            expect(store.authoringFlow).to.equal('single');
         });
 
-        it('provides multiSelect compat getter', () => {
+        it('provides multiSelect compat getter (true only for tryBuy)', () => {
+            expect(store.multiSelect).to.be.false;
+            store.authoringFlow = 'tryBuy';
             expect(store.multiSelect).to.be.true;
             store.authoringFlow = 'single';
             expect(store.multiSelect).to.be.false;
@@ -510,9 +535,13 @@ describe('OstStore', () => {
         });
 
         it('ignores switch to same flow', () => {
+            // Default authoringFlow is 'single', so setAuthoringFlow('single')
+            // is a no-op and must not notify subscribers.
             let notified = false;
-            store.subscribe(() => { notified = true; });
-            store.setAuthoringFlow('tryBuy');
+            store.subscribe(() => {
+                notified = true;
+            });
+            store.setAuthoringFlow('single');
             expect(notified).to.be.false;
         });
 
@@ -542,17 +571,13 @@ describe('OstStore', () => {
 
     describe('backward compatibility getters', () => {
         it('selectedBaseOffer returns base role offer', () => {
-            store.selectedOffers = [
-                { offer: { id: 'base' }, osi: 'base-osi', role: 'base' },
-            ];
+            store.selectedOffers = [{ offer: { id: 'base' }, osi: 'base-osi', role: 'base' }];
             expect(store.selectedBaseOffer.id).to.equal('base');
             expect(store.selectedBaseOsi).to.equal('base-osi');
         });
 
         it('selectedTrialOffer returns trial role offer', () => {
-            store.selectedOffers = [
-                { offer: { id: 'trial' }, osi: 'trial-osi', role: 'trial' },
-            ];
+            store.selectedOffers = [{ offer: { id: 'trial' }, osi: 'trial-osi', role: 'trial' }];
             expect(store.selectedTrialOffer.id).to.equal('trial');
             expect(store.selectedTrialOsi).to.equal('trial-osi');
         });

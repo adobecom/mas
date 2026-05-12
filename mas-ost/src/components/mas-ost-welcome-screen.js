@@ -3,6 +3,11 @@ import { store } from '../store/ost-store.js';
 
 const FLOWS = [
     {
+        id: 'single',
+        title: 'Single Offer',
+        description: 'Author one offer (price or checkout button)',
+    },
+    {
         id: 'tryBuy',
         title: 'Try / Buy',
         description: 'Create try + buy checkout buttons or price pair',

@@ -509,18 +509,30 @@ export class MasOstApp extends LitElement {
 
     renderContent() {
         const showSelectionList = store.authoringFlow === 'tryBuy' || store.authoringFlow === 'bundle';
+        // Hide the product picker only while the deep-linked user is in
+        // the configure view. The moment they click "Change" (selectedOffer
+        // clears → viewState becomes 'offers'), bring the picker back so
+        // they can browse other offers for the same product OR pick a
+        // different product entirely. This gives a clean configure layout
+        // for the common case without trapping users when they want to
+        // change their mind.
+        const hideProductList = this.wasDeepLinked && store.authoringFlow === 'single' && store.viewState === 'configure';
         return html`
             ${showSelectionList ? html`<mas-ost-selection-list></mas-ost-selection-list>` : ''}
             <div class="ost-container">
-                <div class="ost-left-panel">
-                    <div class="ost-left-header">
-                        <mas-ost-search></mas-ost-search>
-                        <mas-ost-filter-bar></mas-ost-filter-bar>
-                    </div>
-                    ${this.productsError ? html`<div class="ost-left-panel-error">${this.productsError}</div>` : ''}
-                    <div class="ost-left-products-label">Products</div>
-                    <mas-ost-product-list></mas-ost-product-list>
-                </div>
+                ${hideProductList
+                    ? ''
+                    : html`
+                          <div class="ost-left-panel">
+                              <div class="ost-left-header">
+                                  <mas-ost-search></mas-ost-search>
+                                  <mas-ost-filter-bar></mas-ost-filter-bar>
+                              </div>
+                              ${this.productsError ? html`<div class="ost-left-panel-error">${this.productsError}</div>` : ''}
+                              <div class="ost-left-products-label">Products</div>
+                              <mas-ost-product-list></mas-ost-product-list>
+                          </div>
+                      `}
                 <div class="ost-right-panel">
                     <mas-ost-help-banner></mas-ost-help-banner>
                     ${this.renderRightPanel()}
@@ -530,9 +542,23 @@ export class MasOstApp extends LitElement {
     }
 
     handleBack() {
+        // Step back one level: from the configure view to the product list.
+        // Clear the chosen offer AND the chosen product so the user can pick
+        // a different product; preserve flowChosen so we don't bounce back
+        // to the welcome screen. (For deep-linked opens — e.g. RTE
+        // double-click on an existing CTA — the Back button is hidden in
+        // render since there's no product list to return to.)
         store.selectedOffer = undefined;
         store.selectedOsi = undefined;
+        store.selectedProduct = undefined;
         store.notify();
+    }
+
+    get wasDeepLinked() {
+        // True when the OST was opened with a target offer already chosen
+        // (RTE double-click, chat OSI attach). In that case the user has no
+        // product list to return to and "Back" would be a confusing no-op.
+        return !!(this.config?.searchOfferSelectorId || store.deepLink?.offerId);
     }
 
     handleFooterUse() {
@@ -600,6 +626,7 @@ export class MasOstApp extends LitElement {
                                   value=${store.authoringFlow}
                                   @change=${(e) => store.setAuthoringFlow(e.target.value)}
                               >
+                                  <sp-menu-item value="single">Single Offer</sp-menu-item>
                                   <sp-menu-item value="tryBuy">Try / Buy</sp-menu-item>
                                   <sp-menu-item value="bundle">Soft Bundle</sp-menu-item>
                                   <sp-menu-item value="consult">Consult</sp-menu-item>
@@ -638,7 +665,7 @@ export class MasOstApp extends LitElement {
 
         const footerBar = html`
             <div class="ost-footer-bar">
-                ${flow === 'single' && store.viewState === 'configure'
+                ${flow === 'single' && store.viewState === 'configure' && !this.wasDeepLinked
                     ? html`<sp-button variant="secondary" size="m" @click=${() => this.handleBack()}>Back</sp-button>`
                     : ''}
                 <sp-button

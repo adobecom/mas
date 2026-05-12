@@ -57,7 +57,7 @@ export class OstStore extends EventTarget {
     offers = [];
     selectedOffer = undefined;
     selectedOsi = undefined;
-    authoringFlow = 'tryBuy';
+    authoringFlow = 'single';
     flowChosen = false;
     selectedOffers = [];
     currentSlot = 'trial';
@@ -144,7 +144,11 @@ export class OstStore extends EventTarget {
         this.selectedProduct = undefined;
         this.selectedOffer = undefined;
         this.selectedOsi = undefined;
-        this.authoringFlow = 'tryBuy';
+        // 'single' is the safe default: it matches the most common caller
+        // (RTE double-click on an existing CTA), keeps the welcome screen
+        // for fresh opens (gated on flowChosen=false), and is overridden
+        // below for multiSelect / bundleSelect / explicit authoringFlow.
+        this.authoringFlow = 'single';
         this.flowChosen = false;
         this.selectedOffers = [];
         this.currentSlot = 'trial';

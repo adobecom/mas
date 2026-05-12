@@ -559,7 +559,7 @@ var to=Object.defineProperty;var ro=e=>{throw TypeError(e)};var Hl=(e,t,r)=>t in
             z-index: 999;
             background: var(--spectrum-gray-800, #323232);
             color: #fff;
-            padding: var(--mas-mnemonic-tooltip-padding, 8px 12px);
+            padding: var(--mas-mnemonic-tooltip-padding, 4px);
             border-radius: 4px;
             white-space: normal;
             width: max-content;

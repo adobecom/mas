@@ -38,7 +38,7 @@ jobs:
             - name: Prepare .aio and .env files
               env:
                   ENV_CONTENT: ${{ secrets.ENV_CONTENT }}
-                  AIO_CONTENT: ${{ secrets.ENV_CONTENT }}
+                  AIO_CONTENT: ${{ secrets.AIO_CONTENT }}
               run: |
                   missing_secrets=()
 

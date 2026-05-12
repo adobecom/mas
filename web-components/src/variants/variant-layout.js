@@ -98,11 +98,10 @@ export class VariantLayout {
                         cardHeights.push({ card, height: 0 });
                         continue;
                     }
-                    const height =
-                        Math.max(
-                            0,
-                            parseInt(window.getComputedStyle(el).height) || 0,
-                        );
+                    const height = Math.max(
+                        0,
+                        parseInt(window.getComputedStyle(el).height) || 0,
+                    );
                     cardHeights.push({ card, height });
                     if (height > max) max = height;
                 }

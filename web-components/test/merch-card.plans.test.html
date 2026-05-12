@@ -323,18 +323,29 @@
                         container.append(masCommerceService, photoshop);
                         await photoshop.checkReady();
 
-                        const prop = '--consonant-merch-card-plans-heading-xs-height';
+                        const prop =
+                            '--consonant-merch-card-plans-heading-xs-height';
                         // Simulate old container-level var that the fix must remove
                         container.style.setProperty(prop, '99px');
 
-                        const orig = photoshop.getBoundingClientRect.bind(photoshop);
-                        photoshop.getBoundingClientRect = () => ({ ...orig(), width: 200, top: 0 });
+                        const orig =
+                            photoshop.getBoundingClientRect.bind(photoshop);
+                        photoshop.getBoundingClientRect = () => ({
+                            ...orig(),
+                            width: 200,
+                            top: 0,
+                        });
                         photoshop.variantLayout.syncHeights();
                         photoshop.getBoundingClientRect = orig;
 
                         // Container var must be removed; per-card var must be set instead
-                        expect(container.style.getPropertyValue(prop)).to.equal('');
-                        expect(parseInt(photoshop.style.getPropertyValue(prop)) || 0).to.be.greaterThan(0);
+                        expect(container.style.getPropertyValue(prop)).to.equal(
+                            '',
+                        );
+                        expect(
+                            parseInt(photoshop.style.getPropertyValue(prop)) ||
+                                0,
+                        ).to.be.greaterThan(0);
                     });
 
                     it('syncRowHeights should no-op when card has no container', async () => {
@@ -346,7 +357,8 @@
 
                         // Stub getContainer to return null
                         const layout = photoshop.variantLayout;
-                        const origGetContainer = layout.getContainer.bind(layout);
+                        const origGetContainer =
+                            layout.getContainer.bind(layout);
                         layout.getContainer = () => null;
 
                         // Should not throw
@@ -368,11 +380,16 @@
                         expect(layout.handleResize).to.be.a('function');
 
                         let syncCalled = false;
-                        layout.syncHeights = () => { syncCalled = true; };
+                        layout.syncHeights = () => {
+                            syncCalled = true;
+                        };
 
                         // Mock rAF to fire synchronously so headless Chrome throttling doesn't block
                         const origRaf = window.requestAnimationFrame;
-                        window.requestAnimationFrame = (cb) => { cb(performance.now()); return 0; };
+                        window.requestAnimationFrame = (cb) => {
+                            cb(performance.now());
+                            return 0;
+                        };
                         layout.handleResize();
                         window.requestAnimationFrame = origRaf;
 
@@ -387,21 +404,30 @@
 
                         const layout = photoshop.variantLayout;
                         let syncCount = 0;
-                        layout.syncHeights = () => { syncCount++; };
+                        layout.syncHeights = () => {
+                            syncCount++;
+                        };
 
                         const origRaf = window.requestAnimationFrame;
                         const origCaf = window.cancelAnimationFrame;
                         let lastId = 0;
                         const pending = new Map();
-                        window.requestAnimationFrame = (cb) => { const id = ++lastId; pending.set(id, cb); return id; };
-                        window.cancelAnimationFrame = (id) => { pending.delete(id); };
+                        window.requestAnimationFrame = (cb) => {
+                            const id = ++lastId;
+                            pending.set(id, cb);
+                            return id;
+                        };
+                        window.cancelAnimationFrame = (id) => {
+                            pending.delete(id);
+                        };
 
                         // Two rapid invocations — second cancels the first rAF
                         layout.handleResize();
                         layout.handleResize();
 
                         // Flush all pending rAF callbacks
-                        for (const cb of pending.values()) cb(performance.now());
+                        for (const cb of pending.values())
+                            cb(performance.now());
 
                         window.requestAnimationFrame = origRaf;
                         window.cancelAnimationFrame = origCaf;

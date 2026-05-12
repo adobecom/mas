@@ -1,7 +1,9 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN } from './constants.js';
+import { EVENT_KEYDOWN, PAGE_NAMES } from './constants.js';
+import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
+import { MODEL_WEB_COMPONENT_MAPPING } from './utils.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -119,6 +121,48 @@ class MasSelectionPanel extends LitElement {
         this.onUnpublish(this.selection, event);
     }
 
+    async handleCopyFragmentUrls() {
+        const selection = this.selection;
+        if (!selection || selection.length === 0) return;
+
+        const path = Store.search.get().path;
+        const fragments = selection
+            .map((item) => {
+                if (item?.get) return item.get();
+                if (item?.id) return item;
+                const id = typeof item === 'string' ? item : null;
+                return (
+                    Store.fragments.list.data
+                        .get()
+                        .find((s) => s.get().id === id)
+                        ?.get() ?? null
+                );
+            })
+            .filter(Boolean);
+
+        const urls = fragments.map((fragment) => {
+            const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+            const params = new URLSearchParams();
+            if (webComponentName) params.set('content-type', webComponentName);
+            params.set('page', PAGE_NAMES.CONTENT);
+            if (path) params.set('path', path);
+            if (fragment.id) params.set('query', fragment.id);
+            return `https://mas.adobe.com/studio.html#${params.toString()}`;
+        });
+
+        if (urls.length === 0) return;
+
+        try {
+            await navigator.clipboard.writeText(urls.join('\n'));
+            Events.toast.emit({
+                variant: 'positive',
+                content: `Copied ${urls.length} fragment URL${urls.length > 1 ? 's' : ''} to clipboard`,
+            });
+        } catch {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy fragment URLs' });
+        }
+    }
+
     // #endregion
 
     render() {
@@ -171,6 +215,12 @@ class MasSelectionPanel extends LitElement {
                   >
                       <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
                       <sp-tooltip self-managed placement="top">Unpublish</sp-tooltip>
+                  </sp-action-button>`
+                : nothing}
+            ${count > 0
+                ? html`<sp-action-button slot="buttons" label="Copy Code" @click=${this.handleCopyFragmentUrls}>
+                      <sp-icon-code slot="icon"></sp-icon-code>
+                      <sp-tooltip self-managed placement="top">Copy Code</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
         </sp-action-bar>`;

@@ -147,6 +147,12 @@ merch-card[variant^='plans'] span[data-template="legal"] {
     line-height: 21px;
 }
 
+html:has(mas-commerce-service[locale="ja_JP"]) {
+    merch-card[variant^='plans'] span[data-template="legal"] {
+        display: inline;
+    }
+}
+
 merch-card[variant^='plans'] span.price-legal::first-letter {
     text-transform: uppercase;
 }

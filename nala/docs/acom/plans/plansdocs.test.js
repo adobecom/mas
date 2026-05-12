@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { features } from './plansdocs.spec.js';
-import MasPlans from './plans.page.js';
-import WebUtil from '../../libs/webutil.js';
-import { createWorkerPageSetup, validateCommerceUrl, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
+import MasPlans from '../plans.page.js';
+import WebUtil from '../../../libs/webutil.js';
+import { createWorkerPageSetup, validateCommerceUrl, DOCS_GALLERY_PATH } from '../../../utils/commerce.js';
 
 let acomPage;
 let webUtil;

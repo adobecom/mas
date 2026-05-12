@@ -47,4 +47,12 @@ export const features = [
         browserParams: '?theme=darkest',
         tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo @regional-variation',
     },
+    {
+        tcid: '4',
+        name: '@MAS-Plans-Row-Height-Sync',
+        path: DOCS_GALLERY_PATH.PLANS.US,
+        data: {},
+        browserParams: '?theme=darkest',
+        tags: '@mas-docs @mas-acom @mas-plans-card @regression @milo',
+    },
 ];

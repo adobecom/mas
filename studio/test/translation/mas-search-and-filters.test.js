@@ -36,6 +36,7 @@ describe('MasSearchAndFilters', () => {
         Store.translationProjects.allPlaceholders.set([]);
         Store.translationProjects.displayPlaceholders.set([]);
         Store.fragments.list.loading.set(false);
+        Store.fragments.list.firstPageLoaded.set(true);
         Store.placeholders.list.loading.set(false);
         Store.placeholders.list.data.set([]);
     });
@@ -50,6 +51,7 @@ describe('MasSearchAndFilters', () => {
         Store.translationProjects.allPlaceholders.set([]);
         Store.translationProjects.displayPlaceholders.set([]);
         Store.fragments.list.loading.set(false);
+        Store.fragments.list.firstPageLoaded.set(false);
         Store.placeholders.list.loading.set(false);
         Store.placeholders.list.data.set([]);
         setItemsSelectionStore(null);
@@ -109,14 +111,14 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('isLoading getter', () => {
-        it('should return fragments loading state for cards type', async () => {
-            Store.fragments.list.loading.set(true);
+        it('should return true for cards type when firstPageLoaded is false', async () => {
+            Store.fragments.list.firstPageLoaded.set(false);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             expect(el.isLoading).to.be.true;
         });
 
-        it('should return fragments loading state for collections type', async () => {
-            Store.fragments.list.loading.set(true);
+        it('should return true for collections type when firstPageLoaded is false', async () => {
+            Store.fragments.list.firstPageLoaded.set(false);
             const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
             expect(el.isLoading).to.be.true;
         });
@@ -213,7 +215,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should render progress circle when loading', async () => {
-            Store.fragments.list.loading.set(true);
+            Store.fragments.list.firstPageLoaded.set(false);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             const progressCircle = el.shadowRoot.querySelector('sp-progress-circle');
             expect(progressCircle).to.exist;
@@ -272,7 +274,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should disable filter triggers when loading', async () => {
-            Store.fragments.list.loading.set(true);
+            Store.fragments.list.firstPageLoaded.set(false);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             const filterTriggers = el.shadowRoot.querySelectorAll('.filter-trigger');
             filterTriggers.forEach((trigger) => {
@@ -343,62 +345,35 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('search functionality', () => {
-        it('should apply filters when searchQuery property is set', async () => {
-            Store.translationProjects.allCards.set([createMockFragment({ title: 'Test Card' })]);
-            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'test';
-            await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
-        });
-
-        it('should filter cards by title', async () => {
+        it('should filter displayCards locally when searchQuery is set on cards', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({ title: 'Photoshop Card' }),
-                createMockFragment({ title: 'Illustrator Card' }),
-                createMockFragment({ title: 'Another Photoshop' }),
+                createMockFragment({ title: 'Photoshop', path: '/content/dam/mas/acom/en_US/photoshop' }),
+                createMockFragment({ title: 'Illustrator', path: '/content/dam/mas/acom/en_US/illustrator' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'photoshop';
+            el.searchQuery = 'nomatch';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(2);
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
 
-        it('should filter cards case-insensitively', async () => {
+        it('should filter displayCards locally when searchQuery changes', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({ title: 'PHOTOSHOP Card' }),
-                createMockFragment({ title: 'photoshop Card' }),
-                createMockFragment({ title: 'Illustrator Card' }),
+                createMockFragment({ title: 'Photoshop card' }),
+                createMockFragment({ title: 'Illustrator card' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'Photoshop';
+            el.searchQuery = '';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(2);
         });
 
-        it('should filter cards by product tag title', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({
-                    title: 'Card 1',
-                    tags: [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }],
-                }),
-                createMockFragment({ title: 'Card 2', tags: [] }),
-            ]);
+        it('should clear displayCards filter when searchQuery is empty', async () => {
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'test card' })]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'photoshop';
+            el.searchQuery = 'nomatch';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
-        });
-
-        it('should filter cards by offerId', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({
-                    title: 'Card 1',
-                    offerData: { offerId: '12345ABCDE' },
-                }),
-                createMockFragment({ title: 'Card 2' }),
-            ]);
-            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = '12345';
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
+            el.searchQuery = '';
             await el.updateComplete;
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
@@ -425,15 +400,49 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayPlaceholders.get().length).to.equal(1);
         });
 
-        it('should apply filters when searchQuery changes', async () => {
-            Store.translationProjects.allCards.set([createMockFragment({ title: 'Test Card' })]);
-            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'test';
+        it('should filter displayCollections by studioPath when searchQuery matches', async () => {
+            Store.translationProjects.allCollections.set([
+                createMockFragment({ title: '', studioPath: 'sandbox/promo-collection' }),
+                createMockFragment({ title: '', studioPath: 'sandbox/other-collection' }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
+            el.searchQuery = 'promo';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
-            el.searchQuery = 'nonexistent';
+            const result = Store.translationProjects.displayCollections.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].studioPath).to.equal('sandbox/promo-collection');
+        });
+
+        it('should filter displayCollections by path when studioPath is missing', async () => {
+            Store.translationProjects.allCollections.set([
+                createMockFragment({
+                    title: '',
+                    path: '/content/dam/mas/acom/en_US/special-collection',
+                }),
+                createMockFragment({
+                    title: '',
+                    path: '/content/dam/mas/acom/en_US/regular-collection',
+                }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
+            el.searchQuery = 'special';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
+            const result = Store.translationProjects.displayCollections.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].path).to.include('special-collection');
+        });
+
+        it('should filter displayPlaceholders by exact key value', async () => {
+            Store.translationProjects.allPlaceholders.set([
+                createMockPlaceholder({ key: 'cta-promo', value: 'Buy now' }),
+                createMockPlaceholder({ key: 'cta-learn', value: 'Learn more' }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="placeholders"></mas-search-and-filters>`);
+            el.searchQuery = 'cta-promo';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayPlaceholders.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].key).to.equal('cta-promo');
         });
     });
 
@@ -551,14 +560,10 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('filter application', () => {
-        it('should filter by template variant', async () => {
+        it('should filter by template variant — excludes non-matching cards', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({
-                    fields: [{ name: 'variant', values: ['plans'] }],
-                }),
-                createMockFragment({
-                    fields: [{ name: 'variant', values: ['catalog'] }],
-                }),
+                createMockFragment({ fields: [{ name: 'variant', values: ['plans'] }] }),
+                createMockFragment({ fields: [{ name: 'variant', values: ['catalog'] }] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
@@ -568,12 +573,8 @@ describe('MasSearchAndFilters', () => {
 
         it('should filter by market segment tag', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
-                }),
-                createMockFragment({
-                    tags: [{ id: 'mas:market_segment/edu', title: 'Education' }],
-                }),
+                createMockFragment({ tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }] }),
+                createMockFragment({ tags: [{ id: 'mas:market_segment/edu', title: 'Education' }] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.marketSegmentFilter = ['mas:market_segment/com'];
@@ -583,12 +584,8 @@ describe('MasSearchAndFilters', () => {
 
         it('should filter by customer segment tag', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({
-                    tags: [{ id: 'mas:customer_segment/individual', title: 'Individual' }],
-                }),
-                createMockFragment({
-                    tags: [{ id: 'mas:customer_segment/team', title: 'Team' }],
-                }),
+                createMockFragment({ tags: [{ id: 'mas:customer_segment/individual', title: 'Individual' }] }),
+                createMockFragment({ tags: [{ id: 'mas:customer_segment/team', title: 'Team' }] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.customerSegmentFilter = ['mas:customer_segment/individual'];
@@ -598,12 +595,8 @@ describe('MasSearchAndFilters', () => {
 
         it('should filter by product tag', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({
-                    tags: [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }],
-                }),
-                createMockFragment({
-                    tags: [{ id: 'mas:product_code/illustrator', title: 'Illustrator' }],
-                }),
+                createMockFragment({ tags: [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }] }),
+                createMockFragment({ tags: [{ id: 'mas:product_code/illustrator', title: 'Illustrator' }] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.productFilter = ['mas:product_code/photoshop'];
@@ -611,7 +604,7 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
-        it('should combine multiple filters with AND logic', async () => {
+        it('should combine multiple filters — only cards matching all appear', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({
                     tags: [
@@ -619,12 +612,7 @@ describe('MasSearchAndFilters', () => {
                         { id: 'mas:product_code/photoshop', title: 'Photoshop' },
                     ],
                 }),
-                createMockFragment({
-                    tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }],
-                }),
-                createMockFragment({
-                    tags: [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }],
-                }),
+                createMockFragment({ tags: [{ id: 'mas:market_segment/com', title: 'Commercial' }] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.marketSegmentFilter = ['mas:market_segment/com'];
@@ -633,24 +621,20 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
-        it('should return fragment if any of selected template values match', async () => {
+        it('should include all cards matching any selected template id', async () => {
             Store.translationProjects.allCards.set([
-                createMockFragment({
-                    fields: [{ name: 'variant', values: ['plans', 'catalog'] }],
-                }),
+                createMockFragment({ fields: [{ name: 'variant', values: ['plans'] }] }),
+                createMockFragment({ fields: [{ name: 'variant', values: ['catalog'] }] }),
+                createMockFragment({ fields: [{ name: 'variant', values: ['other'] }] }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
-            el.templateFilter = ['plans'];
+            el.templateFilter = ['plans', 'catalog'];
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+            expect(Store.translationProjects.displayCards.get().length).to.equal(2);
         });
 
         it('should exclude fragment if variant field has no values', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({
-                    fields: [{ name: 'variant', values: [] }],
-                }),
-            ]);
+            Store.translationProjects.allCards.set([createMockFragment({ fields: [{ name: 'variant', values: [] }] })]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
             await el.updateComplete;
@@ -658,11 +642,7 @@ describe('MasSearchAndFilters', () => {
         });
 
         it('should exclude fragment if variant field is missing', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({
-                    fields: [{ name: 'other', values: ['value'] }],
-                }),
-            ]);
+            Store.translationProjects.allCards.set([createMockFragment({ fields: [{ name: 'other', values: ['value'] }] })]);
             const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
             el.templateFilter = ['plans'];
             await el.updateComplete;
@@ -849,29 +829,83 @@ describe('MasSearchAndFilters', () => {
             await el.updateComplete;
             expect(el.shadowRoot.querySelector('.result-count')).to.exist;
         });
+
+        it('re-applies search filter on cards when allCards grows mid-search', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters type="cards" .searchQuery=${'vip'}></mas-search-and-filters>`,
+            );
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'VIP Plan' })]);
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.value).to.have.lengthOf(1);
+
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'VIP Plan' }),
+                createMockFragment({ title: 'Other Plan' }),
+                createMockFragment({ title: 'Free Trial' }),
+            ]);
+            await el.updateComplete;
+
+            const result = Store.translationProjects.displayCards.value;
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].title).to.equal('VIP Plan');
+        });
+
+        it('re-applies search filter on collections when allCollections grows mid-search', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters type="collections" .searchQuery=${'vip'}></mas-search-and-filters>`,
+            );
+            Store.translationProjects.allCollections.set([createMockFragment({ title: 'VIP Bundle' })]);
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCollections.value).to.have.lengthOf(1);
+
+            Store.translationProjects.allCollections.set([
+                createMockFragment({ title: 'VIP Bundle' }),
+                createMockFragment({ title: 'Standard Bundle' }),
+            ]);
+            await el.updateComplete;
+
+            const result = Store.translationProjects.displayCollections.value;
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].title).to.equal('VIP Bundle');
+        });
+
+        it('re-applies search filter on placeholders when allPlaceholders grows mid-search', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters type="placeholders" .searchQuery=${'price'}></mas-search-and-filters>`,
+            );
+            Store.translationProjects.allPlaceholders.set([createMockPlaceholder({ key: 'price-tag', value: 'foo' })]);
+            await el.updateComplete;
+            expect(Store.translationProjects.displayPlaceholders.value).to.have.lengthOf(1);
+
+            Store.translationProjects.allPlaceholders.set([
+                createMockPlaceholder({ key: 'price-tag', value: 'foo' }),
+                createMockPlaceholder({ key: 'name', value: 'bar' }),
+                createMockPlaceholder({ key: 'label', value: 'baz' }),
+            ]);
+            await el.updateComplete;
+
+            const result = Store.translationProjects.displayPlaceholders.value;
+            expect(result).to.have.lengthOf(1);
+            expect(result[0].key).to.equal('price-tag');
+        });
     });
 
     describe('edge cases', () => {
-        it('should handle empty search query', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({ title: 'Card 1' }),
-                createMockFragment({ title: 'Card 2' }),
-            ]);
+        it('should handle empty search query — clears Store.search.query', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'test';
+            await el.updateComplete;
             el.searchQuery = '';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(2);
+            expect(Store.search.get().query).to.be.undefined;
         });
 
-        it('should handle fragments without title', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({ title: undefined }),
-                createMockFragment({ title: 'Has Title' }),
-            ]);
+        it('should handle non-empty search query — filters displayCards locally', async () => {
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'no-match' })]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'Has';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
 
         it('should handle placeholders without key or value', async () => {
@@ -885,23 +919,19 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayPlaceholders.get().length).to.equal(1);
         });
 
-        it('should handle fragments without offerData', async () => {
-            Store.translationProjects.allCards.set([
-                createMockFragment({ offerData: undefined }),
-                createMockFragment({ offerData: { offerId: 'ABC123' } }),
-            ]);
+        it('should handle non-empty search query — propagates to displayCards local filter', async () => {
+            Store.translationProjects.allCards.set([createMockFragment({ title: 'no-match' })]);
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             el.searchQuery = 'ABC';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get().length).to.equal(1);
+            expect(Store.translationProjects.displayCards.get().length).to.equal(0);
         });
 
-        it('should handle empty source array', async () => {
-            Store.translationProjects.allCards.set([]);
+        it('should clear Store.search.query when empty search applied', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
-            el.searchQuery = 'test';
+            el.searchQuery = '';
             await el.updateComplete;
-            expect(Store.translationProjects.displayCards.get()).to.deep.equal([]);
+            expect(Store.search.get().query).to.be.undefined;
         });
 
         it('should handle tag with empty id', async () => {
@@ -950,10 +980,10 @@ describe('MasSearchAndFilters', () => {
     });
 
     describe('collections type', () => {
-        it('should filter collections by title', async () => {
+        it('should filter displayCollections locally when searchQuery is set', async () => {
             Store.translationProjects.allCollections.set([
-                createMockFragment({ title: 'Photoshop Collection' }),
-                createMockFragment({ title: 'Illustrator Collection' }),
+                createMockFragment({ title: 'photoshop collection' }),
+                createMockFragment({ title: 'illustrator collection' }),
             ]);
             const el = await fixture(html`<mas-search-and-filters type="collections"></mas-search-and-filters>`);
             el.searchQuery = 'photoshop';

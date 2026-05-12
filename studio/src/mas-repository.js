@@ -38,6 +38,7 @@ import {
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { Placeholder } from './aem/placeholder.js';
 import { getFragmentName } from './translation/translation-utils.js';
+import { getItemsSelectionStore } from './common/items-selection-store.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
@@ -121,6 +122,7 @@ export class MasRepository extends LitElement {
             promotions: null,
             translations: null,
             collections: null,
+            bulkPublish: null,
         };
         this.dictionaryCache = new Map();
         this.inflightDictionaryByKey = new Map();
@@ -165,19 +167,8 @@ export class MasRepository extends LitElement {
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
         this.aem = new AEM(this.bucket, this.baseUrl);
 
-        // Invalidate dictionary cache when filters or search path change
-        Store.filters.subscribe(() => {
-            this.dictionaryCache.clear();
-            Store.placeholders.previewByLocale.set({});
-            if (this.page.value === PAGE_NAMES.CONTENT) {
-                this.#searchCursor = null;
-            }
-        });
-        Store.search.subscribe(() => {
-            this.dictionaryCache.clear();
-            Store.placeholders.previewByLocale.set({});
-            this.#searchCursor = null;
-        });
+        Store.filters.subscribe(this.#onFiltersChange);
+        Store.search.subscribe(this.#onSearchChange);
 
         Events.fragmentAdded.subscribe(this.#stampLastEdit);
         Events.fragmentDeleted.subscribe(this.#stampLastEdit);
@@ -189,12 +180,28 @@ export class MasRepository extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        Store.filters.unsubscribe(this.#onFiltersChange);
+        Store.search.unsubscribe(this.#onSearchChange);
         Events.fragmentAdded.unsubscribe(this.#stampLastEdit);
         Events.fragmentDeleted.unsubscribe(this.#stampLastEdit);
         Events.fragmentSaved.unsubscribe(this.#stampLastEdit);
     }
 
     #stampLastEdit = () => Store.fragments.list.data.setMeta('lastEdit', Date.now());
+
+    #onFiltersChange = () => {
+        this.dictionaryCache.clear();
+        Store.placeholders.previewByLocale.set({});
+        if (this.page.value === PAGE_NAMES.CONTENT) {
+            this.#searchCursor = null;
+        }
+    };
+
+    #onSearchChange = () => {
+        this.dictionaryCache.clear();
+        Store.placeholders.previewByLocale.set({});
+        this.#searchCursor = null;
+    };
 
     /**
      * @param {Error} error
@@ -244,13 +251,20 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.TRANSLATIONS:
                 this.loadTranslationProjects();
                 break;
+            case PAGE_NAMES.BULK_PUBLISH:
+                this.loadBulkPublishProjects();
+                break;
+            case PAGE_NAMES.TRANSLATION_EDITOR:
+            case PAGE_NAMES.BULK_PUBLISH_EDITOR:
+                this.searchFragments();
+                break;
         }
     }
 
     async loadFolders() {
         try {
             const { children } = await this.aem.folders.list(ROOT_PATH);
-            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions'];
+            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions', 'bulk-publish-projects'];
             const folders = children.map((folder) => folder.name).filter((child) => !ignore.includes(child));
 
             Store.folders.loaded.set(true);
@@ -372,7 +386,14 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        if (!(this.page.value === PAGE_NAMES.CONTENT || this.page.value === PAGE_NAMES.TRANSLATION_EDITOR)) return;
+        if (
+            !(
+                this.page.value === PAGE_NAMES.CONTENT ||
+                this.page.value === PAGE_NAMES.TRANSLATION_EDITOR ||
+                this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR
+            )
+        )
+            return;
         if (!Store.profile.value) return;
 
         const path = this.search.value.path;
@@ -483,6 +504,7 @@ export class MasRepository extends LitElement {
 
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
+        if (Store.fragments.list.hasMore.get()) Store.fragments.list.hasMore.set(false);
         if (dataStore.get().length > 0) {
             dataStore.set([]);
         }
@@ -921,9 +943,11 @@ export class MasRepository extends LitElement {
                 collectionsByPath.set(fragment.path, collection);
             }
 
-            Store.translationProjects.allCollections.set(collections);
-            Store.translationProjects.displayCollections.set(collections);
-            Store.translationProjects.collectionsByPaths.set(collectionsByPath);
+            const s = getItemsSelectionStore();
+            s.allCollections.setMeta('loaded', true);
+            s.allCollections.set(collections);
+            s.displayCollections.set(collections);
+            s.collectionsByPaths.set(collectionsByPath);
         } catch (error) {
             if (error.name === 'AbortError') return;
             this.processError(error, 'Could not load collections.');
@@ -1318,6 +1342,37 @@ export class MasRepository extends LitElement {
             Store.translationProjects.list.loading.set(false);
         }
     }
+
+    getBulkPublishProjectsPath() {
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
+        return `/content/dam/mas/bulk-publish-projects/${surface}`;
+    }
+
+    async loadBulkPublishProjects() {
+        const path = this.getBulkPublishProjectsPath();
+        if (!path) return;
+        try {
+            if (this.#abortControllers.bulkPublish) this.#abortControllers.bulkPublish.abort();
+            this.#abortControllers.bulkPublish = new AbortController();
+            Store.bulkPublishProjects.list.loading.set(true);
+            const fragments = await this.searchFragmentList(
+                { path, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
+                50,
+                this.#abortControllers.bulkPublish,
+            );
+            const projects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
+            Store.bulkPublishProjects.list.data.set(projects);
+        } catch (error) {
+            this.processError(error, 'Could not load bulk publish projects.');
+        } finally {
+            Store.bulkPublishProjects.list.loading.set(false);
+        }
+    }
+
+    getFragmentById(id) {
+        return this.aem.sites.cf.fragments.getById(id);
+    }
+
     /**
      * Helper method to create fragment fields from data object
      * @param {Object} data - The data object containing field values

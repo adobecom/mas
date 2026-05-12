@@ -1,6 +1,5 @@
 const { Core } = require('@adobe/aio-sdk');
-const { Ims } = require('@adobe/aio-lib-ims');
-const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils.js');
+const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils.js');
 const { resolvePaths } = require('./resolver.js');
 const { publishChunk } = require('./publisher.js');
 
@@ -132,18 +131,6 @@ function buildSummary(details) {
         else if (detail.status === STATUS.FAILED) summary.failed += 1;
     }
     return summary;
-}
-
-async function isAllowed(token, allowedClientId) {
-    if (!token || !allowedClientId) return false;
-    logger.info(JSON.stringify({ event: 'ims-validate', allowedClientId }));
-    const ims = new Ims('prod');
-    const imsValidation = await ims.validateTokenAllowList(token, [allowedClientId]);
-    if (!imsValidation || !imsValidation.valid) {
-        logger.error(JSON.stringify({ event: 'ims-validate-failed', allowedClientId }));
-        return false;
-    }
-    return true;
 }
 
 exports.main = main;

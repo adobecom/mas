@@ -6,6 +6,7 @@ import {
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
 } from '../styles/table-styles.css.js';
+import { skeletonStyles } from '../skeleton-styles.css.js';
 
 export const styles = [
     tableHeaderBaseStyles,
@@ -13,6 +14,7 @@ export const styles = [
     tableColumnIconStyles,
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
+    skeletonStyles,
     css`
         :host {
             width: 100%;
@@ -84,10 +86,6 @@ export const styles = [
 
         .loading-container--flex {
             padding: 80px;
-        }
-
-        .scroll-sentinel {
-            height: 1px;
         }
 
         .loading-more {

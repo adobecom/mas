@@ -972,6 +972,26 @@ describe('mas-bulk-publish-editor (openLocalesPicker)', () => {
         expect(langPicker).to.exist;
         expect(langPicker.hasAttribute('include-source')).to.equal(true);
     });
+
+    it('locales picker passes include-regional so regional variants are included', async () => {
+        Store.search.set({ path: 'acom' });
+        const el = await makeEditor();
+        seedNew({ locales: [] });
+        await el.updateComplete;
+
+        el.localesPickerOpen = true;
+        await el.updateComplete;
+
+        const langPicker = el.shadowRoot.querySelector('mas-translation-languages');
+        expect(langPicker).to.exist;
+        expect(langPicker.hasAttribute('include-regional')).to.equal(true);
+        const codes = langPicker.localesArray.map((item) => item.locale);
+        expect(codes).to.include('fr_FR');
+        expect(codes).to.include('fr_CA');
+        expect(codes).to.include('fr_BE');
+        expect(codes).to.include('en_AU');
+        expect(codes).to.include('de_AT');
+    });
 });
 
 describe('mas-bulk-publish-editor (publish)', () => {

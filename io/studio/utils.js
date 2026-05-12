@@ -130,9 +130,18 @@ function errorResponse(statusCode, message, logger) {
     };
 }
 
+const { Ims } = require('@adobe/aio-lib-ims');
+
+async function isAllowed(token, allowedClientId, ims = new Ims('prod')) {
+    if (!token || !allowedClientId) return false;
+    const imsValidation = await ims.validateTokenAllowList(token, [allowedClientId]);
+    return !!(imsValidation && imsValidation.valid);
+}
+
 module.exports = {
     errorResponse,
     getBearerToken,
+    isAllowed,
     stringParameters,
     checkMissingRequestInputs,
 };

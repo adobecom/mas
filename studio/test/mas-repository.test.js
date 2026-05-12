@@ -432,13 +432,14 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('loadFolders', () => {
-        it('should filter out images and promotions by default', async () => {
+        it('should filter out images, promotions and bulk-publish-projects by default', async () => {
             const repository = createRepository();
             const mockChildren = [
                 { name: 'acom' },
                 { name: 'ccd' },
                 { name: 'images' },
                 { name: 'promotions' },
+                { name: 'bulk-publish-projects' },
                 { name: 'express' },
             ];
             repository.aem = createAemMock({
@@ -463,6 +464,7 @@ describe('MasRepository dictionary helpers', () => {
                 expect(setFoldersCall).to.deep.equal(['acom', 'ccd', 'express']);
                 expect(setFoldersCall).to.not.include('images');
                 expect(setFoldersCall).to.not.include('promotions');
+                expect(setFoldersCall).to.not.include('bulk-publish-projects');
             } finally {
                 Store.folders.loaded.set = originalStoreLoaded;
                 Store.folders.data.set = originalStoreData;
@@ -3581,6 +3583,36 @@ describe('MasRepository dictionary helpers', () => {
             expect(fetchStub.firstCall.args[1]).to.equal('fr_FR');
             expect(repository.dictionaryCache.has('fr_FR_sandbox')).to.be.true;
             expect(Store.placeholders.previewByLocale.get().fr_FR).to.deep.equal({ dictKey: 'dictVal' });
+        });
+    });
+
+    describe('Store subscription lifecycle', () => {
+        const connectAndDisconnect = (repository) => {
+            sandbox.stub(repository, 'loadFolders').resolves();
+            repository.connectedCallback();
+            repository.disconnectedCallback();
+        };
+
+        it('unsubscribes from Store.filters on disconnectedCallback', () => {
+            const repository = createFullRepository();
+            const subscribeSpy = sandbox.spy(Store.filters, 'subscribe');
+            const unsubscribeSpy = sandbox.spy(Store.filters, 'unsubscribe');
+
+            connectAndDisconnect(repository);
+
+            const subscribedFn = subscribeSpy.firstCall.args[0];
+            expect(unsubscribeSpy.calledWith(subscribedFn)).to.be.true;
+        });
+
+        it('unsubscribes from Store.search on disconnectedCallback', () => {
+            const repository = createFullRepository();
+            const subscribeSpy = sandbox.spy(Store.search, 'subscribe');
+            const unsubscribeSpy = sandbox.spy(Store.search, 'unsubscribe');
+
+            connectAndDisconnect(repository);
+
+            const subscribedFn = subscribeSpy.firstCall.args[0];
+            expect(unsubscribeSpy.calledWith(subscribedFn)).to.be.true;
         });
     });
 });

@@ -14,10 +14,17 @@
 - in your workspace click on 'Download all' and copy the auth .json in root of this project
 - run `aio app use <filename>`
 - this should populate the `.env` and the `.aio` file in the project root
-- ask a colleague for values:
-    - for health-check action,
-      add ODIN_CDN_ENDPOINT,ODIN_ORIGIN_ENDPOINT,WCS_CDN_ENDPOINT,WCS_ORIGIN_ENDPOINT env vars to .env file
-    - for ost-products, add AOS_URL and AOS_API_KEY env vars to .env file
+- ask a colleague or check vault for www env vars (they are not stored in developer console)
+- run:
+
+```bash
+# extract the name of the oauth-credentials with jq and format string
+aio config ls --json | jq -r '.project.workspace.details.credentials[] | select(.integration_type == "oauth_server_to_server") | .name' | tr '[:upper:]' '[:lower:]'
+
+# set the returned string from above as current IMS context
+aio context -s <string_from_above_command>
+```
+
 - run `npm i`
 - run `aio where` and verify output is:
 
@@ -33,8 +40,8 @@ You are currently in:
 
 every time you push to your feature branch, CI/CD can deploy it to your workspace.
 For that, add 2 Repository secrets in github settings:
-AIO_AUTH_GITHUBUSERNAME=
-AIO_NS_GITHUBUSERNAME=
+AIO_WWW_ENV_GITHUBUSERNAME=
+AIO_WWW_AIO_GITHUBUSERNAME=
 GITHUBUSERNAME should match your workspace name and be in capital case.
 
 ## Local Dev
@@ -55,22 +62,10 @@ GITHUBUSERNAME should match your workspace name and be in capital case.
 If you need to force re-deploy:
 
 - `aio app deploy --force-deploy --no-publish`
-  To deploy specific action
-- `aio app deploy -a ost-products-read`
 
-## Config
+To deploy specific action
 
-### `.env`
-
-You can generate this file using the command `aio app use`.
-
-```bash
-# This file must **not** be committed to source control
-
-## please provide your Adobe I/O Runtime credentials
-# AIO_RUNTIME_AUTH=
-# AIO_RUNTIME_NAMESPACE=
-```
+- `aio app deploy -a health-check --force-deploy`
 
 ### `app.config.yaml`
 

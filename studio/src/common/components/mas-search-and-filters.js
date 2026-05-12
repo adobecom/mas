@@ -10,6 +10,9 @@ import ReactiveController from '../../reactivity/reactive-controller.js';
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
 
+    #savedSearch = null;
+    #savedFilters = null;
+
     static properties = {
         type: { type: String }, // 'cards' | 'collections' | 'placeholders'
         searchQuery: { type: String },
@@ -40,10 +43,15 @@ class MasSearchAndFilters extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        if (this.type === TABLE_TYPE.CARDS) {
+            this.#savedSearch = Store.search.get();
+            this.#savedFilters = Store.filters.get();
+        }
         this.commonDataController = new ReactiveController(this, [
             getItemsSelectionStore()[`all${this.typeUppercased}`],
             getItemsSelectionStore()[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
+            ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
         ]);
         const dataCallback = () => {
             if (!this.searchOnly) {
@@ -64,6 +72,14 @@ class MasSearchAndFilters extends LitElement {
             getItemsSelectionStore()[`all${this.typeUppercased}`].value,
         );
         this.dataSubscription?.unsubscribe();
+        if (this.type === TABLE_TYPE.CARDS) {
+            if (this.#savedSearch !== null) {
+                Store.search.set(this.#savedSearch);
+            }
+            if (this.#savedFilters !== null) {
+                Store.filters.set(this.#savedFilters);
+            }
+        }
     }
 
     get typeUppercased() {
@@ -71,9 +87,13 @@ class MasSearchAndFilters extends LitElement {
     }
 
     get isLoading() {
-        return this.type === TABLE_TYPE.PLACEHOLDERS
-            ? Store.placeholders.list.loading.get()
-            : Store.fragments.list.loading.get();
+        if (this.type === TABLE_TYPE.PLACEHOLDERS) return Store.placeholders.list.loading.get();
+        return Store.fragments.list.firstPageLoaded.get() === false;
+    }
+
+    get isLoadingMore() {
+        if (this.type === TABLE_TYPE.PLACEHOLDERS) return false;
+        return Store.fragments.list.firstPageLoaded.get() === true && Store.fragments.list.loading.get();
     }
 
     get appliedFilters() {
@@ -284,15 +304,17 @@ class MasSearchAndFilters extends LitElement {
                 if (this.type === TABLE_TYPE.PLACEHOLDERS) {
                     const key = fragment.key?.toLowerCase() || '';
                     const value = fragment.value?.toLowerCase() || '';
-                    if (!key.includes(query) && !value.includes(query)) {
-                        return false;
-                    }
+                    if (!key.includes(query) && !value.includes(query)) return false;
                 } else {
                     const title = (fragment.title || '').toLowerCase();
+                    const studioPath = (fragment.studioPath || '').toLowerCase();
+                    const path = (fragment.path || '').toLowerCase();
                     const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
                     const offerId = fragment.offerData?.offerId || '';
                     if (
                         !title.includes(query) &&
+                        !studioPath.includes(query) &&
+                        !path.includes(query) &&
                         !productTag.toLowerCase().includes(query) &&
                         !offerId.toLowerCase().includes(query)
                     ) {

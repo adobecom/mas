@@ -8,6 +8,17 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="aem-base-url" />
         <meta name="io-base-url" />
+        <script>
+            // Relay check - redirect back to origin port if relayPort param + token in hash
+            const relayPort = new URLSearchParams(window.location.search).get('relayPort');
+            if (relayPort && window.location.hash.length > 1) {
+                const url = new URL(window.location.href);
+                url.hostname = 'localhost';
+                url.port = relayPort;
+                url.searchParams.delete('relayPort');
+                window.location.replace(url.toString());
+            }
+        </script>
         <script type="importmap">
             {
                 "imports": {
@@ -42,7 +53,9 @@
             let bucket;
             let baseUrl;
             if (isLocal) {
-                baseUrl = 'http://localhost:8080';
+                const aemPort = parseInt(window.location.port || '3000', 10);
+                const proxyPort = params.get('proxy.port') || aemPort + 5080;
+                baseUrl = `http://localhost:${proxyPort}`;
             } else {
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;
                 baseUrl = `https://author-p22655-${bucket}.adobeaemcloud.com`;
@@ -86,7 +99,10 @@
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
-                redirect_uri: location.href.substring(0, location.href.length - location.hash.length),
+                redirect_uri:
+                    location.port && location.port !== '3000'
+                        ? `http://localhost:3000/studio.html?relayPort=${location.port}`
+                        : location.href.substring(0, location.href.length - location.hash.length),
                 response_type: 'id_token',
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_members',
                 useLocalStorage: true,

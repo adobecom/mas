@@ -150,6 +150,33 @@ const Store = {
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
     },
+    bulkPublishProjects: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(false),
+        },
+        inEdit: new ReactiveStore(null),
+        projectId: new ReactiveStore(null),
+        publishing: new ReactiveStore({}),
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()),
+        groupedVariationsData: new ReactiveStore(new Map()),
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+        targetLocales: new ReactiveStore([]),
+        showSelected: new ReactiveStore(false),
+        projectType: new ReactiveStore(null),
+    },
 };
 
 // #region Validators
@@ -194,6 +221,9 @@ function pageValidator(value) {
         PAGE_NAMES.PROMOTIONS_EDITOR,
         PAGE_NAMES.TRANSLATIONS,
         PAGE_NAMES.TRANSLATION_EDITOR,
+        PAGE_NAMES.BULK_PUBLISH,
+        PAGE_NAMES.BULK_PUBLISH_EDITOR,
+        PAGE_NAMES.ADVANCED_TOOLS,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

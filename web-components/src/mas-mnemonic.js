@@ -233,7 +233,10 @@ export default class MasMnemonic extends LitElement {
         super.connectedCallback();
         window.addEventListener('mousedown', this.handleClickOutside);
         // Auto-enable viewport-aware positioning inside fries cards.
-        if (!this.smartPlacement && this.closest('merch-card[variant="fries"]')) {
+        if (
+            !this.smartPlacement &&
+            this.closest('merch-card[variant="fries"]')
+        ) {
             this.smartPlacement = true;
         }
     }
@@ -268,10 +271,14 @@ export default class MasMnemonic extends LitElement {
         const preferred = this.effectivePlacement;
         let placement = preferred;
 
-        if (placement === 'top' && rect.top - tooltipH - gap < 0) placement = 'bottom';
-        else if (placement === 'bottom' && rect.bottom + tooltipH + gap > vh) placement = 'top';
-        else if (placement === 'left' && rect.left - tooltipW - gap < 0) placement = 'right';
-        else if (placement === 'right' && rect.right + tooltipW + gap > vw) placement = 'left';
+        if (placement === 'top' && rect.top - tooltipH - gap < 0)
+            placement = 'bottom';
+        else if (placement === 'bottom' && rect.bottom + tooltipH + gap > vh)
+            placement = 'top';
+        else if (placement === 'left' && rect.left - tooltipW - gap < 0)
+            placement = 'right';
+        else if (placement === 'right' && rect.right + tooltipW + gap > vw)
+            placement = 'left';
 
         const iconCenterX = rect.left + rect.width / 2;
         const iconCenterY = rect.top + rect.height / 2;
@@ -281,13 +288,27 @@ export default class MasMnemonic extends LitElement {
         let top, left, arrowOffset;
 
         if (placement === 'top' || placement === 'bottom') {
-            top = placement === 'top' ? rect.top - tooltipH - gap : rect.bottom + gap;
+            top =
+                placement === 'top'
+                    ? rect.top - tooltipH - gap
+                    : rect.bottom + gap;
             left = clamp(0, vw - tooltipW, iconCenterX - tooltipW / 2);
-            arrowOffset = clamp(arrowSize, tooltipW - arrowSize * 2, iconCenterX - left - arrowSize);
+            arrowOffset = clamp(
+                arrowSize,
+                tooltipW - arrowSize * 2,
+                iconCenterX - left - arrowSize,
+            );
         } else {
-            left = placement === 'left' ? rect.left - tooltipW - gap : rect.right + gap;
+            left =
+                placement === 'left'
+                    ? rect.left - tooltipW - gap
+                    : rect.right + gap;
             top = clamp(0, vh - tooltipH, iconCenterY - tooltipH / 2);
-            arrowOffset = clamp(arrowSize, tooltipH - arrowSize * 2, iconCenterY - top - arrowSize);
+            arrowOffset = clamp(
+                arrowSize,
+                tooltipH - arrowSize * 2,
+                iconCenterY - top - arrowSize,
+            );
         }
 
         this._tooltipTop = top;
@@ -411,7 +432,9 @@ export default class MasMnemonic extends LitElement {
 
         return html`
             <span
-                class="css-tooltip ${this.smartPlacement ? 'smart' : placement} ${visibleClass}"
+                class="css-tooltip ${this.smartPlacement
+                    ? 'smart'
+                    : placement} ${visibleClass}"
                 tabindex="0"
                 role="img"
                 aria-label="${plainContent}"
@@ -425,11 +448,11 @@ export default class MasMnemonic extends LitElement {
                     ${unsafeHTML(content)}
                     ${this.smartPlacement
                         ? html`<span
-                                  aria-hidden="true"
-                                  role="presentation"
-                                  class="css-tooltip-tip ${cp}"
-                                  style="${tipOffset}"
-                              ></span>`
+                              aria-hidden="true"
+                              role="presentation"
+                              class="css-tooltip-tip ${cp}"
+                              style="${tipOffset}"
+                          ></span>`
                         : nothing}
                 </span>
             </span>

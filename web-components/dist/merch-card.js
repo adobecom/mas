@@ -29,11 +29,11 @@ var mr=Object.defineProperty;var gr=a=>{throw TypeError(a)};var Ja=(a,t,e)=>t in
                 <span class="css-tooltip-body" style=${ni(d)}>
                     ${wr(t)}
                     ${this.smartPlacement?ve`<span
-                                  aria-hidden="true"
-                                  role="presentation"
-                                  class="css-tooltip-tip ${c}"
-                                  style="${p}"
-                              ></span>`:ii}
+                              aria-hidden="true"
+                              role="presentation"
+                              class="css-tooltip-tip ${c}"
+                              style="${p}"
+                          ></span>`:ii}
                 </span>
             </span>
         `}};h(_,"activeTooltip",null),h(_,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),h(_,"styles",ai`

@@ -534,11 +534,11 @@ var ro=Object.defineProperty;var io=e=>{throw TypeError(e)};var Bl=(e,t,r)=>t in
                 <span class="css-tooltip-body" style=${Ec(l)}>
                     ${jr(t)}
                     ${this.smartPlacement?f`<span
-                                  aria-hidden="true"
-                                  role="presentation"
-                                  class="css-tooltip-tip ${s}"
-                                  style="${d}"
-                              ></span>`:w}
+                              aria-hidden="true"
+                              role="presentation"
+                              class="css-tooltip-tip ${s}"
+                              style="${d}"
+                          ></span>`:w}
                 </span>
             </span>
         `}};u(ue,"activeTooltip",null),u(ue,"properties",{content:{type:String},placement:{type:String},variant:{type:String},src:{type:String},size:{type:String},tooltipText:{type:String,attribute:"tooltip-text"},tooltipPlacement:{type:String,attribute:"tooltip-placement"},mnemonicText:{type:String,attribute:"mnemonic-text"},mnemonicPlacement:{type:String,attribute:"mnemonic-placement"},smartPlacement:{type:Boolean,attribute:"smart-placement"},tooltipVisible:{type:Boolean,state:!0},_tooltipTop:{type:Number,state:!0},_tooltipLeft:{type:Number,state:!0},_arrowOffset:{type:Number,state:!0},_computedPlacement:{type:String,state:!0}}),u(ue,"styles",b`

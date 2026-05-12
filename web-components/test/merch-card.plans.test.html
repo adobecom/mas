@@ -295,7 +295,7 @@
                         expect(priceLegals.length).to.equal(1);
                     });
 
-                    it('should set heading-xs CSS var on container via syncHeights', async () => {
+                    it('should set heading-xs CSS var on card via syncHeights', async () => {
                         const [masCommerceService, photoshop] =
                             getTemplateContent('photoshop');
                         container.append(masCommerceService, photoshop);
@@ -306,11 +306,12 @@
                         photoshop.getBoundingClientRect = () => ({
                             ...orig(),
                             width: 200,
+                            top: 0,
                         });
                         photoshop.variantLayout.syncHeights();
                         photoshop.getBoundingClientRect = orig;
 
-                        const cssVar = container.style.getPropertyValue(
+                        const cssVar = photoshop.style.getPropertyValue(
                             '--consonant-merch-card-plans-heading-xs-height',
                         );
                         expect(parseInt(cssVar) || 0).to.be.greaterThan(0);

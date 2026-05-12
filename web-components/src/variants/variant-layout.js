@@ -45,6 +45,75 @@ export class VariantLayout {
         }
     }
 
+    /**
+     * Per-row height sync.
+     *
+     * Groups all sibling cards of the same variant by their visual row
+     * (computed from `getBoundingClientRect().top`) and, for each named
+     * slot/element, applies the row's max height as a CSS custom property
+     * on every CARD in that row. This keeps cards in different rows from
+     * stretching each other when one card has unusually tall content.
+     *
+     * @param {Array<{name: string, getElement: (card: HTMLElement) => Element | null | undefined}>} entries
+     */
+    syncRowHeights(entries) {
+        if (this.card.heightSync === false) return;
+        const container = this.getContainer();
+        if (!container) return;
+        const variant = this.card.variant;
+        const cards = Array.from(
+            container.querySelectorAll(`merch-card[variant="${variant}"]`),
+        ).filter((c) => c.variantLayout?.card?.heightSync !== false);
+        if (cards.length === 0) return;
+
+        for (const { name } of entries) {
+            const prop = `--consonant-merch-card-${variant}-${name}-height`;
+            if (container.style.getPropertyValue(prop)) {
+                container.style.removeProperty(prop);
+            }
+        }
+
+        const rows = new Map();
+        for (const card of cards) {
+            const rect = card.getBoundingClientRect();
+            if (rect.width <= 2) continue;
+            const rowKey = Math.round(rect.top);
+            let row = rows.get(rowKey);
+            if (!row) {
+                row = [];
+                rows.set(rowKey, row);
+            }
+            row.push(card);
+        }
+
+        for (const rowCards of rows.values()) {
+            for (const { name, getElement } of entries) {
+                const prop = `--consonant-merch-card-${variant}-${name}-height`;
+                let max = 0;
+                const cardHeights = [];
+                for (const card of rowCards) {
+                    card.style.removeProperty(prop);
+                    const el = getElement(card);
+                    if (!el) {
+                        cardHeights.push({ card, height: 0 });
+                        continue;
+                    }
+                    const height =
+                        Math.max(
+                            0,
+                            parseInt(window.getComputedStyle(el).height) || 0,
+                        );
+                    cardHeights.push({ card, height });
+                    if (height > max) max = height;
+                }
+                if (max <= 0) continue;
+                for (const { card } of cardHeights) {
+                    card.style.setProperty(prop, `${max}px`);
+                }
+            }
+        }
+    }
+
     constructor(card) {
         this.card = card;
         this.insertVariantStyle();

@@ -123,6 +123,10 @@ class MasSelectionPanel extends LitElement {
         this.onUnpublish(this.selection, event);
     }
 
+    handleCopyStudioLinks(event) {
+        this.onCopyStudioLinks?.(this.selection, event);
+    }
+
     async handleCopyFragmentUrls() {
         const selection = this.selection;
         if (!selection || selection.length === 0) return;

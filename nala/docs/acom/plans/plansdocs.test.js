@@ -174,7 +174,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         await test.step('step-2: Verify heading-xs height CSS var is set per card, not on container', async () => {
             const result = await page.evaluate(() => {
                 const cssVar = '--consonant-merch-card-plans-heading-xs-height';
-                const cards = [...document.querySelectorAll('merch-card[variant^="plans"]')].filter(
+                const cards = [...document.querySelectorAll('merch-card[variant="plans"]')].filter(
                     (c) => c.getBoundingClientRect().width > 2,
                 );
                 const containerVar = cards[0]
@@ -196,7 +196,7 @@ test.describe('ACOM MAS cards feature test suite', () => {
         await test.step('step-3: Verify cards in the same row share one height, different rows are independent', async () => {
             const rowData = await page.evaluate(() => {
                 const cssVar = '--consonant-merch-card-plans-heading-xs-height';
-                const cards = [...document.querySelectorAll('merch-card[variant^="plans"]')].filter(
+                const cards = [...document.querySelectorAll('merch-card[variant="plans"]')].filter(
                     (c) => c.getBoundingClientRect().width > 2,
                 );
                 const rowMap = new Map();

@@ -39,7 +39,10 @@ describe('mas-mnemonic – smart-placement', () => {
         });
 
         it('smart-placement attribute sets property to true', () => {
-            const el = makeMnemonic({ 'smart-placement': true, 'tooltip-text': 'Hi' });
+            const el = makeMnemonic({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+            });
             document.body.append(el);
             expect(el.smartPlacement).to.be.true;
         });
@@ -71,7 +74,10 @@ describe('mas-mnemonic – smart-placement', () => {
         });
 
         it('does not override an explicit smart-placement attribute', () => {
-            const el = makeMnemonic({ 'smart-placement': true, 'tooltip-text': 'Foo' });
+            const el = makeMnemonic({
+                'smart-placement': true,
+                'tooltip-text': 'Foo',
+            });
             inCard(el, 'plans');
             expect(el.smartPlacement).to.be.true;
         });
@@ -79,17 +85,26 @@ describe('mas-mnemonic – smart-placement', () => {
 
     describe('render – wrapper class', () => {
         it('renders .css-tooltip.smart when smartPlacement is true', async () => {
-            const el = await connected({ 'smart-placement': true, 'tooltip-text': 'Hi' });
+            const el = await connected({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+            });
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
             expect(wrapper).to.exist;
             expect(wrapper.classList.contains('smart')).to.be.true;
         });
 
         it('does not add placement class in smart mode', async () => {
-            const el = await connected({ 'smart-placement': true, 'tooltip-text': 'Hi' });
+            const el = await connected({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+            });
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
             for (const cls of ['top', 'bottom', 'left', 'right']) {
-                expect(wrapper.classList.contains(cls), `unexpected class "${cls}"`).to.be.false;
+                expect(
+                    wrapper.classList.contains(cls),
+                    `unexpected class "${cls}"`,
+                ).to.be.false;
             }
         });
 
@@ -101,21 +116,30 @@ describe('mas-mnemonic – smart-placement', () => {
         });
 
         it('renders .css-tooltip.bottom when placement="bottom"', async () => {
-            const el = await connected({ 'tooltip-text': 'Hi', placement: 'bottom' });
+            const el = await connected({
+                'tooltip-text': 'Hi',
+                placement: 'bottom',
+            });
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
             expect(wrapper.classList.contains('bottom')).to.be.true;
             expect(wrapper.classList.contains('smart')).to.be.false;
         });
 
         it('renders .css-tooltip.left when placement="left"', async () => {
-            const el = await connected({ 'tooltip-text': 'Hi', placement: 'left' });
+            const el = await connected({
+                'tooltip-text': 'Hi',
+                placement: 'left',
+            });
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
             expect(wrapper.classList.contains('left')).to.be.true;
             expect(wrapper.classList.contains('smart')).to.be.false;
         });
 
         it('renders .css-tooltip.right when placement="right"', async () => {
-            const el = await connected({ 'tooltip-text': 'Hi', placement: 'right' });
+            const el = await connected({
+                'tooltip-text': 'Hi',
+                placement: 'right',
+            });
             const wrapper = el.shadowRoot.querySelector('.css-tooltip');
             expect(wrapper.classList.contains('right')).to.be.true;
             expect(wrapper.classList.contains('smart')).to.be.false;
@@ -124,14 +148,20 @@ describe('mas-mnemonic – smart-placement', () => {
 
     describe('render – inner structure', () => {
         it('renders .css-tooltip-tip inside .css-tooltip-body in smart mode', async () => {
-            const el = await connected({ 'smart-placement': true, 'tooltip-text': 'Hi' });
+            const el = await connected({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+            });
             const body = el.shadowRoot.querySelector('.css-tooltip-body');
             expect(body).to.exist;
             expect(body.querySelector('.css-tooltip-tip')).to.exist;
         });
 
         it('.css-tooltip-tip carries a placement class in smart mode', async () => {
-            const el = await connected({ 'smart-placement': true, 'tooltip-text': 'Hi' });
+            const el = await connected({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+            });
             const tip = el.shadowRoot.querySelector('.css-tooltip-tip');
             const hasPlacement = ['top', 'bottom', 'left', 'right'].some((c) =>
                 tip.classList.contains(c),
@@ -154,11 +184,16 @@ describe('mas-mnemonic – smart-placement', () => {
 
     describe('tooltip visibility', () => {
         it('adds tooltip-visible on showTooltip() in smart mode', async () => {
-            const el = await connected({ 'smart-placement': true, 'tooltip-text': 'Hi' });
+            const el = await connected({
+                'smart-placement': true,
+                'tooltip-text': 'Hi',
+            });
             el.showTooltip();
             await el.updateComplete;
             expect(
-                el.shadowRoot.querySelector('.css-tooltip').classList.contains('tooltip-visible'),
+                el.shadowRoot
+                    .querySelector('.css-tooltip')
+                    .classList.contains('tooltip-visible'),
             ).to.be.true;
         });
 
@@ -167,7 +202,9 @@ describe('mas-mnemonic – smart-placement', () => {
             el.showTooltip();
             await el.updateComplete;
             expect(
-                el.shadowRoot.querySelector('.css-tooltip').classList.contains('tooltip-visible'),
+                el.shadowRoot
+                    .querySelector('.css-tooltip')
+                    .classList.contains('tooltip-visible'),
             ).to.be.true;
         });
 
@@ -178,24 +215,34 @@ describe('mas-mnemonic – smart-placement', () => {
             el.hideTooltip();
             await el.updateComplete;
             expect(
-                el.shadowRoot.querySelector('.css-tooltip').classList.contains('tooltip-visible'),
+                el.shadowRoot
+                    .querySelector('.css-tooltip')
+                    .classList.contains('tooltip-visible'),
             ).to.be.false;
         });
     });
 
     describe('effectivePlacement precedence', () => {
         it('tooltip-placement takes priority over placement', () => {
-            const el = makeMnemonic({ placement: 'bottom', 'tooltip-placement': 'right' });
+            const el = makeMnemonic({
+                placement: 'bottom',
+                'tooltip-placement': 'right',
+            });
             expect(el.effectivePlacement).to.equal('right');
         });
 
         it('mnemonic-placement is used when tooltip-placement is absent', () => {
-            const el = makeMnemonic({ placement: 'bottom', 'mnemonic-placement': 'left' });
+            const el = makeMnemonic({
+                placement: 'bottom',
+                'mnemonic-placement': 'left',
+            });
             expect(el.effectivePlacement).to.equal('left');
         });
 
         it('falls back to placement when no tooltip/mnemonic placement set', () => {
-            expect(makeMnemonic({ placement: 'bottom' }).effectivePlacement).to.equal('bottom');
+            expect(
+                makeMnemonic({ placement: 'bottom' }).effectivePlacement,
+            ).to.equal('bottom');
         });
 
         it('defaults to "top" when no placement attributes set', () => {

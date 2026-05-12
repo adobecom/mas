@@ -281,7 +281,7 @@ async function fetchOdin(
         etag = null,
         ignoreErrors = [],
         max429Retries = 3,
-        retryAfterFallbackSecs = 60,
+        retryAfterFallbackSecs = 65,
     } = {},
 ) {
     const startTime = performance.now();

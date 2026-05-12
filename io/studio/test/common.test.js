@@ -845,7 +845,7 @@ describe('common.js - fetchOdin', () => {
             expect(global.setTimeout.firstCall.args[1]).to.equal(45000);
         });
 
-        it('should fall back to 60 s when Retry-After header is absent', async () => {
+        it('should fall back to 65 s when Retry-After header is absent', async () => {
             const mock429 = {
                 ok: false,
                 status: 429,
@@ -865,7 +865,7 @@ describe('common.js - fetchOdin', () => {
             await common.fetchOdin(odinEndpoint, '/api/test', authToken);
 
             expect(global.setTimeout).to.have.been.calledOnce;
-            expect(global.setTimeout.firstCall.args[1]).to.equal(60000);
+            expect(global.setTimeout.firstCall.args[1]).to.equal(65000);
         });
     });
 });

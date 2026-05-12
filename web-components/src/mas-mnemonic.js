@@ -1,5 +1,6 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
 
 function hasSpectrumTooltip() {
     // Only use Spectrum if ALL required components are available
@@ -10,10 +11,6 @@ function hasSpectrumTooltip() {
     );
 }
 
-/**
- * MasMnemonic - A web component that handles mnemonics (icons with optional tooltips) within MAS
- * Automatically detects if Spectrum Web Components are available and renders appropriately
- */
 export default class MasMnemonic extends LitElement {
     static activeTooltip = null;
 
@@ -255,7 +252,6 @@ export default class MasMnemonic extends LitElement {
         const tooltipMaxWidth = 200;
         const tooltipEstHeight = 60; // conservative estimate before paint
 
-        // Measure actual tooltip body if already rendered
         const body = this.shadowRoot?.querySelector('.css-tooltip-body');
         const tooltipW = body ? body.offsetWidth : tooltipMaxWidth;
         const tooltipH = body ? body.offsetHeight : tooltipEstHeight;
@@ -263,77 +259,32 @@ export default class MasMnemonic extends LitElement {
         const preferred = this.effectivePlacement;
         let placement = preferred;
 
-        // Flip logic
-        if (placement === 'top' && rect.top - tooltipH - gap < 0) {
-            placement = 'bottom';
-        } else if (placement === 'bottom' && rect.bottom + tooltipH + gap > vh) {
-            placement = 'top';
-        } else if (placement === 'left' && rect.left - tooltipW - gap < 0) {
-            placement = 'right';
-        } else if (placement === 'right' && rect.right + tooltipW + gap > vw) {
-            placement = 'left';
-        }
+        if (placement === 'top' && rect.top - tooltipH - gap < 0) placement = 'bottom';
+        else if (placement === 'bottom' && rect.bottom + tooltipH + gap > vh) placement = 'top';
+        else if (placement === 'left' && rect.left - tooltipW - gap < 0) placement = 'right';
+        else if (placement === 'right' && rect.right + tooltipW + gap > vw) placement = 'left';
 
         const iconCenterX = rect.left + rect.width / 2;
         const iconCenterY = rect.top + rect.height / 2;
         const arrowSize = 6;
+        const clamp = (min, max, v) => Math.max(min, Math.min(max, v));
 
         let top, left, arrowOffset;
 
-        if (placement === 'top') {
-            top = rect.top - tooltipH - gap;
-            // Center horizontally, clamp to viewport
-            left = Math.max(
-                0,
-                Math.min(vw - tooltipW, iconCenterX - tooltipW / 2),
-            );
-            // Arrow left offset relative to tooltip left edge, pointing at icon center
-            arrowOffset = Math.max(
-                arrowSize,
-                Math.min(tooltipW - arrowSize * 2, iconCenterX - left - arrowSize),
-            );
-        } else if (placement === 'bottom') {
-            top = rect.bottom + gap;
-            left = Math.max(
-                0,
-                Math.min(vw - tooltipW, iconCenterX - tooltipW / 2),
-            );
-            arrowOffset = Math.max(
-                arrowSize,
-                Math.min(tooltipW - arrowSize * 2, iconCenterX - left - arrowSize),
-            );
-        } else if (placement === 'left') {
-            left = rect.left - tooltipW - gap;
-            // Center vertically, clamp to viewport
-            top = Math.max(
-                0,
-                Math.min(vh - tooltipH, iconCenterY - tooltipH / 2),
-            );
-            // Arrow top offset relative to tooltip top edge, pointing at icon center
-            arrowOffset = Math.max(
-                arrowSize,
-                Math.min(tooltipH - arrowSize * 2, iconCenterY - top - arrowSize),
-            );
+        if (placement === 'top' || placement === 'bottom') {
+            top = placement === 'top' ? rect.top - tooltipH - gap : rect.bottom + gap;
+            left = clamp(0, vw - tooltipW, iconCenterX - tooltipW / 2);
+            arrowOffset = clamp(arrowSize, tooltipW - arrowSize * 2, iconCenterX - left - arrowSize);
         } else {
-            // right
-            left = rect.right + gap;
-            top = Math.max(
-                0,
-                Math.min(vh - tooltipH, iconCenterY - tooltipH / 2),
-            );
-            arrowOffset = Math.max(
-                arrowSize,
-                Math.min(tooltipH - arrowSize * 2, iconCenterY - top - arrowSize),
-            );
+            left = placement === 'left' ? rect.left - tooltipW - gap : rect.right + gap;
+            top = clamp(0, vh - tooltipH, iconCenterY - tooltipH / 2);
+            arrowOffset = clamp(arrowSize, tooltipH - arrowSize * 2, iconCenterY - top - arrowSize);
         }
 
         this._tooltipTop = top;
         this._tooltipLeft = left;
         this._arrowOffset = arrowOffset;
         this._computedPlacement = placement;
-
-        // Store anchor rect for arrow absolute positioning in render
-        this._anchorRect = rect;
     }
 
     showTooltip() {
@@ -409,7 +360,6 @@ export default class MasMnemonic extends LitElement {
         const useSpectrum = hasSpectrumTooltip();
 
         if (useSpectrum) {
-            // Use Spectrum tooltip with singleton dismiss logic
             return html`
                 <overlay-trigger
                     placement="${placement}"
@@ -424,74 +374,57 @@ export default class MasMnemonic extends LitElement {
                     </sp-tooltip>
                 </overlay-trigger>
             `;
-        } else {
-            // Use CSS tooltip with pointerType-aware handlers
-            // Mouse/pen: hover to show/hide via pointerenter/leave
-            // Touch: tap to toggle via click (pointerType === 'touch')
-            const plainContent = content.replace(/<[^>]*>/g, '');
-            const visibleClass = this.tooltipVisible ? 'tooltip-visible' : '';
-            const pointerHandlers = {
-                pointerdown: (e) => {
-                    this.lastPointerType = e.pointerType;
-                },
-                pointerenter: (e) =>
-                    e.pointerType !== 'touch' && this.showTooltip(),
-                pointerleave: (e) =>
-                    e.pointerType !== 'touch' && this.hideTooltip(),
-                click: (e) => {
-                    if (this.lastPointerType === 'touch') this.handleTap(e);
-                    this.lastPointerType = null;
-                },
-            };
-
-            if (this.smartPlacement) {
-                const cp = this._computedPlacement;
-                const isHorizontal = cp === 'top' || cp === 'bottom';
-                const bodyStyle = `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`;
-                const tipOffset = isHorizontal
-                    ? `left:${this._arrowOffset}px`
-                    : `top:${this._arrowOffset}px`;
-                return html`
-                    <span
-                        class="css-tooltip smart ${visibleClass}"
-                        tabindex="0"
-                        role="img"
-                        aria-label="${plainContent}"
-                        @pointerdown=${pointerHandlers.pointerdown}
-                        @pointerenter=${pointerHandlers.pointerenter}
-                        @pointerleave=${pointerHandlers.pointerleave}
-                        @click=${pointerHandlers.click}
-                    >
-                        ${this.renderIcon()}
-                        <span class="css-tooltip-body" style="${bodyStyle}">
-                            ${unsafeHTML(content)}
-                            <span
-                                aria-hidden="true"
-                                role="presentation"
-                                class="css-tooltip-tip ${cp}"
-                                style="${tipOffset}"
-                            ></span>
-                        </span>
-                    </span>
-                `;
-            }
-
-            return html`
-                <span
-                    class="css-tooltip ${placement} ${visibleClass}"
-                    tabindex="0"
-                    role="img"
-                    aria-label="${plainContent}"
-                    @pointerdown=${pointerHandlers.pointerdown}
-                    @pointerenter=${pointerHandlers.pointerenter}
-                    @pointerleave=${pointerHandlers.pointerleave}
-                    @click=${pointerHandlers.click}
-                >
-                    ${this.renderIcon()}
-                    <span class="css-tooltip-body">${unsafeHTML(content)}</span>
-                </span>
-            `;
         }
+
+        const plainContent = content.replace(/<[^>]*>/g, '');
+        const visibleClass = this.tooltipVisible ? 'tooltip-visible' : '';
+        const pointerHandlers = {
+            pointerdown: (e) => {
+                this.lastPointerType = e.pointerType;
+            },
+            pointerenter: (e) =>
+                e.pointerType !== 'touch' && this.showTooltip(),
+            pointerleave: (e) =>
+                e.pointerType !== 'touch' && this.hideTooltip(),
+            click: (e) => {
+                if (this.lastPointerType === 'touch') this.handleTap(e);
+                this.lastPointerType = null;
+            },
+        };
+        const cp = this._computedPlacement;
+        const isHorizontal = cp === 'top' || cp === 'bottom';
+        const bodyStyle = this.smartPlacement
+            ? `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`
+            : undefined;
+        const tipOffset = isHorizontal
+            ? `left:${this._arrowOffset}px`
+            : `top:${this._arrowOffset}px`;
+
+        return html`
+            <span
+                class="css-tooltip ${this.smartPlacement ? 'smart' : placement} ${visibleClass}"
+                tabindex="0"
+                role="img"
+                aria-label="${plainContent}"
+                @pointerdown=${pointerHandlers.pointerdown}
+                @pointerenter=${pointerHandlers.pointerenter}
+                @pointerleave=${pointerHandlers.pointerleave}
+                @click=${pointerHandlers.click}
+            >
+                ${this.renderIcon()}
+                <span class="css-tooltip-body" style=${ifDefined(bodyStyle)}>
+                    ${unsafeHTML(content)}
+                    ${this.smartPlacement
+                        ? html`<span
+                                  aria-hidden="true"
+                                  role="presentation"
+                                  class="css-tooltip-tip ${cp}"
+                                  style="${tipOffset}"
+                              ></span>`
+                        : nothing}
+                </span>
+            </span>
+        `;
     }
 }
 

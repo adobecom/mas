@@ -65,6 +65,7 @@ export class PreviewFragmentStore extends FragmentStore {
     #resolving = false;
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
+    #resolvedDictionarySig = null;
 
     /**
      * @param {Fragment} initialValue
@@ -76,9 +77,11 @@ export class PreviewFragmentStore extends FragmentStore {
         this.lazy = lazy;
 
         this.placeholderUnsubscribe = Store.placeholders.previewByLocale.subscribe(() => {
-            if (!this.lazy && !this.resolved && Store.previewDictionaryReady()) {
-                this.resolveFragment(true);
-            }
+            if (this.lazy || !Store.previewDictionaryReady()) return;
+            const sig = this.previewLocaleOverride || Store.localeOrRegion();
+            if (this.resolved && sig === this.#resolvedDictionarySig) return;
+            this.resolved = false;
+            this.resolveFragment(true);
         });
 
         if (!this.lazy) {
@@ -183,8 +186,16 @@ export class PreviewFragmentStore extends FragmentStore {
             return;
         }
 
-        if (this.isCollection || !Store.previewDictionaryReady()) {
+        if (this.isCollection) {
             this.resolved = true;
+            this.refreshAemFragment(true);
+            this.notify();
+            return;
+        }
+
+        if (!Store.previewDictionaryReady()) {
+            // Leave resolved=false so the placeholderUnsubscribe callback
+            // re-runs resolution once the dictionary for this locale arrives.
             this.refreshAemFragment(true);
             this.notify();
             return;
@@ -198,9 +209,11 @@ export class PreviewFragmentStore extends FragmentStore {
         }
 
         this.#resolving = true;
+        const dictionarySig = this.previewLocaleOverride || Store.localeOrRegion();
         this.getResolvedFragment()
             .then((result) => {
                 if (result) {
+                    this.#resolvedDictionarySig = dictionarySig;
                     this.replaceFrom(result);
                     this.refreshAemFragment(true);
                 }

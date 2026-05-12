@@ -8022,6 +8022,14 @@ merch-card[variant="mini"] span.renewal-text {
         line-height: var(--consonant-merch-card-body-s-line-height);
     }
 
+    merch-card[variant='fries'] [slot="body-s"] p:has(mas-mnemonic) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+    }
+
     merch-card[variant='fries'] [slot="body-s"] merch-icon {
         display: inline-flex;
         width: 20px;

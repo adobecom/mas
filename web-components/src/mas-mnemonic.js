@@ -29,6 +29,8 @@ export default class MasMnemonic extends LitElement {
         // Support studio's mnemonic attribute names
         mnemonicText: { type: String, attribute: 'mnemonic-text' },
         mnemonicPlacement: { type: String, attribute: 'mnemonic-placement' },
+        // Opt-in viewport-aware JS positioning (used by fries cards)
+        smartPlacement: { type: Boolean, attribute: 'smart-placement' },
         // Tooltip visibility state
         tooltipVisible: { type: Boolean, state: true },
         // Computed positioning state for CSS fallback tooltip
@@ -52,16 +54,15 @@ export default class MasMnemonic extends LitElement {
         }
 
         .css-tooltip .css-tooltip-body {
-            position: fixed;
-            z-index: 100000;
+            position: absolute;
+            z-index: 999;
             background: var(--spectrum-gray-800, #323232);
             color: #fff;
             padding: var(--mas-mnemonic-tooltip-padding, 8px 12px);
             border-radius: 4px;
             white-space: normal;
             width: max-content;
-            max-width: 200px;
-            overflow: visible;
+            max-width: 60px;
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
@@ -73,6 +74,109 @@ export default class MasMnemonic extends LitElement {
             text-align: center;
         }
 
+        .css-tooltip::after {
+            content: '';
+            position: absolute;
+            z-index: 999;
+            width: 0;
+            height: 0;
+            border: 6px solid transparent;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition:
+                opacity 0.1s ease,
+                visibility 0.1s ease;
+        }
+
+        .css-tooltip.tooltip-visible .css-tooltip-body,
+        .css-tooltip.tooltip-visible::after,
+        .css-tooltip:focus-visible .css-tooltip-body,
+        .css-tooltip:focus-visible::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Placement variants (CSS-only mode) */
+        .css-tooltip.top .css-tooltip-body {
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 16px;
+        }
+
+        .css-tooltip.top::after {
+            top: -80%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-color: var(--spectrum-gray-800, #323232) transparent
+                transparent transparent;
+        }
+
+        .css-tooltip.bottom .css-tooltip-body {
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 10px;
+        }
+
+        .css-tooltip.bottom::after {
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 5px;
+            border-bottom-color: var(--spectrum-gray-800, #323232);
+        }
+
+        .css-tooltip.left .css-tooltip-body {
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-right: 10px;
+            left: var(--tooltip-left-offset, auto);
+        }
+
+        .css-tooltip.left::after {
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-right: 5px;
+            border-left-color: var(--spectrum-gray-800, #323232);
+        }
+
+        .css-tooltip.right .css-tooltip-body {
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 10px;
+        }
+
+        .css-tooltip.right::after {
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 5px;
+            border-right-color: var(--spectrum-gray-800, #323232);
+        }
+
+        /* Smart-placement mode: JS-computed fixed positioning + inner arrow span */
+        .css-tooltip.smart .css-tooltip-body {
+            position: fixed;
+            z-index: 100000;
+            max-width: 200px;
+            overflow: visible;
+            /* Cancel CSS-only placement transforms/margins from above */
+            transform: none;
+            margin: 0;
+            bottom: auto;
+            right: auto;
+        }
+
+        /* Hide the ::after arrow in smart mode; inner span is used instead */
+        .css-tooltip.smart::after {
+            content: none;
+        }
+
         .css-tooltip-tip {
             position: absolute;
             width: 0;
@@ -81,13 +185,7 @@ export default class MasMnemonic extends LitElement {
             pointer-events: none;
         }
 
-        .css-tooltip.tooltip-visible .css-tooltip-body,
-        .css-tooltip:focus-visible .css-tooltip-body {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Arrow: child of body, positioned on the side facing the icon */
+        /* Inner arrow span: positioned on the side facing the icon */
         .css-tooltip-tip.top {
             top: 100%;
             border-top-color: var(--spectrum-gray-800, #323232);
@@ -115,6 +213,7 @@ export default class MasMnemonic extends LitElement {
         this.placement = 'top';
         this.variant = 'info';
         this.size = 'xs';
+        this.smartPlacement = false;
         this.tooltipVisible = false;
         this.lastPointerType = null;
         this.handleClickOutside = this.handleClickOutside.bind(this);
@@ -127,6 +226,10 @@ export default class MasMnemonic extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         window.addEventListener('mousedown', this.handleClickOutside);
+        // Auto-enable viewport-aware positioning inside fries cards.
+        if (!this.smartPlacement && this.closest('merch-card[variant="fries"]')) {
+            this.smartPlacement = true;
+        }
     }
 
     disconnectedCallback() {
@@ -240,10 +343,14 @@ export default class MasMnemonic extends LitElement {
             MasMnemonic.activeTooltip.requestUpdate();
         }
         MasMnemonic.activeTooltip = this;
-        this._computeTooltipPosition();
+        if (this.smartPlacement) {
+            this._computeTooltipPosition();
+        }
         this.tooltipVisible = true;
-        // Re-compute after first paint to use actual rendered dimensions
-        this.updateComplete.then(() => this._computeTooltipPosition());
+        if (this.smartPlacement) {
+            // Re-compute after first paint to use actual rendered dimensions
+            this.updateComplete.then(() => this._computeTooltipPosition());
+        }
     }
 
     hideTooltip() {
@@ -322,42 +429,66 @@ export default class MasMnemonic extends LitElement {
             // Mouse/pen: hover to show/hide via pointerenter/leave
             // Touch: tap to toggle via click (pointerType === 'touch')
             const plainContent = content.replace(/<[^>]*>/g, '');
-            const cp = this._computedPlacement;
-            const isHorizontal = cp === 'top' || cp === 'bottom';
-            const bodyStyle = `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`;
-            const tipOffset = isHorizontal
-                ? `left:${this._arrowOffset}px`
-                : `top:${this._arrowOffset}px`;
+            const visibleClass = this.tooltipVisible ? 'tooltip-visible' : '';
+            const pointerHandlers = {
+                pointerdown: (e) => {
+                    this.lastPointerType = e.pointerType;
+                },
+                pointerenter: (e) =>
+                    e.pointerType !== 'touch' && this.showTooltip(),
+                pointerleave: (e) =>
+                    e.pointerType !== 'touch' && this.hideTooltip(),
+                click: (e) => {
+                    if (this.lastPointerType === 'touch') this.handleTap(e);
+                    this.lastPointerType = null;
+                },
+            };
+
+            if (this.smartPlacement) {
+                const cp = this._computedPlacement;
+                const isHorizontal = cp === 'top' || cp === 'bottom';
+                const bodyStyle = `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`;
+                const tipOffset = isHorizontal
+                    ? `left:${this._arrowOffset}px`
+                    : `top:${this._arrowOffset}px`;
+                return html`
+                    <span
+                        class="css-tooltip smart ${visibleClass}"
+                        tabindex="0"
+                        role="img"
+                        aria-label="${plainContent}"
+                        @pointerdown=${pointerHandlers.pointerdown}
+                        @pointerenter=${pointerHandlers.pointerenter}
+                        @pointerleave=${pointerHandlers.pointerleave}
+                        @click=${pointerHandlers.click}
+                    >
+                        ${this.renderIcon()}
+                        <span class="css-tooltip-body" style="${bodyStyle}">
+                            ${unsafeHTML(content)}
+                            <span
+                                aria-hidden="true"
+                                role="presentation"
+                                class="css-tooltip-tip ${cp}"
+                                style="${tipOffset}"
+                            ></span>
+                        </span>
+                    </span>
+                `;
+            }
+
             return html`
                 <span
-                    class="css-tooltip ${this.tooltipVisible
-                        ? 'tooltip-visible'
-                        : ''}"
+                    class="css-tooltip ${placement} ${visibleClass}"
                     tabindex="0"
                     role="img"
                     aria-label="${plainContent}"
-                    @pointerdown=${(e) => {
-                        this.lastPointerType = e.pointerType;
-                    }}
-                    @pointerenter=${(e) =>
-                        e.pointerType !== 'touch' && this.showTooltip()}
-                    @pointerleave=${(e) =>
-                        e.pointerType !== 'touch' && this.hideTooltip()}
-                    @click=${(e) => {
-                        if (this.lastPointerType === 'touch') this.handleTap(e);
-                        this.lastPointerType = null;
-                    }}
+                    @pointerdown=${pointerHandlers.pointerdown}
+                    @pointerenter=${pointerHandlers.pointerenter}
+                    @pointerleave=${pointerHandlers.pointerleave}
+                    @click=${pointerHandlers.click}
                 >
                     ${this.renderIcon()}
-                    <span class="css-tooltip-body" style="${bodyStyle}">
-                        ${unsafeHTML(content)}
-                        <span
-                            aria-hidden="true"
-                            role="presentation"
-                            class="css-tooltip-tip ${cp}"
-                            style="${tipOffset}"
-                        ></span>
-                    </span>
+                    <span class="css-tooltip-body">${unsafeHTML(content)}</span>
                 </span>
             `;
         }

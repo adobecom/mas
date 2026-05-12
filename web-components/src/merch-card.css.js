@@ -23,6 +23,56 @@ export const styles = css`
         visibility: hidden;
     }
 
+    :host([failed]) {
+        border: 2px solid #e34850;
+        background: repeating-linear-gradient(
+            -45deg,
+            #fff 0px,
+            #fff 8px,
+            rgba(227, 72, 80, 0.1) 8px,
+            rgba(227, 72, 80, 0.1) 16px
+        );
+        width: 302px;
+        min-height: 84px;
+    }
+
+    :host([failed]) .not-found-badge {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        background: #e34850;
+        color: #000;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        padding: 4px 12px;
+        border-radius: 0 var(--consonant-merch-spacing-xs) 0 4px;
+    }
+
+    :host([failed]) .not-found-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 36px 24px 16px;
+    }
+
+    :host([failed]) .not-found-body span {
+        font-size: 11px;
+        font-weight: 600;
+        color: #444;
+    }
+
+    :host([failed]) .not-found-body code {
+        font-size: 11px;
+        color: #666;
+        word-break: break-all;
+        text-align: center;
+    }
+
     :host([aria-selected]) {
         outline: none;
         box-shadow: inset 0 0 0 2px var(--color-accent);

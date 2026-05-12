@@ -94,6 +94,7 @@ export class MerchCardCollection extends LitElement {
     static properties = {
         id: { type: String, attribute: 'id', reflect: true },
         displayResult: { type: Boolean, attribute: 'display-result' },
+        failed: { type: Boolean, attribute: 'failed', reflect: true },
         filter: { type: String, attribute: 'filter', reflect: true },
         filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
         hasMore: { type: Boolean },
@@ -138,6 +139,16 @@ export class MerchCardCollection extends LitElement {
     }
 
     render() {
+        if (this.failed && this.#service?.isPreview()) {
+            const fragmentId = this.id ?? 'unknown';
+            return html`<div class="not-found">
+                <div class="not-found-badge">NOT FOUND</div>
+                <div class="not-found-body">
+                    <span>Collection:</span>
+                    <code>${fragmentId}</code>
+                </div>
+            </div>`;
+        }
         return html` <slot></slot>
             ${this.footer}`;
     }
@@ -328,6 +339,7 @@ export class MerchCardCollection extends LitElement {
     #fail(error, details = {}, dispatch = true) {
         this.#log?.error(`merch-card-collection: ${error}`, details);
         this.failed = true;
+        if (!this.#service?.isPreview()) this.style.display = 'none';
         if (!dispatch) return;
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_ERROR, {
@@ -693,6 +705,67 @@ export class MerchCardCollection extends LitElement {
 
         sp-theme {
             display: contents;
+        }
+
+        :host([failed]) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        :host([failed]) .not-found {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #e34850;
+            border-radius: 4px;
+            background: repeating-linear-gradient(
+                -45deg,
+                #fff 0px,
+                #fff 8px,
+                rgba(227, 72, 80, 0.1) 8px,
+                rgba(227, 72, 80, 0.1) 16px
+            );
+            width: 302px;
+            min-height: 84px;
+            box-sizing: border-box;
+        }
+
+        :host([failed]) .not-found-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: #e34850;
+            color: #000;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 0 4px 0 4px;
+        }
+
+        :host([failed]) .not-found-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 36px 24px 16px;
+        }
+
+        :host([failed]) .not-found-body span {
+            font-size: 11px;
+            font-weight: 600;
+            color: #444;
+        }
+
+        :host([failed]) .not-found-body code {
+            font-size: 11px;
+            color: #666;
+            word-break: break-all;
+            text-align: center;
         }
     `;
 }

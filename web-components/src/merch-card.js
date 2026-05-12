@@ -1,4 +1,4 @@
-import { LitElement } from 'lit';
+import { html, LitElement } from 'lit';
 import { sizeStyles, styles } from './merch-card.css.js';
 import './merch-icon.js';
 import './merch-gradient.js';
@@ -325,12 +325,17 @@ export class MerchCard extends LitElement {
     }
 
     render() {
-        if (
-            !this.isConnected ||
-            !this.variantLayout ||
-            this.style.display === 'none'
-        )
-            return;
+        if (!this.isConnected || this.style.display === 'none') return;
+        if (this.failed) {
+            const fragmentId =
+                this.aemFragment?.getAttribute('fragment') ?? 'unknown';
+            return html`<div class="not-found-badge">NOT FOUND</div>
+                <div class="not-found-body">
+                    <span>Frag:</span>
+                    <code>${fragmentId}</code>
+                </div>`;
+        }
+        if (!this.variantLayout) return;
         return this.variantLayout.renderLayout();
     }
 

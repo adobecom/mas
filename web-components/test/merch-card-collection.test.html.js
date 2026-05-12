@@ -467,7 +467,7 @@ runTests(async () => {
             expect(result).to.equal('resolved');
         });
 
-        it('should set failed=true and hide the card when the aem-fragment returns a 404', async () => {
+        it('should set failed=true and hide the card in non-preview mode when the aem-fragment returns a 404', async () => {
             const card = document.createElement('merch-card');
             const frag = document.createElement('aem-fragment');
             frag.setAttribute('fragment', 'notfound');
@@ -475,16 +475,20 @@ runTests(async () => {
             document.getElementById('content').appendChild(card);
 
             await delay(20);
+            await card.updateComplete;
 
             expect(card.failed).to.be.true;
+            // non-preview: card hidden, no error UI rendered
             expect(card.style.display).to.equal('none');
+            expect(card.shadowRoot.querySelector('.not-found-badge')).to.not
+                .exist;
 
             card.remove();
         });
     });
 
     describe('merch-card-collection failed card handling', () => {
-        it('excludes failed cards from resultCount and keeps them hidden after update', async () => {
+        it('excludes failed cards from resultCount and does not hide them', async () => {
             const collection = document.createElement('merch-card-collection');
             collection.setAttribute('filter', 'all');
 
@@ -497,9 +501,8 @@ runTests(async () => {
             const card1 = makeCard(1);
             const card2 = makeCard(2);
             const card3 = makeCard(3);
-            // Simulate a card that failed to load (as set by merch-card #fail())
+            // Simulate a card that failed to load
             card3.failed = true;
-            card3.style.display = 'none';
 
             collection.append(card1, card2, card3);
             document.getElementById('content').appendChild(collection);
@@ -507,8 +510,8 @@ runTests(async () => {
             await delay(20);
 
             expect(collection.resultCount).to.equal(2);
-            // Failed card must stay hidden — collection update must not un-hide it
-            expect(card3.style.display).to.equal('none');
+            // Failed card stays visible — collection update must not hide it
+            expect(card3.style.display).to.not.equal('none');
 
             collection.remove();
         });

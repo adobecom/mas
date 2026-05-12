@@ -24,14 +24,12 @@ export class MasOperationResult extends LitElement {
         result: { type: Object },
         operationType: { type: String },
         displayCount: { type: Number },
-        mode: { type: String },
         displayContext: { type: Object },
     };
 
     constructor() {
         super();
         this.displayCount = 5;
-        this.mode = 'full';
         this.displayContext = null;
     }
 
@@ -50,9 +48,6 @@ export class MasOperationResult extends LitElement {
     }
 
     renderSearchResults() {
-        if (this.mode === 'links') {
-            return this.renderSearchResultsLinks();
-        }
         const { results = [] } = this.result;
 
         if (results.length === 0) {
@@ -69,6 +64,9 @@ export class MasOperationResult extends LitElement {
         const displayResults = results.slice(0, this.displayCount);
         const hasMore = results.length > displayResults.length;
         const remainingCount = results.length - displayResults.length;
+        const surface = this.displayContext?.surface || this.extractSurfaceFromResults(results);
+        const locale = this.displayContext?.locale || 'en_US';
+        const allHref = surface ? buildStudioFolderHref({ surface, locale, query: this.displayContext?.query }) : null;
 
         return html`
             <div class="operation-result search-result">
@@ -80,7 +78,7 @@ export class MasOperationResult extends LitElement {
                 <sp-table size="m" class="chat-search-table">
                     <sp-table-head>
                         <sp-table-head-cell>Title</sp-table-head-cell>
-                        <sp-table-head-cell>Variant</sp-table-head-cell>
+                        <sp-table-head-cell>Template</sp-table-head-cell>
                         <sp-table-head-cell>Status</sp-table-head-cell>
                         <sp-table-head-cell></sp-table-head-cell>
                     </sp-table-head>
@@ -121,92 +119,7 @@ export class MasOperationResult extends LitElement {
                               treatment="outline"
                               @click=${() => this.handleShowMore(results.length)}
                           >
-                              Show ${Math.min(5, remainingCount)} More (${remainingCount} remaining)
-                          </sp-button>`
-                        : nothing}
-                    <sp-button size="m" variant="secondary" @click=${() => this.copyAllCardLinks(results)}>
-                        Copy all links
-                    </sp-button>
-                </div>
-            </div>
-        `;
-    }
-
-    handleShowMore(totalCount) {
-        const increment = 5;
-        this.displayCount = Math.min((this.displayCount || 5) + increment, totalCount);
-    }
-
-    /**
-     * Lightweight search-result renderer used by the deterministic router.
-     *
-     * Skips aem-fragment hydration, hover preview, and per-row preview button.
-     * Each row is a plain anchor to the Studio deep-link, opening in a new tab.
-     */
-    renderSearchResultsLinks() {
-        const { results = [] } = this.result;
-        const surface = this.displayContext?.surface || this.extractSurfaceFromResults(results);
-        const locale = this.displayContext?.locale || 'en_US';
-
-        if (results.length === 0) {
-            const folderHref = surface ? buildStudioFolderHref({ surface, locale }) : null;
-            return html`
-                <div class="operation-result search-result links-mode empty">
-                    <p>No cards found.</p>
-                    ${folderHref
-                        ? html`<a href=${folderHref} target="_blank" rel="noopener">Browse ${surface} in Studio →</a>`
-                        : nothing}
-                </div>
-            `;
-        }
-
-        const displayResults = results.slice(0, this.displayCount);
-        const hasMore = results.length > displayResults.length;
-        const remainingCount = results.length - displayResults.length;
-        const allHref = surface ? buildStudioFolderHref({ surface, locale, query: this.displayContext?.query }) : null;
-
-        return html`
-            <div class="operation-result search-result links-mode">
-                <div class="result-header">
-                    <span>${results.length} card${results.length !== 1 ? 's' : ''} found</span>
-                </div>
-
-                <sp-table size="m" class="chat-search-table">
-                    <sp-table-head>
-                        <sp-table-head-cell>Title</sp-table-head-cell>
-                        <sp-table-head-cell>Variant</sp-table-head-cell>
-                        <sp-table-head-cell>Status</sp-table-head-cell>
-                    </sp-table-head>
-                    <sp-table-body>
-                        ${repeat(
-                            displayResults,
-                            (fragment) => fragment.id,
-                            (fragment) => html`
-                                <sp-table-row value="${fragment.id}">
-                                    <sp-table-cell class="title-cell">
-                                        <a href=${this.buildFragmentHref(fragment)} target="_blank" rel="noopener"
-                                            >${fragment.title || fragment.id}</a
-                                        >
-                                    </sp-table-cell>
-                                    <sp-table-cell>
-                                        <sp-badge size="s">${this.extractVariant(fragment)}</sp-badge>
-                                    </sp-table-cell>
-                                    <sp-table-cell class="status-cell">${fragment.status || ''}</sp-table-cell>
-                                </sp-table-row>
-                            `,
-                        )}
-                    </sp-table-body>
-                </sp-table>
-
-                <div class="search-results-actions">
-                    ${hasMore
-                        ? html`<sp-button
-                              size="m"
-                              variant="secondary"
-                              treatment="outline"
-                              @click=${() => this.handleShowMore(results.length)}
-                          >
-                              Show ${Math.min(5, remainingCount)} more
+                              Show ${Math.min(5, remainingCount)} more (${remainingCount} remaining)
                           </sp-button>`
                         : nothing}
                     <sp-button size="m" variant="secondary" @click=${() => this.copyAllCardLinks(results)}>
@@ -222,14 +135,9 @@ export class MasOperationResult extends LitElement {
         `;
     }
 
-    buildFragmentHref(fragment) {
-        const path = fragment.path || (this.displayContext?.surface ? `/content/dam/mas/${this.displayContext.surface}` : null);
-        return buildStudioFragmentHref({
-            webComponentName: 'merch-card',
-            fragmentId: fragment.id,
-            page: 'content',
-            path,
-        });
+    handleShowMore(totalCount) {
+        const increment = 5;
+        this.displayCount = Math.min((this.displayCount || 5) + increment, totalCount);
     }
 
     extractSurfaceFromResults(results) {

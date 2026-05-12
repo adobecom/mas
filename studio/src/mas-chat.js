@@ -828,7 +828,7 @@ export class MasChat extends LitElement {
                 mcpTool: classified.dispatch.mcpTool,
                 mcpParams: classified.dispatch.mcpParams,
             });
-            this.markLatestOperationLightweight(classified);
+            this.attachSearchDisplayContext(classified);
             this.maybeOfferSearchPivots(classified);
             return true;
         }
@@ -840,22 +840,23 @@ export class MasChat extends LitElement {
     }
 
     /**
-     * Tag the most recent operation message so its <mas-operation-result>
-     * renders in lightweight (links-only) mode. Used after the deterministic
-     * router fires — the LLM path keeps the heavyweight default.
+     * Attach surface / locale / query slots to the latest operation message
+     * so the unified search-result render can compose a "View all in Studio →"
+     * deep link. Used after the deterministic router fires; the LLM-routed
+     * path lacks this context — its "View all" button is omitted in that case.
      */
-    markLatestOperationLightweight(classified) {
+    attachSearchDisplayContext(classified) {
         const lastIndex = this.messages.length - 1;
         const last = this.messages[lastIndex];
         if (!last?.operationResult) return;
         const surfaceFromSlots = classified.slots?.surface || null;
         const localeFromSlots = classified.slots?.locale || 'en_US';
-        const queryFromSlots = classified.slots?.query || classified.slots?.osi || classified.slots?.id || null;
+        const queryFromSlots =
+            classified.slots?.query || classified.slots?.osi || classified.slots?.id || classified.slots?.variant || null;
         this.messages = [
             ...this.messages.slice(0, lastIndex),
             {
                 ...last,
-                operationDisplayMode: 'links',
                 operationDisplayContext: {
                     surface: surfaceFromSlots,
                     locale: localeFromSlots,
@@ -874,24 +875,50 @@ export class MasChat extends LitElement {
         const result = lastMessage?.operationResult;
         if (!result) return;
 
-        const hasNoFragment = classified.intent === 'id-lookup' && !result.fragment;
-        const hasNoResults = classified.intent !== 'id-lookup' && (result.results?.length ?? 0) === 0;
-        if (!hasNoFragment && !hasNoResults) return;
+        // Pick the right "did we get nothing back?" predicate per intent.
+        // Different MCP tools return results under different fields:
+        //   - get_card           → result.fragment
+        //   - get_variations     → result.variations
+        //   - search_cards       → result.results
+        // Treating them uniformly (always reading result.results) makes
+        // the pivot fire spuriously after a successful variations lookup.
+        const isEmptyByIntent = () => {
+            if (classified.intent === 'id-lookup') return !result.fragment;
+            if (classified.intent === 'variations-lookup') return (result.variations?.length ?? 0) === 0;
+            return (result.results?.length ?? 0) === 0;
+        };
+        if (!isEmptyByIntent()) return;
 
         const surface = classified.slots?.surface;
-        const lookupValue = classified.slots?.id || classified.slots?.osi || classified.slots?.query;
+        const lookupValue =
+            classified.slots?.id || classified.slots?.osi || classified.slots?.query || classified.slots?.variant;
 
         const lines = [];
         if (classified.intent === 'id-lookup') {
             lines.push(`No card found with ID \`${lookupValue}\`.`);
+        } else if (classified.intent === 'variations-lookup') {
+            lines.push(`No variations found for fragment \`${lookupValue}\`.`);
         } else if (classified.intent === 'osi-lookup' || classified.intent === 'offer-id-lookup') {
             lines.push(`No cards found using OSI \`${lookupValue}\`${surface ? ` in ${surface}` : ''}.`);
         } else if (classified.intent === 'content-search') {
             lines.push(`No cards contain "${lookupValue}"${surface ? ` in ${surface}` : ''}.`);
+        } else if (classified.intent === 'variant-search') {
+            lines.push(`No cards with template \`${lookupValue}\`${surface ? ` in ${surface}` : ''}.`);
         } else {
             lines.push(`No cards matched "${lookupValue}"${surface ? ` in ${surface}` : ''}.`);
         }
-        if (surface) {
+        if (classified.intent === 'variations-lookup') {
+            lines.push(
+                `Either this fragment has no grouped variations, or the ID is incorrect. Open the parent in Studio to confirm.`,
+            );
+        } else if (classified.intent === 'variant-search' && surface) {
+            // The template exists in the catalog (router validated it) but
+            // this surface has no cards using it. Most useful next step is
+            // to try other surfaces, not change query phrasing.
+            lines.push(
+                `That template isn't used in **${surface}**. Try \`acom\`, \`commerce\`, or \`ccd\` — or add \`in <surface>\` to your message to override.`,
+            );
+        } else if (surface) {
             lines.push(`You can search by title or content in **${surface}**, or browse the **${surface}** folder in Studio.`);
         } else {
             lines.push('You can search by title, content, or paste a fragment ID, OSI, or offer ID.');

@@ -19,6 +19,7 @@
 
 import { extractKnownSurfaceFromPath } from './mas-chat-helpers.js';
 import { SURFACES } from '../constants.js';
+import { normalizeVariantName } from './known-variants.js';
 
 const KNOWN_SURFACE_NAMES = Object.values(SURFACES).map(({ name }) => name);
 
@@ -27,21 +28,82 @@ const OSI_RE = /\b([A-Za-z0-9_-]{7,64})\b/g;
 const OFFER_ID_RE = /\b([A-Fa-f0-9]{32})\b/;
 const QUOTED_TITLE_RE = /(["'])([^"']{2,80})\1/;
 const TITLED_VERB_RE =
-    /\b(?:find|show|get|search|search for|look up|list|give me)\s+(?:me\s+)?(?:cards?|fragments?)?\s*(?:titled|named|called|matching)\s+(.+?)(?:\s+in\s+(?:acom|commerce|ccd|sandbox|adobe-home|express|nala|acom-cc|acom-dc)|\s*$)/i;
+    /\b(?:find|show|get|search|search for|look up|list|give me)\s+(?:me\s+|all\s+)?(?:cards?|fragments?)?\s*(?:(?:with\s+)?(?:fragment\s+)?(?:title|titled|named|called|matching|name))\s+(.+?)(?:\s+in\s+(?:acom|commerce|ccd|sandbox|adobe-home|express|nala|acom-cc|acom-dc)|\s+in\s+all\s+locales?|\s+across\s+all\s+locales?|\s*$)/i;
 const CONTENT_VERB_RE =
     /\b(?:find|show|get|search|search\s+for|look\s+up|list|give\s+me)\s+(?:me\s+)?(?:all\s+)?(?:cards?|fragments?)\s+(?:that\s+)?(?:contain(?:ing|s)?|with|mentioning|about|having|reference(?:s|ing)?|including)\s+(.+?)(?:\s+in\s+(?:acom|commerce|ccd|sandbox|adobe-home|express|nala|acom-cc|acom-dc)|\s*$)/i;
+// Words the user types when they want content matches (not titles). When any
+// of these appear, the QUOTED_TITLE path must NOT win — it would otherwise
+// hijack "usages of 'X'" into a title-only search that finds zero cards.
+const CONTENT_SIGNAL_RE =
+    /\b(?:usages?\s+of|instances?\s+of|occurrences?\s+of|references?\s+to|mentions?\s+of|appearances?\s+of|cards?\s+that\s+(?:mention|reference|contain|use)|fragments?\s+that\s+(?:mention|reference|contain|use))\b/i;
+// Quoted phrase preceded by a content-signal verb → content search. Mirror
+// the title-quoted shape but capture the phrase for use as a free-text query.
+const CONTENT_QUOTED_RE =
+    /\b(?:usages?\s+of|instances?\s+of|occurrences?\s+of|references?\s+to|mentions?\s+of|appearances?\s+of)\s+["']([^"']{2,120})["']/i;
 const SEARCH_VERB_RE = /\b(?:find|show|get|search|look up|list|give me|grab|where(?:'s|\s+is)?)\b/i;
 const SEARCH_NOUN_RE = /\b(?:cards?|fragments?)\b/i;
+
+// Template / variant / type anchors. Each pattern captures the candidate
+// variant token (which is then validated via normalizeVariantName — typos
+// abstain back to the LLM). Two shapes are accepted:
+//   1. anchor-before:  "template plans", "variant fries", "of type plans"
+//   2. anchor-after:   "plans template", "plans-students variant"
+// Trailing "in <surface>" is stripped from anchor-before captures.
+const TEMPLATE_BEFORE_RE =
+    /\b(?:template|variant|type|templates|variants|types)\s+([A-Za-z][A-Za-z0-9-]{0,40}(?:\s+[A-Za-z][A-Za-z0-9-]{0,40})?)(?:\s+(?:in|for)\s+(?:acom|commerce|ccd|sandbox|adobe-home|express|nala|acom-cc|acom-dc)|\s*$|\s+template|\s+variant|\s+type|\s+cards?|\s+fragments?)/i;
+const TEMPLATE_AFTER_RE = /\b([A-Za-z][A-Za-z0-9-]{0,40})\s+(?:template|variant|type)s?\b/i;
 const OSI_KEYWORD_RE = /\b(?:osi|offer\s+selector|os-id|wcs-osi)\b/i;
 const OFFER_KEYWORD_RE = /\b(?:offer\s*id|offer-id)\b/i;
+// Anchor words that signal the user wants the *variation graph* of a UUID,
+// not just the card itself. Same UUID + this anchor → get_variations.
+const VARIATIONS_ANCHOR_RE =
+    /\b(?:variations?\s+of|variations?\s+from|grouped\s+variations?|from\s+parent|child(?:ren)?\s+of)\b/i;
 const ALL_LOCALES_RE = /\b(?:in|across|for|over)\s+(?:all|every|each)\s+locales?\b/i;
 const LOCALE_RE = /\b(?:in|for)\s+([a-z]{2}_[A-Z]{2,4})\b/;
-// Phrases that imply tag-based filtering (product code, market segment, etc.).
-// We abstain on these so the LLM path can resolve the tag via list_products
-// and dispatch search_cards with the canonical tag id — deterministic
-// substring matching can't satisfy these queries.
+// Trailing "in <surface>" / "for <surface>" so the user can override the
+// folder-picker's currentSurface inline. Lowercased + matched against
+// KNOWN_SURFACE_NAMES; anything else is left to existing logic.
+// The trailing-punctuation class accepts the common end-of-sentence chars
+// users type ('.', '?', '!', '"', "'", ',', ';', ':') in any combination
+// plus trailing whitespace.
+const TRAILING_SURFACE_RE = /\b(?:in|for)\s+([A-Za-z][A-Za-z-]+)\b[\s.!?"',;:]*$/i;
+// Phrases that signal advanced query semantics the router cannot model
+// safely (field-scoped search, exclusion, sorting, date ranges, top-N).
+// The router CAN dispatch a search, but the user's actual intent is
+// nuanced enough that dispatching a simplified version would silently
+// return wrong results. Instead we abstain so the LLM can ask a
+// clarifying question or compose a richer dispatch.
+//
+// Each clause here = a class of bug we'd otherwise be patching one-by-one:
+//   - 'in the X field'        : field-scoped search
+//   - 'only in description'   : same, alternate phrasing
+//   - 'but not X' / 'excluding': boolean exclusion
+//   - 'where X is Y'          : structured filter
+//   - 'newer than' / 'before' : date-range
+//   - 'first N' / 'last N'    : ordering + limit
+//   - 'sort(ed) by'           : ordering
+//   - 'group(ed) by'          : aggregation
+// Field-scope phrasings — match "in description", "in the description",
+// "in the description field", "in the title", "in the body", "in CTAs",
+// "within a card's description", etc. The router can't deterministically
+// execute field-scoped search; abstain so the LLM can either dispatch a
+// clean all-field search or ask.
+const FIELD_SCOPE_PHRASE = String.raw`(?:in|within)\s+(?:(?:a|the|some)\s+(?:cards?(?:'s|s')?\s+|fragments?(?:'s|s')?\s+)?)?(?:description|title|body|cta\s*s?|name|tag\s*s?)(?:\s+field)?`;
+const COMPLEX_SCOPE_RE = new RegExp(
+    String.raw`\b${FIELD_SCOPE_PHRASE}\b|\bin\s+the\s+\w+\s+field\b|\bonly\s+in\s+\w+|\bexcluding\b|\bbut\s+not\s+\w|\bwhere\s+\w+\s+(?:is|equals?|matches)\b|\bnewer\s+than\b|\bolder\s+than\b|\bbefore\s+\d|\bafter\s+\d|\bfirst\s+\d+\s+(?:cards?|fragments?)|\blast\s+\d+\s+(?:cards?|fragments?)|\bsort(?:ed)?\s+by\s+\w|\bgroup(?:ed)?\s+by\s+\w`,
+    'i',
+);
+
+// Phrases that imply tag-based filtering or product-catalog lookups
+// (product code, market segment, etc.). We abstain on these so the LLM
+// path can resolve them via list_products / get_product_by_arrangement_code
+// — deterministic substring matching can't satisfy these queries.
+//
+// All "code"-style anchors accept singular and plural to catch "PA codes",
+// "product codes", "arrangement codes" etc. The trailing `\b` is dropped on
+// these tokens so a plural 's' counts as part of the match.
 const TAG_KEYWORD_RE =
-    /\b(?:product\s*code|product\s*tag|arrangement\s*code|tagged(?:\s+with)?|with\s+tag|by\s+tag|market\s*segment|customer\s*segment|pa\s*code|pa-\d|with\s+.+\s+as\s+(?:the\s+)?(?:product|tag|code))\b/i;
+    /\b(?:product\s*codes?|product\s*tags?|arrangement\s*codes?|tagged(?:\s+with)?|with\s+tags?|by\s+tags?|market\s*segments?|customer\s*segments?|pa\s*codes?|pa-\d|with\s+.+\s+as\s+(?:the\s+)?(?:product|tag|code)|as\s+(?:a\s+|the\s+)?(?:grouped\s+variation\s+)?tags?\b|as\s+(?:a\s+|the\s+)?grouped\s+variation\b)/i;
 
 // Phrases that imply the user wants commercial records (WCS offers from AOS),
 // not AEM cards. We abstain when "offer(s)" appears WITHOUT "card(s)" or
@@ -90,6 +152,14 @@ export function classifySearchIntent(message, context = {}) {
     const surface = context.currentSurface || null;
     const locale = resolveLocale(trimmed, context.currentLocale || 'en_US');
 
+    // Abstain on complex query phrasings (field scope, exclusions, sorting,
+    // date ranges, top-N). Dispatching a simplified version would silently
+    // return wrong results. The LLM path is paid to either (a) compose a
+    // richer dispatch, or (b) ask the user a clarifying question.
+    if (COMPLEX_SCOPE_RE.test(trimmed)) {
+        return empty;
+    }
+
     // Abstain on tag/product-code phrasings — those need MCS resolution which
     // only the LLM path knows how to do (via list_products + tag mapping).
     if (TAG_KEYWORD_RE.test(trimmed)) {
@@ -121,6 +191,19 @@ export function classifySearchIntent(message, context = {}) {
     if (uuidMatch) {
         if (countMatches(trimmed, new RegExp(UUID_RE.source, 'gi')) > 1) {
             return { ...empty, confidence: 0.7 };
+        }
+        // UUID + variation anchor → variation graph lookup, not a single card.
+        if (VARIATIONS_ANCHOR_RE.test(trimmed)) {
+            return {
+                intent: 'variations-lookup',
+                slots: { id: uuidMatch[1], locale },
+                confidence: 0.99,
+                missingSlot: null,
+                dispatch: {
+                    mcpTool: 'get_variations',
+                    mcpParams: { id: uuidMatch[1] },
+                },
+            };
         }
         return {
             intent: 'id-lookup',
@@ -158,6 +241,34 @@ export function classifySearchIntent(message, context = {}) {
         }
     }
 
+    // Template/variant detection runs BEFORE content-search. CONTENT_VERB_RE
+    // matches "find cards with X" — and "X" can be "Plans template", which
+    // would silently get dispatched as a full-text query instead of a
+    // template filter. pickVariantCandidate only returns canonical names
+    // (typos abstain), so it's safe to run before generic content matching.
+    const variantToken = pickVariantCandidate(trimmed);
+    if (variantToken) {
+        const canonical = normalizeVariantName(variantToken);
+        // An explicit "in <surface>" / "for <surface>" at the end overrides
+        // the folder-picker's current surface — the user is telling us where
+        // to look, regardless of where they're standing.
+        const overrideSurface = extractTrailingSurface(trimmed) || surface;
+        return buildVariantDispatch(canonical, overrideSurface, locale, HIGH_CONFIDENCE);
+    }
+
+    // Quoted phrase preceded by a content-signal verb ("usages of 'X'",
+    // "occurrences of 'X'") — dispatch as content-search BEFORE the generic
+    // QUOTED_TITLE path can hijack it into a title-only search. This is the
+    // structural fix for "Find all usages of 'get 20+ apps'" returning zero
+    // results because the query was wrongly post-filtered on title.
+    const contentQuoted = trimmed.match(CONTENT_QUOTED_RE);
+    if (contentQuoted) {
+        const term = stripTrailingPunctuation(contentQuoted[1]);
+        if (term) {
+            return buildContentDispatch(term, surface, locale, HIGH_CONFIDENCE);
+        }
+    }
+
     const contentMatch = trimmed.match(CONTENT_VERB_RE);
     if (contentMatch) {
         const term = stripTrailingPunctuation(contentMatch[1]);
@@ -167,7 +278,11 @@ export function classifySearchIntent(message, context = {}) {
     }
 
     const quotedMatch = trimmed.match(QUOTED_TITLE_RE);
-    if (quotedMatch && hasSearchAnchor(trimmed)) {
+    // QUOTED_TITLE only fires when there's NO content-search signal. A
+    // message like 'usages of "X"' has a quoted phrase but the user wants
+    // content matches, not titles — let the LLM (or the CONTENT_QUOTED
+    // path above) handle it instead.
+    if (quotedMatch && hasSearchAnchor(trimmed) && !CONTENT_SIGNAL_RE.test(trimmed)) {
         const title = stripTrailingPunctuation(quotedMatch[2]);
         if (title) {
             return buildTitleDispatch(title, surface, locale, HIGH_CONFIDENCE);
@@ -201,7 +316,39 @@ export function resumeWithSlot(reply, pending) {
     if (pending.intent === 'content-search') {
         return buildContentDispatchFromSlots(slots, pending.confidence);
     }
+    if (pending.intent === 'variant-search') {
+        return buildVariantDispatchFromSlots(slots, pending.confidence);
+    }
     return buildTitleDispatchFromSlots(slots, pending.confidence);
+}
+
+/**
+ * Sanity gate for captured query strings. The regex-based content and title
+ * detectors can leak garbage when phrasing exceeds their assumed shape — a
+ * dangling close-quote, a stop-word stack, an "in" leftover from a scope
+ * qualifier. The gate (a) strips harmless noise (stray quotes), and (b)
+ * abstains entirely on patterns that signal the user wants advanced
+ * semantics we don't model.
+ *
+ * Returns the cleaned query string if it's safe, or null if the dispatch
+ * should be aborted. The builders treat null as "abstain → emptyResult".
+ */
+function sanitizeQuery(rawQuery) {
+    if (typeof rawQuery !== 'string') return null;
+    let q = rawQuery.trim();
+    if (!q) return null;
+    // Strip stray quotes/backticks anywhere in the string. Quoted phrases
+    // are handled by the EXACT_PHRASE detection elsewhere; for content and
+    // title captures the quotes are just noise.
+    q = q.replace(/[`"']/g, '').trim();
+    if (!q) return null;
+    // Starts with a stop-word → capture started at the wrong token
+    if (/^(?:and|or|but|the|with|in|of|to|for|from|by|at)\b/i.test(q)) return null;
+    // Contains a scope-qualifier leftover (e.g. "photoshop in the description").
+    // Abstain so the LLM clarifies or composes a richer dispatch. Uses the
+    // same field-scope detector as COMPLEX_SCOPE_RE — defense in depth.
+    if (new RegExp(String.raw`\b${FIELD_SCOPE_PHRASE}\b|\bonly\s+in\s+\w+`, 'i').test(q)) return null;
+    return q;
 }
 
 function buildOsiDispatch(osi, surface, locale, confidence, intent) {
@@ -220,7 +367,9 @@ function buildOsiDispatch(osi, surface, locale, confidence, intent) {
 }
 
 function buildTitleDispatch(title, surface, locale, confidence) {
-    const slots = { query: title, locale, titleSearch: true };
+    const cleaned = sanitizeQuery(title);
+    if (!cleaned) return emptyResult();
+    const slots = { query: cleaned, locale, titleSearch: true };
     if (surface) slots.surface = surface;
     if (!surface) {
         return {
@@ -241,13 +390,15 @@ function buildTitleDispatch(title, surface, locale, confidence) {
         missingSlot: null,
         dispatch: {
             mcpTool: 'search_cards',
-            mcpParams: { query: title, surface, locale, titleSearch: true },
+            mcpParams: { query: cleaned, surface, locale, titleSearch: true },
         },
     };
 }
 
 function buildContentDispatch(term, surface, locale, confidence) {
-    const slots = { query: term, locale };
+    const cleaned = sanitizeQuery(term);
+    if (!cleaned) return emptyResult();
+    const slots = { query: cleaned, locale };
     if (surface) slots.surface = surface;
     if (!surface) {
         return {
@@ -268,7 +419,7 @@ function buildContentDispatch(term, surface, locale, confidence) {
         missingSlot: null,
         dispatch: {
             mcpTool: 'search_cards',
-            mcpParams: { query: term, surface, locale },
+            mcpParams: { query: cleaned, surface, locale },
         },
     };
 }
@@ -284,6 +435,51 @@ function buildContentDispatchFromSlots(slots, confidence) {
             mcpTool: 'search_cards',
             mcpParams: {
                 query: slots.query,
+                surface: slots.surface,
+                locale: slots.locale || 'en_US',
+            },
+        },
+    };
+}
+
+function buildVariantDispatch(variant, surface, locale, confidence) {
+    const slots = { variant, locale };
+    if (surface) slots.surface = surface;
+    if (!surface) {
+        return {
+            intent: 'variant-search',
+            slots,
+            confidence,
+            missingSlot: {
+                slot: 'surface',
+                prompt: 'Which surface should I search? acom, commerce, ccd, or sandbox?',
+            },
+            dispatch: null,
+        };
+    }
+    return {
+        intent: 'variant-search',
+        slots,
+        confidence,
+        missingSlot: null,
+        dispatch: {
+            mcpTool: 'search_cards',
+            mcpParams: { variant, surface, locale },
+        },
+    };
+}
+
+function buildVariantDispatchFromSlots(slots, confidence) {
+    if (!slots.surface) return emptyResult();
+    return {
+        intent: 'variant-search',
+        slots,
+        confidence,
+        missingSlot: null,
+        dispatch: {
+            mcpTool: 'search_cards',
+            mcpParams: {
+                variant: slots.variant,
                 surface: slots.surface,
                 locale: slots.locale || 'en_US',
             },
@@ -308,6 +504,36 @@ function buildTitleDispatchFromSlots(slots, confidence) {
             },
         },
     };
+}
+
+/**
+ * Pick a single variant token from a message that contains a template/variant/type
+ * anchor word. Two shapes are tried; the picker returns the first candidate
+ * whose normalized form is a known canonical variant. This is what disambiguates
+ * "show me Plans template cards" — anchor-before matches "template cards"
+ * (and "cards" is unknown), so we fall through to anchor-after which captures
+ * "Plans" (which normalizes to a known canonical name).
+ *
+ * Returns the raw captured token (caller normalizes via normalizeVariantName).
+ * Returns null when neither shape yields a known variant — the LLM path can
+ * then handle complex compositions (e.g. "plans templates for Photoshop").
+ */
+function pickVariantCandidate(text) {
+    const before = text.match(TEMPLATE_BEFORE_RE);
+    if (before && before[1]) {
+        const beforeToken = stripTrailingPunctuation(before[1]);
+        if (normalizeVariantName(beforeToken)) {
+            return beforeToken;
+        }
+    }
+    const after = text.match(TEMPLATE_AFTER_RE);
+    if (after && after[1]) {
+        const afterToken = stripTrailingPunctuation(after[1]);
+        if (normalizeVariantName(afterToken)) {
+            return afterToken;
+        }
+    }
+    return null;
 }
 
 function pickOsiCandidate(text) {
@@ -367,4 +593,20 @@ function resolveLocale(message, currentLocale) {
     const match = message.match(LOCALE_RE);
     if (match) return match[1];
     return currentLocale;
+}
+
+/**
+ * Extract an inline "in <surface>" / "for <surface>" override at the trailing
+ * end of the message. Returns the canonical surface name (lowercased) or
+ * null when no recognized surface appears.
+ *
+ * Currently called only from the variant-search path. Other detectors strip
+ * trailing surfaces from their captures but don't yet honor the override —
+ * keep this scoped until we have a single unified surface-resolution pass.
+ */
+function extractTrailingSurface(message) {
+    const match = message.match(TRAILING_SURFACE_RE);
+    if (!match) return null;
+    const candidate = match[1].toLowerCase();
+    return KNOWN_SURFACE_NAMES.includes(candidate) ? candidate : null;
 }

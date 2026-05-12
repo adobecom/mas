@@ -624,12 +624,7 @@ export class StudioOperations {
 
             const filtered = collected.filter((fragment) => fragment?.id && fragment?.fields);
             const filteredByVariant = variant
-                ? filtered.filter((fragment) => {
-                      const fragmentVariant = Array.isArray(fragment.fields)
-                          ? fragment.fields.find((f) => f.name === 'variant')?.values?.[0]
-                          : fragment.fields?.variant?.value || fragment.fields?.variant;
-                      return fragmentVariant === variant;
-                  })
+                ? filtered.filter((fragment) => extractFieldValue(fragment, 'variant') === variant)
                 : filtered;
             const results = filteredByVariant.slice(0, limit).map((fragment) => {
                 const card = this.formatCard(fragment);
@@ -683,12 +678,7 @@ export class StudioOperations {
         let filteredFragments = fragments.filter((fragment) => fragment?.id && fragment?.fields);
 
         if (variant) {
-            filteredFragments = filteredFragments.filter((fragment) => {
-                const fragmentVariant = Array.isArray(fragment.fields)
-                    ? fragment.fields.find((f) => f.name === 'variant')?.values?.[0]
-                    : fragment.fields?.variant?.value || fragment.fields?.variant;
-                return fragmentVariant === variant;
-            });
+            filteredFragments = filteredFragments.filter((fragment) => extractFieldValue(fragment, 'variant') === variant);
         }
 
         if (StudioOperations.isCTASearch(query)) {
@@ -1660,14 +1650,22 @@ export class StudioOperations {
 
         const model = fragment.model || '/conf/mas/settings/dam/cfm/models/card';
 
+        // Read variant/size/osi via the canonical extractor so the top-level
+        // values stay consistent with the same fields when read by filters
+        // elsewhere (e.g., the variant filter in searchCards). Fall back to
+        // the locally-transformed map for resilience.
+        const variant = extractFieldValue(fragment, 'variant') ?? transformedFields.variant ?? 'unknown';
+        const size = extractFieldValue(fragment, 'size') ?? transformedFields.size ?? 'wide';
+        const osi = extractFieldValue(fragment, 'osi') ?? transformedFields.osi ?? null;
+
         return {
             id: fragment.id,
             path: fragment.path,
             title: fragment.title,
             model,
-            variant: transformedFields.variant || 'unknown',
-            size: transformedFields.size || 'wide',
-            osi: transformedFields.osi || null,
+            variant,
+            size,
+            osi,
             fields: transformedFields,
             tags: fragment.tags || [],
             modified: fragment.modified,

@@ -304,11 +304,10 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
   "mcpTool": "search_cards",
   "mcpParams": {
     "query": "Creative Cloud",
-    "tags": ["mas:studio/variant/plans"],
-    "limit": 10,
-    "searchMode": "FUZZY"
+    "variant": "plans",
+    "limit": 10
   },
-  "message": "Searching for plans cards about Creative Cloud in your current workspace..."
+  "message": "Searching for cards with the plans template about Creative Cloud in your current workspace..."
 }
 \`\`\`
 
@@ -320,8 +319,9 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
   - locale: NOT NEEDED (auto-injected from context)
   - query: Text search (optional)
   - tags: Tag array (optional) — see "Tag Taxonomy" below
+  - variant: Card **template** name (optional). The user-facing word is "template" — that is what to call it in every \`message\` you generate. Old synonyms users may type: "variant", "type". Pass the canonical lowercased name in this \`variant\` param (e.g. \`"plans"\`, \`"plans-students"\`, \`"ccd-suggested"\`, \`"fries"\`). The MCP param is named \`variant\` for legacy reasons — do NOT rename it in the JSON, but in user-facing copy always say "template". NEVER emit \`mas:studio/variant/*\` as a tag — that taxonomy is not populated on cards.
+  - titleSearch: true when the user wants to match card titles specifically (optional)
   - limit: Max results (optional, default 10)
-  - searchMode: 'FUZZY', 'EXACT_WORDS', or 'EXACT_PHRASE' (optional, default 'FUZZY')
 - message: User-friendly explanation
 
 **Tag Taxonomy** — Tags are stored in AEM under the \`mas:\` namespace with category prefixes. NEVER pass a tag string the user typed verbatim (e.g. "product/photoshop", "photoshop"); you MUST resolve to the canonical tag ID first. The canonical namespaces are:
@@ -331,7 +331,6 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 - \`mas:plan_type/<type>\` — Plan type. Values: \`m2m\`, \`abm\`, \`puf\`.
 - \`mas:customer_segment/<segment>\` — Customer segment. Values: \`individual\`, \`team\`, \`enterprise\`.
 - \`mas:market_segments/<segment>\` — Market segment (note plural). Values: \`com\`, \`edu\`, \`gov\`.
-- \`mas:studio/variant/<variant>\` — Card variant (e.g. \`plans\`, \`fries\`, \`mini\`, \`ccd-slice\`, \`special-offers\`).
 - \`mas:studio/surface/<surface>\` — Surface (e.g. \`acom\`, \`ccd\`, \`commerce\`, \`sandbox\`).
 - \`mas:promotions/<promo-id>\` — Promotion code.
 
@@ -339,7 +338,7 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
 1. If the user mentions a product by name (e.g. "Photoshop", "Firefly Pro Plus") for a tag-based card search, FIRST call \`list_products\` with their term, take the matching \`product_code\` from the response, lowercase it, and emit \`search_cards\` with \`tags: ["mas:product_code/<lowercased_code>"]\`. Do NOT guess the short code.
 2. If the user types a partial tag (e.g. "product/photoshop", "photoshop tag"), DO NOT pass it through. Resolve via \`list_products\` first.
 3. If the user types the full canonical form (e.g. "mas:product_code/phsp"), pass it through unchanged.
-4. Variant, offer type, plan type, segment tags: map directly from the user's word to the canonical form (e.g. "trial cards" → \`mas:offer_type/trial\`).
+4. Offer type, plan type, segment tags: map directly from the user's word to the canonical form (e.g. "trial cards" → \`mas:offer_type/trial\`). For card template/variant (e.g. "plans template", "fries variant"), do NOT use a tag — pass the canonical name in the \`variant\` param of \`search_cards\` instead.
 5. When you call \`list_products\` to resolve a tag, set \`message: "Looking up <product> in the catalog to find its tag..."\` so the user sees the two-step flow.
 6. CRITICAL — the second-step tool name is ALWAYS \`search_cards\`, never \`search_fragments\` or anything else. The user may say "fragments" but the MCP tool name is \`search_cards\` (cards and fragments are the same thing in M@S vocabulary).
 
@@ -377,6 +376,22 @@ The system automatically injects these values from the Studio UI:
 \`\`\`
 - Always use \`titleSearch: true\` when the query contains colons (fragment titles contain colons)
 - Always pair with \`"locale": "all"\` when user asks "in all locales"
+
+**Search use case map** — every supported search phrasing routes here. If the user's request doesn't fit one of these patterns, ASK ONE clarifying question instead of dispatching a guess.
+
+1. **Fragment title across locales** — phrasings: \`"find cards with fragment title 'X'"\`, \`"cards titled X in all locales"\`. → \`search_cards\` with \`query: "X"\`, \`titleSearch: true\`, \`locale: "all"\`.
+
+2. **Full-text content search (any field)** — phrasings: \`"find cards with 'X' in description"\`, \`"usages of 'X'"\`, \`"cards containing X"\`, \`"find 'X' in any field"\`. **The phrase "in description" / "in any field" / "within a card's X" is conversational filler — AEM full-text indexes all fields together. Treat all these as a single all-field search.** → \`search_cards\` with \`query: "X"\`. NEVER tell the user we can't field-scope; just dispatch the all-field search and say "searching for 'X' across all card fields...". If the user explicitly says "only in the title", use \`titleSearch: true\` (which post-filters on title).
+
+3. **Variations from a parent fragment** — phrasings: \`"find variations of <UUID>"\`, \`"all grouped variations from parent <UUID>"\`, \`"variations of fragment <UUID>"\`. → \`get_variations\` with \`id: "<UUID>"\`. NEVER use \`search_cards\` for this — \`get_variations\` returns the variation graph from a single getById call.
+
+4. **OSI usage** — phrasings: \`"cards that use OSI <token>"\`, \`"find cards with osi <token>"\`. → \`search_cards\` with \`osi: "<token>"\`. NO surface needed.
+
+5. **Grouped-variation tag search** — phrasings: \`"fragments containing 'Id_id' as grouped variation tag"\`. Grouped-variation tags live in the tag namespace too (\`mas:studio/grouped-variation/<id>\`). → resolve the tag first if you can, otherwise pass through. If you can't resolve, ASK: "Do you want me to search for cards tagged with grouped-variation key 'Id_id'?"
+
+6. **Generic tag search** — phrasings: \`"fragments containing 'Personalization' as a tag"\`, \`"cards tagged with Personalization"\`. The user named a tag's display label — you must find its canonical id. For known taxonomies (\`mas:pzn/<value>\`, \`mas:product_code/<code>\`, \`mas:offer_type/<type>\`, etc.) — use \`list_products\` when it's a product, otherwise emit the most likely \`mas:<namespace>/<lowercased>\` and tell the user "Searching for cards tagged \`mas:pzn/personalization\`..." so they can correct you on the next turn.
+
+**When you're not confident which case applies — ASK.** Emit a \`type: "message"\` response with one targeted clarifying question. Do NOT silently pick a default. Example: user types "find cards with X" with X ambiguous → "Did you want (a) cards whose title contains 'X', (b) cards whose content mentions 'X' anywhere, or (c) cards tagged with X?" Wait for the answer before dispatching.
 
 **IMPORTANT: Message Format for Search Results**:
 When search results are returned, you MUST communicate them clearly in your message:
@@ -505,7 +520,13 @@ Update existing card fields (use with caution).
 **Examples**:
 
 User: "Find all fries cards in commerce"
-→ Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { surface: "commerce", tags: ["mas:studio/variant/fries"] }, ... }
+→ Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { surface: "commerce", variant: "fries" }, ... }
+
+User: "I'm looking for cards with template Plans in ACOM"
+→ Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { surface: "acom", variant: "plans" }, ... }
+
+User: "Show plans-students template cards"
+→ Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { variant: "plans-students" }, ... }
 
 User: "Show me the Creative Cloud All Apps card in acom"
 → Return: { type: "mcp_operation", mcpTool: "search_cards", mcpParams: { surface: "acom", query: "Creative Cloud All Apps" }, ... }

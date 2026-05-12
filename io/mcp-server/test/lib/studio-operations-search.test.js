@@ -110,3 +110,104 @@ describe('StudioOperations.searchCards — surface validation', () => {
         expect(result.success).to.equal(true);
     });
 });
+
+describe('StudioOperations.searchCards — variant filter', () => {
+    function buildFragmentWithVariant(id, variant) {
+        return {
+            id,
+            path: `/content/dam/mas/acom/en_US/${id}`,
+            title: `Card ${id}`,
+            status: 'PUBLISHED',
+            fields: [
+                { name: 'variant', values: [variant] },
+                { name: 'title', values: [`Card ${id}`] },
+            ],
+            model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ' },
+        };
+    }
+
+    it('returns only cards whose variant field matches the variant param', async () => {
+        const plans = buildFragmentWithVariant('plans-1', 'plans');
+        const fries = buildFragmentWithVariant('fries-1', 'fries');
+        const ops = makeOps({
+            searchFragments: async () => ({ items: [plans, fries], cursor: null }),
+        });
+        const result = await ops.searchCards({ surface: 'acom', query: 'card', variant: 'plans', limit: 10 });
+        expect(result.success).to.equal(true);
+        expect(result.count).to.equal(1);
+        expect(result.results[0].id).to.equal('plans-1');
+        expect(result.results[0].variant).to.equal('plans');
+    });
+
+    it('matches plans-students distinct from plans', async () => {
+        const plans = buildFragmentWithVariant('plans-1', 'plans');
+        const plansStudents = buildFragmentWithVariant('plans-students-1', 'plans-students');
+        const ops = makeOps({
+            searchFragments: async () => ({ items: [plans, plansStudents], cursor: null }),
+        });
+        const result = await ops.searchCards({
+            surface: 'acom',
+            query: 'card',
+            variant: 'plans-students',
+            limit: 10,
+        });
+        expect(result.count).to.equal(1);
+        expect(result.results[0].id).to.equal('plans-students-1');
+    });
+
+    it('returns empty when no card matches the variant', async () => {
+        const plans = buildFragmentWithVariant('plans-1', 'plans');
+        const ops = makeOps({
+            searchFragments: async () => ({ items: [plans], cursor: null }),
+        });
+        const result = await ops.searchCards({ surface: 'acom', query: 'card', variant: 'fries', limit: 10 });
+        expect(result.count).to.equal(0);
+        expect(result.results).to.deep.equal([]);
+    });
+
+    it('excludes fragments missing the variant field when filtering by variant', async () => {
+        const noVariant = {
+            id: 'no-variant',
+            path: '/content/dam/mas/acom/en_US/no-variant',
+            title: 'No Variant',
+            status: 'PUBLISHED',
+            // No 'variant' field at all — simulates the AEM-search-sparse-response case
+            fields: [{ name: 'title', values: ['No Variant'] }],
+            model: { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ' },
+        };
+        const plans = buildFragmentWithVariant('plans-1', 'plans');
+        const ops = makeOps({
+            searchFragments: async () => ({ items: [noVariant, plans], cursor: null }),
+        });
+        const result = await ops.searchCards({ surface: 'acom', query: 'card', variant: 'plans', limit: 10 });
+        expect(result.count).to.equal(1);
+        expect(result.results[0].id).to.equal('plans-1');
+    });
+
+    it('formatCard surfaces the variant field at top level (no unknown leak when variant is set)', async () => {
+        const plans = buildFragmentWithVariant('plans-1', 'plans');
+        const ops = makeOps({
+            searchFragments: async () => ({ items: [plans], cursor: null }),
+        });
+        const result = await ops.searchCards({ surface: 'acom', query: 'card', variant: 'plans', limit: 10 });
+        expect(result.results[0].variant).to.equal('plans');
+        expect(result.results[0].variant).to.not.equal('unknown');
+    });
+
+    it('tag-only fast path also filters by variant via the canonical extractor', async () => {
+        const plans = buildFragmentWithVariant('plans-1', 'plans');
+        const fries = buildFragmentWithVariant('fries-1', 'fries');
+        const ops = makeOps({
+            searchFragments: async () => ({ items: [plans, fries], cursor: null }),
+        });
+        const result = await ops.searchCards({
+            surface: 'acom',
+            tags: ['mas:offer_type/base'],
+            variant: 'plans',
+            limit: 10,
+        });
+        expect(result.success).to.equal(true);
+        expect(result.count).to.equal(1);
+        expect(result.results[0].id).to.equal('plans-1');
+    });
+});

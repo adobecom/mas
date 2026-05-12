@@ -46,6 +46,28 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('unknown');
             expect(result.confidence).to.equal(0.7);
         });
+
+        it('classifies UUID + variations anchor as variations-lookup (not id-lookup)', () => {
+            const result = classifySearchIntent(`find all variations of ${UUID}`);
+            expect(result.intent).to.equal('variations-lookup');
+            expect(result.dispatch).to.deep.equal({
+                mcpTool: 'get_variations',
+                mcpParams: { id: UUID },
+            });
+        });
+
+        it('classifies "grouped variations from parent <UUID>" as variations-lookup', () => {
+            const result = classifySearchIntent(`Find all grouped variations from parent ${UUID}`);
+            expect(result.intent).to.equal('variations-lookup');
+            expect(result.dispatch.mcpTool).to.equal('get_variations');
+            expect(result.dispatch.mcpParams.id).to.equal(UUID);
+        });
+
+        it('falls back to id-lookup for bare UUID (no variations anchor)', () => {
+            const result = classifySearchIntent(`open ${UUID}`);
+            expect(result.intent).to.equal('id-lookup');
+            expect(result.dispatch.mcpTool).to.equal('get_card');
+        });
     });
 
     describe('OSI detection (osi-lookup)', () => {
@@ -189,6 +211,69 @@ describe('ai-chat-search-router', () => {
             expect(result.intent).to.equal('title-search');
             expect(result.dispatch.mcpParams.query).to.equal('Promo');
         });
+
+        it('does NOT misclassify "usages of \\"X\\"" as title-search (real bug)', () => {
+            // Reported failure: 'Find all usages of "get 20+ apps" within a
+            // card\'s description' silently routed to titleSearch:true and
+            // returned 0 because no card's title contains the phrase. The
+            // CONTENT_QUOTED path must win first, OR the QUOTED_TITLE path
+            // must abstain when a content-signal verb is present.
+            const phrases = [
+                'Find all usages of "get 20+ apps" within a card\'s description',
+                'Find all usages of "get 20+ apps"',
+                'find occurrences of "get 20+ apps"',
+                'find instances of "Get 20+ apps"',
+                'find mentions of "20+ apps"',
+                'find references to "get 20+ apps"',
+            ];
+            for (const msg of phrases) {
+                const result = classifySearchIntent(msg, { currentSurface: 'acom' });
+                // Either dispatches as content-search OR abstains entirely.
+                // It must NOT dispatch a title-search (which always returns 0
+                // for content phrases that don't appear in card titles).
+                if (result.dispatch) {
+                    expect(result.dispatch.mcpParams.titleSearch, `Failed for: ${msg}`).to.not.equal(true);
+                }
+            }
+        });
+
+        it('classifies \'usages of "X"\' as content-search with the quoted phrase as query', () => {
+            const result = classifySearchIntent('Find all usages of "get 20+ apps"', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('content-search');
+            expect(result.dispatch.mcpParams.query).to.equal('get 20+ apps');
+            expect(result.dispatch.mcpParams.titleSearch).to.equal(undefined);
+        });
+
+        it('abstains on "within a card\'s description" (field-scope)', () => {
+            // The "within a card's description" qualifier is field-scope,
+            // even though the quoted phrase itself would be content. Either
+            // route is acceptable; we just must NOT title-search.
+            const result = classifySearchIntent('Find all usages of "get 20+ apps" within a card\'s description', {
+                currentSurface: 'acom',
+            });
+            // The CONTENT_QUOTED path fires first (HIGH_CONFIDENCE) and
+            // captures "get 20+ apps" as a clean content query, which is
+            // the right outcome — content-search across all fields will
+            // include the description.
+            expect(result.intent).to.be.oneOf(['content-search', 'unknown']);
+            if (result.dispatch) {
+                expect(result.dispatch.mcpParams.titleSearch).to.not.equal(true);
+            }
+        });
+
+        it('handles "find cards with fragment title X in all locales" (use case 1)', () => {
+            const msg =
+                'Find all cards with fragment title "CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo" in all locales';
+            const result = classifySearchIntent(msg, { currentSurface: 'acom' });
+            expect(result.intent).to.equal('title-search');
+            expect(result.dispatch.mcpParams.query).to.equal(
+                'CC Plans Merch Card: Firefly Pro Plus: Individuals: 50-percent-promo',
+            );
+            expect(result.dispatch.mcpParams.titleSearch).to.equal(true);
+            expect(result.dispatch.mcpParams.locale).to.equal('all');
+        });
     });
 
     describe('Content search (content-verb pattern)', () => {
@@ -244,6 +329,145 @@ describe('ai-chat-search-router', () => {
             });
             expect(result.intent).to.equal('content-search');
             expect(result.dispatch.mcpParams.locale).to.equal('all');
+        });
+    });
+
+    describe('Variant / template search', () => {
+        it('classifies "cards with template plans" with surface in context', () => {
+            const result = classifySearchIntent("I'm looking for cards with template Plans", {
+                currentSurface: 'acom',
+                currentLocale: 'en_US',
+            });
+            expect(result.intent).to.equal('variant-search');
+            expect(result.confidence).to.equal(0.85);
+            expect(result.dispatch).to.deep.equal({
+                mcpTool: 'search_cards',
+                mcpParams: { variant: 'plans', surface: 'acom', locale: 'en_US' },
+            });
+        });
+
+        it('classifies "template plans in ACOM" and strips the trailing surface from the variant token', () => {
+            const result = classifySearchIntent("I'm looking for cards with template Plans in ACOM");
+            expect(result.intent).to.equal('variant-search');
+            expect(result.slots.variant).to.equal('plans');
+        });
+
+        it('classifies anchor-after phrasing ("Plans template")', () => {
+            const result = classifySearchIntent('show me Plans template cards', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+        });
+
+        it('classifies "of type fries" phrasing', () => {
+            const result = classifySearchIntent('find cards of type fries', {
+                currentSurface: 'commerce',
+            });
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch.mcpParams.variant).to.equal('fries');
+        });
+
+        it('matches multi-word dashed variants like plans-students', () => {
+            const result = classifySearchIntent('show me plans-students template cards', {
+                currentSurface: 'acom',
+            });
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch.mcpParams.variant).to.equal('plans-students');
+        });
+
+        it('is case-insensitive on the anchor and the variant', () => {
+            const result = classifySearchIntent('TEMPLATE PLANS', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+        });
+
+        it('asks for surface when no context surface', () => {
+            const result = classifySearchIntent('cards with template Plans');
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch).to.equal(null);
+            expect(result.missingSlot.slot).to.equal('surface');
+            expect(result.slots.variant).to.equal('plans');
+        });
+
+        it('abstains when the user did not use an anchor word ("show Plans cards")', () => {
+            // Without an explicit anchor word like "template" or "variant",
+            // this is ambiguous with a title search. Router should NOT hijack —
+            // LLM gets the next shot.
+            const result = classifySearchIntent('show Plans cards', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains when the named template is not in the known set ("template frumple")', () => {
+            const result = classifySearchIntent('cards with template frumple', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('does not hijack a title search ("find cards titled Plans")', () => {
+            const result = classifySearchIntent('find cards titled Plans', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('title-search');
+            expect(result.dispatch.mcpParams.query).to.equal('Plans');
+            expect(result.dispatch.mcpParams.titleSearch).to.equal(true);
+        });
+
+        it('beats content-search when the message ends with a template anchor ("find cards with Plans template")', () => {
+            // CONTENT_VERB_RE would otherwise capture "Plans template" as a
+            // free-text query and return every card whose text contains that
+            // phrase. The variant detector must win for this phrasing.
+            const result = classifySearchIntent('find cards with Plans template', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+        });
+
+        it('beats content-search for "show cards with the Plans template"', () => {
+            const result = classifySearchIntent('show cards with the Plans template', { currentSurface: 'acom' });
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+        });
+
+        it('honors trailing "in <surface>" as an override of currentSurface', () => {
+            const result = classifySearchIntent('find cards with Plans template in commerce', {
+                currentSurface: 'sandbox',
+            });
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch.mcpParams.surface).to.equal('commerce');
+            expect(result.dispatch.mcpParams.variant).to.equal('plans');
+        });
+
+        it('falls back to currentSurface when no trailing "in <surface>"', () => {
+            const result = classifySearchIntent('find cards with Plans template', { currentSurface: 'sandbox' });
+            expect(result.dispatch.mcpParams.surface).to.equal('sandbox');
+        });
+
+        it('still asks for surface slot-fill when trailing in <unknown>', () => {
+            const result = classifySearchIntent('find cards with Plans template in mars');
+            expect(result.intent).to.equal('variant-search');
+            expect(result.missingSlot?.slot).to.equal('surface');
+        });
+
+        it('honors trailing "in <surface>" even with trailing punctuation', () => {
+            // Real user inputs end with sentence punctuation often: '.', '?',
+            // '!', stray quotes from copy/paste. The override regex must
+            // tolerate these.
+            const inputs = [
+                'find cards with Plans template in acom.',
+                'find cards with Plans template in acom?',
+                'find cards with Plans template in acom!',
+                'find cards with Plans template in acom"',
+                "find cards with Plans template in acom'",
+                'find cards with Plans template in acom...',
+            ];
+            for (const msg of inputs) {
+                const result = classifySearchIntent(msg, { currentSurface: 'sandbox' });
+                expect(result.dispatch?.mcpParams?.surface, `Failed for: ${msg}`).to.equal('acom');
+            }
+        });
+
+        it('honors trailing "in <SURFACE>" in any case', () => {
+            const result = classifySearchIntent('find cards with Plans template in ACOM', { currentSurface: 'sandbox' });
+            expect(result.dispatch.mcpParams.surface).to.equal('acom');
         });
     });
 
@@ -335,6 +559,22 @@ describe('ai-chat-search-router', () => {
             expect(resumeWithSlot('', pendingTitleSearch).intent).to.equal('unknown');
             expect(resumeWithSlot(null, pendingTitleSearch).intent).to.equal('unknown');
         });
+
+        it('completes a variant-search dispatch with the surface reply', () => {
+            const pendingVariant = {
+                intent: 'variant-search',
+                slots: { variant: 'plans', locale: 'en_US' },
+                confidence: 0.85,
+                missingSlot: { slot: 'surface', prompt: 'Which surface should I search? ...' },
+                dispatch: null,
+            };
+            const result = resumeWithSlot('acom', pendingVariant);
+            expect(result.intent).to.equal('variant-search');
+            expect(result.dispatch).to.deep.equal({
+                mcpTool: 'search_cards',
+                mcpParams: { variant: 'plans', surface: 'acom', locale: 'en_US' },
+            });
+        });
     });
 
     describe('Tag / product-code abstain', () => {
@@ -373,6 +613,98 @@ describe('ai-chat-search-router', () => {
         it('does NOT abstain on benign "with" phrasing (still content-search)', () => {
             const result = classifySearchIntent('find cards with firefly', { currentSurface: 'acom' });
             expect(result.intent).to.equal('content-search');
+        });
+
+        it('abstains on PLURAL "PA codes" phrasing (singular regex missed it)', () => {
+            // Real bug: 'can you show me PA codes of "Firefly Pro Plus"' was
+            // hijacked by QUOTED_TITLE_RE because TAG_KEYWORD_RE only matched
+            // singular "PA code".
+            const result = classifySearchIntent('can you show me PA codes of "Firefly Pro Plus"', {
+                currentSurface: 'sandbox',
+            });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains on complex-scope qualifiers (field scope, exclusion, sorting, date)', () => {
+            // These phrasings exceed the router's vocabulary. Dispatching a
+            // simplified version returns wrong results silently. The router
+            // bails so the LLM can compose a richer dispatch or ask a
+            // clarifying question.
+            const phrases = [
+                'search for cards with "photoshop" in the description field',
+                'find cards with photoshop in description',
+                'find cards that contain "Get 20+ apps" in the description',
+                'find cards with photoshop in the description',
+                'find cards with photoshop in the title',
+                'find cards with photoshop in the body',
+                'find cards with photoshop in CTAs',
+                'find cards with photoshop only in title',
+                'find cards with photoshop but not promo',
+                'show cards newer than 2025',
+                'find first 5 cards titled foo',
+                'sort cards by date',
+                'find cards excluding plans',
+            ];
+            for (const msg of phrases) {
+                const result = classifySearchIntent(msg, { currentSurface: 'acom' });
+                expect(result.intent, `Failed for: ${msg}`).to.equal('unknown');
+                expect(result.dispatch, `Failed for: ${msg}`).to.equal(null);
+            }
+        });
+
+        it('sanity gate: rejects captured query with unmatched quote', () => {
+            // QUOTED_TITLE_RE could in principle capture across a stray quote;
+            // the gate stops dispatching obvious garbage.
+            const result = classifySearchIntent('find cards titled "Photoshop in some weird"context', {
+                currentSurface: 'acom',
+            });
+            // Either abstains entirely, OR dispatches a clean (no-quote) query
+            // — but never dispatches a query containing an unbalanced quote.
+            if (result.dispatch) {
+                const q = result.dispatch.mcpParams.query;
+                expect((q.match(/"/g) || []).length % 2, `Odd quote count in: ${q}`).to.equal(0);
+            }
+        });
+
+        it('sanity gate: rejects captured query that starts with stop-word', () => {
+            // Manufactured scenario — the regexes shouldn't produce this, but
+            // the gate is the catch-all if they do.
+            const result = classifySearchIntent('find cards with and the of', { currentSurface: 'acom' });
+            // Should abstain rather than dispatch "and the of" as a query.
+            expect(result.intent).to.equal('unknown');
+        });
+
+        it('abstains on plural "product codes", "arrangement codes", "tags"', () => {
+            const phrases = [
+                'show me product codes for Firefly Pro Plus',
+                'list arrangement codes for Photoshop',
+                'cards with tags Photoshop',
+                'find cards by tags photoshop',
+                'group by market segments',
+                'list customer segments',
+            ];
+            for (const msg of phrases) {
+                const result = classifySearchIntent(msg, { currentSurface: 'acom' });
+                expect(result.intent, `Failed for: ${msg}`).to.equal('unknown');
+            }
+        });
+
+        it('abstains on "as a tag" / "as the tag" / "as grouped variation tag" phrasings', () => {
+            // The 6-use-case spec includes:
+            //   - "containing 'Personalization' as a tag"
+            //   - "containing 'Id_id' as grouped variation tag"
+            // These should route to LLM for tag-namespace resolution.
+            const phrases = [
+                "Find all fragments containing 'Personalization' as a tag",
+                "Find all fragments containing 'Id_id' as grouped variation tag",
+                "show cards with 'Firefly' as the product tag",
+                "find cards with 'Premium' as a grouped variation",
+            ];
+            for (const msg of phrases) {
+                const result = classifySearchIntent(msg, { currentSurface: 'acom' });
+                expect(result.intent, `Failed for: ${msg}`).to.equal('unknown');
+            }
         });
     });
 

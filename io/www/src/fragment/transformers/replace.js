@@ -186,7 +186,7 @@ async function replace(context) {
             }
         }
     } else {
-        log('no placeholders found in fragment content.', context);
+        log('no placeholders found in fragment content', context);
     }
     return {
         ...context,

@@ -206,7 +206,6 @@ export default class MasMnemonic extends LitElement {
         /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */
         .icon-only {
             display: inline-block;
-            vertical-align: middle;
         }
     `;
 

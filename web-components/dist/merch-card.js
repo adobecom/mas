@@ -205,7 +205,6 @@ var pr=Object.defineProperty;var mr=a=>{throw TypeError(a)};var Za=(a,t,e)=>t in
         /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */
         .icon-only {
             display: inline-block;
-            vertical-align: middle;
         }
     `);Ge=_;customElements.define("mas-mnemonic",Ge)});import{LitElement as Vn}from"./lit-all.min.js";import{css as vr,unsafeCSS as fr}from"./lit-all.min.js";var w="(max-width: 767px)",A="(max-width: 1199px)",E="(min-width: 768px)",f="(min-width: 1200px)",T="(min-width: 1600px)",ur={matchMobile:window.matchMedia(w),matchDesktop:window.matchMedia(`${f} and (not ${T})`),matchDesktopOrUp:window.matchMedia(f),matchLargeDesktop:window.matchMedia(T),get isMobile(){return this.matchMobile.matches},get isDesktop(){return this.matchDesktop.matches},get isDesktopOrUp(){return this.matchDesktopOrUp.matches}},x=ur;function mt(){return ur.isDesktop}var xr=vr`
     :host {

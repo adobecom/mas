@@ -205,7 +205,6 @@ var P=Object.defineProperty;var H=(n,e,t)=>e in n?P(n,e,{enumerable:!0,configura
         /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */
         .icon-only {
             display: inline-block;
-            vertical-align: middle;
         }
     `);y=o;customElements.define("mas-mnemonic",y)});import{LitElement as X,html as O,css as W}from"./lit-all.min.js";function B(){return customElements.get("sp-tooltip")!==void 0||document.querySelector("sp-theme")!==null}var b=class extends X{constructor(){super(),this.size="m",this.alt="",this.loading="lazy"}connectedCallback(){super.connectedCallback(),setTimeout(()=>this.handleTooltips(),0)}handleTooltips(){if(B())return;this.querySelectorAll("sp-tooltip, overlay-trigger").forEach(t=>{let a="",p="top";if(t.tagName==="SP-TOOLTIP")a=t.textContent,p=t.getAttribute("placement")||"top";else if(t.tagName==="OVERLAY-TRIGGER"){let i=t.querySelector("sp-tooltip");i&&(a=i.textContent,p=i.getAttribute("placement")||t.getAttribute("placement")||"top")}if(a){let i=document.createElement("mas-mnemonic");i.setAttribute("content",a),i.setAttribute("placement",p);let r=this.querySelector("img"),l=this.querySelector("a");l&&l.contains(r)?i.appendChild(l):r&&i.appendChild(r),this.innerHTML="",this.appendChild(i),Promise.resolve().then(()=>z())}t.remove()})}render(){let{href:e}=this;return e?O`<a href="${e}">
                   <img

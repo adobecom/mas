@@ -45,17 +45,6 @@ export class VariantLayout {
         }
     }
 
-    /**
-     * Per-row height sync.
-     *
-     * Groups all sibling cards of the same variant by their visual row
-     * (computed from `getBoundingClientRect().top`) and, for each named
-     * slot/element, applies the row's max height as a CSS custom property
-     * on every CARD in that row. This keeps cards in different rows from
-     * stretching each other when one card has unusually tall content.
-     *
-     * @param {Array<{name: string, getElement: (card: HTMLElement) => Element | null | undefined}>} entries
-     */
     syncRowHeights(entries) {
         if (this.card.heightSync === false) return;
         const container = this.getContainer();

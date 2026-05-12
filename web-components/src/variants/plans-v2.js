@@ -213,8 +213,6 @@ export class PlansV2 extends VariantLayout {
         }
 
         if (window.matchMedia('(min-width: 768px)').matches) {
-            const container = this.getContainer();
-            if (!container) return;
             requestAnimationFrame(() => {
                 this.syncHeights();
             });

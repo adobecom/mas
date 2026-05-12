@@ -264,8 +264,6 @@ export class Plans extends VariantLayout {
             await this.adjustEduLists();
         }
         if (window.matchMedia('(min-width: 768px)').matches) {
-            const container = this.getContainer();
-            if (!container) return;
             requestAnimationFrame(() => {
                 this.syncHeights();
             });

@@ -3635,6 +3635,12 @@ merch-card[variant^="plans"] [slot="heading-m"] span.price:not(.price-strikethro
     line-height: var(--consonant-merch-card-heading-m-line-height);
 }
 
+merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+}
+
 merch-card[variant^="plans"] [slot='heading-xs'],
 merch-card[variant="plans-education"] span.heading-xs,
 merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough) {
@@ -3703,6 +3709,9 @@ merch-card[variant^='plans'] span[data-template="legal"] {
 html:has(mas-commerce-service[locale="ja_JP"]) {
     merch-card[variant^='plans'] span[data-template="legal"] {
         display: inline;
+    }
+    merch-card[variant^='plans'] [slot="heading-m"] span[is="inline-price"][data-template="price"] {
+        display: inline-flex;
     }
 }
 

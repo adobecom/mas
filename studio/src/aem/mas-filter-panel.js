@@ -114,7 +114,7 @@ class MasFilterPanel extends LitElement {
                 let fullPath = `/content/cq:tags/mas/${tagPath}`;
                 let title = values.length > 0 ? values[values.length - 1].toUpperCase() : '';
                 // For product_code, collapse child selections
-                // back to the parent product for display in the filter chips
+                // back to the parent product for display in the tag picker
                 if (type === 'product_code' && values.length > 1) {
                     const parentValue = values[0];
                     fullPath = `/content/cq:tags/mas/${type}/${parentValue}`;

@@ -24,6 +24,13 @@
             ]
         },
         {
+            "name": "compatVersion",
+            "type": "number",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
             "name": "osi",
             "type": "text",
             "multiple": false,
@@ -151,6 +158,13 @@
             ]
         },
         {
+            "name": "promoCode",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
+            "values": []
+        },
+        {
             "name": "parent",
             "type": "content-fragment",
             "multiple": false,
@@ -170,6 +184,13 @@
             "multiple": false,
             "locked": false,
             "mimeType": "text/html",
+            "values": []
+        },
+        {
+            "name": "quantitySelect",
+            "type": "text",
+            "multiple": false,
+            "locked": false,
             "values": []
         },
         {

@@ -149,6 +149,14 @@ class MerchCardCollectionEditor extends LitElement {
         return this.fragmentStore?.get();
     }
 
+    get isGroupedVariation() {
+        return Fragment.isGroupedVariationPath(this.fragment?.path);
+    }
+
+    get pznTagsValue() {
+        return this.fragment?.getFieldValues('pznTags').join(',') ?? '';
+    }
+
     get searchText() {
         return this.fragment?.getEffectiveFieldValue('searchText', this.localeDefaultFragment, this.isVariation) ?? '';
     }
@@ -955,6 +963,34 @@ class MerchCardCollectionEditor extends LitElement {
         this.fragmentStore.updateField('tagFilters', newTags);
     }
 
+    #handlePznTagsChange(e) {
+        if (Store.showCloneDialog.get()) return;
+        const value = e.target.getAttribute('value');
+        const newTags = value ? value.split(',') : [];
+        this.fragmentStore.updateField('pznTags', newTags);
+    }
+
+    get groupedVariationTagsTemplate() {
+        if (!this.isGroupedVariation) return nothing;
+        return html`
+            <div class="form-row">
+                <sp-field-group id="grouped-variation-tags">
+                    <sp-field-label>Grouped variation tags</sp-field-label>
+                    <aem-tag-picker-field
+                        selection="checkbox-tags"
+                        display-value
+                        label="Locale tags"
+                        namespace="/content/cq:tags/mas"
+                        top="locale,pzn"
+                        multiple
+                        value="${this.pznTagsValue}"
+                        @change=${this.#handlePznTagsChange}
+                    ></aem-tag-picker-field>
+                </sp-field-group>
+            </div>
+        `;
+    }
+
     #updateIcon(event, fieldName) {
         const icon = event.detail.icon;
         this.fragmentStore.updateField(fieldName, [icon]);
@@ -1188,6 +1224,7 @@ class MerchCardCollectionEditor extends LitElement {
                         @change=${this.#handleTagFilterChange}
                     ></aem-tag-picker-field>
                 </div>
+                ${this.groupedVariationTagsTemplate}
                 <div class="form-row">
                     <sp-field-label for="linksTitle">Links Title</sp-field-label>
                     ${this.#renderTextFieldStatusIndicator('linksTitle')}

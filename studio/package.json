@@ -16,5 +16,8 @@
     "main": "src/index.js",
     "keywords": [],
     "author": "",
-    "license": "ISC"
+    "license": "ISC",
+    "devDependencies": {
+        "sinon": "^13.0.1"
+    }
 }

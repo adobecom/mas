@@ -179,12 +179,14 @@ export class MerchQuantitySelect extends LitElement {
             changedProperties.has('defaultValue')
         ) {
             this.options = this.generateOptionsArray();
-            this.highlightedIndex = this.defaultValue
-                ? this.options.indexOf(this.defaultValue)
-                : 0;
-            this.handleMenuOption(
-                this.defaultValue ? this.defaultValue : this.options[0],
-            );
+            const fallback = this.options[0];
+            const resolved =
+                this.defaultValue != null &&
+                this.options.includes(this.defaultValue)
+                    ? this.defaultValue
+                    : fallback;
+            this.highlightedIndex = this.options.indexOf(resolved);
+            this.handleMenuOption(resolved);
         }
         super.update(changedProperties);
     }
@@ -246,6 +248,10 @@ export class MerchQuantitySelect extends LitElement {
         this.dispatchEvent(customEvent);
     }
 
+    get configured() {
+        return this.title || this.min || this.step;
+    }
+
     get offerSelect() {
         return this.querySelector('merch-offer-select');
     }
@@ -302,6 +308,8 @@ export class MerchQuantitySelect extends LitElement {
     }
 
     render() {
+        if (!this.configured) return nothing;
+
         return html`
             <div class="label" id="qsLabel">${this.title}</div>
             <div class="text-field">

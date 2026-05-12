@@ -15,6 +15,7 @@ import {
 } from './constants.js';
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
+import { getActiveMerchCardEditor } from './editors/merch-card-editor.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import './editors/merch-card-editor.js';
@@ -27,6 +28,14 @@ const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
+
+function getWhatsIncludedDividerColorFromMarkup(fragment) {
+    if (!fragment) return '';
+    const html = fragment.getFieldValue('whatsIncluded', 0) || '';
+    if (!html.trim()) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.querySelector('merch-whats-included')?.getAttribute('whats-included-divider-color')?.trim() || '';
+}
 
 export default class MasFragmentEditor extends LitElement {
     static styles = css`
@@ -96,6 +105,24 @@ export default class MasFragmentEditor extends LitElement {
             border-radius: 12px;
             box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
             overflow-y: auto;
+        }
+
+        .preview-locale-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            padding: 20px 20px 0 20px;
+            box-sizing: border-box;
+        }
+
+        .preview-locale-panel sp-field-label {
+            font-size: 14px;
+            color: var(--spectrum-global-color-gray-800);
+        }
+
+        .preview-locale-panel sp-picker {
+            width: 100%;
         }
 
         @media (max-width: 1200px) {
@@ -584,6 +611,23 @@ export default class MasFragmentEditor extends LitElement {
         return attrs;
     }
 
+    get previewWhatsIncludedDividerAttribute() {
+        const fragment = this.fragmentStore?.previewStore?.value || this.fragment;
+        if (!fragment) return '';
+
+        const v = getWhatsIncludedDividerColorFromMarkup(fragment) || fragment.getFieldValue('whatsIncludedDividerColor', 0);
+        if (!v || v === 'Default' || v.toLowerCase() === 'default') {
+            return '';
+        }
+        if (/-gradient/.test(v) || /^gradient-/.test(v)) {
+            return v;
+        }
+        if (/^spectrum-.*-(plans|special-offers)$/.test(v)) {
+            return v;
+        }
+        return '';
+    }
+
     get previewCSSCustomProperties() {
         const styles = [];
         const fragment = this.fragmentStore?.previewStore?.value || this.fragment;
@@ -612,6 +656,16 @@ export default class MasFragmentEditor extends LitElement {
             } else if (!borderColor.includes('-gradient')) {
                 // Regular color (not gradient)
                 styles.push(`--consonant-merch-card-border-color: var(--${borderColor})`);
+            }
+        }
+
+        const whatsIncludedDividerColor =
+            getWhatsIncludedDividerColorFromMarkup(fragment) || fragment.getFieldValue('whatsIncludedDividerColor', 0);
+        if (whatsIncludedDividerColor) {
+            if (whatsIncludedDividerColor.toLowerCase() === 'transparent') {
+                styles.push('--consonant-merch-card-whats-included-divider-color: transparent');
+            } else if (!/-gradient/.test(whatsIncludedDividerColor) && !/^gradient-/.test(whatsIncludedDividerColor)) {
+                styles.push(`--consonant-merch-card-whats-included-divider-color: var(--${whatsIncludedDividerColor})`);
             }
         }
 
@@ -1082,6 +1136,9 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         this.fragmentStore.updateField(fieldName, value);
+        if (fieldName === 'promoCode') {
+            getActiveMerchCardEditor()?.refreshRenderedPrices?.();
+        }
     }
 
     async deleteFragment() {
@@ -1372,6 +1429,42 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
+    #handleGroupedPreviewLocaleChange = (event) => {
+        const editor = getActiveMerchCardEditor();
+        if (!editor) return;
+        editor.previewLocaleOverride = event.target.value || null;
+    };
+
+    #handlePreviewLocaleChange = (event) => {
+        if (!this.fragmentStore?.previewStore) return;
+        const localeValue = event.detail?.value ?? null;
+        const changed = this.fragmentStore.previewStore.setPreviewLocaleOverride(localeValue);
+        if (!changed) return;
+        this.fragmentStore.previewStore.resolveFragment();
+        this.requestUpdate();
+    };
+
+    get groupedPreviewLocaleSelector() {
+        const editor = getActiveMerchCardEditor();
+        const locales = editor?.groupedPreviewLocales || [];
+        if (!locales.length) return nothing;
+
+        const selectedLocale = editor?.previewLocaleOverride || locales[0].code;
+
+        return html`
+            <div class="preview-locale-panel">
+                <sp-field-label for="grouped-preview-locale">Preview card for:</sp-field-label>
+                <sp-picker
+                    id="grouped-preview-locale"
+                    value="${selectedLocale}"
+                    @change=${this.#handleGroupedPreviewLocaleChange}
+                >
+                    ${locales.map((locale) => html`<sp-menu-item value="${locale.code}">${locale.label}</sp-menu-item>`)}
+                </sp-picker>
+            </div>
+        `;
+    }
+
     get localeVariationHeader() {
         if (!this.fragment || !this.editorContextStore.isVariation(this.fragment.id)) {
             return nothing;
@@ -1544,6 +1637,7 @@ export default class MasFragmentEditor extends LitElement {
                         .updateFragment=${this.updateFragment}
                         .localeDefaultFragment=${this.localeDefaultFragment}
                         .isVariation=${this.editorContextStore.isVariation(this.fragment?.id)}
+                        @preview-locale-change=${this.#handlePreviewLocaleChange}
                     ></merch-card-editor>
                 `;
                 break;
@@ -1575,6 +1669,7 @@ export default class MasFragmentEditor extends LitElement {
         const attrs = this.previewAttributes;
         const borderAttrs = this.previewBorderColorAttributes;
         const cssProps = this.previewCSSCustomProperties;
+        const whatsIncludedDividerAttr = this.previewWhatsIncludedDividerAttribute;
 
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
@@ -1582,6 +1677,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             <div id="preview-column">
                 <div id="preview-wrapper">
+                    ${this.groupedPreviewLocaleSelector}
                     ${this.editorContextStore.isVariation(this.fragment.id)
                         ? Fragment.isGroupedVariationPath(this.fragment.path)
                             ? this.displayGroupedVariationInfo('preview-header')
@@ -1594,6 +1690,7 @@ export default class MasFragmentEditor extends LitElement {
                                 size=${attrs.size || nothing}
                                 name=${attrs.name || nothing}
                                 border-color=${borderAttrs.borderColor || nothing}
+                                whats-included-divider-color=${whatsIncludedDividerAttr || nothing}
                                 background-image=${attrs.backgroundImage || nothing}
                                 stock-offer-osis=${attrs.stockOfferOsis || nothing}
                                 checkbox-label=${attrs.checkboxLabel || nothing}

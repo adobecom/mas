@@ -3,10 +3,9 @@ import router from './router.js';
 import Store from './store.js';
 import { PAGE_NAMES, SURFACES, TRANSLATIONS_ALLOWED_SURFACES } from './constants.js';
 import Events from './events.js';
-import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue } from './utils.js';
+import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue, previewFragmentOnPage } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { canAccessSettings } from './groups.js';
 
 const EVENT_MAS_READY = 'mas:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
@@ -35,30 +34,26 @@ class MasSideNav extends LitElement {
         :host {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            height: calc(100% - 35px);
             width: 68px;
             padding: 32px 12px 12px 5px;
             box-sizing: content-box;
-            overflow-y: overlay;
+            overflow-y: auto;
         }
 
         .nav-container {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            flex: 1;
+            min-height: 0;
         }
 
         .nav-items {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            flex: 1;
             position: relative;
-            min-height: 770px;
-        }
-
-        #settings-nav-item {
-            position: absolute;
-            bottom: 42px;
+            padding-bottom: 116px;
         }
 
         .side-nav-new-window {
@@ -160,7 +155,8 @@ class MasSideNav extends LitElement {
     #copyFieldMenuOpenedByPointer = false;
     #onMerchCardReady = (event) => {
         const card = this.#getPreviewCard();
-        if (!card || event.target !== card) return;
+        if (!card) return;
+        if (!(event.composedPath?.()?.includes(card) ?? false)) return;
         this.#updateResolvedPrice(this.#getFirstResolvedPriceText(card));
     };
     #onCopyFieldTriggerPointerDown = () => {
@@ -177,6 +173,7 @@ class MasSideNav extends LitElement {
     #onCopyFieldMenuOpened = (event) => {
         if (!this.#copyFieldMenuOpenedByPointer) return;
         this.#copyFieldMenuOpenedByPointer = false;
+        this.requestUpdate();
         const overlayTrigger = event.currentTarget;
         queueMicrotask(() => {
             if (this.#clearFocusedCopyFieldMenuItem(overlayTrigger)) return;
@@ -302,6 +299,10 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.publishFragment();
     }
 
+    previewFragment() {
+        previewFragmentOnPage(this.fragmentEditor?.fragment);
+    }
+
     async copyCode() {
         if (!this.fragmentEditor) return;
         await this.fragmentEditor.copyToUse();
@@ -331,6 +332,18 @@ class MasSideNav extends LitElement {
 
     #getPreviewCard() {
         return this.fragmentEditor?.querySelector?.('merch-card');
+    }
+
+    #queryAllInlinePriceElements(card) {
+        const collected = [];
+        const visit = (root) => {
+            collected.push(...root.querySelectorAll(INLINE_PRICE_SELECTOR));
+            root.querySelectorAll('*').forEach((node) => {
+                if (node.shadowRoot) visit(node.shadowRoot);
+            });
+        };
+        visit(card);
+        return collected;
     }
 
     #syncPricePreview() {
@@ -384,7 +397,7 @@ class MasSideNav extends LitElement {
     }
 
     #getFirstResolvedPriceText(card) {
-        const prices = [...card.querySelectorAll(INLINE_PRICE_SELECTOR)];
+        const prices = this.#queryAllInlinePriceElements(card);
         let fallbackText = '';
 
         for (const price of prices) {
@@ -414,7 +427,7 @@ class MasSideNav extends LitElement {
 
     #getResolvedInlinePriceCandidates(card = this.#getPreviewCard()) {
         if (!card) return [];
-        return [...card.querySelectorAll(INLINE_PRICE_SELECTOR)]
+        return this.#queryAllInlinePriceElements(card)
             .map((el) => {
                 const { full, core } = this.#getFormattedPriceTexts(el);
                 return {
@@ -474,12 +487,13 @@ class MasSideNav extends LitElement {
             if (candidateIdx === -1) return;
             usedIndices.add(candidateIdx);
             const candidate = resolvedInlinePrices[candidateIdx];
-            // Use full text (with per-unit/tax) when the source inline-price
-            // requested those labels; otherwise use just the core price amount.
-            const wantsExtras =
-                sourceAttrs.get('data-display-per-unit') === 'true' || sourceAttrs.get('data-display-tax') === 'true';
+            // Mirror the rendered preview: per-unit and tax labels are resolved
+            // from locale defaults (e.g. FR_fr → "TTC"), not authored on the
+            // source span, so the rendered DOM is the source of truth. Fall
+            // back to coreText only if the rendered output had no labels.
+            const renderedText = candidate.formattedText || candidate.coreText;
             const temp = doc.createElement('span');
-            temp.innerHTML = wantsExtras ? candidate.formattedText : candidate.coreText;
+            temp.innerHTML = renderedText;
             inlinePrice.replaceWith(...temp.childNodes);
         });
         return doc.body.innerHTML;
@@ -818,21 +832,6 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.deleteFragment();
     }
 
-    get settingsItem() {
-        if (!canAccessSettings(Store.surface())) {
-            return nothing;
-        }
-        return html`
-            <mas-side-nav-item
-                id="settings-nav-item"
-                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS || Store.page.get() === PAGE_NAMES.SETTINGS_EDITOR}
-                @nav-click="${router.navigateToPage(PAGE_NAMES.SETTINGS)}"
-            >
-                <sp-icon-settings slot="icon" size="l"></sp-icon-settings>
-            </mas-side-nav-item>
-        `;
-    }
-
     get defaultNavigation() {
         return html`
             <mas-side-nav-item
@@ -880,7 +879,14 @@ class MasSideNav extends LitElement {
                 <sp-icon-help slot="icon"></sp-icon-help>
                 <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
             </mas-side-nav-item>
-            ${this.settingsItem}
+            <mas-side-nav-item
+                class="bottom"
+                label="Advanced tools"
+                ?selected=${Store.page.get() === PAGE_NAMES.ADVANCED_TOOLS}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)}"
+            >
+                <sp-icon-briefcase slot="icon"></sp-icon-briefcase>
+            </mas-side-nav-item>
         `;
     }
 
@@ -902,6 +908,9 @@ class MasSideNav extends LitElement {
                       </mas-side-nav-item>
                   `
                 : ''}
+            <mas-side-nav-item label="Preview" ?disabled=${loading} @nav-click="${this.previewFragment}">
+                <sp-icon-preview slot="icon"></sp-icon-preview>
+            </mas-side-nav-item>
             <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>

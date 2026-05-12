@@ -1,0 +1,47 @@
+# graphify exclude patterns — same syntax as .gitignore
+# Keeps graphify from re-processing its own output and build artifacts on --update.
+
+# graphify's own output (obsidian vault, wiki, cache — already in the graph)
+graphify-out/
+
+# build artifacts and dependencies
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+out/
+
+# coverage reports (HTML + JS instrumentation, no architectural value)
+**/coverage/
+**/lcov-report/
+
+# generated bundles
+**/libs/swc.js
+**/libs/fragment-client.js
+
+# Python / tooling caches
+__pycache__/
+.venv/
+.pytest_cache/
+.mypy_cache/
+
+# IDE / OS noise
+.DS_Store
+.idea/
+.vscode/
+
+# local AI planning artifacts (per project CLAUDE.md, not shared)
+docs/superpowers/
+.claude/plans/
+.claude/audits/
+.claude/data/
+.claude/research/
+
+# session logs and worktree state
+*.log
+.wt-*.log
+
+# generated docs
+.scout/
+.playwright-mcp/

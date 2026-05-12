@@ -1,0 +1,564 @@
+# MAS Architect — Reviewer Mental Model
+# Tech-lead / architect review patterns for the MAS codebase.
+#
+# USAGE: This file models the MAS architect review behavior for pre-submission
+# self-review and expertise-informed PR planning. All claims backed by real PR citations.
+# Run /mental-model:mas-architect:self-improve to update from recent PR reviews.
+#
+# Data source: adobecom/mas PRs reviewed by reviewers listed under `architect_reviewers`.
+# Provenance lines below cite the specific historical reviewer who voiced each comment —
+# these are kept as evidence for the pattern, not as persona identity.
+
+# Reviewer logins whose PR review comments seed/refresh this model.
+# self-improve.md reads this list and queries the GitHub API for each login.
+architect_reviewers:
+  - npeltier
+  - yesil
+  - honstar
+  - afmicka
+
+overview:
+  role: "Tech lead / architect of mas/io (fragment delivery pipeline) and io/studio (translation/runtime actions)"
+  core_review_philosophy: >
+    Code must be minimal, correctly scoped, and reuse existing infrastructure.
+    Every PR should do exactly what its ticket says — no more, no less.
+    Shared logic belongs in common modules, not duplicated across boundaries.
+    Generated or throwaway code does not belong in the codebase.
+  review_intensity: "High — reads code deeply, questions architectural choices, tracks cross-PR consistency"
+  approval_style: >
+    Often approves with inline comments expecting future follow-up. Uses 'lgtm' for clean PRs.
+    Will block on scope creep or architectural concerns even if the code itself works.
+
+# --- OWNERSHIP MAP ---
+
+ownership_map:
+  primary_owner:
+    io/www/src/fragment/:
+      depth: "deep — reviews logic, naming, architecture, test coverage"
+      notes: "Architect domain. Expects all code here to follow established patterns."
+    io/studio/src/:
+      depth: "deep — especially translation/, common.js, state management"
+      notes: "Cares about centralizing state via state.js init/get pattern."
+    io/www/src/fragment/locales.js:
+      depth: "gatekeeper — treats internal constants as private API"
+      notes: "Will reject PRs that expose internals for convenience."
+  active_reviewer:
+    studio/src/:
+      depth: "architectural — focuses on splitting large files, factorizing, naming"
+    studio/src/aem/:
+      depth: "moderate — reviews fragment.js closely"
+    web-components/src/:
+      depth: "light — approves quickly, occasional questions"
+  peripheral:
+    nala/:
+      depth: "rubber-stamp"
+    .github/workflows/:
+      depth: "light — cares about CI coverage integration"
+
+# --- VALUES (ranked by enforcement frequency) ---
+
+values:
+  - name: "scope_discipline"
+    rank: 1
+    description: "PR does what the ticket says — nothing more, nothing less."
+    evidence:
+      - pr: 642
+        quote: "your ticket is not supposed to fix a problem with parallel settings requests... it deserves much more attention (so specific JIRA & PR)"
+      - pr: 547
+        quote: "This is a very big change wrt to what it is supposed to fix, no? Are sidenav changes necessary for this ticket?"
+      - pr: 727
+        quote: "please remove tagFilters, this is for sidenav so not related"
+      - pr: 705
+        quote: "blocked localStorage change unrelated to PR topic"
+
+  - name: "factorization_and_reuse"
+    rank: 2
+    description: "Use existing utilities, extract repeated logic into shared modules."
+    evidence:
+      - pr: 547
+        quote: "Can we factorize field equality in one method?"
+      - pr: 598
+        quote: "don't we have that regexp already in other places?"
+      - pr: 732
+        quote: "this could be in common?"
+      - pr: 726
+        quote: "i would use state.js init & get method, to centralise state management"
+      - pr: 598
+        quote: "there is PATH_TOKENS that exist (and you created a util you don't use)"
+      - pr: 751
+        quote: "This is almost identical to loadOfferData in item-loading-browser.js... Could we import the shared one and pass the cache in? That way the new module isn't shadowed by a duplicate."
+        reviewer: "yesil"
+      - pr: 751
+        quote: "enrichCards in item-loading.js covers this case... We can delete this helper and call the shared one."
+        reviewer: "yesil"
+      - pr: 751
+        quote: "The new getItemTypeLabel helper in render-utils.js already does this exact mapping. Could we use it here... so the new util actually gets adopted?"
+        reviewer: "yesil"
+      - pr: 812
+        quote: "COLLECTION_MODEL_PATH is already exported from studio/src/constants.js. Keeping two copies in sync means a path change needs two edits."
+        reviewer: "yesil"
+      - pr: 812
+        quote: "The same mas:locale/`/`mas:pzn/ metadata fallback pattern is duplicated in mas-fragment-editor.js... A shared helper would prevent drift."
+        reviewer: "yesil"
+      - pr: 740
+        quote: "this should be imported from io/www"
+        reviewer: "yesil"
+      - pr: 774
+        quote: "i see you have the exact same method in the translation-utils.js. This looks like a duplicate. Do we need to duplicate it or can the utils method be used here?"
+        reviewer: "afmicka"
+      - pr: 829
+        quote: "This is actually a good opportunity to move the isAllowed function to a common utils file"
+        reviewer: "honstar"
+      - pr: 700
+        quote: "make sure that you only bring delta styles you need for quantity select and re-use existing styles as much as possible."
+        reviewer: "yesil"
+
+  - name: "no_dead_or_throwaway_code"
+    rank: 3
+    description: "No one-off scripts, generated verbosity, or unused code paths."
+    evidence:
+      - pr: 598
+        quote: "i don't want code in that codebase i don't need to review"
+      - pr: 598
+        quote: "this code keeps on being updated while not used at all for now..."
+      - pr: 705
+        quote: "it looks _very_ verbose. I guess you generated them, right? i would rather try to only keep carefully generated real code"
+      - pr: 774
+        quote: "The fallback to Untitled-Project is effectively dead code in the normal flow since the preceding prepareProjectStart ensures a proper title is set or throws otherwise."
+        reviewer: "honstar"
+      - pr: 774
+        quote: "This is redundant since getOdinLocTaskNameValidationError also checks for an empty string, this check can be removed."
+        reviewer: "honstar"
+      - pr: 736
+        quote: "The fallback is effectively dead code. The function already has document.querySelector('mas-commerce-service') as its default arg, so the event.target path adds noise without benefit."
+        reviewer: "honstar"
+      - pr: 736
+        quote: "LitElement only populates changedProperties with properties that actually changed, so this check is always true. It's harmless but misleading."
+        reviewer: "honstar"
+      - pr: 700
+        quote: "renderQuantityOverrideIndicator() is defined but never called anywhere... Looks like a leftover from the refactor — please remove it."
+        reviewer: "yesil"
+      - pr: 700
+        quote: "qsTitleEl2 is declared but never used — the assertion on the next line checks qsTitleEl.value instead. Either use qsTitleEl2 in the assertion or drop it."
+        reviewer: "yesil"
+      - pr: 751
+        quote: "item-loading.js exports processConcurrently and these same constants, but nothing in src/ imports from it yet — only its own test does."
+        reviewer: "yesil"
+
+  - name: "precise_naming"
+    rank: 4
+    description: "Names must accurately reflect what the code does. Full words over abbreviations."
+    evidence:
+      - pr: 636
+        quote: "getPznVariations or getPersonalizationVariations, please. There can be other kind of variations"
+      - pr: 726
+        quote: "would rename it to project request or something? service sounds like it's all done"
+      - pr: 598
+        quote: "what is this about? i find icons file name a bit misleading"
+      - pr: 647
+        quote: "can we rename to siDenav?"
+      - pr: 751
+        quote: "The name translation-items-loader.js is translation-specific, and this file still imports getFragmentName from ../../translation/translation-utils.js. Moving it to common/ without generalizing it is the worst of both worlds — it either belongs back in translation/, or it needs to be renamed and have the translation-specific dependency inverted."
+        reviewer: "yesil"
+      - pr: 751
+        quote: "the file itself wasn't renamed though, and the content is now fully generic (no translation-specific imports left). Could you rename it to something like items-loader.js so the filename matches what it actually does?"
+        reviewer: "yesil"
+      - pr: 700
+        quote: "This exports class QuantitySelectField, same name as the one in common/fields/quantity-select.js. They're different components... but the identical class name makes imports and IDE navigation confusing. Consider renaming to QuantitySelectSettingsField to match the custom element name."
+        reviewer: "yesil"
+
+  - name: "architectural_boundaries"
+    rank: 5
+    description: "Respect module boundaries, don't leak internals, split large files."
+    evidence:
+      - pr: 598
+        quote: "idea behind _not_ exporting those constants is to prevent future developers from not going through locales.js apis"
+      - pr: 682
+        quote: "problem with separate common module is deployment...deserves a separate conversation"
+      - pr: 598
+        quote: "we should really consider splitting the fragment core utility from the model"
+      - pr: 751
+        quote: "defaulting this to Store.translationProjects keeps a translation-specific reference inside common/, which works against the goal of making this reusable. What if it defaulted to null and consumers had to call setItemsSelectionStore(...) explicitly?"
+        reviewer: "yesil"
+      - pr: 793
+        quote: "Does this function need to be public?"
+        reviewer: "honstar"
+      - pr: 829
+        quote: "Letting the client provide both the token and clientID for which it was issued actually weakens the intended security model: by controlling both any client can send a request to the bulk publish API. Instead, the backend should check that the issued token is for mas-studio exclusively."
+        reviewer: "honstar"
+      - pr: 829
+        quote: "Please restore the initial code since allowedClientId is configured in and read from a central location for all mas-studio actions."
+        reviewer: "honstar"
+
+  - name: "correct_error_semantics"
+    rank: 6
+    description: "HTTP status codes and error types must be semantically correct."
+    evidence:
+      - pr: 552
+        quote: "it should return 400 or 403... but it's not a server error"
+      - pr: 518
+        quote: "nit: this should be 401"
+      - pr: 581
+        quote: "rejected using error message string as logical control flow"
+
+  - name: "observability"
+    rank: 7
+    description: "Measure what matters. Add timing, logging context, track performance."
+    evidence:
+      - pr: 726
+        quote: "suggested adding performance timing measurement with mark/measureTiming"
+      - pr: 559
+        quote: "maybe add project id / path?"
+      - pr: 595
+        quote: "asked about number of ODIN calls to measure cache impact"
+
+  - name: "lit_correctness"
+    rank: 8
+    description: "Lit lifecycle and reactive property contracts must be honored — no invalid requestUpdate args, no missing static properties, no per-render expensive recomputation."
+    evidence:
+      - pr: 736
+        quote: "As per https://lit.dev/docs/v1/components/lifecycle/#requestupdate, passing a boolean argument is not supported and would be treated as a property name. true should be removed here."
+        reviewer: "honstar"
+      - pr: 736
+        quote: "This recomputes groupedPreviewLocales (iterating + mapping pznTags) on every render cycle. Should at minimum be guarded with a check for whether fragment data actually changed, e.g. only when fragmentStore or pznTags-bearing fields are in changedProperties."
+        reviewer: "honstar"
+      - pr: 700
+        quote: "this.disabled = false is set in the constructor but disabled is missing from the static properties block, so Lit won't observe or reflect it. If a parent passes ?disabled=${...} it won't trigger reactive updates."
+        reviewer: "yesil"
+      - pr: 751
+        quote: "setItemsSelectionStore is called in connectedCallback but never reset in disconnectedCallback. If a child component renders before this editor mounts (or after it disconnects), it will read from whatever store was last set."
+        reviewer: "yesil"
+
+  - name: "test_coverage_for_new_branches"
+    rank: 9
+    description: "New conditional branches and helpers must come with unit tests — empty-array paths, fallback guards, type-mixed inputs are all worth covering."
+    evidence:
+      - pr: 812
+        quote: "No unit tests for pznTagIdsForMatching — the fromField !== '' guard, empty-array path, and string-vs-object tag fallback are all worth covering."
+        reviewer: "yesil"
+      - pr: 812
+        quote: "The isCollection tag-spreading branch in transformReferences has no unit tests."
+        reviewer: "yesil"
+      - pr: 812
+        quote: "parentFragment.tags entries are objects ({ id, path, ... }) while pznTags are plain strings — copyFragmentTags receives a heterogeneous array. Worth verifying it handles this mix, or normalizing to one type before merging."
+        reviewer: "yesil"
+
+# --- RED FLAGS ---
+
+red_flags:
+  - pattern: "scope_creep"
+    severity: "blocking"
+    trigger: "Any change not traceable to the PR's ticket"
+    example_pr: 642
+    typical_comment: "your ticket is not supposed to fix a problem with parallel settings requests"
+
+  - pattern: "duplicating_existing_logic"
+    severity: "blocking"
+    trigger: "New utility when equivalent exists"
+    example_pr: 598
+    typical_comment: "there is PATH_TOKENS that exist (and you created a util you don't use)"
+
+  - pattern: "exporting_private_internals"
+    severity: "blocking"
+    trigger: "Making internal constants public for convenience"
+    example_pr: 598
+    typical_comment: "idea behind _not_ exporting those constants is to prevent future developers from not going through locales.js apis"
+
+  - pattern: "one_off_scripts_in_repo"
+    severity: "blocking"
+    trigger: "Throwaway code committed to the codebase"
+    example_pr: 598
+    typical_comment: "i don't want code in that codebase i don't need to review"
+
+  - pattern: "giant_pr_touching_core"
+    severity: "soft_block"
+    trigger: "Large diff on core files beyond ticket scope"
+    example_pr: 547
+    typical_comment: "I am scared about regressions here"
+
+  - pattern: "wrong_error_semantics"
+    severity: "change_requested"
+    trigger: "Incorrect HTTP status codes"
+    example_pr: 552
+    typical_comment: "it should return 400 or 403... but it's not a server error"
+
+  - pattern: "untestable_code_paths"
+    severity: "soft_block"
+    trigger: "Feature code that can't be tested or demoed"
+    example_pr: 519
+    typical_comment: "will we be able to test & demo that code?"
+
+  - pattern: "adding_nala_label_prematurely"
+    severity: "immediate_correction"
+    trigger: "run-nala label before 2 approvals"
+    example_pr: 580
+    typical_comment: "do not add run-nala label before 2 approvals"
+
+  - pattern: "lit_lifecycle_misuse"
+    severity: "change_requested"
+    trigger: "Invalid requestUpdate args, missing static properties, recomputing on every render, store set in connectedCallback without reset in disconnectedCallback"
+    example_pr: 736
+    typical_comment: "passing a boolean argument is not supported and would be treated as a property name"
+    reviewer: "honstar"
+
+  - pattern: "weakened_security_model"
+    severity: "blocking"
+    trigger: "Client sends both token and the clientID it was issued for; backend should validate token issuer instead"
+    example_pr: 829
+    typical_comment: "Letting the client provide both the token and clientID for which it was issued actually weakens the intended security model"
+    reviewer: "honstar"
+
+  - pattern: "missing_unit_tests_for_new_branches"
+    severity: "change_requested"
+    trigger: "New conditional branch / helper / fallback added without unit test coverage"
+    example_pr: 812
+    typical_comment: "No unit tests for pznTagIdsForMatching — the guard, empty-array path, and fallback are all worth covering"
+    reviewer: "yesil"
+
+  - pattern: "duplicate_helper_in_common"
+    severity: "change_requested"
+    trigger: "New file in common/ duplicates logic from an existing common/ module"
+    example_pr: 751
+    typical_comment: "This is almost identical to loadOfferData... Could we import the shared one?"
+    reviewer: "yesil"
+
+  - pattern: "translation_specific_in_common"
+    severity: "change_requested"
+    trigger: "Module placed under common/ but still imports translation-specific helpers or defaults to translation-specific stores"
+    example_pr: 751
+    typical_comment: "Moving it to common/ without generalizing it is the worst of both worlds"
+    reviewer: "yesil"
+
+  - pattern: "aio_config_schema_violation"
+    severity: "blocking"
+    trigger: "Non-string/boolean/object literal in app.config.yaml params (breaks aio app deploy)"
+    example_pr: 758
+    typical_comment: "This causes a schema validation when trying to deploy via aio app deploy since only string, boolean or objects are allowed"
+    reviewer: "honstar"
+
+# --- GREEN FLAGS ---
+
+green_flags:
+  - pattern: "reusing_existing_utilities"
+    signal: "heart emoji"
+    example_pr: 636
+    note: "heart on getTargetPath using PATH_TOKENS"
+
+  - pattern: "removing_code"
+    signal: "approval without pushback"
+    example_pr: 674
+    note: "since it's removing code, i won't rant"
+
+  - pattern: "small_focused_prs"
+    signal: "fast lgtm"
+    example_pr: 669
+    note: "looks good to me — simple removal"
+
+  - pattern: "clean_separations"
+    signal: "explicit praise"
+    example_pr: 516
+    note: "looks great to me!"
+
+  - pattern: "addressing_feedback_thoroughly"
+    signal: "quick CHANGES_REQUESTED to approval flip"
+    example_pr: 547
+
+  - pattern: "css_cleanup"
+    signal: "heart emoji"
+    example_pr: 682
+
+  - pattern: "thanks_for_inverting_dependency"
+    signal: "explicit praise mid-comment"
+    example_pr: 751
+    note: "thanks for inverting the getDisplayName dependency — that part is great"
+    reviewer: "yesil"
+
+  - pattern: "explanation_accepted"
+    signal: "ah, ok. Thanks for the explanation"
+    example_pr: 736
+    note: "Honstar will retract a comment cleanly when the author justifies it"
+    reviewer: "honstar"
+
+  - pattern: "lgtm_simple_approval"
+    signal: "LGTM"
+    example_pr: 751
+    reviewer: "honstar"
+
+# --- REVIEW VOCABULARY ---
+
+review_vocabulary:
+  blocking:
+    - phrase: "i'm uncomfortable with that change"
+      meaning: "Hard block. Will not approve without rework."
+      example_pr: 642
+    - phrase: "i'm sorry, but"
+      meaning: "Hard block delivered politely. Needs significant rework."
+      example_pr: 681
+    - phrase: "this deserves much more attention (so specific JIRA & PR)"
+      meaning: "Out of scope. Open a new ticket."
+      example_pr: 642
+    - phrase: "can we discuss in the team"
+      meaning: "Decision too big for PR review. Needs team alignment."
+      example_pr: 510
+
+  soft_blocking:
+    - phrase: "i would rather"
+      meaning: "Strong preference, negotiable if argued well."
+      example_pr: 705
+    - phrase: "i would for now leave X aside"
+      meaning: "Don't implement this yet. Defer."
+      example_pr: 519
+    - phrase: "please consider"
+      meaning: "Rethink your approach."
+      example_pr: 553
+
+  approval:
+    - phrase: "lgtm"
+      meaning: "Clean approval, no concerns."
+    - phrase: "looks good to me"
+      meaning: "Clean approval, no concerns."
+    - phrase: "beside cosmetics remarks"
+      meaning: "Approved — inline comments are suggestions only."
+    - phrase: "consider my comments as nitpicking"
+      meaning: "Approved. Take-or-leave feedback."
+    - phrase: "let's treat all my non addressed comments later"
+      meaning: "Approved to unblock, but tracked items remain."
+
+  neutral:
+    - phrase: "i'm not sure why you are touching X"
+      meaning: "Explain the connection or remove it. Could escalate."
+      example_pr: 674
+    - phrase: "can you explain what that is about?"
+      meaning: "Code is unclear. Reviewer read it multiple times."
+      example_pr: 727
+    - phrase: "just ranting"
+      meaning: "Acknowledging a known problem. Not blocking."
+      example_pr: 598
+    - phrase: "not agreed yet"
+      meaning: "Needs broader team discussion, not just this reviewer's approval."
+      example_pr: 705
+    - phrase: "Are these limits based on actual historical data...?"
+      meaning: "Justify magic numbers with evidence or documented constraints."
+      example_pr: 751
+      reviewer: "honstar"
+    - phrase: "see comments."
+      meaning: "Yesil's CHANGES_REQUESTED summary — read every inline comment, none are optional."
+      example_pr: 812
+      reviewer: "yesil"
+    - phrase: "please see my comments."
+      meaning: "Yesil's COMMENTED state — review block expected, comments are substantive not nits."
+      example_pr: 793
+      reviewer: "yesil"
+    - phrase: "tiny thing"
+      meaning: "Yesil-style nit prefix — usually a real concern wrapped politely."
+      example_pr: 751
+      reviewer: "yesil"
+    - phrase: "small suggestion"
+      meaning: "Yesil-style soft suggestion — negotiable but he prefers his framing."
+      example_pr: 751
+      reviewer: "yesil"
+    - phrase: "Bigger picture (probably a follow-up, not this PR)"
+      meaning: "Yesil flags structural concern but explicitly defers — track in a follow-up ticket."
+      example_pr: 751
+      reviewer: "yesil"
+
+# --- DOMAIN OPINIONS ---
+
+domain_opinions:
+  - topic: "state_management"
+    stance: "Centralize in state.js via init/get pattern. Components are stateless renderers."
+    evidence: "PR #726, PR #481"
+
+  - topic: "locales_as_private_module"
+    stance: "Public API only. Never export internals."
+    evidence: "PR #598"
+
+  - topic: "shared_code_in_common"
+    stance: "Cross-boundary logic in common modules (but mind deployment coupling)."
+    evidence: "PR #732, PR #726, PR #682"
+
+  - topic: "split_large_files"
+    stance: "mas-repository.js, mas-fragment-editor.js, fragment.js are too big."
+    evidence: "PR #598, PR #547"
+
+  - topic: "deployment_independence"
+    stance: "io/www and io/studio deploy independently. Never assume otherwise."
+    evidence: "PR #682"
+
+  - topic: "content_modeling_over_code"
+    stance: "Solve with AEM content models before adding code complexity."
+    evidence: "PR #681"
+
+  - topic: "settings_should_be_generic"
+    stance: "No model-specific treatment in settings system."
+    evidence: "PR #705, PR #553"
+
+  - topic: "cache_resilience_over_freshness"
+    stance: "Resilient cache + cache-killers over weak caching strategies."
+    evidence: "PR #595"
+
+  - topic: "fix_at_source_not_consumer"
+    stance: "Fix bugs at the store/repository level, not in individual consumers/templates."
+    evidence: "Pattern from review-pr.md architectural correctness section"
+
+  - topic: "io_folder_is_restricted"
+    stance: "Do not touch io/ unless strictly necessary. This is the architect's domain and changes here require strong justification, a specific JIRA, and explicit approval."
+    evidence: "Direct request from npeltier (2026-04-02). io/www and io/studio are the architect's primary ownership areas."
+
+  - topic: "lit_reactive_property_contract"
+    stance: "All component fields used in templates must be in static properties. Don't pass booleans to requestUpdate. Don't recompute derived data on every render — guard with changedProperties checks."
+    evidence: "PR #736 (honstar), PR #700 (yesil)"
+    reviewer: "honstar, yesil"
+
+  - topic: "ootb_aem_apis_first"
+    stance: "Before building a custom action, check whether AEM ships an OOTB equivalent. Bulk publish, fragment APIs, etc. should reuse Sites APIs unless there's a clear gap."
+    evidence: "PR #758 (yesil) — 'Why not use a single api call from the frontend with the list of all the fragment IDs? has the OOTB bulk publish API been ruled out?'"
+    reviewer: "yesil"
+
+  - topic: "auth_token_issuer_check"
+    stance: "Backend validates the token's issued-for clientID. Client never passes both token and clientID — that lets any caller forge access."
+    evidence: "PR #829 (honstar)"
+    reviewer: "honstar"
+
+  - topic: "common_module_must_be_truly_generic"
+    stance: "If a file lives in common/, it cannot import from translation/, repository/, or any consumer-specific module. Default arguments must not reference consumer-specific stores either — accept callbacks or require explicit init."
+    evidence: "PR #751 (yesil)"
+    reviewer: "yesil"
+
+  - topic: "magic_numbers_need_named_constants"
+    stance: "Repeated literal numbers (e.g. concurrency limits, batch sizes) must be named constants at the top of the file, not inline."
+    evidence: "PR #751 (yesil) — 'pulling into a named constant... The same 50 also appears in translation-items-loader.js:237 — same constant.'"
+    reviewer: "yesil"
+
+  - topic: "nala_test_completeness"
+    stance: "When adding a new locale to a feature spec, all related test cases must be updated, not just the matrix entry. Reuse PRICE_PATTERN constants from utils/commerce.js."
+    evidence: "PR #745 (afmicka)"
+    reviewer: "afmicka"
+
+  - topic: "test_fixtures_locale_parity"
+    stance: "Settings test fixtures must mirror prod settings — don't drop locales from mock JSON without checking the override structure on prod."
+    evidence: "PR #743 (afmicka)"
+    reviewer: "afmicka"
+
+# --- GOTCHAS ---
+
+gotchas:
+  - "Approvals with outstanding comments are NOT final — inline comments are tracked and follow-up PRs are expected."
+  - "Heart emoji is genuine sparse praise — used for reuse of existing utilities or clean deletions."
+  - "PR descriptions are reviewed before code — missing context gets called out before the diff is read."
+  - "PRs may be closed if they overlap with in-flight work — check before touching io/www transformers, settings, or locales."
+  - "'prefer small PR' is a standing requirement — enforced by blocking oversized PRs touching core modules."
+  - "Functional test vs visual test distinction — nala tests asserting behavior of another module get flagged."
+  - "Generated code gets extra scrutiny — suspected AI-generated code will be called out."
+  - "Re-review after approval can happen — initial approval is not always final."
+  - "Fix dependabot properly — they only update package-lock.json, fix transitive dependency in package.json instead."
+  - "Screenshots in reviews — expected for visual changes."
+  - "'not agreed yet' means team discussion needed — don't try to convince the reviewer individually."
+  - "Naming can be the sole blocker — PR #647 was blocked solely for 'sidenav' vs 'siDenav' casing."
+  - "Yesil re-posts comments on current HEAD when threads outdate — PR #751 had identical comment on items-loader.js:1 because the original on translation-items-loader.js was orphaned by a rename. He tracks his open threads."
+  - "Honstar reads the lit.dev docs and links them inline — PR #736 cited https://lit.dev/docs/v1/components/lifecycle/#requestupdate. Cite specs back when responding."
+  - "Honstar will accept explanations (PR #736 'Ah, ok. Thanks for the explanation!') — substantive replies that justify the design close threads cleanly."
+  - "Yesil's reviews include code-block analysis with numbered findings (PR #700) — read the full review body before addressing inline comments, the summary often contains the structural concern."
+  - "Afmicka cross-references siblings — PR #774 spotted duplicate method between project-start-service.js and translation-utils.js. PR #745 flagged both missing locale and missing test reuse simultaneously. Check parallel files before committing."
+  - "JSDoc default annotations matter — PR #751 (yesil) called out a dropped '(default: 10000)' hint even though the function signature default was kept. Preserve doc hints during refactors."
+  - "Concurrency / microtask semantics get questioned — PR #751 (yesil) asked for a JSDoc note clarifying that Promise.resolve().then(...) lets synchronous work inside asyncFn run in parallel before the throttle kicks in."

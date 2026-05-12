@@ -1412,6 +1412,36 @@ describe('customize promo variation', function () {
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.be.undefined;
     });
+
+    it('should apply region variation when only regionVariations has the entry (no defaultVar)', async function () {
+        const regionVar = {
+            id: 'region-only-id',
+            path: '/content/dam/mas/sandbox/fr_BE/promotions/black-friday/my-card',
+            fields: { title: 'Region Only Title', badge: 'REGION' },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: {},
+            regionVariations: { 'my-card': regionVar },
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('region-only-id');
+        expect(result.body.fields.title).to.equal('Region Only Title');
+        expect(result.body.fields.badge).to.equal('REGION');
+    });
 });
 
 describe('customize promoCode application', function () {
@@ -1500,6 +1530,16 @@ describe('customize promoCode application', function () {
             fragmentPath: 'test-card',
             body: makeBody('OSI-123'),
         });
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.be.undefined;
+    });
+
+    it('should not set promoCode when fragment has no osi field', async function () {
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody(undefined), promoFragmentPaths: CARD_PATHS },
+            MINIMAL_PROJECT,
+            { '*': 'UNIVERSAL' },
+        );
         expect(result.status).to.equal(200);
         expect(result.body.fields.promoCode).to.be.undefined;
     });

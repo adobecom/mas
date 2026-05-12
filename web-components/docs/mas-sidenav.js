@@ -18,6 +18,7 @@ class MasSidenav extends HTMLElement {
       <a href="/web-components/docs/adobe-home.html">Adobe Home Gallery</a>
       <a href="/web-components/docs/express.html">Express Gallery</a>
       <a href="/web-components/docs/plans.html">Plans Gallery</a>
+      <a href="/web-components/docs/plans-collection.html">Plans Collection Gallery</a>
       <a href="/web-components/docs/catalog.html">Catalog Gallery</a>
       <a href="/web-components/docs/commerce.html">Commerce Gallery</a>
       <a href="/web-components/docs/minicompare.html">Mini Compare Gallery</a>

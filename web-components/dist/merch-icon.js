@@ -202,6 +202,10 @@ var P=Object.defineProperty;var H=(n,e,t)=>e in n?P(n,e,{enumerable:!0,configura
             border-right-color: var(--spectrum-gray-800, #323232);
         }
 
+        .css-tooltip-body p {
+            margin: 0;
+        }
+
         /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */
         .icon-only {
             display: inline-block;

@@ -202,6 +202,10 @@ var pr=Object.defineProperty;var mr=a=>{throw TypeError(a)};var Za=(a,t,e)=>t in
             border-right-color: var(--spectrum-gray-800, #323232);
         }
 
+        .css-tooltip-body p {
+            margin: 0;
+        }
+
         /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */
         .icon-only {
             display: inline-block;

@@ -55,7 +55,7 @@ export default class MasMnemonic extends LitElement {
             z-index: 999;
             background: var(--spectrum-gray-800, #323232);
             color: #fff;
-            padding: var(--mas-mnemonic-tooltip-padding, 4px);
+            padding: var(--mas-mnemonic-tooltip-padding, 8px 12px);
             border-radius: 4px;
             white-space: normal;
             width: max-content;
@@ -201,6 +201,10 @@ export default class MasMnemonic extends LitElement {
         .css-tooltip-tip.right {
             left: -6px;
             border-right-color: var(--spectrum-gray-800, #323232);
+        }
+
+        .css-tooltip-body p {
+            margin: 0;
         }
 
         /* Icon-only (no tooltip): keep inline so icons don't block-stack in <p> */

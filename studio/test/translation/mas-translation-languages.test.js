@@ -45,11 +45,14 @@ describe('MasTranslationLanguages', () => {
             expect(locales).to.deep.equal(sortedLocales);
         });
 
-        it('should create locales matrix with 4 columns', async () => {
+        it('should group locales into region groups', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            expect(el.localesMatrix).to.be.an('array');
-            el.localesMatrix.forEach((row) => {
-                expect(row).to.have.lengthOf(4);
+            expect(el.groupedLocales).to.be.an('array');
+            expect(el.groupedLocales.length).to.be.greaterThan(0);
+            el.groupedLocales.forEach((group) => {
+                expect(group).to.have.property('name');
+                expect(group).to.have.property('locales');
+                expect(group.locales).to.be.an('array');
             });
         });
 
@@ -64,6 +67,13 @@ describe('MasTranslationLanguages', () => {
             expect(el.localesArray).to.be.an('array');
             expect(el.localesArray.length).to.be.greaterThan(0);
             expect(el.localesArray.some((item) => item.lang === 'en' && item.country === 'US')).to.be.false;
+        });
+
+        it('should include en_US when include-source is set', async () => {
+            Store.search.set({ path: 'acom' });
+            const el = await fixture(html`<mas-translation-languages include-source></mas-translation-languages>`);
+            expect(el.includeSource).to.equal(true);
+            expect(el.localesArray.some((item) => item.locale === 'en_US')).to.be.true;
         });
     });
 
@@ -109,23 +119,20 @@ describe('MasTranslationLanguages', () => {
         });
     });
 
-    describe('getLocales method', () => {
-        it('should create a matrix with correct number of rows', async () => {
+    describe('groupedLocales getter', () => {
+        it('should group locales by region', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const expectedRows = Math.ceil(el.localesArray.length / 4);
-            expect(el.localesMatrix).to.have.lengthOf(expectedRows);
+            const groups = el.groupedLocales;
+            const groupNames = groups.map((g) => g.name);
+            expect(groupNames.some((n) => ['LATAM/Americas', 'JAPAC', 'EMEA', 'Other'].includes(n))).to.be.true;
         });
 
-        it('should fill last row with empty objects if needed', async () => {
+        it('should cover all locales across groups', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const lastRow = el.localesMatrix[el.localesMatrix.length - 1];
-            const totalLocales = el.localesArray.length;
-            const remainder = totalLocales % 4;
-            if (remainder !== 0) {
-                const emptyCount = 4 - remainder;
-                const emptyItems = lastRow.filter((item) => !item.locale);
-                expect(emptyItems).to.have.lengthOf(emptyCount);
-            }
+            const allGroupedLocales = el.groupedLocales.flatMap((g) => g.locales.map((item) => item.locale));
+            el.localesArray.forEach((item) => {
+                expect(allGroupedLocales).to.include(item.locale);
+            });
         });
     });
 
@@ -162,7 +169,7 @@ describe('MasTranslationLanguages', () => {
         });
     });
 
-    describe('changeCheckboxState method', () => {
+    describe('toggleLocale method', () => {
         it('should add locale when checkbox is checked', async () => {
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
@@ -170,7 +177,7 @@ describe('MasTranslationLanguages', () => {
                 target: { checked: true, textContent: '  en_US  ' },
                 stopPropagation: sandbox.stub(),
             };
-            el.changeCheckboxState(mockEvent);
+            el.toggleLocale(mockEvent);
             expect(Store.translationProjects.targetLocales.get()).to.include('en_US');
         });
 
@@ -181,7 +188,7 @@ describe('MasTranslationLanguages', () => {
                 target: { checked: false, textContent: '  en_US  ' },
                 stopPropagation: sandbox.stub(),
             };
-            el.changeCheckboxState(mockEvent);
+            el.toggleLocale(mockEvent);
             expect(Store.translationProjects.targetLocales.get()).to.not.include('en_US');
             expect(Store.translationProjects.targetLocales.get()).to.include('fr_FR');
         });
@@ -193,7 +200,7 @@ describe('MasTranslationLanguages', () => {
                 target: { checked: true, textContent: 'en_US' },
                 stopPropagation: stopPropagationStub,
             };
-            el.changeCheckboxState(mockEvent);
+            el.toggleLocale(mockEvent);
             expect(stopPropagationStub.calledOnce).to.be.true;
         });
 
@@ -204,7 +211,7 @@ describe('MasTranslationLanguages', () => {
                 target: { checked: true, textContent: 'en_US' },
                 stopPropagation: sandbox.stub(),
             };
-            el.changeCheckboxState(mockEvent);
+            el.toggleLocale(mockEvent);
             const selectedLocales = Store.translationProjects.targetLocales.get();
             expect(selectedLocales).to.include('fr_FR');
             expect(selectedLocales).to.include('de_DE');
@@ -221,19 +228,22 @@ describe('MasTranslationLanguages', () => {
 
         it('should render select all checkbox', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const selectAllCheckbox = el.shadowRoot.querySelector('#cb-select-all');
+            const selectAllRow = el.shadowRoot.querySelector('.select-all-row');
+            expect(selectAllRow).to.exist;
+            const selectAllCheckbox = selectAllRow.querySelector('sp-checkbox');
             expect(selectAllCheckbox).to.exist;
         });
 
         it('should render select all checkbox with correct label', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const selectAllCheckbox = el.shadowRoot.querySelector('#cb-select-all');
+            const selectAllRow = el.shadowRoot.querySelector('.select-all-row');
+            const selectAllCheckbox = selectAllRow.querySelector('sp-checkbox');
             expect(selectAllCheckbox.textContent.trim()).to.equal('Select all');
         });
 
         it('should render number of languages display', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const languagesDisplay = el.shadowRoot.querySelector('.nmb-languages');
+            const languagesDisplay = el.shadowRoot.querySelector('.locale-count');
             expect(languagesDisplay).to.exist;
             expect(languagesDisplay.textContent).to.include('languages');
         });
@@ -244,43 +254,23 @@ describe('MasTranslationLanguages', () => {
             expect(divider).to.exist;
         });
 
-        it('should render table', async () => {
+        it('should render region cards', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const table = el.shadowRoot.querySelector('sp-table');
-            expect(table).to.exist;
-            expect(table.getAttribute('quiet')).to.not.be.null;
+            const regionCards = el.shadowRoot.querySelectorAll('.region-card');
+            expect(regionCards.length).to.equal(el.groupedLocales.length);
         });
 
-        it('should render table rows', async () => {
+        it('should render region headers with names', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const rows = el.shadowRoot.querySelectorAll('sp-table-row');
-            expect(rows.length).to.equal(el.localesMatrix.length);
+            const regionNames = el.shadowRoot.querySelectorAll('.region-name');
+            expect(regionNames.length).to.equal(el.groupedLocales.length);
         });
 
-        it('should render table cells with checkboxes', async () => {
+        it('should render locale checkboxes inside region cards', async () => {
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells.length).to.be.greaterThan(0);
-            const checkboxes = el.shadowRoot.querySelectorAll('sp-table-cell sp-checkbox');
+            const checkboxes = el.shadowRoot.querySelectorAll('.locale-col sp-checkbox');
             expect(checkboxes.length).to.be.greaterThan(0);
-        });
-
-        it('should not render checkbox for empty cells', async () => {
-            const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
-            const lastRow = el.localesMatrix[el.localesMatrix.length - 1];
-            const emptyItemsCount = lastRow.filter((item) => !item.locale).length;
-            if (emptyItemsCount > 0) {
-                const rows = el.shadowRoot.querySelectorAll('sp-table-row');
-                const lastRowElement = rows[rows.length - 1];
-                const cells = lastRowElement.querySelectorAll('sp-table-cell');
-                let emptyCheckboxCells = 0;
-                cells.forEach((cell) => {
-                    if (!cell.querySelector('sp-checkbox')) {
-                        emptyCheckboxCells++;
-                    }
-                });
-                expect(emptyCheckboxCells).to.equal(emptyItemsCount);
-            }
+            expect(checkboxes.length).to.equal(el.localesArray.length);
         });
     });
 
@@ -290,7 +280,7 @@ describe('MasTranslationLanguages', () => {
             const allLocales = el.localesArray.map((item) => item.locale);
             Store.translationProjects.targetLocales.set(allLocales);
             await el.updateComplete;
-            const selectAllCheckbox = el.shadowRoot.querySelector('#cb-select-all');
+            const selectAllCheckbox = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
             expect(selectAllCheckbox.checked).to.be.true;
         });
 
@@ -298,7 +288,7 @@ describe('MasTranslationLanguages', () => {
             Store.translationProjects.targetLocales.set(['en_US']);
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
             await el.updateComplete;
-            const selectAllCheckbox = el.shadowRoot.querySelector('#cb-select-all');
+            const selectAllCheckbox = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
             expect(selectAllCheckbox.checked).to.be.false;
         });
 
@@ -306,7 +296,7 @@ describe('MasTranslationLanguages', () => {
             Store.translationProjects.targetLocales.set(['en_US']);
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
             await el.updateComplete;
-            const checkboxes = el.shadowRoot.querySelectorAll('sp-table-cell sp-checkbox');
+            const checkboxes = el.shadowRoot.querySelectorAll('.locale-col sp-checkbox');
             const enUsCheckbox = Array.from(checkboxes).find((cb) => cb.textContent.trim() === 'en_US');
             if (enUsCheckbox) {
                 expect(enUsCheckbox.checked).to.be.true;
@@ -317,7 +307,7 @@ describe('MasTranslationLanguages', () => {
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
             await el.updateComplete;
-            const checkboxes = el.shadowRoot.querySelectorAll('sp-table-cell sp-checkbox');
+            const checkboxes = el.shadowRoot.querySelectorAll('.locale-col sp-checkbox');
             checkboxes.forEach((checkbox) => {
                 expect(checkbox.checked).to.be.false;
             });
@@ -327,28 +317,24 @@ describe('MasTranslationLanguages', () => {
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
             const allLocales = el.localesArray.map((item) => item.locale);
-            const selectAllCheckbox = el.shadowRoot.querySelector('#cb-select-all');
-            // Simulate checking the checkbox
+            const selectAllCheckbox = el.shadowRoot.querySelector('.select-all-row sp-checkbox');
             selectAllCheckbox.checked = true;
             selectAllCheckbox.dispatchEvent(new Event('change'));
             await el.updateComplete;
-            // Verify effect: all locales should be selected
             expect(Store.translationProjects.targetLocales.get()).to.deep.equal(allLocales);
         });
 
-        it('should trigger changeCheckboxState when individual checkbox changes', async () => {
+        it('should trigger toggleLocale when individual checkbox changes', async () => {
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
             await el.updateComplete;
-            const checkboxes = el.shadowRoot.querySelectorAll('sp-table-cell sp-checkbox');
+            const checkboxes = el.shadowRoot.querySelectorAll('.locale-col sp-checkbox');
             if (checkboxes.length > 0) {
                 const firstCheckbox = checkboxes[0];
                 const localeText = firstCheckbox.textContent.trim();
-                // Simulate checking the checkbox
                 firstCheckbox.checked = true;
                 firstCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
                 await el.updateComplete;
-                // Verify effect: the locale should be added to the selection
                 expect(Store.translationProjects.targetLocales.get()).to.include(localeText);
             }
         });
@@ -359,7 +345,7 @@ describe('MasTranslationLanguages', () => {
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
             await el.updateComplete;
-            const languagesDisplay = el.shadowRoot.querySelector('.nmb-languages');
+            const languagesDisplay = el.shadowRoot.querySelector('.locale-count');
             const initialText = languagesDisplay.textContent;
             Store.translationProjects.targetLocales.set(['en_US', 'fr_FR']);
             await el.updateComplete;

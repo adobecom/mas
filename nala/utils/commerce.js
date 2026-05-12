@@ -9,10 +9,12 @@ const PRICE_PATTERN = {
         mo: /US\$\d+\.\d\d\/mo/,
         yr: /US\$\d+\.\d\d\/yr/,
     },
+    AR: { mo: /Ar\$\s[\d.,]+\/mo/, mo_en: /Ar\$\s[\d.,]+\/mo/ },
     AU: { mo: /A\$\d+\.\d\d\/mo/ },
     CA: { mo: /CAD\s\$\d+\.\d\d\/mo/ },
     EG: { mo: /LE\s+\d+\.\d\d\/.+/ },
     FR: { mo: /\d+,\d\d\s€\/mois/ },
+    GR: { mo_en: /€\d+,\d\d\/mo/ },
 };
 
 const PLANS_NALA_PATH = { US: '/drafts/nala/features/commerce/plans2' };
@@ -31,6 +33,14 @@ const DOCS_GALLERY_PATH = {
     PLANS: {
         US: '/web-components/docs/plans.html',
         CA_VISITOR: '/web-components/docs/plans.html?country=CA&locale=en_US',
+    },
+    PLANS_COLLECTION: {
+        US: '/web-components/docs/plans-collection.html',
+        GR_co: '/web-components/docs/plans-collection.html?country=GR',
+        GR_EN: '/web-components/docs/plans-collection.html?locale=en_GR',
+        AR_co: '/web-components/docs/plans-collection.html?country=AR',
+        AR_ES: '/web-components/docs/plans-collection.html?locale=es_AR',
+        AR: '/web-components/docs/plans-collection.html?country=AR&language=es',
     },
     MINICOMPARE: '/web-components/docs/minicompare.html',
     MINICOMPARE_MWEB: '/web-components/docs/minicomparemweb.html',

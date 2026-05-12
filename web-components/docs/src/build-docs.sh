@@ -11,6 +11,7 @@ node ./docs/src/build-docs.mjs feature-flags.md ./docs/feature-flags.html
 node ./docs/src/build-docs.mjs aem-fragment.md ./docs/aem-fragment.html
 node ./docs/src/build-docs.mjs merch-card.md ./docs/merch-card.html
 node ./docs/src/build-docs.mjs plans.md ./docs/plans.html
+node ./docs/src/build-docs.mjs plans-collection.md ./docs/plans-collection.html
 node ./docs/src/build-docs.mjs catalog.md ./docs/catalog.html
 node ./docs/src/build-docs.mjs minicompare.md ./docs/minicompare.html
 node ./docs/src/build-docs.mjs minicomparemweb.md ./docs/minicomparemweb.html

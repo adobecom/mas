@@ -682,6 +682,7 @@ class MasBulkPublishEditor extends LitElement {
                       <mas-translation-languages
                           .targetStore=${Store.bulkPublishProjects}
                           include-source
+                          include-regional
                       ></mas-translation-languages>
                   </sp-dialog-wrapper>`
                 : nothing}

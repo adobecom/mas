@@ -21,6 +21,7 @@ class MasItemsSelector extends LitElement {
 
     static properties = {
         viewOnly: { type: Boolean, state: true },
+        hideSelectedToggle: { type: Boolean, attribute: 'hide-selected-toggle' },
         searchQuery: { type: String, state: true },
         selectedTab: { type: String, state: true },
         /** @type {(fragmentData: object) => string} */
@@ -31,6 +32,7 @@ class MasItemsSelector extends LitElement {
     constructor() {
         super();
         this.viewOnly = false;
+        this.hideSelectedToggle = false;
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
@@ -152,7 +154,7 @@ class MasItemsSelector extends LitElement {
                 )}
             </sp-tabs>
 
-            ${this.viewOnly
+            ${this.viewOnly || this.hideSelectedToggle
                 ? nothing
                 : html`
                       <div class="selected-items-count">

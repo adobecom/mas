@@ -177,15 +177,53 @@ runTests(async () => {
                     },
                 });
 
-                const priceElement = card.querySelector('.renewal-text [data-wcs-osi]');
+                const priceElement = card.querySelector(
+                    '.renewal-text [data-wcs-osi]',
+                );
                 await priceElement.onceSettled();
 
-                expect(window.getComputedStyle(priceElement.querySelector('.price-strikethrough .price-tax-inclusivity')).display).to.equal('none');
-                expect(window.getComputedStyle(priceElement.querySelector('.price-strikethrough .price-unit-type')).display).to.equal('none');
-                expect(window.getComputedStyle(priceElement.querySelector('.price-strikethrough .price-recurrence')).display).to.equal('inline');
-                expect(window.getComputedStyle(priceElement.querySelector('.price-alternative .price-tax-inclusivity')).display).to.equal('inline');
-                expect(window.getComputedStyle(priceElement.querySelector('.price-alternative .price-unit-type')).display).to.equal('inline');
-                expect(window.getComputedStyle(priceElement.querySelector('.price-alternative .price-recurrence')).display).to.equal('inline');
+                expect(
+                    window.getComputedStyle(
+                        priceElement.querySelector(
+                            '.price-strikethrough .price-tax-inclusivity',
+                        ),
+                    ).display,
+                ).to.equal('none');
+                expect(
+                    window.getComputedStyle(
+                        priceElement.querySelector(
+                            '.price-strikethrough .price-unit-type',
+                        ),
+                    ).display,
+                ).to.equal('none');
+                expect(
+                    window.getComputedStyle(
+                        priceElement.querySelector(
+                            '.price-strikethrough .price-recurrence',
+                        ),
+                    ).display,
+                ).to.equal('inline');
+                expect(
+                    window.getComputedStyle(
+                        priceElement.querySelector(
+                            '.price-alternative .price-tax-inclusivity',
+                        ),
+                    ).display,
+                ).to.equal('inline');
+                expect(
+                    window.getComputedStyle(
+                        priceElement.querySelector(
+                            '.price-alternative .price-unit-type',
+                        ),
+                    ).display,
+                ).to.equal('inline');
+                expect(
+                    window.getComputedStyle(
+                        priceElement.querySelector(
+                            '.price-alternative .price-recurrence',
+                        ),
+                    ).display,
+                ).to.equal('inline');
             });
             it('should render US standard with secondary cta as regular link', async () => {
                 const [card] = getTemplateContent('template-mini-photo-link');

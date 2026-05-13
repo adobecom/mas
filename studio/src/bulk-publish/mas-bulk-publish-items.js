@@ -16,6 +16,8 @@ class MasBulkPublishItems extends LitElement {
         items: { type: Array },
         urls: { type: String },
         disabled: { type: Boolean },
+        isPublished: { type: Boolean },
+        modifications: { type: Object },
         collapsed: { state: true },
     };
 
@@ -24,6 +26,8 @@ class MasBulkPublishItems extends LitElement {
         this.items = [];
         this.urls = '';
         this.disabled = false;
+        this.isPublished = false;
+        this.modifications = null;
         this.collapsed = false;
     }
 
@@ -84,6 +88,23 @@ class MasBulkPublishItems extends LitElement {
         </span>`;
     }
 
+    renderModificationCell(item) {
+        if (!item.path || !this.modifications) return html`<span class="modification-cell">–</span>`;
+        const modified = this.modifications.get(item.path);
+        if (modified === undefined) return html`<span class="modification-cell">–</span>`;
+        return modified
+            ? html`<span class="modification-cell"><span class="modification-dot"></span>Modified</span>`
+            : html`<span class="modification-cell">–</span>`;
+    }
+
+    renderModificationFooter() {
+        if (!this.modifications) return html`<span class="modification-cell">–</span>`;
+        const modifiedCount = [...this.modifications.values()].filter(Boolean).length;
+        return modifiedCount > 0
+            ? html`<span class="modification-cell"><span class="modification-dot"></span>${modifiedCount} modified</span>`
+            : html`<span class="modification-cell">–</span>`;
+    }
+
     renderBody() {
         if (this.collapsed) return nothing;
         const { rows } = this;
@@ -94,7 +115,7 @@ class MasBulkPublishItems extends LitElement {
                       <div class="items-table-header">
                           <span>URL</span>
                           <span>Status</span>
-                          <span>Actions</span>
+                          <span>${this.isPublished ? 'Modification' : 'Actions'}</span>
                       </div>
                       <ul>
                           ${rows.map(
@@ -105,18 +126,20 @@ class MasBulkPublishItems extends LitElement {
                                       >
                                       <span class="url-spacer"></span>
                                       ${this.renderStatusCell(item)}
-                                      <span class="actions-cell">
-                                          <sp-action-button
-                                              size="xs"
-                                              quiet
-                                              label="Remove item"
-                                              ?disabled=${this.disabled}
-                                              @click=${() => this.removeUrl(item.url)}
-                                          >
-                                              <sp-icon-delete slot="icon"></sp-icon-delete>
-                                              Remove
-                                          </sp-action-button>
-                                      </span>
+                                      ${this.isPublished
+                                          ? this.renderModificationCell(item)
+                                          : html`<span class="actions-cell">
+                                                <sp-action-button
+                                                    size="xs"
+                                                    quiet
+                                                    label="Remove item"
+                                                    ?disabled=${this.disabled}
+                                                    @click=${() => this.removeUrl(item.url)}
+                                                >
+                                                    <sp-icon-delete slot="icon"></sp-icon-delete>
+                                                    Remove
+                                                </sp-action-button>
+                                            </span>`}
                                   </li>
                               `,
                           )}
@@ -129,18 +152,20 @@ class MasBulkPublishItems extends LitElement {
                                         ${errorCount} error${errorCount !== 1 ? 's' : ''} found
                                     </span>`
                                   : html`<span class="status-cell"></span>`}
-                              <span class="actions-cell">
-                                  <sp-action-button
-                                      size="xs"
-                                      quiet
-                                      label="Remove all"
-                                      ?disabled=${this.disabled}
-                                      @click=${this.removeAll}
-                                  >
-                                      <sp-icon-delete slot="icon"></sp-icon-delete>
-                                      Remove all
-                                  </sp-action-button>
-                              </span>
+                              ${this.isPublished
+                                  ? this.renderModificationFooter()
+                                  : html`<span class="actions-cell">
+                                        <sp-action-button
+                                            size="xs"
+                                            quiet
+                                            label="Remove all"
+                                            ?disabled=${this.disabled}
+                                            @click=${this.removeAll}
+                                        >
+                                            <sp-icon-delete slot="icon"></sp-icon-delete>
+                                            Remove all
+                                        </sp-action-button>
+                                    </span>`}
                           </li>
                       </ul>
                   </div>`
@@ -175,9 +200,19 @@ class MasBulkPublishItems extends LitElement {
             <div class="header">
                 <h3>
                     Items${count > 0 ? html`<span class="count"> (${count})</span>` : nothing}
-                    <span class="required">*</span>
+                    ${this.isPublished ? nothing : html`<span class="required">*</span>`}
                 </h3>
                 <div class="header-actions">
+                    ${this.isPublished
+                        ? html`<sp-action-button
+                              size="s"
+                              quiet
+                              data-testid="check-modifications-btn"
+                              @click=${() => emit(this, 'check-modifications')}
+                          >
+                              Check for modifications
+                          </sp-action-button>`
+                        : nothing}
                     <sp-action-button
                         size="s"
                         quiet

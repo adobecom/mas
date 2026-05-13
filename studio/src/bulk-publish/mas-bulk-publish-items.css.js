@@ -142,4 +142,21 @@ export const styles = css`
     .status-pending {
         color: var(--spectrum-gray-600, #505050);
     }
+    .modification-cell {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        white-space: nowrap;
+        width: 120px;
+        flex-shrink: 0;
+    }
+    .modification-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--spectrum-orange-600, #d45b00);
+        flex-shrink: 0;
+    }
 `;

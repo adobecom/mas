@@ -22,8 +22,18 @@ import './mas-bulk-publish-locales.js';
 import './mas-bulk-publish-success-banner.js';
 import './mas-bulk-publish-confirm-dialog.js';
 import './mas-bulk-publish-duplicate-dialog.js';
-import { SAVE_SVG, CLONE_SVG, PUBLISH_SVG, COPY_SVG, LOCK_SVG, LOCK_OPEN_SVG, DELETE_SVG } from './bulk-publish-icons.js';
+import {
+    SAVE_SVG,
+    CLONE_SVG,
+    PUBLISH_SVG,
+    COPY_SVG,
+    LOCK_SVG,
+    LOCK_OPEN_SVG,
+    DELETE_SVG,
+    REVERT_SVG,
+} from './bulk-publish-icons.js';
 import { generateCodeToUse, showToast, normalizeKey } from '../utils.js';
+import './mas-bulk-publish-revert-dialog.js';
 
 const PUBLISH_BLOCKED_REASON = {
     UNSAVED: 'Project must be saved before publishing',
@@ -59,6 +69,8 @@ class MasBulkPublishEditor extends LitElement {
         pendingActions: { state: true },
         hasChanges: { state: true },
         discardDialogOpen: { state: true },
+        modifications: { state: true },
+        revertDialogOpen: { state: true },
     };
 
     #abortController = null;
@@ -74,6 +86,8 @@ class MasBulkPublishEditor extends LitElement {
         this.pendingActions = new Set();
         this.hasChanges = false;
         this.discardDialogOpen = false;
+        this.modifications = null;
+        this.revertDialogOpen = false;
     }
 
     async connectedCallback() {
@@ -219,6 +233,7 @@ class MasBulkPublishEditor extends LitElement {
                 QUICK_ACTION.DUPLICATE,
                 QUICK_ACTION.PUBLISH,
                 QUICK_ACTION.COPY,
+                QUICK_ACTION.REVERT,
                 QUICK_ACTION.DELETE,
             ]);
         }
@@ -232,6 +247,7 @@ class MasBulkPublishEditor extends LitElement {
         } else if (!this.hasChanges) {
             disabled.add(QUICK_ACTION.SAVE);
         }
+        disabled.add(QUICK_ACTION.REVERT);
         if (!this.items.length) disabled.add(QUICK_ACTION.COPY);
         if (!this.hasValidItems || this.publishBlockedReason || this.status === BULK_PUBLISH_STATUS.PUBLISHING) {
             disabled.add(QUICK_ACTION.PUBLISH);
@@ -553,6 +569,42 @@ class MasBulkPublishEditor extends LitElement {
         return [...existingItems, ...results];
     }
 
+    async handleCheckModifications() {
+        const snapshotRaw = this.getField('snapshot');
+        let snapshot;
+        try {
+            snapshot = JSON.parse(snapshotRaw ?? 'null');
+        } catch {
+            snapshot = null;
+        }
+        if (!snapshot) {
+            showToast('No snapshot available to compare.', 'negative');
+            return;
+        }
+        try {
+            const { checkModifications } = await import('./bulk-publish-snapshot.js');
+            const results = await checkModifications(snapshot, this.repository.aem);
+            this.modifications = new Map(results.map(({ path, modified }) => [path, modified]));
+        } catch (err) {
+            console.error('Failed to check modifications:', err);
+            showToast('Failed to check modifications.', 'negative');
+        }
+    }
+
+    handleRevert() {
+        this.revertDialogOpen = true;
+    }
+
+    handleRevertCancel() {
+        this.revertDialogOpen = false;
+    }
+
+    async handleRevertConfirmed() {
+        this.revertDialogOpen = false;
+        const { startReverting } = await import('./bulk-publish-store.js');
+        await startReverting({ project: this.project, repository: this.repository });
+    }
+
     async publish() {
         await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
             const { startPublishing } = await import('./bulk-publish-store.js');
@@ -578,21 +630,25 @@ class MasBulkPublishEditor extends LitElement {
         const lastError = this.status === BULK_PUBLISH_STATUS.DRAFT ? (this.getField('lastError') ?? '') : '';
         const titleText = this.isNewProject ? 'Create bulk publish project' : 'Bulk publish project';
         return html`
-            ${this.pendingActions.size
-                ? html`<div class="loading-overlay">
-                      <sp-progress-circle size="l" indeterminate></sp-progress-circle>
-                  </div>`
-                : nothing}
+            ${
+                this.pendingActions.size
+                    ? html`<div class="loading-overlay">
+                          <sp-progress-circle size="l" indeterminate></sp-progress-circle>
+                      </div>`
+                    : nothing
+            }
             <header>
                 <h1>${titleText}</h1>
             </header>
-            ${published || lastError
-                ? html`<mas-bulk-publish-success-banner
-                      .publishedAt=${this.getField('publishedAt') ?? ''}
-                      .publishedBy=${this.getField('publishedBy') ?? ''}
-                      .error=${lastError}
-                  ></mas-bulk-publish-success-banner>`
-                : nothing}
+            ${
+                published || lastError
+                    ? html`<mas-bulk-publish-success-banner
+                          .publishedAt=${this.getField('publishedAt') ?? ''}
+                          .publishedBy=${this.getField('publishedBy') ?? ''}
+                          .error=${lastError}
+                      ></mas-bulk-publish-success-banner>`
+                    : nothing
+            }
             <section class="card">
                 <h3>General info</h3>
                 <div class="field-group">
@@ -608,12 +664,15 @@ class MasBulkPublishEditor extends LitElement {
             <mas-bulk-publish-items
                 .items=${this.items}
                 .urls=${this.urls}
+                .isPublished=${this.isPublished}
+                .modifications=${this.modifications}
                 ?disabled=${this.isLocked || this.isPublished}
                 @urls-change=${this.handleUrlsChange}
                 @validate-items=${this.validate}
                 @add-by-search=${this.openItemsSelector}
                 @url-remove=${this.handleUrlRemove}
                 @remove-all=${this.handleRemoveAll}
+                @check-modifications=${this.handleCheckModifications}
             ></mas-bulk-publish-items>
             <mas-bulk-publish-locales
                 .locales=${this.locales}
@@ -621,12 +680,13 @@ class MasBulkPublishEditor extends LitElement {
                 @edit-locales=${this.openLocalesPicker}
             ></mas-bulk-publish-locales>
             <mas-quick-actions
-                drag-handle-style="bar"
+                drag-handle-style="bar" /* audit-ok: component attribute, not inline style */
                 .actions=${[
                     QUICK_ACTION.SAVE,
                     QUICK_ACTION.DUPLICATE,
                     QUICK_ACTION.PUBLISH,
                     QUICK_ACTION.COPY,
+                    QUICK_ACTION.REVERT,
                     QUICK_ACTION.LOCK,
                     QUICK_ACTION.DELETE,
                 ]}
@@ -635,6 +695,7 @@ class MasBulkPublishEditor extends LitElement {
                     [QUICK_ACTION.DUPLICATE]: { icon: CLONE_SVG, title: 'Duplicate' },
                     [QUICK_ACTION.PUBLISH]: { icon: PUBLISH_SVG, title: this.publishBlockedReason || 'Publish' },
                     [QUICK_ACTION.COPY]: { icon: COPY_SVG, title: 'Copy' },
+                    [QUICK_ACTION.REVERT]: { icon: REVERT_SVG, title: 'Revert' },
                     [QUICK_ACTION.LOCK]: {
                         icon: this.isLocked ? LOCK_OPEN_SVG : LOCK_SVG,
                         title: this.isLocked ? 'Unlock' : 'Lock',
@@ -647,6 +708,7 @@ class MasBulkPublishEditor extends LitElement {
                 @copy=${this.#handleCopy}
                 @lock=${this.#handleLock}
                 @publish=${this.handlePublish}
+                @revert=${this.handleRevert}
                 @delete=${this.deleteBulkProject}
             ></mas-quick-actions>
             <mas-bulk-publish-confirm-dialog
@@ -663,51 +725,63 @@ class MasBulkPublishEditor extends LitElement {
                 @duplicate-confirmed=${this.handleDuplicateConfirmed}
                 @duplicate-cancelled=${this.handleDuplicateCancel}
             ></mas-bulk-publish-duplicate-dialog>
-            ${this.itemsSelectorOpen
-                ? html`<mas-add-items-dialog
-                      open
-                      .targetStore=${Store.bulkPublishProjects}
-                      @confirm=${this.confirmItemsSelector}
-                      @cancel=${this.closeItemsSelector}
-                  ></mas-add-items-dialog>`
-                : nothing}
-            ${this.localesPickerOpen
-                ? html`<sp-dialog-wrapper
-                      class="add-locales-dialog"
-                      open
-                      mode="modal"
-                      size="l"
-                      headline="Select locales"
-                      cancel-label="Cancel"
-                      confirm-label="Continue"
-                      underlay
-                      no-divider
-                      @confirm=${this.confirmLocalesPicker}
-                      @cancel=${this.closeLocalesPicker}
-                      @close=${this.closeLocalesPicker}
-                  >
-                      <mas-translation-languages
+            ${
+                this.itemsSelectorOpen
+                    ? html`<mas-add-items-dialog
+                          open
                           .targetStore=${Store.bulkPublishProjects}
-                          include-source
-                      ></mas-translation-languages>
-                  </sp-dialog-wrapper>`
-                : nothing}
-            ${this.discardDialogOpen
-                ? html`<sp-dialog-wrapper
-                      open
-                      mode="modal"
-                      headline="Unsaved changes"
-                      cancel-label="Stay"
-                      confirm-label="Discard"
-                      underlay
-                      no-divider
-                      @confirm=${this.#confirmDiscard}
-                      @cancel=${this.#cancelDiscard}
-                      @close=${this.#cancelDiscard}
-                  >
-                      <p>You have unsaved changes. Leave anyway?</p>
-                  </sp-dialog-wrapper>`
-                : nothing}
+                          @confirm=${this.confirmItemsSelector}
+                          @cancel=${this.closeItemsSelector}
+                      ></mas-add-items-dialog>`
+                    : nothing
+            }
+            ${
+                this.localesPickerOpen
+                    ? html`<sp-dialog-wrapper
+                          class="add-locales-dialog"
+                          open
+                          mode="modal"
+                          size="l"
+                          headline="Select locales"
+                          cancel-label="Cancel"
+                          confirm-label="Continue"
+                          underlay
+                          no-divider
+                          @confirm=${this.confirmLocalesPicker}
+                          @cancel=${this.closeLocalesPicker}
+                          @close=${this.closeLocalesPicker}
+                      >
+                          <mas-translation-languages
+                              .targetStore=${Store.bulkPublishProjects}
+                              include-source
+                          ></mas-translation-languages>
+                      </sp-dialog-wrapper>`
+                    : nothing
+            }
+            ${
+                this.discardDialogOpen
+                    ? html`<sp-dialog-wrapper
+                          open
+                          mode="modal"
+                          headline="Unsaved changes"
+                          cancel-label="Stay"
+                          confirm-label="Discard"
+                          underlay
+                          no-divider
+                          @confirm=${this.#confirmDiscard}
+                          @cancel=${this.#cancelDiscard}
+                          @close=${this.#cancelDiscard}
+                      >
+                          <p>You have unsaved changes. Leave anyway?</p>
+                      </sp-dialog-wrapper>`
+                    : nothing
+            }
+            <mas-bulk-publish-revert-dialog
+                .projectTitle=${this.title}
+                .open=${this.revertDialogOpen}
+                @revert-confirmed=${this.handleRevertConfirmed}
+                @revert-cancelled=${this.handleRevertCancel}
+            ></mas-bulk-publish-revert-dialog>
         `;
     }
 }

@@ -248,6 +248,7 @@ export const QUICK_ACTION = {
     LOC: 'loc',
     VALIDATE: 'validate',
     LINK: 'link',
+    REVERT: 'revert',
 };
 
 export const FILTER_TYPE = {

@@ -64,6 +64,7 @@ export const PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
 
 export class Plans extends VariantLayout {
     #syncObserver;
+    #resizeFrame;
 
     constructor(card) {
         super(card);
@@ -196,10 +197,12 @@ export class Plans extends VariantLayout {
             'promo-text',
             'body-xs',
         ];
-        slots.forEach((slot) => {
-            const el = this.card.querySelector(`[slot="${slot}"]`);
-            if (el) this.updateCardElementMinHeight(el, slot);
-        });
+        this.syncRowHeights(
+            slots.map((slot) => ({
+                name: slot,
+                getElement: (card) => card.querySelector(`[slot="${slot}"]`),
+            })),
+        );
     }
 
     async adjustEduLists() {
@@ -261,26 +264,9 @@ export class Plans extends VariantLayout {
             await this.adjustEduLists();
         }
         if (window.matchMedia('(min-width: 768px)').matches) {
-            const container = this.getContainer();
-            if (!container) return;
-            const prefix = `--consonant-merch-card-${this.card.variant}`;
-            const hasExistingVars = container.style.getPropertyValue(
-                `${prefix}-heading-xs-height`,
-            );
-            if (!hasExistingVars) {
-                requestAnimationFrame(() => {
-                    const cards = container.querySelectorAll(
-                        `merch-card[variant="${this.card.variant}"]`,
-                    );
-                    cards.forEach((card) =>
-                        card.variantLayout?.syncHeights?.(),
-                    );
-                });
-            } else {
-                requestAnimationFrame(() => {
-                    this.syncHeights();
-                });
-            }
+            requestAnimationFrame(() => {
+                this.syncHeights();
+            });
         }
     }
 
@@ -367,6 +353,16 @@ export class Plans extends VariantLayout {
     connectedCallbackHook() {
         Media.matchMobile.addEventListener('change', this.adaptForMedia);
         Media.matchDesktopOrUp.addEventListener('change', this.adaptForMedia);
+        this.handleResize = () => {
+            if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = requestAnimationFrame(() => {
+                this.#resizeFrame = null;
+                if (window.matchMedia('(min-width: 768px)').matches) {
+                    this.syncHeights();
+                }
+            });
+        };
+        window.addEventListener('resize', this.handleResize);
     }
 
     disconnectedCallbackHook() {
@@ -377,6 +373,14 @@ export class Plans extends VariantLayout {
         );
         this.#syncObserver?.disconnect();
         this.#syncObserver = null;
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize);
+            this.handleResize = null;
+        }
+        if (this.#resizeFrame) {
+            cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = null;
+        }
     }
 
     renderLayout() {

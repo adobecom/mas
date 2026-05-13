@@ -535,7 +535,7 @@ runTests(async () => {
                 }
             });
 
-            async function runPreviewWithMasInstant(masInstantValue) {
+            async function runPreviewWithInstant(instantValue, attributeValue) {
                 cache.clear();
                 const existing = document.querySelector('mas-commerce-service');
                 const previewService = document.createElement(
@@ -545,6 +545,9 @@ runTests(async () => {
                     previewService.setAttribute(attr.name, attr.value);
                 }
                 previewService.setAttribute('preview', 'on');
+                if (attributeValue != null) {
+                    previewService.setAttribute('instant', attributeValue);
+                }
                 document.body.insertBefore(previewService, existing);
 
                 const moduleCode = `
@@ -572,10 +575,10 @@ runTests(async () => {
 
                 const originalUrl = window.location.href;
                 const url = new URL(window.location.href);
-                if (masInstantValue != null) {
-                    url.searchParams.set('mas.instant', masInstantValue);
+                if (instantValue != null) {
+                    url.searchParams.set('instant', instantValue);
                 } else {
-                    url.searchParams.delete('mas.instant');
+                    url.searchParams.delete('instant');
                 }
                 history.replaceState(null, '', url.toString());
 
@@ -596,12 +599,12 @@ runTests(async () => {
                 return captured;
             }
 
-            it('passes mas.instant option to previewFragment when present in URL', async () => {
-                const captured = await runPreviewWithMasInstant('snapshot-abc');
+            it('passes instant option to previewFragment when present in URL', async () => {
+                const captured = await runPreviewWithInstant('snapshot-abc');
                 expect(captured).to.exist;
                 expect(captured.id).to.equal('fragment-cc-all-apps');
                 expect(captured.options).to.have.property(
-                    'mas.instant',
+                    'instant',
                     'snapshot-abc',
                 );
                 expect(captured.options).to.have.property('fullContext', true);
@@ -609,13 +612,25 @@ runTests(async () => {
                 expect(captured.options).to.have.property('apiKey');
             });
 
-            it('omits mas.instant option from previewFragment when absent from URL', async () => {
-                const captured = await runPreviewWithMasInstant(null);
+            it('omits instant option from previewFragment when absent from URL', async () => {
+                const captured = await runPreviewWithInstant(null);
                 expect(captured).to.exist;
-                expect(captured.options).to.not.have.property('mas.instant');
+                expect(captured.options).to.not.have.property('instant');
                 expect(captured.options).to.have.property('fullContext', true);
                 expect(captured.options).to.have.property('locale');
                 expect(captured.options).to.have.property('apiKey');
+            });
+
+            it('passes instant option from mas-commerce-service[instant] attribute when URL param absent', async () => {
+                const captured = await runPreviewWithInstant(
+                    null,
+                    'attr-instant-xyz',
+                );
+                expect(captured).to.exist;
+                expect(captured.options).to.have.property(
+                    'instant',
+                    'attr-instant-xyz',
+                );
             });
         });
 

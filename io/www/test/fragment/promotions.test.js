@@ -146,7 +146,7 @@ describe('promotions', () => {
             expect(result.activeProject.promoCode).to.equal('SAVE20');
         });
 
-        it('supports mas.instant for time-travel testing in preview mode', async () => {
+        it('supports instant for time-travel testing in preview mode', async () => {
             const storage = {};
             globalThis.localStorage = {
                 getItem: (key) => storage[key] ?? null,
@@ -162,19 +162,19 @@ describe('promotions', () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
-            const result = await promotionsTransformer.init(createContext({ preview: true, 'mas.instant': PREVIEW_INSTANT }));
+            const result = await promotionsTransformer.init(createContext({ preview: true, instant: PREVIEW_INSTANT }));
             expect(result.activeProject).to.not.be.null;
             expect(result.activeProject.id).to.equal('proj-1');
             clearPromoCache(true);
             delete globalThis.localStorage;
         });
 
-        it('ignores mas.instant when not in preview mode', async () => {
+        it('ignores instant when not in preview mode', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
 
-            // EXPIRED_END is in the past — without preview, mas.instant is ignored and Date.now() is used
-            const result = await promotionsTransformer.init(createContext({ 'mas.instant': PREVIEW_INSTANT }));
+            // EXPIRED_END is in the past — without preview, instant is ignored and Date.now() is used
+            const result = await promotionsTransformer.init(createContext({ instant: PREVIEW_INSTANT }));
             expect(result).to.deep.equal({ status: 200, activeProject: null });
         });
 
@@ -236,7 +236,7 @@ describe('promotions', () => {
             expect(result).to.deep.equal({ status: 200, activeProject: null });
         });
 
-        it('uses Date.now() when mas.instant is not provided', async () => {
+        it('uses Date.now() when instant is not provided', async () => {
             // Wide date range that includes any current Date.now()
             const project = makeProject({
                 surfaces: ['acom'],
@@ -249,7 +249,7 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const ctx = createContext();
-            delete ctx['mas.instant']; // let toInstant fall back to Date.now()
+            delete ctx.instant; // let toInstant fall back to Date.now()
             const result = await promotionsTransformer.init(ctx);
             expect(result.activeProject).to.not.be.null;
         });
@@ -314,7 +314,7 @@ describe('promotions', () => {
             expect(result).to.deep.equal({ status: 200, activeProject: null });
         });
 
-        it('supports mas.instant as an ISO string in preview mode', async () => {
+        it('supports instant as an ISO string in preview mode', async () => {
             const storage = {};
             globalThis.localStorage = {
                 getItem: (key) => storage[key] ?? null,
@@ -331,7 +331,7 @@ describe('promotions', () => {
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
             const result = await promotionsTransformer.init(
-                createContext({ preview: true, 'mas.instant': '2020-02-01T00:00:00Z' }),
+                createContext({ preview: true, instant: '2020-02-01T00:00:00Z' }),
             );
             expect(result.activeProject).to.not.be.null;
             clearPromoCache(true);

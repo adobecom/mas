@@ -484,11 +484,11 @@ export class AemFragment extends HTMLElement {
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
         };
-        const masInstant = new URLSearchParams(window.location.search).get(
-            'mas.instant',
-        );
-        if (masInstant) {
-            options['mas.instant'] = masInstant;
+        const instant =
+            new URLSearchParams(window.location.search).get('instant') ??
+            this.#service.settings.instant;
+        if (instant) {
+            options.instant = instant;
         }
         const data = await previewFragment(this.#fragmentId, options);
         return data;

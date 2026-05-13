@@ -104,7 +104,8 @@ async function fetchProjects(context) {
 function toInstant(value) {
     if (!value) return Date.now();
     if (typeof value === 'number') return value;
-    return new Date(value).getTime();
+    const t = new Date(value).getTime();
+    return Number.isFinite(t) ? t : Date.now();
 }
 
 const PROMO_TAG_PREFIX = 'mas:promotion/';
@@ -268,7 +269,7 @@ async function init(context) {
     const projects = await projectsPromise;
     if (!projects?.length) return { status: 200, activeProject: null };
 
-    const instant = toInstant(context.preview ? context['mas.instant'] : undefined);
+    const instant = toInstant(context.preview ? context.instant : undefined);
     const { locale, country, regionLocale } = context;
     const effectiveRegionLocale = regionLocale ?? locale;
 

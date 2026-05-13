@@ -630,25 +630,21 @@ class MasBulkPublishEditor extends LitElement {
         const lastError = this.status === BULK_PUBLISH_STATUS.DRAFT ? (this.getField('lastError') ?? '') : '';
         const titleText = this.isNewProject ? 'Create bulk publish project' : 'Bulk publish project';
         return html`
-            ${
-                this.pendingActions.size
-                    ? html`<div class="loading-overlay">
-                          <sp-progress-circle size="l" indeterminate></sp-progress-circle>
-                      </div>`
-                    : nothing
-            }
+            ${this.pendingActions.size
+                ? html`<div class="loading-overlay">
+                      <sp-progress-circle size="l" indeterminate></sp-progress-circle>
+                  </div>`
+                : nothing}
             <header>
                 <h1>${titleText}</h1>
             </header>
-            ${
-                published || lastError
-                    ? html`<mas-bulk-publish-success-banner
-                          .publishedAt=${this.getField('publishedAt') ?? ''}
-                          .publishedBy=${this.getField('publishedBy') ?? ''}
-                          .error=${lastError}
-                      ></mas-bulk-publish-success-banner>`
-                    : nothing
-            }
+            ${published || lastError
+                ? html`<mas-bulk-publish-success-banner
+                      .publishedAt=${this.getField('publishedAt') ?? ''}
+                      .publishedBy=${this.getField('publishedBy') ?? ''}
+                      .error=${lastError}
+                  ></mas-bulk-publish-success-banner>`
+                : nothing}
             <section class="card">
                 <h3>General info</h3>
                 <div class="field-group">
@@ -680,7 +676,7 @@ class MasBulkPublishEditor extends LitElement {
                 @edit-locales=${this.openLocalesPicker}
             ></mas-bulk-publish-locales>
             <mas-quick-actions
-                drag-handle-style="bar" /* audit-ok: component attribute, not inline style */
+                drag-handle-style="bar"
                 .actions=${[
                     QUICK_ACTION.SAVE,
                     QUICK_ACTION.DUPLICATE,
@@ -725,57 +721,51 @@ class MasBulkPublishEditor extends LitElement {
                 @duplicate-confirmed=${this.handleDuplicateConfirmed}
                 @duplicate-cancelled=${this.handleDuplicateCancel}
             ></mas-bulk-publish-duplicate-dialog>
-            ${
-                this.itemsSelectorOpen
-                    ? html`<mas-add-items-dialog
-                          open
+            ${this.itemsSelectorOpen
+                ? html`<mas-add-items-dialog
+                      open
+                      .targetStore=${Store.bulkPublishProjects}
+                      @confirm=${this.confirmItemsSelector}
+                      @cancel=${this.closeItemsSelector}
+                  ></mas-add-items-dialog>`
+                : nothing}
+            ${this.localesPickerOpen
+                ? html`<sp-dialog-wrapper
+                      class="add-locales-dialog"
+                      open
+                      mode="modal"
+                      size="l"
+                      headline="Select locales"
+                      cancel-label="Cancel"
+                      confirm-label="Continue"
+                      underlay
+                      no-divider
+                      @confirm=${this.confirmLocalesPicker}
+                      @cancel=${this.closeLocalesPicker}
+                      @close=${this.closeLocalesPicker}
+                  >
+                      <mas-translation-languages
                           .targetStore=${Store.bulkPublishProjects}
-                          @confirm=${this.confirmItemsSelector}
-                          @cancel=${this.closeItemsSelector}
-                      ></mas-add-items-dialog>`
-                    : nothing
-            }
-            ${
-                this.localesPickerOpen
-                    ? html`<sp-dialog-wrapper
-                          class="add-locales-dialog"
-                          open
-                          mode="modal"
-                          size="l"
-                          headline="Select locales"
-                          cancel-label="Cancel"
-                          confirm-label="Continue"
-                          underlay
-                          no-divider
-                          @confirm=${this.confirmLocalesPicker}
-                          @cancel=${this.closeLocalesPicker}
-                          @close=${this.closeLocalesPicker}
-                      >
-                          <mas-translation-languages
-                              .targetStore=${Store.bulkPublishProjects}
-                              include-source
-                          ></mas-translation-languages>
-                      </sp-dialog-wrapper>`
-                    : nothing
-            }
-            ${
-                this.discardDialogOpen
-                    ? html`<sp-dialog-wrapper
-                          open
-                          mode="modal"
-                          headline="Unsaved changes"
-                          cancel-label="Stay"
-                          confirm-label="Discard"
-                          underlay
-                          no-divider
-                          @confirm=${this.#confirmDiscard}
-                          @cancel=${this.#cancelDiscard}
-                          @close=${this.#cancelDiscard}
-                      >
-                          <p>You have unsaved changes. Leave anyway?</p>
-                      </sp-dialog-wrapper>`
-                    : nothing
-            }
+                          include-source
+                      ></mas-translation-languages>
+                  </sp-dialog-wrapper>`
+                : nothing}
+            ${this.discardDialogOpen
+                ? html`<sp-dialog-wrapper
+                      open
+                      mode="modal"
+                      headline="Unsaved changes"
+                      cancel-label="Stay"
+                      confirm-label="Discard"
+                      underlay
+                      no-divider
+                      @confirm=${this.#confirmDiscard}
+                      @cancel=${this.#cancelDiscard}
+                      @close=${this.#cancelDiscard}
+                  >
+                      <p>You have unsaved changes. Leave anyway?</p>
+                  </sp-dialog-wrapper>`
+                : nothing}
             <mas-bulk-publish-revert-dialog
                 .projectTitle=${this.title}
                 .open=${this.revertDialogOpen}

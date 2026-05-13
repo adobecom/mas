@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-translation-languages.css.js';
 import Store from '../store.js';
-import { getSurfaceLocales, getLocaleCode, REGION_GROUPS } from '../locales.js';
+import { getDefaultLocales, getSurfaceLocales, getLocaleCode, REGION_GROUPS } from '../locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 
 class MasTranslationLanguages extends LitElement {
@@ -12,6 +12,7 @@ class MasTranslationLanguages extends LitElement {
         targetStore: { type: Object },
         searchQuery: { type: String, state: true },
         includeSource: { type: Boolean, attribute: 'include-source' },
+        includeRegional: { type: Boolean, attribute: 'include-regional' },
     };
 
     constructor() {
@@ -19,12 +20,14 @@ class MasTranslationLanguages extends LitElement {
         this.targetStore = Store.translationProjects;
         this.searchQuery = '';
         this.includeSource = false;
+        this.includeRegional = false;
     }
 
     connectedCallback() {
         super.connectedCallback();
         const surface = Store.search.value.path;
-        const all = getSurfaceLocales(surface).map((item) => ({ ...item, locale: getLocaleCode(item) }));
+        const source = this.includeRegional ? getSurfaceLocales(surface) : getDefaultLocales(surface);
+        const all = source.map((item) => ({ ...item, locale: getLocaleCode(item) }));
         const filtered = this.includeSource ? all : all.filter((item) => item.locale !== 'en_US');
         this.localesArray = filtered.sort((a, b) => a.locale.localeCompare(b.locale));
         this.targetLocalesController = new ReactiveController(this, [this.targetStore?.targetLocales].filter(Boolean));

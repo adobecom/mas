@@ -59,7 +59,6 @@ async function main(params) {
     body.odinOrigin = await checkEndpoint(ODIN_ORIGIN_ENDPOINT, validateOdinJson);
     body.wcsCDN = await checkEndpoint(WCS_CDN_ENDPOINT, () => true);
     body.wcsOrigin = await checkEndpoint(WCS_ORIGIN_ENDPOINT, () => true);
-    body.healthcheck = 'finished';
 
     if ([body.odinCDN?.status, body.odinOrigin?.status, body.wcsCDN?.status, body.wcsOrigin?.status].includes(FAIL)) {
         body.status = ERROR;

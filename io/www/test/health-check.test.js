@@ -81,7 +81,6 @@ describe('health-check', () => {
                 odinOrigin: 'ok',
                 wcsCDN: 'ok',
                 wcsOrigin: 'ok',
-                healthcheck: 'finished',
             },
         });
     });
@@ -109,7 +108,6 @@ describe('health-check', () => {
                 },
                 wcsCDN: 'ok',
                 wcsOrigin: 'ok',
-                healthcheck: 'finished',
             },
         });
     });
@@ -133,7 +131,6 @@ describe('health-check', () => {
                 odinOrigin: 'ok',
                 wcsCDN: 'ok',
                 wcsOrigin: 'ok',
-                healthcheck: 'finished',
             },
         });
     });
@@ -157,7 +154,6 @@ describe('health-check', () => {
                     reason: '503 Service Unavailable',
                     status: 'fail',
                 },
-                healthcheck: 'finished',
             },
         });
     });
@@ -181,7 +177,6 @@ describe('health-check', () => {
                 odinOrigin: 'ok',
                 wcsCDN: 'ok',
                 wcsOrigin: 'ok',
-                healthcheck: 'finished',
             },
         });
     });

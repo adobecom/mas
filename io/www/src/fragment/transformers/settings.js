@@ -170,9 +170,7 @@ export function resolveSettingEntry(fragment, locale, setting) {
     const fragmentTags = fragment.fields?.tags ?? [];
     const filtered = setting.override.filter((overrideSetting) => {
         const localeOk =
-            !overrideSetting.locales ||
-            overrideSetting.locales.length === 0 ||
-            overrideSetting.locales.includes(locale);
+            !overrideSetting.locales || overrideSetting.locales.length === 0 || overrideSetting.locales.includes(locale);
         const tagsOk =
             !overrideSetting.tags ||
             overrideSetting.tags.length === 0 ||

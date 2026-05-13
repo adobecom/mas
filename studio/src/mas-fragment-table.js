@@ -151,6 +151,24 @@ class MasFragmentTable extends LitElement {
         previewFragmentOnPage(this.fragmentStore.value);
     }
 
+    async copyCode(event) {
+        event.stopPropagation();
+        const { code, richText, href } = generateCodeToUse(this.data, Store.search.get().path, Store.page.get());
+        if (!code || !richText || !href) return;
+
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([href], { type: 'text/plain' }),
+                    'text/html': new Blob([richText], { type: 'text/html' }),
+                }),
+            ]);
+            showToast('Code copied to clipboard', 'positive');
+        } catch (e) {
+            showToast('Failed to copy code to clipboard', 'negative');
+        }
+    }
+
     getTruncatedOfferId() {
         const offerId = this.offerData?.offerId;
         if (!offerId || offerId.length <= 5) return offerId;
@@ -241,6 +259,10 @@ class MasFragmentTable extends LitElement {
                               <sp-menu-item @click=${this.previewOnPage}>
                                   <sp-icon-preview slot="icon"></sp-icon-preview>
                                   Preview on page
+                              </sp-menu-item>
+                              <sp-menu-item @click=${this.copyCode}>
+                                  <sp-icon-code slot="icon"></sp-icon-code>
+                                  Copy Code
                               </sp-menu-item>
                           </sp-action-menu>`}
                 </sp-table-cell>

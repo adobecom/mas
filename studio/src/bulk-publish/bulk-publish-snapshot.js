@@ -26,7 +26,7 @@ export async function createSnapshot(project, aem, userEmail) {
         }
 
         const fragmentId = rawFragment.id;
-        const fragment = await aem.sites.cf.fragments.getWithEtag(fragmentId);
+        const fragment = await aem.sites.cf.fragments.getById(fragmentId);
         const wasPublished = fragment.status === STATUS_PUBLISHED;
         const versionId = await aem.sites.cf.fragments.createVersion(fragmentId, {
             label: 'pre-publish-snapshot',

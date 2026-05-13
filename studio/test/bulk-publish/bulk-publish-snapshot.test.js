@@ -1,0 +1,226 @@
+import { expect } from '@open-wc/testing';
+import sinon from 'sinon';
+import { createSnapshot, revertSnapshot, checkModifications } from '../../src/bulk-publish/bulk-publish-snapshot.js';
+import { STATUS_PUBLISHED } from '../../src/constants.js';
+
+function makeAem({ searchPages = [], fragmentById = {}, versionId = 'v1', getWithEtag = {}, status = STATUS_PUBLISHED } = {}) {
+    return {
+        sites: {
+            cf: {
+                fragments: {
+                    search: sinon.stub().callsFake(async function* () {
+                        yield searchPages;
+                    }),
+                    getById: sinon.stub().callsFake(async (id) => {
+                        if (fragmentById[id]) return fragmentById[id];
+                        return { id, path: `/content/dam/${id}`, status };
+                    }),
+                    createVersion: sinon.stub().resolves(versionId),
+                    restoreVersion: sinon.stub().resolves(),
+                    getWithEtag: sinon.stub().callsFake(async (id) => {
+                        if (getWithEtag[id]) return getWithEtag[id];
+                        return { id, path: `/content/dam/${id}` };
+                    }),
+                    unpublish: sinon.stub().resolves(),
+                },
+            },
+        },
+    };
+}
+
+describe('createSnapshot()', () => {
+    it('creates a version for each fragment and returns snapshot with enriched fragments map (keyed by UUID)', async () => {
+        const aem = makeAem({
+            searchPages: [{ id: 'frag-1', path: '/content/dam/frag-1' }],
+            fragmentById: { 'frag-1': { id: 'frag-1', path: '/content/dam/frag-1', status: STATUS_PUBLISHED } },
+            versionId: 'ver-abc',
+        });
+        const project = { id: 'proj-1', items: [{ path: '/content/dam/frag-1' }] };
+        const snapshot = await createSnapshot(project, aem, 'user@test.com');
+
+        expect(snapshot.fragments).to.have.key('frag-1');
+        expect(snapshot.fragments['frag-1'].path).to.equal('/content/dam/frag-1');
+        expect(snapshot.fragments['frag-1'].versionId).to.equal('ver-abc');
+        expect(aem.sites.cf.fragments.createVersion.calledOnce).to.equal(true);
+    });
+
+    it('sets wasPublished: true for fragments that were PUBLISHED before snapshot', async () => {
+        const aem = makeAem({
+            searchPages: [{ id: 'frag-pub', path: '/p' }],
+            fragmentById: { 'frag-pub': { id: 'frag-pub', path: '/p', status: STATUS_PUBLISHED } },
+            versionId: 'v-pub',
+        });
+        const project = { id: 'p1', items: [{ path: '/p' }] };
+        const snapshot = await createSnapshot(project, aem, 'u@e.com');
+        expect(snapshot.fragments['frag-pub'].wasPublished).to.equal(true);
+    });
+
+    it('sets wasPublished: false for fragments that were DRAFT before snapshot', async () => {
+        const aem = makeAem({
+            searchPages: [{ id: 'frag-draft', path: '/d' }],
+            fragmentById: { 'frag-draft': { id: 'frag-draft', path: '/d', status: 'Draft' } },
+            versionId: 'v-draft',
+        });
+        const project = { id: 'p2', items: [{ path: '/d' }] };
+        const snapshot = await createSnapshot(project, aem, 'u@e.com');
+        expect(snapshot.fragments['frag-draft'].wasPublished).to.equal(false);
+    });
+
+    it('throws and does NOT return a snapshot if any createFragmentVersion call fails', async () => {
+        const aem = makeAem({
+            searchPages: [{ id: 'frag-fail', path: '/f' }],
+            fragmentById: { 'frag-fail': { id: 'frag-fail', path: '/f', status: 'Draft' } },
+            versionId: null,
+        });
+        const project = { id: 'p3', items: [{ path: '/f' }] };
+        let threw = false;
+        try {
+            await createSnapshot(project, aem, 'u@e.com');
+        } catch {
+            threw = true;
+        }
+        expect(threw).to.equal(true);
+    });
+
+    it('snapshot.createdBy is populated from userEmail argument', async () => {
+        const aem = makeAem({
+            searchPages: [{ id: 'frag-x', path: '/x' }],
+            fragmentById: { 'frag-x': { id: 'frag-x', path: '/x', status: 'Draft' } },
+            versionId: 'v1',
+        });
+        const project = { id: 'p4', items: [{ path: '/x' }] };
+        const snapshot = await createSnapshot(project, aem, 'specific@user.com');
+        expect(snapshot.createdBy).to.equal('specific@user.com');
+    });
+
+    it('snapshot.source === "pre-publish"', async () => {
+        const aem = makeAem({
+            searchPages: [{ id: 'frag-y', path: '/y' }],
+            fragmentById: { 'frag-y': { id: 'frag-y', path: '/y', status: 'Draft' } },
+            versionId: 'v1',
+        });
+        const project = { id: 'p5', items: [{ path: '/y' }] };
+        const snapshot = await createSnapshot(project, aem, 'u@e.com');
+        expect(snapshot.source).to.equal('pre-publish');
+    });
+});
+
+describe('revertSnapshot()', () => {
+    function makeSnapshot(entries) {
+        return {
+            createdAt: new Date().toISOString(),
+            fragments: Object.fromEntries(
+                entries.map(({ id, path, versionId, wasPublished }) => [id, { path, versionId, wasPublished }]),
+            ),
+        };
+    }
+
+    it('calls restoreVersion for each entry in snapshot.fragments', async () => {
+        const aem = makeAem();
+        const snapshot = makeSnapshot([
+            { id: 'f1', path: '/p1', versionId: 'v1', wasPublished: true },
+            { id: 'f2', path: '/p2', versionId: 'v2', wasPublished: true },
+        ]);
+        await revertSnapshot(snapshot, aem);
+        expect(aem.sites.cf.fragments.restoreVersion.callCount).to.equal(2);
+        expect(aem.sites.cf.fragments.restoreVersion.calledWith('f1', 'v1')).to.equal(true);
+        expect(aem.sites.cf.fragments.restoreVersion.calledWith('f2', 'v2')).to.equal(true);
+    });
+
+    it('re-fetches fragment after restore and calls unpublish for wasPublished === false entries', async () => {
+        const aem = makeAem();
+        const snapshot = makeSnapshot([{ id: 'f1', path: '/p1', versionId: 'v1', wasPublished: false }]);
+        await revertSnapshot(snapshot, aem);
+        expect(aem.sites.cf.fragments.getWithEtag.calledWith('f1')).to.equal(true);
+        expect(aem.sites.cf.fragments.unpublish.calledOnce).to.equal(true);
+    });
+
+    it('does NOT call unpublish for entries where wasPublished === true', async () => {
+        const aem = makeAem();
+        const snapshot = makeSnapshot([{ id: 'f1', path: '/p1', versionId: 'v1', wasPublished: true }]);
+        await revertSnapshot(snapshot, aem);
+        expect(aem.sites.cf.fragments.unpublish.called).to.equal(false);
+    });
+
+    it('throws with list of failed fragment IDs/paths on partial failure', async () => {
+        const aem = makeAem();
+        aem.sites.cf.fragments.restoreVersion = sinon.stub().rejects(new Error('restore failed'));
+        const snapshot = makeSnapshot([{ id: 'f1', path: '/fail-path', versionId: 'v1', wasPublished: true }]);
+        let errorMessage = '';
+        try {
+            await revertSnapshot(snapshot, aem);
+        } catch (err) {
+            errorMessage = err.message;
+        }
+        expect(errorMessage).to.include('/fail-path');
+        expect(errorMessage).to.include('restore failed');
+    });
+
+    it('resolves cleanly when all restores succeed', async () => {
+        const aem = makeAem();
+        const snapshot = makeSnapshot([{ id: 'f1', path: '/p1', versionId: 'v1', wasPublished: true }]);
+        let threw = false;
+        try {
+            await revertSnapshot(snapshot, aem);
+        } catch {
+            threw = true;
+        }
+        expect(threw).to.equal(false);
+    });
+});
+
+describe('checkModifications()', () => {
+    function makeSnapshot(createdAt, fragmentEntries) {
+        return {
+            createdAt,
+            fragments: Object.fromEntries(fragmentEntries.map(({ id, path }) => [id, { path }])),
+        };
+    }
+
+    it('returns modified: true for fragments whose modified.at is after snapshot.createdAt', async () => {
+        const snapshotTime = '2026-01-01T10:00:00.000Z';
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getById: sinon.stub().resolves({ id: 'f1', modified: { at: '2026-01-02T10:00:00.000Z' } }),
+                    },
+                },
+            },
+        };
+        const snapshot = makeSnapshot(snapshotTime, [{ id: 'f1', path: '/p1' }]);
+        const results = await checkModifications(snapshot, aem);
+        expect(results[0].modified).to.equal(true);
+    });
+
+    it('returns modified: false for fragments unchanged since snapshot', async () => {
+        const snapshotTime = '2026-01-05T10:00:00.000Z';
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getById: sinon.stub().resolves({ id: 'f1', modified: { at: '2026-01-01T10:00:00.000Z' } }),
+                    },
+                },
+            },
+        };
+        const snapshot = makeSnapshot(snapshotTime, [{ id: 'f1', path: '/p1' }]);
+        const results = await checkModifications(snapshot, aem);
+        expect(results[0].modified).to.equal(false);
+    });
+
+    it('handles missing modified field gracefully (treats as unmodified)', async () => {
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getById: sinon.stub().resolves({ id: 'f1' }),
+                    },
+                },
+            },
+        };
+        const snapshot = makeSnapshot('2026-01-01T10:00:00.000Z', [{ id: 'f1', path: '/p1' }]);
+        const results = await checkModifications(snapshot, aem);
+        expect(results[0].modified).to.equal(false);
+    });
+});

@@ -203,7 +203,6 @@ export class MasChatMessage extends LitElement {
                     <sp-button size="s" variant="secondary" @click=${() => this.handleCardAction('regenerate')}>
                         Regenerate
                     </sp-button>
-                    <sp-button size="s" variant="negative" @click=${() => this.handleCardAction('delete')}> Delete </sp-button>
                 </div>
             </div>
         `;

@@ -8,14 +8,7 @@
  * depend on the model honoring an instruction — the client enforces the
  * gate regardless of what the backend `confirmationRequired` flag says.
  */
-export const DESTRUCTIVE_TOOLS = new Set([
-    'delete_card',
-    'bulk_delete_cards',
-    'bulk_publish_cards',
-    'bulk_update_cards',
-    'unpublish_card',
-    'create_release_cards',
-]);
+export const DESTRUCTIVE_TOOLS = new Set(['bulk_publish_cards', 'bulk_update_cards', 'unpublish_card', 'create_release_cards']);
 
 /**
  * Returns true if the operation must show a confirmation gate before

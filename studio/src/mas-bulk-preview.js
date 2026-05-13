@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 
 /**
  * Bulk Operation Preview Component
- * Shows preview of bulk update/publish/delete operations with approve/cancel actions
+ * Shows preview of bulk update/publish operations with approve/cancel actions
  */
 export class MasBulkPreview extends LitElement {
     static properties = {
@@ -142,56 +142,6 @@ export class MasBulkPreview extends LitElement {
         `;
     }
 
-    renderDeletePreview() {
-        const { previews = [], summary = {} } = this.previewData || {};
-        const { willDelete = 0 } = summary;
-
-        return html`
-            <div class="bulk-preview-container bulk-preview-danger">
-                <div class="bulk-preview-header">
-                    <sp-icon-alert size="m"></sp-icon-alert>
-                    <h4>⚠️ Bulk Delete Preview</h4>
-                </div>
-
-                <div class="bulk-preview-warning">
-                    <sp-icon-alert size="s"></sp-icon-alert>
-                    <strong>Warning:</strong> This action cannot be undone. ${willDelete} cards will be permanently deleted.
-                </div>
-
-                <div class="bulk-preview-items">
-                    ${previews
-                        .filter((item) => item.willDelete)
-                        .slice(0, 10)
-                        .map(
-                            (item) => html`
-                                <div class="preview-item preview-item-danger">
-                                    <sp-icon-delete size="s"></sp-icon-delete>
-                                    <span>${item.fragmentName}</span>
-                                    <sp-badge size="s" variant="negative">Will Delete</sp-badge>
-                                </div>
-                            `,
-                        )}
-                    ${previews.filter((item) => item.willDelete).length > 10
-                        ? html`<div class="preview-more">
-                              + ${previews.filter((item) => item.willDelete).length - 10} more cards...
-                          </div>`
-                        : ''}
-                </div>
-
-                <div class="bulk-preview-actions">
-                    <sp-button size="m" variant="negative" @click=${this.handleApprove}>
-                        <sp-icon-delete slot="icon"></sp-icon-delete>
-                        Confirm Delete
-                    </sp-button>
-                    <sp-button size="m" variant="secondary" @click=${this.handleCancel}>
-                        <sp-icon-close slot="icon"></sp-icon-close>
-                        Cancel
-                    </sp-button>
-                </div>
-            </div>
-        `;
-    }
-
     render() {
         if (!this.previewData) {
             return html`<div class="bulk-preview-error">No preview data available</div>`;
@@ -203,10 +153,6 @@ export class MasBulkPreview extends LitElement {
 
         if (this.operation === 'preview_bulk_publish') {
             return this.renderPublishPreview();
-        }
-
-        if (this.operation === 'preview_bulk_delete') {
-            return this.renderDeletePreview();
         }
 
         return html`<div class="bulk-preview-error">Unknown preview operation: ${this.operation}</div>`;

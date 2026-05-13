@@ -202,22 +202,6 @@ export class MasOperationResult extends LitElement {
         `;
     }
 
-    renderDeleteResult() {
-        const { fragmentTitle } = this.result;
-
-        return html`
-            <div class="operation-result delete-result success">
-                <div class="result-icon">
-                    <sp-icon-delete size="l"></sp-icon-delete>
-                </div>
-                <div class="result-content">
-                    <h4>Card Deleted</h4>
-                    <p>"${fragmentTitle}" has been removed.</p>
-                </div>
-            </div>
-        `;
-    }
-
     renderUpdateResult() {
         const { fragmentTitle, updatedFields = [] } = this.result;
 
@@ -528,64 +512,6 @@ export class MasOperationResult extends LitElement {
                         <h4>${message}</h4>
                         <p>
                             ${successCount > 0 ? html`<span class="success-count">✓ ${successCount} published</span>` : ''}
-                            ${hasFailures ? html`<span class="failure-count">✗ ${failureCount} failed</span>` : ''}
-                        </p>
-                    </div>
-                </div>
-
-                ${hasFailures
-                    ? html`
-                          <details class="error-details">
-                              <summary>${failureCount} Failed Card${failureCount !== 1 ? 's' : ''}</summary>
-                              <div class="failed-cards-list">
-                                  ${failed.map(
-                                      ({ id, error }) => html`
-                                          <div class="failed-card-item">
-                                              <sp-icon-close-circle size="s"></sp-icon-close-circle>
-                                              <div class="failed-card-info">
-                                                  <strong>${id}</strong>
-                                                  <span class="error-message">${error}</span>
-                                              </div>
-                                          </div>
-                                      `,
-                                  )}
-                              </div>
-                              <sp-button size="s" variant="secondary" @click=${() => this.copyErrorsToClipboard(failed)}>
-                                  Copy Error Log
-                              </sp-button>
-                          </details>
-                      `
-                    : ''}
-            </div>
-        `;
-    }
-
-    renderBulkDeleteResult() {
-        const { successCount = 0, failureCount = 0, total = 0, failed = [], message } = this.result;
-        const hasFailures = failureCount > 0;
-
-        if (hasFailures) {
-            console.error('[Bulk Delete] Operation completed with errors:', {
-                total,
-                successCount,
-                failureCount,
-                failed,
-                timestamp: new Date().toISOString(),
-            });
-        }
-
-        return html`
-            <div class="operation-result bulk-delete-result ${hasFailures ? 'has-errors' : 'success'}">
-                <div class="result-header">
-                    <div class="result-icon">
-                        ${hasFailures
-                            ? html`<sp-icon-alert size="l"></sp-icon-alert>`
-                            : html`<sp-icon-check-circle size="l"></sp-icon-check-circle>`}
-                    </div>
-                    <div class="result-summary">
-                        <h4>${message}</h4>
-                        <p>
-                            ${successCount > 0 ? html`<span class="success-count">✓ ${successCount} deleted</span>` : ''}
                             ${hasFailures ? html`<span class="failure-count">✗ ${failureCount} failed</span>` : ''}
                         </p>
                     </div>
@@ -1217,9 +1143,6 @@ export class MasOperationResult extends LitElement {
             case 'copy':
             case 'copy_card':
                 return this.renderCopyResult();
-            case 'delete':
-            case 'delete_card':
-                return this.renderDeleteResult();
             case 'update':
             case 'update_card':
                 return this.renderUpdateResult();
@@ -1232,9 +1155,6 @@ export class MasOperationResult extends LitElement {
             case 'bulk_publish':
             case 'bulk_publish_cards':
                 return this.renderBulkPublishResult();
-            case 'bulk_delete':
-            case 'bulk_delete_cards':
-                return this.renderBulkDeleteResult();
             case 'get_variations':
                 return this.renderVariationsResult();
             case 'resolve_offer_selector':

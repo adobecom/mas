@@ -844,35 +844,6 @@ export class StudioOperations {
     }
 
     /**
-     * Delete a card
-     * @param {Object} params - { id: string }
-     */
-    async deleteCard(params) {
-        const { id } = params;
-
-        if (!id) {
-            throw new Error('Card ID is required for delete operation');
-        }
-
-        const fragment = await this.aemClient.getFragment(id);
-
-        if (!fragment) {
-            throw new Error(`Card not found: ${id}`);
-        }
-
-        const title = fragment.title;
-
-        await this.aemClient.deleteFragment(fragment.id);
-
-        return {
-            success: true,
-            operation: 'delete',
-            deletedId: id,
-            message: `✓ "${title}" has been deleted.`,
-        };
-    }
-
-    /**
      * Copy/duplicate a card
      * @param {Object} params - { id: string, parentPath?: string, newTitle?: string }
      */
@@ -1271,65 +1242,6 @@ export class StudioOperations {
     }
 
     /**
-     * Bulk delete cards
-     * @param {Object} params - { fragmentIds: string[] }
-     */
-    async bulkDeleteCards(params) {
-        const { fragmentIds } = params;
-
-        if (!fragmentIds || fragmentIds.length === 0) {
-            throw new Error('At least one fragment ID is required for bulk delete');
-        }
-
-        const jobId = await sharedJobManager.createJob('bulk_delete', fragmentIds.length);
-
-        this.processDeleteJob(sharedJobManager, jobId, fragmentIds).catch((error) => {
-            console.error('[BulkDelete] Job processing failed:', error);
-            sharedJobManager.failJob(jobId, error);
-        });
-
-        return {
-            success: true,
-            jobId,
-            status: 'processing',
-            operation: 'bulk_delete',
-            total: fragmentIds.length,
-            message: 'Bulk delete started. Processing in background...',
-        };
-    }
-
-    async processDeleteJob(jobManager, jobId, fragmentIds) {
-        for (const id of fragmentIds) {
-            try {
-                const fragment = await this.aemClient.getFragment(id);
-
-                if (!fragment) {
-                    throw new Error(`Card not found: ${id}`);
-                }
-
-                const title = fragment.title;
-                await this.aemClient.deleteFragment(fragment.id);
-
-                await jobManager.addSuccessfulItem(jobId, {
-                    id,
-                    title,
-                });
-            } catch (error) {
-                console.error(`[BulkDelete] Failed to delete card ${id}:`, error);
-                await jobManager.addFailedItem(jobId, {
-                    id,
-                    error: error.message,
-                });
-            }
-        }
-
-        const job = await jobManager.getJob(jobId);
-        await jobManager.completeJob(jobId, {
-            message: `✓ Deleted ${job.successful.length} of ${job.total} cards${job.failed.length > 0 ? ` (${job.failed.length} failed)` : ''}`,
-        });
-    }
-
-    /**
      * Preview bulk update (shows changes without executing)
      * @param {Object} params - { fragmentIds: string[], updates?: Object, textReplacements?: Array }
      */
@@ -1555,54 +1467,6 @@ export class StudioOperations {
             action,
             previews,
             summary: { willChange, alreadyInState, errors },
-        };
-    }
-
-    /**
-     * Preview bulk delete (shows what will be deleted)
-     * @param {Object} params - { fragmentIds: string[] }
-     */
-    async previewBulkDelete(params) {
-        const { fragmentIds } = params;
-
-        if (!fragmentIds || fragmentIds.length === 0) {
-            throw new Error('At least one fragment ID is required for preview');
-        }
-
-        const previews = [];
-        let willDelete = 0;
-        let notFound = 0;
-        let errors = 0;
-
-        for (const id of fragmentIds) {
-            try {
-                const fragment = await this.aemClient.getFragment(id);
-
-                willDelete++;
-                previews.push({
-                    fragmentId: id,
-                    fragmentName: fragment.title,
-                    willDelete: true,
-                });
-            } catch (error) {
-                if (error.message.includes('not found')) {
-                    notFound++;
-                } else {
-                    errors++;
-                }
-                previews.push({
-                    fragmentId: id,
-                    fragmentName: id,
-                    willDelete: false,
-                    error: error.message,
-                });
-            }
-        }
-
-        return {
-            operation: 'preview_bulk_delete',
-            previews,
-            summary: { willDelete, notFound, errors },
         };
     }
 
@@ -2225,7 +2089,6 @@ export class StudioOperations {
             search: 'your search',
             bulk_update: 'the bulk update',
             bulk_publish: 'the bulk publish',
-            bulk_delete: 'the bulk delete',
             update: 'the update',
             publish: 'the publish',
             delete: 'the delete',

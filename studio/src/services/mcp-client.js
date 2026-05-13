@@ -187,18 +187,6 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
             };
         }
 
-        case 'delete_card': {
-            const id = result.id || result.card?.id || mcpParams.id;
-            const title = result.title || result.card?.title || '';
-            return {
-                success: true,
-                operation: 'delete',
-                fragmentId: id,
-                fragmentTitle: title,
-                message: title ? `✓ "${title}" has been deleted.` : '✓ Card deleted.',
-            };
-        }
-
         case 'copy_card': {
             const newCard = result.newCard || result.card || {};
             const title = newCard.title || '';
@@ -252,18 +240,6 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: result.message || `✓ Published ${result.successCount} of ${result.total} cards`,
             };
 
-        case 'bulk_delete_cards':
-            return {
-                success: true,
-                operation: 'bulk_delete',
-                total: result.total,
-                successCount: result.successCount,
-                failureCount: result.failureCount,
-                successful: result.successful,
-                failed: result.failed,
-                message: result.message || `✓ Deleted ${result.successCount} of ${result.total} cards`,
-            };
-
         case 'preview_bulk_update':
             return {
                 success: true,
@@ -284,15 +260,6 @@ export async function executeStudioOperation(mcpTool, mcpParams) {
                 message: result.message || `Preview: ${result.summary?.willChange || 0} cards will be ${action}ed`,
             };
         }
-
-        case 'preview_bulk_delete':
-            return {
-                success: true,
-                operation: 'preview_bulk_delete',
-                previews: result.previews || [],
-                summary: result.summary || { willDelete: 0, notFound: 0, errors: 0 },
-                message: result.message || `Preview: ${result.summary?.willDelete || 0} cards will be deleted`,
-            };
 
         case 'get_variations':
             return {

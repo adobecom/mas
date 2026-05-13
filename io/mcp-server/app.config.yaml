@@ -59,16 +59,6 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
-                    delete-card:
-                        function: src/actions/delete-card.js
-                        web: 'yes'
-                        runtime: nodejs:22
-                        inputs:
-                            AEM_BASE_URL: $AEM_BASE_URL
-                            STUDIO_BASE_URL: $STUDIO_BASE_URL
-                        annotations:
-                            require-adobe-auth: false
-                            final: true
                     copy-card:
                         function: src/actions/copy-card.js
                         web: 'yes'
@@ -113,18 +103,6 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
-                    bulk-delete-cards:
-                        function: src/actions/bulk-delete-cards.js
-                        web: 'yes'
-                        runtime: nodejs:22
-                        inputs:
-                            AEM_BASE_URL: $AEM_BASE_URL
-                            STUDIO_BASE_URL: $STUDIO_BASE_URL
-                        limits:
-                            timeout: 300000
-                        annotations:
-                            require-adobe-auth: false
-                            final: true
                     get-job-status:
                         function: src/actions/get-job-status.js
                         web: 'yes'
@@ -144,16 +122,6 @@ application:
                             final: true
                     preview-bulk-publish:
                         function: src/actions/preview-bulk-publish.js
-                        web: 'yes'
-                        runtime: nodejs:22
-                        inputs:
-                            AEM_BASE_URL: $AEM_BASE_URL
-                            STUDIO_BASE_URL: $STUDIO_BASE_URL
-                        annotations:
-                            require-adobe-auth: false
-                            final: true
-                    preview-bulk-delete:
-                        function: src/actions/preview-bulk-delete.js
                         web: 'yes'
                         runtime: nodejs:22
                         inputs:

@@ -973,7 +973,7 @@ export class MasChat extends LitElement {
     }
 
     async handleCardAction(event) {
-        const { action, config, fragmentId, fragmentTitle } = event.detail;
+        const { action, config, fragmentId } = event.detail;
 
         if (action === 'edit') {
             if (fragmentId) {
@@ -985,8 +985,6 @@ export class MasChat extends LitElement {
             await this.saveToAEM(config);
         } else if (action === 'publish') {
             await this.publishDraft(fragmentId);
-        } else if (action === 'delete') {
-            await this.deleteDraft(fragmentId, fragmentTitle);
         } else if (action === 'regenerate') {
             const regenerateMessage = 'Can you regenerate that card?';
             this.handleSendMessage({
@@ -1279,35 +1277,6 @@ export class MasChat extends LitElement {
         }
     }
 
-    async deleteDraft(fragmentId, fragmentTitle) {
-        try {
-            this.isLoading = true;
-            const repository = this.repository;
-            if (!repository) {
-                throw new Error('Repository not found');
-            }
-
-            const fragment = await repository.aem.sites.cf.fragments.getById(fragmentId);
-            await repository.aem.sites.cf.fragments.delete(fragment);
-
-            showToast(`Draft "${fragmentTitle}" deleted successfully!`, 'positive');
-
-            this.messages = [
-                ...this.messages,
-                {
-                    role: 'assistant',
-                    content: `✓ Draft card "${fragmentTitle}" has been deleted.`,
-                    timestamp: Date.now(),
-                },
-            ];
-        } catch (error) {
-            logError('Failed to delete draft', error);
-            showToast(`Failed to delete: ${error.message}`, 'negative');
-        } finally {
-            this.isLoading = false;
-        }
-    }
-
     async handleCollectionAction(event) {
         const { action, config } = event.detail;
 
@@ -1459,10 +1428,8 @@ export class MasChat extends LitElement {
         this.isLoading = true;
 
         const operationType = operation.mcpTool;
-        const isPreviewOperation = ['preview_bulk_update', 'preview_bulk_publish', 'preview_bulk_delete'].includes(
-            operationType,
-        );
-        const isBulkOperation = ['bulk_update_cards', 'bulk_publish_cards', 'bulk_delete_cards'].includes(operationType);
+        const isPreviewOperation = ['preview_bulk_update', 'preview_bulk_publish'].includes(operationType);
+        const isBulkOperation = ['bulk_update_cards', 'bulk_publish_cards'].includes(operationType);
 
         if (isPreviewOperation) {
             await this.executePreviewOperation(operation, operationType);
@@ -1518,7 +1485,6 @@ export class MasChat extends LitElement {
         const executionToolMap = {
             preview_bulk_update: 'bulk_update_cards',
             preview_bulk_publish: 'bulk_publish_cards',
-            preview_bulk_delete: 'bulk_delete_cards',
         };
 
         const executionTool = executionToolMap[operation];
@@ -1978,8 +1944,6 @@ export class MasChat extends LitElement {
             publish: 'Publishing card...',
             unpublish_card: 'Unpublishing card...',
             unpublish: 'Unpublishing card...',
-            delete_card: 'Deleting card...',
-            delete: 'Deleting card...',
             copy_card: 'Copying card...',
             copy: 'Copying card...',
             update_card: 'Updating card...',

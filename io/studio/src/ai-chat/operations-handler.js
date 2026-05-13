@@ -162,7 +162,6 @@ const TOOL_NAME_ALIASES = {
     get_fragment: 'get_card',
     publish_fragment: 'publish_card',
     unpublish_fragment: 'unpublish_card',
-    delete_fragment: 'delete_card',
     update_fragment: 'update_card',
     copy_fragment: 'copy_card',
 };
@@ -198,15 +197,12 @@ function validateMCPOperation(operation) {
         'unpublish_card',
         'get_card',
         'search_cards',
-        'delete_card',
         'copy_card',
         'update_card',
         'bulk_update_cards',
         'bulk_publish_cards',
-        'bulk_delete_cards',
         'preview_bulk_update',
         'preview_bulk_publish',
-        'preview_bulk_delete',
         'get_variations',
         'resolve_offer_selector',
         'get_offer_by_id',
@@ -230,7 +226,6 @@ function validateMCPOperation(operation) {
         case 'publish_card':
         case 'unpublish_card':
         case 'get_card':
-        case 'delete_card':
         case 'copy_card':
         case 'update_card':
             if (!operation.mcpParams.id) {
@@ -309,10 +304,8 @@ function validateMCPOperation(operation) {
 
         case 'bulk_update_cards':
         case 'bulk_publish_cards':
-        case 'bulk_delete_cards':
         case 'preview_bulk_update':
         case 'preview_bulk_publish':
-        case 'preview_bulk_delete':
             if (!operation.mcpParams.fragmentIds || !Array.isArray(operation.mcpParams.fragmentIds)) {
                 return { valid: false, error: `${operation.mcpTool} requires mcpParams.fragmentIds array` };
             }
@@ -347,7 +340,7 @@ export function processOperation(operation, message) {
         mcpTool: operation.mcpTool,
         mcpParams: operation.mcpParams,
         message: message || operation.message || `Executing ${operation.mcpTool} operation...`,
-        confirmationRequired: operation.confirmationRequired || operation.mcpTool === 'delete_card',
+        confirmationRequired: operation.confirmationRequired || false,
     };
 }
 

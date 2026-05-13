@@ -491,31 +491,6 @@ export class AEMClient {
     }
 
     /**
-     * Delete a fragment
-     */
-    async deleteFragment(id) {
-        const authHeader = await this.authManager.getAuthHeader();
-        const csrfToken = await this.getCsrfToken();
-
-        const url = `${this.baseUrl}/adobe/sites/cf/fragments/${encodeURIComponent(id)}`;
-
-        const response = await fetch(url, {
-            method: 'DELETE',
-            headers: {
-                Authorization: authHeader,
-                'CSRF-Token': csrfToken,
-                pragma: 'no-cache',
-                'cache-control': 'no-cache',
-                'x-aem-affinity-type': 'api',
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to delete fragment: ${response.statusText}`);
-        }
-    }
-
-    /**
      * Publish a fragment
      */
     async publishFragment(id) {

@@ -68,51 +68,6 @@ describe('pipeline end to end', () => {
         });
     });
 
-    it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment from preview too', async () => {
-        const previewStorage = {};
-        globalThis.localStorage = {
-            getItem: (key) => previewStorage[key] ?? null,
-            setItem: (key, value) => {
-                previewStorage[key] = value;
-            },
-        };
-        setupFragmentMocks(
-            fetchStub,
-            {
-                id: 'some-en-us-fragment',
-                path: 'someFragment',
-            },
-            true,
-        );
-        const state = new MockState();
-        const result = await getFragment({
-            id: 'some-en-us-fragment',
-            preview: {
-                url: 'https://odinpreview.corp.adobe.com/adobe/contentFragments',
-            },
-            state: state,
-            locale: 'fr_FR',
-        });
-        expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.include(EXPECTED_BODY);
-        expect(result.headers).to.have.property('Last-Modified');
-        expect(result.headers).to.have.property('ETag');
-        expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
-        delete json.lastModified; // removing the date to avoid flakiness
-        expect(json).to.deep.include({
-            fragmentsIds: {
-                'dictionary-id': 'sandbox_fr_FR_dictionary',
-                'default-locale-id': 'some-fr-fr-fragment',
-                'settings-id': 'settings-id',
-            },
-            hash: EXPECTED_BODY_HASH,
-        });
-        delete globalThis.localStorage;
-    });
-
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(
             fetchStub,

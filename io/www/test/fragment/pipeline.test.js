@@ -206,6 +206,18 @@ describe('pipeline corner cases', () => {
         expect(action).to.be.a('function');
     });
 
+    it('should reject preview mode with 400', async () => {
+        const result = await action({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            preview: true,
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(400);
+        expect(result.message).to.equal('Preview mode is not supported in this pipeline');
+        expect(fetchStub.called).to.be.false;
+    });
+
     it('no arguments should return 400', async () => {
         const result = await getFragment({
             state: new MockState(),

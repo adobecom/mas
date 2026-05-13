@@ -35,12 +35,12 @@ jobs:
         with:
             run_tests: false
         secrets:
-            ENV: ${{ secrets[format('AIO_STUDIO_ENV_{0}', github.actor)] || secrets.AIO_STUDIO_ENV_QA }}
-            AIO: ${{ secrets[format('AIO_STUDIO_AIO_{0}', github.actor)] || secrets.AIO_STUDIO_AIO_QA }}
+            ENV: ${{ secrets[format('AIO_STUDIO_ENV_{0}', github.actor)] }}
+            AIO: ${{ secrets[format('AIO_STUDIO_AIO_{0}', github.actor)] }}
             ODIN_BUCKET: ${{ secrets.ODIN_BUCKET_QA }}
 
     test-deployed:
         needs: deploy
         uses: ./.github/workflows/io-studio-tests.yaml
         secrets:
-            workspace: ${{ secrets[format('AIO_STUDIO_NS_{0}', github.actor)] || secrets.AIO_STUDIO_NS_QA }}
+            workspace: ${{ secrets[format('AIO_STUDIO_NS_{0}', github.actor)] }}

@@ -28,6 +28,10 @@ async function postToOdinWithRetry(odinEndpoint, URI, authToken, payload, maxRet
         } catch (error) {
             lastError = error.message || error.toString();
             logger.warn(`Error POSTing ${URI} (attempt ${attempt}/${maxRetries}): ${lastError}`);
+            // 429 retries are already handled inside fetchOdin; don't add backoff retries on top
+            const statusMatch = lastError.match(/status (\d{3})/);
+            const httpStatus = statusMatch ? Number(statusMatch[1]) : 0;
+            if (httpStatus === 429) break;
             if (attempt < maxRetries) {
                 const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
                 logger.info(`Waiting ${delay}ms before retry...`);
@@ -238,6 +242,22 @@ async function getVariationParent(odinEndpoint, variationPath, authToken) {
 }
 
 /**
+ * Parse a Retry-After header to seconds.
+ * RFC 7231 §7.1.3 allows either delay-seconds (e.g. "60") or an HTTP-date.
+ * Falls back to fallbackSecs when the header is missing or unparseable.
+ */
+function parseRetryAfter(headerValue, fallbackSecs) {
+    if (!headerValue) return fallbackSecs;
+    const asNumber = Number(headerValue);
+    if (Number.isFinite(asNumber)) return asNumber;
+    const asDate = Date.parse(headerValue);
+    if (!Number.isNaN(asDate)) {
+        return Math.max(0, Math.ceil((asDate - Date.now()) / 1000));
+    }
+    return fallbackSecs;
+}
+
+/**
  * common function to fetch from Odin with error handling
  *
  * @param {*} odinEndpoint
@@ -254,7 +274,15 @@ async function fetchOdin(
     odinEndpoint,
     URI,
     authToken,
-    { method = 'GET', body = null, contentType = null, etag = null, ignoreErrors = [] } = {},
+    {
+        method = 'GET',
+        body = null,
+        contentType = null,
+        etag = null,
+        ignoreErrors = [],
+        max429Retries = 3,
+        retryAfterFallbackSecs = 65,
+    } = {},
 ) {
     const startTime = performance.now();
     const path = `${odinEndpoint}${URI}`;
@@ -268,11 +296,20 @@ async function fetchOdin(
     if (method !== 'GET' && body) {
         headers['Content-Type'] = contentType || 'application/json';
     }
-    const response = await fetch(path, {
-        headers,
-        method,
-        body,
-    });
+
+    let response;
+    for (let attempt = 1; attempt <= max429Retries; attempt++) {
+        // eslint-disable-next-line no-await-in-loop
+        response = await fetch(path, { headers, method, body });
+        if (response.status !== 429 || attempt === max429Retries) break;
+        const retryAfterSecs = parseRetryAfter(response.headers.get('Retry-After'), retryAfterFallbackSecs);
+        logger.warn(
+            `${method} ${URI}: 429 Too Many Requests (attempt ${attempt}/${max429Retries}), waiting ${retryAfterSecs}s before retry`,
+        );
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => setTimeout(resolve, retryAfterSecs * 1000));
+    }
+
     if (!response.ok && !ignoreErrors.includes(response.status)) {
         let errorBody = {};
         try {

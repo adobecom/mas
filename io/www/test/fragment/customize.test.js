@@ -1306,6 +1306,7 @@ describe('customize promo variation', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.id).to.equal('root-id');
+        expect(result.body.path).to.equal('/content/dam/mas/sandbox/en_US/my-card');
         expect(result.body.variationId).to.equal('promo-var-id');
         expect(result.body.fields.title).to.equal('Promo Title');
         expect(result.body.fields.badge).to.equal('PROMO');

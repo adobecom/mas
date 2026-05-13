@@ -344,7 +344,7 @@ async function init(context) {
  * Overrides can target specific OSIs or act as wildcards (empty osis list).
  * Specific OSI overrides take priority over the wildcard.
  */
-function buildPromoMap(offerOverrides, country, projectPromoCode) {
+function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
     const map = {};
     if (projectPromoCode) {
         map['*'] = projectPromoCode;
@@ -353,6 +353,12 @@ function buildPromoMap(offerOverrides, country, projectPromoCode) {
         const countryMatch = override.countries.length === 0 || (country && override.countries.includes(country));
         if (!countryMatch) continue;
         if (override.osis.length === 0) {
+            if (map['*'] && map['*'] !== override.promoCode) {
+                log(
+                    `Project promoCode "${map['*']}" overridden by wildcard offer override "${override.promoCode}"`,
+                    context,
+                );
+            }
             map['*'] = override.promoCode;
         } else {
             for (const osi of override.osis) {
@@ -372,7 +378,7 @@ async function promotions(context) {
     const { activeProject } = (await context.promises?.promotions) ?? {};
     if (!activeProject) return { ...context, status: 200 };
     const { fragmentPaths = [], offerOverrides = [], promoCode } = activeProject;
-    const promoMap = buildPromoMap(offerOverrides, context.country, promoCode);
+    const promoMap = buildPromoMap(offerOverrides, context.country, promoCode, context);
     const promoFragmentPaths = new Set(fragmentPaths);
     return { ...context, status: 200, promoMap, promoFragmentPaths };
 }

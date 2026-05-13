@@ -156,6 +156,7 @@ function mergeVariations(root, customizeContext) {
         logDebug(() => `Merging promo variation ${promoVariation.id} for fragment ${root.id}`, customizeContext);
         const merged = deepMerge(root, promoVariation);
         merged.id = root.id;
+        merged.path = root.path;
         merged.variationId = promoVariation.id;
         return merged;
     }

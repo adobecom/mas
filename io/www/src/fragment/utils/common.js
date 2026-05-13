@@ -201,8 +201,10 @@ async function getRequestInfos(context) {
 
 /**
  * Returns which geo dimensions match between `tags` and the given locale/country,
- * or null if neither matches.
- * Tags are CQ tag paths (e.g. /content/cq:tags/mas/geo/en_US), matched by final path segment.
+ * or null if neither matches. Tags are CQ tag paths whose last two segments
+ * must be `(geo|country)/<value>` — e.g.
+ * `/content/cq:tags/mas/geo/en_US` or `mas:sandbox/pzn/country/KW`. This
+ * prevents spurious matches against unrelated taxonomies ending in `/<X>`.
  * Falls back to extracting country from regionLocale when country is not provided.
  * @param {string[]} tags
  * @param {{ regionLocale?: string, country?: string }} param1
@@ -210,10 +212,10 @@ async function getRequestInfos(context) {
  */
 function matchesGeo(tags, { regionLocale, country }) {
     const effectiveCountry = country ?? regionLocale?.split('_')[1];
-    const region = Boolean(regionLocale && tags.some((tag) => tag.toLowerCase().endsWith(`/${regionLocale.toLowerCase()}`)));
-    const countryMatch = Boolean(
-        effectiveCountry && tags.some((tag) => tag.toLowerCase().endsWith(`/${effectiveCountry.toLowerCase()}`)),
-    );
+    const matchSuffix = (value) =>
+        tags.some((tag) => new RegExp(`/(geo|country)/${value}$`, 'i').test(tag));
+    const region = Boolean(regionLocale) && matchSuffix(regionLocale);
+    const countryMatch = Boolean(effectiveCountry) && matchSuffix(effectiveCountry);
     if (!region && !countryMatch) return null;
     return { region, country: countryMatch };
 }

@@ -566,5 +566,73 @@ describe('promotions', () => {
 
             expect(result.activeProject.offerOverrides).to.deep.equal([{ osis: ['OSI-2'], promoCode: 'VALID', countries: [] }]);
         });
+
+        it('logs when wildcard override shadows project-level promoCode with a different value', async () => {
+            const logStub = sinon.stub(console, 'log');
+            const result = await promotionsTransformer.process(
+                makeCtx(undefined, [{ osis: [], promoCode: 'OOPS', countries: [] }], 'PROJ'),
+            );
+            expect(result.promoMap).to.deep.equal({ '*': 'OOPS' });
+            expect(
+                logStub.calledWithMatch(
+                    sinon.match(/Project promoCode "PROJ" overridden by wildcard offer override "OOPS"/),
+                ),
+            ).to.be.true;
+            logStub.restore();
+        });
+
+        it('does not log when wildcard override equals project-level promoCode', async () => {
+            const logStub = sinon.stub(console, 'log');
+            const result = await promotionsTransformer.process(
+                makeCtx(undefined, [{ osis: [], promoCode: 'SAME', countries: [] }], 'SAME'),
+            );
+            expect(result.promoMap).to.deep.equal({ '*': 'SAME' });
+            expect(logStub.calledWithMatch(sinon.match(/overridden by wildcard/))).to.be.false;
+            logStub.restore();
+        });
+    });
+
+    describe('toInstant', () => {
+        let storage;
+        beforeEach(() => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            fetchStub.returns(createResponse(404, null, 'Not Found'));
+            storage = {};
+            globalThis.localStorage = {
+                getItem: (key) => storage[key] ?? null,
+                setItem: (key, val) => {
+                    storage[key] = val;
+                },
+                removeItem: (key) => {
+                    delete storage[key];
+                },
+            };
+        });
+        afterEach(() => {
+            fetchStub.restore();
+            clearPromoCache(true);
+            clearPromoCache();
+            delete globalThis.localStorage;
+        });
+
+        async function runInstant(value) {
+            const project = makeProject({
+                surfaces: ['acom'],
+                geos: [],
+                startDate: '2000-01-01T00:00:00Z',
+                endDate: '2099-12-31T00:00:00Z',
+            });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+            return promotionsTransformer.init(createContext({ preview: true, instant: value }));
+        }
+
+        for (const garbage of ['lol', '2026-13-99', null]) {
+            it(`falls back to Date.now() when instant is ${JSON.stringify(garbage)}`, async () => {
+                const result = await runInstant(garbage);
+                expect(result.activeProject).to.not.be.null;
+            });
+        }
     });
 });

@@ -1,13 +1,13 @@
-var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in p?Ke(p,m,{enumerable:!0,configurable:!0,writable:!0,value:e}):p[m]=e;var ee=(p,m,e)=>We(p,typeof m!="symbol"?m+"":m,e),te=(p,m,e)=>m.has(p)||xe("Cannot "+e);var i=(p,m,e)=>(te(p,m,"read from private field"),e?e.call(p):m.get(p)),g=(p,m,e)=>m.has(p)?xe("Cannot add the same private member more than once"):m instanceof WeakSet?m.add(p):m.set(p,e),d=(p,m,e,t)=>(te(p,m,"write to private field"),t?t.call(p,e):m.set(p,e),e),s=(p,m,e)=>(te(p,m,"access private method"),e);import{html as v,LitElement as et,nothing as w}from"./lit-all.min.js";import{unsafeHTML as ye}from"./lit-all.min.js";var ct=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),pt=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var Xe='span[is="inline-price"][data-wcs-osi]',Ze='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var Qe='a[is="upt-link"]',dt=`${Xe},${Ze},${Qe}`;var re="aem:load",oe="aem:error",ae="mas:ready";var ht=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var mt=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});import{css as Je}from"./lit-all.min.js";var be=Je`
+var Ke=Object.defineProperty;var xe=d=>{throw TypeError(d)};var We=(d,m,e)=>m in d?Ke(d,m,{enumerable:!0,configurable:!0,writable:!0,value:e}):d[m]=e;var ee=(d,m,e)=>We(d,typeof m!="symbol"?m+"":m,e),te=(d,m,e)=>m.has(d)||xe("Cannot "+e);var i=(d,m,e)=>(te(d,m,"read from private field"),e?e.call(d):m.get(d)),g=(d,m,e)=>m.has(d)?xe("Cannot add the same private member more than once"):m instanceof WeakSet?m.add(d):m.set(d,e),p=(d,m,e,t)=>(te(d,m,"write to private field"),t?t.call(d,e):m.set(d,e),e),s=(d,m,e)=>(te(d,m,"access private method"),e);import{html as v,LitElement as et,nothing as w}from"./lit-all.min.js";import{unsafeHTML as ye}from"./lit-all.min.js";var lt=Object.freeze({MONTH:"MONTH",YEAR:"YEAR",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",PERPETUAL:"PERPETUAL",TERM_LICENSE:"TERM_LICENSE",ACCESS_PASS:"ACCESS_PASS",THREE_MONTHS:"THREE_MONTHS",SIX_MONTHS:"SIX_MONTHS"}),dt=Object.freeze({ANNUAL:"ANNUAL",MONTHLY:"MONTHLY",TWO_YEARS:"TWO_YEARS",THREE_YEARS:"THREE_YEARS",P1D:"P1D",P1Y:"P1Y",P3Y:"P3Y",P10Y:"P10Y",P15Y:"P15Y",P3D:"P3D",P7D:"P7D",P30D:"P30D",HALF_YEARLY:"HALF_YEARLY",QUARTERLY:"QUARTERLY"});var Ze='span[is="inline-price"][data-wcs-osi]',Xe='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var Qe='a[is="upt-link"]',pt=`${Ze},${Xe},${Qe}`;var re="aem:load",oe="aem:error",ae="mas:ready";var ht=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var mt=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});import{css as Je}from"./lit-all.min.js";var be=Je`
     :host {
         --comparison-border-radius: 8px;
         --comparison-row-border-color: #e9e9e9;
         --comparison-desktop-max-width: 1200px;
         --comparison-tablet-spacing: 50px;
         --comparison-table-spacing: 12px;
-        --compare-chart-row-border-color: #e9e9e9;
-        --compare-chart-desktop-max-width: 1200px;
-        --compare-chart-spacing: 12px;
+        --compare-chart-row-border-color: var(--comparison-row-border-color);
+        --compare-chart-desktop-max-width: var(--comparison-desktop-max-width);
+        --compare-chart-spacing: var(--comparison-table-spacing);
         --hover-border-color: #357beb;
         --primary-cell-path-color: #05834e;
         --color-text: #2c2c2c;
@@ -20,7 +20,7 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         );
         --compare-chart-sticky-inline-inset: 0px;
 
-        /* Typography tokens (Figma: Heading XS, Body bold S/XS/XXS, Body XS, Body XXXS) */
+        /* Local fallbacks for Milo/Spectrum typography tokens. */
         --type-heading-xs: 700 18px/22px 'Adobe Clean', sans-serif;
         --type-body-bold-s: 700 16px/24px 'Adobe Clean', sans-serif;
         --type-body-bold-xs: 700 14px/20px 'Adobe Clean', sans-serif;
@@ -50,19 +50,15 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         color: var(--color-text);
     }
 
-    /* Dark mode — only Table Section supports it per Figma. Subcomponent
-       chips remain light. */
     :host-context(.dark),
     :host([data-dark]) {
         --color-text: #f5f5f5;
         --color-text-secondary: #b0b0b0;
+        --comparison-row-border-color: #444;
         --compare-chart-row-border-color: #444;
-        --compare-chart-row-bg: #1e1e1e;
-        --compare-chart-row-bg-alt: #2c2c2c;
         background: #1e1e1e;
     }
 
-    /* ---------- header band (sticky) ---------- */
     .sticky-header-spacer {
         display: none;
         height: 0;
@@ -102,11 +98,9 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
             opacity var(--transition-fade, 0.2s ease);
     }
     .sticky-header.is-stuck {
-        width: 100vw;
-        margin-left: calc(50% - 50vw);
-        margin-right: calc(50% - 50vw);
+        width: 100%;
         z-index: 9;
-        background: #fff;
+        background: var(--color-white, #fff);
         box-shadow: 0 1px 6px 0 rgb(0 0 0 / 12%);
         transform: translateY(0) translateZ(0);
         backface-visibility: hidden;
@@ -130,7 +124,7 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
     .header-leading {
         grid-column: 1;
         display: flex;
-        align-items: center;
+        align-items: stretch;
         font: var(--type-body-bold-s);
         color: var(--color-text);
         white-space: nowrap;
@@ -154,7 +148,7 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         grid-column: calc(var(--col) + 1);
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
         justify-content: center;
         gap: 4px;
         color: var(--color-text);
@@ -172,6 +166,10 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         padding: var(--spacing-xxs, 8px);
         background: #fff;
     }
+    .header-segment[data-card-index='1'],
+    .header-segment[data-card-index='3'],
+    .price-segment[data-card-index='1'],
+    .price-segment[data-card-index='3'],
     .header-segment[data-cell-color='grey'],
     .price-segment[data-cell-color='grey'] {
         background: var(--color-gray-100, #f8f8f8);
@@ -201,7 +199,9 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        align-self: stretch;
+        width: 100%;
+        gap: var(--spacing-xxs, 8px);
     }
     .mobile-filter-select {
         display: none;
@@ -226,8 +226,8 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
             #ebeeff;
     }
     .mobile-filter-select option {
-        background: #6e6e6e;
-        color: #fff;
+        background: var(--color-white, #fff);
+        color: var(--color-black, #000);
     }
     .sticky-header.is-stuck .header-segment,
     .sticky-header.is-stuck .price-segment {
@@ -318,8 +318,7 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         box-sizing: border-box;
         background: rgba(255, 255, 255, 0.001);
         font:
-            italic 400 var(--type-body-xxs-size, 12px) / 1.25
-                'Adobe Clean',
+            italic 400 var(--type-body-xxs-size, 12px) / 1.25 'Adobe Clean',
             sans-serif !important;
         letter-spacing: 0;
         margin: 0 !important;
@@ -327,6 +326,8 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         color: #2c2c2c;
     }
     ::slotted([slot$='-cta']) {
+        display: flex;
+        justify-content: center;
         font: var(--compare-chart-header-cta-font);
         letter-spacing: 0;
         margin: 0 !important;
@@ -408,7 +409,6 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         display: none;
     }
 
-    /* ---------- rows ---------- */
     .table-row {
         margin: 0 var(--spacing-s, 24px);
         display: grid;
@@ -416,8 +416,6 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
                 --compare-chart-data-cols
             );
         gap: var(--comparison-table-spacing);
-        /* Top-align so chips line up across columns regardless of whether
-           sibling cells have a <small> caption below their chip. */
         align-items: start;
         padding: 0;
     }
@@ -445,8 +443,6 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         flex: 1 1 auto;
     }
 
-    /* Description rows (Figma: Description Row + Table item cell) — borderless,
-       smaller typography. */
     .description-row {
         padding-top: 6px;
         padding-bottom: 6px;
@@ -458,10 +454,6 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         color: var(--color-text-secondary);
     }
 
-    /* ---------- cells (rendered in shadow from captured data) ----------
-       The cell <p> is a borderless flex column. The bordered "chip" lives
-       inside as <span class="compare-chart-chip"> (created by the WC at capture
-       time). Captions live as <small> siblings BELOW the chip. */
     .table-row p[role='cell'] {
         margin: 0;
         padding: 0 0 var(--spacing-s, 24px) 0;
@@ -490,6 +482,12 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         min-height: 18px;
         padding: var(--spacing-xs, 16px) var(--comparison-table-spacing);
         width: calc(100% - 2 * var(--comparison-table-spacing) - 2px);
+    }
+    .table-row p[role='cell']:not(:nth-child(2)) .compare-chart-chip {
+        background-color: var(--color-gray-100, #f8f8f8);
+    }
+    .table-row p[role='cell']:nth-child(even) .compare-chart-chip {
+        background-color: var(--color-white, #fff);
     }
 
     .table-row p[role='cell'] > small {
@@ -838,8 +836,8 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
         }
         .sticky-header-wrapper {
             max-width: calc(
-                var(--comparison-desktop-max-width) -
-                    2 * var(--spacing-s, 24px) - 2px
+                var(--comparison-desktop-max-width) - 2 *
+                    var(--spacing-s, 24px) - 2px
             );
         }
         .table-container {
@@ -859,11 +857,11 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
     :host([data-dark]) .header-content.is-stuck {
         background: #2c2c2c;
     }
-`;var Ee="mas-compare-chart",tt=3e4,X=4,rt=900,ot=["icons","header","badge","price","description","detail","cta"],k={included:["\u2713","\u2714","\u2705"],excluded:["\u2717","\u2718","\u2716","\xD7"],notApplicable:["\u2014","-"]},at=p=>k.included.includes(p),it=p=>k.excluded.includes(p),st=p=>!p||k.notApplicable.includes(p)||/^-+$/.test(p),D=(p,m,e)=>p.placeholders?.[m]??e,G,b,_,N,L,T,B,y,Y,M,E,A,V,P,I,z,S,$,q,j,K,r,ie,se,Ae,ve,we,Ce,_e,H,Te,Se,Re,Z,ke,ne,Ne,Le,le,Me,Pe,Q,ce,nt,J,pe,de,Ie,Oe,He,he,$e,me,ge,De,ue,Ue,Ge,Be,Ye,R,U,Ve,Fe,ze,qe,je,fe,F=class extends et{constructor(){super();g(this,r);g(this,G);g(this,b,[]);g(this,_,[]);g(this,N,new Map);g(this,L,new Map);g(this,T,[]);g(this,B,new Map);g(this,y,new Set);g(this,Y);g(this,M,!1);g(this,E,0);g(this,A,1);g(this,V,!1);g(this,P,null);g(this,I,null);g(this,z,!1);g(this,S,0);g(this,$,()=>s(this,r,ge).call(this));g(this,q,e=>{let t=e.target;if(t?.parentElement===this){s(this,r,_e).call(this,e.detail,t);return}t?.closest?.("merch-card")?.parentElement===this&&s(this,r,H).call(this)});g(this,j,e=>{var t;e.target?.parentElement===this&&(d(this,T,[]),d(this,_,[]),d(this,b,[]),i(this,N).clear(),i(this,L).clear(),this.requestUpdate(),(t=i(this,I))==null||t.call(this,!1),d(this,P,null),d(this,I,null))});g(this,K,e=>{e.target?.parentElement===this&&s(this,r,H).call(this)});d(this,G,this.attachInternals?.()),i(this,G)&&(i(this,G).role="table")}connectedCallback(){super.connectedCallback(),this.addEventListener("mas-compare-chart:rehydrate",()=>s(this,r,H).call(this)),this.addEventListener(re,i(this,q)),this.addEventListener(oe,i(this,j)),this.addEventListener(ae,i(this,K)),d(this,Y,new ResizeObserver(()=>s(this,r,ce).call(this))),i(this,Y).observe(this)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(re,i(this,q)),this.removeEventListener(oe,i(this,j)),this.removeEventListener(ae,i(this,K)),i(this,Y)?.disconnect(),s(this,r,me).call(this)}firstUpdated(){s(this,r,H).call(this),s(this,r,$e).call(this)}updated(e){e.has("expandedGroups")&&s(this,r,ne).call(this),(e.has("consonant")||e.has("spectrum"))&&s(this,r,se).call(this)}checkReady(){if(!this.querySelector(":scope > aem-fragment"))return Promise.resolve(!0);s(this,r,ie).call(this);let t=new Promise(o=>setTimeout(()=>o(!1),tt));return Promise.race([i(this,P),t])}render(){return this.collapsed?w:v`
+`;var Ee="mas-compare-chart",tt=3e4,Z=4,rt=900,ot=["icons","header","badge","price","description","detail","cta"],k={included:["\u2713","\u2714","\u2705"],excluded:["\u2717","\u2718","\u2716","\xD7"],notApplicable:["\u2014","-"]},at=d=>k.included.includes(d),it=d=>k.excluded.includes(d),st=d=>!d||k.notApplicable.includes(d)||/^-+$/.test(d),D=(d,m,e)=>d.placeholders?.[m]??e,G,b,_,N,L,R,Y,y,V,M,E,A,B,P,I,z,T,$,q,j,K,r,ie,se,Ae,ve,we,Ce,_e,H,Re,Te,Se,X,ke,ne,Ne,Le,ce,Me,Pe,Q,le,nt,J,de,pe,Ie,Oe,He,he,$e,me,ge,De,ue,Ue,Ge,Ye,Ve,S,U,Be,Fe,ze,qe,je,fe,F=class extends et{constructor(){super();g(this,r);g(this,G);g(this,b,[]);g(this,_,[]);g(this,N,new Map);g(this,L,new Map);g(this,R,[]);g(this,Y,new Map);g(this,y,new Set);g(this,V);g(this,M,!1);g(this,E,0);g(this,A,1);g(this,B,!1);g(this,P,null);g(this,I,null);g(this,z,!1);g(this,T,0);g(this,$,()=>s(this,r,ge).call(this));g(this,q,e=>{let t=e.target;if(t?.parentElement===this){s(this,r,_e).call(this,e.detail,t);return}t?.closest?.("merch-card")?.parentElement===this&&s(this,r,H).call(this)});g(this,j,e=>{var t;e.target?.parentElement===this&&(p(this,R,[]),p(this,_,[]),p(this,b,[]),i(this,N).clear(),i(this,L).clear(),this.requestUpdate(),(t=i(this,I))==null||t.call(this,!1),p(this,P,null),p(this,I,null))});g(this,K,e=>{e.target?.parentElement===this&&s(this,r,H).call(this)});p(this,G,this.attachInternals?.()),i(this,G)&&(i(this,G).role="table")}connectedCallback(){super.connectedCallback(),this.addEventListener("mas-compare-chart:rehydrate",()=>s(this,r,H).call(this)),this.addEventListener(re,i(this,q)),this.addEventListener(oe,i(this,j)),this.addEventListener(ae,i(this,K)),p(this,V,new ResizeObserver(()=>s(this,r,le).call(this))),i(this,V).observe(this)}disconnectedCallback(){super.disconnectedCallback(),this.removeEventListener(re,i(this,q)),this.removeEventListener(oe,i(this,j)),this.removeEventListener(ae,i(this,K)),i(this,V)?.disconnect(),s(this,r,me).call(this)}firstUpdated(){s(this,r,H).call(this),s(this,r,$e).call(this)}updated(e){e.has("expandedGroups")&&s(this,r,ne).call(this),(e.has("consonant")||e.has("spectrum"))&&s(this,r,se).call(this)}checkReady(){if(!this.querySelector(":scope > aem-fragment"))return Promise.resolve(!0);s(this,r,ie).call(this);let t=new Promise(o=>setTimeout(()=>o(!1),tt));return Promise.race([i(this,P),t])}render(){return this.collapsed?w:v`
             <div class="sticky-header-spacer" aria-hidden="true"></div>
             <div class="header-content sticky-header">
                 <div class="sticky-header-wrapper">
-                    ${s(this,r,Be).call(this)}
+                    ${s(this,r,Ye).call(this)}
                 </div>
             </div>
             <slot name="cards" hidden></slot>
@@ -872,10 +870,10 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
                 aria-hidden="false"
                 role="row"
             >
-                ${s(this,r,pe).call(this).map(e=>v`<span role="columnheader">${e.title}</span>`)}
+                ${s(this,r,de).call(this).map(e=>v`<span role="columnheader">${e.title}</span>`)}
             </div>
-            ${i(this,T).map(e=>s(this,r,Fe).call(this,e))}
-        `}};G=new WeakMap,b=new WeakMap,_=new WeakMap,N=new WeakMap,L=new WeakMap,T=new WeakMap,B=new WeakMap,y=new WeakMap,Y=new WeakMap,M=new WeakMap,E=new WeakMap,A=new WeakMap,V=new WeakMap,P=new WeakMap,I=new WeakMap,z=new WeakMap,S=new WeakMap,$=new WeakMap,q=new WeakMap,j=new WeakMap,K=new WeakMap,r=new WeakSet,ie=function(){i(this,P)||d(this,P,new Promise(e=>{d(this,I,e)}))},se=function(e=i(this,b)){e.forEach(t=>{t.consonant=this.consonant,t.toggleAttribute("consonant",!!this.consonant),this.spectrum?(t.spectrum=this.spectrum,t.setAttribute("spectrum",this.spectrum)):t.removeAttribute("spectrum")})},Ae=function(e,t){let o=e?.fields||{};if(Array.isArray(o)){let n=o.find(l=>l.name===t);return n?.multiple?n.values||[]:n?.values?.[0]||""}let a=o[t];return Array.isArray(a)?a[0]||"":a?.value??a??""},ve=function(e,t){let o=e?.fields||{};if(Array.isArray(o))return o.find(n=>n.name===t)?.values||[];let a=o[t];return Array.isArray(a)?a:a==null||a===""?[]:[a?.value??a]},we=function(e){let t=e?.references||{};return Array.isArray(t)?t.map(o=>({identifier:o.identifier||o.id||o.path,value:o.value||o})).filter(o=>o.value):Object.entries(t).map(([o,a])=>({identifier:o,value:a?.value||a})).filter(o=>o.value)},Ce=function(e){let t=s(this,r,we).call(this,e),o=l=>t.find(({identifier:c,value:h})=>c===l||h.id===l||h.path===l)?.value,a=s(this,r,ve).call(this,e,"cards").map(o).filter(Boolean);if(a.length)return a.slice(0,X);let n=(e.referencesTree||[]).filter(l=>l.fieldName==="cards").map(l=>o(l.identifier)).filter(Boolean);return n.length?n.slice(0,X):t.map(({value:l})=>l).filter(l=>l?.fields).slice(0,X)},_e=async function(e,t){var O;if(!e)return;s(this,r,ie).call(this),this.querySelectorAll("[data-compare-chart-generated]").forEach(u=>u.remove());let o=new DOMParser,a=s(this,r,Ae).call(this,e,"compareChart"),n=o.parseFromString(a||"","text/html"),l=n.body.querySelector("mas-compare-chart")||n.body;l.hasAttribute?.("expanded-groups")&&(this.expandedGroups=l.getAttribute("expanded-groups"));let c=l.querySelector(':scope > [slot="compare-features"]');if(c){let u=c.cloneNode(!0);u.dataset.compareChartGenerated="true",this.append(u)}l.querySelectorAll(":scope > div[name]").forEach(u=>{let C=u.cloneNode(!0);C.dataset.compareChartGenerated="true",this.append(C)});let h=t?.hasAttribute("author"),x=s(this,r,Ce).call(this,e),f=[];x.forEach(u=>{t?.cache?.add(u);let C=document.createElement("merch-card");C.setAttribute("slot","cards"),C.dataset.compareChartGenerated="true",s(this,r,se).call(this,[C]);let W=document.createElement("aem-fragment");W.setAttribute("fragment",u.id),h&&W.setAttribute("author",""),W.setAttribute("loading","cache"),C.append(W),this.append(C),f.push(C)}),s(this,r,H).call(this),await Promise.all(f.map(u=>u.checkReady?.().catch(()=>!1))),s(this,r,H).call(this),(O=i(this,I))==null||O.call(this,!0),d(this,P,null),d(this,I,null)},H=function(){if(!i(this,V)){d(this,V,!0);try{s(this,r,Te).call(this),s(this,r,ke).call(this),s(this,r,ne).call(this),s(this,r,Le).call(this),s(this,r,ce).call(this),this.requestUpdate()}finally{d(this,V,!1)}}},Te=function(){let e=Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).slice(0,X);this.querySelectorAll(":scope > [data-compare-chart-slot]").forEach(o=>o.remove());let t=[];e.forEach((o,a)=>{let n=`card-${a+1}`;o.dataset.cardId=n,o.dataset.columnIndex=String(a+1),o.style.setProperty("--col",a+1);let l=o.getAttribute("cell-color")??"default";t.push(s(this,r,Se).call(this,o,n,a,l))}),d(this,b,e),d(this,_,t),this.setAttribute("data-child-count",String(e.length)),this.style.setProperty("--compare-chart-cols",e.length)},Se=function(e,t,o,a){let n={},l=new Set;for(let h of ot){let x=`${t}-${h}`;if(n[h]=x,!e)continue;let f=Array.from(e.querySelectorAll(`:scope > [slot="${h}"]`));f.length&&l.add(h);for(let O of f){if(h==="cta"){s(this,r,Re).call(this,O,x);continue}let u=O.cloneNode(!0);u.setAttribute("slot",x),u.toggleAttribute("data-compare-chart-slot",!0),s(this,r,Z).call(this,u),this.appendChild(u)}}e&&(e.hidden=!0,e.setAttribute("aria-hidden","true"),e.dataset.cardId=t,e.dataset.columnIndex=String(o+1),e.dataset.cellColor=a);let c=Array.from(this.querySelectorAll(`:scope > [slot="${n.header}"]`)).map(h=>h.textContent.trim()).filter(Boolean).join(" ");return{cardId:t,col:o+1,cellColor:a,slots:n,presentSlots:l,title:c||`Card ${o+1}`}},Re=function(e,t){let o=e.matches("a,button")?[e]:Array.from(e.querySelectorAll("a,button"));if(!o.length){let a=e.cloneNode(!0);a.setAttribute("slot",t),a.toggleAttribute("data-compare-chart-slot",!0),s(this,r,Z).call(this,a),this.appendChild(a);return}for(let a of o){let n=a.cloneNode(!0);n.setAttribute("slot",t),n.toggleAttribute("data-compare-chart-slot",!0),s(this,r,Z).call(this,n),this.appendChild(n)}},Z=function(e){e.removeAttribute("style"),e.querySelectorAll("[style]").forEach(t=>t.removeAttribute("style"))},ke=function(){d(this,T,[]),i(this,B).clear();let e=1;Array.from(this.querySelectorAll(":scope > div[name]")).forEach((t,o)=>{let a=t.getAttribute("name"),n=t.querySelector(":scope > h4")?.textContent.trim()??"",l=o+1,c={heading:n,groupIndex:l,groupKey:a,rows:[]};i(this,T).push(c),t.querySelectorAll(":scope > p[name]").forEach(h=>{let x=h.getAttribute("name"),f=`${a}@${x}`;e++,c.rows.push({slot:f,rowIndex:e}),i(this,B).set(f,{rowIndex:e,groupIndex:l})})})},ne=function(){let e=(this.expandedGroups??"").trim(),t=i(this,T).length;if(d(this,y,new Set),!e)t>0&&i(this,y).add(1);else if(e==="all")for(let o=1;o<=t;o+=1)i(this,y).add(o);else{if(e==="none")return;e.split(",").map(o=>parseInt(o.trim(),10)).filter(o=>!isNaN(o)&&o>=1&&o<=t).forEach(o=>i(this,y).add(o))}},Ne=function(){let e=i(this,T).length;return i(this,y).size?e&&i(this,y).size===e?"all":[...i(this,y)].sort((t,o)=>t-o).join(","):"none"},Le=function(){i(this,L).clear(),i(this,N).clear(),Array.from(this.querySelectorAll(":scope > div[name]")).forEach(e=>{let t=e.getAttribute("name");e.querySelectorAll(":scope > p[name]").forEach(o=>{let a=`${t}@${o.getAttribute("name")}`,n=o.cloneNode(!0),l=s(this,r,le).call(this,n);i(this,L).set(a,{labelHTML:n.innerHTML,title:l,tooltipPosition:o.getAttribute("data-tooltip-position")??"top-center",isItemRow:o.hasAttribute("item")})})}),Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).forEach(e=>{let t=e.dataset.cardId,o=parseInt(e.dataset.columnIndex,10),a=new Map;e.querySelectorAll(':scope > p[name], :scope > [slot="features"] p[name]').forEach(n=>{let l=n.getAttribute("name");!l||!l.includes("@")||a.set(l,n)});for(let[n,l]of a){if(!i(this,B).has(n))continue;let c=l.cloneNode(!0),h=c.textContent.includes("\u2705"),x=c.hasAttribute("primary");x&&c.classList.add("primary-cell"),h&&c.classList.add("emoji-primary-cell");let f=c.hasAttribute("item");f&&c.classList.add("item-cell");let O=s(this,r,le).call(this,c);s(this,r,Me).call(this,c);let u=i(this,N).get(n)??[];u.push({cardId:t,col:o,isCellPrimary:x,isEmojiPrimary:h,isItem:f,title:O,tooltipPosition:c.getAttribute("data-tooltip-position")??"top-center",html:c.innerHTML,ariaLabel:c.getAttribute("aria-label")}),i(this,N).set(n,u)}})},le=function(e){let t=e.querySelector(":scope > a.secondary-link[title]"),o=t?.getAttribute("title")||e.getAttribute("title")||void 0;return t?.remove(),o&&e.removeAttribute("title"),o},Me=function(e){let t=e.querySelector(":scope > .compare-chart-chip");if(t){for(;t.firstChild;)e.insertBefore(t.firstChild,t);t.remove()}let o=e.textContent.trim();if(at(o))e.setAttribute("aria-label",D(this,"included","Included")),s(this,r,Q).call(this,e);else if(it(o))e.setAttribute("aria-label",D(this,"not-included","Not included")),s(this,r,Q).call(this,e);else if(st(o)){if(e.setAttribute("aria-label",D(this,"not-applicable","Not applicable")),!o){let a=document.createElement("span");a.className="empty-cell-sr",a.textContent=D(this,"empty-table-cell","Not applicable"),e.textContent="\u2014";let n=document.createElement("span");n.setAttribute("aria-hidden","true"),n.textContent="\u2014",e.replaceChildren(n,a)}}else e.removeAttribute("aria-label"),s(this,r,Q).call(this,e);s(this,r,Pe).call(this,e)},Pe=function(e){if(e.classList.contains("item-cell"))return;let t=document.createElement("span");t.className="compare-chart-chip";let o=Array.from(e.childNodes);for(let a of o){if(a.nodeType===Node.ELEMENT_NODE&&a.tagName==="SMALL")break;t.appendChild(a)}e.insertBefore(t,e.firstChild)},Q=function(e){let t=[...k.included,...k.excluded,...k.notApplicable],o=e.classList.contains("primary-cell");Array.from(e.childNodes).forEach(a=>{if(a.nodeType!==Node.TEXT_NODE)return;let n=a.textContent;if(!t.some(c=>n.includes(c)))return;let l=document.createDocumentFragment();for(let c of n)if(t.includes(c)){let h=document.createElement("span");h.setAttribute("aria-hidden","true"),h.classList.add("compare-chart-glyph"),h.textContent=c==="\u2705"?"\u2713":c,k.included.includes(c)&&h.classList.add("included"),k.excluded.includes(c)&&h.classList.add("excluded"),(o||c==="\u2705")&&h.classList.add("primary"),l.appendChild(h)}else l.appendChild(document.createTextNode(c));a.replaceWith(l)})},ce=function(){let e=this.getBoundingClientRect().width||this.offsetWidth||window.innerWidth,t=e>0&&e<rt,o=t!==i(this,M);d(this,M,t),this.toggleAttribute("data-mobile",t),t?s(this,r,de).call(this):s(this,r,Oe).call(this),s(this,r,he).call(this),o&&this.requestUpdate()},nt=function(){return new Set(s(this,r,J).call(this))},J=function(){return!i(this,M)||i(this,b).length<=2?i(this,b).map(e=>e.dataset.cardId):[i(this,b)[i(this,E)],i(this,b)[i(this,A)]].filter(Boolean).map(e=>e.dataset.cardId)},pe=function(){return s(this,r,J).call(this).map(e=>i(this,_).find(t=>t.cardId===e)).filter(Boolean)},de=function(){this.style.setProperty("--compare-chart-cols",2),!(i(this,b).length<=2)&&s(this,r,Ie).call(this)},Ie=function(){let e=i(this,b).length;e<=2||(i(this,E)>=e&&d(this,E,0),i(this,A)>=e&&d(this,A,Math.min(1,e-1)),i(this,E)===i(this,A)&&d(this,A,(i(this,E)+1)%e))},Oe=function(){this.style.setProperty("--compare-chart-cols",i(this,b).length)},He=function(e,t){e==="A"?(t===i(this,A)&&d(this,A,i(this,E)),d(this,E,t)):(t===i(this,E)&&d(this,E,i(this,A)),d(this,A,t)),s(this,r,de).call(this),this.requestUpdate()},he=function(){if(i(this,M)){this.style.setProperty("--compare-chart-sticky-top","0px");return}let e=document.querySelector("header"),t=document.querySelector(".feds-localnav"),o=(e?.getBoundingClientRect().height||0)+(t?.getBoundingClientRect().height||0);this.style.setProperty("--compare-chart-sticky-top",`${o}px`)},$e=function(){s(this,r,me).call(this),s(this,r,he).call(this);let e=this.getAttribute("sticky-top");if(e){let t=/^\d+$/.test(e.trim())?`${e}px`:e;this.style.setProperty("--compare-chart-sticky-gap",t)}window.addEventListener("scroll",i(this,$),!0),window.addEventListener("resize",i(this,$)),s(this,r,ge).call(this)},me=function(){window.removeEventListener("scroll",i(this,$),!0),window.removeEventListener("resize",i(this,$)),i(this,S)&&(cancelAnimationFrame(i(this,S)),d(this,S,0))},ge=function(){i(this,S)||d(this,S,requestAnimationFrame(()=>{d(this,S,0),s(this,r,De).call(this)}))},De=function(){let e=this.shadowRoot?.querySelector(".header-content");if(this.collapsed||!e){s(this,r,ue).call(this,!1);return}let t=parseFloat(getComputedStyle(e).top)||0,o=e.getBoundingClientRect(),a=this.getBoundingClientRect();s(this,r,ue).call(this,a.top<t&&a.bottom>t&&o.top<=t+1)},ue=function(e){let t=this.shadowRoot?.querySelector(".header-content");e!==i(this,z)&&(d(this,z,e),this.toggleAttribute("data-sticky-header",e),t?.classList.toggle("sticky",e),t?.classList.toggle("is-stuck",e))},Ue=function(e){let t=!1;i(this,y).has(e)?i(this,y).delete(e):(d(this,y,new Set([e])),t=!0),this.expandedGroups=s(this,r,Ne).call(this),this.dispatchEvent(new CustomEvent("expanded-groups-change",{detail:{value:this.expandedGroups},bubbles:!0,composed:!0})),this.requestUpdate(),t&&this.updateComplete.then(()=>s(this,r,Ge).call(this,e))},Ge=function(e){if(this.collapsed)return;let t=this.shadowRoot?.querySelector(`.table-container[data-group-index="${String(e)}"]`);if(!t)return;let o=this.shadowRoot?.querySelector(".header-content"),a=getComputedStyle(this),n=parseFloat(a.getPropertyValue("--compare-chart-sticky-top"))||0,l=a.getPropertyValue("--compare-chart-sticky-gap").trim(),c=l&&parseFloat(l)||0,h=o?.getBoundingClientRect().height??0,x=n+c+h,f=t.style.scrollMarginTop;t.style.scrollMarginTop=`${x}px`,t.scrollIntoView({block:"start",behavior:"smooth"}),requestAnimationFrame(()=>{t.style.scrollMarginTop=f})},Be=function(){let e=s(this,r,pe).call(this),t=s(this,r,Ye).call(this,e);return v`
+            ${i(this,R).map(e=>s(this,r,Fe).call(this,e))}
+        `}};G=new WeakMap,b=new WeakMap,_=new WeakMap,N=new WeakMap,L=new WeakMap,R=new WeakMap,Y=new WeakMap,y=new WeakMap,V=new WeakMap,M=new WeakMap,E=new WeakMap,A=new WeakMap,B=new WeakMap,P=new WeakMap,I=new WeakMap,z=new WeakMap,T=new WeakMap,$=new WeakMap,q=new WeakMap,j=new WeakMap,K=new WeakMap,r=new WeakSet,ie=function(){i(this,P)||p(this,P,new Promise(e=>{p(this,I,e)}))},se=function(e=i(this,b)){e.forEach(t=>{t.consonant=this.consonant,t.toggleAttribute("consonant",!!this.consonant),this.spectrum?(t.spectrum=this.spectrum,t.setAttribute("spectrum",this.spectrum)):t.removeAttribute("spectrum")})},Ae=function(e,t){let o=e?.fields||{};if(Array.isArray(o)){let n=o.find(c=>c.name===t);return n?.multiple?n.values||[]:n?.values?.[0]||""}let a=o[t];return Array.isArray(a)?a[0]||"":a?.value??a??""},ve=function(e,t){let o=e?.fields||{};if(Array.isArray(o))return o.find(n=>n.name===t)?.values||[];let a=o[t];return Array.isArray(a)?a:a==null||a===""?[]:[a?.value??a]},we=function(e){let t=e?.references||{};return Array.isArray(t)?t.map(o=>({identifier:o.identifier||o.id||o.path,value:o.value||o})).filter(o=>o.value):Object.entries(t).map(([o,a])=>({identifier:o,value:a?.value||a})).filter(o=>o.value)},Ce=function(e){let t=s(this,r,we).call(this,e),o=c=>t.find(({identifier:l,value:h})=>l===c||h.id===c||h.path===c)?.value,a=s(this,r,ve).call(this,e,"cards").map(o).filter(Boolean);if(a.length)return a.slice(0,Z);let n=(e.referencesTree||[]).filter(c=>c.fieldName==="cards").map(c=>o(c.identifier)).filter(Boolean);return n.length?n.slice(0,Z):t.map(({value:c})=>c).filter(c=>c?.fields).slice(0,Z)},_e=async function(e,t){var O;if(!e)return;s(this,r,ie).call(this),this.querySelectorAll("[data-compare-chart-generated]").forEach(u=>u.remove());let o=new DOMParser,a=s(this,r,Ae).call(this,e,"compareChart"),n=o.parseFromString(a||"","text/html"),c=n.body.querySelector("mas-compare-chart")||n.body;c.hasAttribute?.("expanded-groups")&&(this.expandedGroups=c.getAttribute("expanded-groups"));let l=c.querySelector(':scope > [slot="compare-features"]');if(l){let u=l.cloneNode(!0);u.dataset.compareChartGenerated="true",this.append(u)}c.querySelectorAll(":scope > div[name]").forEach(u=>{let C=u.cloneNode(!0);C.dataset.compareChartGenerated="true",this.append(C)});let h=t?.hasAttribute("author"),x=s(this,r,Ce).call(this,e),f=[];x.forEach(u=>{t?.cache?.add(u);let C=document.createElement("merch-card");C.setAttribute("slot","cards"),C.dataset.compareChartGenerated="true",s(this,r,se).call(this,[C]);let W=document.createElement("aem-fragment");W.setAttribute("fragment",u.id),h&&W.setAttribute("author",""),W.setAttribute("loading","cache"),C.append(W),this.append(C),f.push(C)}),s(this,r,H).call(this),await Promise.all(f.map(u=>u.checkReady?.().catch(()=>!1))),s(this,r,H).call(this),(O=i(this,I))==null||O.call(this,!0),p(this,P,null),p(this,I,null)},H=function(){if(!i(this,B)){p(this,B,!0);try{s(this,r,Re).call(this),s(this,r,ke).call(this),s(this,r,ne).call(this),s(this,r,Le).call(this),s(this,r,le).call(this),this.requestUpdate()}finally{p(this,B,!1)}}},Re=function(){let e=Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).slice(0,Z);this.querySelectorAll(":scope > [data-compare-chart-slot]").forEach(o=>o.remove());let t=[];e.forEach((o,a)=>{let n=`card-${a+1}`;o.dataset.cardId=n,o.dataset.columnIndex=String(a+1),o.style.setProperty("--col",a+1);let c=o.getAttribute("cell-color")??"default";t.push(s(this,r,Te).call(this,o,n,a,c))}),p(this,b,e),p(this,_,t),this.setAttribute("data-child-count",String(e.length)),this.style.setProperty("--compare-chart-cols",e.length)},Te=function(e,t,o,a){let n={},c=new Set;for(let h of ot){let x=`${t}-${h}`;if(n[h]=x,!e)continue;let f=Array.from(e.querySelectorAll(`:scope > [slot="${h}"]`));f.length&&c.add(h);for(let O of f){if(h==="cta"){s(this,r,Se).call(this,O,x);continue}let u=O.cloneNode(!0);u.setAttribute("slot",x),u.toggleAttribute("data-compare-chart-slot",!0),s(this,r,X).call(this,u),this.appendChild(u)}}e&&(e.hidden=!0,e.setAttribute("aria-hidden","true"),e.dataset.cardId=t,e.dataset.columnIndex=String(o+1),e.dataset.cellColor=a);let l=Array.from(this.querySelectorAll(`:scope > [slot="${n.header}"]`)).map(h=>h.textContent.trim()).filter(Boolean).join(" ");return{cardId:t,col:o+1,cellColor:a,slots:n,presentSlots:c,title:l||`Card ${o+1}`}},Se=function(e,t){let o=e.matches("a,button")?[e]:Array.from(e.querySelectorAll("a,button"));if(!o.length){let a=e.cloneNode(!0);a.setAttribute("slot",t),a.toggleAttribute("data-compare-chart-slot",!0),s(this,r,X).call(this,a),this.appendChild(a);return}for(let a of o){let n=a.cloneNode(!0);n.setAttribute("slot",t),n.toggleAttribute("data-compare-chart-slot",!0),s(this,r,X).call(this,n),this.appendChild(n)}},X=function(e){e.removeAttribute("style"),e.querySelectorAll("[style]").forEach(t=>t.removeAttribute("style"))},ke=function(){p(this,R,[]),i(this,Y).clear();let e=1;Array.from(this.querySelectorAll(":scope > div[name]")).forEach((t,o)=>{let a=t.getAttribute("name"),n=t.querySelector(":scope > h4")?.textContent.trim()??"",c=o+1,l={heading:n,groupIndex:c,groupKey:a,rows:[]};i(this,R).push(l),t.querySelectorAll(":scope > p[name]").forEach(h=>{let x=h.getAttribute("name"),f=`${a}@${x}`;e++,l.rows.push({slot:f,rowIndex:e}),i(this,Y).set(f,{rowIndex:e,groupIndex:c})})})},ne=function(){let e=(this.expandedGroups??"").trim(),t=i(this,R).length;if(p(this,y,new Set),!e)t>0&&i(this,y).add(1);else if(e==="all")for(let o=1;o<=t;o+=1)i(this,y).add(o);else{if(e==="none")return;e.split(",").map(o=>parseInt(o.trim(),10)).filter(o=>!isNaN(o)&&o>=1&&o<=t).forEach(o=>i(this,y).add(o))}},Ne=function(){let e=i(this,R).length;return i(this,y).size?e&&i(this,y).size===e?"all":[...i(this,y)].sort((t,o)=>t-o).join(","):"none"},Le=function(){i(this,L).clear(),i(this,N).clear(),Array.from(this.querySelectorAll(":scope > div[name]")).forEach(e=>{let t=e.getAttribute("name");e.querySelectorAll(":scope > p[name]").forEach(o=>{let a=`${t}@${o.getAttribute("name")}`,n=o.cloneNode(!0),c=s(this,r,ce).call(this,n);i(this,L).set(a,{labelHTML:n.innerHTML,title:c,tooltipPosition:o.getAttribute("data-tooltip-position")??"top-center",isItemRow:o.hasAttribute("item")})})}),Array.from(this.querySelectorAll(':scope > merch-card[slot="cards"]')).forEach(e=>{let t=e.dataset.cardId,o=parseInt(e.dataset.columnIndex,10),a=new Map;e.querySelectorAll(':scope > p[name], :scope > [slot="features"] p[name]').forEach(n=>{let c=n.getAttribute("name");!c||!c.includes("@")||a.set(c,n)});for(let[n,c]of a){if(!i(this,Y).has(n))continue;let l=c.cloneNode(!0),h=l.textContent.includes("\u2705"),x=l.hasAttribute("primary");x&&l.classList.add("primary-cell"),h&&l.classList.add("emoji-primary-cell");let f=l.hasAttribute("item");f&&l.classList.add("item-cell");let O=s(this,r,ce).call(this,l);s(this,r,Me).call(this,l);let u=i(this,N).get(n)??[];u.push({cardId:t,col:o,isCellPrimary:x,isEmojiPrimary:h,isItem:f,title:O,tooltipPosition:l.getAttribute("data-tooltip-position")??"top-center",html:l.innerHTML,ariaLabel:l.getAttribute("aria-label")}),i(this,N).set(n,u)}})},ce=function(e){let t=e.querySelector(":scope > a.secondary-link[title]"),o=t?.getAttribute("title")||e.getAttribute("title")||void 0;return t?.remove(),o&&e.removeAttribute("title"),o},Me=function(e){let t=e.querySelector(":scope > .compare-chart-chip");if(t){for(;t.firstChild;)e.insertBefore(t.firstChild,t);t.remove()}let o=e.textContent.trim();if(at(o))e.setAttribute("aria-label",D(this,"included","Included")),s(this,r,Q).call(this,e);else if(it(o))e.setAttribute("aria-label",D(this,"not-included","Not included")),s(this,r,Q).call(this,e);else if(st(o)){if(e.setAttribute("aria-label",D(this,"not-applicable","Not applicable")),!o){let a=document.createElement("span");a.className="empty-cell-sr",a.textContent=D(this,"empty-table-cell","Not applicable"),e.textContent="\u2014";let n=document.createElement("span");n.setAttribute("aria-hidden","true"),n.textContent="\u2014",e.replaceChildren(n,a)}}else e.removeAttribute("aria-label"),s(this,r,Q).call(this,e);s(this,r,Pe).call(this,e)},Pe=function(e){if(e.classList.contains("item-cell"))return;let t=document.createElement("span");t.className="compare-chart-chip";let o=Array.from(e.childNodes);for(let a of o){if(a.nodeType===Node.ELEMENT_NODE&&a.tagName==="SMALL")break;t.appendChild(a)}e.insertBefore(t,e.firstChild)},Q=function(e){let t=[...k.included,...k.excluded,...k.notApplicable],o=e.classList.contains("primary-cell");Array.from(e.childNodes).forEach(a=>{if(a.nodeType!==Node.TEXT_NODE)return;let n=a.textContent;if(!t.some(l=>n.includes(l)))return;let c=document.createDocumentFragment();for(let l of n)if(t.includes(l)){let h=document.createElement("span");h.setAttribute("aria-hidden","true"),h.classList.add("compare-chart-glyph"),h.textContent=l==="\u2705"?"\u2713":l,k.included.includes(l)&&h.classList.add("included"),k.excluded.includes(l)&&h.classList.add("excluded"),(o||l==="\u2705")&&h.classList.add("primary"),c.appendChild(h)}else c.appendChild(document.createTextNode(l));a.replaceWith(c)})},le=function(){let e=this.getBoundingClientRect().width||this.offsetWidth||window.innerWidth,t=e>0&&e<rt,o=t!==i(this,M);p(this,M,t),this.toggleAttribute("data-mobile",t),t?s(this,r,pe).call(this):s(this,r,Oe).call(this),s(this,r,he).call(this),o&&this.requestUpdate()},nt=function(){return new Set(s(this,r,J).call(this))},J=function(){return!i(this,M)||i(this,b).length<=2?i(this,b).map(e=>e.dataset.cardId):[i(this,b)[i(this,E)],i(this,b)[i(this,A)]].filter(Boolean).map(e=>e.dataset.cardId)},de=function(){return s(this,r,J).call(this).map(e=>i(this,_).find(t=>t.cardId===e)).filter(Boolean)},pe=function(){this.style.setProperty("--compare-chart-cols",2),!(i(this,b).length<=2)&&s(this,r,Ie).call(this)},Ie=function(){let e=i(this,b).length;e<=2||(i(this,E)>=e&&p(this,E,0),i(this,A)>=e&&p(this,A,Math.min(1,e-1)),i(this,E)===i(this,A)&&p(this,A,(i(this,E)+1)%e))},Oe=function(){this.style.setProperty("--compare-chart-cols",i(this,b).length)},He=function(e,t){e==="A"?(t===i(this,A)&&p(this,A,i(this,E)),p(this,E,t)):(t===i(this,E)&&p(this,E,i(this,A)),p(this,A,t)),s(this,r,pe).call(this),this.requestUpdate()},he=function(){if(i(this,M)){this.style.setProperty("--compare-chart-sticky-top","0px");return}let e=document.querySelector("header"),t=document.querySelector(".feds-localnav"),o=(e?.getBoundingClientRect().height||0)+(t?.getBoundingClientRect().height||0);this.style.setProperty("--compare-chart-sticky-top",`${o}px`)},$e=function(){s(this,r,me).call(this),s(this,r,he).call(this);let e=this.getAttribute("sticky-top");if(e){let t=/^\d+$/.test(e.trim())?`${e}px`:e;this.style.setProperty("--compare-chart-sticky-gap",t)}window.addEventListener("scroll",i(this,$),!0),window.addEventListener("resize",i(this,$)),s(this,r,ge).call(this)},me=function(){window.removeEventListener("scroll",i(this,$),!0),window.removeEventListener("resize",i(this,$)),i(this,T)&&(cancelAnimationFrame(i(this,T)),p(this,T,0))},ge=function(){i(this,T)||p(this,T,requestAnimationFrame(()=>{p(this,T,0),s(this,r,De).call(this)}))},De=function(){let e=this.shadowRoot?.querySelector(".header-content");if(this.collapsed||!e){s(this,r,ue).call(this,!1);return}let t=parseFloat(getComputedStyle(e).top)||0,o=e.getBoundingClientRect(),a=this.getBoundingClientRect();s(this,r,ue).call(this,a.top<t&&a.bottom>t&&o.top<=t+1)},ue=function(e){let t=this.shadowRoot?.querySelector(".header-content");e!==i(this,z)&&(p(this,z,e),this.toggleAttribute("data-sticky-header",e),t?.classList.toggle("sticky",e),t?.classList.toggle("is-stuck",e))},Ue=function(e){let t=!1;i(this,y).has(e)?i(this,y).delete(e):(p(this,y,new Set([e])),t=!0),this.expandedGroups=s(this,r,Ne).call(this),this.dispatchEvent(new CustomEvent("expanded-groups-change",{detail:{value:this.expandedGroups},bubbles:!0,composed:!0})),this.requestUpdate(),t&&this.updateComplete.then(()=>s(this,r,Ge).call(this,e))},Ge=function(e){if(this.collapsed)return;let t=this.shadowRoot?.querySelector(`.table-container[data-group-index="${String(e)}"]`);if(!t)return;let o=this.shadowRoot?.querySelector(".header-content"),a=getComputedStyle(this),n=parseFloat(a.getPropertyValue("--compare-chart-sticky-top"))||0,c=a.getPropertyValue("--compare-chart-sticky-gap").trim(),l=c&&parseFloat(c)||0,h=o?.getBoundingClientRect().height??0,x=n+l+h,f=t.style.scrollMarginTop;t.style.scrollMarginTop=`${x}px`,t.scrollIntoView({block:"start",behavior:"smooth"}),requestAnimationFrame(()=>{t.style.scrollMarginTop=f})},Ye=function(){let e=s(this,r,de).call(this),t=s(this,r,Ve).call(this,e);return v`
             <div class="header-leading header-leading-header"></div>
             ${e.map((o,a)=>s(this,r,U).call(this,o,"header",a+1,a,t))}
             <div class="header-leading header-leading-price"></div>
@@ -888,35 +886,35 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
                 <slot name="compare-features"></slot>
             </div>
             ${e.map((o,a)=>s(this,r,U).call(this,o,"cta",a+1,a,t))}
-        `},Ye=function(e){let t=new Set;for(let o of e)for(let a of o.presentSlots)t.add(a);return t},R=function(e,t,o){return o.has(t)?v`<slot name=${e.slots[t]}></slot>`:w},U=function(e,t,o,a,n){let l=["header-card-segment",`${t}-segment`],c=e.cellColor;return v`<div
-            class=${l.join(" ")}
+        `},Ve=function(e){let t=new Set;for(let o of e)for(let a of o.presentSlots)t.add(a);return t},S=function(e,t,o){return o.has(t)?v`<slot name=${e.slots[t]}></slot>`:w},U=function(e,t,o,a,n){let c=["header-card-segment",`${t}-segment`],l=e.cellColor;return v`<div
+            class=${c.join(" ")}
             data-card-id=${e.cardId}
             data-card-index=${e.col-1}
-            data-cell-color=${c}
+            data-cell-color=${l}
             style="--col: ${o};"
         >
             ${t==="header"?v`
-                      ${s(this,r,R).call(this,e,"icons",n)}
-                      ${s(this,r,R).call(this,e,"header",n)}
-                      ${s(this,r,R).call(this,e,"badge",n)}
-                      ${s(this,r,Ve).call(this,e,a)}
+                      ${s(this,r,S).call(this,e,"icons",n)}
+                      ${s(this,r,S).call(this,e,"header",n)}
+                      ${s(this,r,S).call(this,e,"badge",n)}
+                      ${s(this,r,Be).call(this,e,a)}
                   `:w}
-            ${t==="price"?s(this,r,R).call(this,e,"price",n):w}
-            ${t==="description"?s(this,r,R).call(this,e,"description",n):w}
-            ${t==="detail"?s(this,r,R).call(this,e,"detail",n):w}
-            ${t==="cta"?s(this,r,R).call(this,e,"cta",n):w}
-        </div>`},Ve=function(e,t){if(!i(this,M)||i(this,_).length<=2)return w;let o=i(this,_).findIndex(l=>l.cardId===e.cardId),a=t===0?"A":"B",n=a==="A"?i(this,A):i(this,E);return v`<select
+            ${t==="price"?s(this,r,S).call(this,e,"price",n):w}
+            ${t==="description"?s(this,r,S).call(this,e,"description",n):w}
+            ${t==="detail"?s(this,r,S).call(this,e,"detail",n):w}
+            ${t==="cta"?s(this,r,S).call(this,e,"cta",n):w}
+        </div>`},Be=function(e,t){if(!i(this,M)||i(this,_).length<=2)return w;let o=i(this,_).findIndex(c=>c.cardId===e.cardId),a=t===0?"A":"B",n=a==="A"?i(this,A):i(this,E);return v`<select
             class="mobile-filter-select"
             name="column-filter"
             aria-label=${D(this,"choose-table-column","Choose column")}
             .value=${String(o)}
-            @change=${l=>s(this,r,He).call(this,a,parseInt(l.target.value,10))}
+            @change=${c=>s(this,r,He).call(this,a,parseInt(c.target.value,10))}
         >
-            ${i(this,_).map((l,c)=>c===n?w:v`<option
-                    value=${c}
-                    ?selected=${c===o}
+            ${i(this,_).map((c,l)=>l===n?w:v`<option
+                    value=${l}
+                    ?selected=${l===o}
                 >
-                    ${l.title}
+                    ${c.title}
                 </option>`)}
         </select>`},Fe=function(e){let t=i(this,y).has(e.groupIndex);return v`
             <div class="table-container" data-group-index=${e.groupIndex}>
@@ -941,15 +939,15 @@ var Ke=Object.defineProperty;var xe=p=>{throw TypeError(p)};var We=(p,m,e)=>m in
                     ${e.rows.map(o=>s(this,r,qe).call(this,o))}
                 </div>
             </div>
-        `},ze=function(e,t){return{cardId:e,col:t,isCellPrimary:!1,isEmojiPrimary:!1,isItem:!1,title:void 0,tooltipPosition:"top-center",html:'<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">\u2014</span></span>',ariaLabel:D(this,"not-applicable","Not applicable")}},qe=function(e){let t=i(this,L).get(e.slot)??{},o=new Map((i(this,N).get(e.slot)??[]).map(c=>[c.cardId,c])),a=s(this,r,J).call(this),n=a.map(c=>o.get(c)).filter(Boolean);!n.length&&a.length>0&&i(this,L).has(e.slot)&&(n=a.map(c=>{let h=i(this,b).find(f=>f.dataset.cardId===c),x=parseInt(h?.dataset.columnIndex??"1",10);return s(this,r,ze).call(this,c,x)}));let l=["table-row"];return t.isItemRow&&l.push("description-row"),v`
-            <div class=${l.join(" ")} role="row">
+        `},ze=function(e,t){return{cardId:e,col:t,isCellPrimary:!1,isEmojiPrimary:!1,isItem:!1,title:void 0,tooltipPosition:"top-center",html:'<span class="compare-chart-chip"><span class="compare-chart-glyph" aria-hidden="true">\u2014</span></span>',ariaLabel:D(this,"not-applicable","Not applicable")}},qe=function(e){let t=i(this,L).get(e.slot)??{},o=new Map((i(this,N).get(e.slot)??[]).map(l=>[l.cardId,l])),a=s(this,r,J).call(this),n=a.map(l=>o.get(l)).filter(Boolean);!n.length&&a.length>0&&i(this,L).has(e.slot)&&(n=a.map(l=>{let h=i(this,b).find(f=>f.dataset.cardId===l),x=parseInt(h?.dataset.columnIndex??"1",10);return s(this,r,ze).call(this,l,x)}));let c=["table-row"];return t.isItemRow&&c.push("description-row"),v`
+            <div class=${c.join(" ")} role="row">
                 <div class="row-header" role="rowheader">
                     <span class="row-label"
                         >${ye(t.labelHTML??"")}</span
                     >
                     ${s(this,r,fe).call(this,t.title,t.tooltipPosition)}
                 </div>
-                ${n.map(c=>s(this,r,je).call(this,c))}
+                ${n.map(l=>s(this,r,je).call(this,l))}
             </div>
         `},je=function(e){let t=["cell"];return e.isCellPrimary&&t.push("primary-cell"),e.isEmojiPrimary&&t.push("emoji-primary-cell"),e.isItem&&t.push("item-cell"),v`<p
             role="cell"

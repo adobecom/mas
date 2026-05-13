@@ -7,9 +7,9 @@ export const styles = css`
         --comparison-desktop-max-width: 1200px;
         --comparison-tablet-spacing: 50px;
         --comparison-table-spacing: 12px;
-        --compare-chart-row-border-color: #e9e9e9;
-        --compare-chart-desktop-max-width: 1200px;
-        --compare-chart-spacing: 12px;
+        --compare-chart-row-border-color: var(--comparison-row-border-color);
+        --compare-chart-desktop-max-width: var(--comparison-desktop-max-width);
+        --compare-chart-spacing: var(--comparison-table-spacing);
         --hover-border-color: #357beb;
         --primary-cell-path-color: #05834e;
         --color-text: #2c2c2c;
@@ -22,7 +22,7 @@ export const styles = css`
         );
         --compare-chart-sticky-inline-inset: 0px;
 
-        /* Typography tokens (Figma: Heading XS, Body bold S/XS/XXS, Body XS, Body XXXS) */
+        /* Local fallbacks for Milo/Spectrum typography tokens. */
         --type-heading-xs: 700 18px/22px 'Adobe Clean', sans-serif;
         --type-body-bold-s: 700 16px/24px 'Adobe Clean', sans-serif;
         --type-body-bold-xs: 700 14px/20px 'Adobe Clean', sans-serif;
@@ -52,19 +52,15 @@ export const styles = css`
         color: var(--color-text);
     }
 
-    /* Dark mode — only Table Section supports it per Figma. Subcomponent
-       chips remain light. */
     :host-context(.dark),
     :host([data-dark]) {
         --color-text: #f5f5f5;
         --color-text-secondary: #b0b0b0;
+        --comparison-row-border-color: #444;
         --compare-chart-row-border-color: #444;
-        --compare-chart-row-bg: #1e1e1e;
-        --compare-chart-row-bg-alt: #2c2c2c;
         background: #1e1e1e;
     }
 
-    /* ---------- header band (sticky) ---------- */
     .sticky-header-spacer {
         display: none;
         height: 0;
@@ -104,11 +100,9 @@ export const styles = css`
             opacity var(--transition-fade, 0.2s ease);
     }
     .sticky-header.is-stuck {
-        width: 100vw;
-        margin-left: calc(50% - 50vw);
-        margin-right: calc(50% - 50vw);
+        width: 100%;
         z-index: 9;
-        background: #fff;
+        background: var(--color-white, #fff);
         box-shadow: 0 1px 6px 0 rgb(0 0 0 / 12%);
         transform: translateY(0) translateZ(0);
         backface-visibility: hidden;
@@ -132,7 +126,7 @@ export const styles = css`
     .header-leading {
         grid-column: 1;
         display: flex;
-        align-items: center;
+        align-items: stretch;
         font: var(--type-body-bold-s);
         color: var(--color-text);
         white-space: nowrap;
@@ -156,7 +150,7 @@ export const styles = css`
         grid-column: calc(var(--col) + 1);
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
         justify-content: center;
         gap: 4px;
         color: var(--color-text);
@@ -174,6 +168,10 @@ export const styles = css`
         padding: var(--spacing-xxs, 8px);
         background: #fff;
     }
+    .header-segment[data-card-index='1'],
+    .header-segment[data-card-index='3'],
+    .price-segment[data-card-index='1'],
+    .price-segment[data-card-index='3'],
     .header-segment[data-cell-color='grey'],
     .price-segment[data-cell-color='grey'] {
         background: var(--color-gray-100, #f8f8f8);
@@ -198,20 +196,25 @@ export const styles = css`
     .cta-segment {
         grid-row: 5;
         gap: 8px;
+        padding: var(--spacing-xxs, 8px);
     }
     .cta-segment slot {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        align-self: stretch;
+        width: 100%;
+        gap: var(--spacing-xxs, 8px);
     }
     .mobile-filter-select {
         display: none;
-        width: 100%;
+        width: auto;
         height: 22px;
         padding: 0;
         position: absolute;
-        bottom: 1px;
+        inset-inline: -1px;
+        bottom: -1px;
+        box-sizing: border-box;
         border: none;
         border-top: 1px solid var(--color-gray-300, #d5d5d5);
         border-radius: 0 0 var(--comparison-border-radius)
@@ -228,8 +231,8 @@ export const styles = css`
             #ebeeff;
     }
     .mobile-filter-select option {
-        background: #6e6e6e;
-        color: #fff;
+        background: var(--color-white, #fff);
+        color: var(--color-black, #000);
     }
     .sticky-header.is-stuck .header-segment,
     .sticky-header.is-stuck .price-segment {
@@ -320,8 +323,7 @@ export const styles = css`
         box-sizing: border-box;
         background: rgba(255, 255, 255, 0.001);
         font:
-            italic 400 var(--type-body-xxs-size, 12px) / 1.25
-                'Adobe Clean',
+            italic 400 var(--type-body-xxs-size, 12px) / 1.25 'Adobe Clean',
             sans-serif !important;
         letter-spacing: 0;
         margin: 0 !important;
@@ -329,6 +331,8 @@ export const styles = css`
         color: #2c2c2c;
     }
     ::slotted([slot$='-cta']) {
+        display: flex;
+        justify-content: center;
         font: var(--compare-chart-header-cta-font);
         letter-spacing: 0;
         margin: 0 !important;
@@ -347,7 +351,7 @@ export const styles = css`
 
     /* ---------- per-group container ---------- */
     .table-container {
-        max-width: calc(100% - 60px);
+        max-width: calc(100% - 32px);
         box-sizing: border-box;
         margin: var(--spacing-xs, 16px) auto 0;
         border: 1px solid var(--color-gray-300, #d5d5d5);
@@ -410,7 +414,6 @@ export const styles = css`
         display: none;
     }
 
-    /* ---------- rows ---------- */
     .table-row {
         margin: 0 var(--spacing-s, 24px);
         display: grid;
@@ -418,8 +421,6 @@ export const styles = css`
                 --compare-chart-data-cols
             );
         gap: var(--comparison-table-spacing);
-        /* Top-align so chips line up across columns regardless of whether
-           sibling cells have a <small> caption below their chip. */
         align-items: start;
         padding: 0;
     }
@@ -447,8 +448,6 @@ export const styles = css`
         flex: 1 1 auto;
     }
 
-    /* Description rows (Figma: Description Row + Table item cell) — borderless,
-       smaller typography. */
     .description-row {
         padding-top: 6px;
         padding-bottom: 6px;
@@ -460,10 +459,6 @@ export const styles = css`
         color: var(--color-text-secondary);
     }
 
-    /* ---------- cells (rendered in shadow from captured data) ----------
-       The cell <p> is a borderless flex column. The bordered "chip" lives
-       inside as <span class="compare-chart-chip"> (created by the WC at capture
-       time). Captions live as <small> siblings BELOW the chip. */
     .table-row p[role='cell'] {
         margin: 0;
         padding: 0 0 var(--spacing-s, 24px) 0;
@@ -492,6 +487,12 @@ export const styles = css`
         min-height: 18px;
         padding: var(--spacing-xs, 16px) var(--comparison-table-spacing);
         width: calc(100% - 2 * var(--comparison-table-spacing) - 2px);
+    }
+    .table-row p[role='cell']:not(:nth-child(2)) .compare-chart-chip {
+        background-color: var(--color-gray-100, #f8f8f8);
+    }
+    .table-row p[role='cell']:nth-child(even) .compare-chart-chip {
+        background-color: var(--color-white, #fff);
     }
 
     .table-row p[role='cell'] > small {
@@ -840,8 +841,8 @@ export const styles = css`
         }
         .sticky-header-wrapper {
             max-width: calc(
-                var(--comparison-desktop-max-width) -
-                    2 * var(--spacing-s, 24px) - 2px
+                var(--comparison-desktop-max-width) - 2 *
+                    var(--spacing-s, 24px) - 2px
             );
         }
         .table-container {

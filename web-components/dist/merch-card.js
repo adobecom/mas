@@ -7467,6 +7467,7 @@ merch-card[variant="mini"] span.renewal-text {
             flex-direction: column;
             gap: 8px;
             background: transparent;
+            box-sizing: border-box;
         }
 
         /* Bordered chips: header + price */
@@ -7522,6 +7523,7 @@ merch-card[variant="mini"] span.renewal-text {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            box-sizing: border-box;
         }
         :host([variant='compare-chart']) slot[name='cta'],
         :host([variant='compare-chart']) ::slotted([slot='cta']) {

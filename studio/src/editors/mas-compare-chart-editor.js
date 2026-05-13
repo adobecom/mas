@@ -30,6 +30,7 @@ import {
     VARIATION_TABS,
 } from './variation-utils.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
+import { parseCompareChartTables } from '../../../web-components/src/compare-chart-table-parser.js';
 import { dragHandleIcon } from '../icons.js';
 import { styles } from './mas-compare-chart-editor.css.js';
 
@@ -651,8 +652,12 @@ class MasCompareChartEditor extends LitElement {
         return { doc, table };
     }
 
-    #parse() {
-        const { table } = this.#getDocument();
+    #parseTableGroups(table) {
+        if (!table) return [];
+        return parseCompareChartTables(table);
+    }
+
+    #parseDivGroups(table) {
         if (!table) return [];
         return [...table.querySelectorAll(':scope > div[name]')].map((groupEl) => ({
             name: groupEl.getAttribute('name'),
@@ -663,6 +668,12 @@ class MasCompareChartEditor extends LitElement {
                 html: rowEl.innerHTML,
             })),
         }));
+    }
+
+    #parse() {
+        const { table } = this.#getDocument();
+        if (!table) return [];
+        return [...this.#parseDivGroups(table), ...this.#parseTableGroups(table)];
     }
 
     #expandedGroupsAttribute() {

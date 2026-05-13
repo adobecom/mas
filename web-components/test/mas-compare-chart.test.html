@@ -14,7 +14,7 @@
         />
         <link
             rel="stylesheet"
-            href="https://main--da-express-milo--adobecom.aem.page/express/code/styles/styles.css"
+            href="https://www.adobe.com/express/code/styles/styles.css"
         />
     </head>
     <body>
@@ -23,11 +23,7 @@
         <!-- Inert until cloned in describe before() so aem-fragment / fetch
              never run until mocks and mas.js are fully ready. -->
         <template id="compare-chart-shared-fixture">
-            <mas-compare-chart
-                id="t"
-                consonant
-                spectrum="swc"
-            >
+            <mas-compare-chart id="t" consonant spectrum="swc">
                 <aem-fragment fragment="compare-chart-express"></aem-fragment>
             </mas-compare-chart>
         </template>
@@ -85,16 +81,19 @@
                         expect(
                             chart.querySelectorAll(':scope > [slot$="-cta"]')
                                 .length,
-                        ).to.equal(5);
+                        ).to.equal(3);
 
                         const ctaText = Array.from(
                             chart.querySelectorAll(':scope > [slot$="-cta"]'),
                             (cta) => cta.textContent.trim(),
                         );
-                        expect(ctaText).to.include('{{buy-now}}');
-                        expect(ctaText).to.include('{{free-trial}}');
+                        expect(ctaText).to.include('Get Adobe Express Free');
+                        expect(ctaText).to.include('Start 30-day free trial');
+                        expect(ctaText).to.include('Start 7-day free trial');
                         const headerText = Array.from(
-                            chart.querySelectorAll(':scope > [slot$="-header"]'),
+                            chart.querySelectorAll(
+                                ':scope > [slot$="-header"]',
+                            ),
                             (header) => header.textContent.trim(),
                         );
                         expect(headerText).to.deep.equal([
@@ -103,9 +102,11 @@
                             'Adobe Firefly Pro',
                         ]);
                         expect(
-                            chart.querySelector(
-                                ':scope > [slot="compare-features"]',
-                            ).textContent.trim(),
+                            chart
+                                .querySelector(
+                                    ':scope > [slot="compare-features"]',
+                                )
+                                .textContent.trim(),
                         ).to.equal('Compare Features');
                         expect(
                             chart.shadowRoot.querySelectorAll(
@@ -145,12 +146,12 @@
                         const headers = chart.shadowRoot.querySelectorAll(
                             '.table-column-header',
                         );
-                        expect(headers[0].getAttribute('aria-expanded')).to.equal(
-                            'true',
-                        );
-                        expect(headers[1].getAttribute('aria-expanded')).to.equal(
-                            'false',
-                        );
+                        expect(
+                            headers[0].getAttribute('aria-expanded'),
+                        ).to.equal('true');
+                        expect(
+                            headers[1].getAttribute('aria-expanded'),
+                        ).to.equal('false');
                     });
 
                     it('persists each section expand state in expanded-groups', async () => {
@@ -235,6 +236,102 @@
                         chart.remove();
                     });
 
+                    it('renders direct table section content as compare-chart rows and cells', async () => {
+                        const chart =
+                            document.createElement('mas-compare-chart');
+                        chart.setAttribute('expanded-groups', 'all');
+                        chart.getBoundingClientRect = () => ({
+                            width: 1200,
+                            height: 800,
+                            top: 0,
+                            bottom: 800,
+                            left: 0,
+                            right: 1200,
+                        });
+                        chart.innerHTML = `
+                            <merch-card slot="cards" variant="compare-chart">
+                                <h3 slot="header">Adobe Express Free</h3>
+                            </merch-card>
+                            <merch-card slot="cards" variant="compare-chart">
+                                <h3 slot="header">Adobe Express Premium</h3>
+                            </merch-card>
+                            <merch-card slot="cards" variant="compare-chart">
+                                <h3 slot="header">Adobe Firefly Pro</h3>
+                            </merch-card>
+                            <table>
+                                <thead class="invisible-headers">
+                                    <tr>
+                                        <th>Adobe apps</th>
+                                        <th scope="col">Adobe Express Free</th>
+                                        <th scope="col">Adobe Express Premium</th>
+                                        <th scope="col" class="invisible-content">Adobe Firefly Pro</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="ctv2-tr">
+                                        <th scope="row">Seamless integration across Adobe apps like Photoshop, Illustrator, InDesign, Firefly, Acrobat and Lightroom</th>
+                                        <td><span class="icon-checkmark-no-fill" role="img" aria-label="Yes"></span></td>
+                                        <td><span class="icon-checkmark-no-fill" role="img" aria-label="Yes"></span></td>
+                                        <td class="invisible-content"><span class="icon-checkmark-no-fill" role="img" aria-label="Yes"></span></td>
+                                    </tr>
+                                    <tr class="ctv2-tr">
+                                        <th scope="row">
+                                            <p class="ctv2-th-header">Boost your creativity with Photoshop:</p>
+                                            <p class="ctv2-th-subheader">In addition to the Adobe Express Premium plan, get full access to Adobe Photoshop on web and mobile.</p>
+                                        </th>
+                                        <td><span class="icon-crossmark" role="img" aria-label="No"></span></td>
+                                        <td><span class="icon-crossmark" role="img" aria-label="No"></span></td>
+                                        <td class="invisible-content"><span class="icon-checkmark-no-fill" role="img" aria-label="Yes"></span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        `;
+                        document.body.append(chart);
+                        await chart.updateComplete;
+                        await new Promise((resolve) =>
+                            requestAnimationFrame(resolve),
+                        );
+                        await chart.updateComplete;
+
+                        expect(
+                            chart.shadowRoot.querySelectorAll(
+                                '.table-column-header',
+                            ),
+                        ).to.have.lengthOf(1);
+                        expect(
+                            chart.shadowRoot
+                                .querySelector('.group-title')
+                                .textContent.trim(),
+                        ).to.equal('Adobe apps');
+                        const rows =
+                            chart.shadowRoot.querySelectorAll('.table-row');
+                        expect(rows).to.have.lengthOf(2);
+                        expect(
+                            rows[0].querySelector('.row-label').textContent,
+                        ).to.include('Seamless integration across Adobe apps');
+                        expect(
+                            rows[1].querySelector('.row-label').textContent,
+                        ).to.include('Boost your creativity with Photoshop');
+                        expect(
+                            rows[1].querySelector('.row-label').textContent,
+                        ).to.include('full access to Adobe Photoshop');
+                        expect(
+                            rows[0].querySelectorAll('[role="cell"]'),
+                        ).to.have.lengthOf(3);
+                        expect(
+                            rows[1].querySelectorAll(
+                                '[role="cell"] .compare-chart-glyph.excluded',
+                            ),
+                        ).to.have.lengthOf(2);
+                        expect(
+                            rows[1].querySelectorAll(
+                                '[role="cell"] .compare-chart-glyph.included',
+                            ),
+                        ).to.have.lengthOf(1);
+
+                        chart.remove();
+                    });
+
                     it('keeps compare-chart variant host styles above later page styles', async () => {
                         const style = document.createElement('style');
                         style.textContent = `
@@ -276,6 +373,16 @@
                                 .getPropertyValue('--compare-chart-cell-bg')
                                 .trim(),
                         ).to.equal('#fff');
+                        expect(
+                            getComputedStyle(
+                                card.shadowRoot.querySelector('.card'),
+                            ).boxSizing,
+                        ).to.equal('border-box');
+                        expect(
+                            getComputedStyle(
+                                card.shadowRoot.querySelector('.seg-cta'),
+                            ).boxSizing,
+                        ).to.equal('border-box');
 
                         chart.remove();
                         style.remove();
@@ -345,9 +452,8 @@
                         document.body.append(chart);
                         await chart.updateComplete;
 
-                        const header = chart.shadowRoot.querySelector(
-                            '.header-content',
-                        );
+                        const header =
+                            chart.shadowRoot.querySelector('.header-content');
                         const originalHostRect = chart.getBoundingClientRect;
                         const originalHeaderRect = header.getBoundingClientRect;
                         chart.getBoundingClientRect = () => ({
@@ -366,11 +472,11 @@
 
                         expect(header.classList.contains('is-stuck')).to.be
                             .true;
-                        expect(getComputedStyle(header).backgroundColor).to.equal(
-                            'rgb(255, 255, 255)',
-                        );
+                        expect(
+                            getComputedStyle(header).backgroundColor,
+                        ).to.equal('rgb(255, 255, 255)');
                         expect(getComputedStyle(header).width).to.equal(
-                            `${window.innerWidth}px`,
+                            getComputedStyle(chart).width,
                         );
 
                         chart.getBoundingClientRect = originalHostRect;
@@ -416,15 +522,18 @@
                                     requestAnimationFrame(resolve),
                                 ),
                             );
-                            const wrapper =
-                                chart.shadowRoot.querySelector(
-                                    '.sticky-header-wrapper',
-                                );
+                            const wrapper = chart.shadowRoot.querySelector(
+                                '.sticky-header-wrapper',
+                            );
                             const table =
                                 chart.shadowRoot.querySelector(
                                     '.table-container',
                                 );
                             return {
+                                wrapperMarginLeft:
+                                    getComputedStyle(wrapper).marginLeft,
+                                wrapperMarginRight:
+                                    getComputedStyle(wrapper).marginRight,
                                 wrapper: Math.round(
                                     wrapper.getBoundingClientRect().width,
                                 ),
@@ -435,23 +544,32 @@
                         };
 
                         expect(await measureAt(500)).to.deep.equal({
+                            wrapperMarginLeft: '30px',
+                            wrapperMarginRight: '30px',
                             wrapper: 440,
                             table: 440,
                         });
                         expect(await measureAt(700)).to.deep.equal({
+                            wrapperMarginLeft: '80px',
+                            wrapperMarginRight: '80px',
                             wrapper: 540,
                             table: 570,
                         });
                         expect(await measureAt(1000)).to.deep.equal({
+                            wrapperMarginLeft: '48px',
+                            wrapperMarginRight: '48px',
                             wrapper: 904,
                             table: 950,
                         });
                         expect(await measureAt(1300)).to.deep.equal({
+                            wrapperMarginLeft: '75px',
+                            wrapperMarginRight: '75px',
                             wrapper: 1150,
                             table: 1200,
                         });
 
-                        const row = chart.shadowRoot.querySelector('.table-row');
+                        const row =
+                            chart.shadowRoot.querySelector('.table-row');
                         const rowStyle = getComputedStyle(row);
                         expect(rowStyle.marginLeft).to.equal('24px');
                         expect(rowStyle.marginRight).to.equal('24px');
@@ -466,7 +584,9 @@
                         expect(sectionHeaderStyle.minHeight).to.equal('72px');
                         expect(sectionHeaderStyle.paddingTop).to.equal('24px');
                         expect(sectionHeaderStyle.fontSize).to.equal('18px');
-                        expect(sectionHeaderStyle.lineHeight).to.equal('22.5px');
+                        expect(sectionHeaderStyle.lineHeight).to.equal(
+                            '22.5px',
+                        );
 
                         const toggle =
                             chart.shadowRoot.querySelector('.toggle-icon');
@@ -501,7 +621,9 @@
                         expect(chipStyle.borderTopLeftRadius).to.equal('4px');
                         expect(chipStyle.paddingTop).to.equal('16px');
                         expect(chipStyle.paddingRight).to.equal('12px');
-                        expect(Math.round(chip.getBoundingClientRect().width)).to.equal(
+                        expect(
+                            Math.round(chip.getBoundingClientRect().width),
+                        ).to.equal(
                             Math.round(cell.getBoundingClientRect().width - 26),
                         );
 
@@ -555,9 +677,8 @@
                             requestAnimationFrame(resolve),
                         );
 
-                        const header = chart.shadowRoot.querySelector(
-                            '.header-content',
-                        );
+                        const header =
+                            chart.shadowRoot.querySelector('.header-content');
                         expect(getComputedStyle(header).top).to.equal('0px');
                         expect(
                             getComputedStyle(chart)
@@ -612,18 +733,15 @@
                             ),
                         );
 
-                        const header = chart.shadowRoot.querySelector(
-                            '.header-content',
-                        );
+                        const header =
+                            chart.shadowRoot.querySelector('.header-content');
                         const leadingCta = chart.shadowRoot.querySelector(
                             '.header-leading-cta',
                         );
-                        const headerSegment = chart.shadowRoot.querySelector(
-                            '.header-segment',
-                        );
-                        const priceSegment = chart.shadowRoot.querySelector(
-                            '.price-segment',
-                        );
+                        const headerSegment =
+                            chart.shadowRoot.querySelector('.header-segment');
+                        const priceSegment =
+                            chart.shadowRoot.querySelector('.price-segment');
                         const select = chart.shadowRoot.querySelector(
                             '.mobile-filter-select',
                         );
@@ -631,19 +749,19 @@
                         expect(getComputedStyle(leadingCta).display).to.equal(
                             'none',
                         );
-                        expect(getComputedStyle(headerSegment).gridRowStart).to
-                            .equal('1');
-                        expect(getComputedStyle(headerSegment).paddingBottom).to
-                            .equal('30px');
+                        expect(
+                            getComputedStyle(headerSegment).gridRowStart,
+                        ).to.equal('1');
+                        expect(
+                            getComputedStyle(headerSegment).paddingBottom,
+                        ).to.equal('30px');
                         const headerSegments = Array.from(
                             chart.shadowRoot.querySelectorAll(
                                 '.header-segment',
                             ),
                         );
                         const priceSegments = Array.from(
-                            chart.shadowRoot.querySelectorAll(
-                                '.price-segment',
-                            ),
+                            chart.shadowRoot.querySelectorAll('.price-segment'),
                         );
                         expect(
                             headerSegments.map((segment) =>
@@ -669,12 +787,10 @@
                             ),
                         ).to.deep.equal([
                             Math.round(
-                                priceSegments[0].getBoundingClientRect()
-                                    .height,
+                                priceSegments[0].getBoundingClientRect().height,
                             ),
                             Math.round(
-                                priceSegments[0].getBoundingClientRect()
-                                    .height,
+                                priceSegments[0].getBoundingClientRect().height,
                             ),
                         ]);
                         expect(
@@ -684,30 +800,45 @@
                             ),
                         ).to.deep.equal([
                             'rgb(255, 255, 255)',
-                            'rgb(255, 255, 255)',
+                            'rgb(248, 248, 248)',
                         ]);
                         expect(getComputedStyle(select).display).to.equal(
                             'block',
                         );
-                        expect(getComputedStyle(select).height).to.equal('22px');
-                        expect(getComputedStyle(select).backgroundColor).to.equal(
-                            'rgb(235, 238, 255)',
+                        expect(getComputedStyle(select).height).to.equal(
+                            '22px',
+                        );
+                        expect(
+                            getComputedStyle(select).backgroundColor,
+                        ).to.equal('rgb(235, 238, 255)');
+                        const headerSegmentRect =
+                            headerSegment.getBoundingClientRect();
+                        const selectRect = select.getBoundingClientRect();
+                        expect(Math.round(selectRect.left)).to.equal(
+                            Math.round(headerSegmentRect.left),
+                        );
+                        expect(Math.round(selectRect.right)).to.equal(
+                            Math.round(headerSegmentRect.right),
+                        );
+                        expect(Math.round(selectRect.bottom)).to.equal(
+                            Math.round(headerSegmentRect.bottom),
                         );
                         expect(
                             getComputedStyle(select.querySelector('option'))
                                 .backgroundColor,
-                        ).to.equal('rgb(110, 110, 110)');
+                        ).to.equal('rgb(255, 255, 255)');
                         expect(
                             getComputedStyle(select.querySelector('option'))
                                 .color,
-                        ).to.equal('rgb(255, 255, 255)');
+                        ).to.equal('rgb(0, 0, 0)');
                         expect(getComputedStyle(priceSegment).display).to.equal(
                             'flex',
                         );
 
                         header.classList.add('is-stuck');
-                        expect(getComputedStyle(headerSegment).paddingBottom).to
-                            .equal('0px');
+                        expect(
+                            getComputedStyle(headerSegment).paddingBottom,
+                        ).to.equal('0px');
                         expect(getComputedStyle(select).display).to.equal(
                             'none',
                         );
@@ -767,22 +898,14 @@
                             chart.querySelectorAll('[slot$="-header"]'),
                         );
                         expect(
-                            Math.round(
-                                icons[0].getBoundingClientRect().top,
-                            ),
+                            Math.round(icons[0].getBoundingClientRect().top),
                         ).to.equal(
-                            Math.round(
-                                icons[1].getBoundingClientRect().top,
-                            ),
+                            Math.round(icons[1].getBoundingClientRect().top),
                         );
                         expect(
-                            Math.round(
-                                titles[0].getBoundingClientRect().top,
-                            ),
+                            Math.round(titles[0].getBoundingClientRect().top),
                         ).to.equal(
-                            Math.round(
-                                titles[1].getBoundingClientRect().top,
-                            ),
+                            Math.round(titles[1].getBoundingClientRect().top),
                         );
                         chart.remove();
                     });
@@ -1020,7 +1143,12 @@
                         headingProbe.remove();
                         const headingXsLineHeight = `${parseFloat(headingXsResolvedSize) * 1.5}px`;
                         const typographyCases = [
-                            ['[slot="compare-features"]', '16px', '24px', '700'],
+                            [
+                                '[slot="compare-features"]',
+                                '16px',
+                                '24px',
+                                '700',
+                            ],
                             [
                                 '[slot="card-1-header"]',
                                 headingXsResolvedSize,
@@ -1028,8 +1156,13 @@
                                 '700',
                             ],
                             ['[slot="card-1-price"]', '16px', '20px', '700'],
-                            ['[slot="card-1-detail"]', '12px', '15px', '400', 'italic'],
-                            ['[slot="card-1-cta"]', '15px', '19px', '700'],
+                            [
+                                '[slot="card-1-detail"]',
+                                '12px',
+                                '15px',
+                                '400',
+                                'italic',
+                            ],
                         ];
                         typographyCases.forEach(
                             ([
@@ -1064,9 +1197,8 @@
                         expect(headerStyle.paddingLeft).to.equal('0px');
                         expect(headerStyle.hyphens).to.equal('manual');
 
-                        const headerSegment = chart.shadowRoot.querySelector(
-                            '.header-segment',
-                        );
+                        const headerSegment =
+                            chart.shadowRoot.querySelector('.header-segment');
                         const headerSegmentStyle =
                             getComputedStyle(headerSegment);
                         const gray300Probe = document.createElement('div');
@@ -1079,7 +1211,9 @@
                         expect(headerSegmentStyle.gap).to.equal('4px');
                         expect(headerSegmentStyle.paddingTop).to.equal('8px');
                         expect(headerSegmentStyle.paddingRight).to.equal('8px');
-                        expect(headerSegmentStyle.paddingBottom).to.equal('8px');
+                        expect(headerSegmentStyle.paddingBottom).to.equal(
+                            '8px',
+                        );
                         expect(headerSegmentStyle.paddingLeft).to.equal('8px');
                         expect(headerSegmentStyle.borderTopLeftRadius).to.equal(
                             '8px',
@@ -1107,14 +1241,34 @@
                         expect(priceSlotStyle.marginBottom).to.equal('0px');
                         expect(priceSlotStyle.marginLeft).to.equal('0px');
 
-                        const priceSegment = chart.shadowRoot.querySelector(
-                            '.price-segment',
-                        );
+                        const priceSegment =
+                            chart.shadowRoot.querySelector('.price-segment');
                         const priceSegmentStyle =
                             getComputedStyle(priceSegment);
                         expect(priceSegmentStyle.borderTopLeftRadius).to.equal(
                             '8px',
                         );
+
+                        const ctaSlot = chart.querySelector(
+                            '[slot="card-1-cta"]',
+                        );
+                        const ctaSlotStyle = getComputedStyle(ctaSlot);
+                        const ctaSegmentStyle = getComputedStyle(
+                            chart.shadowRoot.querySelector('.cta-segment'),
+                        );
+                        expect(ctaSegmentStyle.paddingTop).to.equal('8px');
+                        expect(ctaSegmentStyle.paddingRight).to.equal('8px');
+                        expect(ctaSegmentStyle.paddingBottom).to.equal('8px');
+                        expect(ctaSegmentStyle.paddingLeft).to.equal('8px');
+                        expect(ctaSlotStyle.display).to.equal('flex');
+                        expect(ctaSlotStyle.justifyContent).to.equal('center');
+                        expect(ctaSlotStyle.fontSize).to.equal('15px');
+                        expect(ctaSlotStyle.lineHeight).to.equal('19px');
+                        expect(ctaSlotStyle.fontWeight).to.equal('700');
+                        expect(ctaSlotStyle.marginTop).to.equal('0px');
+                        expect(ctaSlotStyle.marginRight).to.equal('0px');
+                        expect(ctaSlotStyle.marginBottom).to.equal('0px');
+                        expect(ctaSlotStyle.marginLeft).to.equal('0px');
 
                         const discountStyle = getComputedStyle(
                             priceSlot.querySelector('.price-strikethrough'),
@@ -1174,9 +1328,9 @@
                         expect(headerDetailParagraphStyle.marginRight).to.equal(
                             '0px',
                         );
-                        expect(headerDetailParagraphStyle.marginBottom).to.equal(
-                            '0px',
-                        );
+                        expect(
+                            headerDetailParagraphStyle.marginBottom,
+                        ).to.equal('0px');
                         expect(headerDetailParagraphStyle.marginLeft).to.equal(
                             '0px',
                         );

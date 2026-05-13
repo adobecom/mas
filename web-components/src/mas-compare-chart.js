@@ -5,6 +5,7 @@ import {
     EVENT_AEM_LOAD,
     EVENT_MAS_READY,
 } from './constants.js';
+import { parseCompareChartTables } from './compare-chart-table-parser.js';
 import { styles } from './mas-compare-chart.css.js';
 
 const MAS_COMPARE_CHART = 'mas-compare-chart';
@@ -61,6 +62,7 @@ export class MasCompareChart extends LitElement {
     #cellsByRow = new Map(); // rowSlot -> [{ cardId, col, isCellPrimary, html, ariaLabel }]
     #rowMeta = new Map(); // rowSlot -> { labelHTML, tooltipHTML? }
     #groups = []; // [{ heading, groupIndex, rows: [{ slot, rowIndex }] }]
+    #tableGroups = [];
     #rowSlotIndex = new Map(); // 'pdf-tools@view' -> { rowIndex, groupIndex }
     #expandedGroupIndices = new Set();
     #resizeObserver;
@@ -336,7 +338,8 @@ export class MasCompareChart extends LitElement {
             sourceCard.dataset.cardId = cardId;
             sourceCard.dataset.columnIndex = String(i + 1);
             sourceCard.style.setProperty('--col', i + 1);
-            const cellColor = sourceCard.getAttribute('cell-color') ?? 'default';
+            const cellColor =
+                sourceCard.getAttribute('cell-color') ?? 'default';
             cardHeaders.push(
                 this.#extractCardHeader(sourceCard, cardId, i, cellColor),
             );
@@ -423,6 +426,7 @@ export class MasCompareChart extends LitElement {
 
     #indexRows() {
         this.#groups = [];
+        this.#tableGroups = parseCompareChartTables(this);
         this.#rowSlotIndex.clear();
         let rowIndex = 1;
 
@@ -445,6 +449,24 @@ export class MasCompareChart extends LitElement {
                 });
             },
         );
+
+        this.#tableGroups.forEach((tableGroup) => {
+            const groupIndex = this.#groups.length + 1;
+            const group = {
+                heading: tableGroup.label,
+                groupIndex,
+                groupKey: tableGroup.name,
+                rows: [],
+            };
+            this.#groups.push(group);
+
+            tableGroup.rows.forEach((row) => {
+                const key = `${tableGroup.name}@${row.name}`;
+                rowIndex++;
+                group.rows.push({ slot: key, rowIndex });
+                this.#rowSlotIndex.set(key, { rowIndex, groupIndex });
+            });
+        });
     }
 
     #parseExpanded() {
@@ -554,6 +576,37 @@ export class MasCompareChart extends LitElement {
                 this.#cellsByRow.set(key, arr);
             }
         });
+
+        for (const tableGroup of this.#tableGroups) {
+            tableGroup.rows.forEach((row) => {
+                const key = `${tableGroup.name}@${row.name}`;
+                this.#rowMeta.set(key, {
+                    labelHTML: row.html,
+                    title: undefined,
+                    tooltipPosition: 'top-center',
+                    isItemRow: false,
+                });
+                const cells = row.cells
+                    .map((value, index) => {
+                        const p = document.createElement('p');
+                        p.innerHTML = value;
+                        this.#decorateCell(p);
+                        return {
+                            cardId: this.#cards[index]?.dataset.cardId,
+                            col: index + 1,
+                            isCellPrimary: false,
+                            isEmojiPrimary: value.includes('✅'),
+                            isItem: false,
+                            title: undefined,
+                            tooltipPosition: 'top-center',
+                            html: p.innerHTML,
+                            ariaLabel: p.getAttribute('aria-label'),
+                        };
+                    })
+                    .filter((cell) => cell.cardId);
+                this.#cellsByRow.set(key, cells);
+            });
+        }
     }
 
     #extractTooltipTitle(p) {

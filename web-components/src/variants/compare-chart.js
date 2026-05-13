@@ -114,6 +114,7 @@ export class CompareChart extends VariantLayout {
             flex-direction: column;
             gap: 8px;
             background: transparent;
+            box-sizing: border-box;
         }
 
         /* Bordered chips: header + price */
@@ -169,6 +170,7 @@ export class CompareChart extends VariantLayout {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            box-sizing: border-box;
         }
         :host([variant='compare-chart']) slot[name='cta'],
         :host([variant='compare-chart']) ::slotted([slot='cta']) {

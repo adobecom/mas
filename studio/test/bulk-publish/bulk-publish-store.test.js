@@ -116,10 +116,7 @@ describe('startPublishing', () => {
 
             expect(repo.aem.sites.cf.fragments.createVersion.calledOnce).to.equal(true);
             expect(clientStub.calledOnce).to.equal(true);
-            const createVersionCallOrder = repo.aem.sites.cf.fragments.createVersion.getCall(0);
-            const publishCallOrder = clientStub.getCall(0);
-            expect(createVersionCallOrder).to.exist;
-            expect(publishCallOrder).to.exist;
+            sinon.assert.callOrder(repo.aem.sites.cf.fragments.createVersion, clientStub);
         });
 
         it('aborts publish (does NOT call publishFn) if createSnapshot throws', async () => {

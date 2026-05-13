@@ -8,10 +8,15 @@ import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 
 let fetchStub;
+let unmatchedFetches;
 
 describe('pipeline configuration caching', () => {
     beforeEach(() => {
-        fetchStub = sinon.stub(globalThis, 'fetch').callsFake(() => {
+        unmatchedFetches = [];
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            unmatchedFetches.push(url);
+            // eslint-disable-next-line no-console
+            console.warn('[test] unmatched fetch stub:', url);
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
         resetCache();
@@ -24,6 +29,7 @@ describe('pipeline configuration caching', () => {
         if (typeof performance !== 'undefined' && performance.now?.restore) {
             performance.now.restore();
         }
+        expect(unmatchedFetches, `unexpected fetches: ${unmatchedFetches.join(', ')}`).to.have.length(0);
     });
 
     it('should cache configuration and reuse it on subsequent requests', async () => {

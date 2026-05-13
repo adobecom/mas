@@ -54,7 +54,7 @@ export function clearPromoCache(preview = false) {
 function getCachedProjects(preview) {
     const cacheEntry = preview ? JSON.parse(localStorage.getItem('promotions')) : projectsCache;
     if (cacheEntry) {
-        cacheEntry.isExpired = Date.now() - cacheEntry.timestamp > CONFIG_CACHE_TTL;
+        cacheEntry.isExpired = Math.abs(Date.now() - cacheEntry.timestamp) > CONFIG_CACHE_TTL;
         return cacheEntry;
     }
     return null;
@@ -203,7 +203,7 @@ function getCachedVariations(preview, key) {
     const store = preview ? JSON.parse(localStorage.getItem('promo-variations') ?? '{}') : promoVariationsCache;
     const entry = store[key];
     if (entry) {
-        entry.isExpired = Date.now() - entry.timestamp > CONFIG_CACHE_TTL;
+        entry.isExpired = Math.abs(Date.now() - entry.timestamp) > CONFIG_CACHE_TTL;
         return entry;
     }
     return null;

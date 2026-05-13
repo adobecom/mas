@@ -66,6 +66,20 @@ function makeHydratedProject({
     };
 }
 
+function installLocalStorageShim() {
+    const storage = {};
+    globalThis.localStorage = {
+        getItem: (key) => storage[key] ?? null,
+        setItem: (key, val) => {
+            storage[key] = val;
+        },
+        removeItem: (key) => {
+            delete storage[key];
+        },
+    };
+    return storage;
+}
+
 export { makeProject, makeHydratedProject, FOLDER_URL, hydrateUrl, DEFAULT_LANG_PROMISE };
 
 describe('promotions', () => {
@@ -144,29 +158,6 @@ describe('promotions', () => {
             expect(result.activeProject.id).to.equal('proj-1');
             expect(result.activeProject.fragmentPaths).to.have.length(1);
             expect(result.activeProject.promoCode).to.equal('SAVE20');
-        });
-
-        it('supports instant for time-travel testing in preview mode', async () => {
-            const storage = {};
-            globalThis.localStorage = {
-                getItem: (key) => storage[key] ?? null,
-                setItem: (key, val) => {
-                    storage[key] = val;
-                },
-                removeItem: (key) => {
-                    delete storage[key];
-                },
-            };
-            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
-            const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
-
-            const result = await promotionsTransformer.init(createContext({ preview: true, instant: PREVIEW_INSTANT }));
-            expect(result.activeProject).to.not.be.null;
-            expect(result.activeProject.id).to.equal('proj-1');
-            clearPromoCache(true);
-            delete globalThis.localStorage;
         });
 
         it('ignores instant when not in preview mode', async () => {
@@ -314,30 +305,6 @@ describe('promotions', () => {
             expect(result).to.deep.equal({ status: 200, activeProject: null });
         });
 
-        it('supports instant as an ISO string in preview mode', async () => {
-            const storage = {};
-            globalThis.localStorage = {
-                getItem: (key) => storage[key] ?? null,
-                setItem: (key, val) => {
-                    storage[key] = val;
-                },
-                removeItem: (key) => {
-                    delete storage[key];
-                },
-            };
-            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
-            const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
-
-            const result = await promotionsTransformer.init(
-                createContext({ preview: true, instant: '2020-02-01T00:00:00Z' }),
-            );
-            expect(result.activeProject).to.not.be.null;
-            clearPromoCache(true);
-            delete globalThis.localStorage;
-        });
-
         it('uses cache on second call without re-fetching folder', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
             const hydrated = makeHydratedProject();
@@ -348,41 +315,6 @@ describe('promotions', () => {
             await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
 
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
-        });
-
-        it('uses localStorage cache in preview mode', async () => {
-            const storage = {};
-            globalThis.localStorage = {
-                getItem: (key) => storage[key] ?? null,
-                setItem: (key, val) => {
-                    storage[key] = val;
-                },
-                removeItem: (key) => {
-                    delete storage[key];
-                },
-            };
-
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
-            const hydrated = makeHydratedProject();
-            const previewCtx = createContext({
-                regionLocale: 'en_US',
-                preview: { url: 'https://odin.adobe.com/adobe/contentFragments' },
-            });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
-
-            await promotionsTransformer.init(previewCtx);
-            expect(storage['promotions']).to.exist;
-
-            // Second call should read from localStorage
-            const result = await promotionsTransformer.init(previewCtx);
-            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
-            expect(result.activeProject).to.not.be.null;
-
-            clearPromoCache(true);
-            expect(storage['promotions']).to.be.undefined;
-
-            delete globalThis.localStorage;
         });
 
         it('returns no active project when defaultLanguage resolves without defaultLocale', async () => {
@@ -411,6 +343,66 @@ describe('promotions', () => {
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProject).to.not.be.null;
             expect(result.activeProject.defaultVariations).to.deep.equal({});
+        });
+    });
+
+    describe('preview mode', () => {
+        let storage;
+        beforeEach(() => {
+            fetchStub = sinon.stub(globalThis, 'fetch');
+            fetchStub.returns(createResponse(404, null, 'Not Found'));
+            storage = installLocalStorageShim();
+        });
+
+        afterEach(() => {
+            fetchStub.restore();
+            clearPromoCache(true);
+            clearPromoCache();
+            delete globalThis.localStorage;
+        });
+
+        it('supports instant for time-travel testing in preview mode', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(createContext({ preview: true, instant: PREVIEW_INSTANT }));
+            expect(result.activeProject).to.not.be.null;
+            expect(result.activeProject.id).to.equal('proj-1');
+        });
+
+        it('supports instant as an ISO string in preview mode', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [], startDate: START, endDate: EXPIRED_END });
+            const hydrated = makeHydratedProject();
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            const result = await promotionsTransformer.init(
+                createContext({ preview: true, instant: '2020-02-01T00:00:00Z' }),
+            );
+            expect(result.activeProject).to.not.be.null;
+        });
+
+        it('uses localStorage cache in preview mode', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
+            const hydrated = makeHydratedProject();
+            const previewCtx = createContext({
+                regionLocale: 'en_US',
+                preview: { url: 'https://odin.adobe.com/adobe/contentFragments' },
+            });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+
+            await promotionsTransformer.init(previewCtx);
+            expect(storage['promotions']).to.exist;
+
+            const result = await promotionsTransformer.init(previewCtx);
+            expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
+            expect(result.activeProject).to.not.be.null;
+
+            clearPromoCache(true);
+            expect(storage['promotions']).to.be.undefined;
         });
     });
 
@@ -593,20 +585,10 @@ describe('promotions', () => {
     });
 
     describe('toInstant', () => {
-        let storage;
         beforeEach(() => {
             fetchStub = sinon.stub(globalThis, 'fetch');
             fetchStub.returns(createResponse(404, null, 'Not Found'));
-            storage = {};
-            globalThis.localStorage = {
-                getItem: (key) => storage[key] ?? null,
-                setItem: (key, val) => {
-                    storage[key] = val;
-                },
-                removeItem: (key) => {
-                    delete storage[key];
-                },
-            };
+            installLocalStorageShim();
         });
         afterEach(() => {
             fetchStub.restore();

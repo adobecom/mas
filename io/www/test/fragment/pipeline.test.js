@@ -83,7 +83,7 @@ function setupFragmentMocks(fetchStub, { id, path, fields = {} }, preview = fals
 
     // promotions folder — no active promotions by default
     fetchStub
-        .withArgs(`${odinDomain}${odinUriRoot}?path=/content/dam/mas/promotions`)
+        .withArgs(`${odinDomain}${odinUriRoot}/?path=/content/dam/mas/promotions`)
         .returns(createResponse(200, { items: [] }));
 }
 

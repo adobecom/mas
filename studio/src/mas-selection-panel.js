@@ -3,7 +3,7 @@ import { EVENT_KEYDOWN, PAGE_NAMES } from './constants.js';
 import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
-import { MODEL_WEB_COMPONENT_MAPPING } from './utils.js';
+import { generateCodeToUse } from './utils.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -146,26 +146,28 @@ class MasSelectionPanel extends LitElement {
             })
             .filter(Boolean);
 
-        const urls = fragments.map((fragment) => {
-            const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
-            const params = new URLSearchParams();
-            if (webComponentName) params.set('content-type', webComponentName);
-            params.set('page', PAGE_NAMES.CONTENT);
-            if (path) params.set('path', path);
-            if (fragment.id) params.set('query', fragment.id);
-            return `https://mas.adobe.com/studio.html#${params.toString()}`;
-        });
+        const results = fragments
+            .map((fragment) => generateCodeToUse(fragment, path, PAGE_NAMES.CONTENT))
+            .filter((result) => result?.code && result?.richText && result?.href);
 
-        if (urls.length === 0) return;
+        if (results.length === 0) return;
+
+        const plainText = results.map(({ href }) => href).join('\n');
+        const htmlText = results.map(({ richText }) => richText).join('<br>');
 
         try {
-            await navigator.clipboard.writeText(urls.join('\n'));
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([plainText], { type: 'text/plain' }),
+                    'text/html': new Blob([htmlText], { type: 'text/html' }),
+                }),
+            ]);
             Events.toast.emit({
                 variant: 'positive',
-                content: `Copied ${urls.length} fragment URL${urls.length > 1 ? 's' : ''} to clipboard`,
+                content: `Copied ${results.length} code snippet${results.length > 1 ? 's' : ''} to clipboard`,
             });
         } catch {
-            Events.toast.emit({ variant: 'negative', content: 'Failed to copy fragment URLs' });
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy code to clipboard' });
         }
     }
 

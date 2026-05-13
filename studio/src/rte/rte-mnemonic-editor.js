@@ -126,7 +126,8 @@ class RteMnemonicEditor extends LitElement {
                 margin-bottom: 20px;
             }
 
-            .form-field sp-textfield {
+            .form-field sp-textfield,
+            .form-field rte-field {
                 width: 100%;
             }
 
@@ -329,12 +330,11 @@ class RteMnemonicEditor extends LitElement {
 
                 <div class="form-field">
                     <sp-field-label for="mnemonicText">Mnemonic Text</sp-field-label>
-                    <sp-textfield
+                    <rte-field
                         id="mnemonicText"
-                        placeholder="Enter mnemonic text (optional)"
                         .value=${this.mnemonicText}
-                        @input=${(e) => (this.mnemonicText = e.target.value)}
-                    ></sp-textfield>
+                        @change=${(e) => (this.mnemonicText = e.target.value)}
+                    ></rte-field>
                 </div>
 
                 <div class="form-field">
@@ -394,12 +394,11 @@ class RteMnemonicEditor extends LitElement {
 
                 <div class="form-field">
                     <sp-field-label for="mnemonicText">Mnemonic Text</sp-field-label>
-                    <sp-textfield
+                    <rte-field
                         id="mnemonicText"
-                        placeholder="Enter mnemonic text (optional)"
                         .value=${this.mnemonicText}
-                        @input=${(e) => (this.mnemonicText = e.target.value)}
-                    ></sp-textfield>
+                        @change=${(e) => (this.mnemonicText = e.target.value)}
+                    ></rte-field>
                 </div>
 
                 <div class="form-field">

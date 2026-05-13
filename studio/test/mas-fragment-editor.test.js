@@ -1114,6 +1114,23 @@ describe('MasFragmentEditor', () => {
             expect(filtersSetSpy.calledOnce).to.be.true;
             expect(filtersSetSpy.firstCall.args[0]({ locale: 'tr_TR' })).to.deep.equal({ locale: 'en_US' });
         });
+
+        it('viewSourceFragment does not navigate when the grouped en_US variation is already loaded', async () => {
+            sandbox.stub(el.editorContextStore, 'isGroupedVariationByPath').value(true);
+            Store.fragmentEditor.translatedLocales.set([
+                { locale: 'en_US', id: 'test-id', path: '/content/dam/mas/s/en_US/f' },
+            ]);
+            const searchSetSpy = sandbox.stub(Store.search, 'set');
+            const filtersSetSpy = sandbox.stub(Store.filters, 'set');
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor').resolves();
+
+            await el.viewSourceFragment();
+
+            expect(navigateSpy.called).to.be.false;
+            expect(searchSetSpy.calledOnce).to.be.true;
+            expect(filtersSetSpy.calledOnce).to.be.true;
+            expect(filtersSetSpy.firstCall.args[0]({ locale: 'tr_TR' })).to.deep.equal({ locale: 'en_US' });
+        });
     });
 
     describe('navigation', () => {

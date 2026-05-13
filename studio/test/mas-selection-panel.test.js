@@ -27,6 +27,16 @@ function makeSelectionStore(items = []) {
     };
 }
 
+function makeCardFragment(id) {
+    return {
+        id,
+        model: { path: CARD_MODEL_PATH },
+        getField: () => null,
+        getTagTitle: () => null,
+        getCurrentTagTitle: () => null,
+    };
+}
+
 function makeFragmentStore(fragment) {
     return {
         id: fragment.id,
@@ -61,98 +71,148 @@ describe('MasSelectionPanel', () => {
     }
 
     describe('handleCopyFragmentUrls', () => {
-        it('copies URL for a fragment store (item with get())', async () => {
-            const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
-            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
+        let clipboardStub;
+        let originalClipboardItem;
+
+        beforeEach(() => {
+            clipboardStub = { write: sandbox.stub().resolves() };
+            Object.defineProperty(navigator, 'clipboard', { value: clipboardStub, configurable: true });
+            originalClipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+            };
+        });
+
+        afterEach(() => {
+            globalThis.ClipboardItem = originalClipboardItem;
+        });
+
+        it('copies code for a fragment store (item with get())', async () => {
             const toastStub = sandbox.stub(Events.toast, 'emit');
 
-            const el = await createPanel([makeFragmentStore(fragment)]);
+            const el = await createPanel([makeFragmentStore(makeCardFragment('uuid-1'))]);
             await el.handleCopyFragmentUrls();
 
-            expect(writeTextStub.calledOnce).to.be.true;
-            const written = writeTextStub.firstCall.args[0];
-            expect(written).to.include('content-type=merch-card');
-            expect(written).to.include('page=content');
-            expect(written).to.include('path=acom');
-            expect(written).to.include('query=uuid-1');
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const plainText = await item.data['text/plain'].text();
+            expect(plainText).to.include('content-type=merch-card');
+            expect(plainText).to.include('page=content');
+            expect(plainText).to.include('path=acom');
+            expect(plainText).to.include('query=uuid-1');
             expect(toastStub.calledWith(sinon.match({ variant: 'positive' }))).to.be.true;
         });
 
-        it('copies URLs for multiple fragment stores as newline-separated list', async () => {
-            const fragment1 = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
-            const fragment2 = { id: 'uuid-2', model: { path: CARD_MODEL_PATH } };
-            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
-            const toastStub = sandbox.stub(Events.toast, 'emit');
+        it('writes text/html with anchor links', async () => {
+            sandbox.stub(Events.toast, 'emit');
 
-            const el = await createPanel([makeFragmentStore(fragment1), makeFragmentStore(fragment2)]);
+            const el = await createPanel([makeFragmentStore(makeCardFragment('uuid-1'))]);
             await el.handleCopyFragmentUrls();
 
-            const written = writeTextStub.firstCall.args[0];
-            const urls = written.split('\n');
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const htmlText = await item.data['text/html'].text();
+            expect(htmlText).to.include('<a href=');
+            expect(htmlText).to.include('query=uuid-1');
+        });
+
+        it('copies code for multiple fragments with newline-separated plain text', async () => {
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+
+            const el = await createPanel([
+                makeFragmentStore(makeCardFragment('uuid-1')),
+                makeFragmentStore(makeCardFragment('uuid-2')),
+            ]);
+            await el.handleCopyFragmentUrls();
+
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const plainText = await item.data['text/plain'].text();
+            const urls = plainText.split('\n');
             expect(urls).to.have.length(2);
             expect(urls[0]).to.include('query=uuid-1');
             expect(urls[1]).to.include('query=uuid-2');
-            expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: sinon.match('2 fragment URLs') }))).to.be
+            expect(toastStub.calledWith(sinon.match({ variant: 'positive', content: sinon.match('2 code snippets') }))).to.be
                 .true;
         });
 
-        it('copies URL for a plain fragment object with id property', async () => {
-            const fragment = { id: 'uuid-plain', model: { path: CARD_MODEL_PATH } };
-            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
+        it('joins multiple html entries with <br>', async () => {
             sandbox.stub(Events.toast, 'emit');
 
-            const el = await createPanel([fragment]);
+            const el = await createPanel([
+                makeFragmentStore(makeCardFragment('uuid-1')),
+                makeFragmentStore(makeCardFragment('uuid-2')),
+            ]);
             await el.handleCopyFragmentUrls();
 
-            const written = writeTextStub.firstCall.args[0];
-            expect(written).to.include('query=uuid-plain');
-            expect(written).to.include('content-type=merch-card');
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const htmlText = await item.data['text/html'].text();
+            expect(htmlText).to.include('<br>');
+        });
+
+        it('copies code for a plain fragment object with id property', async () => {
+            sandbox.stub(Events.toast, 'emit');
+
+            const el = await createPanel([makeCardFragment('uuid-plain')]);
+            await el.handleCopyFragmentUrls();
+
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const plainText = await item.data['text/plain'].text();
+            expect(plainText).to.include('query=uuid-plain');
+            expect(plainText).to.include('content-type=merch-card');
         });
 
         it('looks up fragment from Store when item is a string ID', async () => {
-            const fragment = { id: 'uuid-lookup', model: { path: CARD_MODEL_PATH } };
-            Store.fragments.list.data.set([makeFragmentStore(fragment)]);
-            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            Store.fragments.list.data.set([makeFragmentStore(makeCardFragment('uuid-lookup'))]);
             sandbox.stub(Events.toast, 'emit');
 
             const el = await createPanel(['uuid-lookup']);
             await el.handleCopyFragmentUrls();
 
-            const written = writeTextStub.firstCall.args[0];
-            expect(written).to.include('query=uuid-lookup');
-            expect(written).to.include('content-type=merch-card');
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const plainText = await item.data['text/plain'].text();
+            expect(plainText).to.include('query=uuid-lookup');
+            expect(plainText).to.include('content-type=merch-card');
         });
 
         it('uses current path from Store.search in the URL', async () => {
             Store.search.set({ path: 'nala' });
-            const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
-            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
             sandbox.stub(Events.toast, 'emit');
 
-            const el = await createPanel([makeFragmentStore(fragment)]);
+            const el = await createPanel([makeFragmentStore(makeCardFragment('uuid-1'))]);
             await el.handleCopyFragmentUrls();
 
-            const written = writeTextStub.firstCall.args[0];
-            expect(written).to.include('path=nala');
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const plainText = await item.data['text/plain'].text();
+            expect(plainText).to.include('path=nala');
         });
 
         it('does nothing when selection is empty', async () => {
-            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
             const toastStub = sandbox.stub(Events.toast, 'emit');
 
             const el = await createPanel([]);
             await el.handleCopyFragmentUrls();
 
-            expect(writeTextStub.called).to.be.false;
+            expect(clipboardStub.write.called).to.be.false;
+            expect(toastStub.called).to.be.false;
+        });
+
+        it('does nothing when all fragments have unknown model paths', async () => {
+            const fragment = { id: 'uuid-1', model: { path: '/models/unknown' } };
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+
+            const el = await createPanel([makeFragmentStore(fragment)]);
+            await el.handleCopyFragmentUrls();
+
+            expect(clipboardStub.write.called).to.be.false;
             expect(toastStub.called).to.be.false;
         });
 
         it('emits negative toast when clipboard write fails', async () => {
-            const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
-            sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('Permission denied'));
+            clipboardStub.write.rejects(new Error('Permission denied'));
             const toastStub = sandbox.stub(Events.toast, 'emit');
 
-            const el = await createPanel([makeFragmentStore(fragment)]);
+            const el = await createPanel([makeFragmentStore(makeCardFragment('uuid-1'))]);
             await el.handleCopyFragmentUrls();
 
             expect(toastStub.calledWith(sinon.match({ variant: 'negative' }))).to.be.true;

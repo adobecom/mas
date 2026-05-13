@@ -526,7 +526,7 @@ class MasSettings extends LitElement {
             label: row.label,
             name: row.name,
             description: row.description,
-            templateIds: [],
+            templateIds: [...row.templateIds],
             tags: [],
             valueType,
             value,
@@ -1106,6 +1106,7 @@ class MasSettings extends LitElement {
                             .tree=${getVariantTreeData(this.surface)}
                             .value=${this.form.templateIds}
                             .emptyValueIsSelection=${this.dialog?.mode === 'edit'}
+                            ?disabled=${row.templateIds.length > 0}
                             placeholder=${this.dialog?.mode === 'edit' ? 'All templates' : 'Select template'}
                             @change=${this.#handleTemplateChange}
                         ></tree-picker-field>

@@ -701,7 +701,7 @@ describe('Settings Store Namespace', () => {
         expect(row.value.overrides[0].locale).to.equal('fr_FR');
     });
 
-    it('keeps first top-level fragment when names are duplicated', async () => {
+    it('treats subsequent no-locale fragments as overrides when names are duplicated', async () => {
         const topLevelA = createSettingReference({
             id: 'setting-quantity-select-a',
             name: 'quantitySelect',
@@ -746,7 +746,52 @@ describe('Settings Store Namespace', () => {
         const rows = store.rows.get().map((rowStore) => rowStore.value);
         expect(rows.length).to.equal(1);
         expect(rows.map((row) => row.id)).to.deep.equal(['setting-quantity-select-a']);
-        expect(rows[0].overrides.map((override) => override.id)).to.deep.equal(['setting-quantity-select-fr']);
+        expect(rows[0].overrides.map((override) => override.id)).to.deep.equal([
+            'setting-quantity-select-b',
+            'setting-quantity-select-fr',
+        ]);
+    });
+
+    it('keeps a template-scoped override when its templates match the top-level templates', async () => {
+        const topLevel = createSettingReference({
+            id: 'setting-show-plan-type-top',
+            name: 'showPlanType',
+            label: 'Show plan type',
+            locales: [],
+            templates: ['catalog'],
+            path: '/content/dam/mas/sandbox/settings/showplantype-all-catalog',
+        });
+        const templateOverride = createSettingReference({
+            id: 'setting-show-plan-type-override',
+            name: 'showPlanType',
+            label: 'Show plan type override',
+            locales: [],
+            templates: ['catalog'],
+            path: '/content/dam/mas/sandbox/settings/showplantype-all-catalog-xyz',
+        });
+
+        const store = new SettingsStore();
+        store.setAem({
+            sites: {
+                cf: {
+                    fragments: {
+                        getByPath: async () => ({
+                            id: 'settings-index',
+                            path: '/content/dam/mas/sandbox/settings/index',
+                            fields: [{ name: 'entries', values: [topLevel.path, templateOverride.path] }],
+                            references: [topLevel, templateOverride],
+                        }),
+                    },
+                },
+            },
+        });
+
+        await store.loadSurface('sandbox');
+
+        const rows = store.rows.get().map((rowStore) => rowStore.value);
+        expect(rows.length).to.equal(1);
+        expect(rows[0].id).to.equal('setting-show-plan-type-top');
+        expect(rows[0].overrides.map((override) => override.id)).to.deep.equal(['setting-show-plan-type-override']);
     });
 
     it('does not delete top-level settings', async () => {

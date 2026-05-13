@@ -17,7 +17,7 @@ import {
 import Events from './events.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { generateCodeToUse, showToast, extractLocaleFromPath, previewFragmentOnPage } from './utils.js';
-import { getCountryName } from '../../io/www/src/fragment/locales.js';
+import { getCountryName } from './locales.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import router from './router.js';
@@ -130,7 +130,7 @@ export default class EditorPanel extends LitElement {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 14px;
+            font-size: var(--spectrum-font-size-100);
             color: var(--spectrum-gray-700);
             margin: 0 0 12px 0;
         }

@@ -25,8 +25,8 @@ class MerchCardCollectionEditor extends LitElement {
             isVariation: { type: Boolean },
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
-            studioPasteLinksInput: { type: String, state: true },
-            studioPasteLinksItems: { type: Array, state: true },
+            collectionPasteLinksInput: { type: String, state: true },
+            collectionPasteLinksItems: { type: Array, state: true },
         };
     }
 
@@ -40,8 +40,8 @@ class MerchCardCollectionEditor extends LitElement {
         super();
         this.draggingIndex = -1;
         this.hideCards = false;
-        this.studioPasteLinksInput = '';
-        this.studioPasteLinksItems = [];
+        this.collectionPasteLinksInput = '';
+        this.collectionPasteLinksItems = [];
     }
 
     connectedCallback() {
@@ -69,6 +69,11 @@ class MerchCardCollectionEditor extends LitElement {
         this.removeEventListener('dragover', this.handleDragOver);
         this.removeEventListener('dragleave', this.handleDragLeave);
         this.removeEventListener('drop', this.handleDrop);
+    }
+
+    /** @returns {import('../mas-repository.js').MasRepository | null} */
+    get repository() {
+        return document.querySelector('mas-repository');
     }
 
     update(changedProperties) {
@@ -348,20 +353,16 @@ class MerchCardCollectionEditor extends LitElement {
                     ? this.getItems({ values: cardsValues }, inherited)
                     : html`<div class="empty-cards-placeholder"></div>`}
             </div>
-            ${this.#studioPasteLinksSection}
+            ${this.#collectionPasteLinksSection}
         `;
     }
 
-    /** @returns {{ line: string, index: number }[]} */
-    #getCardsPasteLinksRows() {
-        return this.studioPasteLinksItems.map((line, index) => ({ line, index })).filter(({ line }) => line.trim().length > 0);
+    #getCardsPasteLinksLines() {
+        return this.collectionPasteLinksItems.filter((line) => line.trim().length > 0);
     }
 
-    #removeCardsPasteLinkLine(lineIndex) {
-        if (lineIndex < 0 || lineIndex >= this.studioPasteLinksItems.length) return;
-        const next = [...this.studioPasteLinksItems];
-        next.splice(lineIndex, 1);
-        this.studioPasteLinksItems = next;
+    #removeCardsPasteLinkLine(line) {
+        this.collectionPasteLinksItems = this.collectionPasteLinksItems.filter((l) => l !== line);
         this.requestUpdate();
     }
 
@@ -374,42 +375,42 @@ class MerchCardCollectionEditor extends LitElement {
             .filter(Boolean);
         if (!lines.length) return;
 
-        const seen = new Set(this.studioPasteLinksItems);
-        const merged = [...this.studioPasteLinksItems];
+        const seen = new Set(this.collectionPasteLinksItems);
+        const merged = [...this.collectionPasteLinksItems];
         for (const line of lines) {
             if (!seen.has(line)) {
                 seen.add(line);
                 merged.push(line);
             }
         }
-        if (merged.length !== this.studioPasteLinksItems.length) {
-            this.studioPasteLinksItems = merged;
+        if (merged.length !== this.collectionPasteLinksItems.length) {
+            this.collectionPasteLinksItems = merged;
             this.requestUpdate();
         }
     }
 
-    get #studioPasteLinksSection() {
-        const rows = this.#getCardsPasteLinksRows();
+    get #collectionPasteLinksSection() {
+        const lines = this.#getCardsPasteLinksLines();
         return html`
-            <div class="studio-paste-links">
-                <sp-field-label for="studio-paste-studio-links">Paste cards links:</sp-field-label>
-                ${rows.length
-                    ? html`<div class="studio-paste-url-panel" role="list">
-                          <div class="studio-paste-url-header" role="presentation">
-                              <span class="studio-paste-url-col-url">URL</span>
-                              <span class="studio-paste-url-col-action"></span>
+            <div class="collection-paste-links">
+                <sp-field-label for="collection-paste-collection-links">Paste collection links:</sp-field-label>
+                ${lines.length
+                    ? html`<div class="collection-paste-url-panel" role="list">
+                          <div class="collection-paste-url-header" role="presentation">
+                              <span class="collection-paste-url-col-url">URL</span>
+                              <span class="collection-paste-url-col-action"></span>
                           </div>
                           ${repeat(
-                              rows,
-                              (r) => r.index,
-                              (r) => html`
-                                  <div class="studio-paste-url-row" role="listitem">
-                                      <div class="studio-paste-url-text" title=${r.line}>${r.line}</div>
+                              lines,
+                              (line) => line,
+                              (line) => html`
+                                  <div class="collection-paste-url-row" role="listitem">
+                                      <div class="collection-paste-url-text" title=${line}>${line}</div>
                                       <sp-action-button
                                           quiet
                                           size="s"
                                           label="Remove link"
-                                          @click=${() => this.#removeCardsPasteLinkLine(r.index)}
+                                          @click=${() => this.#removeCardsPasteLinkLine(line)}
                                       >
                                           <sp-icon-delete slot="icon"></sp-icon-delete>
                                       </sp-action-button>
@@ -418,38 +419,38 @@ class MerchCardCollectionEditor extends LitElement {
                           )}
                       </div>`
                     : nothing}
-                <sp-field-label for="studio-paste-studio-links">Enter URLs</sp-field-label>
+                <sp-field-label for="collection-paste-links">Enter URLs</sp-field-label>
                 <sp-textfield
-                    id="studio-paste-studio-links"
+                    id="collection-paste-links"
                     multiline
                     grows
-                    .value=${this.studioPasteLinksInput}
+                    .value=${this.collectionPasteLinksInput}
                     @input=${(e) => {
-                        this.studioPasteLinksInput = e.target.value;
+                        this.collectionPasteLinksInput = e.target.value;
                     }}
                     @paste=${this.#handleCardsPasteLinksPaste}
                 ></sp-textfield>
-                <sp-button variant="secondary" @click=${this.handleAddStudioPasteLinks}>Add from links</sp-button>
+                <sp-button variant="secondary" @click=${this.handleAddCardsPasteLinks}>Add from links</sp-button>
             </div>
         `;
     }
 
-    handleAddStudioPasteLinks = async () => {
+    handleAddCardsPasteLinks = async () => {
         if (!this.fragment) return;
         const text =
-            this.studioPasteLinksItems.length > 0
-                ? this.studioPasteLinksItems.join('\n')
-                : (this.studioPasteLinksInput ?? '').trim();
+            this.collectionPasteLinksItems.length > 0
+                ? this.collectionPasteLinksItems.join('\n')
+                : (this.collectionPasteLinksInput ?? '').trim();
         if (!text) {
             showToast('Paste cards links.', 'negative');
             return;
         }
-        await this.#applyStudioLinksFromText(text);
+        await this.#applyCollectionLinksFromText(text);
     };
 
     /** @param {string} text */
-    async #applyStudioLinksFromText(text) {
-        const repo = document.querySelector('mas-repository');
+    async #applyCollectionLinksFromText(text) {
+        const repo = this.repository;
         if (!repo?.aem?.sites?.cf?.fragments?.getById) {
             showToast('Repository not available', 'negative');
             return;
@@ -457,7 +458,7 @@ class MerchCardCollectionEditor extends LitElement {
 
         const entries = parseStudioDeepLinksFromText(text);
         if (!entries.length) {
-            showToast('No valid Studio links found', 'negative');
+            showToast('No valid paste links found', 'negative');
             return;
         }
 
@@ -498,8 +499,8 @@ class MerchCardCollectionEditor extends LitElement {
         }
 
         if (added > 0) {
-            this.studioPasteLinksInput = '';
-            this.studioPasteLinksItems = [];
+            this.collectionPasteLinksInput = '';
+            this.collectionPasteLinksItems = [];
             showToast(`Added ${added} item(s)${skipped ? `, skipped ${skipped}` : ''}`, 'positive');
         } else {
             showToast(skipped ? `Could not add items (${skipped} skipped)` : 'Nothing to add', 'negative');

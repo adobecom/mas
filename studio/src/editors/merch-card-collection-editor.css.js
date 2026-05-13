@@ -15,7 +15,7 @@ export const styles = css`
         border: 2px dashed var(--spectrum-blue-500);
     }
 
-    .studio-paste-links {
+    .collection-paste-links {
         margin-top: 12px;
         padding: 12px;
         border: 1px solid var(--spectrum-gray-300);
@@ -26,18 +26,18 @@ export const styles = css`
         gap: 10px;
     }
 
-    .studio-paste-links sp-textfield {
+    .collection-paste-links sp-textfield {
         width: 100%;
     }
 
-    .studio-paste-url-panel {
+    .collection-paste-url-panel {
         border: 1px solid var(--spectrum-gray-300);
         border-radius: 6px;
         background: var(--spectrum-gray-50);
         overflow: hidden;
     }
 
-    .studio-paste-url-header {
+    .collection-paste-url-header {
         display: grid;
         grid-template-columns: 1fr auto;
         align-items: center;
@@ -50,20 +50,20 @@ export const styles = css`
         border-bottom: 1px solid var(--spectrum-gray-300);
     }
 
-    .studio-paste-url-row {
+    .collection-paste-url-row {
         display: grid;
         grid-template-columns: 1fr auto;
         align-items: center;
         gap: 8px;
-        padding: 10px 10px;
+        padding: 10px;
         border-bottom: 1px solid var(--spectrum-gray-200);
     }
 
-    .studio-paste-url-row:last-child {
+    .collection-paste-url-row:last-child {
         border-bottom: none;
     }
 
-    .studio-paste-url-text {
+    .collection-paste-url-text {
         min-width: 0;
         font-size: 13px;
         line-height: 1.4;
@@ -72,7 +72,7 @@ export const styles = css`
         word-break: break-word;
     }
 
-    .studio-paste-url-col-action {
+    .collection-paste-url-col-action {
         width: 32px;
     }
 

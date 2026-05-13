@@ -437,7 +437,7 @@ describe('MasTopNav', () => {
             expect(localePicker.getAttribute('locale')).to.equal('en_GB');
         });
 
-        it('should show active fragment path locale when viewing a variation', async () => {
+        it('should show parent locale when viewing a variation fragment', async () => {
             const variationFragment = { id: 'variation-id', path: '/content/dam/mas/sandbox/fr_FR/card' };
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.search.set((prev) => ({ ...prev, region: 'en_IN' }));

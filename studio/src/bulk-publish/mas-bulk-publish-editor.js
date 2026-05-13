@@ -197,6 +197,10 @@ class MasBulkPublishEditor extends LitElement {
         return this.status === BULK_PUBLISH_STATUS.LOCKED;
     }
 
+    get isPublished() {
+        return this.status === BULK_PUBLISH_STATUS.PUBLISHED;
+    }
+
     async #withPendingAction(action, fn) {
         this.pendingActions = new Set([...this.pendingActions, action]);
         try {
@@ -217,6 +221,9 @@ class MasBulkPublishEditor extends LitElement {
                 QUICK_ACTION.COPY,
                 QUICK_ACTION.DELETE,
             ]);
+        }
+        if (this.isPublished) {
+            return new Set([QUICK_ACTION.SAVE, QUICK_ACTION.PUBLISH]);
         }
         const disabled = new Set();
         if (this.isNewProject) {
@@ -414,7 +421,7 @@ class MasBulkPublishEditor extends LitElement {
                     this.hasChanges = false;
                     showToast('Project created successfully.', 'positive');
                 } else {
-                    const savedStatus = this.status === BULK_PUBLISH_STATUS.PUBLISHED ? BULK_PUBLISH_STATUS.DRAFT : this.status;
+                    const savedStatus = this.status;
                     const fields = {
                         title: this.title,
                         status: savedStatus,
@@ -593,7 +600,7 @@ class MasBulkPublishEditor extends LitElement {
                     <sp-textfield
                         placeholder="Enter title"
                         .value=${this.title}
-                        ?disabled=${this.isLocked}
+                        ?disabled=${this.isLocked || this.isPublished}
                         @input=${this.handleTitleChange}
                     ></sp-textfield>
                 </div>
@@ -601,7 +608,7 @@ class MasBulkPublishEditor extends LitElement {
             <mas-bulk-publish-items
                 .items=${this.items}
                 .urls=${this.urls}
-                ?disabled=${this.isLocked}
+                ?disabled=${this.isLocked || this.isPublished}
                 @urls-change=${this.handleUrlsChange}
                 @validate-items=${this.validate}
                 @add-by-search=${this.openItemsSelector}
@@ -610,7 +617,7 @@ class MasBulkPublishEditor extends LitElement {
             ></mas-bulk-publish-items>
             <mas-bulk-publish-locales
                 .locales=${this.locales}
-                ?disabled=${this.isLocked}
+                ?disabled=${this.isLocked || this.isPublished}
                 @edit-locales=${this.openLocalesPicker}
             ></mas-bulk-publish-locales>
             <mas-quick-actions

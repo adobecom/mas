@@ -141,14 +141,14 @@ describe('promotions', () => {
         });
 
         it('returns no active project when geo does not match', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/fr_FR'] });
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/fr_FR'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
             expect(result).to.deep.equal({ status: 200, activeProject: null });
         });
 
         it('selects active project matching surface, geo and date range', async () => {
-            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject({ promoCode: 'SAVE20' });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
@@ -170,7 +170,7 @@ describe('promotions', () => {
         });
 
         it('matches project by country when locale does not match geos', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/CH'] });
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/country/CH'] });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
@@ -180,7 +180,7 @@ describe('promotions', () => {
         });
 
         it('matches project by regionLocale', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/fr_CH'] });
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/fr_CH'] });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
@@ -193,8 +193,8 @@ describe('promotions', () => {
 
         it('uses first match and logs warning when multiple projects match', async () => {
             const logStub = sinon.stub(console, 'log');
-            const p1 = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
-            const p2 = makeProject({ id: 'proj-2', surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
+            const p1 = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const p2 = makeProject({ id: 'proj-2', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
@@ -206,7 +206,7 @@ describe('promotions', () => {
         });
 
         it('returns no active project when hydration fails', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(500, null, 'Error'));
 
@@ -306,7 +306,7 @@ describe('promotions', () => {
         });
 
         it('uses cache on second call without re-fetching folder', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject();
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
@@ -378,14 +378,12 @@ describe('promotions', () => {
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
             fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
-            const result = await promotionsTransformer.init(
-                createContext({ preview: true, instant: '2020-02-01T00:00:00Z' }),
-            );
+            const result = await promotionsTransformer.init(createContext({ preview: true, instant: '2020-02-01T00:00:00Z' }));
             expect(result.activeProject).to.not.be.null;
         });
 
         it('uses localStorage cache in preview mode', async () => {
-            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/geo/en_US'] });
+            const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject();
             const previewCtx = createContext({
                 regionLocale: 'en_US',
@@ -566,9 +564,7 @@ describe('promotions', () => {
             );
             expect(result.promoMap).to.deep.equal({ '*': 'OOPS' });
             expect(
-                logStub.calledWithMatch(
-                    sinon.match(/Project promoCode "PROJ" overridden by wildcard offer override "OOPS"/),
-                ),
+                logStub.calledWithMatch(sinon.match(/Project promoCode "PROJ" overridden by wildcard offer override "OOPS"/)),
             ).to.be.true;
             logStub.restore();
         });

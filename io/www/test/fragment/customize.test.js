@@ -148,7 +148,7 @@ describe('customize collections', function () {
                         id: pznVariationId,
                         title: 'Intro pricing',
                         fields: {
-                            pznTags: ['/content/cq:tags/mas/geo/en_KW'],
+                            pznTags: ['/content/cq:tags/mas/locale/en_KW'],
                             badge: 'Kuwait PZN badge',
                         },
                     },
@@ -160,9 +160,9 @@ describe('customize collections', function () {
                     description: 'has en_KW too, but appears second in the list',
                     fields: {
                         pznTags: [
-                            '/content/cq:tags/mas/geo/en_US',
-                            '/content/cq:tags/mas/geo/en_CA',
-                            '/content/cq:tags/mas/geo/en_KW',
+                            '/content/cq:tags/mas/locale/en_US',
+                            '/content/cq:tags/mas/locale/en_CA',
+                            '/content/cq:tags/mas/locale/en_KW',
                         ],
                         badge: 'TEST badge',
                     },
@@ -680,7 +680,7 @@ describe('customize collections', function () {
                         id: validId,
                         title: 'Valid tags',
                         fields: {
-                            pznTags: ['/content/cq:tags/mas/geo/en_US'],
+                            pznTags: ['/content/cq:tags/mas/locale/en_US'],
                             badge: 'Valid PZN badge',
                         },
                     },
@@ -856,7 +856,7 @@ describe('customize collections', function () {
                         id: pznVariationId,
                         title: 'PZN Promo',
                         fields: {
-                            pznTags: ['/content/cq:tags/mas/geo/en_AE', '/content/cq:tags/mas/geo/fr_FR'],
+                            pznTags: ['/content/cq:tags/mas/locale/en_AE', '/content/cq:tags/mas/locale/fr_FR'],
                             badge: 'Other badge',
                         },
                     },
@@ -895,7 +895,7 @@ describe('customize collections', function () {
                         id: pznVariationId,
                         title: 'EN US pzn variant',
                         fields: {
-                            pznTags: ['/content/cq:tags/mas/geo/en_US'],
+                            pznTags: ['/content/cq:tags/mas/locale/en_US'],
                             badge: 'EN US PZN badge',
                         },
                     },

@@ -354,10 +354,7 @@ function buildPromoMap(offerOverrides, country, projectPromoCode, context) {
         if (!countryMatch) continue;
         if (override.osis.length === 0) {
             if (map['*'] && map['*'] !== override.promoCode) {
-                log(
-                    `Project promoCode "${map['*']}" overridden by wildcard offer override "${override.promoCode}"`,
-                    context,
-                );
+                log(`Project promoCode "${map['*']}" overridden by wildcard offer override "${override.promoCode}"`, context);
             }
             map['*'] = override.promoCode;
         } else {

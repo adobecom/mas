@@ -6,6 +6,7 @@ import { styles } from './mas-bulk-publish.css.js';
 import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PARENT_PATH, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '../constants.js';
 import { normalizeKey, showToast } from '../utils.js';
 import { startReverting } from './bulk-publish-store.js';
+import { PUBLISH_SVG } from './bulk-publish-icons.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import './mas-bulk-publish-delete-dialog.js';
 import './mas-bulk-publish-revert-dialog.js';
@@ -112,6 +113,14 @@ class MasBulkPublish extends LitElement {
         await startReverting({ project: projectStore.get(), repository: this.repository });
     }
 
+    handlePublish(projectStore) {
+        const id = projectStore?.get()?.id;
+        if (!id) return;
+        Store.bulkPublishProjects.projectId.set(id);
+        Store.bulkPublishProjects.inEdit.set(null);
+        router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
+    }
+
     openDuplicateDialog(projectStore) {
         const srcTitle = getProjectField(projectStore.get(), 'title', 'Untitled project');
         this.duplicatePending = { projectStore, proposedTitle: `${srcTitle} (Copy)` };
@@ -213,6 +222,11 @@ class MasBulkPublish extends LitElement {
                             ? html`<sp-menu-item @click=${() => this.openProject(projectStore)}>
                                   <sp-icon-edit slot="icon"></sp-icon-edit>
                                   Edit
+                              </sp-menu-item>`
+                            : nothing}
+                        ${!isPublished
+                            ? html`<sp-menu-item @click=${() => this.handlePublish(projectStore)}>
+                                  ${PUBLISH_SVG} Publish
                               </sp-menu-item>`
                             : nothing}
                         ${isPublished

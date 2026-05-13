@@ -282,6 +282,8 @@ export const BULK_PUBLISH_STATUS = {
     PUBLISHING: 'Publishing',
     PUBLISHED: 'Published',
     LOCKED: 'Locked',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
 };
 
 export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';

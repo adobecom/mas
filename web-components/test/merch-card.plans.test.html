@@ -295,7 +295,7 @@
                         expect(priceLegals.length).to.equal(1);
                     });
 
-                    it('should set heading-xs CSS var on container via syncHeights', async () => {
+                    it('should set heading-xs CSS var on card via syncHeights', async () => {
                         const [masCommerceService, photoshop] =
                             getTemplateContent('photoshop');
                         container.append(masCommerceService, photoshop);
@@ -306,14 +306,149 @@
                         photoshop.getBoundingClientRect = () => ({
                             ...orig(),
                             width: 200,
+                            top: 0,
                         });
                         photoshop.variantLayout.syncHeights();
                         photoshop.getBoundingClientRect = orig;
 
-                        const cssVar = container.style.getPropertyValue(
+                        const cssVar = photoshop.style.getPropertyValue(
                             '--consonant-merch-card-plans-heading-xs-height',
                         );
                         expect(parseInt(cssVar) || 0).to.be.greaterThan(0);
+                    });
+
+                    it('syncRowHeights should clear pre-existing container-level CSS var', async () => {
+                        const [masCommerceService, photoshop] =
+                            getTemplateContent('photoshop');
+                        container.append(masCommerceService, photoshop);
+                        await photoshop.checkReady();
+
+                        const prop =
+                            '--consonant-merch-card-plans-heading-xs-height';
+                        // Simulate old container-level var that the fix must remove
+                        container.style.setProperty(prop, '99px');
+
+                        const orig =
+                            photoshop.getBoundingClientRect.bind(photoshop);
+                        photoshop.getBoundingClientRect = () => ({
+                            ...orig(),
+                            width: 200,
+                            top: 0,
+                        });
+                        photoshop.variantLayout.syncHeights();
+                        photoshop.getBoundingClientRect = orig;
+
+                        // Container var must be removed; per-card var must be set instead
+                        expect(container.style.getPropertyValue(prop)).to.equal(
+                            '',
+                        );
+                        expect(
+                            parseInt(photoshop.style.getPropertyValue(prop)) ||
+                                0,
+                        ).to.be.greaterThan(0);
+                    });
+
+                    it('syncRowHeights should no-op when card has no container', async () => {
+                        const [masCommerceService, photoshop] =
+                            getTemplateContent('photoshop');
+                        // Do NOT append to container — card has no ancestor container
+                        document.body.append(masCommerceService, photoshop);
+                        await photoshop.checkReady();
+
+                        // Stub getContainer to return null
+                        const layout = photoshop.variantLayout;
+                        const origGetContainer =
+                            layout.getContainer.bind(layout);
+                        layout.getContainer = () => null;
+
+                        // Should not throw
+                        layout.syncHeights();
+
+                        layout.getContainer = origGetContainer;
+                        masCommerceService.remove();
+                        photoshop.remove();
+                    });
+
+                    it('should register resize handler on connect and invoke syncHeights via rAF', async () => {
+                        const [masCommerceService, photoshop] =
+                            getTemplateContent('photoshop');
+                        container.append(masCommerceService, photoshop);
+                        // Wait for LitElement's first update so variantLayout is set
+                        await photoshop.updateComplete;
+
+                        const layout = photoshop.variantLayout;
+                        expect(layout.handleResize).to.be.a('function');
+
+                        let syncCalled = false;
+                        layout.syncHeights = () => {
+                            syncCalled = true;
+                        };
+
+                        // Mock rAF to fire synchronously so headless Chrome throttling doesn't block
+                        const origRaf = window.requestAnimationFrame;
+                        window.requestAnimationFrame = (cb) => {
+                            cb(performance.now());
+                            return 0;
+                        };
+                        layout.handleResize();
+                        window.requestAnimationFrame = origRaf;
+
+                        expect(syncCalled).to.be.true;
+                    });
+
+                    it('should cancel pending rAF when resize fires twice in one frame', async () => {
+                        const [masCommerceService, photoshop] =
+                            getTemplateContent('photoshop');
+                        container.append(masCommerceService, photoshop);
+                        await photoshop.updateComplete;
+
+                        const layout = photoshop.variantLayout;
+                        let syncCount = 0;
+                        layout.syncHeights = () => {
+                            syncCount++;
+                        };
+
+                        const origRaf = window.requestAnimationFrame;
+                        const origCaf = window.cancelAnimationFrame;
+                        let lastId = 0;
+                        const pending = new Map();
+                        window.requestAnimationFrame = (cb) => {
+                            const id = ++lastId;
+                            pending.set(id, cb);
+                            return id;
+                        };
+                        window.cancelAnimationFrame = (id) => {
+                            pending.delete(id);
+                        };
+
+                        // Two rapid invocations — second cancels the first rAF
+                        layout.handleResize();
+                        layout.handleResize();
+
+                        // Flush all pending rAF callbacks
+                        for (const cb of pending.values())
+                            cb(performance.now());
+
+                        window.requestAnimationFrame = origRaf;
+                        window.cancelAnimationFrame = origCaf;
+
+                        // Only one syncHeights call despite two resize events
+                        expect(syncCount).to.equal(1);
+                    });
+
+                    it('disconnectedCallbackHook should null out handleResize on disconnect', async () => {
+                        const [masCommerceService, photoshop] =
+                            getTemplateContent('photoshop');
+                        container.append(masCommerceService, photoshop);
+                        await photoshop.updateComplete;
+
+                        const layout = photoshop.variantLayout;
+                        expect(layout.handleResize).to.be.a('function');
+
+                        // Disconnect — disconnectedCallbackHook must null handleResize
+                        photoshop.remove();
+
+                        expect(layout.handleResize).to.be.null;
                     });
                 });
             });

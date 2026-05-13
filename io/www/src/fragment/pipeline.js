@@ -38,7 +38,7 @@ async function main(params) {
         Accept: 'application/json, */*',
         'Accept-Encoding': 'gzip, deflate',
         'User-Agent': 'Mozilla/5.0 (compatible; mas-io-Pipeline/1.0)',
-        'X-Request-ID': requestId,
+        'X-Correlation-ID': requestId,
     };
     let context = {
         ...params,

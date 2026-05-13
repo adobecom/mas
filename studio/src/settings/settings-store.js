@@ -999,12 +999,9 @@ export class SettingsStore {
             const hasLocales = record.locales.length > 0;
             const fieldName = reference.fieldName || INDEX_REFERENCES_FIELD;
 
-            if (fieldName === INDEX_REFERENCES_FIELD && !hasLocales) {
-                if (!topLevelByName.has(record.name)) {
-                    topLevelByName.set(record.name, fragment);
-                    continue;
-                }
-                if (record.templateIds.length === 0) continue;
+            if (fieldName === INDEX_REFERENCES_FIELD && !hasLocales && !topLevelByName.has(record.name)) {
+                topLevelByName.set(record.name, fragment);
+                continue;
             }
 
             const nestedNameKey = fieldName === INDEX_REFERENCES_FIELD ? record.name : fieldName;

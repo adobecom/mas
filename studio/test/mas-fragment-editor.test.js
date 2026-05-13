@@ -5,7 +5,7 @@ import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
-import { PAGE_NAMES, CARD_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
+import { PAGE_NAMES, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, ODIN_PREVIEW_ORIGIN } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
 import { extractLocaleFromPath } from '../src/utils.js';
@@ -1136,7 +1136,19 @@ describe('MasFragmentEditor', () => {
         it('handles fragment copied', () => {
             const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
             el.handleFragmentCopied({ detail: { fragment: { id: 'copied-id' } } });
-            expect(navigateSpy.calledWith('copied-id')).to.be.true;
+            expect(navigateSpy.calledOnce).to.be.true;
+            expect(navigateSpy.firstCall.args[0]).to.equal('copied-id');
+        });
+
+        it('handleFragmentCopied calls cancelCreateVariation and navigates when parentFragment is present', () => {
+            const navigateSpy = sandbox.stub(router, 'navigateToFragmentEditor');
+            sandbox.stub(el, 'cancelCreateVariation');
+            el.handleFragmentCopied({
+                detail: { fragment: { id: 'copied-with-parent' }, parentFragment: { id: 'parent-id', path: '/p' } },
+            });
+            expect(el.cancelCreateVariation.calledOnce).to.be.true;
+            expect(navigateSpy.calledOnce).to.be.true;
+            expect(navigateSpy.firstCall.args[0]).to.equal('copied-with-parent');
         });
 
         it('renders locale variation header', async () => {
@@ -1172,6 +1184,110 @@ describe('MasFragmentEditor', () => {
         it('renders variation counts', () => {
             const section = el.relatedVariationsSection;
             expect(section).to.not.equal(nothing);
+        });
+    });
+
+    describe('relatedVariationsSection grouped variation counts', () => {
+        it('subtracts grouped count when current fragment is a grouped variation', () => {
+            const el = document.createElement('mas-fragment-editor');
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            const fragment = new Fragment({
+                id: 'grouped-var',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-one',
+            });
+            el.localeDefaultFragment = {
+                id: 'parent',
+                getLocaleVariationCount: () => 0,
+                getPromoVariationCount: () => 0,
+                getGroupedVariationCount: () => 1,
+            };
+            el.inEdit.value = { get: () => fragment };
+            const section = el.relatedVariationsSection;
+            expect(section).to.equal(nothing);
+        });
+    });
+
+    describe('previewColumn for collection grouped variations', () => {
+        it('returns nothing for collection fragment that is not a grouped variation', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'coll-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            expect(el.previewColumn).to.equal(nothing);
+        });
+
+        it('returns preview column with related variations for grouped collection variation', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'grouped-var',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-one',
+                model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                fields: [{ name: 'label', values: ['L'] }],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.localeDefaultFragment = {
+                id: 'parent-id',
+                title: 'Parent collection',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent',
+                getLocaleVariationCount: () => 1,
+                getGroupedVariationCount: () => 2,
+                getPromoVariationCount: () => 0,
+            };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            const col = el.previewColumn;
+            expect(col).to.not.equal(nothing);
+            expect(col.strings.join('')).to.include('preview-column');
+            expect(col.values[0]).to.not.equal(nothing);
+        });
+    });
+
+    describe('authorPath for collection grouped variation', () => {
+        it('includes parent title in grouped collection author path', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'var-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/pzn/my-var',
+                title: 'Var',
+                model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                fields: [{ name: 'label', values: ['L'] }],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            el.localeDefaultFragment = {
+                id: 'parent-id',
+                title: 'Parent collection title',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent',
+            };
+            const ap = el.authorPath;
+            expect(ap).to.not.equal(nothing);
+            expect(ap.values[1]).to.include('Parent collection title');
+        });
+
+        it('renders non-grouped collection author path from fragment parts helper', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'collection-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/root-collection',
+                title: 'Root collection',
+                model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                fields: [{ name: 'label', values: ['L'] }],
+                tags: [],
+            });
+            Store.search.set({ path: 'sandbox' });
+            el.inEdit.value = { get: () => fragment };
+
+            const ap = el.authorPath;
+
+            expect(ap).to.not.equal(nothing);
+            expect(ap.values[1]).to.be.a('string');
+            expect(ap.values[1].length).to.be.greaterThan(0);
         });
     });
 

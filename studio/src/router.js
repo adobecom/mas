@@ -284,9 +284,10 @@ export class Router extends EventTarget {
      * @param {Object} options - Navigation options
      * @param {string} options.targetLocale - Optional target locale to pre-fill
      * @param {string} options.fragmentPath - Optional fragment path to pre-fill
+     * @param {boolean} [options.isCollection] - When true, prefill targets the collections field
      */
     async navigateToTranslationEditor(options = {}) {
-        const { targetLocale, fragmentPath } = options;
+        const { targetLocale, fragmentPath, isCollection } = options;
 
         this.isNavigating = true;
         try {
@@ -307,7 +308,11 @@ export class Router extends EventTarget {
 
             // Store pre-fill data for the translation editor to consume
             if (targetLocale || fragmentPath) {
-                Store.translationProjects.prefill.set({ targetLocale, fragmentPath });
+                Store.translationProjects.prefill.set({
+                    targetLocale,
+                    fragmentPath,
+                    isCollection: Boolean(isCollection),
+                });
             }
 
             // Set the page - the store subscription will update the URL

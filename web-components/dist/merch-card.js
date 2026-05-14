@@ -3133,11 +3133,6 @@ merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-tem
     align-items: baseline;
 }
 
-merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"] .price-strikethrough,
-merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"] .price-promo-strikethrough {
-    flex-basis: 100%;
-}
-
 merch-card[variant^="plans"] [slot='heading-xs'],
 merch-card[variant="plans-education"] span.heading-xs,
 merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough) {
@@ -3209,10 +3204,17 @@ html:has(mas-commerce-service[locale="ja_JP"]) {
     }
     merch-card[variant^='plans'] [slot="heading-m"] span[is="inline-price"][data-template="price"] {
         display: inline-flex;
-        flex-direction: column;
-        align-items: flex-start;
-        font-size: 0;
-        vertical-align: bottom;
+    }
+    merch-card[variant^='plans'] [slot="heading-m"] p:has(.price-alternative) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+    }
+    merch-card[variant^='plans'] [slot="heading-m"] p:has(.price-alternative) span[is="inline-price"][data-template="price"] {
+        display: contents;
+    }
+    merch-card[variant^='plans'] [slot="heading-m"] p:has(.price-alternative) .price-strikethrough {
+        flex-basis: 100%;
     }
 }
 

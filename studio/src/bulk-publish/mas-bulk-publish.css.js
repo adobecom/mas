@@ -58,6 +58,10 @@ export const styles = [
 
         sp-table-row {
             cursor: pointer;
+        }
+
+        sp-table-cell {
+            display: flex;
             align-items: center;
         }
 

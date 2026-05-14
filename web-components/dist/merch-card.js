@@ -3209,6 +3209,10 @@ html:has(mas-commerce-service[locale="ja_JP"]) {
     }
     merch-card[variant^='plans'] [slot="heading-m"] span[is="inline-price"][data-template="price"] {
         display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        font-size: 0;
+        vertical-align: bottom;
     }
 }
 

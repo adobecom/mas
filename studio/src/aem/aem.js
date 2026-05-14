@@ -400,11 +400,13 @@ class AEM {
             throw new Error(`Missing data to create a fragment: ${parentPath}, ${title}, ${modelId}`);
         }
 
+        const csrfToken = await this.getCsrfToken();
         const response = await fetch(`${this.cfFragmentsUrl}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 ...this.headers,
+                'CSRF-Token': csrfToken,
             },
             body: JSON.stringify({
                 title,
@@ -1170,11 +1172,13 @@ class AEM {
             throw new Error('Fragment ID is required');
         }
 
+        const csrfToken = await this.getCsrfToken();
         const response = await fetch(`${this.cfFragmentsUrl}/${id}/versions`, {
             method: 'POST',
             headers: {
                 ...this.headers,
                 'Content-Type': 'application/json',
+                'CSRF-Token': csrfToken,
             },
             body: JSON.stringify(versionData),
         }).catch((err) => {
@@ -1200,9 +1204,13 @@ class AEM {
             throw new Error('Fragment ID and Version ID are required');
         }
 
+        const csrfToken = await this.getCsrfToken();
         const response = await fetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/restore/${versionId}`, {
             method: 'POST',
-            headers: this.headers,
+            headers: {
+                ...this.headers,
+                'CSRF-Token': csrfToken,
+            },
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });

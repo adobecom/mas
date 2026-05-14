@@ -3780,6 +3780,7 @@ html:has(mas-commerce-service[locale="ja_JP"]) {
         display: flex;
         flex-wrap: wrap;
         align-items: baseline;
+        font-size: 0;
     }
     merch-card[variant^='plans'] [slot="heading-m"] p:has(.price-alternative) span[is="inline-price"][data-template="price"] {
         display: contents;

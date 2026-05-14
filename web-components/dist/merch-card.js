@@ -3196,8 +3196,12 @@ merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-tem
     align-items: baseline;
 }
 
-merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"]:has(.price-strikethrough, .price-promo-strikethrough) {
+merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"]:has(.price-strikethrough, .price-promo-strikethrough):not(:has(.price-annual)) {
     display: flex;
+}
+
+merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"]:has(.price-annual) {
+    display: inline;
 }
 
 merch-card[variant^="plans"] [slot='heading-xs'],

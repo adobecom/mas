@@ -3699,9 +3699,13 @@ merch-card[variant^="plans"] [slot="heading-m"] span.price:not(.price-strikethro
 }
 
 merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"] {
-    display: flex;
+    display: inline-flex;
     flex-wrap: wrap;
     align-items: baseline;
+}
+
+merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"]:has(.price-strikethrough, .price-promo-strikethrough) {
+    display: flex;
 }
 
 merch-card[variant^="plans"] [slot='heading-xs'],

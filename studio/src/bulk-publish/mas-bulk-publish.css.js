@@ -58,6 +58,7 @@ export const styles = [
 
         sp-table-row {
             cursor: pointer;
+            align-items: center;
         }
 
         sp-table-row.disabled {

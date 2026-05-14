@@ -102,17 +102,17 @@
                 if (envOverride) studio.aemEnv = envOverride;
             }
             const context = {
-                profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('9E1005A551ED61CA0A490D45@AdobeOrg')`,
+                profile_filter: `{"findFirst":true,"fallbackToAA":true,"searchEntireCluster":true};isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')`,
             };
             window.adobeid = {
                 api_parameters: {
-                    profile_filter: "isOwnedByOrg('9E1005A551ED61CA0A490D45@AdobeOrg')",
+                    profile_filter: "isOwnedByOrg('3B962FB55F5F922E0A495C88@AdobeOrg')",
                 },
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
                 redirect_uri: (() => {
-                    if (location.port && location.port !== `${localRelayPort}` && !location.hash.includes('id_token') && !location.hash.includes('access_token')) {
+                    if (location.port && location.port !== `${localRelayPort}`) {
                         let relayUrl = `http://localhost:${localRelayPort}/studio.html?relayPort=${localAppPort}&proxy.port=${localProxyPort}&relay.port=${localRelayPort}`;
                         const mcpServer = params.get('mcp.server');
                         if (mcpServer) relayUrl += `&mcp.server=${encodeURIComponent(mcpServer)}`;

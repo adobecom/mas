@@ -270,7 +270,7 @@ class MasBulkPublish extends LitElement {
         const isDisabled = status === BULK_PUBLISH_STATUS.PUBLISHING;
         return html`
             <tr data-testid="project-row" class=${isDisabled ? 'disabled' : ''}>
-                <td class="project-name">${title || 'Untitled project'}</td>
+                <td class="project-name" @click=${() => this.openProject(projectStore)}>${title || 'Untitled project'}</td>
                 <td class="center">${counts.fragment}</td>
                 <td class="center">${counts.collection}</td>
                 <td class="center">${counts.placeholder}</td>

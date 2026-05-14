@@ -93,6 +93,12 @@ export const styles = [
 
         tbody td.project-name {
             font-weight: 700;
+            cursor: pointer;
+            color: var(--spectrum-blue-900, #0265dc);
+        }
+
+        tbody td.project-name:hover {
+            text-decoration: underline;
         }
 
         tbody td.center {

@@ -29,6 +29,7 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
     COMPAT_VERSION,
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
@@ -1529,7 +1530,11 @@ export class MasRepository extends LitElement {
             const fragment = store?.get?.();
             if (!fragment) return false;
             if (parentId && fragment.id === parentId) return true;
-            return fragment.references?.some((reference) => reference.id === variationId || reference.path === variationPath);
+            if (fragment.references?.some((reference) => reference.id === variationId || reference.path === variationPath)) {
+                return true;
+            }
+            const variationPaths = fragment.getVariations?.() || [];
+            return Boolean(variationPath && variationPaths.includes(variationPath));
         });
 
         if (!storesToRefresh.length) return;
@@ -2125,6 +2130,22 @@ export class MasRepository extends LitElement {
         if (pznTags?.length) {
             groupedFields.push({ name: 'pznTags', type: 'tag', multiple: true, values: pznTags });
         }
+
+        // Snapshot parent list fields so grouped collection variations do not inherit live parent edits.
+        if (parentFragment.model?.path === COLLECTION_MODEL_PATH) {
+            for (const name of ['cards', 'collections']) {
+                const field = (parentFragment.fields || []).find((f) => f.name === name);
+                if (field?.values?.length) {
+                    groupedFields.push({
+                        name,
+                        type: field.type || 'content-reference',
+                        multiple: field.multiple !== false,
+                        values: [...field.values],
+                    });
+                }
+            }
+        }
+
         ensureCompatVersionOnMerchCardFieldList(parentFragment.model?.path, groupedFields);
 
         const newFragment = await this.aem.sites.cf.fragments.create({

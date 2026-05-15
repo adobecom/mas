@@ -4,7 +4,7 @@ import { extractLocaleFromPath, generateCodeToUse, getService, showToast, previe
 import { getFragmentName } from './translation/translation-utils.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
-import { CARD_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
 import router from './router.js';
 import './mas-variation-dialog.js';
@@ -12,6 +12,7 @@ import './mas-variation-dialog.js';
 class MasFragmentTable extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
+        editFragmentStore: { type: Object, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
@@ -31,6 +32,7 @@ class MasFragmentTable extends LitElement {
     constructor() {
         super();
         this.offerData = null;
+        this.editFragmentStore = null;
         this.expanded = false;
         this.nested = false;
         this.canCreateVariation = true;
@@ -133,16 +135,18 @@ class MasFragmentTable extends LitElement {
         const { fragment } = event.detail;
         if (fragment?.id) {
             const locale = extractLocaleFromPath(fragment.path);
-            router.navigateToFragmentEditor(fragment.id, { locale });
+            const viewPage = this.data?.model?.path === COLLECTION_MODEL_PATH;
+            router.navigateToFragmentEditor(fragment.id, { locale, viewPage });
         }
     }
 
     handleEditFragment(event) {
         event.stopPropagation();
-        const fragment = this.fragmentStore.value;
+        const editorStore = this.editFragmentStore || this.fragmentStore;
+        const fragment = editorStore?.get?.() || editorStore?.value;
         if (fragment?.id) {
             const locale = extractLocaleFromPath(fragment.path);
-            router.navigateToFragmentEditor(fragment.id, { locale });
+            router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore: editorStore });
         }
     }
 

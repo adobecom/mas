@@ -2583,6 +2583,20 @@ merch-card[variant^="plans"] [slot="heading-m"] span.price:not(.price-strikethro
     line-height: var(--consonant-merch-card-heading-m-line-height);
 }
 
+merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"] {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+}
+
+merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"]:has(.price-strikethrough, .price-promo-strikethrough):not(:has(.price-annual)) {
+    display: flex;
+}
+
+merch-card[variant^="plans"] [slot="heading-m"] span[is="inline-price"][data-template="price"]:has(.price-annual) {
+    display: inline;
+}
+
 merch-card[variant^="plans"] [slot='heading-xs'],
 merch-card[variant="plans-education"] span.heading-xs,
 merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough) {
@@ -2651,6 +2665,21 @@ merch-card[variant^='plans'] span[data-template="legal"] {
 html:has(mas-commerce-service[locale="ja_JP"]) {
     merch-card[variant^='plans'] span[data-template="legal"] {
         display: inline;
+    }
+    merch-card[variant^='plans'] [slot="heading-m"] span[is="inline-price"][data-template="price"] {
+        display: inline-flex;
+    }
+    merch-card[variant^='plans'] [slot="heading-m"] p:has(.price-alternative) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        font-size: 0;
+    }
+    merch-card[variant^='plans'] [slot="heading-m"] p:has(.price-alternative) span[is="inline-price"][data-template="price"] {
+        display: contents;
+    }
+    merch-card[variant^='plans'] [slot="heading-m"] p:has(.price-alternative) .price-strikethrough {
+        flex-basis: 100%;
     }
 }
 
@@ -6967,6 +6996,14 @@ merch-card[variant="mini"] span.renewal-text {
         line-height: var(--consonant-merch-card-body-s-line-height);
     }
 
+    merch-card[variant='fries'] [slot="body-s"] p:has(mas-mnemonic) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+    }
+
     merch-card[variant='fries'] [slot="body-s"] merch-icon {
         display: inline-flex;
         width: 20px;
@@ -7054,6 +7091,7 @@ merch-card[variant="mini"] span.renewal-text {
 
     merch-card[variant='fries'] merch-whats-included {
         row-gap: 6px;
+        flex-wrap: nowrap;
     }
 
     merch-card[variant='fries'] merch-whats-included > [slot="heading"]:empty {

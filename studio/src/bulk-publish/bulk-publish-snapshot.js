@@ -1,4 +1,4 @@
-import { STATUS_PUBLISHED } from '../constants.js';
+import { STATUS_PUBLISHED, STATUS_MODIFIED } from '../constants.js';
 
 /**
  * Create a pre-publish snapshot of all fragments in the project.
@@ -30,7 +30,7 @@ export async function createSnapshot(project, aem, userEmail) {
         }
 
         const fragment = await aem.sites.cf.fragments.getById(fragmentId);
-        const wasPublished = fragment.status === STATUS_PUBLISHED;
+        const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
         const versionId = await aem.sites.cf.fragments.createVersion(fragmentId, {
             label: 'pre-publish-snapshot',
         });

@@ -70,6 +70,13 @@ class MasSideNavItem extends LitElement {
             text-align: center;
         }
 
+        :host(.bottom) {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
         .support-indicator {
             position: absolute;
             top: 8px;

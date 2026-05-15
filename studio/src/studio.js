@@ -12,6 +12,8 @@ import './mas-promotions.js';
 import './mas-promotions-editor.js';
 import './translation/mas-translation.js';
 import './translation/mas-translation-editor.js';
+import './bulk-publish/mas-bulk-publish.js';
+import './bulk-publish/mas-bulk-publish-editor.js';
 import './mas-repository.js';
 import './mas-toast.js';
 import './mas-splash-screen.js';
@@ -29,6 +31,7 @@ import './editors/merch-card-collection-editor.js';
 import { initUsers } from './users.js';
 import './placeholders/mas-placeholders.js';
 import './settings/mas-settings.js';
+import './mas-advanced-tools.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
 import './version-page.js';
@@ -213,6 +216,21 @@ class MasStudio extends LitElement {
         </div>`;
     }
 
+    get bulkPublish() {
+        if (this.page.value !== PAGE_NAMES.BULK_PUBLISH) return nothing;
+        return html`<mas-bulk-publish></mas-bulk-publish>`;
+    }
+
+    get bulkPublishEditor() {
+        if (this.page.value !== PAGE_NAMES.BULK_PUBLISH_EDITOR) return nothing;
+        return html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`;
+    }
+
+    get advancedTools() {
+        if (this.page.value !== PAGE_NAMES.ADVANCED_TOOLS) return nothing;
+        return html`<mas-advanced-tools></mas-advanced-tools>`;
+    }
+
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
         this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}"></mas-commerce-service>`;
@@ -272,7 +290,8 @@ class MasStudio extends LitElement {
                     ? html`<div class="main-container">
                           ${this.splashScreen} ${this.content} ${this.placeholders} ${this.fragmentEditor} ${this.promotions}
                           ${this.promotionsEditor} ${this.versionPage} ${this.translation} ${this.translationEditor}
-                          ${this.aiAssistant} ${this.productCatalog} ${this.productDetail} ${this.editorPanel} ${this.settings}
+                          ${this.aiAssistant} ${this.productCatalog} ${this.productDetail} ${this.bulkPublish}
+                          ${this.bulkPublishEditor} ${this.advancedTools} ${this.editorPanel} ${this.settings}
                       </div>`
                     : nothing}
             </div>

@@ -372,6 +372,8 @@ class MerchCardEditor extends LitElement {
             settingsContextFragment.tags = structuredClone(this.localeDefaultFragment.tags);
         }
 
+        if (!settingsContextFragment.locale) settingsContextFragment.locale = this.fragment.locale;
+
         return settingsContextFragment;
     }
 
@@ -471,6 +473,7 @@ class MerchCardEditor extends LitElement {
                 title: this.#getQuantitySelectValue(fieldName, 'title', parentValues, currentValues),
                 min: this.#getQuantitySelectValue(fieldName, 'min', parentValues, currentValues),
                 step: this.#getQuantitySelectValue(fieldName, 'step', parentValues, currentValues),
+                defaultValue: this.#getQuantitySelectValue(fieldName, 'defaultValue', parentValues, currentValues),
             });
             if (this.globalSettingsDefaults[QUANTITY_MODEL] === html) {
                 this.fragmentStore.updateField(QUANTITY_MODEL, ['']);
@@ -788,6 +791,11 @@ class MerchCardEditor extends LitElement {
         const value = this.getEffectiveFieldValue(QUANTITY_MODEL, 0) || '';
         if (value === QUANTITY_EMPTY) return '';
         return value;
+    }
+
+    #quantitySelectSettingsDefaultsMarkup() {
+        const raw = this.globalSettingsDefaults[QUANTITY_MODEL];
+        return raw === '' || raw == null ? QUANTITY_EMPTY : raw;
     }
 
     #handleQuantityFieldChange = (event) => {
@@ -1626,9 +1634,7 @@ class MerchCardEditor extends LitElement {
                                 : this.renderSettingOverrideIndicator('quantitySelect')}
                             .fieldIndicatorTemplate=${this.renderQuantitySelectSettingOverrideIndicator}
                             value="${this.getEffectiveSettingValue(QUANTITY_MODEL)}"
-                            settingsDefaults="${this.globalSettingsDefaults[QUANTITY_MODEL] === ''
-                                ? QUANTITY_EMPTY
-                                : this.globalSettingsDefaults[QUANTITY_MODEL]}"
+                            settingsDefaults="${this.#quantitySelectSettingsDefaultsMarkup()}"
                             .handleQuantityFieldChange=${this.#handleQuantityFieldChange}
                         ></quantity-select-settings-field>
                     </sp-field-group>
@@ -2200,6 +2206,7 @@ class MerchCardEditor extends LitElement {
             title: this.#getQuantitySelectValue(component, 'title', parentValues, currentValues),
             min: this.#getQuantitySelectValue(component, 'min', parentValues, currentValues),
             step: this.#getQuantitySelectValue(component, 'step', parentValues, currentValues),
+            defaultValue: this.#getQuantitySelectValue(component, 'defaultValue', parentValues, currentValues),
         });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;

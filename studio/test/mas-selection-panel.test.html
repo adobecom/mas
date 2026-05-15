@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+    <head>
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>mas-selection-panel test page</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="../style.css" />
+        <style>
+            sp-theme {
+                display: contents;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { spy } from 'sinon';
+            import { html } from 'lit';
+            import { fixture } from '@open-wc/testing-helpers';
+            import '../src/swc.js';
+            import '../src/mas-selection-panel.js';
+            import Store from '../src/store.js';
+
+            runTests(() => {
+                const spTheme = () => document.querySelector('sp-theme');
+
+                describe('mas-selection-panel', () => {
+                    let panel;
+
+                    afterEach(() => {
+                        Store.selection.set([]);
+                        panel?.remove();
+                        panel = null;
+                    });
+
+                    it('invokes onCopyStudioLinks with current selection when copy button is clicked', async () => {
+                        const handler = spy();
+                        panel = await fixture(
+                            html`<mas-selection-panel
+                                ?open=${true}
+                                .selectionStore=${Store.selection}
+                                .onCopyStudioLinks=${handler}
+                            ></mas-selection-panel>`,
+                            { parentNode: spTheme() },
+                        );
+                        Store.selection.set(['frag-a']);
+                        await panel.updateComplete;
+
+                        const btn = panel.shadowRoot.querySelector('sp-action-button[label="Copy cards links"]');
+                        expect(btn).to.exist;
+                        btn.click();
+                        expect(handler.calledOnce).to.be.true;
+                        expect(handler.firstCall.args[0]).to.deep.equal(['frag-a']);
+                    });
+
+                    it('does not render copy links button when onCopyStudioLinks is unset', async () => {
+                        panel = await fixture(
+                            html`<mas-selection-panel ?open=${true} .selectionStore=${Store.selection}></mas-selection-panel>`,
+                            { parentNode: spTheme() },
+                        );
+                        Store.selection.set(['frag-b']);
+                        await panel.updateComplete;
+
+                        expect(panel.shadowRoot.querySelector('sp-action-button[label="Copy cards links"]')).to.not.exist;
+                    });
+                });
+            });
+        </script>
+        <sp-theme system="spectrum-two" color="light" scale="medium"></sp-theme>
+    </body>
+</html>

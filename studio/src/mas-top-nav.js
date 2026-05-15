@@ -21,6 +21,7 @@ class MasTopNav extends LitElement {
     version = Store.version;
     promotions = Store.promotions;
     translationProjects = Store.translationProjects;
+    bulkPublishProjects = Store.bulkPublishProjects;
 
     reactiveController = new ReactiveController(this, [
         this.page,
@@ -36,6 +37,8 @@ class MasTopNav extends LitElement {
         this.translationProjects.translationProjectId,
         this.translationProjects.inEdit,
         Store.productCatalog.search,
+        this.bulkPublishProjects.inEdit,
+        this.bulkPublishProjects.projectId,
     ]);
 
     createRenderRoot() {
@@ -177,6 +180,10 @@ class MasTopNav extends LitElement {
         Store.productCatalog.search.set(e.target.value || '');
     }, 200);
 
+    get isBulkPublishEditorPage() {
+        return this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR;
+    }
+
     get topNavLocale() {
         if (this.isFragmentEditorPage) {
             const fragmentId = this.inEdit.get()?.get()?.id;
@@ -266,6 +273,14 @@ class MasTopNav extends LitElement {
         return 'Edit project';
     }
 
+    get bulkPublishEditorBreadcrumbLabel() {
+        const inEdit = this.bulkPublishProjects.inEdit.get();
+        const project = typeof inEdit?.get === 'function' ? inEdit.get() : inEdit;
+        const title = project?.getFieldValue?.('title');
+        if (title) return title;
+        return this.bulkPublishProjects.projectId.get() ? 'Edit project' : 'Create project';
+    }
+
     get breadcrumbItems() {
         const handlers = {
             content: () => router.navigateToPage(PAGE_NAMES.CONTENT)(),
@@ -289,11 +304,17 @@ class MasTopNav extends LitElement {
                 { label: 'Version history' },
             ];
         }
+        if (this.page.value === PAGE_NAMES.SETTINGS) {
+            return [
+                { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
+                { label: 'Global settings' },
+            ];
+        }
         if (this.page.value === PAGE_NAMES.SETTINGS_EDITOR) {
             if (!this.settings.fragmentId.get() && !this.settings.creating.get()) {
                 return [];
             }
-            return [{ label: 'Settings', handler: handlers.settings }, { label: this.settingEditorBreadcrumbLabel }];
+            return [{ label: 'Global settings', handler: handlers.settings }, { label: this.settingEditorBreadcrumbLabel }];
         }
         if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
             return [{ label: 'Promotions', handler: handlers.promotions }, { label: this.promotionsEditorBreadcrumbLabel }];
@@ -302,6 +323,18 @@ class MasTopNav extends LitElement {
             return [
                 { label: 'Translations', handler: handlers.translations },
                 { label: this.translationEditorBreadcrumbLabel },
+            ];
+        }
+        if (this.page.value === PAGE_NAMES.BULK_PUBLISH) {
+            return [
+                { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
+                { label: 'Bulk publish' },
+            ];
+        }
+        if (this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR) {
+            return [
+                { label: 'Bulk publish', handler: () => router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)() },
+                { label: this.bulkPublishEditorBreadcrumbLabel },
             ];
         }
 
@@ -385,7 +418,8 @@ class MasTopNav extends LitElement {
                               <mas-nav-folder-picker
                                   ?disabled=${this.isFragmentEditorPage ||
                                   this.isTranslationEditorPage ||
-                                  this.isSettingsEditorPage}
+                                  this.isSettingsEditorPage ||
+                                  this.isBulkPublishEditorPage}
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"

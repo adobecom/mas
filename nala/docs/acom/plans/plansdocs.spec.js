@@ -1,4 +1,4 @@
-import { PRICE_PATTERN, DOCS_GALLERY_PATH } from '../../utils/commerce.js';
+import { PRICE_PATTERN, DOCS_GALLERY_PATH } from '../../../utils/commerce.js';
 
 export const FeatureName = 'Merch Acom Cards Feature';
 export const features = [
@@ -46,5 +46,13 @@ export const features = [
         data: { id: '5a5ca143-a417-4087-b466-5b72ac68a830', badgeText: 'CANADA', price: PRICE_PATTERN.CA.mo },
         browserParams: '?theme=darkest',
         tags: '@mas-docs @mas-acom @mas-plans-card @commerce @smoke @regression @milo @regional-variation',
+    },
+    {
+        tcid: '4',
+        name: '@MAS-Plans-Row-Height-Sync',
+        path: DOCS_GALLERY_PATH.PLANS.US,
+        data: {},
+        browserParams: '?theme=darkest',
+        tags: '@mas-docs @mas-acom @mas-plans-card @regression @milo',
     },
 ];

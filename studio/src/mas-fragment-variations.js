@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { Fragment } from './aem/fragment.js';
 import { VARIATION_TYPES } from './constants.js';
-import { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
+import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { styles } from './mas-fragment-variations.css.js';
 import { extractLocaleFromPath, showToast } from './utils.js';
 import router from './router.js';
@@ -15,6 +15,7 @@ document.head.appendChild(styleElement);
 class MasFragmentVariations extends LitElement {
     static properties = {
         fragment: { type: Object, attribute: false },
+        fragmentStore: { type: Object, attribute: false },
         loading: { type: Boolean, attribute: false },
         expandedGroupedVariations: { type: Object, state: true },
         duplicateSource: { type: Object, state: true },
@@ -25,6 +26,7 @@ class MasFragmentVariations extends LitElement {
     constructor() {
         super();
         this.fragment = null;
+        this.fragmentStore = null;
         this.loading = false;
         this.expandedGroupedVariations = new Set();
         this.duplicateSource = null;
@@ -34,6 +36,28 @@ class MasFragmentVariations extends LitElement {
 
     createRenderRoot() {
         return this;
+    }
+
+    #unsubscribeFragmentStore;
+
+    willUpdate(changedProperties) {
+        super.willUpdate(changedProperties);
+        if (changedProperties.has('fragmentStore')) {
+            this.#unsubscribeFragmentStore?.();
+            this.#unsubscribeFragmentStore = null;
+            const store = this.fragmentStore;
+            if (store?.subscribe) {
+                const onStoreChange = () => this.requestUpdate();
+                store.subscribe(onStoreChange);
+                this.#unsubscribeFragmentStore = () => store.unsubscribe(onStoreChange);
+            }
+        }
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#unsubscribeFragmentStore?.();
+        this.#unsubscribeFragmentStore = null;
     }
 
     get localeVariations() {
@@ -60,7 +84,7 @@ class MasFragmentVariations extends LitElement {
         const fragment = fragmentStore.value;
         if (fragment?.id) {
             const locale = extractLocaleFromPath(fragment.path);
-            await router.navigateToFragmentEditor(fragment.id, { locale });
+            await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
         }
     }
 
@@ -206,13 +230,15 @@ class MasFragmentVariations extends LitElement {
                     ${this.localeVariations.map((variationFragment) => {
                         const mergedData = createPreviewDataWithParent(variationFragment, this.fragment);
                         const fragmentStore = new FragmentStore(new Fragment(mergedData));
+                        const editStore = generateFragmentStore(variationFragment, this.fragment);
                         return html`
                             <mas-fragment-table
                                 class="mas-fragment nested-fragment"
                                 data-id="${variationFragment.id}"
                                 .fragmentStore=${fragmentStore}
+                                .editFragmentStore=${editStore}
                                 .nested=${true}
-                                @dblclick=${() => this.handleEdit(fragmentStore)}
+                                @dblclick=${() => this.handleEdit(editStore)}
                             ></mas-fragment-table>
                         `;
                     })}
@@ -241,6 +267,7 @@ class MasFragmentVariations extends LitElement {
                     ${this.groupedVariations.map((variationFragment) => {
                         const mergedData = createPreviewDataWithParent(variationFragment, this.fragment);
                         const fragmentStore = new FragmentStore(new Fragment(mergedData));
+                        const editStore = generateFragmentStore(variationFragment, this.fragment);
                         const tagsValue = this.getGroupedVariationTagsValue(variationFragment);
                         const promoCode = this.getPromoCode(variationFragment);
                         const isExpanded = this.isGroupedVariationExpanded(variationFragment.id);
@@ -249,10 +276,11 @@ class MasFragmentVariations extends LitElement {
                                 class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''}"
                                 data-id="${variationFragment.id}"
                                 .fragmentStore=${fragmentStore}
+                                .editFragmentStore=${editStore}
                                 .canCreateVariation=${false}
                                 .expanded=${isExpanded}
                                 .toggleExpand=${() => this.toggleGroupedVariation(variationFragment.id)}
-                                @dblclick=${() => this.handleEdit(fragmentStore)}
+                                @dblclick=${() => this.handleEdit(editStore)}
                             ></mas-fragment-table>
                             ${isExpanded
                                 ? html`

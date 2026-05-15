@@ -71,7 +71,7 @@ export async function startReverting({ project, repository }) {
     const aem = repository.aem;
     try {
         await revertSnapshot(snapshot, aem);
-        setField(project, 'status', BULK_PUBLISH_STATUS.DRAFT);
+        setField(project, 'status', BULK_PUBLISH_STATUS.REVERTED);
         setField(project, 'snapshot', null);
     } catch (err) {
         setField(project, 'lastError', err.message);

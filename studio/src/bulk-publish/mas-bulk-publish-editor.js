@@ -437,7 +437,7 @@ class MasBulkPublishEditor extends LitElement {
                     this.hasChanges = false;
                     showToast('Project created successfully.', 'positive');
                 } else {
-                    const savedStatus = this.status;
+                    const savedStatus = this.status === BULK_PUBLISH_STATUS.REVERTED ? BULK_PUBLISH_STATUS.DRAFT : this.status;
                     const fields = {
                         title: this.title,
                         status: savedStatus,

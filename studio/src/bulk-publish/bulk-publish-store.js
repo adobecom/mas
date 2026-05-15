@@ -10,7 +10,7 @@ function setField(project, name, value) {
     }
 }
 
-export async function startPublishing({ project, paths, locales, token, ioBaseUrl, publishFn, repository }) {
+export async function startPublishing({ project, items, paths, locales, token, ioBaseUrl, publishFn, repository }) {
     setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHING);
     setField(project, 'lastError', '');
     await repository.saveFragment(project, false);
@@ -19,7 +19,6 @@ export async function startPublishing({ project, paths, locales, token, ioBaseUr
     const userEmail = profile?.email ?? '';
 
     const aem = repository.aem;
-    const items = paths.map((path) => ({ path }));
     let snapshot;
     try {
         snapshot = await createSnapshot({ items, id: project.id }, aem, userEmail);

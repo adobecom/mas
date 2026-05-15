@@ -303,6 +303,15 @@ describe('MasTopNav', () => {
             expect(buttons[0].hasAttribute('disabled')).to.be.false;
             expect(buttons[1].hasAttribute('disabled')).to.be.true;
         });
+
+        it('should navigate to content when back is clicked on fragment editor', async () => {
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => Promise.resolve());
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const backButton = el.querySelector('.history-navigation .history-nav-button');
+            backButton.click();
+            expect(navigateStub.calledOnceWith(PAGE_NAMES.CONTENT)).to.be.true;
+        });
     });
 
     describe('picker disabled states', () => {

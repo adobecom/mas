@@ -204,6 +204,16 @@ class MasTopNav extends LitElement {
         return this.landscape.value === WCS_LANDSCAPE_DRAFT;
     }
 
+    handleBackClick() {
+        if (this.page.value === PAGE_NAMES.FRAGMENT_EDITOR) {
+            void router.navigateToPage(PAGE_NAMES.CONTENT)();
+            return;
+        }
+        if (window.history.length > 1) {
+            window.history.back();
+        }
+    }
+
     async onLocaleChanged(e) {
         const { locale, fragmentId } = e.detail;
         if (this.isFragmentEditorPage) {
@@ -355,7 +365,7 @@ class MasTopNav extends LitElement {
     get historyNavigationTemplate() {
         return html`
             <div class="history-navigation" aria-label="History navigation">
-                <button class="history-nav-button" type="button" aria-label="Back">
+                <button class="history-nav-button" type="button" aria-label="Back" @click=${this.handleBackClick}>
                     <sp-icon-chevron-left size="s"></sp-icon-chevron-left>
                 </button>
                 <button class="history-nav-button" type="button" aria-label="Forward" disabled>

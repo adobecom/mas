@@ -19,6 +19,11 @@ export class Router extends EventTarget {
         this.isNavigating = false;
     }
 
+    #resetListLocale() {
+        Store.search.set((prev) => ({ ...prev, region: null }));
+        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+    }
+
     #hashValue() {
         return this.location.hash?.startsWith('#') ? this.location.hash.slice(1) : this.location.hash || '';
     }
@@ -152,6 +157,9 @@ export class Router extends EventTarget {
                         Store.fragmentEditor.loading.set(false);
                         Store.version.fragmentId.set(null);
                     }
+                    if (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR && targetPage === PAGE_NAMES.CONTENT) {
+                        this.#resetListLocale();
+                    }
                     if (Store.page.value === PAGE_NAMES.TRANSLATION_EDITOR && targetPage !== PAGE_NAMES.TRANSLATION_EDITOR) {
                         Store.translationProjects.translationProjectId.set(null);
                         Store.translationProjects.inEdit.set(null);
@@ -215,6 +223,7 @@ export class Router extends EventTarget {
             Store.fragments.inEdit.set();
 
             // Navigate to content page in table view
+            this.#resetListLocale();
             Store.viewMode.set('default');
             Store.renderMode.set('table');
             Store.page.set(PAGE_NAMES.CONTENT);
@@ -260,8 +269,11 @@ export class Router extends EventTarget {
             }
 
             // Default: use full-page fragment editor for regular cards
-            if (locale && locale !== Store.filters.value.locale) {
-                Store.search.set((prev) => ({ ...prev, region: locale }));
+            if (locale) {
+                Store.search.set((prev) => ({ ...prev, region: null }));
+                if (locale !== Store.filters.value.locale) {
+                    Store.filters.set((prev) => ({ ...prev, locale }));
+                }
             }
 
             if (Store.editor.hasChanges) {

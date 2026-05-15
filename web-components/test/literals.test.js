@@ -46,4 +46,22 @@ describe('function "getPriceLiterals"', () => {
         });
         expect(literals.lang).to.equal('in');
     });
+
+    it('returns literals for HK and TW', async () => {
+        const literalsTW = await getPriceLiterals({
+            locale: 'zh_TW',
+            language: 'en',
+        });
+        expect(literalsTW.lang).to.equal('zh-hant');
+        const literalsHK = await getPriceLiterals({
+            locale: 'zh_HK',
+            language: 'en',
+        });
+        expect(literalsHK.lang).to.equal('zh-hant');
+        const literals = await getPriceLiterals({
+            locale: 'xx_XX',
+            language: 'en',
+        });
+        expect(literals.lang).to.equal('en');
+    });
 });

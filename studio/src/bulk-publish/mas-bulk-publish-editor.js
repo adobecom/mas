@@ -603,6 +603,7 @@ class MasBulkPublishEditor extends LitElement {
         this.revertDialogOpen = false;
         const { startReverting } = await import('./bulk-publish-store.js');
         await startReverting({ project: this.project, repository: this.repository });
+        this.requestUpdate();
     }
 
     async publish() {

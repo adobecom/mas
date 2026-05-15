@@ -77,6 +77,73 @@ describe('aem.js', () => {
                 { id: 2, fields: [{ name: 'variant', value: 'v2' }] },
             ]);
         });
+
+        it('should filter fragments by title when query is provided', async () => {
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({
+                    items: [
+                        {
+                            id: 1,
+                            title: 'CC Catalog Merch Card: Adobe Firefly Pro',
+                            fields: [{ name: 'variant', values: ['v1'] }],
+                        },
+                        {
+                            id: 2,
+                            title: 'CC Catalog Merch Card: Adobe Express',
+                            fields: [{ name: 'variant', values: ['v2'] }],
+                        },
+                        {
+                            id: 3,
+                            title: 'Other Card',
+                            fields: [{ name: 'description', values: ['Firefly Pro'] }],
+                        },
+                    ],
+                }),
+            });
+
+            const result = await aem.sites.cf.fragments.search({ path: '/test', query: 'Firefly Pro' });
+
+            const actual = [];
+            for await (const items of result) {
+                actual.push(...items);
+            }
+
+            // Should include items that match in title OR in field values
+            expect(actual).to.have.lengthOf(2);
+            expect(actual.map((i) => i.id)).to.deep.equal([1, 3]);
+        });
+
+        it('should filter fragments by field content when query is provided', async () => {
+            window.fetch = async () => ({
+                ok: true,
+                json: async () => ({
+                    items: [
+                        {
+                            id: 1,
+                            title: 'Card One',
+                            fields: [{ name: 'description', values: ['Test content with searchterm'] }],
+                        },
+                        {
+                            id: 2,
+                            title: 'Card Two',
+                            fields: [{ name: 'description', values: ['Other content'] }],
+                        },
+                    ],
+                }),
+            });
+
+            const result = await aem.sites.cf.fragments.search({ path: '/test', query: 'searchterm' });
+
+            const actual = [];
+            for await (const items of result) {
+                actual.push(...items);
+            }
+
+            // Should include only the item with matching field content
+            expect(actual).to.have.lengthOf(1);
+            expect(actual[0].id).to.equal(1);
+        });
     });
 
     describe('method: getFragmentTranslations', () => {

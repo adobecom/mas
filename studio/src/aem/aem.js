@@ -99,13 +99,9 @@ class AEM {
         const filter = {
             path,
         };
-        if (query) {
-            filter.fullText = {
-                text: encodeURIComponent(query),
-                // For info about modes: https://adobe-sites.redoc.ly/tag/Search#operation/fragments/search!path=query/filter/fullText/queryMode&t=request
-                queryMode: 'EDGES',
-            };
-        }
+        // Note: We don't use AEM's fullText filter when there's a query because it doesn't
+        // search the fragment title metadata field. Instead, we fetch all fragments and
+        // filter client-side to support searching by both fragment title and content fields.
         const searchQuery = { ...defaultSearchOptions, filter };
         if (sort) {
             searchQuery.sort = sort;
@@ -135,6 +131,7 @@ class AEM {
         }
 
         let cursor;
+        const lowerCaseQuery = query?.toLowerCase() || '';
         while (true) {
             if (cursor) {
                 params.cursor = cursor;
@@ -153,6 +150,32 @@ class AEM {
             if (tags.length > 0) {
                 // filter items by tags
                 items = items.filter(filterByTags(tags));
+            }
+
+            // Client-side filter: when there's a search query, filter fragments by title and other searchable fields
+            // This allows searching by fragment title which AEM's server-side search doesn't include
+            if (query && lowerCaseQuery) {
+                items = items.filter((item) => {
+                    const itemTitle = (item.title || '').toLowerCase();
+                    // Check if title matches
+                    if (itemTitle.includes(lowerCaseQuery)) {
+                        return true;
+                    }
+
+                    // Also check common searchable fields in the fragment
+                    // This maintains search functionality for content fields
+                    const fields = item.fields || [];
+                    for (const field of fields) {
+                        const values = field.values || [];
+                        for (const value of values) {
+                            if (typeof value === 'string' && value.toLowerCase().includes(lowerCaseQuery)) {
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                });
             }
 
             yield items;

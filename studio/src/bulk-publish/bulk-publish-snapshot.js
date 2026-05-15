@@ -14,18 +14,21 @@ export async function createSnapshot(project, aem, userEmail) {
     const fragments = {};
 
     for (const item of items) {
-        if (!item.path) continue;
+        if (!item.fragmentId && !item.path) continue;
 
-        const results = [];
-        for await (const page of aem.sites.cf.fragments.search({ path: item.path })) {
-            results.push(...page);
-        }
-        const rawFragment = results[0];
-        if (!rawFragment) {
-            throw new Error(`Fragment not found at path: ${item.path}`);
+        let fragmentId = item.fragmentId;
+        if (!fragmentId) {
+            const results = [];
+            for await (const page of aem.sites.cf.fragments.search({ path: item.path })) {
+                results.push(...page);
+            }
+            const rawFragment = results[0];
+            if (!rawFragment) {
+                throw new Error(`Fragment not found at path: ${item.path}`);
+            }
+            fragmentId = rawFragment.id;
         }
 
-        const fragmentId = rawFragment.id;
         const fragment = await aem.sites.cf.fragments.getById(fragmentId);
         const wasPublished = fragment.status === STATUS_PUBLISHED;
         const versionId = await aem.sites.cf.fragments.createVersion(fragmentId, {

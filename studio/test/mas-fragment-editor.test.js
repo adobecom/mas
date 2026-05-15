@@ -1278,6 +1278,9 @@ describe('MasFragmentEditor', () => {
             Store.filters.set({ locale: 'fr_CA' });
             expect(alignStoreLocaleFromFragmentPath(frCaPath)).to.equal('fr_CA');
             expect(Store.filters.get().locale).to.equal('fr_CA');
+        });
+    });
+
     describe('relatedVariationsSection grouped variation counts', () => {
         it('subtracts grouped count when current fragment is a grouped variation', () => {
             const el = document.createElement('mas-fragment-editor');

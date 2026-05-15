@@ -1,4 +1,5 @@
-import { TEMPLATE_PREVIEWS, ODIN_PREVIEW_ORIGIN } from '../constants.js';
+import { ODIN_PREVIEW_ORIGIN } from '../constants.js';
+import { TEMPLATE_PREVIEWS } from '../mas-chat/config.js';
 import { getVariantTreeData } from '../editors/variant-picker.js';
 
 export async function precacheTemplatePreviews(surface) {

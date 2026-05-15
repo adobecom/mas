@@ -5,7 +5,7 @@
  * This client sends tool execution requests to the MCP server via HTTP.
  */
 
-import { MCP_SERVER_URL } from '../constants.js';
+import { MCP_SERVER_URL } from '../mas-chat/config.js';
 
 /**
  * Execute an MCP tool on the MCP server

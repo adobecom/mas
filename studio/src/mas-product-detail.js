@@ -5,7 +5,8 @@ import { fetchProductDetail } from './services/product-api.js';
 import { showToast } from './utils.js';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
-import { EVENT_OST_OFFER_SELECT, PAGE_NAMES, TEMPLATE_PREVIEWS } from './constants.js';
+import { EVENT_OST_OFFER_SELECT, PAGE_NAMES } from './constants.js';
+import { TEMPLATE_PREVIEWS } from './mas-chat/config.js';
 import { getVariantTreeData } from './editors/variant-picker.js';
 import { precacheTemplatePreviews } from './utils/template-cache.js';
 import { getUserSurfaces } from './groups.js';
@@ -176,8 +177,7 @@ class MasProductDetail extends LitElement {
                 ${this.breadcrumbTemplate} ${this.headerTemplate} ${this.copySectionTemplate} ${this.tagsSectionTemplate}
                 ${this.detailsSectionTemplate} ${this.linksSectionTemplate} ${this.fulfillableItemsSectionTemplate}
             </div>
-            ${this.createDialog ? this.createDialogTemplate : nothing}
-            ${this.creating ? this.creatingOverlayTemplate : nothing}
+            ${this.createDialog ? this.createDialogTemplate : nothing} ${this.creating ? this.creatingOverlayTemplate : nothing}
         `;
     }
 

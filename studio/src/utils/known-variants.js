@@ -1,7 +1,7 @@
 /**
  * Canonical list of card templates/variants known to MAS Studio.
  *
- * The authoritative source is `TEMPLATE_PREVIEWS` in constants.js — every
+ * The authoritative source is `TEMPLATE_PREVIEWS` in mas-chat/config.js — every
  * variant that has a preview registered is, by definition, a real card
  * template. Deriving from that map keeps this list in sync automatically
  * when a new template is added.
@@ -14,7 +14,7 @@
  * handle ambiguity.
  */
 
-import { TEMPLATE_PREVIEWS } from '../constants.js';
+import { TEMPLATE_PREVIEWS } from '../mas-chat/config.js';
 
 export const KNOWN_VARIANTS = Object.freeze(Object.keys(TEMPLATE_PREVIEWS));
 const KNOWN_VARIANT_SET = new Set(KNOWN_VARIANTS);

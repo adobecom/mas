@@ -1,4 +1,4 @@
-import { IO_MCP_URL } from '../constants.js';
+import { IO_MCP_URL } from '../mas-chat/config.js';
 
 // TODO(MWPW-183572 post-merge): revert to masstudio (prod) endpoint once the
 // masstudio OST cache has been rebuilt with DIRECT/RETAIL channel filtering.

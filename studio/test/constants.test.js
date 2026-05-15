@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { getAIChatBaseURL, getMCPServerURL } from '../src/constants.js';
+import { getAIChatBaseURL, getMCPServerURL } from '../src/mas-chat/config.js';
 
 const ATTACKER_AI_CHAT = 'https://attacker.example/chat';
 const ATTACKER_MCP = 'https://attacker.example/mcp';

@@ -30,7 +30,8 @@ import { classifySearchIntent, resumeWithSlot } from './utils/ai-chat-search-rou
 import { isDeterministicSearchEnabled, recordSearchIntentTelemetry } from './utils/ai-chat-search-telemetry.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, normalizeFragmentForCache, logError } from './utils.js';
-import { AI_CHAT_BASE_URL, TAG_MODEL_ID_MAPPING } from './constants.js';
+import { TAG_MODEL_ID_MAPPING } from './constants.js';
+import { AI_CHAT_BASE_URL } from './mas-chat/config.js';
 import { getDamPath } from './mas-repository.js';
 import { openOfferSelectorTool } from './rte/ost.js';
 import sessionManager from './services/chat-session-manager.js';

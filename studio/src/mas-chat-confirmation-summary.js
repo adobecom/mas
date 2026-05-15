@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { getVariantTreeData } from './editors/variant-picker.js';
-import { TEMPLATE_PREVIEWS } from './constants.js';
+import { TEMPLATE_PREVIEWS } from './mas-chat/config.js';
 import { precacheTemplatePreviews } from './utils/template-cache.js';
 
 export class MasChatConfirmationSummary extends LitElement {

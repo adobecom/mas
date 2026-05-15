@@ -241,7 +241,7 @@ describe('startReverting()', () => {
         };
     }
 
-    it('sets status to REVERTING, saves, calls revertSnapshot, sets REVERTED on success', async () => {
+    it('sets status to REVERTING, saves, calls revertSnapshot, sets DRAFT on success', async () => {
         const project = makeProject();
         const repo = makeRepo({ searchPages: [{ id: 'frag-rev', path: '/rev' }] });
 
@@ -252,7 +252,7 @@ describe('startReverting()', () => {
             .filter((c) => c.args[0] === 'status')
             .map((c) => c.args[1]);
         expect(statusValues[0]).to.equal(BULK_PUBLISH_STATUS.REVERTING);
-        expect(statusValues[statusValues.length - 1]).to.equal(BULK_PUBLISH_STATUS.REVERTED);
+        expect(statusValues[statusValues.length - 1]).to.equal(BULK_PUBLISH_STATUS.DRAFT);
         expect(repo.saveFragment.callCount).to.be.greaterThan(0);
         expect(repo.aem.sites.cf.fragments.restoreVersion.calledOnce).to.equal(true);
     });

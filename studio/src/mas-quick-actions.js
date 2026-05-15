@@ -52,6 +52,10 @@ const ACTION_CONFIG = {
         icon: 'custom-icon-link',
         title: 'Link',
     },
+    [QUICK_ACTION.REVERT]: {
+        icon: 'sp-icon-undo',
+        title: 'Revert',
+    },
 };
 
 class MasQuickActions extends LitElement {

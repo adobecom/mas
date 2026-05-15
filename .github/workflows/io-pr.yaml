@@ -38,12 +38,12 @@ jobs:
         if: success() && github.event_name == 'pull_request'
         uses: ./.github/workflows/io-deploy.yaml
         secrets:
-            ENV_CONTENT: ${{ secrets[format('AIO_WWW_ENV_{0}', github.actor)] || secrets.AIO_WWW_ENV_QA }}
-            AIO_CONTENT: ${{ secrets[format('AIO_WWW_AIO_{0}', github.actor)] || secrets.AIO_WWW_AIO_QA }}
+            ENV_CONTENT: ${{ secrets[format('AIO_WWW_ENV_{0}', github.actor)] }}
+            AIO_CONTENT: ${{ secrets[format('AIO_WWW_AIO_{0}', github.actor)] }}
 
     test-deployed:
         needs: deploy
         if: success() && github.event_name == 'pull_request'
         uses: ./.github/workflows/io-tests.yaml
         secrets:
-            workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] || secrets.AIO_NS_QA }}
+            workspace: ${{ secrets[format('AIO_NS_{0}', github.actor)] }}

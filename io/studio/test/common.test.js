@@ -723,6 +723,151 @@ describe('common.js - fetchOdin', () => {
             );
         });
     });
+
+    describe('429 retry behaviour', () => {
+        beforeEach(() => {
+            // Stub setTimeout to immediately resolve so tests don't wait 60 s for real
+            sinon.stub(global, 'setTimeout').callsFake((fn) => {
+                fn();
+                return 1;
+            });
+        });
+        // No afterEach needed — outer afterEach calls sinon.restore() which restores setTimeout
+
+        it('should retry once on 429 and return the successful response', async () => {
+            const headersGet429 = sinon.stub();
+            headersGet429.withArgs('Retry-After').returns('60');
+            headersGet429.returns(null);
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: headersGet429 },
+            };
+            const mock200 = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.onFirstCall().resolves(mock429);
+            fetchStub.onSecondCall().resolves(mock200);
+
+            const result = await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+
+            expect(fetchStub).to.have.been.calledTwice;
+            expect(result).to.equal(mock200);
+            expect(global.setTimeout).to.have.been.calledOnce;
+            expect(global.setTimeout.firstCall.args[1]).to.equal(60000);
+            expect(mockLogger.warn).to.have.been.calledWith(sinon.match(/429 Too Many Requests.*attempt 1\/3.*waiting 60s/));
+        });
+
+        it('should exhaust retries and throw after 3 consecutive 429 responses', async () => {
+            const headersGet429 = sinon.stub();
+            headersGet429.withArgs('Retry-After').returns('60');
+            headersGet429.returns(null);
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: headersGet429 },
+            };
+            fetchStub.resolves(mock429);
+
+            let error;
+            try {
+                await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+            } catch (e) {
+                error = e;
+            }
+
+            expect(fetchStub).to.have.been.calledThrice;
+            expect(error).to.be.an.instanceOf(Error);
+            expect(error.message).to.include('status 429');
+        });
+
+        it('should wait exactly the Retry-After header duration', async () => {
+            const headersGet429 = sinon.stub();
+            headersGet429.withArgs('Retry-After').returns('30');
+            headersGet429.returns(null);
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: headersGet429 },
+            };
+            const mock200 = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.onFirstCall().resolves(mock429);
+            fetchStub.onSecondCall().resolves(mock200);
+
+            await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+
+            expect(global.setTimeout).to.have.been.calledOnce;
+            expect(global.setTimeout.firstCall.args[1]).to.equal(30000);
+        });
+
+        it('should parse Retry-After as an HTTP-date and wait until then', async () => {
+            // Pin "now" to a known instant and ask Odin to retry 45 s later
+            const nowMs = Date.UTC(2026, 4, 12, 17, 30, 0);
+            sinon.stub(Date, 'now').returns(nowMs);
+            const retryAt = new Date(nowMs + 45 * 1000).toUTCString();
+
+            const headersGet429 = sinon.stub();
+            headersGet429.withArgs('Retry-After').returns(retryAt);
+            headersGet429.returns(null);
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: headersGet429 },
+            };
+            const mock200 = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.onFirstCall().resolves(mock429);
+            fetchStub.onSecondCall().resolves(mock200);
+
+            await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+
+            expect(global.setTimeout).to.have.been.calledOnce;
+            expect(global.setTimeout.firstCall.args[1]).to.equal(45000);
+        });
+
+        it('should fall back to 65 s when Retry-After header is absent', async () => {
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: sinon.stub().returns(null) }, // no Retry-After header
+            };
+            const mock200 = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.onFirstCall().resolves(mock429);
+            fetchStub.onSecondCall().resolves(mock200);
+
+            await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+
+            expect(global.setTimeout).to.have.been.calledOnce;
+            expect(global.setTimeout.firstCall.args[1]).to.equal(65000);
+        });
+    });
 });
 
 describe('common.js - processBatchWithConcurrency', () => {
@@ -827,5 +972,75 @@ describe('common.js - processBatchWithConcurrency', () => {
         expect(setTimeoutStub).to.have.been.calledTwice;
         expect(setTimeoutStub.firstCall.args[1]).to.equal(150);
         expect(setTimeoutStub.secondCall.args[1]).to.equal(150);
+    });
+});
+
+describe('common.js - postToOdinWithRetry - 429 passthrough', () => {
+    let common;
+    let mockLogger;
+    let fetchStub;
+
+    const odinEndpoint = 'https://test-odin.example.com';
+    const authToken = 'test-auth-token';
+
+    beforeEach(function () {
+        this.timeout(5000);
+
+        mockLogger = {
+            info: sinon.stub(),
+            error: sinon.stub(),
+            warn: sinon.stub(),
+        };
+
+        fetchStub = sinon.stub();
+
+        // Stub setTimeout to immediately call the callback (avoids real 60 s waits)
+        sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+
+        common = proxyquire('../src/common.js', {
+            '@adobe/aio-sdk': {
+                Core: {
+                    Logger: sinon.stub().returns(mockLogger),
+                },
+            },
+        });
+
+        global.fetch = fetchStub;
+        global.performance = { now: sinon.stub().returns(0) };
+    });
+
+    afterEach(() => {
+        sinon.restore();
+        delete global.fetch;
+    });
+
+    it('should not add backoff retries on top when fetchOdin exhausts 429 retries', async () => {
+        const headersGet = sinon.stub();
+        headersGet.withArgs('Retry-After').returns('60');
+        headersGet.returns(null);
+        const mock429 = {
+            ok: false,
+            status: 429,
+            statusText: 'Too Many Requests',
+            json: sinon.stub().resolves({}),
+            headers: { get: headersGet },
+        };
+        fetchStub.resolves(mock429);
+
+        let error;
+        try {
+            await common.postToOdinWithRetry(odinEndpoint, '/api/loc', authToken, { data: 'test' });
+        } catch (e) {
+            error = e;
+        }
+
+        // fetchOdin retries 3× internally (max429Retries default = 3).
+        // postToOdinWithRetry must NOT stack its own retries on top → exactly 3 fetch calls total.
+        expect(fetchStub).to.have.been.calledThrice;
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error.message).to.include('status 429');
     });
 });

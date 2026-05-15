@@ -8,5 +8,12 @@ export default {
             browserParams: '#path=nala&page=content',
             tags: '@mas-studio @bulk-actions',
         },
+        {
+            tcid: '1',
+            name: '@studio-action-menu-copy-code',
+            path: '/studio.html',
+            browserParams: '#path=nala&page=content',
+            tags: '@mas-studio @bulk-actions @action-menu',
+        },
     ],
 };

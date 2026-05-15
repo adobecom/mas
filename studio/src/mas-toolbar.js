@@ -1,6 +1,8 @@
 import { LitElement, html, css, nothing } from 'lit';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
+import { buildCardsDeepLink, showToast } from './utils.js';
 import './mas-folder-picker.js';
 import './aem/mas-filter-panel.js';
 import './mas-selection-panel.js';
@@ -134,6 +136,7 @@ class MasToolbar extends LitElement {
         this.fragmentToCopy = null;
 
         this.handleCopyToFolder = this.handleCopyToFolder.bind(this);
+        this.handleCopyStudioLinks = this.handleCopyStudioLinks.bind(this);
     }
 
     get repository() {
@@ -332,6 +335,43 @@ class MasToolbar extends LitElement {
         Store.selecting.set(false);
     }
 
+    /** @param {string[]} selection */
+    #fragmentsFromToolbarSelection(selection) {
+        const list = Store.fragments.list.data.get() || [];
+        return selection
+            .map((item) => {
+                const id = typeof item === 'string' ? item : item?.id;
+                if (!id) return null;
+                return list.find((store) => store.get()?.id === id)?.get() || null;
+            })
+            .filter(Boolean);
+    }
+
+    /** @param {string[]} selection */
+    async handleCopyStudioLinks(selection) {
+        const fragments = this.#fragmentsFromToolbarSelection(selection);
+        const linkable = fragments.filter((f) => f.model?.path === CARD_MODEL_PATH || f.model?.path === COLLECTION_MODEL_PATH);
+        if (!linkable.length) {
+            showToast('No merch cards or collections in selection', 'negative');
+            return;
+        }
+
+        const surfacePath = Store.search.get().path;
+        const lines = linkable.map((f) => buildCardsDeepLink(f, surfacePath, 'content')).filter(Boolean);
+        if (!lines.length) {
+            showToast('No valid cards links to copy', 'negative');
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(lines.join('\n'));
+            showToast(`Copied ${lines.length} cards link(s)`, 'positive');
+        } catch (e) {
+            console.error(e);
+            showToast('Failed to copy to clipboard', 'negative');
+        }
+    }
+
     render() {
         return html`<div id="toolbar">
                 <div id="actions">${this.searchAndFilterControls} ${this.contentManagementControls} ${this.selectionPanel}</div>
@@ -342,6 +382,7 @@ class MasToolbar extends LitElement {
                 .selectionStore=${Store.selection}
                 .repository=${this.repository}
                 .onCopyToFolder=${this.handleCopyToFolder}
+                .onCopyStudioLinks=${this.handleCopyStudioLinks}
                 @close=${this.handleSelectionPanelClose}
             ></mas-selection-panel>
             ${this.createDialogOpen

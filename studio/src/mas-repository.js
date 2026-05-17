@@ -363,10 +363,12 @@ export class MasRepository extends LitElement {
 
         const damPath = getDamPath(path);
         const localizedPath = `${damPath}/${locale}`;
+        // Don't pass query to API search - do client-side filtering instead to support Fragment Title search
+        // Exception: keep the query for UUID searches (handled separately in getById path)
         const localSearch = {
-            ...this.search.value,
-            modelIds,
             path: localizedPath,
+            query,  // Keep query for UUID detection but not passed to fulltext search
+            modelIds,
             tags,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
@@ -455,7 +457,9 @@ export class MasRepository extends LitElement {
                 Store.fragments.list.data.set(dataStore.get());
                 Store.fragments.list.firstPageLoaded.set(true);
             } else {
-                const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
+                // Don't pass query to API search - do client-side filtering instead to support Fragment Title search
+                const { query: _, ...searchWithoutQuery } = localSearch;
+                const cursor = await this.aem.sites.cf.fragments.search(searchWithoutQuery, null, this.#abortControllers.search);
                 const surface = path?.split('/').filter(Boolean)[0]?.toLowerCase();
                 const fragmentStores = [];
                 const done = await this.#fillPage(

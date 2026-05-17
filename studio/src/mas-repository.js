@@ -266,7 +266,8 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Check if a fragment matches the search query by examining the computed fragment title (studioPath).
+     * Check if a fragment matches the search query by examining the computed fragment title (studioPath)
+     * and the fragment's title field.
      * This is needed because AEM's fulltext search doesn't index all the fields that compose the fragment title.
      * @param {Object} fragment - The fragment to check
      * @param {string} query - The search query
@@ -275,8 +276,10 @@ export class MasRepository extends LitElement {
      */
     matchesFragmentTitle(fragment, query, surface) {
         if (!query) return true;
+        const lowerQuery = query.toLowerCase();
         const fragmentName = getFragmentName(fragment);
-        return fragmentName.toLowerCase().includes(query.toLowerCase());
+        const fragmentTitle = fragment.title || '';
+        return fragmentName.toLowerCase().includes(lowerQuery) || fragmentTitle.toLowerCase().includes(lowerQuery);
     }
 
     async searchFragments() {

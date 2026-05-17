@@ -2956,5 +2956,71 @@ describe('MasRepository dictionary helpers', () => {
             expect(repository.matchesFragmentTitle(fragment, 'firefly', 'sandbox')).to.be.true;
             expect(repository.matchesFragmentTitle(fragment, 'adobe', 'sandbox')).to.be.true;
         });
+
+        it('returns true when fragment.title field contains query', () => {
+            const repository = createRepository();
+            Store.search.set({ path: 'sandbox' });
+            const fragment = {
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                title: 'CC Catalog Merch Card: Adobe Embedded Print Engine: Individuals: default',
+                getField: (name) => {
+                    if (name === 'cardTitle') return { values: ['Some Other Title'] };
+                    if (name === 'variant') return { values: ['catalog'] };
+                    return null;
+                },
+                getTagTitle: () => null,
+                getCurrentTagTitle: () => null,
+                tags: [],
+            };
+
+            expect(repository.matchesFragmentTitle(fragment, 'Embedded Print Engine', 'sandbox')).to.be.true;
+            expect(repository.matchesFragmentTitle(fragment, 'embedded print', 'sandbox')).to.be.true;
+            expect(repository.matchesFragmentTitle(fragment, 'INDIVIDUALS', 'sandbox')).to.be.true;
+        });
+
+        it('returns true when query matches either fragment name or title field', () => {
+            const repository = createRepository();
+            Store.search.set({ path: 'sandbox' });
+            const fragment = {
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                title: 'Firefly Pro Special Edition',
+                getField: (name) => {
+                    if (name === 'cardTitle') return { values: ['Photoshop'] };
+                    if (name === 'variant') return { values: ['catalog'] };
+                    return null;
+                },
+                getTagTitle: () => null,
+                getCurrentTagTitle: () => null,
+                tags: [],
+            };
+
+            // Matches title field but not fragment name
+            expect(repository.matchesFragmentTitle(fragment, 'Special Edition', 'sandbox')).to.be.true;
+            // Matches fragment name but not title field
+            expect(repository.matchesFragmentTitle(fragment, 'catalog', 'sandbox')).to.be.true;
+        });
+
+        it('handles empty or missing title field', () => {
+            const repository = createRepository();
+            Store.search.set({ path: 'sandbox' });
+            const fragmentWithoutTitle = {
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                getField: (name) => {
+                    if (name === 'cardTitle') return { values: ['Photoshop'] };
+                    if (name === 'variant') return { values: ['catalog'] };
+                    return null;
+                },
+                getTagTitle: () => null,
+                getCurrentTagTitle: (prefix) => {
+                    if (prefix.includes('product_code')) return 'Photoshop';
+                    return null;
+                },
+                tags: [],
+            };
+
+            // Should still match on fragment name even without title field
+            expect(repository.matchesFragmentTitle(fragmentWithoutTitle, 'photoshop', 'sandbox')).to.be.true;
+            expect(repository.matchesFragmentTitle(fragmentWithoutTitle, 'nonexistent', 'sandbox')).to.be.false;
+        });
     });
 });

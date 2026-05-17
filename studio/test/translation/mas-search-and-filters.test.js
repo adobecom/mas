@@ -360,6 +360,18 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayCards.get().length).to.equal(2);
         });
 
+        it('should filter cards by studioPath (fragment title)', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'Card 1', studioPath: 'merch-card: Photoshop / Individual' }),
+                createMockFragment({ title: 'Card 2', studioPath: 'merch-card: Illustrator / Team' }),
+                createMockFragment({ title: 'Card 3', studioPath: 'merch-card: Photoshop / Team' }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'Photoshop';
+            await el.updateComplete;
+            expect(Store.translationProjects.displayCards.get().length).to.equal(2);
+        });
+
         it('should filter cards case-insensitively', async () => {
             Store.translationProjects.allCards.set([
                 createMockFragment({ title: 'PHOTOSHOP Card' }),

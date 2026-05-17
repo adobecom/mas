@@ -288,10 +288,12 @@ class MasSearchAndFilters extends LitElement {
                     }
                 } else {
                     const title = (fragment.title || '').toLowerCase();
+                    const studioPath = (fragment.studioPath || '').toLowerCase();
                     const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
                     const offerId = fragment.offerData?.offerId || '';
                     if (
                         !title.includes(query) &&
+                        !studioPath.includes(query) &&
                         !productTag.toLowerCase().includes(query) &&
                         !offerId.toLowerCase().includes(query)
                     ) {

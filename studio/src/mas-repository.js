@@ -265,6 +265,20 @@ export class MasRepository extends LitElement {
         return variants.length && !variants.includes(variant);
     }
 
+    /**
+     * Check if a fragment matches the search query by examining the computed fragment title (studioPath).
+     * This is needed because AEM's fulltext search doesn't index all the fields that compose the fragment title.
+     * @param {Object} fragment - The fragment to check
+     * @param {string} query - The search query
+     * @param {string} surface - The current surface (path)
+     * @returns {boolean} true if the fragment matches the query
+     */
+    matchesFragmentTitle(fragment, query, surface) {
+        if (!query) return true;
+        const fragmentName = getFragmentName(fragment);
+        return fragmentName.toLowerCase().includes(query.toLowerCase());
+    }
+
     async searchFragments() {
         if (!(this.page.value === PAGE_NAMES.CONTENT || this.page.value === PAGE_NAMES.TRANSLATION_EDITOR)) return;
         if (!Store.profile.value) return;
@@ -448,6 +462,7 @@ export class MasRepository extends LitElement {
                     fragmentStores,
                     undefined,
                     searchController.signal,
+                    query,
                 );
                 if (this.#abortControllers.search !== searchController) {
                     Store.fragments.list.loading.set(false);
@@ -455,7 +470,7 @@ export class MasRepository extends LitElement {
                 }
                 Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
-                const cursorState = done ? null : { cursor, variants, surface, fragmentStores };
+                const cursorState = done ? null : { cursor, variants, surface, fragmentStores, query };
                 this.#searchCursor = cursorState;
                 Store.fragments.list.hasMore.set(!done);
                 if (personalizationOn && cursorState) {
@@ -514,7 +529,7 @@ export class MasRepository extends LitElement {
      */
     static MAX_REFILL_ROUNDS = 20;
 
-    async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal) {
+    async #fillPage(cursor, variants, surface, fragmentStores, limit = MasRepository.MIN_PAGE_SIZE, signal, query = null) {
         let added = 0;
         while (added < limit) {
             if (signal?.aborted) return false;
@@ -524,6 +539,8 @@ export class MasRepository extends LitElement {
                 if (this.skipVariant(variants, item)) continue;
                 applyCorrectorToFragment(item, surface);
                 const fragment = await this.#addToCache(item);
+                // Client-side filter: Check if fragment matches search query in computed fragment title
+                if (!this.matchesFragmentTitle(fragment, query, surface)) continue;
                 fragmentStores.push(generateFragmentStore(fragment, null, { lazy: true }));
                 added++;
             }
@@ -532,7 +549,7 @@ export class MasRepository extends LitElement {
     }
 
     async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
-        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        const { cursor, variants, surface, fragmentStores, query } = cursorSnapshot;
         let pagesLoaded = 0;
         try {
             while (this.#searchCursor === cursorSnapshot) {
@@ -547,6 +564,7 @@ export class MasRepository extends LitElement {
                     fragmentStores,
                     undefined,
                     searchController.signal,
+                    query,
                 );
                 pagesLoaded++;
                 if (this.#searchCursor !== cursorSnapshot) return;
@@ -565,7 +583,7 @@ export class MasRepository extends LitElement {
     }
 
     async #refillBelowThreshold(cursorSnapshot, searchController) {
-        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        const { cursor, variants, surface, fragmentStores, query } = cursorSnapshot;
         let rounds = 0;
         Store.fragments.list.loading.set(true);
         try {
@@ -584,6 +602,7 @@ export class MasRepository extends LitElement {
                     fragmentStores,
                     undefined,
                     searchController.signal,
+                    query,
                 );
                 rounds++;
                 if (this.#searchCursor !== cursorSnapshot) return;
@@ -615,7 +634,7 @@ export class MasRepository extends LitElement {
         const cursorSnapshot = this.#searchCursor;
         if (!cursorSnapshot) return;
         Store.fragments.list.loading.set(true);
-        const { cursor, variants, surface, fragmentStores } = cursorSnapshot;
+        const { cursor, variants, surface, fragmentStores, query } = cursorSnapshot;
         try {
             const done = await this.#fillPage(
                 cursor,
@@ -624,6 +643,7 @@ export class MasRepository extends LitElement {
                 fragmentStores,
                 undefined,
                 this.#abortControllers.search?.signal,
+                query,
             );
             if (this.#searchCursor !== cursorSnapshot) return;
             Store.fragments.list.data.set([...this.#filterStoresByPersonalizationEnabled(fragmentStores)]);

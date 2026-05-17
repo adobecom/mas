@@ -2871,4 +2871,90 @@ describe('MasRepository dictionary helpers', () => {
             expect(fragmentDeletedEmitStub.calledOnceWith(fragment)).to.be.true;
         });
     });
+
+    describe('matchesFragmentTitle', () => {
+        it('returns true when query is empty', () => {
+            const repository = createRepository();
+            const fragment = {
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                getField: () => ({ values: ['Photoshop'] }),
+                getTagTitle: () => 'Individual',
+                getCurrentTagTitle: () => 'Photoshop',
+            };
+
+            expect(repository.matchesFragmentTitle(fragment, '', 'sandbox')).to.be.true;
+            expect(repository.matchesFragmentTitle(fragment, null, 'sandbox')).to.be.true;
+        });
+
+        it('returns true when fragment title contains query (case-insensitive)', () => {
+            const repository = createRepository();
+            const fragment = {
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                getField: (name) => {
+                    if (name === 'cardTitle') return { values: ['Adobe Photoshop'] };
+                    if (name === 'variant') return { values: ['catalog'] };
+                    return null;
+                },
+                getTagTitle: (id) => {
+                    if (id.includes('customer_segment')) return 'Individual';
+                    if (id.includes('market_segment')) return 'Commercial';
+                    return null;
+                },
+                getCurrentTagTitle: (prefix) => {
+                    if (prefix.includes('product_code')) return 'Photoshop';
+                    return null;
+                },
+            };
+
+            expect(repository.matchesFragmentTitle(fragment, 'photoshop', 'sandbox')).to.be.true;
+            expect(repository.matchesFragmentTitle(fragment, 'PHOTOSHOP', 'sandbox')).to.be.true;
+            expect(repository.matchesFragmentTitle(fragment, 'individual', 'sandbox')).to.be.true;
+            expect(repository.matchesFragmentTitle(fragment, 'catalog', 'sandbox')).to.be.true;
+        });
+
+        it('returns false when fragment title does not contain query', () => {
+            const repository = createRepository();
+            const fragment = {
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                getField: (name) => {
+                    if (name === 'cardTitle') return { values: ['Adobe Photoshop'] };
+                    if (name === 'variant') return { values: ['catalog'] };
+                    return null;
+                },
+                getTagTitle: (id) => {
+                    if (id.includes('customer_segment')) return 'Individual';
+                    return null;
+                },
+                getCurrentTagTitle: (prefix) => {
+                    if (prefix.includes('product_code')) return 'Photoshop';
+                    return null;
+                },
+            };
+
+            expect(repository.matchesFragmentTitle(fragment, 'illustrator', 'sandbox')).to.be.false;
+            expect(repository.matchesFragmentTitle(fragment, 'team', 'sandbox')).to.be.false;
+        });
+
+        it('handles partial matches in fragment title', () => {
+            const repository = createRepository();
+            Store.search.set({ path: 'sandbox' });
+            const fragment = {
+                model: { path: '/conf/mas/settings/dam/cfm/models/card' },
+                getField: (name) => {
+                    if (name === 'cardTitle') return { values: ['Firefly Pro'] };
+                    if (name === 'variant') return { values: ['plans'] };
+                    return null;
+                },
+                getTagTitle: () => null,
+                getCurrentTagTitle: (prefix) => {
+                    if (prefix.includes('product_code')) return 'Adobe Firefly';
+                    return null;
+                },
+                tags: [],
+            };
+
+            expect(repository.matchesFragmentTitle(fragment, 'firefly', 'sandbox')).to.be.true;
+            expect(repository.matchesFragmentTitle(fragment, 'adobe', 'sandbox')).to.be.true;
+        });
+    });
 });

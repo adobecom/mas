@@ -6,6 +6,8 @@ import Store from '../../store.js';
 import { getItemsSelectionStore } from '../items-selection-store.js';
 import { FILTER_TYPE, TABLE_TYPE } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
+import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from '../../editor-panel.js';
+import { Fragment } from '../../aem/fragment.js';
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -311,12 +313,27 @@ class MasSearchAndFilters extends LitElement {
                     const path = (fragment.path || '').toLowerCase();
                     const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
                     const offerId = fragment.offerData?.offerId || '';
+
+                    // Compute Fragment Title (e.g., "merch-card: SURFACE / cardTitle / variant / segment")
+                    let fragmentTitle = '';
+                    try {
+                        const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path] || '';
+                        // Wrap the fragment in a Fragment instance for getFragmentPartsToUse
+                        const fragmentInstance = new Fragment(fragment);
+                        const { fragmentParts } = getFragmentPartsToUse(Store, fragmentInstance);
+                        fragmentTitle = `${webComponentName}: ${fragmentParts}`.toLowerCase();
+                    } catch (e) {
+                        // If fragment title computation fails, continue with other fields
+                        fragmentTitle = '';
+                    }
+
                     if (
                         !title.includes(query) &&
                         !studioPath.includes(query) &&
                         !path.includes(query) &&
                         !productTag.toLowerCase().includes(query) &&
-                        !offerId.toLowerCase().includes(query)
+                        !offerId.toLowerCase().includes(query) &&
+                        !fragmentTitle.includes(query)
                     ) {
                         return false;
                     }

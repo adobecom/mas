@@ -15,6 +15,7 @@ import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
     isUUID,
+    MODEL_WEB_COMPONENT_MAPPING,
 } from './utils.js';
 import {
     OPERATIONS,
@@ -29,7 +30,9 @@ import {
     DICTIONARY_ENTRY_MODEL_ID,
     TAG_STATUS_DRAFT,
     CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
     MAS_PRODUCT_CODE_PREFIX,
+    TAG_PROMOTION_PREFIX,
     PZN_FOLDER,
     SURFACES,
 } from './constants.js';
@@ -41,6 +44,7 @@ import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { getDictionary } from '../libs/fragment-client.js';
 import { applyCorrectorToFragment } from './utils/corrector-helper.js';
 import { Promotion } from './aem/promotion.js';
+import { VARIANTS } from './editors/variant-picker.js';
 
 let fragmentCache;
 
@@ -277,8 +281,40 @@ export class MasRepository extends LitElement {
     matchesFragmentTitle(fragment, query, surface) {
         if (!query) return true;
         const lowerQuery = query.toLowerCase();
-        const fragmentName = getFragmentName(fragment);
+
+        // Compute fragment name using the surface parameter instead of relying on Store
+        const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+        const surfaceUpper = surface?.toUpperCase();
+        let fragmentParts = '';
+
+        switch (fragment?.model?.path) {
+            case CARD_MODEL_PATH:
+                const props = {
+                    variantCode: fragment?.getField?.('variant')?.values?.[0],
+                    customerSegment: fragment?.getTagTitle?.('customer_segment'),
+                    marketSegment: fragment?.getTagTitle?.('market_segment'),
+                    product_code: fragment?.getCurrentTagTitle?.(MAS_PRODUCT_CODE_PREFIX) || fragment?.getTagTitle?.('mas:product/'),
+                    promotion: fragment?.getCurrentTagTitle?.(TAG_PROMOTION_PREFIX),
+                };
+
+                let variantLabel = null;
+                VARIANTS.forEach((variant) => {
+                    if (variant.value === props.variantCode) {
+                        variantLabel = variant.label;
+                    }
+                });
+
+                const buildPart = (part) => (part ? ` / ${part}` : '');
+                fragmentParts = `${surfaceUpper}${buildPart(variantLabel)}${buildPart(props.customerSegment)}${buildPart(props.marketSegment)}${buildPart(props.product_code)}${buildPart(props.promotion)}`;
+                break;
+            case COLLECTION_MODEL_PATH:
+                fragmentParts = `${surfaceUpper} / ${fragment?.title || ''}`;
+                break;
+        }
+
+        const fragmentName = webComponentName ? `${webComponentName}: ${fragmentParts}` : '';
         const fragmentTitle = fragment.title || '';
+
         return fragmentName.toLowerCase().includes(lowerQuery) || fragmentTitle.toLowerCase().includes(lowerQuery);
     }
 

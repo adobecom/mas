@@ -69,7 +69,7 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(await studio.searchInput).toBeVisible();
             await expect(await studio.searchIcon).toBeVisible();
             await expect(await studio.renderView).toBeVisible();
-            await studio.waitForCardsLoaded();
+            await studio.waitForCardsLoaded(2);
             const cards = studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
         });
@@ -121,7 +121,7 @@ test.describe('M@S Studio feature test suite', () => {
         });
 
         await test.step('step-3: Validate page view', async () => {
-            await studio.waitForCardsLoaded();
+            await studio.waitForCardsLoaded(2);
             await expect(await studio.renderView).toBeVisible();
             const cards = await studio.renderView.locator('merch-card');
             expect(await cards.count()).toBeGreaterThan(1);
@@ -459,6 +459,27 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(studio.groupedVariationsTabPanel(data.deCardId).getByText('No grouped variations found')).toBeVisible({
                 timeout: 15000,
             });
+        });
+    });
+
+    // @studio-sandbox-no-created-by-filter - Validate Sandbox does not auto-apply a Created By filter
+    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
+        const testPage = `${baseURL}${features[14].path}${miloLibs}${features[14].browserParams}`;
+        setTestPage(testPage);
+
+        await test.step('step-1: Go to MAS Studio sandbox page', async () => {
+            await page.goto(testPage);
+            await page.waitForLoadState('domcontentloaded');
+        });
+
+        await test.step('step-2: Validate sandbox surface is selected', async () => {
+            await expect(studio.surfacePicker).toHaveAttribute('value', 'sandbox');
+        });
+
+        await test.step('step-3: Validate no Created By filter is auto-applied', async () => {
+            await studio.waitForCardsLoaded(2);
+            await expect(studio.createdByTag).toHaveCount(0);
+            await expect(studio.renderView.locator('merch-card').nth(1)).toBeVisible();
         });
     });
 });

@@ -3,6 +3,7 @@ import {
     updateMasElement,
     MasElement,
 } from './mas-element.js';
+import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 import { selectOffers, getService } from './utilities.js';
 import { isPromotionActive } from './price/utilities.js';
 import { MODAL_TYPE_3_IN_1 } from '../src/constants.js';
@@ -214,7 +215,7 @@ export function CheckoutMixin(Base) {
                 this.masElement.toggleResolved(version, offers, options);
                 const { url, text, className, handler } = checkoutAction;
                 if (url) {
-                    this.setCheckoutUrl(url);
+                    this.setCheckoutUrl(applyPageLocaleToCheckoutUrl(url));
                 }
                 if (text) this.firstElementChild.innerHTML = text;
                 if (className) this.classList.add(...className.split(' '));

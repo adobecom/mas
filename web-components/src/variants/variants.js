@@ -33,6 +33,7 @@ import {
 } from './full-pricing-express.js';
 import { Headless, HEADLESS_AEM_FRAGMENT_MAPPING } from './headless.js';
 import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
+import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -146,6 +147,12 @@ registerVariant(
 );
 registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
 registerVariant('image', Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
+registerVariant(
+    'fries',
+    FriesCard,
+    FRIES_AEM_FRAGMENT_MAPPING,
+    FriesCard.variantStyle,
+);
 
 const applyStyleSheet = (card, style, state) => {
     try {

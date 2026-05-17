@@ -39,13 +39,16 @@
         <script type="module">
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
-            import { delay, initElementFromTemplate } from '../utils.js';
+            import { spy, stub } from 'sinon';
+            import { initElementFromTemplate } from '../utils.js';
 
             import '../../src/swc.js';
             import '../../src/editor-panel.js';
             import '../../src/editors/merch-card-collection-editor.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../src/constants.js';
+            import Store from '../../src/store.js';
 
             runTests(async () => {
                 const originalFetch = window.fetch;
@@ -68,6 +71,260 @@
                         const fragmentStore = new FragmentStore(new Fragment(collectionFragment));
                         await editor.editFragment(fragmentStore, 1);
                         expect(editor.querySelector('merch-card-collection-editor')).to.exist;
+                    });
+                });
+
+                describe('grouped variation tags', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let groupedTestHost;
+
+                    beforeEach(() => {
+                        groupedTestHost = document.createElement('div');
+                        groupedTestHost.id = 'grouped-collection-editor-tests';
+                        spTheme().appendChild(groupedTestHost);
+                    });
+
+                    afterEach(() => {
+                        groupedTestHost?.remove();
+                        groupedTestHost = null;
+                        Store.showCloneDialog.set(false);
+                    });
+
+                    function groupedCollectionFragmentData(overrides = {}) {
+                        return {
+                            id: 'grouped-collection-id',
+                            path: '/content/mas/collections/en_US/all/pzn/grouped-collection',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                            title: 'Grouped collection',
+                            tags: [],
+                            fields: [
+                                { name: 'label', type: 'text', multiple: false, values: ['Label'] },
+                                { name: 'queryLabel', type: 'text', multiple: false, values: [''] },
+                                { name: 'icon', type: 'text', multiple: false, values: [''] },
+                                { name: 'iconLight', type: 'text', multiple: false, values: [''] },
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [] },
+                                { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                                {
+                                    name: 'pznTags',
+                                    type: 'text',
+                                    multiple: true,
+                                    values: ['mas:locale/fr_FR', 'mas:locale/de_DE'],
+                                },
+                            ],
+                            references: [],
+                            ...overrides,
+                        };
+                    }
+
+                    it('should render grouped variation tag picker in sidenav when path is a grouped variation', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const fragmentStore = new FragmentStore(new Fragment(groupedCollectionFragmentData()));
+                        editor.fragmentStore = fragmentStore;
+                        groupedTestHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const groupedGroup = editor.shadowRoot.querySelector('#grouped-variation-tags');
+                        expect(groupedGroup).to.exist;
+                        const picker = groupedGroup.querySelector('aem-tag-picker-field');
+                        expect(picker).to.exist;
+                        expect(picker.getAttribute('value')).to.equal('mas:locale/fr_FR,mas:locale/de_DE');
+                    });
+
+                    it('should not render grouped variation tag picker when path is not grouped', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const data = groupedCollectionFragmentData({
+                            path: '/content/mas/collections/en_US/all',
+                        });
+                        const fragmentStore = new FragmentStore(new Fragment(data));
+                        editor.fragmentStore = fragmentStore;
+                        groupedTestHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        expect(editor.shadowRoot.querySelector('#grouped-variation-tags')).to.not.exist;
+                    });
+
+                    it('should update pznTags on tag picker change', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const fragmentStore = new FragmentStore(new Fragment(groupedCollectionFragmentData()));
+                        const updateSpy = spy(fragmentStore, 'updateField');
+                        editor.fragmentStore = fragmentStore;
+                        groupedTestHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const picker = editor.shadowRoot.querySelector('#grouped-variation-tags aem-tag-picker-field');
+                        picker.setAttribute('value', 'mas:locale/en_GB,mas:locale/en_IE');
+                        picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+                        expect(updateSpy.calledWith('pznTags', ['mas:locale/en_GB', 'mas:locale/en_IE'])).to.be.true;
+                        updateSpy.restore();
+                    });
+                });
+
+                describe('studio paste links', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let pasteHost;
+                    let qsStub;
+
+                    function collectionForPaste(overrides = {}) {
+                        return {
+                            id: 'paste-test-collection',
+                            path: '/content/mas/collections/en_US/paste-test',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                            title: 'Paste test',
+                            tags: [],
+                            fields: [
+                                { name: 'label', type: 'text', multiple: false, values: ['L'] },
+                                { name: 'queryLabel', type: 'text', multiple: false, values: [''] },
+                                { name: 'icon', type: 'text', multiple: false, values: [''] },
+                                { name: 'iconLight', type: 'text', multiple: false, values: [''] },
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [] },
+                                { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                            ],
+                            references: [],
+                            ...overrides,
+                        };
+                    }
+
+                    beforeEach(() => {
+                        pasteHost = document.createElement('div');
+                        pasteHost.id = 'collection-paste-tests';
+                        spTheme().appendChild(pasteHost);
+                    });
+
+                    afterEach(() => {
+                        qsStub?.restore();
+                        qsStub = undefined;
+                        pasteHost?.remove();
+                        pasteHost = null;
+                    });
+
+                    it('renders paste area with textarea and hides URL list until paste', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionForPaste()));
+                        pasteHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        expect(editor.shadowRoot.querySelector('.collection-paste-links')).to.exist;
+                        expect(editor.shadowRoot.querySelector('#collection-paste-links')).to.exist;
+                        expect(editor.shadowRoot.querySelector('.collection-paste-url-panel')).to.not.exist;
+                    });
+
+                    it('merges pasted lines into the URL list and dedupes', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionForPaste()));
+                        pasteHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const tf = editor.shadowRoot.querySelector('#collection-paste-links');
+                        const line =
+                            'https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+                        const dt = new DataTransfer();
+                        dt.setData(
+                            'text/plain',
+                            `${line}\n${line}\nhttps://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`,
+                        );
+                        tf.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, composed: true, clipboardData: dt }));
+                        await editor.updateComplete;
+
+                        const rows = editor.shadowRoot.querySelectorAll('.collection-paste-url-row');
+                        expect(rows.length).to.equal(2);
+                    });
+
+                    it('does not remove URL list rows when the textarea is cleared', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionForPaste()));
+                        pasteHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const tf = editor.shadowRoot.querySelector('#collection-paste-links');
+                        const dt = new DataTransfer();
+                        dt.setData(
+                            'text/plain',
+                            'https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+                        );
+                        tf.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, composed: true, clipboardData: dt }));
+                        await editor.updateComplete;
+                        expect(editor.shadowRoot.querySelectorAll('.collection-paste-url-row').length).to.equal(1);
+
+                        editor.collectionPasteLinksInput = '';
+                        await editor.updateComplete;
+                        expect(editor.shadowRoot.querySelectorAll('.collection-paste-url-row').length).to.equal(1);
+                    });
+
+                    it('removes a URL row when delete is clicked', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionForPaste()));
+                        pasteHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const tf = editor.shadowRoot.querySelector('#collection-paste-links');
+                        const dt = new DataTransfer();
+                        dt.setData(
+                            'text/plain',
+                            'https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=dddddddd-dddd-4ddd-8ddd-dddddddddddd\nhttps://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+                        );
+                        tf.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, composed: true, clipboardData: dt }));
+                        await editor.updateComplete;
+
+                        const firstDelete = editor.shadowRoot.querySelector('.collection-paste-url-row sp-action-button');
+                        firstDelete.click();
+                        await editor.updateComplete;
+                        expect(editor.shadowRoot.querySelectorAll('.collection-paste-url-row').length).to.equal(1);
+                    });
+
+                    it('Add from links uses pasted list and calls updateFragment when repository is available', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        const updateSpy = spy();
+                        editor.updateFragment = updateSpy;
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionForPaste()));
+                        pasteHost.appendChild(editor);
+                        await editor.updateComplete;
+
+                        const mockRepo = {
+                            aem: {
+                                sites: {
+                                    cf: {
+                                        fragments: {
+                                            getById: async () => ({
+                                                id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                                                path: '/content/mas/cards/from-paste-test',
+                                                model: { path: CARD_MODEL_PATH },
+                                                fields: [],
+                                            }),
+                                        },
+                                    },
+                                },
+                            },
+                        };
+                        const origQs = Document.prototype.querySelector;
+                        qsStub = stub(document, 'querySelector').callsFake((sel) =>
+                            sel === 'mas-repository' ? mockRepo : origQs.call(document, sel),
+                        );
+
+                        const tf = editor.shadowRoot.querySelector('#collection-paste-links');
+                        const dt = new DataTransfer();
+                        dt.setData(
+                            'text/plain',
+                            'https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                        );
+                        tf.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, composed: true, clipboardData: dt }));
+                        await editor.updateComplete;
+
+                        const addBtn = editor.shadowRoot.querySelector('.collection-paste-links sp-button');
+                        addBtn.click();
+                        await editor.updateComplete;
+
+                        expect(updateSpy.called).to.be.true;
+                        const fieldCalls = updateSpy.getCalls().filter((c) => c.args[0]?.target?.dataset?.field === 'cards');
+                        expect(fieldCalls.length).to.be.at.least(1);
+                        expect(editor.collectionPasteLinksItems.length).to.equal(0);
                     });
                 });
             });

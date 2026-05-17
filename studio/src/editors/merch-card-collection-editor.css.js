@@ -15,6 +15,67 @@ export const styles = css`
         border: 2px dashed var(--spectrum-blue-500);
     }
 
+    .collection-paste-links {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 6px;
+        background: var(--spectrum-gray-75);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .collection-paste-links sp-textfield {
+        width: 100%;
+    }
+
+    .collection-paste-url-panel {
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 6px;
+        background: var(--spectrum-gray-50);
+        overflow: hidden;
+    }
+
+    .collection-paste-url-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--spectrum-gray-700);
+        background: var(--spectrum-gray-200);
+        border-bottom: 1px solid var(--spectrum-gray-300);
+    }
+
+    .collection-paste-url-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+        border-bottom: 1px solid var(--spectrum-gray-200);
+    }
+
+    .collection-paste-url-row:last-child {
+        border-bottom: none;
+    }
+
+    .collection-paste-url-text {
+        min-width: 0;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--spectrum-gray-900);
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .collection-paste-url-col-action {
+        width: 32px;
+    }
+
     /* Default Card Drop Zone Styles */
     .default-card-section {
         margin-bottom: 24px;

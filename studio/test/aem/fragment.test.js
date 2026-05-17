@@ -378,6 +378,19 @@ describe('Fragment', () => {
 
                 expect(variation.getField('icons').multiple).to.be.true;
             });
+
+            it('inherits type from parent field when creating new field in a variation', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({
+                        fields: [{ name: 'cta', type: 'long-text', values: ['1800 100 0000'] }],
+                    }),
+                );
+                const variation = new Fragment(createFragmentConfig({ fields: [] }));
+
+                variation.updateField('cta', ['1800 102 5567'], parent);
+
+                expect(variation.getField('cta').type).to.equal('long-text');
+            });
         });
     });
 
@@ -476,6 +489,28 @@ describe('Fragment', () => {
                 const prepared = v.prepareVariationForSave(p);
                 expect(prepared.getFieldValues(name)).to.deep.equal(expected);
             });
+        });
+
+        it('does not reset compatVersion when same as parent', () => {
+            const p = new Fragment(
+                createFragmentConfig({
+                    fields: [
+                        { name: 'compatVersion', type: 'number', values: [1] },
+                        { name: 'title', values: ['Parent Title'] },
+                    ],
+                }),
+            );
+            const v = new Fragment(
+                createFragmentConfig({
+                    fields: [
+                        { name: 'compatVersion', type: 'number', values: [1] },
+                        { name: 'title', values: ['Parent Title'] },
+                    ],
+                }),
+            );
+            const prepared = v.prepareVariationForSave(p);
+            expect(prepared.getFieldValues('compatVersion')).to.deep.equal([1]);
+            expect(prepared.getFieldValues('title')).to.deep.equal([]);
         });
 
         it('returns a new Fragment instance and handles null parent', () => {

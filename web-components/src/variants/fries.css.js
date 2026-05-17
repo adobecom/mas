@@ -48,6 +48,14 @@ export const CSS = `
         line-height: var(--consonant-merch-card-body-s-line-height);
     }
 
+    merch-card[variant='fries'] [slot="body-s"] p:has(mas-mnemonic) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+    }
+
     merch-card[variant='fries'] [slot="body-s"] merch-icon {
         display: inline-flex;
         width: 20px;
@@ -126,6 +134,31 @@ export const CSS = `
         font-size: 15px;
         font-weight: bold;
         margin-left: 8px;
+    }
+
+    merch-card[variant='fries'] [slot="whats-included"] {
+        display: block;
+        margin-top: 8px;
+    }
+
+    merch-card[variant='fries'] merch-whats-included {
+        row-gap: 6px;
+        flex-wrap: nowrap;
+    }
+
+    merch-card[variant='fries'] merch-whats-included > [slot="heading"]:empty {
+        display: none;
+    }
+
+    merch-card[variant='fries'] merch-whats-included merch-mnemonic-list {
+        width: auto;
+        flex: 0 0 auto;
+        margin-right: 0;
+    }
+
+    merch-card[variant='fries'] merch-whats-included merch-icon {
+        --img-width: 20px;
+        --img-height: 20px;
     }
 
     .spectrum--dark merch-card[variant="fries"],

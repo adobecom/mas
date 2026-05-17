@@ -11,6 +11,7 @@ node ./docs/src/build-docs.mjs feature-flags.md ./docs/feature-flags.html
 node ./docs/src/build-docs.mjs aem-fragment.md ./docs/aem-fragment.html
 node ./docs/src/build-docs.mjs merch-card.md ./docs/merch-card.html
 node ./docs/src/build-docs.mjs plans.md ./docs/plans.html
+node ./docs/src/build-docs.mjs plans-collection.md ./docs/plans-collection.html
 node ./docs/src/build-docs.mjs catalog.md ./docs/catalog.html
 node ./docs/src/build-docs.mjs minicompare.md ./docs/minicompare.html
 node ./docs/src/build-docs.mjs minicomparemweb.md ./docs/minicomparemweb.html
@@ -20,4 +21,5 @@ node ./docs/src/build-docs.mjs specialoffer.md ./docs/specialoffer.html
 node ./docs/src/build-docs.mjs image.md ./docs/image.html
 node ./docs/src/build-docs.mjs commerce.md ./docs/commerce.html
 node ./docs/src/build-docs.mjs ccd.md ./docs/ccd.html
+node ./docs/src/build-docs.mjs json-ld.md ./docs/json-ld.html
 npx esbuild --bundle --external:*.css --outfile=./docs/spectrum.js ./docs/src/spectrum.mjs

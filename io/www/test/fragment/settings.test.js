@@ -5,6 +5,7 @@ import {
     getSettings,
     collectSettingEntries,
     clearSettingsCache,
+    applyCollectionSettings,
 } from '../../src/fragment/transformers/settings.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import { createResponse } from './mocks/MockFetch.js';
@@ -13,9 +14,9 @@ const DEFAULT_SURFACE = 'sandbox';
 const DEFAULT_LOCALE = 'fr_FR';
 
 const settingsIndexUrl = (surface = DEFAULT_SURFACE) =>
-    `https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/${surface}/settings/index`;
+    `https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/${surface}/settings/index`;
 
-const settingsContentUrl = (id) => `https://odin.adobe.com/adobe/sites/fragments/${id}?references=all-hydrated`;
+const settingsContentUrl = (id) => `https://odin.adobe.com/adobe/contentFragments/${id}?references=all-hydrated`;
 
 let fetchStub;
 
@@ -25,7 +26,7 @@ function mockSettingsFetch(
     referencesBody = { body: { references: {} } },
     stub = fetchStub,
 ) {
-    stub.withArgs(settingsIndexUrl(surface)).returns(createResponse(200, { items: [{ id: settingsId }] }));
+    stub.withArgs(settingsIndexUrl(surface)).returns(createResponse(200, { id: settingsId }));
     stub.withArgs(settingsContentUrl(settingsId)).returns(createResponse(200, referencesBody));
 }
 
@@ -86,14 +87,22 @@ describe('settings', () => {
             expect(fetchStub.called).to.be.false;
         });
 
+        it('returns null without fetching when surface is undefined', async () => {
+            const context = createContext();
+            delete context.surface;
+            const result = await getSettings(context);
+            expect(result).to.be.null;
+            expect(fetchStub.called).to.be.false;
+        });
+
         it('returns null when settings index has no items', async () => {
-            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [] }));
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, {}));
             const result = await getSettings(createContext());
             expect(result).to.be.null;
         });
 
         it('returns null when fetch references fails', async () => {
-            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [{ id: 'sid' }] }));
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { id: 'sid' }));
             fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(500, null, 'Internal Server Error'));
             const result = await getSettings(createContext());
             expect(result).to.be.null;
@@ -150,7 +159,7 @@ describe('settings', () => {
         });
 
         it('returns null when fetch references fails', async () => {
-            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { items: [{ id: 'sid' }] }));
+            fetchStub.withArgs(settingsIndexUrl()).returns(createResponse(200, { id: 'sid' }));
             fetchStub.withArgs(settingsContentUrl('sid')).returns(createResponse(500, null, 'Internal Server Error'));
             const result = await settings.init(createContext());
             expect(result).to.be.null;
@@ -358,6 +367,22 @@ describe('settings', () => {
             expect(result.body.settings?.tagLabels).to.exist;
         });
 
+        it('applyCollectionSettings uses empty tagLabels when Object.fromEntries is falsy', function () {
+            const fromEntriesStub = sinon.stub(Object, 'fromEntries').returns(null);
+            const context = {
+                body: {
+                    references: null,
+                },
+                dictionary: {},
+            };
+            try {
+                applyCollectionSettings(context, 'fr_FR', {});
+                expect(context.body.settings.tagLabels).to.deep.equal({});
+            } finally {
+                fromEntriesStub.restore();
+            }
+        });
+
         it('skips null entry (no default and no override)', async () => {
             const context = {
                 locale: 'fr_FR',
@@ -385,6 +410,76 @@ describe('settings', () => {
             };
             const result = await settings.process(context);
             expect(result).to.deep.equal(context);
+        });
+
+        it('falls back to default addon when override tags do not match fragment tags', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans', tags: [] } },
+                promises: {
+                    settings: Promise.resolve({
+                        addon: {
+                            default: {
+                                name: 'addon',
+                                templates: ['plans'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'optional-text',
+                                textValue: '{{addon-stock-ai-studio-trial}}',
+                                booleanValue: true,
+                            },
+                            override: [
+                                {
+                                    name: 'addon',
+                                    templates: ['plans'],
+                                    locales: [],
+                                    tags: ['mas:product_code/ffpo', 'mas:product_code/arch'],
+                                    valuetype: 'optional-text',
+                                    textValue: '{{addon-stock-ai-studio-trial}}',
+                                    booleanValue: false,
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.addon).to.equal('{{addon-stock-ai-studio-trial}}');
+        });
+
+        it('handles override without tags field when scoring tag matches', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'plans', tags: ['premium'] } },
+                promises: {
+                    settings: Promise.resolve({
+                        badgeLabel: {
+                            default: {
+                                name: 'badgeLabel',
+                                valuetype: 'text',
+                                textValue: 'Default badge',
+                            },
+                            override: [
+                                {
+                                    name: 'badgeLabel',
+                                    valuetype: 'text',
+                                    textValue: 'Locale-only badge',
+                                    locales: ['fr_FR'],
+                                },
+                                {
+                                    name: 'badgeLabel',
+                                    valuetype: 'text',
+                                    textValue: 'Premium badge',
+                                    locales: ['fr_FR'],
+                                    tags: ['premium'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.badgeLabel).to.equal('Premium badge');
         });
 
         it('picks override with most tag matches when multiple overrides match locale', async () => {

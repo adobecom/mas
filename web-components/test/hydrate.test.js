@@ -20,6 +20,7 @@ import {
     getTruncatedTextData,
     processBackgroundColor,
     processBorderColor,
+    processWhatsIncludedDividerColor,
     appendSlot,
     processAddon,
     processTrialBadge,
@@ -30,6 +31,7 @@ import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
 import { delay } from './utils.js';
 import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
+import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
 
 function getFooterElement(merchCard) {
     return merchCard.querySelector('div[slot="footer"]');
@@ -628,6 +630,122 @@ describe('hydrate', () => {
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
         litCard.remove();
     });
+
+    it('passes through missing compatVersion as undefined', async () => {
+        const fragment = {
+            fields: {
+                variant: 'ccd-slice',
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.compatVersion).to.equal(undefined);
+    });
+
+    it('reads compatVersion from fragment fields', async () => {
+        const fragment = {
+            fields: {
+                variant: 'ccd-slice',
+                compatVersion: 1,
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.compatVersion).to.equal(1);
+    });
+
+    it('passes through string compatVersion from fragment fields unchanged', async () => {
+        const fragment = {
+            fields: {
+                variant: 'ccd-slice',
+                compatVersion: '1',
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        merchCard.variantLayout = {
+            aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
+        };
+        await hydrate(fragment, merchCard);
+        expect(merchCard.compatVersion).to.equal('1');
+    });
+
+    it('copies fragment promoCode into contextPromotionCode', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = {
+            id: 'context-promo-card',
+            fields: {
+                variant: 'ccd-slice',
+                promoCode: 'CTX_PROMO',
+                mnemonicIcon: [],
+                mnemonicAlt: [],
+                mnemonicLink: [],
+            },
+        };
+        await hydrate(fragment, litCard);
+        // contextPromotionCode is a setter only; it surfaces via promotionCode getter
+        // when no price/checkout descendant carries a data-promotion-code.
+        expect(litCard.promotionCode).to.equal('CTX_PROMO');
+        litCard.remove();
+    });
+});
+
+describe('MerchCard promotionCode getter', () => {
+    let card;
+
+    beforeEach(async () => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        document.body.appendChild(card);
+    });
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    function addPriceChild(promotionCode) {
+        const span = document.createElement('span');
+        span.setAttribute('is', 'inline-price');
+        span.dataset.wcsOsi = 'abm';
+        if (promotionCode !== undefined)
+            span.dataset.promotionCode = promotionCode;
+        card.appendChild(span);
+        return span;
+    }
+
+    it('returns contextPromotionCode when no descendant carries a promotion code', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        expect(card.promotionCode).to.equal('CTX_PROMO');
+    });
+
+    it('ignores descendants with data-promotion-code="cancel-context" and falls back to contextPromotionCode', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        addPriceChild('cancel-context');
+        expect(card.promotionCode).to.equal('CTX_PROMO');
+    });
+
+    it('returns a descendant promotion code when present', () => {
+        card.contextPromotionCode = 'CTX_PROMO';
+        addPriceChild('CHILD_PROMO');
+        expect(card.promotionCode).to.equal('CHILD_PROMO');
+    });
+
+    it('returns undefined when no descendant and no contextPromotionCode is set', () => {
+        expect(card.promotionCode).to.be.undefined;
+    });
 });
 
 describe('processDescription', async () => {
@@ -928,6 +1046,206 @@ describe('processBorderColor', () => {
                 '--consonant-merch-card-border-color',
             ),
         ).to.equal('transparent');
+    });
+});
+
+describe('processWhatsIncludedDividerColor', () => {
+    let merchCard;
+
+    beforeEach(() => {
+        merchCard = mockMerchCard();
+    });
+
+    it('should read divider from merch-whats-included markup (spectrum token)', () => {
+        const wi = document.createElement('merch-whats-included');
+        wi.setAttribute(
+            'whats-included-divider-color',
+            'spectrum-yellow-300-plans',
+        );
+        merchCard.append(wi);
+
+        processWhatsIncludedDividerColor(
+            {},
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.equal('var(--spectrum-yellow-300-plans)');
+        expect(merchCard.getAttribute('whats-included-divider-color')).to.equal(
+            'spectrum-yellow-300-plans',
+        );
+    });
+
+    it('should fall back to legacy whatsIncludedDividerColor field when markup has no attribute', () => {
+        const fields = {
+            whatsIncludedDividerColor: 'spectrum-yellow-300-plans',
+        };
+
+        processWhatsIncludedDividerColor(
+            fields,
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.equal('var(--spectrum-yellow-300-plans)');
+        expect(merchCard.getAttribute('whats-included-divider-color')).to.equal(
+            'spectrum-yellow-300-plans',
+        );
+    });
+
+    it('should prefer markup attribute over legacy fragment field', () => {
+        const wi = document.createElement('merch-whats-included');
+        wi.setAttribute(
+            'whats-included-divider-color',
+            'spectrum-green-900-plans',
+        );
+        merchCard.append(wi);
+
+        processWhatsIncludedDividerColor(
+            { whatsIncludedDividerColor: 'spectrum-yellow-300-plans' },
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(merchCard.getAttribute('whats-included-divider-color')).to.equal(
+            'spectrum-green-900-plans',
+        );
+    });
+
+    it('should not set divider color without mapping config', () => {
+        const fields = {
+            whatsIncludedDividerColor: 'spectrum-yellow-300-plans',
+        };
+
+        processWhatsIncludedDividerColor(
+            fields,
+            merchCard,
+            PLANS_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.be.empty;
+    });
+
+    it('should clear divider when field is Default', () => {
+        merchCard.setAttribute(
+            'whats-included-divider-color',
+            'spectrum-yellow-300-plans',
+        );
+        merchCard.style.setProperty(
+            '--consonant-merch-card-whats-included-divider-color',
+            '#ffd947',
+        );
+
+        processWhatsIncludedDividerColor(
+            { whatsIncludedDividerColor: 'Default' },
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(merchCard.hasAttribute('whats-included-divider-color')).to.be
+            .false;
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.be.empty;
+    });
+
+    it('should set transparent divider via CSS variable only', () => {
+        processWhatsIncludedDividerColor(
+            { whatsIncludedDividerColor: 'transparent' },
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(merchCard.hasAttribute('whats-included-divider-color')).to.be
+            .false;
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.equal('transparent');
+    });
+
+    it('should treat gradient token as attribute styling (gradient- prefix)', () => {
+        const mappingWithSpecialValues = {
+            ...MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+            whatsIncludedDividerColor: {
+                attribute: 'whats-included-divider-color',
+                specialValues: {
+                    'gradient-purple-blue':
+                        'linear-gradient(135deg, #9256dc, #1473e6)',
+                },
+            },
+        };
+
+        processWhatsIncludedDividerColor(
+            {
+                whatsIncludedDividerColor:
+                    'linear-gradient(135deg, #9256dc, #1473e6)',
+            },
+            merchCard,
+            mappingWithSpecialValues,
+        );
+
+        expect(merchCard.getAttribute('whats-included-divider-color')).to.equal(
+            'gradient-purple-blue',
+        );
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.be.empty;
+    });
+
+    it('should set generic divider via CSS variable', () => {
+        processWhatsIncludedDividerColor(
+            { whatsIncludedDividerColor: 'spectrum-gray-800' },
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(merchCard.hasAttribute('whats-included-divider-color')).to.be
+            .false;
+        expect(
+            merchCard.style.getPropertyValue(
+                '--consonant-merch-card-whats-included-divider-color',
+            ),
+        ).to.equal('var(--spectrum-gray-800)');
+    });
+
+    it('should read divider from merch-whats-included inside footer-rows slot', () => {
+        const footer = document.createElement('div');
+        footer.setAttribute('slot', 'footer-rows');
+        const wi = document.createElement('merch-whats-included');
+        wi.setAttribute(
+            'whats-included-divider-color',
+            'spectrum-red-700-plans',
+        );
+        footer.append(wi);
+        merchCard.append(footer);
+
+        processWhatsIncludedDividerColor(
+            {},
+            merchCard,
+            MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING,
+        );
+
+        expect(merchCard.getAttribute('whats-included-divider-color')).to.equal(
+            'spectrum-red-700-plans',
+        );
     });
 });
 

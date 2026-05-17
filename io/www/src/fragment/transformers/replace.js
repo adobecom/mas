@@ -56,6 +56,7 @@ async function cache(context, dictionary) {
 
 async function getDictionaryId(context) {
     const { surface } = await getRequestInfos(context);
+    if (!surface) return { status: 400, message: 'surface not available' };
     const { locale, preview } = context;
     const dictionaryUrl = odinUrl(surface, { locale, fragmentPath: DICTIONARY_ID_PATH, preview });
     const { id, status, message } = await getFragmentId(context, dictionaryUrl, 'dictionary-id');
@@ -154,12 +155,13 @@ function replaceValues(input, dictionary, calls) {
 }
 
 async function init(context) {
-    // we fetch dictionary at this stage only if id has already been cached
-    // because we can't know surface of fragment *before* first fetch
-    // if dictionaryId is present in cache - early load dictionary
-    // if nothing in cache - dictionaryId and dictionary itself will be loaded later,
-    // during process
-    return await getDictionary(context);
+    // Dictionary cache key needs merged `locale` (region) from defaultLanguage init (after fetchFragment).
+    // Parallelism for dictionary id is via `getRequestInfos` → `requestInfos` inside getDictionaryId, not here.
+    const fetchResult = await context?.promises?.defaultLanguage;
+    // If defaultLanguage is missing or non-200 (e.g. fragment not found), skip dictionary fetch entirely.
+    if (fetchResult?.status !== 200) return null;
+    const merged = { ...context, ...fetchResult };
+    return await getDictionary(merged);
 }
 
 async function replace(context) {

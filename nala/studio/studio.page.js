@@ -16,11 +16,13 @@ export default class StudioPage {
         this.searchInput = page.locator('#actions sp-search  input');
         this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-search');
         this.filter = page.locator('sp-action-button[label="Filter"]');
+        this.filterPanel = page.locator('mas-filter-panel');
+        this.createdByTag = this.filterPanel.locator('sp-tag sp-icon-user');
         this.folderPicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.previewMenu = page.locator('#actions sp-action-menu[value="render"]');
         this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');
         this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
-        this.renderView = page.locator('#render');
+        this.renderView = page.locator('#render:not(.next-page-skeletons)');
         this.tableView = page.locator('sp-table');
         this.contentTableBody = page.locator('#content sp-table-body');
         this.tableViewHeaders = page.locator('sp-table-head');
@@ -52,6 +54,7 @@ export default class StudioPage {
         this.tableViewPriceCell = (row) => row.locator('sp-table-cell.price');
         this.tableViewActionsMenu = (row) => row.locator('sp-table-cell.actions sp-action-menu');
         this.tableViewCreateVariationOption = (menu) => menu.locator('sp-menu-item:has-text("Create variation")');
+        this.tableViewCopyCodeOption = (menu) => menu.locator('sp-menu-item:has-text("Copy Code")');
         this.variationDialog = page.locator('mas-variation-dialog > sp-dialog');
         this.variationDialogLocalePicker = this.variationDialog.locator('sp-picker[placeholder="Select a locale"]');
         this.variationDialogCreateButton = this.variationDialog.locator('sp-button:has-text("Create variation")');
@@ -90,6 +93,12 @@ export default class StudioPage {
         this.publishCardButton = this.sideNav.locator('mas-side-nav-item[label="Publish"]');
         this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
         this.versionHistoryButton = this.sideNav.locator('mas-side-nav-item[label="History"]');
+        this.copyFieldButton = this.sideNav.locator('mas-side-nav-item[label="Copy Field"]');
+        // Side-nav renders the Copy Field popover inside its shadow root; Playwright CSS selectors pierce shadow.
+        this.copyFieldPopover = this.sideNav.locator('sp-popover[open]');
+        this.copyFieldRow = (label) =>
+            this.copyFieldPopover.locator('sp-menu-item', { has: this.page.locator(`.field-label:text-is("${label}")`) });
+        this.copyFieldRowValue = (label) => this.copyFieldRow(label).locator('.field-value');
         this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
         this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
         this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');
@@ -110,8 +119,9 @@ export default class StudioPage {
      * Wait for cards to load on both content and fragment-editor pages.
      * Content pages render mas-fragment-render (lazy loaded via IntersectionObserver).
      * Fragment-editor pages render merch-card directly inside mas-fragment-editor.
+     * @param {number} [minMerchCardsInRender=1] When >1, scroll until #render has at least this many merch-cards (lazy rows hydrate after intersecting).
      */
-    async waitForCardsLoaded() {
+    async waitForCardsLoaded(minMerchCardsInRender = 1) {
         const fragmentRender = this.page.locator('mas-fragment-render').first();
         const fragmentEditor = this.page.locator('mas-fragment-editor').first();
 
@@ -121,10 +131,30 @@ export default class StudioPage {
         ]);
 
         if (winner === 'content') {
-            await fragmentRender.scrollIntoViewIfNeeded();
+            try {
+                await fragmentRender.scrollIntoViewIfNeeded();
+            } catch {
+                /* Grid hosts can detach during navigation/search */
+            }
+
+            const min = Math.max(1, minMerchCardsInRender);
+            const main = this.page.locator('.main-container').first();
+            for (let i = 0; i < 8; i++) {
+                if ((await this.renderView.locator('merch-card').count()) >= min) break;
+                await main.evaluate((el) => {
+                    el.scrollTop = el.scrollHeight;
+                });
+                await this.page.waitForTimeout(250);
+            }
         }
 
         await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 30000 });
+
+        if (minMerchCardsInRender > 1) {
+            await expect
+                .poll(async () => this.renderView.locator('merch-card').count(), { timeout: 30000 })
+                .toBeGreaterThanOrEqual(minMerchCardsInRender);
+        }
     }
 
     /**

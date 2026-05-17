@@ -11,7 +11,7 @@ import {
     getLocaleCode,
     getCountryName,
     getCountryFlag,
-} from '../../io/www/src/fragment/locales.js';
+} from './locales.js';
 
 export class MasLocalePicker extends LitElement {
     static properties = {

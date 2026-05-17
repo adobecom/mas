@@ -9,7 +9,8 @@ import router from '../router.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { showToast } from '../utils.js';
+import { parseStudioDeepLinksFromText, showToast } from '../utils.js';
+import { applyCorrectorToFragment } from '../utils/corrector-helper.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 
 const CARDS_SECTION = 'cards-section';
@@ -24,6 +25,8 @@ class MerchCardCollectionEditor extends LitElement {
             isVariation: { type: Boolean },
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
+            collectionPasteLinksInput: { type: String, state: true },
+            collectionPasteLinksItems: { type: Array, state: true },
         };
     }
 
@@ -37,6 +40,8 @@ class MerchCardCollectionEditor extends LitElement {
         super();
         this.draggingIndex = -1;
         this.hideCards = false;
+        this.collectionPasteLinksInput = '';
+        this.collectionPasteLinksItems = [];
     }
 
     connectedCallback() {
@@ -64,6 +69,11 @@ class MerchCardCollectionEditor extends LitElement {
         this.removeEventListener('dragover', this.handleDragOver);
         this.removeEventListener('dragleave', this.handleDragLeave);
         this.removeEventListener('drop', this.handleDrop);
+    }
+
+    /** @returns {import('../mas-repository.js').MasRepository | null} */
+    get repository() {
+        return document.querySelector('mas-repository');
     }
 
     update(changedProperties) {
@@ -147,6 +157,14 @@ class MerchCardCollectionEditor extends LitElement {
 
     get fragment() {
         return this.fragmentStore?.get();
+    }
+
+    get isGroupedVariation() {
+        return Fragment.isGroupedVariationPath(this.fragment?.path);
+    }
+
+    get pznTagsValue() {
+        return this.fragment?.getFieldValues('pznTags').join(',') ?? '';
     }
 
     get searchText() {
@@ -335,7 +353,159 @@ class MerchCardCollectionEditor extends LitElement {
                     ? this.getItems({ values: cardsValues }, inherited)
                     : html`<div class="empty-cards-placeholder"></div>`}
             </div>
+            ${this.#collectionPasteLinksSection}
         `;
+    }
+
+    #getCardsPasteLinksLines() {
+        return this.collectionPasteLinksItems.filter((line) => line.trim().length > 0);
+    }
+
+    #removeCardsPasteLinkLine(line) {
+        this.collectionPasteLinksItems = this.collectionPasteLinksItems.filter((l) => l !== line);
+        this.requestUpdate();
+    }
+
+    /** Pasted clipboard lines are merged into the URL list; editing/deleting the textarea does not remove list rows. */
+    #handleCardsPasteLinksPaste(e) {
+        const clip = e.clipboardData?.getData('text/plain') ?? '';
+        const lines = clip
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean);
+        if (!lines.length) return;
+
+        const seen = new Set(this.collectionPasteLinksItems);
+        const merged = [...this.collectionPasteLinksItems];
+        for (const line of lines) {
+            if (!seen.has(line)) {
+                seen.add(line);
+                merged.push(line);
+            }
+        }
+        if (merged.length !== this.collectionPasteLinksItems.length) {
+            this.collectionPasteLinksItems = merged;
+            this.requestUpdate();
+        }
+    }
+
+    get #collectionPasteLinksSection() {
+        const lines = this.#getCardsPasteLinksLines();
+        return html`
+            <div class="collection-paste-links">
+                <sp-field-label for="collection-paste-collection-links">Paste collection links:</sp-field-label>
+                ${lines.length
+                    ? html`<div class="collection-paste-url-panel" role="list">
+                          <div class="collection-paste-url-header" role="presentation">
+                              <span class="collection-paste-url-col-url">URL</span>
+                              <span class="collection-paste-url-col-action"></span>
+                          </div>
+                          ${repeat(
+                              lines,
+                              (line) => line,
+                              (line) => html`
+                                  <div class="collection-paste-url-row" role="listitem">
+                                      <div class="collection-paste-url-text" title=${line}>${line}</div>
+                                      <sp-action-button
+                                          quiet
+                                          size="s"
+                                          label="Remove link"
+                                          @click=${() => this.#removeCardsPasteLinkLine(line)}
+                                      >
+                                          <sp-icon-delete slot="icon"></sp-icon-delete>
+                                      </sp-action-button>
+                                  </div>
+                              `,
+                          )}
+                      </div>`
+                    : nothing}
+                <sp-field-label for="collection-paste-links">Enter URLs</sp-field-label>
+                <sp-textfield
+                    id="collection-paste-links"
+                    multiline
+                    grows
+                    .value=${this.collectionPasteLinksInput}
+                    @input=${(e) => {
+                        this.collectionPasteLinksInput = e.target.value;
+                    }}
+                    @paste=${this.#handleCardsPasteLinksPaste}
+                ></sp-textfield>
+                <sp-button variant="secondary" @click=${this.handleAddCardsPasteLinks}>Add from links</sp-button>
+            </div>
+        `;
+    }
+
+    handleAddCardsPasteLinks = async () => {
+        if (!this.fragment) return;
+        const text =
+            this.collectionPasteLinksItems.length > 0
+                ? this.collectionPasteLinksItems.join('\n')
+                : (this.collectionPasteLinksInput ?? '').trim();
+        if (!text) {
+            showToast('Paste cards links.', 'negative');
+            return;
+        }
+        await this.#applyCollectionLinksFromText(text);
+    };
+
+    /** @param {string} text */
+    async #applyCollectionLinksFromText(text) {
+        const repo = this.repository;
+        if (!repo?.aem?.sites?.cf?.fragments?.getById) {
+            showToast('Repository not available', 'negative');
+            return;
+        }
+
+        const entries = parseStudioDeepLinksFromText(text);
+        if (!entries.length) {
+            showToast('No valid paste links found', 'negative');
+            return;
+        }
+
+        const surface =
+            Store.surface()?.split?.('/')?.filter(Boolean)?.[0]?.toLowerCase() || String(Store.surface() || '').toLowerCase();
+
+        let added = 0;
+        let skipped = 0;
+
+        for (const { contentType, fragmentId } of entries) {
+            const targetField =
+                contentType === 'merch-card' ? 'cards' : contentType === 'merch-card-collection' ? 'collections' : null;
+            if (!targetField) {
+                skipped++;
+                continue;
+            }
+            try {
+                const raw = await repo.aem.sites.cf.fragments.getById(fragmentId);
+                if (!raw?.path || !raw.model?.path) {
+                    skipped++;
+                    continue;
+                }
+                applyCorrectorToFragment(raw, surface);
+                const expectedModel = contentType === 'merch-card' ? CARD_MODEL_PATH : COLLECTION_MODEL_PATH;
+                if (raw.model.path !== expectedModel) {
+                    skipped++;
+                    continue;
+                }
+                if (this.isFragmentAlreadyInCollection(raw.path)) {
+                    skipped++;
+                    continue;
+                }
+                this.#handleExternalDrop(raw, targetField, -1, { target: this });
+                added++;
+            } catch {
+                skipped++;
+            }
+        }
+
+        if (added > 0) {
+            this.collectionPasteLinksInput = '';
+            this.collectionPasteLinksItems = [];
+            showToast(`Added ${added} item(s)${skipped ? `, skipped ${skipped}` : ''}`, 'positive');
+        } else {
+            showToast(skipped ? `Could not add items (${skipped} skipped)` : 'Nothing to add', 'negative');
+        }
+        this.requestUpdate();
     }
 
     get #defaultCardDropZone() {
@@ -672,10 +842,14 @@ class MerchCardCollectionEditor extends LitElement {
     isFragmentAlreadyInCollection(fragmentPath) {
         if (!this.fragment || !fragmentPath) return false;
 
-        const cardsField = this.#getField('cards');
-        const collectionsField = this.#getField('collections');
+        const cardPaths = this.fragment.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation);
+        const collectionPaths = this.fragment.getEffectiveFieldValues(
+            'collections',
+            this.localeDefaultFragment,
+            this.isVariation,
+        );
 
-        return [...(cardsField?.values || []), ...(collectionsField?.values || [])].includes(fragmentPath);
+        return [...cardPaths, ...collectionPaths].includes(fragmentPath);
     }
 
     handleDropOperation(event, targetFieldName = null, targetIndex = -1, isInternalDrop = false) {
@@ -763,10 +937,8 @@ class MerchCardCollectionEditor extends LitElement {
             }
         }
 
-        const field = this.#getField(fieldName);
-
         // Add item to values (field may not exist yet if this is the first item)
-        const newValues = [...(field?.values || [])];
+        const newValues = [...this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.isVariation)];
 
         if (targetIndex !== -1) {
             newValues.splice(targetIndex, 0, fragmentData.path);
@@ -925,10 +1097,8 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     #isCardInCollection(fragmentId) {
-        const cardsField = this.#getField('cards');
-        if (!cardsField?.values) return false;
-
-        return cardsField.values.some((cardPath) => {
+        const cardPaths = this.fragment.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation);
+        return cardPaths.some((cardPath) => {
             const cardStore = this.#fragmentReferencesMap.get(cardPath);
             return cardStore?.get()?.id === fragmentId;
         });
@@ -953,6 +1123,34 @@ class MerchCardCollectionEditor extends LitElement {
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tagFilters', newTags);
+    }
+
+    #handlePznTagsChange(e) {
+        if (Store.showCloneDialog.get()) return;
+        const value = e.target.getAttribute('value');
+        const newTags = value ? value.split(',') : [];
+        this.fragmentStore.updateField('pznTags', newTags);
+    }
+
+    get groupedVariationTagsTemplate() {
+        if (!this.isGroupedVariation) return nothing;
+        return html`
+            <div class="form-row">
+                <sp-field-group id="grouped-variation-tags">
+                    <sp-field-label>Grouped variation tags</sp-field-label>
+                    <aem-tag-picker-field
+                        selection="checkbox-tags"
+                        display-value
+                        label="Locale tags"
+                        namespace="/content/cq:tags/mas"
+                        top="locale,pzn"
+                        multiple
+                        value="${this.pznTagsValue}"
+                        @change=${this.#handlePznTagsChange}
+                    ></aem-tag-picker-field>
+                </sp-field-group>
+            </div>
+        `;
     }
 
     #updateIcon(event, fieldName) {
@@ -1188,6 +1386,7 @@ class MerchCardCollectionEditor extends LitElement {
                         @change=${this.#handleTagFilterChange}
                     ></aem-tag-picker-field>
                 </div>
+                ${this.groupedVariationTagsTemplate}
                 <div class="form-row">
                     <sp-field-label for="linksTitle">Links Title</sp-field-label>
                     ${this.#renderTextFieldStatusIndicator('linksTitle')}

@@ -6,6 +6,7 @@ import zlib from 'zlib';
 import stateLib from '@adobe/aio-lib-state';
 
 import { transformer as fetchFragment } from './transformers/fetchFragment.js';
+import { transformer as defaultLanguage } from './transformers/defaultLanguage.js';
 import { transformer as corrector } from './transformers/corrector.js';
 import { transformer as replace } from './transformers/replace.js';
 import { transformer as promotions } from './transformers/promotions.js';
@@ -21,7 +22,7 @@ function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
-const PIPELINE = [fetchFragment, promotions, customize, settings, replace, wcs, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, promotions, customize, settings, replace, wcs, corrector];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -37,7 +38,7 @@ async function main(params) {
         Accept: 'application/json, */*',
         'Accept-Encoding': 'gzip, deflate',
         'User-Agent': 'Mozilla/5.0 (compatible; mas-io-Pipeline/1.0)',
-        'X-Request-ID': requestId,
+        'X-Correlation-ID': requestId,
     };
     let context = {
         ...params,

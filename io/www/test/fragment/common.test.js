@@ -20,7 +20,7 @@ describe('common utils', () => {
             });
         });
 
-        describe('short-form CQ tags', () => {
+        describe('Short-form CQ tags', () => {
             it('matches regionLocale against mas:locale/<value> (namespace-prefixed)', () => {
                 const result = matchesGeo(['mas:locale/BE/fr_BE', 'mas:pzn/country/de', 'mas:locale/en_US'], {
                     regionLocale: 'en_US',

@@ -137,9 +137,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
         });
 
         if (Media.isDesktopOrUp) {
-            requestAnimationFrame(() => {
-                cards.forEach((card) => card.variantLayout?.syncHeights?.());
-            });
+            cards.forEach((card) => card.variantLayout?.syncHeights?.());
         }
     }
 

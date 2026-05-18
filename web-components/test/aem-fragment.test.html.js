@@ -1,6 +1,7 @@
 import { runTests } from '@web/test-runner-mocha';
 import chaiAsPromised from '@esm-bundle/chai-as-promised';
 import chai, { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 
 import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
@@ -13,6 +14,7 @@ import {
     EVENT_MAS_READY,
     EVENT_TYPE_FAILED,
     EVENT_AEM_LOAD,
+    EVENT_AEM_ERROR,
 } from '../src/constants.js';
 
 chai.use(chaiAsPromised);
@@ -493,6 +495,44 @@ runTests(async () => {
                 expect(fetch.lastCall.firstArg).to.equal(
                     'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
+            });
+
+            it('dispatches aem:error when preview mode returns non-200', async () => {
+                cache.clear();
+                const existing = document.querySelector('mas-commerce-service');
+                const previewService = document.createElement(
+                    'mas-commerce-service',
+                );
+                for (const attr of existing.attributes) {
+                    previewService.setAttribute(attr.name, attr.value);
+                }
+                previewService.setAttribute('preview', 'on');
+                document.body.insertBefore(previewService, existing);
+
+                const AemFragment = customElements.get('aem-fragment');
+                const stub = sinon
+                    .stub(AemFragment.prototype, 'generatePreview')
+                    .resolves({
+                        status: 502,
+                        message: 'Bad gateway',
+                    });
+
+                let aemFragment;
+                try {
+                    aemFragment = addFragment('fragment-cc-all-apps');
+                    const { detail } = await oneEvent(
+                        aemFragment,
+                        EVENT_AEM_ERROR,
+                    );
+                    expect(detail.message).to.equal(
+                        'Failed to generate preview: Bad gateway',
+                    );
+                    expect(aemFragment.classList.contains('error')).to.be.true;
+                } finally {
+                    stub.restore();
+                    previewService.remove();
+                    aemFragment?.remove();
+                }
             });
         });
 

@@ -19,7 +19,7 @@ import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
-const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 20000;
+const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 30000;
 
 const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],

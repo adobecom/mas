@@ -609,9 +609,8 @@ export class MiniCompareChart extends VariantLayout {
         );
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;
-        if (planType.querySelector('em[data-short-description]')) return;
+        if (planType.querySelector('em')) return;
         const em = document.createElement('em');
-        em.setAttribute('data-short-description', '');
         em.textContent = ` ${text}`;
         planType.appendChild(em);
     }

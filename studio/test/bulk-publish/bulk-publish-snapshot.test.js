@@ -226,4 +226,61 @@ describe('checkModifications()', () => {
         const results = await checkModifications(snapshot, aem);
         expect(results[0].modified).to.equal(false);
     });
+
+    it('returns modified: null when getById throws (fragment not found)', async () => {
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getById: sinon.stub().rejects(new Error('404 Not Found')),
+                    },
+                },
+            },
+        };
+        const snapshot = makeSnapshot('2026-01-01T10:00:00.000Z', [{ id: 'missing-id', path: '/gone' }]);
+        const results = await checkModifications(snapshot, aem);
+        expect(results[0].modified).to.equal(null);
+        expect(results[0].path).to.equal('/gone');
+    });
+
+    it('handles mixed results: found modified, found unmodified, not found', async () => {
+        const snapshotTime = '2026-01-05T00:00:00.000Z';
+        const getById = sinon.stub();
+        getById.withArgs('f-modified').resolves({ id: 'f-modified', modified: { at: '2026-01-06T00:00:00.000Z' } });
+        getById.withArgs('f-clean').resolves({ id: 'f-clean', modified: { at: '2026-01-01T00:00:00.000Z' } });
+        getById.withArgs('f-missing').rejects(new Error('404'));
+
+        const aem = { sites: { cf: { fragments: { getById } } } };
+        const snapshot = makeSnapshot(snapshotTime, [
+            { id: 'f-modified', path: '/modified' },
+            { id: 'f-clean', path: '/clean' },
+            { id: 'f-missing', path: '/missing' },
+        ]);
+
+        const results = await checkModifications(snapshot, aem);
+        const byPath = Object.fromEntries(results.map((r) => [r.path, r.modified]));
+
+        expect(byPath['/modified']).to.equal(true);
+        expect(byPath['/clean']).to.equal(false);
+        expect(byPath['/missing']).to.equal(null);
+    });
+
+    it('returns results sorted by path', async () => {
+        const aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        getById: sinon.stub().resolves({ id: 'x', modified: { at: '2020-01-01T00:00:00.000Z' } }),
+                    },
+                },
+            },
+        };
+        const snapshot = makeSnapshot('2026-01-01T00:00:00.000Z', [
+            { id: 'f3', path: '/z-path' },
+            { id: 'f1', path: '/a-path' },
+            { id: 'f2', path: '/m-path' },
+        ]);
+        const results = await checkModifications(snapshot, aem);
+        expect(results.map((r) => r.path)).to.deep.equal(['/a-path', '/m-path', '/z-path']);
+    });
 });

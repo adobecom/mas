@@ -1,11 +1,7 @@
 import Store from '../store.js';
 import { BULK_PUBLISH_STATUS } from '../constants.js';
 import { createSnapshot, revertSnapshot } from './bulk-publish-snapshot.js';
-
-function getProjectField(project, name, fallback) {
-    const data = project.value ?? project;
-    return data.getFieldValue?.(name) ?? data[name] ?? fallback;
-}
+import { getProjectField } from './bulk-publish-utils.js';
 
 function setField(project, name, value) {
     if (typeof project.updateField === 'function') {

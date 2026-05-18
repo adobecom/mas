@@ -7,6 +7,7 @@ import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PARENT_PATH, BULK_PUBLISH_PROJECT_MOD
 import { normalizeKey, showToast } from '../utils.js';
 import { startReverting } from './bulk-publish-store.js';
 import { PUBLISH_SVG } from './bulk-publish-icons.js';
+import { getProjectField, getProjectFieldList } from './bulk-publish-utils.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import './mas-bulk-publish-delete-dialog.js';
 import './mas-bulk-publish-revert-dialog.js';
@@ -28,14 +29,6 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
     minute: '2-digit',
     hour12: true,
 });
-
-function getProjectField(data, name, fallback) {
-    return data.getFieldValue?.(name) ?? data[name] ?? fallback;
-}
-
-function getProjectFieldList(data, name) {
-    return data.getFieldValues?.(name) ?? data[name] ?? [];
-}
 
 class MasBulkPublish extends LitElement {
     static styles = styles;

@@ -217,7 +217,8 @@ async function getRequestInfos(context) {
  */
 function matchesGeo(tags, { regionLocale, country }) {
     const effectiveCountry = country ?? regionLocale?.split('_')[1];
-    const matchSuffix = (value) => tags.some((tag) => new RegExp(`(^|[/:])(locale|country)/${value}$`, 'i').test(tag));
+    const matchSuffix = (value) =>
+        tags.some((tag) => new RegExp(`(^|[/:])(locale|country)/([^/]+/)?${value}$`, 'i').test(tag));
     const region = Boolean(regionLocale) && matchSuffix(regionLocale);
     const countryMatch = Boolean(effectiveCountry) && matchSuffix(effectiveCountry);
     if (!region && !countryMatch) return null;

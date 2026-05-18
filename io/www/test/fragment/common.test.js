@@ -41,10 +41,15 @@ describe('common utils', () => {
         });
 
         describe('non-geo tags are not matched spuriously', () => {
-            it('does not match a tag whose last segment is the value but second-to-last is not locale/country', () => {
-                // mas:locale/BE/fr_BE — last two segments are BE/fr_BE, BE is not "locale" or "country"
+            it('matches nested locale format locale/<country>/<locale>', () => {
+                // production format: locale dimension / country code / locale value
                 const result = matchesGeo(['mas:locale/BE/fr_BE'], { regionLocale: 'fr_BE' });
-                expect(result).to.be.null;
+                expect(result).to.deep.equal({ region: true, country: false });
+            });
+
+            it('matches nested locale format for GR (en_GR)', () => {
+                const result = matchesGeo(['mas:locale/GR/en_GR', 'mas:pzn/country/ar'], { regionLocale: 'en_GR', country: 'GR' });
+                expect(result).to.deep.equal({ region: true, country: false });
             });
 
             it('does not match unrelated taxonomy paths ending in /<value>', () => {

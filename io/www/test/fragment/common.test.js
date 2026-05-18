@@ -48,7 +48,10 @@ describe('common utils', () => {
             });
 
             it('matches nested locale format for GR (en_GR)', () => {
-                const result = matchesGeo(['mas:locale/GR/en_GR', 'mas:pzn/country/ar'], { regionLocale: 'en_GR', country: 'GR' });
+                const result = matchesGeo(['mas:locale/GR/en_GR', 'mas:pzn/country/ar'], {
+                    regionLocale: 'en_GR',
+                    country: 'GR',
+                });
                 expect(result).to.deep.equal({ region: true, country: false });
             });
 

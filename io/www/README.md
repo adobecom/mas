@@ -46,8 +46,8 @@ You are currently in:
 every time you push to your feature branch, CI/CD can deploy it to your workspace.
 
 For that, add 2 Repository secrets in github settings:
-AIO_WWW_ENV_<GITHUBUSERNAME>=
-AIO_WWW_AIO_<GITHUBUSERNAME>=
+AIO*WWW_ENV*<GITHUBUSERNAME>=
+AIO*WWW_AIO*<GITHUBUSERNAME>=
 <GITHUBUSERNAME> should match your workspace name and be in capital case.
 
 values of those secrets should be the content of your corresponding resp `.env` and `.aio` files

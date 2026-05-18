@@ -51,7 +51,6 @@ export function getFragmentName(data) {
  */
 export function renderFragmentStatusCell(status) {
     if (!status) return nothing;
-    const displayStatus = status === FRAGMENT_STATUS.UNPUBLISHED ? FRAGMENT_STATUS.DRAFT : status;
     let statusClass = '';
     if (status === FRAGMENT_STATUS.PUBLISHED) {
         statusClass = 'green';
@@ -60,6 +59,6 @@ export function renderFragmentStatusCell(status) {
     }
     return html`<sp-table-cell class="status-cell">
         <div class="status-dot ${statusClass}"></div>
-        ${displayStatus.charAt(0).toUpperCase()}${displayStatus.slice(1).toLowerCase()}
+        ${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}
     </sp-table-cell>`;
 }

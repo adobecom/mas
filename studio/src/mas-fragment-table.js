@@ -26,6 +26,28 @@ class MasFragmentTable extends LitElement {
             color: var(--merch-color-error, #d73220);
             font-weight: 600;
         }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            flex-shrink: 0;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--spectrum-gray-500);
+        }
+
+        .published-cell .status-dot {
+            background-color: var(--spectrum-green-700);
+        }
+
+        .modified-cell .status-dot {
+            background-color: var(--spectrum-blue-800);
+        }
     `;
 
     constructor() {

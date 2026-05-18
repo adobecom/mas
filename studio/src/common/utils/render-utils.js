@@ -1,11 +1,5 @@
 import { html, nothing } from 'lit';
 import { FRAGMENT_STATUS, CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
-
-// AEM returns UNPUBLISHED for fragments that were published then unpublished.
-// From the Studio perspective these behave identically to DRAFT.
-const DISPLAY_STATUS = {
-    [FRAGMENT_STATUS.UNPUBLISHED]: FRAGMENT_STATUS.DRAFT,
-};
 import { Fragment } from '../../aem/fragment.js';
 
 /**
@@ -15,7 +9,6 @@ import { Fragment } from '../../aem/fragment.js';
  */
 export function renderFragmentStatusCell(status) {
     if (!status) return nothing;
-    const displayStatus = DISPLAY_STATUS[status] ?? status;
     let statusClass = '';
     if (status === FRAGMENT_STATUS.PUBLISHED) {
         statusClass = 'green';
@@ -24,7 +17,7 @@ export function renderFragmentStatusCell(status) {
     }
     return html`<sp-table-cell class="status-cell">
         <div class="status-dot ${statusClass}"></div>
-        ${displayStatus.charAt(0).toUpperCase()}${displayStatus.slice(1).toLowerCase()}
+        ${status.charAt(0).toUpperCase()}${status.slice(1).toLowerCase()}
     </sp-table-cell>`;
 }
 

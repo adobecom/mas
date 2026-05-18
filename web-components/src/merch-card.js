@@ -61,7 +61,17 @@ function priceOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        const osi = element.dataset?.wcsOsi;
+        const hasSiblingPromo =
+            osi &&
+            [
+                ...card.querySelectorAll(
+                    `${SELECTOR_MAS_INLINE_PRICE}[data-promotion-code]`,
+                ),
+            ].some((el) => el !== element && el.dataset.wcsOsi === osi);
+        if (!hasSiblingPromo) {
+            options.promotionCode = card.contextualPromotionCode;
+        }
     }
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
@@ -914,6 +924,20 @@ export class MerchCard extends LitElement {
             );
         }
         return promotionCodes[0];
+    }
+
+    get contextualPromotionCode() {
+        const codes = [
+            ...this.querySelectorAll(
+                `${SELECTOR_MAS_CHECKOUT_LINK}[data-promotion-code]`,
+            ),
+        ]
+            .map((el) => el.dataset.promotionCode)
+            .filter(
+                (promotionCode) =>
+                    ![undefined, 'cancel-context'].includes(promotionCode),
+            );
+        return codes[0] ?? this.#contextPromotionCode;
     }
 
     get annualPrice() {

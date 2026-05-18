@@ -54,8 +54,22 @@ function groupedPreviewLocaleProvider(element, options) {
     options.country = locale.country;
 }
 
+function hasSiblingWithSameOsiAndPromo(element) {
+    const osi = element.dataset.wcsOsi;
+    if (!osi) return false;
+    const scope = element.closest('merch-card') ?? element.closest('#preview-wrapper');
+    return (
+        scope != null &&
+        [...scope.querySelectorAll(`${INLINE_PRICE_SELECTOR}[data-promotion-code]`)].some(
+            (el) => el !== element && el.dataset.wcsOsi === osi,
+        )
+    );
+}
+
 function editorPromoCodeProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
+    if ('promotionCode' in element.dataset) return;
+    if (hasSiblingWithSameOsiAndPromo(element)) return;
     const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
     if (!promoCode) return;
     options.promotionCode = promoCode;
@@ -63,6 +77,8 @@ function editorPromoCodeProvider(element, options) {
 
 function checkoutOptionsProvider(element, options) {
     if (!isEditorPriceElement(element)) return;
+    if ('promotionCode' in element.dataset) return;
+    if (hasSiblingWithSameOsiAndPromo(element)) return;
     const promoCode = getActiveMerchCardEditor()?.getEffectiveFieldValue('promoCode', 0);
     if (!promoCode) return;
     options.promotionCode = promoCode;

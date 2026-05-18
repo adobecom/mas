@@ -273,6 +273,22 @@ runTests(async () => {
                 );
                 logSpy.restore();
             });
+            it('contextualPromotionCode should not return inline-price promo codes', async () => {
+                const [card] = getTemplateContent(
+                    'template-inline-price-only-promo',
+                );
+                container.append(card);
+                await card.checkReady();
+                expect(card.contextualPromotionCode).to.be.undefined;
+            });
+            it('contextualPromotionCode should return checkout-link promo code', async () => {
+                const [card] = getTemplateContent(
+                    'template-multiple-promo-codes',
+                );
+                container.append(card);
+                await card.checkReady();
+                expect(card.contextualPromotionCode).to.equal('PROMO_XYZ');
+            });
             it('should render US team', async () => {
                 const [card] = getTemplateContent('template-mini-team');
                 container.append(card);

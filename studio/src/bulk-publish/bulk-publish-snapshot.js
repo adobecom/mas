@@ -12,6 +12,7 @@ export async function createSnapshot(project, aem, userEmail) {
     const projectId = project.id ?? project.path?.split('/').pop() ?? 'unknown';
     const projectTitle = project.title ?? '';
     const timestamp = Date.now();
+    const snapshotId = `snap-${projectId}-${timestamp}`;
     const fragments = {};
 
     for (const item of items) {
@@ -34,7 +35,7 @@ export async function createSnapshot(project, aem, userEmail) {
         const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
         const versionId = await aem.sites.cf.fragments.createVersion(fragmentId, {
             label: `Pre-publish - ${projectTitle}`,
-            comment: projectId,
+            comment: snapshotId,
         });
 
         if (!versionId) {
@@ -49,7 +50,7 @@ export async function createSnapshot(project, aem, userEmail) {
     }
 
     return {
-        id: `snap-${projectId}-${timestamp}`,
+        id: snapshotId,
         createdAt: new Date(timestamp).toISOString(),
         createdBy: userEmail,
         source: 'pre-publish',

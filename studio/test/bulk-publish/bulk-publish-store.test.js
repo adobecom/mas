@@ -106,6 +106,7 @@ describe('startPublishing', () => {
 
             await startPublishing({
                 project,
+                items: [{ fragmentId: 'frag-id', path: '/p', status: 'valid' }],
                 paths: ['/p'],
                 locales: [],
                 token: 't',
@@ -135,6 +136,7 @@ describe('startPublishing', () => {
 
             await startPublishing({
                 project,
+                items: [{ fragmentId: 'frag-id', path: '/p', status: 'valid' }],
                 paths: ['/p'],
                 locales: [],
                 token: 't',

@@ -32,7 +32,7 @@ export async function startPublishing({ project, items, paths, locales, token, i
         await repository.saveFragment(project, false);
         return;
     }
-    setField(project, 'snapshot', snapshot);
+    setField(project, 'snapshot', JSON.stringify(snapshot));
 
     const promise = publishFn({ ioBaseUrl, paths, locales, token });
     Store.bulkPublishProjects.publishing.set({
@@ -68,7 +68,24 @@ export async function startReverting({ project, repository }) {
         typeof project.value?.getFieldValue === 'function'
             ? project.value.getFieldValue('snapshot')
             : (project.getFieldValue?.('snapshot') ?? project.snapshot);
-    const snapshot = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    let snapshot;
+    if (typeof raw === 'string') {
+        try {
+            snapshot = JSON.parse(raw);
+        } catch {
+            // old data was double-encoded — strip outer quotes and try again
+            try {
+                snapshot = JSON.parse(raw.slice(1, -1));
+            } catch {
+                setField(project, 'lastError', 'Snapshot data is corrupted. Please re-publish to create a new snapshot.');
+                setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
+                await repository.saveFragment(project, false);
+                return;
+            }
+        }
+    } else {
+        snapshot = raw;
+    }
 
     const aem = repository.aem;
     try {

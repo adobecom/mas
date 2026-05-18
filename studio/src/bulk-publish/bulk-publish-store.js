@@ -60,7 +60,10 @@ export async function startReverting({ project, repository }) {
     setField(project, 'status', BULK_PUBLISH_STATUS.REVERTING);
     await repository.saveFragment(project, false);
 
-    const raw = typeof project.getFieldValue === 'function' ? project.getFieldValue('snapshot') : project.snapshot;
+    const raw =
+        typeof project.value?.getFieldValue === 'function'
+            ? project.value.getFieldValue('snapshot')
+            : (project.getFieldValue?.('snapshot') ?? project.snapshot);
     let snapshot;
     try {
         snapshot = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -74,6 +77,7 @@ export async function startReverting({ project, repository }) {
         setField(project, 'status', BULK_PUBLISH_STATUS.REVERTED);
         setField(project, 'snapshot', null);
     } catch (err) {
+        console.error('Failed to revert bulk publish project:', err);
         setField(project, 'lastError', err.message);
         setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
     }

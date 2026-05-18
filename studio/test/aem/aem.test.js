@@ -77,6 +77,39 @@ describe('aem.js', () => {
                 { id: 2, fields: [{ name: 'variant', value: 'v2' }] },
             ]);
         });
+
+        it('should include title property in fullText search', async () => {
+            let capturedQuery = null;
+            window.fetch = async (url) => {
+                const urlObj = new URL(url);
+                const queryParam = urlObj.searchParams.get('query');
+                if (queryParam) {
+                    capturedQuery = JSON.parse(queryParam);
+                }
+                return {
+                    ok: true,
+                    json: async () => ({
+                        items: [
+                            {
+                                id: 1,
+                                title: 'Test Fragment Title',
+                                fields: [{ name: 'variant', value: 'v1' }],
+                            },
+                        ],
+                    }),
+                };
+            };
+
+            const result = aem.searchFragment({ path: '/test/path', query: 'Fragment Title' });
+            const actual = [];
+            for await (const items of result) {
+                actual.push(...items);
+            }
+
+            expect(capturedQuery).to.not.be.null;
+            expect(capturedQuery.filter.fullText).to.exist;
+            expect(capturedQuery.filter.fullText.properties).to.deep.equal(['title']);
+        });
     });
 
     describe('method: getFragmentTranslations', () => {

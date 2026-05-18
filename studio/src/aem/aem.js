@@ -104,6 +104,8 @@ class AEM {
                 text: encodeURIComponent(query),
                 // For info about modes: https://adobe-sites.redoc.ly/tag/Search#operation/fragments/search!path=query/filter/fullText/queryMode&t=request
                 queryMode: 'EDGES',
+                // Include title property to enable searching by Fragment Title
+                properties: ['title'],
             };
         }
         const searchQuery = { ...defaultSearchOptions, filter };

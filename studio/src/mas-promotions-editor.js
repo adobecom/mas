@@ -172,8 +172,11 @@ class MasPromotionsEditor extends LitElement {
         closePreview();
         this.#collectionsUnsubscribe?.();
         this.#collectionsUnsubscribe = null;
-        setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
+        const itemsSelectionStoreSnapshot = this.#itemsSelectionStoreSnapshot;
         this.#itemsSelectionStoreSnapshot = null;
+        queueMicrotask(() => {
+            setItemsSelectionStore(itemsSelectionStoreSnapshot);
+        });
     }
 
     /** @type {MasRepository} */

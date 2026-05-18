@@ -48,16 +48,19 @@ class MasPromotionsFragmentsSelector extends LitElement {
     }
 
     get showSelected() {
-        return getItemsSelectionStore().showSelected.value;
+        return getItemsSelectionStore({ allowUnset: true })?.showSelected.value ?? false;
     }
 
     get selectedCount() {
-        const s = getItemsSelectionStore();
+        const s = getItemsSelectionStore({ allowUnset: true });
+        if (!s) return 0;
         return [...s.selectedCards.value, ...s.selectedPlaceholders.value, ...s.selectedCollections.value].length;
     }
 
     #toggleShowSelected() {
-        getItemsSelectionStore().showSelected.set(!this.showSelected);
+        const s = getItemsSelectionStore({ allowUnset: true });
+        if (!s) return;
+        s.showSelected.set(!this.showSelected);
     }
 
     #setSearchQuery = debounce((value) => {
@@ -80,7 +83,9 @@ class MasPromotionsFragmentsSelector extends LitElement {
     #getTabLabel(tab) {
         if (this.viewOnly) {
             const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            return `${tab.label} (${getItemsSelectionStore()[`selected${valueUppercase}`].value.length})`;
+            const s = getItemsSelectionStore({ allowUnset: true });
+            const count = s?.[`selected${valueUppercase}`]?.value?.length ?? 0;
+            return `${tab.label} (${count})`;
         }
         return tab.label;
     }

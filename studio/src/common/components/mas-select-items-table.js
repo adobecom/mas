@@ -183,11 +183,15 @@ class MasSelectItemsTable extends LitElement {
         if (this.viewOnly) {
             return this.viewOnlyFragments;
         }
-        return getItemsSelectionStore()[`display${this.typeUppercased}`].value;
+        const selectionStore = getItemsSelectionStore({ allowUnset: true });
+        if (!selectionStore) return [];
+        return selectionStore[`display${this.typeUppercased}`].value;
     }
 
     get selectedInTable() {
-        return new Set(getItemsSelectionStore()[`selected${this.typeUppercased}`].value);
+        const selectionStore = getItemsSelectionStore({ allowUnset: true });
+        if (!selectionStore) return new Set();
+        return new Set(selectionStore[`selected${this.typeUppercased}`].value);
     }
 
     get tableColumns() {

@@ -265,15 +265,24 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     const adaptedTree = adaptReferencesTree(referencesTree, customizedRoot);
 
     //now we look into referenced fragments to customize them as well
-    for (const reference of adaptedTree) {
+    for (let i = 0; i < adaptedTree.length; i++) {
+        const reference = adaptedTree[i];
         //customize each card/collection
         if (reference.fieldName === 'cards' || reference.fieldName === 'collections') {
             const child = customizeContext.references[reference.identifier]?.value;
             if (child) {
                 //start customization of the child fragment
-                const { references: customizedReferences } = customizeTree(child, reference.referencesTree, customizeContext);
+                const { references: customizedReferences, referencesTree: childAdaptedTree } = customizeTree(
+                    child,
+                    reference.referencesTree,
+                    customizeContext,
+                );
                 //we collect update references and merge in current references
                 customizeContext.references = { ...customizeContext.references, ...customizedReferences };
+                //propagate adapted child tree up so the parent's tree stays in sync with the customized child fields
+                if (childAdaptedTree !== reference.referencesTree) {
+                    adaptedTree[i] = { ...reference, referencesTree: childAdaptedTree };
+                }
             }
         }
     }

@@ -838,6 +838,96 @@ describe('customize collections', function () {
         expect(cardEntries[1].referencesTree).to.deep.equal([]);
     });
 
+    it('should propagate adapted referencesTree of a child collection up to the parent', async function () {
+        // Parent collection has no variation. Child subcollection has a pzn variation that swaps the last card.
+        // Without propagation, the parent's referencesTree[subcoll].referencesTree still lists the base cards,
+        // while references[subcoll].value.fields.cards lists the variation cards — causing renderers to mismatch.
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/root-coll',
+            id: 'root-coll',
+            title: 'Root',
+            fields: {
+                cards: [],
+                collections: ['subcoll'],
+                variations: [],
+            },
+            references: {
+                subcoll: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/subcoll',
+                        id: 'subcoll',
+                        fields: {
+                            cards: ['card-a', 'card-base-last'],
+                            collections: [],
+                            variations: ['subcoll-pzn'],
+                        },
+                    },
+                },
+                'subcoll-pzn': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-1/pzn/subcoll-en-us',
+                        id: 'subcoll-pzn',
+                        fields: {
+                            pznTags: ['mas:locale/en_US'],
+                            cards: ['card-a', 'card-pzn-last'],
+                        },
+                    },
+                },
+                'card-a': {
+                    type: 'content-fragment',
+                    value: { path: '/content/dam/mas/sandbox/en_US/card-a', id: 'card-a', fields: { variations: [] } },
+                },
+                'card-base-last': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-base-last',
+                        id: 'card-base-last',
+                        fields: { variations: [] },
+                    },
+                },
+                'card-pzn-last': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-pzn-last',
+                        id: 'card-pzn-last',
+                        fields: { variations: [] },
+                    },
+                },
+            },
+            referencesTree: [
+                {
+                    fieldName: 'collections',
+                    identifier: 'subcoll',
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-base-last', referencesTree: [] },
+                        { fieldName: 'variations', identifier: 'subcoll-pzn', referencesTree: [] },
+                    ],
+                },
+            ],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'root-coll',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+
+        // sanity: subcoll value in references has the pzn cards
+        expect(result.body.references.subcoll.value.fields.cards).to.deep.equal(['card-a', 'card-pzn-last']);
+
+        // the parent's referencesTree[subcoll].referencesTree must reflect the pzn cards, NOT the base ones
+        const subcollEntry = result.body.referencesTree.find((e) => e.identifier === 'subcoll');
+        const subcollCardIds = subcollEntry.referencesTree.filter((e) => e.fieldName === 'cards').map((e) => e.identifier);
+        expect(subcollCardIds).to.deep.equal(['card-a', 'card-pzn-last']);
+    });
+
     it('should not merge personalization variation when no pznTags match regionLocale', async function () {
         const pznVariationId = 'pzn-var-other';
         const bodyWithPzn = {

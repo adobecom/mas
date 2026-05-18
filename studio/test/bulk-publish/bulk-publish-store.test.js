@@ -274,15 +274,16 @@ describe('startReverting()', () => {
         expect(errorCalls.length).to.be.greaterThan(0);
     });
 
-    it('clears snapshot field after successful revert', async () => {
+    it('does not clear snapshot field after successful revert', async () => {
         const project = makeProject();
         const repo = makeRepo({ searchPages: [{ id: 'frag-rev', path: '/rev' }] });
 
         await startReverting({ project, repository: repo });
 
+        // Snapshot is intentionally preserved after revert (sending null to AEM's JSON
+        // field causes a 500; the snapshot is harmless and the revert button is disabled
+        // after status changes to Reverted).
         const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshot');
-        expect(snapshotCalls.length).to.be.greaterThan(0);
-        const lastSnapshotCall = snapshotCalls[snapshotCalls.length - 1];
-        expect(lastSnapshotCall.args[1]).to.equal(null);
+        expect(snapshotCalls.length).to.equal(0);
     });
 });

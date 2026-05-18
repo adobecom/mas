@@ -91,7 +91,6 @@ export async function startReverting({ project, repository }) {
     try {
         await revertSnapshot(snapshot, aem);
         setField(project, 'status', BULK_PUBLISH_STATUS.REVERTED);
-        setField(project, 'snapshot', null);
     } catch (err) {
         console.error('Failed to revert bulk publish project:', err);
         setField(project, 'lastError', err.message);

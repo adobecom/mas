@@ -117,6 +117,14 @@ export const styles = [
             --status-color: var(--spectrum-gray-700, #4b4b4b);
         }
 
+        .status-light.reverting {
+            --status-color: var(--spectrum-orange-700, #e68619);
+        }
+
+        .status-light.reverted {
+            --status-color: var(--spectrum-purple-700, #7030a0);
+        }
+
         .actions-cell {
             text-align: center;
         }

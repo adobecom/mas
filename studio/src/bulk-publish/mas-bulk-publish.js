@@ -16,6 +16,8 @@ const STATUS_VARIANT = {
     [BULK_PUBLISH_STATUS.LOCKED]: { label: 'Locked', className: 'locked' },
     [BULK_PUBLISH_STATUS.PUBLISHING]: { label: 'Publishing', className: 'publishing' },
     [BULK_PUBLISH_STATUS.PUBLISHED]: { label: 'Published', className: 'published' },
+    [BULK_PUBLISH_STATUS.REVERTING]: { label: 'Reverting', className: 'reverting' },
+    [BULK_PUBLISH_STATUS.REVERTED]: { label: 'Reverted', className: 'reverted' },
 };
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {

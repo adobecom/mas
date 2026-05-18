@@ -65,16 +65,22 @@
             import { Fragment } from '../src/aem/fragment.js';
             import { FragmentStore } from '../src/reactivity/fragment-store.js';
             import Store from '../src/store.js';
+            import { COLLECTION_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
+            import Events from '../src/events.js';
             import { createFromTemplate, delay, triggerInput, triggerRteInput } from './utils.js';
 
             runTests(async () => {
                 const spTheme = document.querySelector('sp-theme');
+                const sandbox = sinon.createSandbox();
 
                 const fragmentData = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then((res) =>
                     res.json(),
                 );
 
                 describe('editor-panel custom element', () => {
+                    afterEach(() => {
+                        sandbox.restore();
+                    });
                     let fragment;
                     let fragmentStore;
                     let editorPanel;
@@ -130,6 +136,215 @@
                         // Verify openVersionHistory method exists and is callable
                         expect(editorPanel.openVersionHistory).to.be.a('function');
                         expect(editorPanel.fragment.id).to.equal('12345678-1234-1234-1234-123456789012');
+                    });
+                });
+
+                describe('editor-panel collection author path and delete', () => {
+                    let editorPanel;
+                    let previousPage;
+                    let previousFilters;
+
+                    beforeEach(async () => {
+                        previousPage = Store.page.get();
+                        previousFilters = structuredClone(Store.filters.get());
+                        Store.page.value = PAGE_NAMES.CONTENT;
+                        editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
+                        editorPanel.repository.refreshFragment = async () => {};
+                    });
+
+                    afterEach(() => {
+                        Store.page.value = previousPage;
+                        Store.filters.set(previousFilters);
+                        Store.fragments.inEdit.set(null);
+                        sandbox.restore();
+                    });
+
+                    it('authorPath renders grouped variation subline from pznTags in the panel', async () => {
+                        const grouped = new Fragment({
+                            id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+                            path: '/content/dam/mas/sandbox/en_US/pac/pzn/grouped-tags',
+                            title: 'Grouped tags',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [
+                                { name: 'label', values: ['L'] },
+                                { name: 'pznTags', values: ['mas:segment/locale-a', 'mas:segment/locale-b'] },
+                            ],
+                            tags: [],
+                        });
+                        const parent = new Fragment({
+                            id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+                            title: 'Parent collection',
+                            path: '/content/dam/mas/sandbox/en_US/pac/parent',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['P'] }],
+                            tags: [],
+                        });
+                        editorPanel.localeDefaultFragment = parent;
+                        editorPanel.inEdit.set(new FragmentStore(grouped));
+                        await editorPanel.updateComplete;
+
+                        expect(editorPanel.textContent).to.include('Grouped variation');
+                        expect(editorPanel.textContent).to.include('locale-a, locale-b');
+                    });
+
+                    it('authorPath renders regional variation subline in the panel', async () => {
+                        const regional = new Fragment({
+                            id: 'abababab-abab-abab-abab-abababababab',
+                            path: '/content/dam/mas/sandbox/en_BE/pac/regional-collection',
+                            title: 'Regional collection',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        editorPanel.inEdit.set(new FragmentStore(regional));
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(false);
+                        editorPanel.requestUpdate();
+                        await editorPanel.updateComplete;
+
+                        expect(editorPanel.textContent).to.include('Regional variation');
+                        expect(editorPanel.textContent).to.include('Belgium (EN)');
+                    });
+
+                    it('confirmDelete skips removeFromParentVariations when no parent resolves', async () => {
+                        const grouped = new Fragment({
+                            id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+                            path: '/content/dam/mas/sandbox/en_US/pac/pzn/orphan-del',
+                            title: 'Var',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        editorPanel.inEdit.set(new FragmentStore(grouped));
+                        editorPanel.localeDefaultFragment = null;
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
+                        sandbox.stub(editorPanel.editorContextStore, 'getLocaleDefaultFragmentAsync').resolves(null);
+                        const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
+                        const removeSpy = sandbox.stub(editorPanel.repository, 'removeFromParentVariations').resolves();
+                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(true);
+                        sandbox.stub(Events.toast, 'emit');
+                        sandbox.stub(editorPanel, 'unmaskOtherFragments');
+                        sandbox.stub(editorPanel.reactiveController, 'updateStores');
+
+                        await editorPanel.confirmDelete();
+
+                        expect(removeSpy.called).to.be.false;
+                        expect(
+                            deleteSpy.calledOnceWith(grouped, {
+                                force: true,
+                                startToast: false,
+                                endToast: false,
+                            }),
+                        ).to.be.true;
+                        expect(resetSpy.callCount).to.equal(1);
+                    });
+
+                    it('confirmDelete calls deleteFragment with fragment only for non-variation', async () => {
+                        const collection = new Fragment({
+                            id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+                            path: '/content/dam/mas/sandbox/en_US/pac/root-collection',
+                            title: 'Root coll',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        editorPanel.inEdit.set(new FragmentStore(collection));
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(false);
+                        const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
+                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(true);
+                        sandbox.stub(editorPanel, 'unmaskOtherFragments');
+                        sandbox.stub(editorPanel.reactiveController, 'updateStores');
+
+                        await editorPanel.confirmDelete();
+
+                        expect(deleteSpy.calledOnceWith(collection)).to.be.true;
+                        expect(resetSpy.callCount).to.equal(1);
+                    });
+
+                    it('does not update locale filter when opening a collection locale variation in side editor', async () => {
+                        const regional = new Fragment({
+                            id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+                            path: '/content/dam/mas/sandbox/en_IL/pac/regional-collection',
+                            title: 'Regional coll',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        const store = new FragmentStore(regional);
+                        editorPanel.inEdit.set(store);
+                        Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+                        sandbox.stub(editorPanel.editorContextStore, 'loadFragmentContext').resolves();
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
+                        sandbox.stub(editorPanel, 'fetchLocaleDefaultFragment').resolves();
+                        const loadPreviewSpy = sandbox.stub(editorPanel.repository, 'loadPreviewPlaceholders').resolves();
+
+                        await editorPanel.loadLocaleDefaultFragmentContext(regional.id);
+
+                        expect(Store.filters.get().locale).to.equal('en_US');
+                        expect(loadPreviewSpy.called).to.be.false;
+                    });
+                });
+
+                describe('grouped collection variation delete', () => {
+                    let editorPanel;
+
+                    beforeEach(async () => {
+                        editorPanel = await fixture(html`<editor-panel></editor-panel>`, { parentNode: spTheme });
+                        editorPanel.repository.refreshFragment = async () => {};
+                    });
+
+                    afterEach(() => {
+                        sandbox.restore();
+                    });
+
+                    it('confirmDelete removes variation from parent, deletes with force, and clears editor', async () => {
+                        const grouped = new Fragment({
+                            id: '99999999-9999-9999-9999-999999999999',
+                            path: '/content/dam/mas/sandbox/en_US/pac/pzn/to-delete',
+                            title: 'Del',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['L'] }],
+                            tags: [],
+                        });
+                        const store = new FragmentStore(grouped);
+                        editorPanel.inEdit.set(store);
+                        const parentFrag = new Fragment({
+                            id: '88888888-8888-8888-8888-888888888888',
+                            path: '/content/dam/mas/sandbox/en_US/pac/parent',
+                            title: 'Parent',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection' },
+                            fields: [{ name: 'label', values: ['P'] }],
+                            tags: [],
+                        });
+                        editorPanel.localeDefaultFragment = parentFrag;
+                        sandbox.stub(editorPanel.editorContextStore, 'isVariation').returns(true);
+                        const resetSpy = sandbox.stub(Store.editor, 'resetChanges');
+                        const removeSpy = sandbox.stub(editorPanel.repository, 'removeFromParentVariations').resolves();
+                        const deleteSpy = sandbox.stub(editorPanel.repository, 'deleteFragment').resolves(true);
+                        const toastEmitSpy = sandbox.stub(Events.toast, 'emit');
+                        const unmaskSpy = sandbox.stub(editorPanel, 'unmaskOtherFragments');
+                        const updateStoresSpy = sandbox.stub(editorPanel.reactiveController, 'updateStores');
+
+                        await editorPanel.confirmDelete();
+
+                        expect(editorPanel.showDeleteDialog).to.be.false;
+                        expect(resetSpy.callCount).to.equal(1);
+                        expect(removeSpy.calledOnceWith(parentFrag, grouped.path)).to.be.true;
+                        expect(
+                            deleteSpy.calledOnceWith(grouped, {
+                                force: true,
+                                startToast: false,
+                                endToast: false,
+                            }),
+                        ).to.be.true;
+                        expect(
+                            toastEmitSpy.calledWithMatch({
+                                variant: 'positive',
+                                content: 'Fragment successfully deleted.',
+                            }),
+                        ).to.be.true;
+                        expect(unmaskSpy.calledOnce).to.be.true;
+                        expect(editorPanel.inEdit.get()).to.be.null;
+                        expect(updateStoresSpy.called).to.be.true;
                     });
                 });
             });

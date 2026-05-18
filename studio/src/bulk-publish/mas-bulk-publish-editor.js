@@ -437,7 +437,7 @@ class MasBulkPublishEditor extends LitElement {
                     this.hasChanges = false;
                     showToast('Project created successfully.', 'positive');
                 } else {
-                    const savedStatus = this.status;
+                    const savedStatus = this.status === BULK_PUBLISH_STATUS.PUBLISHED ? BULK_PUBLISH_STATUS.DRAFT : this.status;
                     const fields = {
                         title: this.title,
                         status: savedStatus,
@@ -757,6 +757,7 @@ class MasBulkPublishEditor extends LitElement {
                       <mas-translation-languages
                           .targetStore=${Store.bulkPublishProjects}
                           include-source
+                          include-regional
                       ></mas-translation-languages>
                   </sp-dialog-wrapper>`
                 : nothing}

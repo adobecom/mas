@@ -122,16 +122,6 @@ const resolveValueType = (settingName, ...fallbacks) => {
 const resolveBooleanValue = (valueType, value, booleanValue) =>
     valueType === 'boolean' ? Boolean(value) : Boolean(booleanValue);
 
-const normalizedStringList = (values = []) =>
-    [...new Set(values.map((value) => `${value}`.trim()).filter((value) => value))].sort();
-
-const areStringListsEqual = (left = [], right = []) => {
-    const leftList = normalizedStringList(left);
-    const rightList = normalizedStringList(right);
-    if (leftList.length !== rightList.length) return false;
-    return leftList.every((value, index) => value === rightList[index]);
-};
-
 const templateSummaryHelper = createTreeSelectionSummary(getVariantTreeData());
 
 const getRowRecord = (rowLike) => (rowLike?.value?.name ? rowLike.value : rowLike);
@@ -1009,14 +999,9 @@ export class SettingsStore {
             const hasLocales = record.locales.length > 0;
             const fieldName = reference.fieldName || INDEX_REFERENCES_FIELD;
 
-            if (fieldName === INDEX_REFERENCES_FIELD && !hasLocales) {
-                if (!topLevelByName.has(record.name)) {
-                    topLevelByName.set(record.name, fragment);
-                    continue;
-                }
-
-                const retainedTopLevel = normalizeSettingFragment(topLevelByName.get(record.name));
-                if (areStringListsEqual(record.templateIds, retainedTopLevel.templateIds)) continue;
+            if (fieldName === INDEX_REFERENCES_FIELD && !hasLocales && !topLevelByName.has(record.name)) {
+                topLevelByName.set(record.name, fragment);
+                continue;
             }
 
             const nestedNameKey = fieldName === INDEX_REFERENCES_FIELD ? record.name : fieldName;

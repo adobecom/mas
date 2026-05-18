@@ -47,31 +47,60 @@ export const styles = [
             margin: 24px 0 0;
         }
 
-        sp-table {
+        table {
             width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--spectrum-gray-300, #dadada);
         }
 
-        sp-table-head-cell.center,
-        sp-table-cell.center {
+        thead th {
+            background: var(--spectrum-gray-75, #f3f3f3);
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 18px;
+            color: var(--spectrum-gray-800, #222);
+            text-align: left;
+            padding: 13px 20px;
+            height: 44px;
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
+            white-space: nowrap;
+        }
+
+        thead th.center {
             text-align: center;
         }
 
-        sp-table-row {
-            cursor: pointer;
+        tbody td {
+            padding: 16px 20px;
+            height: 68px;
+            box-sizing: border-box;
+            font-size: 14px;
+            line-height: 18px;
+            color: var(--spectrum-gray-800, #292929);
+            border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
+            background: white;
+            vertical-align: middle;
         }
 
-        sp-table-cell {
-            display: flex;
-            align-items: center;
+        tbody tr:last-child td {
+            border-bottom: none;
         }
 
-        sp-table-row.disabled {
-            opacity: 0.38;
-            pointer-events: none;
-        }
-
-        sp-table-cell.project-name {
+        tbody td.project-name {
             font-weight: 700;
+        }
+
+        tbody td.center {
+            text-align: center;
+        }
+
+        tbody tr.disabled td {
+            opacity: 0.38;
         }
 
         .status-light {
@@ -144,8 +173,13 @@ export const styles = [
             z-index: 10;
         }
 
-        sp-table-row sp-table-cell .skeleton-table-cell {
-            height: 20px;
+        .skeleton-row td {
+            padding: 16px 20px;
+            height: 68px;
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
+            background: white;
+            vertical-align: middle;
         }
     `,
 ];

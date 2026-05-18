@@ -22,10 +22,10 @@ describe('common utils', () => {
 
         describe('short-form CQ tags', () => {
             it('matches regionLocale against mas:locale/<value> (namespace-prefixed)', () => {
-                const result = matchesGeo(
-                    ['mas:locale/BE/fr_BE', 'mas:pzn/country/de', 'mas:locale/en_US'],
-                    { regionLocale: 'en_US', country: 'FR' },
-                );
+                const result = matchesGeo(['mas:locale/BE/fr_BE', 'mas:pzn/country/de', 'mas:locale/en_US'], {
+                    regionLocale: 'en_US',
+                    country: 'FR',
+                });
                 expect(result).to.deep.equal({ region: true, country: false });
             });
 

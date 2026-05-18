@@ -62,6 +62,7 @@ export async function startPublishing({ project, items, paths, locales, token, i
 
 export async function startReverting({ project, repository }) {
     setField(project, 'status', BULK_PUBLISH_STATUS.REVERTING);
+    setField(project, 'lastError', '');
     await repository.saveFragment(project, false);
 
     const raw =
@@ -73,15 +74,10 @@ export async function startReverting({ project, repository }) {
         try {
             snapshot = JSON.parse(raw);
         } catch {
-            // old data was double-encoded — strip outer quotes and try again
-            try {
-                snapshot = JSON.parse(raw.slice(1, -1));
-            } catch {
-                setField(project, 'lastError', 'Snapshot data is corrupted. Please re-publish to create a new snapshot.');
-                setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
-                await repository.saveFragment(project, false);
-                return;
-            }
+            setField(project, 'lastError', 'Snapshot data is corrupted. Please re-publish to create a new snapshot.');
+            setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
+            await repository.saveFragment(project, false);
+            return;
         }
     } else {
         snapshot = raw;

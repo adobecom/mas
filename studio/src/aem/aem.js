@@ -523,6 +523,32 @@ class AEM {
     }
 
     /**
+     * Set a fragment's publication status back to DRAFT by removing the replication
+     * action property via the Sling POST Servlet on the fragment's jcr:content node.
+     * @param {string} fragmentPath - The DAM path of the fragment (e.g. /content/dam/mas/...)
+     * @returns {Promise<void>}
+     */
+    async setFragmentToDraft(fragmentPath) {
+        const csrfToken = await this.getCsrfToken();
+        const formData = new FormData();
+        formData.append('cq:lastReplicationAction@Delete', '');
+        formData.append('_charset_', 'UTF-8');
+        const response = await fetch(`${this.baseUrl}${fragmentPath}/_jcr_content`, {
+            method: 'POST',
+            headers: {
+                ...this.headers,
+                'csrf-token': csrfToken,
+            },
+            body: formData,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to set fragment to draft: ${response.status} ${response.statusText}`);
+        }
+    }
+
+    /**
      * Delete a fragment
      * @param {Object} fragment
      * @returns {Promise<void>}
@@ -1343,6 +1369,10 @@ class AEM {
                  * @see AEM#unpublishFragment
                  */
                 unpublish: this.unpublishFragment.bind(this),
+                /**
+                 * @see AEM#setFragmentToDraft
+                 */
+                setToDraft: this.setFragmentToDraft.bind(this),
                 /**
                  * @see AEM#deleteFragment
                  */

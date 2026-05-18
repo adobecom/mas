@@ -218,9 +218,9 @@ class MasFragmentTable extends LitElement {
                 <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
                 <sp-table-cell class="last-modified-by">${data.modified?.by}</sp-table-cell>
                 <sp-table-cell class="price">${this.price}</sp-table-cell>
-                <sp-table-cell class="status ${(data.status === 'UNPUBLISHED' ? 'DRAFT' : data.status)?.toLowerCase()}-cell"
+                <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
                     ><div class="status-dot"></div>
-                    <span class="status-text">${data.status === 'UNPUBLISHED' ? 'DRAFT' : data.status}</span></sp-table-cell
+                    <span class="status-text">${data.status}</span></sp-table-cell
                 >
                 <sp-table-cell class="actions">
                     ${this.failedPrice

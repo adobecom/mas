@@ -602,10 +602,11 @@ class MasBulkPublishEditor extends LitElement {
     async handleRevertConfirmed() {
         this.revertDialogOpen = false;
         const { startReverting } = await import('./bulk-publish-store.js');
-        try {
+        await this.#withPendingAction(QUICK_ACTION.REVERT, async () => {
             await startReverting({ project: this.project, repository: this.repository });
-        } finally {
-            this.requestUpdate();
+        });
+        if (this.status === BULK_PUBLISH_STATUS.REVERTED) {
+            showToast('Project reverted successfully.', 'positive');
         }
     }
 
@@ -633,7 +634,10 @@ class MasBulkPublishEditor extends LitElement {
     render() {
         if (!this.project) return html`<p>Loading…</p>`;
         const published = this.status === BULK_PUBLISH_STATUS.PUBLISHED;
-        const lastError = this.status === BULK_PUBLISH_STATUS.DRAFT ? (this.getField('lastError') ?? '') : '';
+        const lastError =
+            this.status === BULK_PUBLISH_STATUS.DRAFT || this.status === BULK_PUBLISH_STATUS.PUBLISHED
+                ? (this.getField('lastError') ?? '')
+                : '';
         const titleText = this.isNewProject ? 'Create bulk publish project' : 'Bulk publish project';
         return html`
             ${this.pendingActions.size

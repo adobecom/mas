@@ -70,10 +70,8 @@ export async function revertSnapshot(snapshot, aem) {
     for (const [fragmentId, entry] of Object.entries(snapshot.fragments)) {
         try {
             await aem.sites.cf.fragments.restoreVersion(fragmentId, entry.versionId);
-
             if (!entry.wasPublished) {
-                const fragment = await aem.sites.cf.fragments.getWithEtag(fragmentId);
-                await aem.sites.cf.fragments.unpublish(fragment);
+                await aem.sites.cf.fragments.setToDraft(entry.path);
             }
         } catch (err) {
             failures.push({ path: entry.path, error: err.message });

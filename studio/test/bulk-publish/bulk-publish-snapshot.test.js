@@ -21,7 +21,7 @@ function makeAem({ searchPages = [], fragmentById = {}, versionId = 'v1', getWit
                         if (getWithEtag[id]) return getWithEtag[id];
                         return { id, path: `/content/dam/${id}` };
                     }),
-                    unpublish: sinon.stub().resolves(),
+                    setToDraft: sinon.stub().resolves(),
                 },
             },
         },
@@ -127,19 +127,22 @@ describe('revertSnapshot()', () => {
         expect(aem.sites.cf.fragments.restoreVersion.calledWith('f2', 'v2')).to.equal(true);
     });
 
-    it('re-fetches fragment after restore and calls unpublish for wasPublished === false entries', async () => {
+    it('calls setToDraft after restoreVersion for wasPublished === false entries', async () => {
         const aem = makeAem();
         const snapshot = makeSnapshot([{ id: 'f1', path: '/p1', versionId: 'v1', wasPublished: false }]);
         await revertSnapshot(snapshot, aem);
-        expect(aem.sites.cf.fragments.getWithEtag.calledWith('f1')).to.equal(true);
-        expect(aem.sites.cf.fragments.unpublish.calledOnce).to.equal(true);
+        expect(aem.sites.cf.fragments.setToDraft.calledOnce).to.equal(true);
+        expect(aem.sites.cf.fragments.setToDraft.calledWith('/p1')).to.equal(true);
+        const restoreOrder = aem.sites.cf.fragments.restoreVersion.firstCall.callId;
+        const draftOrder = aem.sites.cf.fragments.setToDraft.firstCall.callId;
+        expect(restoreOrder).to.be.lessThan(draftOrder);
     });
 
-    it('does NOT call unpublish for entries where wasPublished === true', async () => {
+    it('does NOT call setToDraft for entries where wasPublished === true', async () => {
         const aem = makeAem();
         const snapshot = makeSnapshot([{ id: 'f1', path: '/p1', versionId: 'v1', wasPublished: true }]);
         await revertSnapshot(snapshot, aem);
-        expect(aem.sites.cf.fragments.unpublish.called).to.equal(false);
+        expect(aem.sites.cf.fragments.setToDraft.called).to.equal(false);
     });
 
     it('throws with list of failed fragment IDs/paths on partial failure', async () => {

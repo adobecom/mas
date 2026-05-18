@@ -18,7 +18,6 @@ function makeAem({ searchPages = [], versionId = 'v1', restoreRejects = false, g
                         ? sinon.stub().rejects(new Error('restore failed'))
                         : sinon.stub().resolves(),
                     getWithEtag: sinon.stub().resolves(getWithEtag ?? { id: 'frag-id', path: '/p' }),
-                    unpublish: sinon.stub().resolves(),
                 },
             },
         },

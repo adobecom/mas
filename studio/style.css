@@ -633,8 +633,7 @@ sp-table-cell {
         }
 
         &.new-cell .status-dot,
-        &.draft-cell .status-dot,
-        &.unpublished-cell .status-dot {
+        &.draft-cell .status-dot {
             background-color: var(--spectrum-blue-800);
         }
 

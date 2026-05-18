@@ -92,6 +92,8 @@ class MasBulkPublishItems extends LitElement {
         if (!item.path || !this.modifications) return html`<span class="modification-cell">–</span>`;
         const modified = this.modifications.get(item.path);
         if (modified === undefined) return html`<span class="modification-cell">–</span>`;
+        if (modified === null)
+            return html`<span class="modification-cell"> <span class="modification-dot not-found-dot"></span>Not found </span>`;
         return modified
             ? html`<span class="modification-cell"><span class="modification-dot"></span>Modified</span>`
             : html`<span class="modification-cell">–</span>`;
@@ -99,7 +101,13 @@ class MasBulkPublishItems extends LitElement {
 
     renderModificationFooter() {
         if (!this.modifications) return html`<span class="modification-cell">–</span>`;
-        const modifiedCount = [...this.modifications.values()].filter(Boolean).length;
+        const values = [...this.modifications.values()];
+        const modifiedCount = values.filter((v) => v === true).length;
+        const notFoundCount = values.filter((v) => v === null).length;
+        if (notFoundCount > 0)
+            return html`<span class="modification-cell">
+                <span class="modification-dot not-found-dot"></span>${notFoundCount} not found
+            </span>`;
         return modifiedCount > 0
             ? html`<span class="modification-cell"><span class="modification-dot"></span>${modifiedCount} modified</span>`
             : html`<span class="modification-cell">–</span>`;
@@ -210,6 +218,7 @@ class MasBulkPublishItems extends LitElement {
                               data-testid="check-modifications-btn"
                               @click=${() => emit(this, 'check-modifications')}
                           >
+                              <sp-icon-refresh slot="icon"></sp-icon-refresh>
                               Check for modifications
                           </sp-action-button>`
                         : nothing}

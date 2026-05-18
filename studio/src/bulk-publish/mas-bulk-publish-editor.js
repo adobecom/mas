@@ -581,14 +581,25 @@ class MasBulkPublishEditor extends LitElement {
             showToast('No snapshot available to compare.', 'negative');
             return;
         }
-        try {
-            const { checkModifications } = await import('./bulk-publish-snapshot.js');
-            const results = await checkModifications(snapshot, this.repository.aem);
-            this.modifications = new Map(results.map(({ path, modified }) => [path, modified]));
-        } catch (err) {
-            console.error('Failed to check modifications:', err);
-            showToast('Failed to check modifications.', 'negative');
-        }
+        await this.#withPendingAction(QUICK_ACTION.CHECK_MODIFICATIONS, async () => {
+            try {
+                const { checkModifications } = await import('./bulk-publish-snapshot.js');
+                const results = await checkModifications(snapshot, this.repository.aem);
+                this.modifications = new Map(results.map(({ path, modified }) => [path, modified]));
+                const modifiedCount = results.filter((r) => r.modified === true).length;
+                const notFoundCount = results.filter((r) => r.modified === null).length;
+                if (notFoundCount > 0) {
+                    showToast(`${notFoundCount} item${notFoundCount !== 1 ? 's' : ''} not found.`, 'negative');
+                } else if (modifiedCount > 0) {
+                    showToast(`${modifiedCount} item${modifiedCount !== 1 ? 's' : ''} modified since last publish.`, 'info');
+                } else {
+                    showToast('No modifications found.', 'positive');
+                }
+            } catch (err) {
+                console.error('Failed to check modifications:', err);
+                showToast('Failed to check modifications.', 'negative');
+            }
+        });
     }
 
     handleRevert() {

@@ -101,7 +101,7 @@ export async function checkModifications(snapshot, aem) {
             const modified = modifiedAt ? new Date(modifiedAt).getTime() > snapshotTime : false;
             results.push({ path: entry.path, modified });
         } catch {
-            results.push({ path: entry.path, modified: false });
+            results.push({ path: entry.path, modified: null });
         }
     }
 

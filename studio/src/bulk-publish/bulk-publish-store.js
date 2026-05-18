@@ -2,6 +2,11 @@ import Store from '../store.js';
 import { BULK_PUBLISH_STATUS } from '../constants.js';
 import { createSnapshot, revertSnapshot } from './bulk-publish-snapshot.js';
 
+function getProjectField(project, name, fallback) {
+    const data = project.value ?? project;
+    return data.getFieldValue?.(name) ?? data[name] ?? fallback;
+}
+
 function setField(project, name, value) {
     if (typeof project.updateField === 'function') {
         project.updateField(name, [value]);
@@ -21,10 +26,7 @@ export async function startPublishing({ project, items, paths, locales, token, i
     const aem = repository.aem;
     let snapshot;
     try {
-        const projectTitle =
-            typeof project.value?.getFieldValue === 'function'
-                ? project.value.getFieldValue('title')
-                : (project.getFieldValue?.('title') ?? project.title ?? '');
+        const projectTitle = getProjectField(project, 'title', '');
         snapshot = await createSnapshot({ items, id: project.id, title: projectTitle }, aem, userEmail);
     } catch (err) {
         setField(project, 'lastError', err.message);
@@ -65,10 +67,7 @@ export async function startReverting({ project, repository }) {
     setField(project, 'lastError', '');
     await repository.saveFragment(project, false);
 
-    const raw =
-        typeof project.value?.getFieldValue === 'function'
-            ? project.value.getFieldValue('snapshot')
-            : (project.getFieldValue?.('snapshot') ?? project.snapshot);
+    const raw = getProjectField(project, 'snapshot');
     let snapshot;
     if (typeof raw === 'string') {
         try {

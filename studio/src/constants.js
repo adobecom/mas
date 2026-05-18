@@ -249,6 +249,7 @@ export const QUICK_ACTION = {
     VALIDATE: 'validate',
     LINK: 'link',
     REVERT: 'revert',
+    CHECK_MODIFICATIONS: 'check-modifications',
 };
 
 export const FILTER_TYPE = {

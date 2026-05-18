@@ -31,7 +31,7 @@ export const styles = css`
         color: var(--spectrum-red-600, #d31510);
     }
     .sublabel {
-        font-size: 14px;
+        font-size: var(--spectrum-font-size-100);
         color: var(--spectrum-gray-700, #6d6d6d);
         margin-bottom: 8px;
         margin-top: 12px;
@@ -48,7 +48,7 @@ export const styles = css`
         padding: 8px 12px;
         background: var(--spectrum-gray-100, #f3f3f3);
         border-bottom: 1px solid var(--spectrum-gray-300, #dadada);
-        font-size: 14px;
+        font-size: var(--spectrum-font-size-100);
         font-weight: 700;
         user-select: none;
     }
@@ -102,7 +102,7 @@ export const styles = css`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: 14px;
+        font-size: var(--spectrum-font-size-100);
         min-width: 0;
     }
     li .url-spacer {
@@ -118,7 +118,7 @@ export const styles = css`
         border-top: 1px solid var(--spectrum-gray-300, #dadada);
         border-bottom: none;
         font-weight: 700;
-        font-size: 14px;
+        font-size: var(--spectrum-font-size-100);
     }
     .footer-count {
         white-space: nowrap;
@@ -127,7 +127,7 @@ export const styles = css`
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 14px;
+        font-size: var(--spectrum-font-size-100);
         white-space: nowrap;
         width: 160px;
         flex-shrink: 0;
@@ -146,7 +146,7 @@ export const styles = css`
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 14px;
+        font-size: var(--spectrum-font-size-100);
         white-space: nowrap;
         width: 120px;
         flex-shrink: 0;
@@ -158,5 +158,8 @@ export const styles = css`
         border-radius: 50%;
         background-color: var(--spectrum-orange-600, #d45b00);
         flex-shrink: 0;
+    }
+    .not-found-dot {
+        background-color: var(--spectrum-negative-visual-color);
     }
 `;

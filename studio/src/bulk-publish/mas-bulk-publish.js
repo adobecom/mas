@@ -220,12 +220,10 @@ class MasBulkPublish extends LitElement {
                 </sp-action-button>
                 <sp-popover slot="click-content">
                     <sp-menu>
-                        ${!isPublished
-                            ? html`<sp-menu-item @click=${() => this.openProject(projectStore)}>
-                                  <sp-icon-edit slot="icon"></sp-icon-edit>
-                                  Edit
-                              </sp-menu-item>`
-                            : nothing}
+                        <sp-menu-item @click=${() => this.openProject(projectStore)}>
+                            <sp-icon-edit slot="icon"></sp-icon-edit>
+                            Edit
+                        </sp-menu-item>
                         ${!isPublished
                             ? html`<sp-menu-item @click=${() => this.handlePublish(projectStore)}>
                                   ${PUBLISH_SVG} Publish
@@ -255,9 +253,12 @@ class MasBulkPublish extends LitElement {
         return Array.from(
             { length: 5 },
             (_, i) => html`
-                <tr class="skeleton-row" key=${i}>
-                    ${Array.from({ length: 8 }, () => html`<td><div class="skeleton-element skeleton-table-cell"></div></td>`)}
-                </tr>
+                <sp-table-row key=${i}>
+                    ${Array.from(
+                        { length: 8 },
+                        () => html`<sp-table-cell><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>`,
+                    )}
+                </sp-table-row>
             `,
         );
     }
@@ -271,16 +272,22 @@ class MasBulkPublish extends LitElement {
         const scheduledAt = getProjectField(data, 'publishedAt');
         const isDisabled = status === BULK_PUBLISH_STATUS.PUBLISHING;
         return html`
-            <tr data-testid="project-row" class=${isDisabled ? 'disabled' : ''}>
-                <td class="project-name">${title || 'Untitled project'}</td>
-                <td class="center">${counts.fragment}</td>
-                <td class="center">${counts.collection}</td>
-                <td class="center">${counts.placeholder}</td>
-                <td>${createdBy}</td>
-                <td>${this.formatDate(scheduledAt)}</td>
-                <td>${this.renderStatus(status)}</td>
-                <td class="actions-cell">${this.renderActions(projectStore)}</td>
-            </tr>
+            <sp-table-row
+                data-testid="project-row"
+                class=${isDisabled ? 'disabled' : ''}
+                @click=${() => this.openProject(projectStore)}
+            >
+                <sp-table-cell class="project-name">${title || 'Untitled project'}</sp-table-cell>
+                <sp-table-cell class="center">${counts.fragment}</sp-table-cell>
+                <sp-table-cell class="center">${counts.collection}</sp-table-cell>
+                <sp-table-cell class="center">${counts.placeholder}</sp-table-cell>
+                <sp-table-cell>${createdBy}</sp-table-cell>
+                <sp-table-cell>${this.formatDate(scheduledAt)}</sp-table-cell>
+                <sp-table-cell>${this.renderStatus(status)}</sp-table-cell>
+                <sp-table-cell class="actions-cell" @click=${(e) => e.stopPropagation()}
+                    >${this.renderActions(projectStore)}</sp-table-cell
+                >
+            </sp-table-row>
         `;
     }
 
@@ -331,23 +338,21 @@ class MasBulkPublish extends LitElement {
             ${showEmpty
                 ? html`<p class="empty" data-testid="empty">No bulk publish projects yet.</p>`
                 : html`
-                      <table>
-                          <thead>
-                              <tr>
-                                  <th>Project</th>
-                                  <th class="center">Fragment</th>
-                                  <th class="center">Collection</th>
-                                  <th class="center">Placeholder</th>
-                                  <th>Created by</th>
-                                  <th>Scheduled publish date</th>
-                                  <th>Status</th>
-                                  <th class="center">Actions</th>
-                              </tr>
-                          </thead>
-                          <tbody>
+                      <sp-table>
+                          <sp-table-head>
+                              <sp-table-head-cell>Project</sp-table-head-cell>
+                              <sp-table-head-cell class="center">Fragment</sp-table-head-cell>
+                              <sp-table-head-cell class="center">Collection</sp-table-head-cell>
+                              <sp-table-head-cell class="center">Placeholder</sp-table-head-cell>
+                              <sp-table-head-cell>Created by</sp-table-head-cell>
+                              <sp-table-head-cell>Scheduled publish date</sp-table-head-cell>
+                              <sp-table-head-cell>Status</sp-table-head-cell>
+                              <sp-table-head-cell class="center">Actions</sp-table-head-cell>
+                          </sp-table-head>
+                          <sp-table-body>
                               ${isLoading ? this.renderSkeletonRows() : projects.map((p) => this.renderRow(p))}
-                          </tbody>
-                      </table>
+                          </sp-table-body>
+                      </sp-table>
                   `}
         `;
     }

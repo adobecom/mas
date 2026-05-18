@@ -61,7 +61,7 @@ function priceOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        options.promotionCode = card.contextPromotionCode;
     }
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
@@ -76,7 +76,7 @@ function checkoutOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        options.promotionCode = card.contextPromotionCode;
     }
 }
 
@@ -273,6 +273,10 @@ export class MerchCard extends LitElement {
 
     set contextPromotionCode(value) {
         this.#contextPromotionCode = value;
+    }
+
+    get contextPromotionCode() {
+        return this.#contextPromotionCode;
     }
 
     firstUpdated() {
@@ -668,7 +672,7 @@ export class MerchCard extends LitElement {
         let fragmentId = aemFragment?.getAttribute('fragment');
         fragmentId = `[${fragmentId}]`;
         const detail = {
-            ...this.aemFragment.fetchInfo,
+            ...this.aemFragment?.fetchInfo,
             ...this.#service.duration,
             ...details,
             message: error,
@@ -725,7 +729,9 @@ export class MerchCard extends LitElement {
         const masElements = [...this.querySelectorAll(SELECTOR_MAS_ELEMENT)];
         const successPromise = Promise.all(
             masElements.map((element) =>
-                element.onceSettled().catch(() => element),
+                typeof element.onceSettled === 'function'
+                    ? element.onceSettled().catch(() => element)
+                    : Promise.resolve(element),
             ),
         ).then((elements) =>
             elements.every((el) =>

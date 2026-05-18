@@ -308,33 +308,39 @@ class MasSearchAndFilters extends LitElement {
                     const value = fragment.value?.toLowerCase() || '';
                     if (!key.includes(query) && !value.includes(query)) return false;
                 } else {
-                    const title = (fragment.title || '').toLowerCase();
-                    const studioPath = (fragment.studioPath || '').toLowerCase();
-                    const path = (fragment.path || '').toLowerCase();
+                    const parts = [
+                        fragment.title || '',
+                        fragment.description || '',
+                        fragment.studioPath || '',
+                        fragment.path || '',
+                    ];
+
                     const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
+                    if (productTag) parts.push(productTag);
+
                     const offerId = fragment.offerData?.offerId || '';
+                    if (offerId) parts.push(offerId);
 
                     // Compute Fragment Title (e.g., "merch-card: SURFACE / cardTitle / variant / segment")
-                    let fragmentTitle = '';
                     try {
                         const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path] || '';
-                        // Wrap the fragment in a Fragment instance for getFragmentPartsToUse
                         const fragmentInstance = new Fragment(fragment);
                         const { fragmentParts } = getFragmentPartsToUse(Store, fragmentInstance);
-                        fragmentTitle = `${webComponentName}: ${fragmentParts}`.toLowerCase();
+                        const fragmentTitle = `${webComponentName}: ${fragmentParts}`;
+                        if (fragmentTitle) parts.push(fragmentTitle);
                     } catch (e) {
                         // If fragment title computation fails, continue with other fields
-                        fragmentTitle = '';
                     }
 
-                    if (
-                        !title.includes(query) &&
-                        !studioPath.includes(query) &&
-                        !path.includes(query) &&
-                        !productTag.toLowerCase().includes(query) &&
-                        !offerId.toLowerCase().includes(query) &&
-                        !fragmentTitle.includes(query)
-                    ) {
+                    // Add all string-valued fields (e.g., cardTitle, description, etc.)
+                    for (const field of fragment.fields || []) {
+                        for (const value of field.values || []) {
+                            if (typeof value === 'string') parts.push(value);
+                        }
+                    }
+
+                    const haystack = parts.join('\n').toLowerCase();
+                    if (!haystack.includes(query)) {
                         return false;
                     }
                 }

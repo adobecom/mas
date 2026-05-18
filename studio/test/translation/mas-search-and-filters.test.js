@@ -537,6 +537,95 @@ describe('MasSearchAndFilters', () => {
             expect(result.length).to.equal(1);
             expect(result[0].tags[0].title).to.equal('Individuals');
         });
+
+        it('should search by string values in fragment fields (cardTitle)', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({
+                    title: 'Card A',
+                    fields: [{ name: 'cardTitle', values: ['Firefly Pro'] }],
+                }),
+                createMockFragment({
+                    title: 'Card B',
+                    fields: [{ name: 'cardTitle', values: ['Photoshop Basic'] }],
+                }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'Firefly Pro';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayCards.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].title).to.equal('Card A');
+        });
+
+        it('should search partial matches in fragment fields', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({
+                    title: 'Test',
+                    fields: [{ name: 'cardTitle', values: ['Adobe Embedded Print Engine'] }],
+                }),
+                createMockFragment({
+                    title: 'Test 2',
+                    fields: [{ name: 'cardTitle', values: ['Something Else'] }],
+                }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'Print Engine';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayCards.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].title).to.equal('Test');
+        });
+
+        it('should search across multiple field values', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({
+                    title: 'Fragment 1',
+                    fields: [
+                        { name: 'cardTitle', values: ['Creative Cloud'] },
+                        { name: 'description', values: ['For individuals'] },
+                    ],
+                }),
+                createMockFragment({
+                    title: 'Fragment 2',
+                    fields: [{ name: 'cardTitle', values: ['Acrobat'] }],
+                }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'individuals';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayCards.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].title).to.equal('Fragment 1');
+        });
+
+        it('should handle fragments without fields gracefully', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'No fields', fields: undefined }),
+                createMockFragment({ title: 'With fields', fields: [{ name: 'test', values: ['value'] }] }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'fields';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayCards.get();
+            expect(result.length).to.equal(2);
+        });
+
+        it('should handle fields with non-string values', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({
+                    title: 'Mixed types',
+                    fields: [
+                        { name: 'number', values: [123] },
+                        { name: 'text', values: ['searchable'] },
+                    ],
+                }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'searchable';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayCards.get();
+            expect(result.length).to.equal(1);
+        });
     });
 
     describe('filter extraction', () => {

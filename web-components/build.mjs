@@ -69,6 +69,7 @@ Promise.all([
         outfile: `${outfolder}/mas-field.js`,
     }),
     buildLitComponent('merch-card'),
+    buildLitComponent('merch-card-collection'),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
     buildLitComponent('merch-secure-transaction'),

@@ -89,7 +89,7 @@ class MerchCardEditor extends LitElement {
 
     static SECTION_FIELDS = {
         Visuals: ['mnemonics', 'badge', 'trialBadge', 'border-color'],
-        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker'],
+        "What's included": ['whatsIncluded', 'whatsIncludedIconPicker', 'whats-included-divider-color'],
         'Product details': ['description', 'shortDescription', 'callout'],
         'Footer rows': ['footerRows'],
         Footer: ['ctas'],
@@ -101,6 +101,7 @@ class MerchCardEditor extends LitElement {
     availableSizes = [];
     availableColors = [];
     availableBorderColors = [];
+    availableWhatsIncludedDividerColors = [];
     availableBadgeColors = [];
     availableBackgroundColors = [];
     quantitySelectorValues = '';
@@ -371,6 +372,8 @@ class MerchCardEditor extends LitElement {
             settingsContextFragment.tags = structuredClone(this.localeDefaultFragment.tags);
         }
 
+        if (!settingsContextFragment.locale) settingsContextFragment.locale = this.fragment.locale;
+
         return settingsContextFragment;
     }
 
@@ -470,6 +473,7 @@ class MerchCardEditor extends LitElement {
                 title: this.#getQuantitySelectValue(fieldName, 'title', parentValues, currentValues),
                 min: this.#getQuantitySelectValue(fieldName, 'min', parentValues, currentValues),
                 step: this.#getQuantitySelectValue(fieldName, 'step', parentValues, currentValues),
+                defaultValue: this.#getQuantitySelectValue(fieldName, 'defaultValue', parentValues, currentValues),
             });
             if (this.globalSettingsDefaults[QUANTITY_MODEL] === html) {
                 this.fragmentStore.updateField(QUANTITY_MODEL, ['']);
@@ -659,27 +663,57 @@ class MerchCardEditor extends LitElement {
         return doc.querySelector('merch-whats-included');
     }
 
+    get whatsIncludedDividerFromMarkup() {
+        const el = this.whatsIncludedElement;
+        const v = el?.getAttribute('whats-included-divider-color')?.trim();
+        return v || '';
+    }
+
+    /** Persists divider token on `<merch-whats-included whats-included-divider-color>` inside the whatsIncluded field HTML. */
+    #persistWhatsIncludedDividerColor(token) {
+        const html = this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '';
+        if (!html.trim()) return;
+
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const wi = doc.querySelector('merch-whats-included');
+        if (!wi) return;
+
+        const trimmed = token == null ? '' : String(token).trim();
+        if (!trimmed || trimmed.toLowerCase() === 'default') {
+            wi.removeAttribute('whats-included-divider-color');
+        } else {
+            wi.setAttribute('whats-included-divider-color', trimmed);
+        }
+
+        this.fragmentStore.updateField(WHAT_IS_INCLUDED, [wi.outerHTML]);
+    }
+
     getWhatsIncludedProps(el, fallback = true) {
-        const desc = el.querySelector('[slot="description"] > span');
-        const descHtml = desc?.innerHTML?.trim();
-        const alt = descHtml ? `<p>${descHtml}</p>` : '';
+        const descParent = el.querySelector('[slot="description"]');
+        const desc = descParent?.querySelector(':scope > span') ?? descParent ?? undefined;
+        const descHtml = desc?.innerHTML?.trim() ?? '';
+        const altWrapped = descHtml ? `<p>${descHtml}</p>` : '';
+        const textAlt = desc?.textContent?.trim() ?? '';
+
+        const variantValue = this.getEffectiveFieldValue('variant');
+        const isMiniChart = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART;
+        const altForVariant = isMiniChart ? altWrapped : textAlt;
 
         const iconEl = el.querySelector('merch-icon');
         if (iconEl) {
-            const variantValue = this.getEffectiveFieldValue('variant');
-            const isMiniChart = variantValue === VARIANT_NAMES.MINI_COMPARE_CHART;
             const icon = iconEl.getAttribute('src') || '';
             const linkEl = el.querySelector('[slot="icon"] a');
             const link = linkEl?.getAttribute('href') || '';
-            return { icon, alt: isMiniChart ? alt : desc?.textContent, link };
+            return { icon, alt: altForVariant, link };
         }
-        // Fallback for spectrum icons (sp-icon-* elements)
         const spIcon = el.querySelector('.sp-icon');
         if (spIcon && fallback) {
             const icon = spIcon.tagName.toLowerCase();
-            return { icon, alt, link: '' };
+            return { icon, alt: altForVariant, link: '' };
         }
-        return { icon: '', alt: '', link: '' };
+        const linkEl = el.querySelector('[slot="icon"] a');
+        const link = linkEl?.getAttribute('href') || '';
+        return { icon: '', alt: altForVariant, link };
     }
 
     get whatsIncluded() {
@@ -759,6 +793,11 @@ class MerchCardEditor extends LitElement {
         return value;
     }
 
+    #quantitySelectSettingsDefaultsMarkup() {
+        const raw = this.globalSettingsDefaults[QUANTITY_MODEL];
+        return raw === '' || raw == null ? QUANTITY_EMPTY : raw;
+    }
+
     #handleQuantityFieldChange = (event) => {
         const html = event.detail?.value ?? event.currentTarget?.value;
         if (typeof html !== 'string') return;
@@ -832,6 +871,10 @@ class MerchCardEditor extends LitElement {
         if (variant.borderColor) {
             const borderField = this.querySelector('sp-field-group.toggle#border-color');
             if (borderField) borderField.style.display = 'block';
+        }
+        if (variant.whatsIncludedDividerColor) {
+            const dividerField = this.querySelector('sp-field-group.toggle#whats-included-divider-color');
+            if (dividerField) dividerField.style.display = 'block';
         }
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
@@ -1315,6 +1358,15 @@ class MerchCardEditor extends LitElement {
                 </sp-field-group>
                 <sp-field-group class="toggle" id="whatsIncludedIconPicker">
                     <div class="section-title">What's included</div>
+                    ${this.currentVariantMapping?.whatsIncludedDividerColor
+                        ? this.#renderColorPicker(
+                              'whats-included-divider-color',
+                              'Divider color',
+                              this.availableWhatsIncludedDividerColors,
+                              this.whatsIncludedDividerFromMarkup,
+                              'whatsIncludedDividerColor',
+                          )
+                        : nothing}
                     <mas-multifield
                         button-label="Add application"
                         data-field-state="${this.getFieldState('whatsIncluded')}"
@@ -1582,9 +1634,7 @@ class MerchCardEditor extends LitElement {
                                 : this.renderSettingOverrideIndicator('quantitySelect')}
                             .fieldIndicatorTemplate=${this.renderQuantitySelectSettingOverrideIndicator}
                             value="${this.getEffectiveSettingValue(QUANTITY_MODEL)}"
-                            settingsDefaults="${this.globalSettingsDefaults[QUANTITY_MODEL] === ''
-                                ? QUANTITY_EMPTY
-                                : this.globalSettingsDefaults[QUANTITY_MODEL]}"
+                            settingsDefaults="${this.#quantitySelectSettingsDefaultsMarkup()}"
                             .handleQuantityFieldChange=${this.#handleQuantityFieldChange}
                         ></quantity-select-settings-field>
                     </sp-field-group>
@@ -1630,6 +1680,25 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
     }
 
+    #whatsIncludedRowIsEmpty(value) {
+        const icon = String(value?.icon ?? '').trim();
+        const link = String(value?.link ?? '').trim();
+        if (icon || link) return false;
+
+        let alt = value?.alt;
+        if (alt == null || alt === '') return true;
+        alt = String(alt).trim();
+        if (!alt) return true;
+        if (!alt.startsWith('<p>')) return false;
+
+        const doc = new DOMParser().parseFromString(alt, 'text/html');
+        const t = doc
+            .querySelector('p')
+            ?.textContent.replace(/\u00a0/g, ' ')
+            .trim();
+        return !t;
+    }
+
     createMnemonicList(value, isBullet) {
         let merchIcon;
         const list = document.createElement('merch-mnemonic-list');
@@ -1671,10 +1740,16 @@ class MerchCardEditor extends LitElement {
         return list;
     }
 
-    createIncludedElement(label, values, bullets) {
-        if (!label && !values?.length) return undefined;
+    createIncludedElement(label, values, bullets, dividerAttr) {
+        const valueItems = (values ?? []).filter((v) => !this.#whatsIncludedRowIsEmpty(v));
+        const bulletItems = (bullets ?? []).filter((v) => !this.#whatsIncludedRowIsEmpty(v));
+        if (!label && !valueItems.length && !bulletItems.length) return undefined;
 
         const element = document.createElement('merch-whats-included');
+        const d = dividerAttr == null ? '' : String(dividerAttr).trim();
+        if (d && d.toLowerCase() !== 'default') {
+            element.setAttribute('whats-included-divider-color', d);
+        }
         const heading = document.createElement('div');
         heading.setAttribute('slot', 'heading');
         heading.textContent = label || '';
@@ -1682,14 +1757,14 @@ class MerchCardEditor extends LitElement {
         const contentBullets = document.createElement('div');
         contentBullets.setAttribute('slot', 'contentBullets');
         element.append(contentBullets);
-        if (bullets.length) element.setAttribute('has-bullets', 'true');
-        bullets.forEach((value) => {
+        if (bulletItems.length) element.setAttribute('has-bullets', 'true');
+        bulletItems.forEach((value) => {
             contentBullets.append(this.createMnemonicList(value, true));
         });
         const content = document.createElement('div');
         content.setAttribute('slot', 'content');
         element.append(content);
-        values.forEach((value) => {
+        valueItems.forEach((value) => {
             content.append(this.createMnemonicList(value));
         });
 
@@ -1719,7 +1794,7 @@ class MerchCardEditor extends LitElement {
             values = this.whatsIncluded.values;
             bullets = this.whatsIncluded.bullets;
         }
-        const element = this.createIncludedElement(label, values, bullets);
+        const element = this.createIncludedElement(label, values, bullets, this.whatsIncludedDividerFromMarkup);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
     }
 
@@ -1941,6 +2016,7 @@ class MerchCardEditor extends LitElement {
         if (!this.currentVariantMapping) {
             this.availableColors = [];
             this.availableBorderColors = [];
+            this.availableWhatsIncludedDividerColors = [];
             this.availableBadgeColors = [];
             return;
         }
@@ -1956,6 +2032,15 @@ class MerchCardEditor extends LitElement {
         } else {
             this.availableBorderColors = [];
             this.availableBadgeColors = [];
+        }
+        if (variant.whatsIncludedDividerColor) {
+            const resolveDivider = (curated) =>
+                variant.showAllSpectrumColors && curated
+                    ? [...curated, ...SPECTRUM_COLORS.filter((c) => !curated.includes(c))]
+                    : curated || SPECTRUM_COLORS;
+            this.availableWhatsIncludedDividerColors = resolveDivider(variant.allowedWhatsIncludedDividerColors);
+        } else {
+            this.availableWhatsIncludedDividerColors = [];
         }
         this.#displayBadgeColorFields(this.badgeText);
         this.#displayTrialBadgeColorFields(this.trialBadgeText);
@@ -2121,6 +2206,7 @@ class MerchCardEditor extends LitElement {
             title: this.#getQuantitySelectValue(component, 'title', parentValues, currentValues),
             min: this.#getQuantitySelectValue(component, 'min', parentValues, currentValues),
             step: this.#getQuantitySelectValue(component, 'step', parentValues, currentValues),
+            defaultValue: this.#getQuantitySelectValue(component, 'defaultValue', parentValues, currentValues),
         });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
@@ -2144,6 +2230,9 @@ class MerchCardEditor extends LitElement {
         if (isBadgeBorderColor) {
             const fieldName = dataField === 'badgeBorderColor' ? 'badge' : 'trialBadge';
             return this.getBadgeComponentState(fieldName, 'borderColor');
+        }
+        if (dataField === 'whatsIncludedDividerColor') {
+            return this.getFieldState(WHAT_IS_INCLUDED);
         }
         return this.getFieldState(dataField);
     }
@@ -2366,6 +2455,7 @@ class MerchCardEditor extends LitElement {
     #renderColorPicker(id, label, colors, selectedValue, dataField, onChange) {
         const isBackground = dataField === 'backgroundColor';
         const isBorder = dataField === 'borderColor';
+        const isDividerField = dataField === 'whatsIncludedDividerColor';
         const isBadgeColor = dataField === 'badgeColor' || dataField === 'trialBadgeColor';
         const isBadgeBorderColor = dataField === 'badgeBorderColor' || dataField === 'trialBadgeBorderColor';
 
@@ -2374,19 +2464,20 @@ class MerchCardEditor extends LitElement {
         let colorArray = Array.isArray(colors) ? colors : Object.keys(colors || {});
 
         let variantSpecialValues = {};
-        if (this.fragment && isBorder && this.currentVariantMapping) {
+        if (this.fragment && (isBorder || isDividerField) && this.currentVariantMapping) {
             const variant = this.currentVariantMapping;
-            variantSpecialValues = variant?.borderColor?.specialValues || {};
+            const colorConfig = isBorder ? variant.borderColor : variant.whatsIncludedDividerColor;
+            variantSpecialValues = colorConfig?.specialValues || {};
             if (showAllSpectrum && Object.keys(variantSpecialValues).length > 0) {
                 colorArray = [...colorArray, ...Object.keys(variantSpecialValues)];
             }
         }
 
-        const isSpecialValue = (color) => isBorder && Object.keys(variantSpecialValues).includes(color);
+        const isSpecialValue = (color) => (isBorder || isDividerField) && Object.keys(variantSpecialValues).includes(color);
 
         let displaySelectedValue = selectedValue;
-        if (isBorder && variantSpecialValues && selectedValue) {
-            const specialValueKey = Object.entries(variantSpecialValues).find(([, value]) => value === selectedValue)?.[0];
+        if ((isBorder || isDividerField) && variantSpecialValues && selectedValue) {
+            const specialValueKey = Object.entries(variantSpecialValues).find(([, val]) => val === selectedValue)?.[0];
 
             if (specialValueKey) {
                 displaySelectedValue = specialValueKey;
@@ -2396,7 +2487,7 @@ class MerchCardEditor extends LitElement {
         const hasNoExplicitColor = !selectedValue || selectedValue === '';
         const isTransparent = selectedValue === 'transparent';
 
-        if (hasNoExplicitColor && (isBadgeColor || isBadgeBorderColor || isBorder)) {
+        if (hasNoExplicitColor && (isBadgeColor || isBadgeBorderColor || isBorder || isDividerField)) {
             displaySelectedValue = 'Default';
         } else if (isTransparent) {
             displaySelectedValue = 'Transparent';
@@ -2407,7 +2498,7 @@ class MerchCardEditor extends LitElement {
             : [
                   'Default',
                   'Transparent',
-                  ...(isBorder && !showAllSpectrum ? Object.keys(variantSpecialValues) : []),
+                  ...((isBorder || isDividerField) && !showAllSpectrum ? Object.keys(variantSpecialValues) : []),
                   ...colorArray,
               ];
 
@@ -2427,6 +2518,8 @@ class MerchCardEditor extends LitElement {
                     } else if (dataField === 'trialBadgeBorderColor') {
                         this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, '');
                     }
+                } else if (isDividerField) {
+                    this.#persistWhatsIncludedDividerColor('');
                 } else if (isBorder) {
                     const fragment = this.fragmentStore.get();
                     fragment.updateField(dataField, ['Default']);
@@ -2449,16 +2542,22 @@ class MerchCardEditor extends LitElement {
                     } else if (dataField === 'trialBadgeBorderColor') {
                         this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, 'transparent');
                     }
+                } else if (isDividerField) {
+                    this.#persistWhatsIncludedDividerColor('transparent');
                 } else if (isBorder) {
                     const fragment = this.fragmentStore.get();
                     fragment.updateField(dataField, ['transparent']);
                     this.fragmentStore.set(fragment);
                 }
-            } else if (isBorder && isSpecialValue(value)) {
+            } else if ((isBorder || isDividerField) && isSpecialValue(value)) {
                 const actualValue = variantSpecialValues[value];
-                const fragment = this.fragmentStore.get();
-                fragment.updateField(dataField, [actualValue]);
-                this.fragmentStore.set(fragment);
+                if (isDividerField) {
+                    this.#persistWhatsIncludedDividerColor(actualValue);
+                } else {
+                    const fragment = this.fragmentStore.get();
+                    fragment.updateField(dataField, [actualValue]);
+                    this.fragmentStore.set(fragment);
+                }
             } else if (isBadgeColor) {
                 if (dataField === 'badgeColor') {
                     this.#updateBadge(this.badge.text, value, this.badge.borderColor, this.badge.icon);
@@ -2471,6 +2570,8 @@ class MerchCardEditor extends LitElement {
                 } else if (dataField === 'trialBadgeBorderColor') {
                     this.#updateTrialBadge(this.trialBadge.text, this.trialBadge.bgColor, value);
                 }
+            } else if (isDividerField) {
+                this.#persistWhatsIncludedDividerColor(value);
             } else {
                 if (onChange) {
                     onChange(e);
@@ -2488,8 +2589,10 @@ class MerchCardEditor extends LitElement {
                     data-field="${dataField}"
                     data-field-state="${this.#getColorPickerFieldState(dataField, isBadgeColor, isBadgeBorderColor)}"
                     value="${displaySelectedValue ||
-                    (isBackground || isBadgeColor || isBadgeBorderColor || isBorder ? 'Default' : '')}"
-                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder ? 'Default' : ''}"
+                    (isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isDividerField ? 'Default' : '')}"
+                    data-default-value="${isBackground || isBadgeColor || isBadgeBorderColor || isBorder || isDividerField
+                        ? 'Default'
+                        : ''}"
                     @change="${handleChange}"
                 >
                     ${options.map(

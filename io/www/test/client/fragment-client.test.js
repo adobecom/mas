@@ -46,7 +46,6 @@ describe('FragmentClient', () => {
         objectKeysStub = sinon.stub(Object, 'keys').callThrough();
         objectKeysStub.withArgs(localStorageStub).callsFake(() => Object.keys(storage));
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
-            // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });

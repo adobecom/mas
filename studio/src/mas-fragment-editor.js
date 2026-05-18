@@ -18,6 +18,7 @@ import { VARIANTS } from './editors/variant-picker.js';
 import { getActiveMerchCardEditor } from './editors/merch-card-editor.js';
 import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
+import { getFragmentPartsToUse } from './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
@@ -28,6 +29,14 @@ const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
+
+function getWhatsIncludedDividerColorFromMarkup(fragment) {
+    if (!fragment) return '';
+    const html = fragment.getFieldValue('whatsIncluded', 0) || '';
+    if (!html.trim()) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.querySelector('merch-whats-included')?.getAttribute('whats-included-divider-color')?.trim() || '';
+}
 
 export default class MasFragmentEditor extends LitElement {
     static styles = css`
@@ -603,6 +612,23 @@ export default class MasFragmentEditor extends LitElement {
         return attrs;
     }
 
+    get previewWhatsIncludedDividerAttribute() {
+        const fragment = this.fragmentStore?.previewStore?.value || this.fragment;
+        if (!fragment) return '';
+
+        const v = getWhatsIncludedDividerColorFromMarkup(fragment) || fragment.getFieldValue('whatsIncludedDividerColor', 0);
+        if (!v || v === 'Default' || v.toLowerCase() === 'default') {
+            return '';
+        }
+        if (/-gradient/.test(v) || /^gradient-/.test(v)) {
+            return v;
+        }
+        if (/^spectrum-.*-(plans|special-offers)$/.test(v)) {
+            return v;
+        }
+        return '';
+    }
+
     get previewCSSCustomProperties() {
         const styles = [];
         const fragment = this.fragmentStore?.previewStore?.value || this.fragment;
@@ -631,6 +657,16 @@ export default class MasFragmentEditor extends LitElement {
             } else if (!borderColor.includes('-gradient')) {
                 // Regular color (not gradient)
                 styles.push(`--consonant-merch-card-border-color: var(--${borderColor})`);
+            }
+        }
+
+        const whatsIncludedDividerColor =
+            getWhatsIncludedDividerColorFromMarkup(fragment) || fragment.getFieldValue('whatsIncludedDividerColor', 0);
+        if (whatsIncludedDividerColor) {
+            if (whatsIncludedDividerColor.toLowerCase() === 'transparent') {
+                styles.push('--consonant-merch-card-whats-included-divider-color: transparent');
+            } else if (!/-gradient/.test(whatsIncludedDividerColor) && !/^gradient-/.test(whatsIncludedDividerColor)) {
+                styles.push(`--consonant-merch-card-whats-included-divider-color: var(--${whatsIncludedDividerColor})`);
             }
         }
 
@@ -807,7 +843,20 @@ export default class MasFragmentEditor extends LitElement {
             await this.editorContextStore.loadFragmentContext(fragmentId, fragment.path);
 
             const isVariationAfterContext = this.editorContextStore.isVariation(fragmentId);
-            const parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
+            let parentFragment = await this.#resolveParentForFetchedVariation(fragmentId, fragment, isVariationAfterContext);
+            if (parentFragment?.path && fragment.model?.path === COLLECTION_MODEL_PATH) {
+                try {
+                    const hydrated = await this.repository.aem.sites.cf.fragments.getByPath(parentFragment.path, {
+                        references: 'direct-hydrated',
+                    });
+                    if (Store.fragmentEditor.fragmentId.get() === fragmentId) {
+                        parentFragment = new Fragment(hydrated);
+                        this.localeDefaultFragment = parentFragment;
+                    }
+                } catch (e) {
+                    console.debug('Hydrated collection parent fetch failed', e);
+                }
+            }
             const isVariationForStore = isVariationAfterContext || !!parentFragment;
 
             if (isVariationForStore) {
@@ -1366,7 +1415,9 @@ export default class MasFragmentEditor extends LitElement {
             if (AemFragment?.cache) {
                 AemFragment.cache.add(copiedFragment);
             }
-            router.navigateToFragmentEditor(copiedFragment.id);
+            const locale = extractLocaleFromPath(copiedFragment.path);
+            const viewPage = this.fragment?.model?.path === COLLECTION_MODEL_PATH;
+            router.navigateToFragmentEditor(copiedFragment.id, { locale, viewPage });
         }
     }
 
@@ -1569,6 +1620,23 @@ export default class MasFragmentEditor extends LitElement {
         if (!this.fragment) return nothing;
         const modelName = MODEL_WEB_COMPONENT_MAPPING[this.fragment.model.path] || 'fragment';
 
+        if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
+            let fragmentParts = '';
+            if (Fragment.isGroupedVariationPath(this.fragment.path) && this.localeDefaultFragment) {
+                const pathParts = this.fragment.path?.split('/') || [];
+                const masIndex = pathParts.indexOf('mas');
+                const surfaceFromPath = masIndex >= 0 && pathParts[masIndex + 1] ? pathParts[masIndex + 1].toUpperCase() : '';
+                const search = Store.search.get();
+                const searchSurface = search?.path ? String(search.path).toUpperCase() : '';
+                const surface = searchSurface || surfaceFromPath;
+                fragmentParts = surface ? `${surface} / ${this.localeDefaultFragment.title}` : this.localeDefaultFragment.title;
+            } else {
+                fragmentParts = getFragmentPartsToUse(Store, this.fragment).fragmentParts || '';
+            }
+            if (!fragmentParts) return nothing;
+            return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
+        }
+
         const pathParts = this.fragment.path?.split('/') || [];
         const masIndex = pathParts.indexOf('mas');
         const surface = masIndex >= 0 && pathParts[masIndex + 1] ? pathParts[masIndex + 1].toUpperCase() : '';
@@ -1625,7 +1693,14 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get previewColumn() {
-        if (!this.fragment || this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
+        if (!this.fragment) return nothing;
+        if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
+            const isGroupedVariation =
+                this.editorContextStore.isVariation(this.fragment.id) && Fragment.isGroupedVariationPath(this.fragment.path);
+            if (!isGroupedVariation) return nothing;
+            return html`<div id="preview-column">${this.relatedVariationsSection}</div>`;
+        }
+        if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
         if (!this.previewResolved) {
             return this.previewSkeleton;
@@ -1634,6 +1709,7 @@ export default class MasFragmentEditor extends LitElement {
         const attrs = this.previewAttributes;
         const borderAttrs = this.previewBorderColorAttributes;
         const cssProps = this.previewCSSCustomProperties;
+        const whatsIncludedDividerAttr = this.previewWhatsIncludedDividerAttribute;
 
         const previewFragment = this.fragmentStore?.previewStore?.value;
         prepopulateFragmentCache(this.fragment.id, previewFragment);
@@ -1654,6 +1730,7 @@ export default class MasFragmentEditor extends LitElement {
                                 size=${attrs.size || nothing}
                                 name=${attrs.name || nothing}
                                 border-color=${borderAttrs.borderColor || nothing}
+                                whats-included-divider-color=${whatsIncludedDividerAttr || nothing}
                                 background-image=${attrs.backgroundImage || nothing}
                                 stock-offer-osis=${attrs.stockOfferOsis || nothing}
                                 checkbox-label=${attrs.checkboxLabel || nothing}

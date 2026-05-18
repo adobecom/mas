@@ -1,7 +1,9 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { EVENT_KEYDOWN } from './constants.js';
+import { EVENT_KEYDOWN, PAGE_NAMES } from './constants.js';
+import Events from './events.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
+import { generateCodeToUse } from './utils.js';
 
 class MasSelectionPanel extends LitElement {
     static styles = css`
@@ -22,6 +24,7 @@ class MasSelectionPanel extends LitElement {
         onPublish: { type: Function, attribute: false },
         onUnpublish: { type: Function, attribute: false },
         onCopyToFolder: { type: Function, attribute: false },
+        onCopyStudioLinks: { type: Function, attribute: false },
     };
 
     constructor() {
@@ -35,6 +38,7 @@ class MasSelectionPanel extends LitElement {
         this.onPublish = null;
         this.onUnpublish = null;
         this.onCopyToFolder = null;
+        this.onCopyStudioLinks = null;
 
         this.close = this.close.bind(this);
     }
@@ -119,6 +123,54 @@ class MasSelectionPanel extends LitElement {
         this.onUnpublish(this.selection, event);
     }
 
+    handleCopyStudioLinks(event) {
+        this.onCopyStudioLinks?.(this.selection, event);
+    }
+
+    async handleCopyFragmentUrls() {
+        const selection = this.selection;
+        if (!selection || selection.length === 0) return;
+
+        const path = Store.search.get().path;
+        const fragments = selection
+            .map((item) => {
+                if (item?.get) return item.get();
+                if (item?.id) return item;
+                const id = typeof item === 'string' ? item : null;
+                return (
+                    Store.fragments.list.data
+                        .get()
+                        .find((s) => s.get().id === id)
+                        ?.get() ?? null
+                );
+            })
+            .filter(Boolean);
+
+        const results = fragments
+            .map((fragment) => generateCodeToUse(fragment, path, PAGE_NAMES.CONTENT))
+            .filter((result) => result?.code && result?.richText && result?.href);
+
+        if (results.length === 0) return;
+
+        const plainText = results.map(({ href }) => href).join('\n');
+        const htmlText = results.map(({ richText }) => richText).join('<br>');
+
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([plainText], { type: 'text/plain' }),
+                    'text/html': new Blob([htmlText], { type: 'text/html' }),
+                }),
+            ]);
+            Events.toast.emit({
+                variant: 'positive',
+                content: `Copied ${results.length} code snippet${results.length > 1 ? 's' : ''} to clipboard`,
+            });
+        } catch {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy code to clipboard' });
+        }
+    }
+
     // #endregion
 
     render() {
@@ -151,6 +203,12 @@ class MasSelectionPanel extends LitElement {
                       <sp-tooltip self-managed placement="top">Delete</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
+            ${count > 0 && this.onCopyStudioLinks
+                ? html`<sp-action-button slot="buttons" label="Copy cards links" @click=${this.handleCopyStudioLinks}>
+                      <sp-icon-copy slot="icon"></sp-icon-copy>
+                      <sp-tooltip self-managed placement="top">Copy links</sp-tooltip>
+                  </sp-action-button>`
+                : nothing}
             ${count > 0
                 ? html`<sp-action-button
                       slot="buttons"
@@ -171,6 +229,12 @@ class MasSelectionPanel extends LitElement {
                   >
                       <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
                       <sp-tooltip self-managed placement="top">Unpublish</sp-tooltip>
+                  </sp-action-button>`
+                : nothing}
+            ${count > 0
+                ? html`<sp-action-button slot="buttons" label="Copy Code" @click=${this.handleCopyFragmentUrls}>
+                      <sp-icon-code slot="icon"></sp-icon-code>
+                      <sp-tooltip self-managed placement="top">Copy Code</sp-tooltip>
                   </sp-action-button>`
                 : nothing}
         </sp-action-bar>`;

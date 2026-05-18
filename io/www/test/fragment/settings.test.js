@@ -412,6 +412,76 @@ describe('settings', () => {
             expect(result).to.deep.equal(context);
         });
 
+        it('falls back to default addon when override tags do not match fragment tags', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans', tags: [] } },
+                promises: {
+                    settings: Promise.resolve({
+                        addon: {
+                            default: {
+                                name: 'addon',
+                                templates: ['plans'],
+                                locales: [],
+                                tags: [],
+                                valuetype: 'optional-text',
+                                textValue: '{{addon-stock-ai-studio-trial}}',
+                                booleanValue: true,
+                            },
+                            override: [
+                                {
+                                    name: 'addon',
+                                    templates: ['plans'],
+                                    locales: [],
+                                    tags: ['mas:product_code/ffpo', 'mas:product_code/arch'],
+                                    valuetype: 'optional-text',
+                                    textValue: '{{addon-stock-ai-studio-trial}}',
+                                    booleanValue: false,
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.addon).to.equal('{{addon-stock-ai-studio-trial}}');
+        });
+
+        it('handles override without tags field when scoring tag matches', async () => {
+            const context = {
+                locale: 'fr_FR',
+                body: { fields: { variant: 'plans', tags: ['premium'] } },
+                promises: {
+                    settings: Promise.resolve({
+                        badgeLabel: {
+                            default: {
+                                name: 'badgeLabel',
+                                valuetype: 'text',
+                                textValue: 'Default badge',
+                            },
+                            override: [
+                                {
+                                    name: 'badgeLabel',
+                                    valuetype: 'text',
+                                    textValue: 'Locale-only badge',
+                                    locales: ['fr_FR'],
+                                },
+                                {
+                                    name: 'badgeLabel',
+                                    valuetype: 'text',
+                                    textValue: 'Premium badge',
+                                    locales: ['fr_FR'],
+                                    tags: ['premium'],
+                                },
+                            ],
+                        },
+                    }),
+                },
+            };
+            const result = await settings.process(context);
+            expect(result.body.settings.badgeLabel).to.equal('Premium badge');
+        });
+
         it('picks override with most tag matches when multiple overrides match locale', async () => {
             const context = {
                 locale: 'fr_FR',

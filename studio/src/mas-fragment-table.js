@@ -1,10 +1,10 @@
 import { LitElement, html, css } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { extractLocaleFromPath, generateCodeToUse, getService, showToast } from './utils.js';
+import { extractLocaleFromPath, generateCodeToUse, getService, showToast, previewFragmentOnPage } from './utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import Store from './store.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
-import { CARD_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from './constants.js';
 import { MasRepository } from './mas-repository.js';
 import router from './router.js';
 import './mas-variation-dialog.js';
@@ -12,6 +12,7 @@ import './mas-variation-dialog.js';
 class MasFragmentTable extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
+        editFragmentStore: { type: Object, attribute: false },
         offerData: { type: Object, state: true, attribute: false },
         expanded: { type: Boolean, attribute: false },
         nested: { type: Boolean, attribute: false },
@@ -31,6 +32,7 @@ class MasFragmentTable extends LitElement {
     constructor() {
         super();
         this.offerData = null;
+        this.editFragmentStore = null;
         this.expanded = false;
         this.nested = false;
         this.canCreateVariation = true;
@@ -133,16 +135,41 @@ class MasFragmentTable extends LitElement {
         const { fragment } = event.detail;
         if (fragment?.id) {
             const locale = extractLocaleFromPath(fragment.path);
-            router.navigateToFragmentEditor(fragment.id, { locale });
+            const viewPage = this.data?.model?.path === COLLECTION_MODEL_PATH;
+            router.navigateToFragmentEditor(fragment.id, { locale, viewPage });
         }
     }
 
     handleEditFragment(event) {
         event.stopPropagation();
-        const fragment = this.fragmentStore.value;
+        const editorStore = this.editFragmentStore || this.fragmentStore;
+        const fragment = editorStore?.get?.() || editorStore?.value;
         if (fragment?.id) {
             const locale = extractLocaleFromPath(fragment.path);
-            router.navigateToFragmentEditor(fragment.id, { locale });
+            router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore: editorStore });
+        }
+    }
+
+    previewOnPage(event) {
+        event.stopPropagation();
+        previewFragmentOnPage(this.fragmentStore.value);
+    }
+
+    async copyCode(event) {
+        event.stopPropagation();
+        const { code, richText, href } = generateCodeToUse(this.data, Store.search.get().path, Store.page.get());
+        if (!code || !richText || !href) return;
+
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([href], { type: 'text/plain' }),
+                    'text/html': new Blob([richText], { type: 'text/html' }),
+                }),
+            ]);
+            showToast('Code copied to clipboard', 'positive');
+        } catch (e) {
+            showToast('Failed to copy code to clipboard', 'negative');
         }
     }
 
@@ -232,6 +259,14 @@ class MasFragmentTable extends LitElement {
                               <sp-menu-item @click=${this.handleEditFragment}>
                                   <sp-icon-edit slot="icon"></sp-icon-edit>
                                   Edit fragment
+                              </sp-menu-item>
+                              <sp-menu-item @click=${this.previewOnPage}>
+                                  <sp-icon-preview slot="icon"></sp-icon-preview>
+                                  Preview on page
+                              </sp-menu-item>
+                              <sp-menu-item @click=${this.copyCode}>
+                                  <sp-icon-code slot="icon"></sp-icon-code>
+                                  Copy Code
                               </sp-menu-item>
                           </sp-action-menu>`}
                 </sp-table-cell>

@@ -17,10 +17,11 @@ class MasSelectItemsTable extends LitElement {
     static styles = styles;
 
     static properties = {
-        type: { type: String }, // 'cards' | 'collections' | 'placeholders'
+        type: { type: String },
         viewOnly: { type: Boolean },
         viewOnlyLoading: { type: Boolean, state: true },
         viewOnlyFragments: { type: Array, state: true },
+        dataReady: { type: Boolean, state: true },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
     };
@@ -28,6 +29,7 @@ class MasSelectItemsTable extends LitElement {
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
     loading = new StoreController(this, Store.fragments.list.loading);
     firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
+    #collectionsReadyUnsub = null;
 
     constructor() {
         super();
@@ -42,8 +44,8 @@ class MasSelectItemsTable extends LitElement {
         this.selectedCardsStoreController = null;
         this.selectedCollectionsStoreController = null;
         this.selectedPlaceholdersStoreController = null;
-        this.observedSentinel = null;
         this.wasLoading = false;
+        this.dataReady = false;
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
     }
@@ -86,9 +88,29 @@ class MasSelectItemsTable extends LitElement {
         } else {
             if (this.type === TABLE_TYPE.PLACEHOLDERS) {
                 this.dataSubscription = loadAllPlaceholders();
+            } else if (this.type === TABLE_TYPE.COLLECTIONS) {
+                const collectionsStore = getItemsSelectionStore().allCollections;
+                if (collectionsStore.getMeta('loaded') || collectionsStore.get()?.length > 0) {
+                    this.dataReady = true;
+                } else {
+                    const onCollectionsLoaded = () => {
+                        if (!collectionsStore.getMeta('loaded') && !collectionsStore.get()?.length) return;
+                        this.dataReady = true;
+                        collectionsStore.unsubscribe(onCollectionsLoaded);
+                        this.#collectionsReadyUnsub = null;
+                    };
+                    this.#collectionsReadyUnsub = onCollectionsLoaded;
+                    collectionsStore.subscribe(onCollectionsLoaded);
+                }
+                this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState, {
+                    getDisplayName: this.getDisplayName,
+                });
             } else {
                 this.dataSubscription = loadAllFragments(this.type, this.repository, this.dataState, {
                     getDisplayName: this.getDisplayName,
+                    onReady: () => {
+                        this.dataReady = true;
+                    },
                 });
             }
         }
@@ -115,28 +137,8 @@ class MasSelectItemsTable extends LitElement {
         const loadingJustCompleted = this.wasLoading && !this.loading.value;
         this.wasLoading = this.loading.value;
 
-        const sentinel = this.renderRoot.querySelector('.scroll-sentinel');
-        const scrollRoot = this.renderRoot.querySelector('sp-table');
-        if (!this.scrollObserver && scrollRoot && !this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
-            this.scrollObserver = new IntersectionObserver(
-                (entries) => {
-                    if (entries[0]?.isIntersecting && this.hasMore.value && !this.loading.value) {
-                        this.repository?.loadNextPage();
-                    }
-                },
-                { root: scrollRoot, rootMargin: '200px' },
-            );
-        }
-        if (sentinel && sentinel !== this.observedSentinel) {
-            this.scrollObserver?.disconnect();
-            this.scrollObserver?.observe(sentinel);
-            this.observedSentinel = sentinel;
-        } else if (!sentinel) {
-            this.scrollObserver?.disconnect();
-            this.observedSentinel = null;
-        } else if (loadingJustCompleted && this.hasMore.value) {
-            this.scrollObserver?.unobserve(sentinel);
-            requestAnimationFrame(() => this.scrollObserver?.observe(sentinel));
+        if (loadingJustCompleted && this.hasMore.value && !this.viewOnly && this.type !== TABLE_TYPE.PLACEHOLDERS) {
+            this.repository?.loadNextPage();
         }
     }
 
@@ -146,8 +148,10 @@ class MasSelectItemsTable extends LitElement {
         this.dataState.abortController?.abort();
         this.processAbortController?.abort();
         this.processAbortController = null;
-        this.scrollObserver?.disconnect();
-        this.scrollObserver = null;
+        if (this.#collectionsReadyUnsub) {
+            getItemsSelectionStore().allCollections.unsubscribe(this.#collectionsReadyUnsub);
+            this.#collectionsReadyUnsub = null;
+        }
     }
 
     /** @type {MasRepository} */
@@ -160,9 +164,13 @@ class MasSelectItemsTable extends LitElement {
     }
 
     get isLoading() {
-        if (this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.COLLECTIONS) {
+        if (this.type === TABLE_TYPE.CARDS) {
             if (this.viewOnly) return this.viewOnlyLoading;
-            return Store.fragments.list.firstPageLoaded.get() === false;
+            return !this.dataReady || Store.fragments.list.firstPageLoaded.get() === false;
+        }
+        if (this.type === TABLE_TYPE.COLLECTIONS) {
+            if (this.viewOnly) return this.viewOnlyLoading;
+            return !this.dataReady;
         }
         if (this.type === TABLE_TYPE.PLACEHOLDERS) {
             if (this.viewOnly) return this.viewOnlyLoading;
@@ -322,29 +330,46 @@ class MasSelectItemsTable extends LitElement {
         </div>`;
     }
 
+    #renderSkeletonRows() {
+        return Array.from(
+            { length: 8 },
+            (_, i) =>
+                html`<sp-table-row class="skeleton-row" key=${i}>
+                    ${this.tableColumns.map(
+                        (column) =>
+                            html`<sp-table-cell class=${column.class ?? ''}>
+                                ${column.skeleton !== false
+                                    ? html`<div class="skeleton-element skeleton-table-cell"></div>`
+                                    : nothing}
+                            </sp-table-cell>`,
+                    )}
+                </sp-table-row>`,
+        );
+    }
+
     render() {
+        const showSkeleton = this.isLoading;
+        const showEmpty = !showSkeleton && this.itemsToDisplay.length === 0;
+        const showTable = showSkeleton || this.itemsToDisplay.length > 0;
+
         return html`
-            ${this.isLoading
-                ? html`<div class="loading-container--flex">
-                      <sp-progress-circle indeterminate size="l"></sp-progress-circle>
-                  </div>`
-                : html`${this.itemsToDisplay.length > 0
-                      ? html`<sp-table class="fragments-table item-table" emphasized>
-                            <sp-table-head>
-                                ${repeat(
-                                    this.tableColumns,
-                                    (column) => column.key,
-                                    (column) =>
-                                        html`<sp-table-head-cell class=${column.class ? column.class : ''}>
-                                            ${column.label}
-                                        </sp-table-head-cell>`,
-                                )}
-                            </sp-table-head>
-                            <sp-table-body>${this.#renderTableBody()}</sp-table-body>
-                            ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing}
-                            ${this.loadingMoreIndicator}
-                        </sp-table>`
-                      : html`<p>No items found.</p>`}`}
+            ${showEmpty ? html`<p>No items found.</p>` : nothing}
+            ${showTable
+                ? html`<sp-table class="fragments-table item-table" emphasized>
+                      <sp-table-head>
+                          ${repeat(
+                              this.tableColumns,
+                              (column) => column.key,
+                              (column) =>
+                                  html`<sp-table-head-cell class=${column.class ? column.class : ''}>
+                                      ${column.label}
+                                  </sp-table-head-cell>`,
+                          )}
+                      </sp-table-head>
+                      <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>
+                      ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.loadingMoreIndicator}
+                  </sp-table>`
+                : nothing}
         `;
     }
 }

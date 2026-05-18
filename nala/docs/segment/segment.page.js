@@ -1,6 +1,14 @@
 export default class MasSegment {
     constructor(page) {
         this.page = page;
+        this.cssProp = {
+            hiddenLabel: {
+                display: 'none',
+            },
+            visibleLabel: {
+                display: 'inline',
+            }
+        };
     }
 
     getCard(id) {

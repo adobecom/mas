@@ -228,7 +228,7 @@ export function loadAllPlaceholders() {
  * @returns {{ unsubscribe: () => void }}
  */
 
-export function loadAllFragments(type, repository, state = {}, { getDisplayName } = {}) {
+export function loadAllFragments(type, repository, state = {}, { getDisplayName, onReady } = {}) {
     // Collections load via repository.loadAllCollections() with a dedicated model-filtered
     // query; partitioning the shared card stream misses collections that sit deep in the
     // cursor on large surfaces (acom, nala) where cards dominate the first pages.
@@ -237,15 +237,22 @@ export function loadAllFragments(type, repository, state = {}, { getDisplayName 
     }
     const typeUppercased = type.charAt(0).toUpperCase() + type.slice(1);
     if (getItemsSelectionStore()[`all${typeUppercased}`].get()?.length) {
+        onReady?.();
         return { unsubscribe: () => {} };
     }
     if (state.subscribed) {
+        onReady?.();
         return { unsubscribe: () => {} };
     }
     state.subscribed = true;
+    let firstCall = true;
     const callback = async () => {
         const { allCards } = parseFragmentsFromStore(Store.fragments.list.data.get() || [], { getDisplayName });
         await processCardsData(allCards, repository, state, getDisplayName);
+        if (firstCall && (allCards.length > 0 || Store.fragments.list.firstPageLoaded.get() !== false)) {
+            firstCall = false;
+            onReady?.();
+        }
     };
     Store.fragments.list.data.subscribe(callback);
     return {

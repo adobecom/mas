@@ -153,6 +153,15 @@ function matchesProject(project, { surface, country, regionLocale, instant }, co
         logDebug(() => `Project "${project.name}" skipped: surface "${surface}" not in [${project.surfaces}]`, context);
         return false;
     }
+    const { geos } = project;
+    if (geos.length > 0 && !matchesGeo(geos, { regionLocale, country })) {
+        logDebug(
+            () =>
+                `Project "${project.name}" skipped: none of regionLocale="${regionLocale}", country="${country}" found in geos [${geos}]`,
+            context,
+        );
+        return false;
+    }
     if (project.startDate && instant < new Date(project.startDate).getTime()) {
         logDebug(
             () =>
@@ -165,15 +174,6 @@ function matchesProject(project, { surface, country, regionLocale, instant }, co
         logDebug(
             () =>
                 `Project "${project.name}" skipped: instant ${new Date(instant).toISOString()} is after endDate ${project.endDate}`,
-            context,
-        );
-        return false;
-    }
-    const { geos } = project;
-    if (geos.length > 0 && !matchesGeo(geos, { regionLocale, country })) {
-        logDebug(
-            () =>
-                `Project "${project.name}" skipped: none of regionLocale="${regionLocale}", country="${country}" found in geos [${geos}]`,
             context,
         );
         return false;
@@ -282,9 +282,16 @@ async function init(context) {
         }
     }
     if (matchCount > 1) {
-        log(`Multiple promotion projects matched (${matchCount}), using first: ${active.id}`, context);
+        logDebug(() => `Multiple promotion projects matched (${matchCount}), using first: ${active.id}`, context);
     }
-    if (!active) return { status: 200, activeProject: null };
+    if (!active) {
+        return { status: 200, activeProject: null };
+    } else {
+        log(
+            `Active promotion project "${active.name}" (${active.id}) matched for surface "${surface}", regionLocale "${regionLocale}", country "${country}"`,
+            context,
+        );
+    }
 
     // Await defaultLanguage to get resolved locale info for variation folder searches
     const defaultLangResult = await context.promises?.defaultLanguage;

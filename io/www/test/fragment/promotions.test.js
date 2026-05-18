@@ -193,16 +193,19 @@ describe('promotions', () => {
 
         it('uses first match and logs warning when multiple projects match', async () => {
             const logStub = sinon.stub(console, 'log');
-            const p1 = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
-            const p2 = makeProject({ id: 'proj-2', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
-            const hydrated = makeHydratedProject();
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
+            try {
+                const p1 = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+                const p2 = makeProject({ id: 'proj-2', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+                const hydrated = makeHydratedProject();
+                fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [p1, p2] }));
+                fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, hydrated));
 
-            const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
-            expect(result.activeProject.id).to.equal('proj-1');
-            expect(logStub.calledWithMatch(sinon.match(/Multiple promotion projects matched/))).to.be.true;
-            logStub.restore();
+                const result = await promotionsTransformer.init(createContext({ regionLocale: 'en_US', debugLogs: true }));
+                expect(result.activeProject.id).to.equal('proj-1');
+                expect(logStub.calledWithMatch(sinon.match(/Multiple promotion projects matched/))).to.be.true;
+            } finally {
+                logStub.restore();
+            }
         });
 
         it('returns no active project when hydration fails', async () => {

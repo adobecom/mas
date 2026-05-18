@@ -13,7 +13,20 @@ const priceLiterals = window.masPriceLiterals;
 export function getPriceLiterals(settings) {
     //we are expecting an array of objects with lang and literals
     if (Array.isArray(priceLiterals)) {
-        const lang = settings.locale === 'id_ID' ? 'in' : settings.language;
+        let lang;
+        switch (settings.locale) {
+            case 'id_ID':
+                lang = 'in';
+                break;
+            case 'zh_TW':
+                lang = 'zh-hant';
+                break;
+            case 'zh_HK':
+                lang = 'zh-hant';
+                break;
+            default:
+                lang = settings.language;
+        }
         const find = (language) =>
             priceLiterals.find((candidate) =>
                 equalsCaseInsensitive(candidate.lang, language),

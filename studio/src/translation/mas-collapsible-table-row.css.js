@@ -17,21 +17,26 @@ export const styles = [
             width: 100%;
         }
 
-        .path {
-            word-break: break-word;
+        .path,
+        .offer-id {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .path span {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
 
         .offer-id {
             color: var(--spectrum-blue-900);
 
             div {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                -webkit-box-orient: vertical;
                 overflow: hidden;
-                margin-right: 4px;
-                word-break: break-all;
+                white-space: nowrap;
                 text-overflow: ellipsis;
+                margin-right: 4px;
             }
 
             div:hover {
@@ -174,6 +179,36 @@ export const styles = [
             sp-table-cell:last-of-type {
                 border-bottom-right-radius: 12px;
             }
+        }
+
+        sp-table-row.select-all-row {
+            background: var(--spectrum-gray-50);
+            border-bottom: 1px solid var(--spectrum-gray-300);
+        }
+
+        .select-all-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .fragment-count {
+            font-size: var(--spectrum-font-size-75);
+            color: var(--spectrum-gray-700);
+            white-space: nowrap;
+        }
+
+        .offer-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mnemonic-icon {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            flex-shrink: 0;
         }
 
         .variation-details-row {

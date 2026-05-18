@@ -262,6 +262,7 @@ export const FRAGMENT_STATUS = {
     PUBLISHED: 'PUBLISHED',
     DRAFT: 'DRAFT',
     MODIFIED: 'MODIFIED',
+    UNPUBLISHED: 'UNPUBLISHED',
 };
 
 export const TABLE_TYPE = {

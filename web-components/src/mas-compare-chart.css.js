@@ -4,7 +4,7 @@ export const styles = css`
     :host {
         --comparison-border-radius: 8px;
         --comparison-row-border-color: #e9e9e9;
-        --comparison-desktop-max-width: 1200px;
+        --comparison-desktop-max-width: 1348px;
         --comparison-tablet-spacing: 50px;
         --comparison-table-spacing: 12px;
         --compare-chart-row-border-color: var(--comparison-row-border-color);
@@ -699,9 +699,6 @@ export const styles = css`
         .sticky-header.is-stuck .header-segment {
             padding-bottom: 0;
         }
-        .sticky-header.is-stuck .price-segment {
-            display: none;
-        }
         .table-row {
             grid-template-columns: 1fr 1fr;
         }
@@ -777,9 +774,6 @@ export const styles = css`
         }
         .sticky-header.is-stuck .header-segment {
             padding-bottom: 0;
-        }
-        .sticky-header.is-stuck .price-segment {
-            display: none;
         }
         .table-row {
             grid-template-columns: 1fr 1fr;

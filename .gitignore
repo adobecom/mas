@@ -39,7 +39,8 @@ nala/.auth/
 reports/
 /.superpowers
 .logs
-.scout/
+.scout
+.scout/**
 
 
 # IO Runtime Config

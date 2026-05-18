@@ -231,7 +231,7 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
-    #contextPromotionCode;
+    contextPromotionCode;
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;
@@ -270,14 +270,6 @@ export class MerchCard extends LitElement {
     }
 
     static getFragmentMapping = getFragmentMapping;
-
-    set contextPromotionCode(value) {
-        this.#contextPromotionCode = value;
-    }
-
-    get contextPromotionCode() {
-        return this.#contextPromotionCode;
-    }
 
     firstUpdated() {
         this.variantLayout = getVariantLayout(this);
@@ -911,7 +903,7 @@ export class MerchCard extends LitElement {
                     ![undefined, 'cancel-context'].includes(promotionCode),
             );
         if (promotionCodes.length === 0) {
-            return this.#contextPromotionCode;
+            return this.contextPromotionCode;
         }
         const uniqueCodes = [...new Set(promotionCodes)];
         if (uniqueCodes.length > 1) {

@@ -163,6 +163,10 @@ export class Router extends EventTarget {
                     }
                     Store.viewMode.set('default');
                     Store.page.set(targetPage);
+                    if (targetPage === PAGE_NAMES.PROMOTIONS) {
+                        Store.promotions.promotionId.set('');
+                        Store.promotions.inEdit.set(null);
+                    }
                 }
             } finally {
                 this.isNavigating = false;

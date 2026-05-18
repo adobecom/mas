@@ -98,6 +98,26 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
+
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()),
+        groupedVariationsData: new ReactiveStore(new Map()),
+
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+
+        showSelected: new ReactiveStore(false),
     },
     localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';

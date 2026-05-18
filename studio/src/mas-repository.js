@@ -241,6 +241,10 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.PROMOTIONS:
                 this.loadPromotions();
                 break;
+            case PAGE_NAMES.PROMOTIONS_EDITOR:
+                this.searchFragments();
+                this.loadAllCollections();
+                break;
             case PAGE_NAMES.TRANSLATIONS:
                 this.loadTranslationProjects();
                 break;
@@ -372,7 +376,14 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragments() {
-        if (!(this.page.value === PAGE_NAMES.CONTENT || this.page.value === PAGE_NAMES.TRANSLATION_EDITOR)) return;
+        if (
+            !(
+                this.page.value === PAGE_NAMES.CONTENT ||
+                this.page.value === PAGE_NAMES.TRANSLATION_EDITOR ||
+                this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+            )
+        )
+            return;
         if (!Store.profile.value) return;
 
         const path = this.search.value.path;
@@ -494,7 +505,8 @@ export class MasRepository extends LitElement {
             modelIds,
             path: localizedPath,
             tags,
-            ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
+            ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR &&
+                this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR && { createdBy }),
             sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
         };
 
@@ -1027,9 +1039,13 @@ export class MasRepository extends LitElement {
     }
 
     async loadPromotions() {
+        const promotionsPath = this.getPromotionsPath();
+        if (!promotionsPath) {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.loading.set(false);
+            return;
+        }
         try {
-            const promotionsPath = this.getPromotionsPath();
-
             const searchOptions = {
                 path: promotionsPath,
                 sort: [{ on: 'created', order: 'ASC' }],
@@ -1053,7 +1069,8 @@ export class MasRepository extends LitElement {
     }
 
     getPromotionsPath() {
-        return `${ROOT_PATH}/promotions`;
+        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+        return surface ? `${ROOT_PATH}/${surface}/promotions` : null;
     }
 
     getDictionaryPath() {
@@ -1113,6 +1130,19 @@ export class MasRepository extends LitElement {
         } catch (error) {
             if (error.message?.includes('409')) return true;
             console.warn('An error occurred while creating dictionary folder. Placeholder feature may be degraded:', error);
+            return false;
+        }
+    }
+
+    async ensurePromotionsFolder(promotionsPath) {
+        if (!promotionsPath?.startsWith(ROOT_PATH)) return false;
+        const normalized = promotionsPath.replace(/\/+$/, '');
+        if (!normalized.endsWith('/promotions')) return false;
+        try {
+            await this.aem.sites.cf.fragments.ensureFolderExists(normalized);
+            return true;
+        } catch (error) {
+            console.warn('Could not ensure promotions DAM folder exists:', error);
             return false;
         }
     }

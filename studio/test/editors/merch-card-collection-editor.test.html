@@ -53,7 +53,12 @@
             runTests(async () => {
                 const originalFetch = window.fetch;
                 window.fetch = async function (args) {
-                    const { href } = new URL(args);
+                    const urlInput = typeof args === 'string' ? args : args?.url;
+                    if (!urlInput) return originalFetch(...arguments);
+                    const { href } = new URL(urlInput, window.location.origin);
+                    if (/querybuilder\.json\?path=\/content\/cq:tags\/mas/.test(href) || href.includes('cq%3Atags%2Fmas')) {
+                        return originalFetch('/test/mocks/tags.json');
+                    }
                     if (/querybuilder.json\?path=\/content\/dam\/mas/.test(href)) {
                         return originalFetch('/test/mocks/folders.json');
                     }

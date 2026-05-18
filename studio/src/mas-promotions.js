@@ -65,6 +65,9 @@ class MasPromotions extends LitElement {
     async connectedCallback() {
         super.connectedCallback();
 
+        Store.promotions.promotionId.set('');
+        Store.promotions.inEdit.set(null);
+
         const currentPage = Store.page.get();
         if (currentPage !== PAGE_NAMES.PROMOTIONS) {
             Store.page.set(PAGE_NAMES.PROMOTIONS);

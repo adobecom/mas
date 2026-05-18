@@ -48,6 +48,7 @@ describe('MasRepository dictionary helpers', () => {
                     getById: sandbox.stub(),
                     create: sandbox.stub(),
                     save: sandbox.stub(),
+                    ensureFolderExists: sandbox.stub().resolves(),
                     ...overrides.fragments,
                 },
             },
@@ -154,6 +155,56 @@ describe('MasRepository dictionary helpers', () => {
             expect(await repository.ensureDictionaryFolder(dictionaryPath)).to.be.false;
             expect(consoleWarnStub.calledOnce).to.be.true;
             expect(consoleWarnStub.firstCall.args[0]).to.include('Placeholder feature may be degraded');
+        });
+    });
+
+    describe('ensurePromotionsFolder', () => {
+        it('returns false for invalid paths and resolves when folder is ensured', async () => {
+            const repository = createRepository();
+            const promotionsPath = `${ROOT_PATH}/sandbox/promotions`;
+
+            repository.aem = createAemMock();
+            expect(await repository.ensurePromotionsFolder(null)).to.be.false;
+            expect(await repository.ensurePromotionsFolder(`${ROOT_PATH}/sandbox`)).to.be.false;
+
+            expect(await repository.ensurePromotionsFolder(promotionsPath)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.ensureFolderExists.calledWith(promotionsPath)).to.be.true;
+        });
+
+        it('returns false when ensureFolderExists throws', async () => {
+            const repository = createRepository();
+            const promotionsPath = `${ROOT_PATH}/sandbox/promotions`;
+            const consoleWarnStub = sandbox.stub(console, 'warn');
+
+            repository.aem = createAemMock({
+                fragments: {
+                    ensureFolderExists: sandbox.stub().rejects(new Error('forbidden')),
+                },
+            });
+            expect(await repository.ensurePromotionsFolder(promotionsPath)).to.be.false;
+            expect(consoleWarnStub.calledOnce).to.be.true;
+        });
+    });
+
+    describe('getPromotionsPath', () => {
+        it('returns surface-scoped promotions folder', () => {
+            const repository = createRepository();
+            repository.search = { value: { path: 'acom' } };
+            expect(repository.getPromotionsPath()).to.equal('/content/dam/mas/acom/promotions');
+        });
+
+        it('uses first path segment when path has multiple parts', () => {
+            const repository = createRepository();
+            repository.search = { value: { path: 'ACOM/en_US/cards' } };
+            expect(repository.getPromotionsPath()).to.equal('/content/dam/mas/acom/promotions');
+        });
+
+        it('returns null when no surface path', () => {
+            const repository = createRepository();
+            repository.search = { value: { path: '' } };
+            expect(repository.getPromotionsPath()).to.equal(null);
+            repository.search = { value: { path: null } };
+            expect(repository.getPromotionsPath()).to.equal(null);
         });
     });
 
@@ -654,6 +705,23 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 repository.handleSearch();
                 expect(repository.loadPromotions.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('calls searchFragments and loadAllCollections for PROMOTIONS_EDITOR page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.searchFragments = sandbox.stub();
+            repository.loadAllCollections = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.searchFragments.calledOnce).to.be.true;
+                expect(repository.loadAllCollections.calledOnce).to.be.true;
             } finally {
                 Store.profile.set(originalProfile);
             }

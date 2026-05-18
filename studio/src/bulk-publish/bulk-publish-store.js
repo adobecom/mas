@@ -21,7 +21,11 @@ export async function startPublishing({ project, items, paths, locales, token, i
     const aem = repository.aem;
     let snapshot;
     try {
-        snapshot = await createSnapshot({ items, id: project.id }, aem, userEmail);
+        const projectTitle =
+            typeof project.value?.getFieldValue === 'function'
+                ? project.value.getFieldValue('title')
+                : (project.getFieldValue?.('title') ?? project.title ?? '');
+        snapshot = await createSnapshot({ items, id: project.id, title: projectTitle }, aem, userEmail);
     } catch (err) {
         setField(project, 'lastError', err.message);
         setField(project, 'status', BULK_PUBLISH_STATUS.DRAFT);

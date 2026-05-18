@@ -10,6 +10,7 @@ import { STATUS_PUBLISHED, STATUS_MODIFIED } from '../constants.js';
 export async function createSnapshot(project, aem, userEmail) {
     const items = project.items ?? [];
     const projectId = project.id ?? project.path?.split('/').pop() ?? 'unknown';
+    const projectTitle = project.title ?? '';
     const timestamp = Date.now();
     const fragments = {};
 
@@ -32,7 +33,8 @@ export async function createSnapshot(project, aem, userEmail) {
         const fragment = await aem.sites.cf.fragments.getById(fragmentId);
         const wasPublished = fragment.status === STATUS_PUBLISHED || fragment.status === STATUS_MODIFIED;
         const versionId = await aem.sites.cf.fragments.createVersion(fragmentId, {
-            label: 'pre-publish-snapshot',
+            label: `Pre-publish - ${projectTitle}`,
+            comment: projectId,
         });
 
         if (!versionId) {

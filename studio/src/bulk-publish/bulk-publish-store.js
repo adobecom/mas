@@ -28,7 +28,7 @@ export async function startPublishing({ project, items, paths, locales, token, i
         await repository.saveFragment(project, false);
         return;
     }
-    setField(project, 'snapshot', JSON.stringify(snapshot));
+    setField(project, 'snapshot', snapshot);
 
     const promise = publishFn({ ioBaseUrl, paths, locales, token });
     Store.bulkPublishProjects.publishing.set({
@@ -64,12 +64,7 @@ export async function startReverting({ project, repository }) {
         typeof project.value?.getFieldValue === 'function'
             ? project.value.getFieldValue('snapshot')
             : (project.getFieldValue?.('snapshot') ?? project.snapshot);
-    let snapshot;
-    try {
-        snapshot = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch {
-        snapshot = raw;
-    }
+    const snapshot = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
     const aem = repository.aem;
     try {

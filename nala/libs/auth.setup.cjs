@@ -45,12 +45,8 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
         // Passkey dialog may not appear — continue
     }
 
-    // Accept either form of the post-auth landing URL. Worktree ports on non-3000
-    // go through the IMS relay (localhost:3000?relayPort=N) and may settle at
-    // `#page=welcome` without the `&path=sandbox` default suffix that port-3000
-    // direct auth leaves in place.
-    await page.waitForURL((url) => url.href.startsWith(`${baseURL}/studio.html#page=welcome`));
-    await expect(page).toHaveURL((url) => url.href.startsWith(`${baseURL}/studio.html#page=welcome`));
+    await page.waitForURL(`${baseURL}/studio.html#page=welcome&path=sandbox`);
+    await expect(page).toHaveURL(`${baseURL}/studio.html#page=welcome&path=sandbox`);
 
     await expect(async () => {
         const response = await page.request.get(`${baseURL}/studio.html`);

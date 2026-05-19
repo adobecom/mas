@@ -11,6 +11,11 @@
 - Request access to I/O Runtime in Adobe Corp org (you can do that on #milo-dev)
 - navigate to Developer Console https://developer.adobe.com/console
 - in 'Merch at Scale' project, create a workspace with your github username
+- to enable the oauth-server flow, navigate to your personal workspace
+- if there is no `I/O Management API` card present yet, click on `Add Service`, then select `API`
+- in the list of API services, find `I/O Management API` and select it
+- click `Next`
+- click `Save configured API`
 - in your workspace click on 'Download all' and copy the auth .json in root of this project
 - run `aio app use <filename>`
 - this should populate the `.env` and the `.aio` file in the project root
@@ -39,10 +44,13 @@ You are currently in:
 ## Setup / PR auto deploy
 
 every time you push to your feature branch, CI/CD can deploy it to your workspace.
+
 For that, add 2 Repository secrets in github settings:
-AIO_WWW_ENV_GITHUBUSERNAME=
-AIO_WWW_AIO_GITHUBUSERNAME=
-GITHUBUSERNAME should match your workspace name and be in capital case.
+AIO*WWW_ENV*<GITHUBUSERNAME>=
+AIO*WWW_AIO*<GITHUBUSERNAME>=
+<GITHUBUSERNAME> should match your workspace name and be in capital case.
+
+values of those secrets should be the content of your corresponding resp `.env` and `.aio` files
 
 ## Local Dev
 

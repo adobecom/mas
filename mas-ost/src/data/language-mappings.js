@@ -1,0 +1,15 @@
+export const languageMappings = {
+    AE: 'ar', AR: 'es', AT: 'de', BE: 'nl', BG: 'bg', BH: 'ar',
+    BO: 'es', BR: 'pt', BY: 'ru', CH: 'de', CL: 'es', CN: 'zh-hans',
+    CO: 'es', CR: 'es', CY: 'el', CZ: 'cs', DE: 'de', DK: 'da',
+    DO: 'es', DZ: 'ar', EC: 'es', EE: 'et', EG: 'ar', ES: 'es',
+    FI: 'fi', FR: 'fr', GR: 'el', GT: 'es', HK: 'zh-hant', HN: 'es',
+    HU: 'hu', IL: 'he', IT: 'it', JO: 'ar', JP: 'ja', KG: 'ru',
+    KR: 'ko', KW: 'ar', KZ: 'ru', LB: 'ar', LT: 'lt', LU: 'fr',
+    LV: 'lv', MA: 'ar', MD: 'ro', MO: 'zh-hant', MX: 'es', MY: 'ms',
+    NI: 'es', NL: 'nl', NO: 'nb', OM: 'ar', PA: 'es', PE: 'es',
+    PL: 'pl', PR: 'es', PT: 'pt', PY: 'es', QA: 'ar', RO: 'ro',
+    RU: 'ru', SA: 'ar', SE: 'sv', SI: 'sl', SK: 'sk', SV: 'es',
+    TH: 'th', TR: 'tr', TW: 'zh-hant', UA: 'uk', UY: 'es', VE: 'es',
+    VN: 'vi', YE: 'ar',
+};

@@ -47,12 +47,14 @@ export class MasCommerceService extends HTMLElement {
             masIOUrl: this.getAttribute('mas-io-url'),
         };
         //root parameters
-        ['locale', 'country', 'language', 'preview'].forEach((attribute) => {
-            const value = this.getAttribute(attribute);
-            if (value) {
-                config[attribute] = value;
-            }
-        });
+        ['locale', 'country', 'language', 'preview', 'instant'].forEach(
+            (attribute) => {
+                const value = this.getAttribute(attribute);
+                if (value) {
+                    config[attribute] = value;
+                }
+            },
+        );
         //commerce parameters
         [
             'checkout-workflow-step',

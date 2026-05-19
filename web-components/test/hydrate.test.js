@@ -697,8 +697,6 @@ describe('hydrate', () => {
             },
         };
         await hydrate(fragment, litCard);
-        // contextPromotionCode is a setter only; it surfaces via promotionCode getter
-        // when no price/checkout descendant carries a data-promotion-code.
         expect(litCard.promotionCode).to.equal('CTX_PROMO');
         litCard.remove();
     });

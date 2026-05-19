@@ -61,7 +61,7 @@ function priceOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        options.promotionCode = card.contextPromotionCode;
     }
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
@@ -76,7 +76,7 @@ function checkoutOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        options.promotionCode = card.contextPromotionCode;
     }
 }
 
@@ -231,7 +231,7 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
-    #contextPromotionCode;
+    contextPromotionCode;
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;
@@ -270,10 +270,6 @@ export class MerchCard extends LitElement {
     }
 
     static getFragmentMapping = getFragmentMapping;
-
-    set contextPromotionCode(value) {
-        this.#contextPromotionCode = value;
-    }
 
     firstUpdated() {
         this.variantLayout = getVariantLayout(this);
@@ -905,7 +901,7 @@ export class MerchCard extends LitElement {
                     ![undefined, 'cancel-context'].includes(promotionCode),
             );
         if (promotionCodes.length === 0) {
-            return this.#contextPromotionCode;
+            return this.contextPromotionCode;
         }
         const uniqueCodes = [...new Set(promotionCodes)];
         if (uniqueCodes.length > 1) {

@@ -132,7 +132,7 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
         });
     });
 
-    // @studio-view-variations-deep-link - Deep link to focused view renders parent + variations
+    // @studio-view-variations-deep-link - Deep link to focused view shows only the parent row
     test(`${features[3].name},${features[3].tags}`, async ({ page, baseURL }) => {
         const { data } = features[3];
         const testPage = `${baseURL}${features[3].path}${miloLibs}${features[3].browserParams}${data.parentCardId}`;
@@ -152,12 +152,8 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
             await expect(page).toHaveURL(new RegExp(`query=${data.parentCardId}`));
         });
 
-        await test.step('step-4: Expand the parent row and verify variations panel rendered', async () => {
-            const expandButton = focusedParentRow.locator('.expand-cell .expand-button');
-            await expect(expandButton).toBeVisible({ timeout: 15000 });
-            await expandButton.click();
-            await expect(studio.localeVariationsTabPanel(data.parentCardId)).toBeVisible({ timeout: 15000 });
-            await expect(studio.regionalVariationsTable(data.parentCardId).first()).toBeVisible({ timeout: 15000 });
+        await test.step('step-4: Verify the focused view contains only the parent row (no siblings)', async () => {
+            await expect.poll(async () => page.locator('.mas-fragment').count(), { timeout: 15000 }).toBe(1);
         });
     });
 

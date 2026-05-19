@@ -47,9 +47,10 @@ class MasSearchAndFilters extends LitElement {
             this.#savedSearch = Store.search.get();
             this.#savedFilters = Store.filters.get();
         }
+        const selectionStore = getItemsSelectionStore();
         this.commonDataController = new ReactiveController(this, [
-            getItemsSelectionStore()[`all${this.typeUppercased}`],
-            getItemsSelectionStore()[`display${this.typeUppercased}`],
+            selectionStore[`all${this.typeUppercased}`],
+            selectionStore[`display${this.typeUppercased}`],
             Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
             ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
         ]);
@@ -60,17 +61,18 @@ class MasSearchAndFilters extends LitElement {
             this.#applyFilters();
             this.requestUpdate();
         };
-        getItemsSelectionStore()[`all${this.typeUppercased}`].subscribe(dataCallback);
+        selectionStore[`all${this.typeUppercased}`].subscribe(dataCallback);
         this.dataSubscription = {
-            unsubscribe: () => getItemsSelectionStore()[`all${this.typeUppercased}`].unsubscribe(dataCallback),
+            unsubscribe: () => selectionStore[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        getItemsSelectionStore()[`display${this.typeUppercased}`].set(
-            getItemsSelectionStore()[`all${this.typeUppercased}`].value,
-        );
+        const selectionStore = getItemsSelectionStore({ allowUnset: true });
+        if (selectionStore) {
+            selectionStore[`display${this.typeUppercased}`].set(selectionStore[`all${this.typeUppercased}`].value);
+        }
         this.dataSubscription?.unsubscribe();
         if (this.type === TABLE_TYPE.CARDS) {
             if (this.#savedSearch !== null) {

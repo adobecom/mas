@@ -122,10 +122,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
     const signal = state.abortController?.signal;
 
     try {
-        const store = getItemsSelectionStore({ allowUnset: true });
-        if (!store) return;
-        const existingCards = store.allCards.get() || [];
-        const { offerDataCache } = store;
+        const existingCards = getItemsSelectionStore().allCards.get() || [];
         const existingOfferDataByPath = new Map(
             existingCards.filter((card) => card.offerData !== undefined).map((card) => [card.path, card.offerData]),
         );
@@ -139,7 +136,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (cardsNeedingOfferData.length > 0) {
             const offerDataResults = await processConcurrently(
                 cardsNeedingOfferData,
-                (card) => loadOfferData(card, { cache: offerDataCache, signal }),
+                (card) => loadOfferData(card, { cache: getItemsSelectionStore().offerDataCache, signal }),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
             if (signal?.aborted) return;
@@ -183,16 +180,16 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
                 .map((card) => [card.path, new Map(card.groupedVariations.map((v) => [v.path, v]))]),
         );
         if (prefetchedVariations.size > 0) {
-            const existing = store.groupedVariationsByParent.value || new Map();
+            const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
             const merged = new Map(existing);
             for (const [cardPath, varMap] of prefetchedVariations) {
                 merged.set(cardPath, varMap);
             }
             setCardVariationsByPaths(merged);
         }
-        store.displayCards.set(enrichedCards);
-        store.allCards.set(enrichedCards);
-        store.cardsByPaths.set(cardsByPaths);
+        getItemsSelectionStore().displayCards.set(enrichedCards);
+        getItemsSelectionStore().allCards.set(enrichedCards);
+        getItemsSelectionStore().cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;
         if (state.pendingCards && !signal?.aborted) {
@@ -324,14 +321,12 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
         const validFragments = fragments.filter(Boolean);
 
         if (type === TABLE_TYPE.CARDS) {
-            const store = getItemsSelectionStore({ allowUnset: true });
-            if (!store || signal?.aborted) return;
             const enriched = await enrichCards(validFragments, {
                 getByPath: repository.aem.getFragmentByPath,
                 getOfferData: loadOfferData,
                 signal,
                 getDisplayName,
-                offerDataCache: store.offerDataCache,
+                offerDataCache: getItemsSelectionStore().offerDataCache,
                 existingOfferDataByPath: new Map(),
                 existingGroupedVariationsByPath: new Map(),
             });

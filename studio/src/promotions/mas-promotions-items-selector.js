@@ -1,22 +1,35 @@
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, nothing, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { TABLE_TYPE } from '../constants.js';
 import { toggleSidebarIcon } from '../icons.js';
 import '../common/components/mas-select-items-table.js';
+import './mas-promotions-items-table.js';
 import '../common/components/mas-selected-items.js';
 import '../common/components/mas-search-and-filters.js';
 import { styles } from '../common/components/mas-items-selector.css.js';
 import { debounce } from '../utils.js';
+import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 
 const PROMOTION_TABS = [
     { value: TABLE_TYPE.CARDS, label: 'Fragments' },
     { value: TABLE_TYPE.COLLECTIONS, label: 'Collections' },
 ];
 
-class MasPromotionsFragmentsSelector extends LitElement {
-    static styles = styles;
+const promotionsItemsSelectorStyles = css`
+    mas-promotions-items-table {
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        width: 100%;
+        align-self: stretch;
+        display: flex;
+    }
+`;
+
+class MasPromotionsItemsSelector extends LitElement {
+    static styles = [styles, promotionsItemsSelectorStyles];
 
     static properties = {
         viewOnly: { type: Boolean, state: true },
@@ -32,7 +45,7 @@ class MasPromotionsFragmentsSelector extends LitElement {
         this.searchQuery = '';
         this.selectedTab = TABLE_TYPE.CARDS;
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
-        this.renderFragmentStatusCell = () => nothing;
+        this.renderFragmentStatusCell = renderFragmentStatusCell;
     }
 
     connectedCallback() {
@@ -48,19 +61,16 @@ class MasPromotionsFragmentsSelector extends LitElement {
     }
 
     get showSelected() {
-        return getItemsSelectionStore({ allowUnset: true })?.showSelected.value ?? false;
+        return getItemsSelectionStore().showSelected.value;
     }
 
     get selectedCount() {
-        const s = getItemsSelectionStore({ allowUnset: true });
-        if (!s) return 0;
+        const s = getItemsSelectionStore();
         return [...s.selectedCards.value, ...s.selectedPlaceholders.value, ...s.selectedCollections.value].length;
     }
 
     #toggleShowSelected() {
-        const s = getItemsSelectionStore({ allowUnset: true });
-        if (!s) return;
-        s.showSelected.set(!this.showSelected);
+        getItemsSelectionStore().showSelected.set(!this.showSelected);
     }
 
     #setSearchQuery = debounce((value) => {
@@ -78,14 +88,19 @@ class MasPromotionsFragmentsSelector extends LitElement {
 
     #handleTabChange({ target: { selected } }) {
         this.selectedTab = selected;
+        this.dispatchEvent(
+            new CustomEvent('promotion-items-tab-change', {
+                detail: { tab: this.selectedTab },
+                bubbles: true,
+                composed: true,
+            }),
+        );
     }
 
     #getTabLabel(tab) {
         if (this.viewOnly) {
             const valueUppercase = tab.value.charAt(0).toUpperCase() + tab.value.slice(1);
-            const s = getItemsSelectionStore({ allowUnset: true });
-            const count = s?.[`selected${valueUppercase}`]?.value?.length ?? 0;
-            return `${tab.label} (${count})`;
+            return `${tab.label} (${getItemsSelectionStore()[`selected${valueUppercase}`].value.length})`;
         }
         return tab.label;
     }
@@ -138,16 +153,26 @@ class MasPromotionsFragmentsSelector extends LitElement {
                                       ></mas-search-and-filters>
                                   `}
                             <div class="container ${this.viewOnly ? 'view-only' : ''}">
-                                <mas-select-items-table
-                                    .viewOnly=${this.viewOnly}
-                                    .type=${tab.value}
-                                    .getDisplayName=${this.getDisplayName}
-                                    .renderFragmentStatusCell=${this.renderFragmentStatusCell}
-                                    @show-toast=${this.#showToast}
-                                ></mas-select-items-table>
+                                ${this.viewOnly
+                                    ? html`<mas-promotions-items-table
+                                          .type=${tab.value}
+                                          .getDisplayName=${this.getDisplayName}
+                                          .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+                                          @show-toast=${this.#showToast}
+                                      ></mas-promotions-items-table>`
+                                    : html`<mas-select-items-table
+                                          .viewOnly=${false}
+                                          .type=${tab.value}
+                                          .getDisplayName=${this.getDisplayName}
+                                          .renderFragmentStatusCell=${this.renderFragmentStatusCell}
+                                          @show-toast=${this.#showToast}
+                                      ></mas-select-items-table>`}
                                 ${this.viewOnly
                                     ? nothing
-                                    : html`<mas-selected-items .getDisplayName=${this.getDisplayName}></mas-selected-items>`}
+                                    : html`<mas-selected-items
+                                          .getDisplayName=${this.getDisplayName}
+                                          .disableRemoveWhileFragmentsLoading=${false}
+                                      ></mas-selected-items>`}
                             </div>
                             <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>
                         </sp-tab-panel>
@@ -176,4 +201,4 @@ class MasPromotionsFragmentsSelector extends LitElement {
     }
 }
 
-customElements.define('mas-promotions-fragments-selector', MasPromotionsFragmentsSelector);
+customElements.define('mas-promotions-items-selector', MasPromotionsItemsSelector);

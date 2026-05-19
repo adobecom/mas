@@ -75,6 +75,25 @@ export class Router extends EventTarget {
         return false;
     }
 
+    promotionsEditorHasUnsavedChanges() {
+        const inEdit = Store.promotions.inEdit?.get()?.get();
+        if (!inEdit) return false;
+        if (inEdit.hasChanges) return true;
+
+        const fragPaths = inEdit.getFieldValues('fragments');
+        const colPaths = inEdit.getField('collections') ? inEdit.getFieldValues('collections') : [];
+        const savedMerged = [...new Set([...fragPaths, ...colPaths])].sort().join('\0');
+        const currentMerged = [
+            ...new Set([
+                ...(Store.promotions.selectedCards.value || []),
+                ...(Store.promotions.selectedCollections.value || []),
+            ]),
+        ]
+            .sort()
+            .join('\0');
+        return savedMerged !== currentMerged;
+    }
+
     /**
      * Gets the active editor element and its hasChanges state based on the current page
      * @returns {{ editor: Element|null, hasChanges: boolean }}
@@ -98,6 +117,15 @@ export class Router extends EventTarget {
                     editor,
                     hasChanges: editor && hasUnsavedChanges,
                     shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
+                };
+            }
+            case PAGE_NAMES.PROMOTIONS_EDITOR: {
+                const editor = document.querySelector('mas-promotions-editor');
+                const hasUnsavedChanges = this.promotionsEditorHasUnsavedChanges();
+                return {
+                    editor,
+                    hasChanges: editor && hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: editor && !editor.loadingPromotion && hasUnsavedChanges,
                 };
             }
             case PAGE_NAMES.BULK_PUBLISH_EDITOR: {
@@ -157,6 +185,14 @@ export class Router extends EventTarget {
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
                     }
+                    if (Store.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR) {
+                        Store.promotions.promotionId.set(null);
+                        Store.promotions.inEdit.set(null);
+                        Store.promotions.showSelected.set(false);
+                        Store.promotions.selectedCards.set([]);
+                        Store.promotions.selectedCollections.set([]);
+                        Store.promotions.selectedPlaceholders.set([]);
+                    }
                     if (targetPage === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
                         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
                     }
@@ -181,10 +217,6 @@ export class Router extends EventTarget {
                     }
                     Store.viewMode.set('default');
                     Store.page.set(targetPage);
-                    if (targetPage === PAGE_NAMES.PROMOTIONS) {
-                        Store.promotions.promotionId.set('');
-                        Store.promotions.inEdit.set(null);
-                    }
                 }
             } finally {
                 this.isNavigating = false;

@@ -149,7 +149,8 @@ class MasSelectItemsTable extends LitElement {
         this.processAbortController?.abort();
         this.processAbortController = null;
         if (this.#collectionsReadyUnsub) {
-            getItemsSelectionStore().allCollections.unsubscribe(this.#collectionsReadyUnsub);
+            const selectionStore = getItemsSelectionStore({ allowUnset: true });
+            selectionStore?.allCollections.unsubscribe(this.#collectionsReadyUnsub);
             this.#collectionsReadyUnsub = null;
         }
     }
@@ -183,15 +184,11 @@ class MasSelectItemsTable extends LitElement {
         if (this.viewOnly) {
             return this.viewOnlyFragments;
         }
-        const selectionStore = getItemsSelectionStore({ allowUnset: true });
-        if (!selectionStore) return [];
-        return selectionStore[`display${this.typeUppercased}`].value;
+        return getItemsSelectionStore()[`display${this.typeUppercased}`].value;
     }
 
     get selectedInTable() {
-        const selectionStore = getItemsSelectionStore({ allowUnset: true });
-        if (!selectionStore) return new Set();
-        return new Set(selectionStore[`selected${this.typeUppercased}`].value);
+        return new Set(getItemsSelectionStore()[`selected${this.typeUppercased}`].value);
     }
 
     get tableColumns() {

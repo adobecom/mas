@@ -6,6 +6,7 @@ import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { ReactiveStore } from '../src/reactivity/reactive-store.js';
 import { Fragment } from '../src/aem/fragment.js';
+import { Promotion } from '../src/aem/promotion.js';
 
 describe('Router', () => {
     let sandbox;
@@ -682,6 +683,93 @@ describe('Router', () => {
             expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
             expect(Store.settings.creating.get()).to.equal(false);
             expect(Store.settings.fragmentId.get()).to.equal(null);
+        });
+    });
+
+    describe('promotionsEditorHasUnsavedChanges', () => {
+        let originalPromotionsInEdit;
+        let originalPromotionsSelectedCards;
+        let originalPromotionsSelectedCollections;
+
+        const createPromotionInEditStore = ({ hasChanges = false, fragments = [], collectionsValues } = {}) => {
+            const fields = [
+                { name: 'title', type: 'text', values: ['T'] },
+                { name: 'promoCode', type: 'text', values: ['X'] },
+                { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
+                { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
+                { name: 'tags', type: 'tag', values: [] },
+                { name: 'surfaces', type: 'long-text', values: [] },
+                { name: 'fragments', type: 'text', values: fragments },
+            ];
+            if (collectionsValues !== undefined) {
+                fields.push({ name: 'collections', type: 'text', values: collectionsValues });
+            }
+            const promotion = new Promotion({
+                id: 'promo-router',
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: '/content/dam/mas/promotions/router',
+                title: 'T',
+                description: '',
+                status: 'DRAFT',
+                created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
+                fields,
+                tags: [],
+            });
+            promotion.hasChanges = hasChanges;
+            return new FragmentStore(promotion);
+        };
+
+        beforeEach(() => {
+            originalPromotionsInEdit = Store.promotions.inEdit.get();
+            originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
+            originalPromotionsSelectedCollections = [...(Store.promotions.selectedCollections.value || [])];
+            Store.promotions.inEdit.set(null);
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.selectedCollections.set([]);
+        });
+
+        afterEach(() => {
+            Store.promotions.inEdit.set(originalPromotionsInEdit);
+            Store.promotions.selectedCards.set(originalPromotionsSelectedCards);
+            Store.promotions.selectedCollections.set(originalPromotionsSelectedCollections);
+        });
+
+        it('returns false when there is no promotion in edit', () => {
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
+        });
+
+        it('returns true when promotion hasChanges is true', () => {
+            Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.true;
+        });
+
+        it('returns false when merged card and collection selection matches saved fragments only', () => {
+            Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: ['/a', '/b'], hasChanges: false }));
+            Store.promotions.selectedCards.set(['/a']);
+            Store.promotions.selectedCollections.set(['/b']);
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
+        });
+
+        it('returns true when current selection has paths not in saved merged set', () => {
+            Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: ['/a'], hasChanges: false }));
+            Store.promotions.selectedCards.set(['/a', '/extra']);
+            Store.promotions.selectedCollections.set([]);
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.true;
+        });
+
+        it('returns false when legacy collections field merges with fragments for comparison', () => {
+            Store.promotions.inEdit.set(
+                createPromotionInEditStore({
+                    fragments: ['/a'],
+                    collectionsValues: ['/c'],
+                    hasChanges: false,
+                }),
+            );
+            Store.promotions.selectedCards.set(['/a']);
+            Store.promotions.selectedCollections.set(['/c']);
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
     });
 });

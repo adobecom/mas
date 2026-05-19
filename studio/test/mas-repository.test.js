@@ -663,6 +663,79 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('getPromotionsPath returns promotions folder under root', () => {
+            const repository = createRepository();
+            expect(repository.getPromotionsPath()).to.equal(`${ROOT_PATH}/promotions`);
+        });
+
+        it('loadPromotions populates list from searchFragmentList', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const promoFragment = {
+                id: 'promo-1',
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: '/content/dam/mas/promotions/promo-1',
+                title: 'T',
+                description: '',
+                status: 'DRAFT',
+                created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
+                fields: [
+                    { name: 'title', type: 'text', values: ['T'] },
+                    { name: 'promoCode', type: 'text', values: ['X'] },
+                    { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
+                    { name: 'tags', type: 'tag', values: [] },
+                    { name: 'surfaces', type: 'long-text', values: [] },
+                ],
+                tags: [],
+            };
+            repository.searchFragmentList = sandbox.stub().resolves([promoFragment]);
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(Store.promotions.list.data.get().length).to.equal(1);
+            expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
+        it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.search.set({ ...originalSearch, path: 'acom' });
+            Store.filters.set({ ...originalFilters, locale: 'en_US' });
+            let resolveList;
+            const deferred = new Promise((r) => {
+                resolveList = r;
+            });
+            repository.searchFragmentList = sandbox.stub().returns(deferred);
+            Store.translationProjects.allCollections.set([]);
+            const collectionsSnapshot = Store.translationProjects.allCollections.get();
+            setItemsSelectionStore(Store.translationProjects);
+            try {
+                const loadP = repository.loadAllCollections();
+                await Promise.resolve();
+                setItemsSelectionStore(null);
+                resolveList([
+                    {
+                        path: '/content/dam/mas/acom/en_US/collections/c1',
+                        title: 'C1',
+                        fields: [],
+                        model: { path: COLLECTION_MODEL_PATH },
+                    },
+                ]);
+                await loadP;
+                expect(Store.translationProjects.allCollections.get()).to.equal(collectionsSnapshot);
+            } finally {
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                setItemsSelectionStore(null);
+            }
+        });
+
         it('calls loadTranslationProjects for TRANSLATIONS page', async () => {
             const repository = createRepository();
             const { default: Store } = await import('../src/store.js');

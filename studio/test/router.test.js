@@ -52,6 +52,36 @@ describe('Router', () => {
         return store;
     };
 
+    const createPromotionInEditStore = ({ hasChanges = false, fragments = [], collectionsValues } = {}) => {
+        const fields = [
+            { name: 'title', type: 'text', values: ['T'] },
+            { name: 'promoCode', type: 'text', values: ['X'] },
+            { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
+            { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
+            { name: 'tags', type: 'tag', values: [] },
+            { name: 'surfaces', type: 'long-text', values: [] },
+            { name: 'fragments', type: 'text', values: fragments },
+        ];
+        if (collectionsValues !== undefined) {
+            fields.push({ name: 'collections', type: 'text', values: collectionsValues });
+        }
+        const promotion = new Promotion({
+            id: 'promo-router',
+            etag: 'e',
+            model: { id: 'promotion-model' },
+            path: '/content/dam/mas/promotions/router',
+            title: 'T',
+            description: '',
+            status: 'DRAFT',
+            created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
+            modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
+            fields,
+            tags: [],
+        });
+        promotion.hasChanges = hasChanges;
+        return new FragmentStore(promotion);
+    };
+
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         mockLocation = {
@@ -103,7 +133,9 @@ describe('Router', () => {
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
         Store.users.setMeta('loaded', originalUsersLoadedMeta);
-        document.querySelectorAll('mas-fragment-editor, mas-translation-editor, mas-settings').forEach((el) => el.remove());
+        document
+            .querySelectorAll('mas-fragment-editor, mas-translation-editor, mas-settings, mas-promotions-editor')
+            .forEach((el) => el.remove());
     });
 
     describe('getActiveEditor', () => {
@@ -216,6 +248,56 @@ describe('Router', () => {
             expect(result.editor).to.be.null;
             expect(result.hasChanges).to.be.null;
             expect(result.shouldCheckUnsavedChanges).to.be.null;
+        });
+
+        describe('promotions editor page', () => {
+            let originalPromotionsInEdit;
+            let originalPromotionsSelectedCards;
+            let originalPromotionsSelectedCollections;
+
+            beforeEach(() => {
+                Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
+                originalPromotionsInEdit = Store.promotions.inEdit.get();
+                originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
+                originalPromotionsSelectedCollections = [...(Store.promotions.selectedCollections.value || [])];
+            });
+
+            afterEach(() => {
+                Store.promotions.inEdit.set(originalPromotionsInEdit);
+                Store.promotions.selectedCards.set(originalPromotionsSelectedCards);
+                Store.promotions.selectedCollections.set(originalPromotionsSelectedCollections);
+                document.querySelectorAll('mas-promotions-editor').forEach((el) => el.remove());
+            });
+
+            it('returns promotions editor metadata when dirty and not loadingPromotion', () => {
+                const editor = document.createElement('mas-promotions-editor');
+                editor.loadingPromotion = false;
+                document.body.appendChild(editor);
+                Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+                const result = router.getActiveEditor();
+                expect(result.editor).to.equal(editor);
+                expect(result.hasChanges).to.be.true;
+                expect(result.shouldCheckUnsavedChanges).to.be.true;
+            });
+
+            it('returns shouldCheckUnsavedChanges false while loadingPromotion even if dirty', () => {
+                const editor = document.createElement('mas-promotions-editor');
+                editor.loadingPromotion = true;
+                document.body.appendChild(editor);
+                Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+                const result = router.getActiveEditor();
+                expect(result.editor).to.equal(editor);
+                expect(result.hasChanges).to.be.true;
+                expect(result.shouldCheckUnsavedChanges).to.be.false;
+            });
+
+            it('returns null hasChanges when editor element is missing', () => {
+                Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+                const result = router.getActiveEditor();
+                expect(result.editor).to.be.null;
+                expect(result.hasChanges).to.be.null;
+                expect(result.shouldCheckUnsavedChanges).to.be.null;
+            });
         });
     });
 
@@ -447,6 +529,30 @@ describe('Router', () => {
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
             expect(Store.translationProjects.translationProjectId.get()).to.be.null;
             expect(Store.translationProjects.inEdit.get()).to.be.null;
+        });
+
+        it('clears promotion editor state when navigating away from promotions editor', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
+            Store.promotions.promotionId.set('promo-1');
+            Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: true }));
+            Store.promotions.showSelected.set(true);
+            Store.promotions.selectedCards.set(['/a']);
+            Store.promotions.selectedCollections.set(['/b']);
+            Store.promotions.selectedPlaceholders.set(['/p']);
+            const mockEditor = {
+                loadingPromotion: false,
+                promptDiscardChanges: sandbox.stub().resolves(true),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('mas-promotions-editor').returns(mockEditor);
+            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            expect(mockEditor.promptDiscardChanges.calledOnce).to.be.true;
+            expect(Store.promotions.promotionId.get()).to.equal(null);
+            expect(Store.promotions.inEdit.get()).to.equal(null);
+            expect(Store.promotions.showSelected.get()).to.equal(false);
+            expect(Store.promotions.selectedCards.value).to.deep.equal([]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([]);
+            expect(Store.promotions.selectedPlaceholders.value).to.deep.equal([]);
+            expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
         });
     });
 
@@ -691,36 +797,6 @@ describe('Router', () => {
         let originalPromotionsSelectedCards;
         let originalPromotionsSelectedCollections;
 
-        const createPromotionInEditStore = ({ hasChanges = false, fragments = [], collectionsValues } = {}) => {
-            const fields = [
-                { name: 'title', type: 'text', values: ['T'] },
-                { name: 'promoCode', type: 'text', values: ['X'] },
-                { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
-                { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
-                { name: 'tags', type: 'tag', values: [] },
-                { name: 'surfaces', type: 'long-text', values: [] },
-                { name: 'fragments', type: 'text', values: fragments },
-            ];
-            if (collectionsValues !== undefined) {
-                fields.push({ name: 'collections', type: 'text', values: collectionsValues });
-            }
-            const promotion = new Promotion({
-                id: 'promo-router',
-                etag: 'e',
-                model: { id: 'promotion-model' },
-                path: '/content/dam/mas/promotions/router',
-                title: 'T',
-                description: '',
-                status: 'DRAFT',
-                created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
-                modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
-                fields,
-                tags: [],
-            });
-            promotion.hasChanges = hasChanges;
-            return new FragmentStore(promotion);
-        };
-
         beforeEach(() => {
             originalPromotionsInEdit = Store.promotions.inEdit.get();
             originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
@@ -769,6 +845,19 @@ describe('Router', () => {
             );
             Store.promotions.selectedCards.set(['/a']);
             Store.promotions.selectedCollections.set(['/c']);
+            expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
+        });
+
+        it('returns false when saved selections live only on collections field with empty fragments', () => {
+            Store.promotions.inEdit.set(
+                createPromotionInEditStore({
+                    fragments: [],
+                    collectionsValues: ['/col-only'],
+                    hasChanges: false,
+                }),
+            );
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.selectedCollections.set(['/col-only']);
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
     });

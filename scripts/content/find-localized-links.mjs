@@ -133,7 +133,7 @@ if (dryRun) {
             }),
         });
 
-        if (response.ok) {
+        if (response.ok && fragment.item.status === 'PUBLISHED') {
             console.log('PUBLISH ', fragment.item.id);
             await publishFragment(fragment.item);
         }

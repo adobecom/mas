@@ -7,11 +7,17 @@ import StoreController from './reactivity/store-controller.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import styles from './mas-promotions-editor-css.js';
-import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE, COLLECTION_MODEL_PATH } from './constants.js';
+import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE } from './constants.js';
 import { normalizeKey, showToast } from './utils.js';
 import { Promotion } from './aem/promotion.js';
 import './promotions/mas-promotions-items-selector.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
+import {
+    classifyPromotionPathsForSelection,
+    isPromotionItemSelectionDirty,
+    isPromotionRequiredFieldsValid,
+    serializePromotionSurfacesForAem,
+} from './promotions/promotion-editor-utils.js';
 import { getFragmentName } from './translation/translation-utils.js';
 import { renderFragmentStatusCell } from './common/utils/render-utils.js';
 
@@ -25,8 +31,6 @@ const typeMap = {
     geos: { type: 'tag', multiple: true },
     fragments: { type: 'content-fragment', multiple: true },
 };
-
-const requiredFields = ['title', 'startDate', 'endDate'];
 
 class MasPromotionsEditor extends LitElement {
     static styles = styles;
@@ -79,7 +83,6 @@ class MasPromotionsEditor extends LitElement {
                 if (!this.fragmentStore) {
                     await this.#loadPromotionById(promotionId);
                 }
-                this.#syncItemStoresFromFragment();
                 await this.#hydratePromotionItemSelectionFromFragment();
             } finally {
                 this.loadingPromotion = false;
@@ -94,7 +97,6 @@ class MasPromotionsEditor extends LitElement {
                 const existing = this.fragmentStore.get?.();
                 this.isNewPromotion = !existing?.id;
             }
-            this.#syncItemStoresFromFragment();
             await this.#hydratePromotionItemSelectionFromFragment();
         }
 
@@ -142,17 +144,11 @@ class MasPromotionsEditor extends LitElement {
     }
 
     get #itemsSelectionDirty() {
-        const f = this.fragment;
-        if (!f) return false;
-        const savedPaths = [
-            ...f.getFieldValues('fragments'),
-            ...(f.getField('collections') ? f.getFieldValues('collections') : []),
-        ];
-        const mergedSaved = [...new Set(savedPaths)].sort().join('\0');
-        const mergedCur = [...new Set([...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value])]
-            .sort()
-            .join('\0');
-        return mergedSaved !== mergedCur;
+        return isPromotionItemSelectionDirty(
+            this.fragment,
+            Store.promotions.selectedCards.value,
+            Store.promotions.selectedCollections.value,
+        );
     }
 
     #resetPromotionItemStores() {
@@ -172,10 +168,6 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.displayPlaceholders.set([]);
         Store.promotions.selectedPlaceholders.set([]);
         Store.promotions.showSelected.set(false);
-    }
-
-    #syncItemStoresFromFragment() {
-        Store.promotions.selectedPlaceholders.set([]);
     }
 
     async #hydratePromotionItemSelectionFromFragment() {
@@ -200,18 +192,9 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.selectedCollections.set([]);
             return;
         }
-        const cards = [];
-        const cols = [];
-        for (const path of allPaths) {
-            try {
-                const data = await this.repository.aem.getFragmentByPath(path);
-                const modelPath = data?.model?.path;
-                if (modelPath === COLLECTION_MODEL_PATH) cols.push(path);
-                else cards.push(path);
-            } catch {
-                cards.push(path);
-            }
-        }
+        const { cards, cols } = await classifyPromotionPathsForSelection(allPaths, (path) =>
+            this.repository.aem.getFragmentByPath(path),
+        );
         Store.promotions.selectedCards.set(cards);
         Store.promotions.selectedCollections.set(cols);
         this.requestUpdate();
@@ -317,31 +300,19 @@ class MasPromotionsEditor extends LitElement {
         this.fragmentStore.updateField(fieldName, [utcDate]);
     }
 
-    #serializeSurfacesForAem(values) {
-        if (!Array.isArray(values) || !values.length) return [];
-        const tokens = values.flatMap((v) =>
-            String(v)
-                .split(/[,\n]/)
-                .map((s) => s.trim())
-                .filter(Boolean),
-        );
-        const uniq = [...new Set(tokens)];
-        return uniq.length ? [uniq.join(',')] : [];
-    }
-
     #patchPromotionSurfacesFieldForAem() {
         const field = this.fragment?.getField?.('surfaces');
         if (!field) return;
         field.type = 'text';
         field.multiple = false;
-        field.values = this.#serializeSurfacesForAem(field.values);
+        field.values = serializePromotionSurfacesForAem(field.values);
         this.fragment.hasChanges = true;
     }
 
     #getPayloadValues(field) {
         switch (field.name) {
             case 'surfaces':
-                return this.#serializeSurfacesForAem(field.values);
+                return serializePromotionSurfacesForAem(field.values);
             case 'fragments':
                 return [...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value];
             default:
@@ -383,7 +354,7 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.promotionId.set(newPromotion.id);
 
             this.isNewPromotion = false;
-            this.#syncItemStoresFromFragment();
+            Store.promotions.selectedPlaceholders.set([]);
             await this.#hydratePromotionItemSelectionFromFragment();
 
             this.storeController.hostDisconnected();
@@ -415,7 +386,7 @@ class MasPromotionsEditor extends LitElement {
             return;
         }
         showToast('Project successfully saved.', 'positive');
-        this.#syncItemStoresFromFragment();
+        Store.promotions.selectedPlaceholders.set([]);
         await this.#hydratePromotionItemSelectionFromFragment();
     }
 
@@ -433,22 +404,15 @@ class MasPromotionsEditor extends LitElement {
             if (!confirmed) return;
         }
         this.fragmentStore.discardChanges();
-        this.#syncItemStoresFromFragment();
+        Store.promotions.selectedPlaceholders.set([]);
         await this.#hydratePromotionItemSelectionFromFragment();
         Store.promotions.inEdit.set();
         Store.page.set(PAGE_NAMES.PROMOTIONS);
     }
 
     #validateRequiredFields(fragment = {}) {
-        if (!requiredFields.every((field) => fragment.getFieldValue(field))) {
-            return false;
-        }
-        const geos = fragment.getFieldValues('geos');
-        if (!geos.length) {
-            return false;
-        }
         const itemCount = Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
-        return itemCount > 0;
+        return isPromotionRequiredFieldsValid(fragment, itemCount);
     }
 
     /**
@@ -525,13 +489,7 @@ class MasPromotionsEditor extends LitElement {
         if (selector) {
             selector.searchQuery = '';
             selector.selectedTab = TABLE_TYPE.CARDS;
-            const searchAndFilters = selector.shadowRoot?.querySelector('mas-search-and-filters');
-            if (searchAndFilters) {
-                searchAndFilters.templateFilter = [];
-                searchAndFilters.marketSegmentFilter = [];
-                searchAndFilters.customerSegmentFilter = [];
-                searchAndFilters.productFilter = [];
-            }
+            selector.shadowRoot?.querySelectorAll('mas-search-and-filters').forEach((el) => el.resetFilters());
         }
         if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
     }
@@ -857,4 +815,7 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 }
+
+export default MasPromotionsEditor;
+export { MasPromotionsEditor };
 customElements.define('mas-promotions-editor', MasPromotionsEditor);

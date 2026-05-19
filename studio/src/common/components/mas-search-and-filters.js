@@ -236,6 +236,10 @@ class MasSearchAndFilters extends LitElement {
         this.productFilter = [];
     }
 
+    resetFilters() {
+        this.#clearAllFilters();
+    }
+
     #renderAppliedFilters() {
         if (this.appliedFilters.length === 0) return nothing;
 

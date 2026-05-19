@@ -1,5 +1,6 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
+import { isPromotionItemSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce } from './utils.js';
 import { canAccessSettings } from './groups.js';
 
@@ -80,18 +81,11 @@ export class Router extends EventTarget {
         if (!inEdit) return false;
         if (inEdit.hasChanges) return true;
 
-        const fragPaths = inEdit.getFieldValues('fragments');
-        const colPaths = inEdit.getField('collections') ? inEdit.getFieldValues('collections') : [];
-        const savedMerged = [...new Set([...fragPaths, ...colPaths])].sort().join('\0');
-        const currentMerged = [
-            ...new Set([
-                ...(Store.promotions.selectedCards.value || []),
-                ...(Store.promotions.selectedCollections.value || []),
-            ]),
-        ]
-            .sort()
-            .join('\0');
-        return savedMerged !== currentMerged;
+        return isPromotionItemSelectionDirty(
+            inEdit,
+            Store.promotions.selectedCards.value,
+            Store.promotions.selectedCollections.value,
+        );
     }
 
     /**

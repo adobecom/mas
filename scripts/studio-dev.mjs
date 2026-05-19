@@ -73,9 +73,7 @@ if (proxyAlreadyRunning) {
         );
         process.exit(1);
     }
-}
-
-if (!proxyAlreadyRunning) {
+} else {
     const proxyProcess = spawn(process.execPath, ['./proxy-server.mjs', proxyTargets[envName]], {
         cwd: STUDIO_DIR,
         env: {

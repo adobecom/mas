@@ -176,8 +176,14 @@ export class MasOstCodeOutput extends LitElement {
         const code = this.getCodeString();
         return html`
             <div class="code-card">
-                <code>${code}</code>
-                <sp-button variant="accent" size="s" ?disabled=${!store.selectedOsi} @click=${() => this.handleUse()}>
+                <code data-testid="ost-code-string">${code}</code>
+                <sp-button
+                    data-testid="ost-use-button"
+                    variant="accent"
+                    size="s"
+                    ?disabled=${!store.selectedOsi}
+                    @click=${() => this.handleUse()}
+                >
                     ${this.buttonText}
                 </sp-button>
             </div>

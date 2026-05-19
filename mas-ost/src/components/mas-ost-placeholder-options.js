@@ -54,6 +54,7 @@ export class MasOstPlaceholderOptions extends LitElement {
                     <div class="option-row">
                         <span class="option-label">${label}</span>
                         <sp-switch
+                            data-testid="ost-option-${key}"
                             size="s"
                             ?checked=${key === 'forceTaxExclusive' ? !opts[key] : !!opts[key]}
                             @change=${(e) => {

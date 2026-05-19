@@ -213,9 +213,9 @@ export class MasOstLivePreview extends LitElement {
     render() {
         const typeName = this.getTypeName();
         return html`
-            <div class="preview-card">
+            <div class="preview-card" data-testid="ost-live-preview">
                 <div class="label">Live Preview ${typeName ? html`<span class="type-badge">${typeName}</span>` : ''}</div>
-                <div class="placeholder-container"></div>
+                <div class="placeholder-container" data-testid="ost-preview-container"></div>
             </div>
         `;
     }

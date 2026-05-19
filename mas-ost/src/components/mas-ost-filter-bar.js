@@ -243,7 +243,12 @@ export class MasOstFilterBar extends LitElement {
             <div class="filters-grid">
                 <div>
                     <div class="field-label">Plan <mas-ost-help-icon text="${HELP_TOOLTIPS.planType}"></mas-ost-help-icon></div>
-                    <sp-picker size="s" .value=${this.currentPlanKey} @change=${this.handlePlanChange}>
+                    <sp-picker
+                        data-testid="ost-filter-plan-type"
+                        size="s"
+                        .value=${this.currentPlanKey}
+                        @change=${this.handlePlanChange}
+                    >
                         ${PLAN_TYPES.map((pt) => html`<sp-menu-item value=${pt.key}>${pt.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
@@ -252,6 +257,7 @@ export class MasOstFilterBar extends LitElement {
                         Segment <mas-ost-help-icon text="${HELP_TOOLTIPS.segment}"></mas-ost-help-icon>
                     </div>
                     <sp-picker
+                        data-testid="ost-filter-customer-segment"
                         size="s"
                         .value=${store.aosParams.customerSegment || 'ALL'}
                         @change=${this.handleCustomerSegmentChange}
@@ -262,6 +268,7 @@ export class MasOstFilterBar extends LitElement {
                 <div>
                     <div class="field-label">Market <mas-ost-help-icon text="${HELP_TOOLTIPS.market}"></mas-ost-help-icon></div>
                     <sp-picker
+                        data-testid="ost-filter-market-segment"
                         size="s"
                         .value=${store.aosParams.marketSegment || 'ALL'}
                         @change=${this.handleMarketSegmentChange}
@@ -273,7 +280,12 @@ export class MasOstFilterBar extends LitElement {
                     <div class="field-label">
                         Offer type <mas-ost-help-icon text="${HELP_TOOLTIPS.offerType}"></mas-ost-help-icon>
                     </div>
-                    <sp-picker size="s" .value=${store.aosParams.offerType || 'ALL'} @change=${this.handleOfferTypeChange}>
+                    <sp-picker
+                        data-testid="ost-filter-offer-type"
+                        size="s"
+                        .value=${store.aosParams.offerType || 'ALL'}
+                        @change=${this.handleOfferTypeChange}
+                    >
                         ${OFFER_TYPES.map((t) => html`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>

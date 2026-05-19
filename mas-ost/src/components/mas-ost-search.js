@@ -58,6 +58,7 @@ export class MasOstSearch extends LitElement {
         return html`
             <div class="search-wrapper">
                 <sp-search
+                    data-testid="ost-search-input"
                     placeholder="Search by name, code, offer ID, or OSI"
                     size="s"
                     @input=${this.handleInput}

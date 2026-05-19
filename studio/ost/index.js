@@ -525,7 +525,7 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
         `}render(){return d`
             <div id="textfield">${this.renderField()}</div>
             ${this.renderHelpText(this.invalid)}
-        `}update(e){(e.has("value")||e.has("required")&&this.required)&&this.updateComplete.then(()=>{this.checkValidity()}),super.update(e)}checkValidity(){let e=this.inputElement.checkValidity();return(this.required||this.value&&this.pattern)&&((this.disabled||this.multiline)&&this.pattern&&(e=new RegExp(`^${this.pattern}$`,"u").test(this.value.toString())),typeof this.minlength<"u"&&(e=e&&this.value.toString().length>=this.minlength),this.valid=e,this.invalid=!e),e}}H([Re()],N.prototype,"appliedLabel",2),H([h({attribute:"allowed-keys"})],N.prototype,"allowedKeys",2),H([h({type:Boolean,reflect:!0})],N.prototype,"focused",2),H([Z(".input:not(#sizer)")],N.prototype,"inputElement",2),H([h({type:Boolean,reflect:!0})],N.prototype,"invalid",2),H([h()],N.prototype,"label",2),H([h({type:String,reflect:!0})],N.prototype,"name",2),H([h()],N.prototype,"placeholder",2),H([Re()],N.prototype,"type",1),H([h({attribute:"type",reflect:!0})],N.prototype,"_type",2),H([h()],N.prototype,"pattern",2),H([h({type:Boolean,reflect:!0})],N.prototype,"grows",2),H([h({type:Number})],N.prototype,"maxlength",2),H([h({type:Number})],N.prototype,"minlength",2),H([h({type:Boolean,reflect:!0})],N.prototype,"multiline",2),H([h({type:Boolean,reflect:!0})],N.prototype,"readonly",2),H([h({type:Number})],N.prototype,"rows",2),H([h({type:Boolean,reflect:!0})],N.prototype,"valid",2),H([h({type:String})],N.prototype,"value",1),H([h({type:Boolean,reflect:!0})],N.prototype,"quiet",2),H([h({type:Boolean,reflect:!0})],N.prototype,"required",2),H([h({type:String,reflect:!0})],N.prototype,"autocomplete",2);class Mr extends N{constructor(){super(...arguments),this._value=""}set value(e){if(e===this.value)return;const t=this._value;this._value=e,this.requestUpdate("value",t)}get value(){return this._value}}H([h({type:String})],Mr.prototype,"value",1),j("sp-textfield",Mr);const Li={AE:"ar",AR:"es",AT:"de",BE:"nl",BG:"bg",BH:"ar",BO:"es",BR:"pt",BY:"ru",CH:"de",CL:"es",CN:"zh-hans",CO:"es",CR:"es",CY:"el",CZ:"cs",DE:"de",DK:"da",DO:"es",DZ:"ar",EC:"es",EE:"et",EG:"ar",ES:"es",FI:"fi",FR:"fr",GR:"el",GT:"es",HK:"zh-hant",HN:"es",HU:"hu",IL:"he",IT:"it",JO:"ar",JP:"ja",KG:"ru",KR:"ko",KW:"ar",KZ:"ru",LB:"ar",LT:"lt",LU:"fr",LV:"lv",MA:"ar",MD:"ro",MO:"zh-hant",MX:"es",MY:"ms",NI:"es",NL:"nl",NO:"nb",OM:"ar",PA:"es",PE:"es",PL:"pl",PR:"es",PT:"pt",PY:"es",QA:"ar",RO:"ro",RU:"ru",SA:"ar",SE:"sv",SI:"sl",SK:"sk",SV:"es",TH:"th",TR:"tr",TW:"zh-hant",UA:"uk",UY:"es",VE:"es",VN:"vi",YE:"ar"},ds={arrangementCode:"",commitment:"",term:"",customerSegment:"",offerType:"",marketSegment:"",pricePoint:""},Di=[{type:"price",name:"Price"},{type:"optical",name:"Optical price"},{type:"annual",name:"Annual price"},{type:"strikethrough",name:"Strikethrough price"},{type:"promo-strikethrough",name:"Promo strikethrough price"},{type:"discount",name:"Discount percentage"},{type:"legal",name:"Legal disclaimer",overrides:{displayPlanType:!0}},{type:"checkoutUrl",name:"Checkout URL"}],ms={displayFormatted:!0,displayRecurrence:!0,displayPerUnit:!1,displayTax:!1,forceTaxExclusive:!1,displayOldPrice:!0},qr=["single","tryBuy","bundle","consult"];class ji extends EventTarget{constructor(){super(...arguments);k(this,"env","PRODUCTION");k(this,"environment");k(this,"landscape","PUBLISHED");k(this,"apiKey","");k(this,"accessToken","");k(this,"wcsApiKey","");k(this,"checkoutClientId","mas-commerce-service");k(this,"onSelect",null);k(this,"onCancel",null);k(this,"onMultiSelect",null);k(this,"onBundleSelect",null);k(this,"zIndex",2e4);k(this,"aosParams",{...ds});k(this,"country","US");k(this,"language","en");k(this,"searchQuery","");k(this,"searchType","");k(this,"allProducts",[]);k(this,"productsLoading",!1);k(this,"selectedProduct");k(this,"offers",[]);k(this,"selectedOffer");k(this,"selectedOsi");k(this,"authoringFlow","single");k(this,"flowChosen",!1);k(this,"selectedOffers",[]);k(this,"currentSlot","trial");k(this,"pendingFlowSwitch",null);k(this,"promotionCode");k(this,"storedPromoOverride");k(this,"masCommerceService",null);k(this,"placeholderTypes",[...Di]);k(this,"defaultPlaceholderOptions",{...ms});k(this,"offerSelectorPlaceholderOptions",{});k(this,"deepLink",{});k(this,"ctaTextOption",null);k(this,"helpMode",!1)}get viewState(){return!this.selectedProduct&&!this.flowChosen?"welcome":this.authoringFlow==="consult"?this.selectedOffer?"offer-detail-focused":"offers":this.authoringFlow==="tryBuy"||this.authoringFlow==="bundle"||!this.selectedOffer?"offers":"configure"}get canConfirm(){switch(this.authoringFlow){case"single":return!!this.selectedOffer;case"tryBuy":return this.selectedOffers.some(t=>t.role==="base");case"bundle":return this.selectedOffers.length>=2;case"consult":return!1;default:return!1}}get selectedBaseOffer(){var t;return((t=this.selectedOffers.find(r=>r.role==="base"))==null?void 0:t.offer)??null}get selectedBaseOsi(){var t;return((t=this.selectedOffers.find(r=>r.role==="base"))==null?void 0:t.osi)??null}get selectedTrialOffer(){var t;return((t=this.selectedOffers.find(r=>r.role==="trial"))==null?void 0:t.offer)??null}get selectedTrialOsi(){var t;return((t=this.selectedOffers.find(r=>r.role==="trial"))==null?void 0:t.osi)??null}get bundleOsis(){return this.selectedOffers.map(t=>t.osi).join(",")}get multiSelect(){return this.authoringFlow==="tryBuy"}get canConfirmMultiSelect(){return this.authoringFlow==="tryBuy"&&!!this.selectedBaseOsi}subscribe(t){this.addEventListener("state-changed",t)}unsubscribe(t){this.removeEventListener("state-changed",t)}notify(){this.dispatchEvent(new Event("state-changed"))}init(t){this.aosParams={...ds},this.selectedProduct=void 0,this.selectedOffer=void 0,this.selectedOsi=void 0,this.authoringFlow="single",this.flowChosen=!1,this.selectedOffers=[],this.currentSlot="trial",this.pendingFlowSwitch=null,this.offers=[],this.searchQuery="",this.searchType="",this.deepLink={},this.promotionCode=void 0,this.storedPromoOverride=void 0,t.multiSelect===!0&&(this.authoringFlow="tryBuy",this.flowChosen=!0),t.bundleSelect===!0&&(this.authoringFlow="bundle",this.flowChosen=!0),t.authoringFlow&&qr.includes(t.authoringFlow)&&(this.authoringFlow=t.authoringFlow,this.flowChosen=!0),Object.keys(t).forEach(r=>{r==="multiSelect"||r==="bundleSelect"||r==="authoringFlow"||r in this&&t[r]!==void 0&&(this[r]=t[r])}),t.defaultPlaceholderOptions&&(this.defaultPlaceholderOptions={...ms,...t.defaultPlaceholderOptions}),t.offerSelectorPlaceholderOptions&&(this.offerSelectorPlaceholderOptions=t.offerSelectorPlaceholderOptions),this.notify()}setAosParams(t){this.aosParams={...this.aosParams,...t},this.notify()}setSearch(t,r){this.searchQuery=t,this.searchType=r,this.notify()}setCountry(t){this.country=t,this.language=Li[t]||"en",this.notify()}setProducts(t){if(this.allProducts=t,this.pendingArrangementCode){const r=this.pendingArrangementCode;this.pendingArrangementCode=null,this.autoSelectProductByArrangementCode(r)}this.notify()}setProduct(t){this.selectedProduct=t,this.selectedOffer=void 0,this.selectedOsi=void 0,this.notify()}setOffers(t){this.offers=t,this.notify()}setOffer(t){this.selectedOffer=t,this.notify()}setOsi(t){this.selectedOsi=t,this.notify()}setAuthoringFlow(t,r=!1){if(!qr.includes(t)||t===this.authoringFlow)return;const o=this.selectedOffers.length>0||!!this.selectedOffer;if(!r&&o){this.pendingFlowSwitch=t,this.notify();return}this.applyFlowSwitch(t,r)}setCurrentSlot(t){t!=="base"&&t!=="trial"||(this.currentSlot=t,this.notify())}confirmFlowSwitch(t){const r=this.pendingFlowSwitch;r&&(this.pendingFlowSwitch=null,this.applyFlowSwitch(r,t))}cancelFlowSwitch(){this.pendingFlowSwitch=null,this.notify()}applyFlowSwitch(t,r){let o=r?[...this.selectedOffers]:[];if(r&&o.length===0&&this.selectedOffer&&(o=[{offer:this.selectedOffer,osi:this.selectedOsi}]),this.authoringFlow=t,this.flowChosen=!0,this.currentSlot="trial",this.selectedOffers=[],r&&o.length>0)if(t==="single"){const a=o[0];this.selectedOffer=a.offer,this.selectedOsi=a.osi}else if(t==="tryBuy"){const a=o[0];this.selectedOffers=[{offer:a.offer,osi:a.osi,role:"base"}],o[1]&&this.selectedOffers.push({offer:o[1].offer,osi:o[1].osi,role:"trial"})}else t==="bundle"&&(this.selectedOffers=o.map(a=>({offer:a.offer,osi:a.osi})));t!=="single"&&(this.selectedOffer=void 0,this.selectedOsi=void 0),this.notify()}addOffer(t,r,o){if(this.authoringFlow!=="consult"){if(this.authoringFlow==="single"){this.selectedOffer=t,this.selectedOsi=r,this.notify();return}if(this.authoringFlow==="tryBuy"){const a=o||this.currentSlot;this.selectedOffers=this.selectedOffers.filter(c=>c.role!==a),this.selectedOffers.push({offer:t,osi:r,role:a}),a==="trial"&&this.currentSlot==="trial"&&(this.currentSlot="base"),this.notify();return}if(this.authoringFlow==="bundle"){const a=this.selectedOffers.findIndex(c=>c.offer===t||c.osi===r);a>=0?this.selectedOffers.splice(a,1):this.selectedOffers.push({offer:t,osi:r}),this.selectedOffers=[...this.selectedOffers],this.notify();return}}}removeOffer(t){t>=0&&t<this.selectedOffers.length&&(this.selectedOffers.splice(t,1),this.selectedOffers=[...this.selectedOffers],this.notify())}removeOfferByRole(t){this.selectedOffers=this.selectedOffers.filter(r=>r.role!==t),this.notify()}clearOffers(){this.selectedOffers=[],this.selectedOffer=void 0,this.selectedOsi=void 0,this.notify()}isOfferSelected(t){return this.selectedOffer===t?!0:this.selectedOffers.some(r=>r.offer===t)}setPromoCode(t){this.storedPromoOverride=t,this.notify()}toggleMultiSelect(){this.authoringFlow==="tryBuy"?this.applyFlowSwitch("single",!1):(this.selectedOffer&&(this.selectedOffers=[{offer:this.selectedOffer,osi:this.selectedOsi,role:"base"}]),this.authoringFlow="tryBuy",this.selectedOffer=void 0,this.selectedOsi=void 0,this.notify())}toggleHelp(){this.helpMode=!this.helpMode,this.notify()}applySearchParams(t){if(!t)return;const r=l=>t.get(l);r("country")&&this.setCountry(r("country")),r("promotionCode")&&this.setPromoCode(r("promotionCode")),r("multiSelect")==="true"&&(this.authoringFlow="tryBuy",this.flowChosen=!0),r("bundleSelect")==="true"&&(this.authoringFlow="bundle",this.flowChosen=!0);const o=r("authoringFlow");o&&qr.includes(o)&&(this.authoringFlow=o,this.flowChosen=!0);const a={};r("offerId")&&(a.offerId=r("offerId")),r("type")&&(a.type=r("type")),r("workflowStep")&&(a.workflowStep=r("workflowStep")),r("text")&&(a.text=r("text")),r("checkoutType")&&(a.checkoutType=r("checkoutType")),r("modal")&&(a.modal=r("modal")),r("entitlement")&&(a.entitlement=r("entitlement")==="true"),r("upgrade")&&(a.upgrade=r("upgrade")==="true"),this.deepLink=a;const c={},i=r("arrangement_code");if(i&&(c.arrangementCode=i),r("commitment")&&(c.commitment=r("commitment")),r("term")&&(c.term=r("term")),r("customerSegment")&&(c.customerSegment=r("customerSegment")),r("marketSegment")&&(c.marketSegment=r("marketSegment")),r("offerType")&&(c.offerType=r("offerType")),Object.keys(c).length>0){this.setAosParams(c),i&&this.autoSelectProductByArrangementCode(i);return}i&&this.autoSelectProductByArrangementCode(i),this.notify()}autoSelectProductByArrangementCode(t){var o;const r=(o=this.allProducts)==null?void 0:o.find(a=>Array.isArray(a)&&a[0]===t);r?this.setProduct(r[1]):this.pendingArrangementCode=t}}const n=new ji,Bi=[{"iso2-code":"AE"},{"iso2-code":"AM"},{"iso2-code":"AR"},{"iso2-code":"AT"},{"iso2-code":"AU"},{"iso2-code":"AZ"},{"iso2-code":"BB"},{"iso2-code":"BE"},{"iso2-code":"BG"},{"iso2-code":"BH"},{"iso2-code":"BO"},{"iso2-code":"BR"},{"iso2-code":"BS"},{"iso2-code":"BY"},{"iso2-code":"CA"},{"iso2-code":"CH"},{"iso2-code":"CL"},{"iso2-code":"CN"},{"iso2-code":"CO"},{"iso2-code":"CR"},{"iso2-code":"CY"},{"iso2-code":"CZ"},{"iso2-code":"DE"},{"iso2-code":"DK"},{"iso2-code":"DO"},{"iso2-code":"DZ"},{"iso2-code":"EC"},{"iso2-code":"EE"},{"iso2-code":"EG"},{"iso2-code":"ES"},{"iso2-code":"FI"},{"iso2-code":"FR"},{"iso2-code":"GB"},{"iso2-code":"GE"},{"iso2-code":"GR"},{"iso2-code":"GT"},{"iso2-code":"HK"},{"iso2-code":"HN"},{"iso2-code":"HR"},{"iso2-code":"HU"},{"iso2-code":"ID"},{"iso2-code":"IE"},{"iso2-code":"IL"},{"iso2-code":"IN"},{"iso2-code":"IS"},{"iso2-code":"IT"},{"iso2-code":"JM"},{"iso2-code":"JO"},{"iso2-code":"JP"},{"iso2-code":"KE"},{"iso2-code":"KG"},{"iso2-code":"KR"},{"iso2-code":"KW"},{"iso2-code":"KZ"},{"iso2-code":"LB"},{"iso2-code":"LK"},{"iso2-code":"LT"},{"iso2-code":"LU"},{"iso2-code":"LV"},{"iso2-code":"MA"},{"iso2-code":"MD"},{"iso2-code":"MO"},{"iso2-code":"MT"},{"iso2-code":"MU"},{"iso2-code":"MX"},{"iso2-code":"MY"},{"iso2-code":"NG"},{"iso2-code":"NI"},{"iso2-code":"NL"},{"iso2-code":"NO"},{"iso2-code":"NP"},{"iso2-code":"NZ"},{"iso2-code":"OM"},{"iso2-code":"PA"},{"iso2-code":"PE"},{"iso2-code":"PH"},{"iso2-code":"PL"},{"iso2-code":"PR"},{"iso2-code":"PT"},{"iso2-code":"PY"},{"iso2-code":"QA"},{"iso2-code":"RO"},{"iso2-code":"RU"},{"iso2-code":"SA"},{"iso2-code":"SE"},{"iso2-code":"SG"},{"iso2-code":"SI"},{"iso2-code":"SK"},{"iso2-code":"SV"},{"iso2-code":"TH"},{"iso2-code":"TJ"},{"iso2-code":"TM"},{"iso2-code":"TR"},{"iso2-code":"TT"},{"iso2-code":"TW"},{"iso2-code":"TZ"},{"iso2-code":"UA"},{"iso2-code":"US"},{"iso2-code":"UY"},{"iso2-code":"UZ"},{"iso2-code":"VE"},{"iso2-code":"VN"},{"iso2-code":"YE"},{"iso2-code":"ZA"}],Ri={empty:{step:1,title:"Find your product",body:"Search by product name, arrangement code, or paste an offer ID / OSI directly. Use the filters on the left to narrow results by plan type, segment, or market."},offers:{step:2,title:"Choose an offer",body:"Each row is a pricing offer for this product. Click one to configure how its price or CTA will appear on your page. The colored badge shows the plan type (e.g. ABM = annual billed monthly, PUF = pay up front)."},configure:{step:3,title:"Configure & copy",body:"Pick a placeholder type (e.g. 'Price' to show the offer's price, 'Checkout URL' for a buy button). Adjust display options below, then click Use to copy the code to your clipboard."}},be={planType:"How the customer pays. ABM = Annual Billed Monthly (12-month contract, billed each month). PUF = Pay Up Front (12 months, paid in full). M2M = Month-to-Month (cancel anytime). P3Y = 3-Year Term License. Perpetual = one-time purchase, no recurring billing.",segment:"Who the offer is licensed for. Individual = single consumer subscription. Team = small/medium business, seat-based. Enterprise = large organization / VIP contracts.",market:"What vertical the offer targets. COM = Commercial (business/consumer). EDU = Education (students, faculty, schools). GOV = Government.",offerType:"The variant of the offer. Base = standard regular-price offer. Trial = free or reduced-price introductory period. Promotion = discounted or special-pricing variant.",planBadge:"The colored badge indicates the plan type: blue = ABM, purple = PUF, yellow = M2M, fuchsia = P3Y, seafoam = Perpetual.",offerId:"A unique 32-character identifier for this specific offer. Used internally by Adobe's commerce system — not shown to customers.",placeholderType:"Controls what the placeholder outputs on the page. Price = formatted price text. Optical = annual price shown as monthly equivalent. Discount = strikethrough comparison with a reference offer. Checkout URL = a buy-now link/button. Legal = legal disclaimers for the offer.",options:"Display toggles that control price formatting: whether to show currency formatting, recurrence label (/mo, /yr), per-unit pricing, tax, or old/strikethrough price.",checkoutOptions:"Settings for buy buttons: which checkout workflow to use (UCv3, UCv2), the CTA label (Buy now, Free trial, etc.), and whether to open in a modal.",landscapeEnv:"Landscape: Draft offers are being edited; Published offers are live. Environment: Stage uses test data; Production uses real commerce data."};class Fi extends tt{}const Mi=S`
+        `}update(e){(e.has("value")||e.has("required")&&this.required)&&this.updateComplete.then(()=>{this.checkValidity()}),super.update(e)}checkValidity(){let e=this.inputElement.checkValidity();return(this.required||this.value&&this.pattern)&&((this.disabled||this.multiline)&&this.pattern&&(e=new RegExp(`^${this.pattern}$`,"u").test(this.value.toString())),typeof this.minlength<"u"&&(e=e&&this.value.toString().length>=this.minlength),this.valid=e,this.invalid=!e),e}}H([Re()],N.prototype,"appliedLabel",2),H([h({attribute:"allowed-keys"})],N.prototype,"allowedKeys",2),H([h({type:Boolean,reflect:!0})],N.prototype,"focused",2),H([Z(".input:not(#sizer)")],N.prototype,"inputElement",2),H([h({type:Boolean,reflect:!0})],N.prototype,"invalid",2),H([h()],N.prototype,"label",2),H([h({type:String,reflect:!0})],N.prototype,"name",2),H([h()],N.prototype,"placeholder",2),H([Re()],N.prototype,"type",1),H([h({attribute:"type",reflect:!0})],N.prototype,"_type",2),H([h()],N.prototype,"pattern",2),H([h({type:Boolean,reflect:!0})],N.prototype,"grows",2),H([h({type:Number})],N.prototype,"maxlength",2),H([h({type:Number})],N.prototype,"minlength",2),H([h({type:Boolean,reflect:!0})],N.prototype,"multiline",2),H([h({type:Boolean,reflect:!0})],N.prototype,"readonly",2),H([h({type:Number})],N.prototype,"rows",2),H([h({type:Boolean,reflect:!0})],N.prototype,"valid",2),H([h({type:String})],N.prototype,"value",1),H([h({type:Boolean,reflect:!0})],N.prototype,"quiet",2),H([h({type:Boolean,reflect:!0})],N.prototype,"required",2),H([h({type:String,reflect:!0})],N.prototype,"autocomplete",2);class Mr extends N{constructor(){super(...arguments),this._value=""}set value(e){if(e===this.value)return;const t=this._value;this._value=e,this.requestUpdate("value",t)}get value(){return this._value}}H([h({type:String})],Mr.prototype,"value",1),j("sp-textfield",Mr);const Li={AE:"ar",AR:"es",AT:"de",BE:"nl",BG:"bg",BH:"ar",BO:"es",BR:"pt",BY:"ru",CH:"de",CL:"es",CN:"zh-hans",CO:"es",CR:"es",CY:"el",CZ:"cs",DE:"de",DK:"da",DO:"es",DZ:"ar",EC:"es",EE:"et",EG:"ar",ES:"es",FI:"fi",FR:"fr",GR:"el",GT:"es",HK:"zh-hant",HN:"es",HU:"hu",IL:"he",IT:"it",JO:"ar",JP:"ja",KG:"ru",KR:"ko",KW:"ar",KZ:"ru",LB:"ar",LT:"lt",LU:"fr",LV:"lv",MA:"ar",MD:"ro",MO:"zh-hant",MX:"es",MY:"ms",NI:"es",NL:"nl",NO:"nb",OM:"ar",PA:"es",PE:"es",PL:"pl",PR:"es",PT:"pt",PY:"es",QA:"ar",RO:"ro",RU:"ru",SA:"ar",SE:"sv",SI:"sl",SK:"sk",SV:"es",TH:"th",TR:"tr",TW:"zh-hant",UA:"uk",UY:"es",VE:"es",VN:"vi",YE:"ar"},ds={arrangementCode:"",commitment:"",term:"",customerSegment:"",offerType:"",marketSegment:"",pricePoint:""},Di=[{type:"price",name:"Price"},{type:"optical",name:"Optical price"},{type:"annual",name:"Annual price"},{type:"strikethrough",name:"Strikethrough price"},{type:"promo-strikethrough",name:"Promo strikethrough price"},{type:"discount",name:"Discount percentage"},{type:"legal",name:"Legal disclaimer",overrides:{displayPlanType:!0}},{type:"checkoutUrl",name:"Checkout URL"}],ms={displayFormatted:!0,displayRecurrence:!0,displayPerUnit:!1,displayTax:!1,forceTaxExclusive:!1,displayOldPrice:!0},qr=["single","tryBuy","bundle","consult"];class ji extends EventTarget{constructor(){super(...arguments);k(this,"env","PRODUCTION");k(this,"environment");k(this,"landscape","PUBLISHED");k(this,"apiKey","");k(this,"accessToken","");k(this,"wcsApiKey","");k(this,"checkoutClientId","mas-commerce-service");k(this,"onSelect",null);k(this,"onCancel",null);k(this,"onMultiSelect",null);k(this,"onBundleSelect",null);k(this,"zIndex",2e4);k(this,"aosParams",{...ds});k(this,"country","US");k(this,"language","en");k(this,"searchQuery","");k(this,"searchType","");k(this,"allProducts",[]);k(this,"productsLoading",!1);k(this,"selectedProduct");k(this,"offers",[]);k(this,"selectedOffer");k(this,"selectedOsi");k(this,"authoringFlow","single");k(this,"flowChosen",!1);k(this,"selectedOffers",[]);k(this,"currentSlot","base");k(this,"pendingFlowSwitch",null);k(this,"promotionCode");k(this,"storedPromoOverride");k(this,"masCommerceService",null);k(this,"placeholderTypes",[...Di]);k(this,"defaultPlaceholderOptions",{...ms});k(this,"offerSelectorPlaceholderOptions",{});k(this,"deepLink",{});k(this,"ctaTextOption",null);k(this,"helpMode",!1)}get viewState(){return!this.selectedProduct&&!this.flowChosen?"welcome":this.authoringFlow==="consult"?this.selectedOffer?"offer-detail-focused":"offers":this.authoringFlow==="tryBuy"||this.authoringFlow==="bundle"||!this.selectedOffer?"offers":"configure"}get canConfirm(){switch(this.authoringFlow){case"single":return!!this.selectedOffer;case"tryBuy":return this.selectedOffers.some(t=>t.role==="base");case"bundle":return this.selectedOffers.length>=2;case"consult":return!1;default:return!1}}get selectedBaseOffer(){var t;return((t=this.selectedOffers.find(r=>r.role==="base"))==null?void 0:t.offer)??null}get selectedBaseOsi(){var t;return((t=this.selectedOffers.find(r=>r.role==="base"))==null?void 0:t.osi)??null}get selectedTrialOffer(){var t;return((t=this.selectedOffers.find(r=>r.role==="trial"))==null?void 0:t.offer)??null}get selectedTrialOsi(){var t;return((t=this.selectedOffers.find(r=>r.role==="trial"))==null?void 0:t.osi)??null}get bundleOsis(){return this.selectedOffers.map(t=>t.osi).join(",")}get multiSelect(){return this.authoringFlow==="tryBuy"}get canConfirmMultiSelect(){return this.authoringFlow==="tryBuy"&&!!this.selectedBaseOsi}subscribe(t){this.addEventListener("state-changed",t)}unsubscribe(t){this.removeEventListener("state-changed",t)}notify(){this.dispatchEvent(new Event("state-changed"))}init(t){this.aosParams={...ds},this.selectedProduct=void 0,this.selectedOffer=void 0,this.selectedOsi=void 0,this.authoringFlow="single",this.flowChosen=!1,this.selectedOffers=[],this.currentSlot="base",this.pendingFlowSwitch=null,this.offers=[],this.searchQuery="",this.searchType="",this.deepLink={},this.promotionCode=void 0,this.storedPromoOverride=void 0,t.multiSelect===!0&&(this.authoringFlow="tryBuy",this.flowChosen=!0),t.bundleSelect===!0&&(this.authoringFlow="bundle",this.flowChosen=!0),t.authoringFlow&&qr.includes(t.authoringFlow)&&(this.authoringFlow=t.authoringFlow,this.flowChosen=!0),Object.keys(t).forEach(r=>{r==="multiSelect"||r==="bundleSelect"||r==="authoringFlow"||r in this&&t[r]!==void 0&&(this[r]=t[r])}),t.defaultPlaceholderOptions&&(this.defaultPlaceholderOptions={...ms,...t.defaultPlaceholderOptions}),t.offerSelectorPlaceholderOptions&&(this.offerSelectorPlaceholderOptions=t.offerSelectorPlaceholderOptions),this.notify()}setAosParams(t){this.aosParams={...this.aosParams,...t},this.notify()}setSearch(t,r){this.searchQuery=t,this.searchType=r,this.notify()}setCountry(t){this.country=t,this.language=Li[t]||"en",this.notify()}setProducts(t){if(this.allProducts=t,this.pendingArrangementCode){const r=this.pendingArrangementCode;this.pendingArrangementCode=null,this.autoSelectProductByArrangementCode(r)}this.notify()}setProduct(t){this.selectedProduct=t,this.selectedOffer=void 0,this.selectedOsi=void 0,this.notify()}setOffers(t){this.offers=t,this.notify()}setOffer(t){this.selectedOffer=t,this.notify()}setOsi(t){this.selectedOsi=t,this.notify()}setAuthoringFlow(t,r=!1){if(!qr.includes(t)||t===this.authoringFlow)return;const o=this.selectedOffers.length>0||!!this.selectedOffer;if(!r&&o){this.pendingFlowSwitch=t,this.notify();return}this.applyFlowSwitch(t,r)}setCurrentSlot(t){t!=="base"&&t!=="trial"||(this.currentSlot=t,this.notify())}confirmFlowSwitch(t){const r=this.pendingFlowSwitch;r&&(this.pendingFlowSwitch=null,this.applyFlowSwitch(r,t))}cancelFlowSwitch(){this.pendingFlowSwitch=null,this.notify()}applyFlowSwitch(t,r){let o=r?[...this.selectedOffers]:[];if(r&&o.length===0&&this.selectedOffer&&(o=[{offer:this.selectedOffer,osi:this.selectedOsi}]),this.authoringFlow=t,this.flowChosen=!0,this.currentSlot="base",this.selectedOffers=[],r&&o.length>0)if(t==="single"){const a=o[0];this.selectedOffer=a.offer,this.selectedOsi=a.osi}else if(t==="tryBuy"){const a=o[0];this.selectedOffers=[{offer:a.offer,osi:a.osi,role:"base"}],o[1]&&this.selectedOffers.push({offer:o[1].offer,osi:o[1].osi,role:"trial"})}else t==="bundle"&&(this.selectedOffers=o.map(a=>({offer:a.offer,osi:a.osi})));t!=="single"&&(this.selectedOffer=void 0,this.selectedOsi=void 0),this.notify()}addOffer(t,r,o){if(this.authoringFlow!=="consult"){if(this.authoringFlow==="single"){this.selectedOffer=t,this.selectedOsi=r,this.notify();return}if(this.authoringFlow==="tryBuy"){const a=o||this.currentSlot;this.selectedOffers=this.selectedOffers.filter(c=>c.role!==a),this.selectedOffers.push({offer:t,osi:r,role:a}),a==="base"&&this.currentSlot==="base"&&(this.currentSlot="trial"),this.notify();return}if(this.authoringFlow==="bundle"){const a=this.selectedOffers.findIndex(c=>c.offer===t||c.osi===r);a>=0?this.selectedOffers.splice(a,1):this.selectedOffers.push({offer:t,osi:r}),this.selectedOffers=[...this.selectedOffers],this.notify();return}}}removeOffer(t){t>=0&&t<this.selectedOffers.length&&(this.selectedOffers.splice(t,1),this.selectedOffers=[...this.selectedOffers],this.notify())}removeOfferByRole(t){this.selectedOffers=this.selectedOffers.filter(r=>r.role!==t),this.notify()}clearOffers(){this.selectedOffers=[],this.selectedOffer=void 0,this.selectedOsi=void 0,this.notify()}isOfferSelected(t){return this.selectedOffer===t?!0:this.selectedOffers.some(r=>r.offer===t)}setPromoCode(t){this.storedPromoOverride=t,this.notify()}toggleMultiSelect(){this.authoringFlow==="tryBuy"?this.applyFlowSwitch("single",!1):(this.selectedOffer&&(this.selectedOffers=[{offer:this.selectedOffer,osi:this.selectedOsi,role:"base"}]),this.authoringFlow="tryBuy",this.selectedOffer=void 0,this.selectedOsi=void 0,this.notify())}toggleHelp(){this.helpMode=!this.helpMode,this.notify()}applySearchParams(t){if(!t)return;const r=l=>t.get(l);r("country")&&this.setCountry(r("country")),r("promotionCode")&&this.setPromoCode(r("promotionCode")),r("multiSelect")==="true"&&(this.authoringFlow="tryBuy",this.flowChosen=!0),r("bundleSelect")==="true"&&(this.authoringFlow="bundle",this.flowChosen=!0);const o=r("authoringFlow");o&&qr.includes(o)&&(this.authoringFlow=o,this.flowChosen=!0);const a={};r("offerId")&&(a.offerId=r("offerId")),r("type")&&(a.type=r("type")),r("workflowStep")&&(a.workflowStep=r("workflowStep")),r("text")&&(a.text=r("text")),r("checkoutType")&&(a.checkoutType=r("checkoutType")),r("modal")&&(a.modal=r("modal")),r("entitlement")&&(a.entitlement=r("entitlement")==="true"),r("upgrade")&&(a.upgrade=r("upgrade")==="true"),this.deepLink=a;const c={},i=r("arrangement_code");if(i&&(c.arrangementCode=i),r("commitment")&&(c.commitment=r("commitment")),r("term")&&(c.term=r("term")),r("customerSegment")&&(c.customerSegment=r("customerSegment")),r("marketSegment")&&(c.marketSegment=r("marketSegment")),r("offerType")&&(c.offerType=r("offerType")),Object.keys(c).length>0){this.setAosParams(c),i&&this.autoSelectProductByArrangementCode(i);return}i&&this.autoSelectProductByArrangementCode(i),this.notify()}autoSelectProductByArrangementCode(t){var o;const r=(o=this.allProducts)==null?void 0:o.find(a=>Array.isArray(a)&&a[0]===t);r?this.setProduct(r[1]):this.pendingArrangementCode=t}}const n=new ji,Bi=[{"iso2-code":"AE"},{"iso2-code":"AM"},{"iso2-code":"AR"},{"iso2-code":"AT"},{"iso2-code":"AU"},{"iso2-code":"AZ"},{"iso2-code":"BB"},{"iso2-code":"BE"},{"iso2-code":"BG"},{"iso2-code":"BH"},{"iso2-code":"BO"},{"iso2-code":"BR"},{"iso2-code":"BS"},{"iso2-code":"BY"},{"iso2-code":"CA"},{"iso2-code":"CH"},{"iso2-code":"CL"},{"iso2-code":"CN"},{"iso2-code":"CO"},{"iso2-code":"CR"},{"iso2-code":"CY"},{"iso2-code":"CZ"},{"iso2-code":"DE"},{"iso2-code":"DK"},{"iso2-code":"DO"},{"iso2-code":"DZ"},{"iso2-code":"EC"},{"iso2-code":"EE"},{"iso2-code":"EG"},{"iso2-code":"ES"},{"iso2-code":"FI"},{"iso2-code":"FR"},{"iso2-code":"GB"},{"iso2-code":"GE"},{"iso2-code":"GR"},{"iso2-code":"GT"},{"iso2-code":"HK"},{"iso2-code":"HN"},{"iso2-code":"HR"},{"iso2-code":"HU"},{"iso2-code":"ID"},{"iso2-code":"IE"},{"iso2-code":"IL"},{"iso2-code":"IN"},{"iso2-code":"IS"},{"iso2-code":"IT"},{"iso2-code":"JM"},{"iso2-code":"JO"},{"iso2-code":"JP"},{"iso2-code":"KE"},{"iso2-code":"KG"},{"iso2-code":"KR"},{"iso2-code":"KW"},{"iso2-code":"KZ"},{"iso2-code":"LB"},{"iso2-code":"LK"},{"iso2-code":"LT"},{"iso2-code":"LU"},{"iso2-code":"LV"},{"iso2-code":"MA"},{"iso2-code":"MD"},{"iso2-code":"MO"},{"iso2-code":"MT"},{"iso2-code":"MU"},{"iso2-code":"MX"},{"iso2-code":"MY"},{"iso2-code":"NG"},{"iso2-code":"NI"},{"iso2-code":"NL"},{"iso2-code":"NO"},{"iso2-code":"NP"},{"iso2-code":"NZ"},{"iso2-code":"OM"},{"iso2-code":"PA"},{"iso2-code":"PE"},{"iso2-code":"PH"},{"iso2-code":"PL"},{"iso2-code":"PR"},{"iso2-code":"PT"},{"iso2-code":"PY"},{"iso2-code":"QA"},{"iso2-code":"RO"},{"iso2-code":"RU"},{"iso2-code":"SA"},{"iso2-code":"SE"},{"iso2-code":"SG"},{"iso2-code":"SI"},{"iso2-code":"SK"},{"iso2-code":"SV"},{"iso2-code":"TH"},{"iso2-code":"TJ"},{"iso2-code":"TM"},{"iso2-code":"TR"},{"iso2-code":"TT"},{"iso2-code":"TW"},{"iso2-code":"TZ"},{"iso2-code":"UA"},{"iso2-code":"US"},{"iso2-code":"UY"},{"iso2-code":"UZ"},{"iso2-code":"VE"},{"iso2-code":"VN"},{"iso2-code":"YE"},{"iso2-code":"ZA"}],Ri={empty:{step:1,title:"Find your product",body:"Search by product name, arrangement code, or paste an offer ID / OSI directly. Use the filters on the left to narrow results by plan type, segment, or market."},offers:{step:2,title:"Choose an offer",body:"Each row is a pricing offer for this product. Click one to configure how its price or CTA will appear on your page. The colored badge shows the plan type (e.g. ABM = annual billed monthly, PUF = pay up front)."},configure:{step:3,title:"Configure & copy",body:"Pick a placeholder type (e.g. 'Price' to show the offer's price, 'Checkout URL' for a buy button). Adjust display options below, then click Use to copy the code to your clipboard."}},be={planType:"How the customer pays. ABM = Annual Billed Monthly (12-month contract, billed each month). PUF = Pay Up Front (12 months, paid in full). M2M = Month-to-Month (cancel anytime). P3Y = 3-Year Term License. Perpetual = one-time purchase, no recurring billing.",segment:"Who the offer is licensed for. Individual = single consumer subscription. Team = small/medium business, seat-based. Enterprise = large organization / VIP contracts.",market:"What vertical the offer targets. COM = Commercial (business/consumer). EDU = Education (students, faculty, schools). GOV = Government.",offerType:"The variant of the offer. Base = standard regular-price offer. Trial = free or reduced-price introductory period. Promotion = discounted or special-pricing variant.",planBadge:"The colored badge indicates the plan type: blue = ABM, purple = PUF, yellow = M2M, fuchsia = P3Y, seafoam = Perpetual.",offerId:"A unique 32-character identifier for this specific offer. Used internally by Adobe's commerce system — not shown to customers.",placeholderType:"Controls what the placeholder outputs on the page. Price = formatted price text. Optical = annual price shown as monthly equivalent. Discount = strikethrough comparison with a reference offer. Checkout URL = a buy-now link/button. Legal = legal disclaimers for the offer.",options:"Display toggles that control price formatting: whether to show currency formatting, recurrence label (/mo, /yr), per-unit pricing, tax, or old/strikethrough price.",checkoutOptions:"Settings for buy buttons: which checkout workflow to use (UCv3, UCv2), the CTA label (Buy now, Free trial, etc.), and whether to open in a modal.",landscapeEnv:"Landscape: Draft offers are being edited; Published offers are live. Environment: Stage uses test data; Production uses real commerce data."};class Fi extends tt{}const Mi=S`
     :host{--spectrum-clear-button-background-color:var(--system-clear-button-background-color);--spectrum-clear-button-background-color-hover:var(--system-clear-button-background-color-hover);--spectrum-clear-button-background-color-down:var(--system-clear-button-background-color-down);--spectrum-clear-button-background-color-key-focus:var(--system-clear-button-background-color-key-focus)}:host([static-color=white]){--spectrum-clear-button-background-color-hover:var(--system-clear-button-static-white-background-color-hover);--spectrum-clear-button-background-color-down:var(--system-clear-button-static-white-background-color-down);--spectrum-clear-button-background-color-key-focus:var(--system-clear-button-static-white-background-color-key-focus)}:host{--spectrum-clear-button-height:var(--spectrum-component-height-100);--spectrum-clear-button-width:var(--spectrum-component-height-100);--spectrum-clear-button-padding:var(--spectrum-in-field-button-edge-to-fill);--spectrum-clear-button-icon-color:var(--spectrum-neutral-content-color-default);--spectrum-clear-button-icon-color-hover:var(--spectrum-neutral-content-color-hover);--spectrum-clear-button-icon-color-down:var(--spectrum-neutral-content-color-down);--spectrum-clear-button-icon-color-key-focus:var(--spectrum-neutral-content-color-key-focus);box-sizing:border-box;block-size:var(--mod-clear-button-height,var(--spectrum-clear-button-height));inline-size:var(--mod-clear-button-width,var(--spectrum-clear-button-width));background-color:var(--mod-clear-button-background-color,transparent);padding:var(--mod-clear-button-padding,var(--spectrum-clear-button-padding));color:var(--mod-clear-button-icon-color,var(--spectrum-clear-button-icon-color));border:none;border-radius:100%;margin:0}:host([size=s]){--spectrum-clear-button-height:var(--spectrum-component-height-75);--spectrum-clear-button-width:var(--spectrum-component-height-75)}:host([size=l]){--spectrum-clear-button-height:var(--spectrum-component-height-200);--spectrum-clear-button-width:var(--spectrum-component-height-200)}:host([size=xl]){--spectrum-clear-button-height:var(--spectrum-component-height-300);--spectrum-clear-button-width:var(--spectrum-component-height-300)}:host([quiet]){--mod-clear-button-background-color:transparent;--mod-clear-button-background-color-hover:transparent;--mod-clear-button-background-color-down:transparent;--mod-clear-button-background-color-key-focus:transparent}:host([static-color=white]){--mod-clear-button-icon-color:var(--spectrum-white);--mod-clear-button-icon-color-hover:var(--spectrum-white);--mod-clear-button-icon-color-down:var(--spectrum-white);--mod-clear-button-icon-color-key-focus:var(--spectrum-white);--mod-clear-button-icon-color-disabled:var(--spectrum-disabled-static-white-content-color);--mod-clear-button-background-color:transparent}:host(:disabled),:host([disabled]){--mod-clear-button-icon-color:var(--mod-clear-button-icon-color-disabled,var(--spectrum-disabled-content-color));--mod-clear-button-icon-color-hover:var(--spectrum-disabled-content-color);--mod-clear-button-icon-color-down:var(--spectrum-disabled-content-color);--mod-clear-button-background-color:var(--mod-clear-button-background-color-disabled,transparent)}:host(:not(:disabled)),:host(:not([disabled])){cursor:pointer}.icon{margin-block:0;margin-inline:auto}@media (hover:hover){:host(:hover:not(:disabled)),:host(:hover:not([disabled])){color:var(--highcontrast-clear-button-icon-color-hover,var(--mod-clear-button-icon-color-hover,var(--spectrum-clear-button-icon-color-hover)))}:host(:hover:not(:disabled)) .fill,:host(:hover:not([disabled])) .fill{background-color:var(--mod-clear-button-background-color-hover,var(--spectrum-clear-button-background-color-hover))}}:host(:is(:active,[active]):not(:disabled)),:host(:is(:active,[active]):not([disabled])){color:var(--mod-clear-button-icon-color-down,var(--spectrum-clear-button-icon-color-down))}:host(:is(:active,[active]):not(:disabled)),:host(:is(:active,[active]):not([disabled])) .fill{background-color:var(--mod-clear-button-background-color-down,var(--spectrum-clear-button-background-color-down))}:host(:not(:disabled):focus-visible),:host(:not([disabled]):focus-visible),:host(:not(:disabled):focus-within),:host(:not([disabled]):focus-within){color:var(--mod-clear-button-icon-color-key-focus,var(--spectrum-clear-button-icon-color-key-focus))}:host(:not(:disabled):focus-visible) .fill,:host(:not([disabled]):focus-visible) .fill,:host(:not(:disabled):focus-within) .fill,:host(:not([disabled]):focus-within) .fill{background-color:var(--mod-clear-button-background-color-key-focus,var(--spectrum-clear-button-background-color-key-focus))}.icon{color:inherit}.fill{background-color:var(--mod-clear-button-background-color,var(--spectrum-clear-button-background-color));border-radius:100%;justify-content:center;align-items:center;block-size:100%;inline-size:100%;display:flex}:host([variant=overBackground]:focus-visible),:host([static-color=white]:focus-visible){outline:none}@media (forced-colors:active){:host(:not(:disabled)),:host(:not([disabled])){--highcontrast-clear-button-icon-color-hover:Highlight}}
 `,qi=({width:s=24,height:e=24,hidden:t=!1,title:r="Cross75"}={})=>F`<svg
     xmlns="http://www.w3.org/2000/svg"
@@ -960,17 +960,13 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
         `}}qt.VARIANTS_COLOR=Vr,qt.VARIANTS=En,Pn([h({type:String,reflect:!0})],qt.prototype,"variant"),j("sp-badge",qt);const In=/^[0-9A-F]{32}$/,On=/^[a-zA-Z0-9_-]{43}$/;function _n(s){return typeof s=="string"&&In.test(s)}function Ln(s){return typeof s=="string"&&On.test(s)}const bs={PRODUCTION:"https://aos.adobe.io",STAGE:"https://aos-stage.adobe.io",LOCAL:"http://localhost:3001"};function Ut(s,e){return e||bs[s]||bs.STAGE}function Ht({accessToken:s,apiKey:e}){const t={};return e&&(t["X-Api-Key"]=e),s&&(t.Authorization=`Bearer ${s}`),t}function Nt(s){const e={};for(const[t,r]of Object.entries(s))r!=null&&r!==""&&(e[t]=typeof r=="boolean"?String(r):r);return new URLSearchParams(e).toString()}async function Dn(s,e){const{arrangementCode:t,buyingProgram:r,commitment:o,country:a,customerSegment:c,language:i,marketSegment:l,merchant:u,offerType:m,pricePoint:p,salesChannel:g,serviceProviders:b,term:y}=s,{accessToken:w,apiKey:$,baseUrl:E,env:T="PRODUCTION",environment:L="PRODUCTION",landscape:z="PUBLISHED",pageSize:x=20,page:M=0}=e,R={arrangement_code:Array.isArray(t)?t.join(","):t,buying_program:r,commitment:o,country:a,customer_segment:c,language:i,market_segment:l,merchant:u,offer_type:m,price_point:Array.isArray(p)?p.join(","):p,sales_channel:g,service_providers:Array.isArray(b)?b.join(","):b,term:y,api_key:$,environment:L,landscape:z,page:M,page_size:x},ee=`${Ut(T,E)}/offers?${Nt(R)}`,q=await fetch(ee,{headers:Ht({accessToken:w,apiKey:$}),mode:"cors"});if(!q.ok){const _=await q.text();throw new Error(`AOS searchOffers failed (${q.status}): ${_}`)}return{data:await q.json()}}async function jn(s,e,t){const{accessToken:r,apiKey:o,baseUrl:a,env:c="PRODUCTION",environment:i="PRODUCTION",landscape:l="PUBLISHED"}=t,p=`${Ut(c,a)}/offers?${Nt({offer_id:s,country:e,api_key:o,environment:i,landscape:l})}`,g=await fetch(p,{headers:Ht({accessToken:r,apiKey:o}),mode:"cors"});if(!g.ok){const b=await g.text();throw new Error(`AOS getOfferById failed (${g.status}): ${b}`)}return g.json()}async function vs(s,e){const{accessToken:t,apiKey:r,baseUrl:o,env:a="PRODUCTION"}=e,c=Ut(a,o),i={api_key:r},l=`${c}/offer_selectors/${encodeURIComponent(s)}?${Nt(i)}`,u=await fetch(l,{headers:Ht({accessToken:t,apiKey:r}),mode:"cors"});if(!u.ok){const m=await u.text();throw new Error(`AOS getOfferSelector failed (${u.status}): ${m}`)}return u.json()}async function Kt(s,e){var o;if((o=s.offer_type)!=null&&o.startsWith("fake-"))return s.offer_type;const t={product_arrangement_code:s.product_arrangement_code,buying_program:s.buying_program,commitment:s.commitment,term:s.term,customer_segment:s.customer_segment,market_segment:Array.isArray(s.market_segments)?s.market_segments[0]:s.market_segments,sales_channel:s.sales_channel,offer_type:s.offer_type,price_point:s.price_point,merchant:s.merchant},{data:{id:r}}=await fs(t,e);return r}async function fs(s,e){const{accessToken:t,apiKey:r,baseUrl:o,env:a="PRODUCTION"}=e,l=`${Ut(a,o)}/offer_selectors?${Nt({api_key:r})}`,u=await fetch(l,{method:"POST",headers:{...Ht({accessToken:t,apiKey:r}),"Content-Type":"application/json"},body:JSON.stringify(s),mode:"cors"});if(!u.ok){const p=await u.text();throw new Error(`AOS createOfferSelector failed (${u.status}): ${p}`)}return{data:await u.json()}}class Bn{constructor(e){k(this,"host");k(this,"query","");k(this,"resultType","");k(this,"debounceTimer",null);this.host=e,e.addController(this)}hostConnected(){}hostDisconnected(){clearTimeout(this.debounceTimer)}detectType(e){return _n(e)?"offer":Ln(e)?"osi":"product"}handleInput(e){clearTimeout(this.debounceTimer),this.debounceTimer=setTimeout(()=>{this.query=e,this.resultType=this.detectType(e),n.setSearch(e,this.resultType),this.host.requestUpdate(),this.resultType==="osi"?this.resolveOsi(e):this.resultType==="offer"&&this.resolveOfferId(e)},250)}async resolveOsi(e){try{const t={accessToken:n.accessToken,apiKey:n.apiKey,baseUrl:n.baseUrl,env:n.env},r=await vs(e,t),o=(r==null?void 0:r.product_arrangement_code)||(r==null?void 0:r.arrangement_code);o&&(this.selectProductByCode(o),n.setOsi(e))}catch{}}async resolveOfferId(e){try{const t={accessToken:n.accessToken,apiKey:n.apiKey,baseUrl:n.baseUrl,env:n.env,environment:n.environment,landscape:n.landscape},r=await jn(e,n.country,t),o=Array.isArray(r)?r[0]:null,a=o==null?void 0:o.product_arrangement_code;a&&(n.setSearch(a,"product"),n.setAosParams({customerSegment:o.customer_segment,marketSegment:Array.isArray(o.market_segments)?o.market_segments[0]:o.market_segment,offerType:o.offer_type,commitment:o.commitment,term:o.term}),this.selectProductByCode(a))}catch{}}selectProductByCode(e){const t=n.allProducts;for(const r of t){const o=Array.isArray(r)?r[1]:r;if((o.arrangement_code||o.code||"")===e){n.setProduct(o),n.setAosParams({arrangementCode:e});return}}}}const Rn={product:"Product",offer:"Offer ID",osi:"OSI"};class Gr extends U{constructor(){super(),this.search=new Bn(this)}handleInput(e){this.search.handleInput(e.target.value)}handleSubmit(e){e.preventDefault()}render(){const e=this.search.query?Rn[this.search.resultType]:"";return d`
             <div class="search-wrapper">
                 <sp-search
+                    data-testid="ost-search-input"
                     placeholder="Search by name, code, offer ID, or OSI"
                     size="s"
                     @input=${this.handleInput}
                     @submit=${this.handleSubmit}
                 ></sp-search>
-                ${e?d`<sp-badge
-                          class="type-badge"
-                          size="s"
-                          variant="informative"
-                          >${e}</sp-badge
-                      >`:""}
+                ${e?d`<sp-badge class="type-badge" size="s" variant="informative">${e}</sp-badge>`:""}
             </div>
         `}}k(Gr,"properties",{}),k(Gr,"styles",S`
         :host {
@@ -1007,49 +1003,49 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
                 <div>
                     <div class="field-label">Plan <mas-ost-help-icon text="${be.planType}"></mas-ost-help-icon></div>
                     <sp-picker
+                        data-testid="ost-filter-plan-type"
                         size="s"
                         .value=${this.currentPlanKey}
                         @change=${this.handlePlanChange}
                     >
-                        ${ys.map(t=>d`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`)}
+                        ${ys.map(t=>d`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Segment <mas-ost-help-icon text="${be.segment}"></mas-ost-help-icon></div>
+                    <div class="field-label">
+                        Segment <mas-ost-help-icon text="${be.segment}"></mas-ost-help-icon>
+                    </div>
                     <sp-picker
+                        data-testid="ost-filter-customer-segment"
                         size="s"
                         .value=${n.aosParams.customerSegment||"ALL"}
                         @change=${this.handleCustomerSegmentChange}
                     >
-                        ${ks.map(t=>d`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`)}
+                        ${ks.map(t=>d`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
                     <div class="field-label">Market <mas-ost-help-icon text="${be.market}"></mas-ost-help-icon></div>
                     <sp-picker
+                        data-testid="ost-filter-market-segment"
                         size="s"
                         .value=${n.aosParams.marketSegment||"ALL"}
                         @change=${this.handleMarketSegmentChange}
                     >
-                        ${xs.map(t=>d`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`)}
+                        ${xs.map(t=>d`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
                 <div>
-                    <div class="field-label">Offer type <mas-ost-help-icon text="${be.offerType}"></mas-ost-help-icon></div>
+                    <div class="field-label">
+                        Offer type <mas-ost-help-icon text="${be.offerType}"></mas-ost-help-icon>
+                    </div>
                     <sp-picker
+                        data-testid="ost-filter-offer-type"
                         size="s"
                         .value=${n.aosParams.offerType||"ALL"}
                         @change=${this.handleOfferTypeChange}
                     >
-                        ${ws.map(t=>d`<sp-menu-item value=${t.key}
-                                    >${t.label}</sp-menu-item
-                                >`)}
+                        ${ws.map(t=>d`<sp-menu-item value=${t.key}>${t.label}</sp-menu-item>`)}
                     </sp-picker>
                 </div>
             </div>
@@ -1147,31 +1143,28 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
     `),customElements.get("mas-ost-filter-bar")||customElements.define("mas-ost-filter-bar",Yr);function Fn(s,e,t,{customerSegments:r,marketSegments:o,arrangement_code:a,name:c,draft:i}){const l=!t.customerSegment||r[t.customerSegment]===!0,u=!t.marketSegment||o[t.marketSegment]===!0;return l&&u&&(e==="DRAFT"||e==="BOTH"||!i)&&(a===t.arrangementCode||!s||s.test(c)||s.test(a))}class Zr extends U{constructor(){super(),this.searchQuery="",this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}get filteredProducts(){const e=n.allProducts;if(!e||!Array.isArray(e))return[];const t=n.searchQuery||"";let r=null;if(t&&n.searchType==="product")try{r=new RegExp(t,"i")}catch{}return e.map(o=>Array.isArray(o)?o[1]:o).filter(o=>{const a=o.arrangement_code||o.code||"",c=o.name||"",i=o.customerSegments||{},l=o.marketSegments||{},u=o.draft||!1;return Fn(r,n.landscape,n.aosParams,{customerSegments:i,marketSegments:l,arrangement_code:a,name:c,draft:u})})}handleProductClick(e){const t=e.arrangement_code||e.code||"";n.setProduct(e),n.setAosParams({arrangementCode:t})}renderSkeletons(){return d`
             <div class="product-scroll">
                 ${Array.from({length:8},()=>d`
-                    <div class="skeleton-card" aria-hidden="true">
-                        <div class="skeleton-bar skeleton-icon"></div>
-                        <div class="skeleton-info">
-                            <div class="skeleton-bar skeleton-name"></div>
-                            <div class="skeleton-bar skeleton-code"></div>
+                        <div class="skeleton-card" aria-hidden="true">
+                            <div class="skeleton-bar skeleton-icon"></div>
+                            <div class="skeleton-info">
+                                <div class="skeleton-bar skeleton-name"></div>
+                                <div class="skeleton-bar skeleton-code"></div>
+                            </div>
                         </div>
-                    </div>
-                `)}
+                    `)}
             </div>
         `}render(){if(n.productsLoading)return this.renderSkeletons();const e=this.filteredProducts;if(e.length===0)return d`<div class="empty-state">No products found</div>`;const t=n.aosParams.arrangementCode;return d`
             <div class="product-scroll">
                 ${e.map(r=>{const o=r.arrangement_code||r.code||"";return d`
                         <div
                             class="product-card"
+                            data-testid="ost-product-card"
                             tabindex="0"
                             ?selected=${o===t}
                             @click=${()=>this.handleProductClick(r)}
                         >
-                            ${r.icon?d`<img
-                                      class="product-icon"
-                                      src=${r.icon}
-                                      alt=""
-                                  />`:A}
+                            ${r.icon?d`<img class="product-icon" src=${r.icon} alt="" />`:A}
                             <div class="product-info">
-                                <div class="product-name">${r.name}</div>
+                                <div class="product-name" data-testid="ost-product-name">${r.name}</div>
                                 <div class="product-code">${o}</div>
                             </div>
                             ${r.draft?d`<span class="draft-dot" title="Draft"></span>`:A}
@@ -1200,7 +1193,10 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             border-radius: 6px;
             background: transparent;
             cursor: pointer;
-            transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+            transition:
+                border-color 0.15s,
+                background 0.15s,
+                box-shadow 0.15s;
             flex-shrink: 0;
             min-height: 56px;
         }
@@ -1779,6 +1775,7 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
                     <div class="option-row">
                         <span class="option-label">${o}</span>
                         <sp-switch
+                            data-testid="ost-option-${r}"
                             size="s"
                             ?checked=${r==="forceTaxExclusive"?!t[r]:!!t[r]}
                             @change=${a=>{r==="forceTaxExclusive"?e.options[r]=!a.target.checked:e.options[r]=a.target.checked,e.host.requestUpdate(),n.notify()}}
@@ -2028,43 +2025,46 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             <label id="label" for="input"><slot></slot></label>
         `}updated(e){super.updated(e),e.has("disabled")&&(typeof e.get("disabled")<"u"||this.disabled)&&(this.disabled?(this.inputElement.tabIndex=this.tabIndex,this.tabIndex=-1):(this.tabIndex=this.inputElement.tabIndex,this.inputElement.removeAttribute("tabindex")),this.inputElement.disabled=this.disabled),e.has("indeterminate")&&(this.inputElement.indeterminate=this.indeterminate),e.has("invalid")&&(this.invalid?this.inputElement.setAttribute("aria-invalid","true"):this.inputElement.removeAttribute("aria-invalid"))}}Ne.shadowRootOptions={...re.shadowRootOptions,delegatesFocus:!0},wt([h({type:Boolean,reflect:!0})],Ne.prototype,"disabled"),wt([h({type:Boolean,reflect:!0})],Ne.prototype,"indeterminate"),wt([h({type:Boolean,reflect:!0})],Ne.prototype,"invalid"),wt([h({type:Boolean,reflect:!0})],Ne.prototype,"emphasized"),wt([h({reflect:!0,type:Number,attribute:"tabindex"})],Ne.prototype,"tabIndex"),j("sp-checkbox",Ne);const Bl=[{id:"email",name:"Email"},{id:"bundle",name:"Bundle"},{id:"commitment",name:"Commitment"},{id:"segmentation",name:"Segmentation"},{id:"recommendation",name:"Recommendation"},{id:"payment",name:"Payment"},{id:"change-plan/team-upgrade/plans",name:"Change Plan Team Plans"},{id:"change-plan/team-upgrade/payment",name:"Change Plan Team Payment"}],Rl={BASE:"d2p",TRIAL:"twp"};class Fl{constructor(e,t){k(this,"host");k(this,"store");k(this,"workflowStep","email");k(this,"ctaText","");k(this,"enableModal",!1);k(this,"modalType","");k(this,"entitlement",!1);k(this,"upgrade",!1);this.host=e,this.store=t,e.addController(this)}hostConnected(){}hostDisconnected(){}setWorkflowStep(e){var t;this.workflowStep=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}setCtaText(e){var t;this.ctaText=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}toggleModal(e){var t;this.enableModal=e,e?this.workflowStep="segmentation":this.workflowStep="email",this.host.requestUpdate(),(t=this.store)==null||t.notify()}setModalType(e){var t;this.modalType=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}toggleEntitlement(e){var t;this.entitlement=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}toggleUpgrade(e){var t;this.upgrade=e,this.host.requestUpdate(),(t=this.store)==null||t.notify()}}class eo extends U{constructor(){super(),this.checkout=new Fl(this,n),this.deepLinkApplied=!1,this.ctaDropdownOpen=!1,this.ctaFilter="",this.handleDocClick=this.handleDocClick.bind(this)}get workflowSteps(){return this.checkout.enableModal?[{id:"segmentation",name:"Segmentation"}]:Bl}get modalTypes(){var r;const e=(r=n.selectedOffer)==null?void 0:r.offer_type,t=[{id:"twp",name:"TWP"},{id:"d2p",name:"D2P"},{id:"crm",name:"CRM"}];return e==="BASE"?t.filter(o=>o.id!=="twp"):e==="TRIAL"?t.filter(o=>o.id!=="d2p"):t}connectedCallback(){super.connectedCallback(),this.handleStoreChange=()=>{this.applyDeepLink(),this.requestUpdate()},n.subscribe(this.handleStoreChange),document.addEventListener("click",this.handleDocClick)}handleDocClick(e){this.ctaDropdownOpen&&!e.composedPath().includes(this)&&(this.ctaDropdownOpen=!1)}selectCta(e){this.checkout.setCtaText(e),this.ctaDropdownOpen=!1,this.ctaFilter=""}applyDeepLink(){if(this.deepLinkApplied)return;const e=n.deepLink;if(!e||Object.keys(e).length===0)return;this.deepLinkApplied=!0;const t=this.checkout;e.workflowStep&&t.setWorkflowStep(e.workflowStep),e.text&&t.setCtaText(e.text),e.modal&&(t.toggleModal(!0),t.setModalType(e.modal)),e.entitlement&&t.toggleEntitlement(!0),e.upgrade&&t.toggleUpgrade(!0)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange),document.removeEventListener("click",this.handleDocClick)}get ctaTexts(){const e=n.ctaTextOption;return e?typeof e.getTexts=="function"?e.getTexts():[]:[]}get defaultCtaText(){const e=n.ctaTextOption;return e&&typeof e.getDefaultText=="function"?e.getDefaultText():"Buy now"}render(){var a;const e=this.checkout,t=this.ctaTexts,r=e.ctaText||this.defaultCtaText,o=((a=t.find(c=>c.id===r))==null?void 0:a.name)||r;return d`
             ${t.length>0?d`
-                <div class="cta-wrapper">
-                    <div class="cta-label">Choose your CTA text</div>
-                    <button
-                        class="cta-button"
-                        @click=${()=>{this.ctaDropdownOpen=!this.ctaDropdownOpen}}
-                    >
-                        <span class="cta-button-label">${o}</span>
-                        <sp-icon-chevron100 class="cta-chevron"></sp-icon-chevron100>
-                    </button>
-                    ${this.ctaDropdownOpen?d`
-                        <div class="cta-dropdown">
-                            ${t.map(c=>d`
-                                <div
-                                    class="cta-option"
-                                    ?data-selected=${c.id===r}
-                                    @click=${()=>this.selectCta(c.id)}
-                                >${c.name}</div>
-                            `)}
-                        </div>
-                    `:""}
-                </div>
-            `:""}
+                      <div class="cta-wrapper">
+                          <div class="cta-label">Choose your CTA text</div>
+                          <button
+                              class="cta-button"
+                              data-testid="ost-cta-text-menu"
+                              @click=${()=>{this.ctaDropdownOpen=!this.ctaDropdownOpen}}
+                          >
+                              <span class="cta-button-label">${o}</span>
+                              <sp-icon-chevron100 class="cta-chevron"></sp-icon-chevron100>
+                          </button>
+                          ${this.ctaDropdownOpen?d`
+                                    <div class="cta-dropdown">
+                                        ${t.map(c=>d`
+                                                <div
+                                                    class="cta-option"
+                                                    ?data-selected=${c.id===r}
+                                                    @click=${()=>this.selectCta(c.id)}
+                                                >
+                                                    ${c.name}
+                                                </div>
+                                            `)}
+                                    </div>
+                                `:""}
+                      </div>
+                  `:""}
 
             <div class="workflow-picker">
                 <sp-picker
+                    data-testid="ost-workflow-menu"
                     label="Workflow Step"
                     value=${e.workflowStep}
                     ?disabled=${e.enableModal}
                     @change=${c=>e.setWorkflowStep(c.target.value)}
                 >
-                    ${this.workflowSteps.map(c=>d`<sp-menu-item value=${c.id}
-                                >${c.name}</sp-menu-item
-                            >`)}
+                    ${this.workflowSteps.map(c=>d`<sp-menu-item value=${c.id}>${c.name}</sp-menu-item>`)}
                 </sp-picker>
             </div>
 
             <sp-checkbox
+                data-testid="ost-checkbox-enable-modal"
                 ?checked=${e.enableModal}
                 @change=${c=>{var i;if(e.toggleModal(c.target.checked),c.target.checked){const l=(i=n.selectedOffer)==null?void 0:i.offer_type;e.setModalType(Rl[l]||"d2p")}}}
             >
@@ -2073,17 +2073,17 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
 
             ${e.enableModal?d`
                       <sp-picker
+                          data-testid="ost-modal-type"
                           label="Modal Type"
                           value=${e.modalType}
                           @change=${c=>e.setModalType(c.target.value)}
                       >
-                          ${this.modalTypes.map(c=>d`<sp-menu-item value=${c.id}
-                                      >${c.name}</sp-menu-item
-                                  >`)}
+                          ${this.modalTypes.map(c=>d`<sp-menu-item value=${c.id}>${c.name}</sp-menu-item>`)}
                       </sp-picker>
                   `:""}
 
             <sp-checkbox
+                data-testid="ost-checkbox-entitlements"
                 ?checked=${e.entitlement}
                 @change=${c=>e.toggleEntitlement(c.target.checked)}
             >
@@ -2091,6 +2091,7 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             </sp-checkbox>
 
             <sp-checkbox
+                data-testid="ost-checkbox-upgrade"
                 ?checked=${e.upgrade}
                 @change=${c=>e.toggleUpgrade(c.target.checked)}
             >
@@ -2098,9 +2099,8 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             </sp-checkbox>
 
             <span class="info-text">
-                Entitlement/Upgrade features will show a Download/Upgrade button
-                to logged-in eligible users. Both can be combined with Modal
-                feature or Checkout Link.
+                Entitlement/Upgrade features will show a Download/Upgrade button to logged-in eligible users. Both can be
+                combined with Modal feature or Checkout Link.
             </span>
         `}}k(eo,"properties",{ctaDropdownOpen:{type:Boolean,state:!0},ctaFilter:{type:String,state:!0}}),k(eo,"styles",S`
         :host {
@@ -2184,7 +2184,9 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             background: var(--spectrum-white, #fff);
             border: 1px solid var(--spectrum-gray-200);
             border-radius: var(--spectrum-popover-corner-radius, 4px);
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.1);
+            box-shadow:
+                0 1px 4px rgba(0, 0, 0, 0.15),
+                0 8px 20px rgba(0, 0, 0, 0.1);
             z-index: 10;
             margin-top: 4px;
             padding: 6px 0;
@@ -2206,12 +2208,9 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             background: var(--spectrum-blue-100);
         }
     `),customElements.get("mas-ost-checkout-options")||customElements.define("mas-ost-checkout-options",eo);class to extends U{constructor(){super(),this.placeholderType="price",this.referenceOsi=""}connectedCallback(){super.connectedCallback(),this.handleStoreChange=()=>this.requestUpdate(),n.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}updated(){this.renderPreview()}getPanel(){var t;const e=this.getRootNode();return((t=e==null?void 0:e.host)==null?void 0:t.tagName)==="MAS-OST-PLACEHOLDER-PANEL"?e.host:null}buildPlaceholderOptions(){var g,b;const e=this.getPanel();if(!e)return null;const t=n.selectedOsi,r=n.masCommerceService;if(!t||!r||typeof r.createInlinePrice!="function")return null;const o=e.placeholderCtrl,a=(b=(g=e.shadowRoot)==null?void 0:g.querySelector("mas-ost-checkout-options"))==null?void 0:b.checkout,c=this.placeholderType||o.selectedType,i=o.getEffectiveOptions(),l=n.storedPromoOverride,u=n.promotionCode,m=c==="discount"&&this.referenceOsi?[t,this.referenceOsi]:[t],p={...i,forceTaxExclusive:!i.forceTaxExclusive,promotionCode:l||u,wcsOsi:m,template:c,clientId:n.checkoutClientId};return a&&(p.workflowStep=a.workflowStep,p.checkoutWorkflowStep=a.workflowStep,a.enableModal&&(p.modal=a.modalType),a.entitlement&&(p.entitlement=!0),a.upgrade&&(p.upgrade=!0),p.ctaText=a.ctaText),p.workflow="UCv3",p.marketSegment=n.aosParams.marketSegment||"COM",{type:c,placeholderOptions:p,service:r}}renderPreview(){var l,u;const e=(l=this.shadowRoot)==null?void 0:l.querySelector(".placeholder-container");if(!e)return;for(;e.firstChild;)e.removeChild(e.firstChild);const t=this.buildPlaceholderOptions();if(!t)return;const{type:r,placeholderOptions:o,service:a}=t;let c;if(r==="checkoutUrl"){const m=o.ctaText||"Buy now";typeof a.createCheckoutButton=="function"?c=a.createCheckoutButton(o,m):c=a.createCheckoutLink(o,m)}else c=a.createInlinePrice(o);c&&(r&&r!=="price"&&(c.dataset.template=r),e.appendChild(c));const i=((u=n.selectedOffer)==null?void 0:u.offer_type)==="PROMOTION";if(r==="discount"&&!this.referenceOsi&&!i){const m=document.createElement("span");m.className="discount-hint",m.textContent="Enter a reference offer OSI to calculate the discount percentage.",e.appendChild(m)}}getTypeName(){const e=this.placeholderType;if(!e)return"";const t=n.placeholderTypes.find(r=>r.type===e);return(t==null?void 0:t.name)||e}render(){const e=this.getTypeName();return d`
-            <div class="preview-card">
-                <div class="label">
-                    Live Preview
-                    ${e?d`<span class="type-badge">${e}</span>`:""}
-                </div>
-                <div class="placeholder-container"></div>
+            <div class="preview-card" data-testid="ost-live-preview">
+                <div class="label">Live Preview ${e?d`<span class="type-badge">${e}</span>`:""}</div>
+                <div class="placeholder-container" data-testid="ost-preview-container"></div>
             </div>
         `}}k(to,"properties",{placeholderType:{type:String},referenceOsi:{type:String}}),k(to,"styles",S`
         :host {
@@ -2290,12 +2289,13 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
 
         .placeholder-container .price-unit-type:not(.disabled)::before,
         .placeholder-container .price-tax-inclusivity:not(.disabled)::before {
-            content: "\u00a0";
+            content: '\u00a0';
         }
     `),customElements.get("mas-ost-live-preview")||customElements.define("mas-ost-live-preview",to);const Ml="no promo",$s="promo-tag",ql="yellow",Ul="neutral",As="cancel-context";function Hl(s,e,t){const r=a=>a||Ml,o=t?` (was "${r(e)}")`:"";return`${r(s)}${o}`}function Ts(s,e){const t=s===As,r=!t&&(s==null?void 0:s.length)>0,o=(r||t)&&(e&&e!=s||!e&&!t),a=o&&r||!o&&!!e,c=a?s||e:void 0;return{effectivePromoCode:c,overridenPromoCode:s,className:a?$s:`${$s} no-promo`,text:Hl(c,e,o),variant:a?ql:Ul,isOverriden:o}}class ro extends U{constructor(){super(),this.buttonText="Use",this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}get panel(){var t;const e=this.getRootNode();return((t=e==null?void 0:e.host)==null?void 0:t.tagName)==="MAS-OST-PLACEHOLDER-PANEL"?e.host:null}getCodeString(){var m,p;const e=this.panel;if(!e)return"";const t=n.selectedOsi;if(!t)return"";const r=e.placeholderCtrl,o=this.placeholderType||r.selectedType,a=r.getEffectiveOptions(),c=(p=(m=e.shadowRoot)==null?void 0:m.querySelector("mas-ost-checkout-options"))==null?void 0:p.checkout,l=[`osi="${o==="discount"&&this.referenceOsi?`${t},${this.referenceOsi}`:t}"`];o!=="price"&&l.push(`type="${o}"`);const u=[];return Object.entries(a).forEach(([g,b])=>{b!==void 0&&b!==!1&&b!==""&&u.push(`${g}="${b}"`)}),u.length>0&&l.push(u.join(" ")),c&&(c.workflowStep&&c.workflowStep!=="email"&&l.push(`workflowStep="${c.workflowStep}"`),c.ctaText&&l.push(`ctaText="${c.ctaText}"`),c.enableModal&&c.modalType&&l.push(`modal="${c.modalType}"`),c.entitlement&&l.push('entitlement="true"'),c.upgrade&&l.push('upgrade="true"')),`{{${o} ${l.join(" ")}}}`}async handleUse(){var g,b,y;const e=this.panel;if(!e)return;const t=n.selectedOsi,r=e.placeholderCtrl,o=this.placeholderType||r.selectedType,a=o==="discount"&&this.referenceOsi?`${t},${this.referenceOsi}`:t,c=r.serializeOptions(),i=(b=(g=e.shadowRoot)==null?void 0:g.querySelector("mas-ost-checkout-options"))==null?void 0:b.checkout;i&&(c.workflowStep=i.workflowStep,c.checkoutWorkflowStep=i.workflowStep,i.enableModal&&(c.modal=i.modalType),i.entitlement&&(c.entitlement=!0),i.upgrade&&(c.upgrade=!0),c.ctaText=i.ctaText),c.workflow="UCv3",c.marketSegment=n.aosParams.marketSegment||"COM",c.clientId=n.checkoutClientId;const l=Ts(n.storedPromoOverride,n.promotionCode);let u=this.getRootNode();for(;u!=null&&u.host&&u.host.tagName!=="MAS-OST-APP";)u=u.host.getRootNode();const m=((y=u==null?void 0:u.host)==null?void 0:y.tagName)==="MAS-OST-APP"?u.host:null;m&&m.select({osi:a,type:o,offer:n.selectedOffer,options:c,promoOverride:l.effectivePromoCode,country:n.country});try{await navigator.clipboard.writeText(this.getCodeString())}catch{}this.buttonText="Copied";const p=window.setTimeout(()=>{this.buttonText="Use",window.clearTimeout(p)},400)}render(){const e=this.getCodeString();return d`
             <div class="code-card">
-                <code>${e}</code>
+                <code data-testid="ost-code-string">${e}</code>
                 <sp-button
+                    data-testid="ost-use-button"
                     variant="accent"
                     size="s"
                     ?disabled=${!n.selectedOsi}
@@ -2327,13 +2327,14 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             overflow-wrap: break-word;
             white-space: pre-wrap;
         }
-    `),customElements.get("mas-ost-code-output")||customElements.define("mas-ost-code-output",ro);class oo extends U{constructor(){super(),this.placeholderCtrl=new ll(this,n),this.handleStoreChange=this.handleStoreChange.bind(this),this.deepLinkApplied=!1,this.referenceOsi=""}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange),this.applyDeepLink()}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.applyDeepLink(),this.requestUpdate()}applyDeepLink(){var r,o;if(this.deepLinkApplied)return;const e=n.deepLink;if(!(e!=null&&e.type))return;this.deepLinkApplied=!0,this.placeholderCtrl.setType(e.type);const t=(o=(r=this.getRootNode())==null?void 0:r.host)==null?void 0:o.config;t!=null&&t.initialReferenceOsi&&(this.referenceOsi=t.initialReferenceOsi)}get isDiscount(){return this.selectedType==="discount"}handleReferenceOsiInput(e){this.referenceOsi=e.target.value}get selectedType(){return this.placeholderCtrl.selectedType}get isCheckoutUrl(){return this.selectedType==="checkoutUrl"}selectType(e){this.placeholderCtrl.setType(e)}render(){if(!n.selectedOffer)return d`<span class="empty-state"
-                >Select an offer to see placeholder options.</span
-            >`;const e=n.placeholderTypes,t=this.selectedType;return d`
-            <div class="section-label">Placeholder Type <mas-ost-help-icon text="${be.placeholderType}"></mas-ost-help-icon></div>
+    `),customElements.get("mas-ost-code-output")||customElements.define("mas-ost-code-output",ro);class oo extends U{constructor(){super(),this.placeholderCtrl=new ll(this,n),this.handleStoreChange=this.handleStoreChange.bind(this),this.deepLinkApplied=!1,this.referenceOsi=""}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange),this.applyDeepLink()}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.applyDeepLink(),this.requestUpdate()}applyDeepLink(){var r,o;if(this.deepLinkApplied)return;const e=n.deepLink;if(!(e!=null&&e.type))return;this.deepLinkApplied=!0,this.placeholderCtrl.setType(e.type);const t=(o=(r=this.getRootNode())==null?void 0:r.host)==null?void 0:o.config;t!=null&&t.initialReferenceOsi&&(this.referenceOsi=t.initialReferenceOsi)}get isDiscount(){return this.selectedType==="discount"}handleReferenceOsiInput(e){this.referenceOsi=e.target.value}get selectedType(){return this.placeholderCtrl.selectedType}get isCheckoutUrl(){return this.selectedType==="checkoutUrl"}selectType(e){this.placeholderCtrl.setType(e)}render(){if(!n.selectedOffer)return d`<span class="empty-state">Select an offer to see placeholder options.</span>`;const e=n.placeholderTypes,t=this.selectedType;return d`
+            <div class="section-label">
+                Placeholder Type <mas-ost-help-icon text="${be.placeholderType}"></mas-ost-help-icon>
+            </div>
             <div class="type-chips">
                 ${e.map(r=>d`
                         <sp-action-button
+                            data-testid="ost-placeholder-chip-${r.type}"
                             ?selected=${t===r.type}
                             ?quiet=${t!==r.type}
                             size="s"
@@ -2349,22 +2350,24 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             <div class="section-label">Options <mas-ost-help-icon text="${be.options}"></mas-ost-help-icon></div>
             <div class="options-section">
                 ${this.isCheckoutUrl?d`
-                        <div class="section-label">Checkout Options <mas-ost-help-icon text="${be.checkoutOptions}"></mas-ost-help-icon></div>
-                        <mas-ost-checkout-options></mas-ost-checkout-options>
-                    `:d`<mas-ost-placeholder-options></mas-ost-placeholder-options>`}
+                          <div class="section-label">
+                              Checkout Options <mas-ost-help-icon text="${be.checkoutOptions}"></mas-ost-help-icon>
+                          </div>
+                          <mas-ost-checkout-options></mas-ost-checkout-options>
+                      `:d`<mas-ost-placeholder-options></mas-ost-placeholder-options>`}
             </div>
 
             ${this.isDiscount?d`
-                <div class="reference-osi-field">
-                    <sp-field-label size="s">Reference offer OSI</sp-field-label>
-                    <sp-textfield
-                        size="s"
-                        placeholder="e.g. base price OSI for comparison"
-                        .value=${this.referenceOsi}
-                        @input=${this.handleReferenceOsiInput}
-                    ></sp-textfield>
-                </div>
-            `:A}
+                      <div class="reference-osi-field">
+                          <sp-field-label size="s">Reference offer OSI</sp-field-label>
+                          <sp-textfield
+                              size="s"
+                              placeholder="e.g. base price OSI for comparison"
+                              .value=${this.referenceOsi}
+                              @input=${this.handleReferenceOsiInput}
+                          ></sp-textfield>
+                      </div>
+                  `:A}
 
             <mas-ost-live-preview
                 .placeholderType=${t}
@@ -2424,18 +2427,15 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
     `),k(oo,"properties",{referenceOsi:{type:String,state:!0}}),customElements.get("mas-ost-placeholder-panel")||customElements.define("mas-ost-placeholder-panel",oo);class Ps extends U{constructor(){super(),this.handleStoreChange=this.handleStoreChange.bind(this)}connectedCallback(){super.connectedCallback(),n.subscribe(this.handleStoreChange)}disconnectedCallback(){super.disconnectedCallback(),n.unsubscribe(this.handleStoreChange)}handleStoreChange(){this.requestUpdate()}get status(){return Ts(n.storedPromoOverride,n.promotionCode)}render(){const e=this.status;return d`
             <div class="section-label">Promotion</div>
             <div class="promo-row">
-                <sp-badge variant=${e.variant}>${e.text}</sp-badge>
+                <sp-badge data-testid="ost-promo-label" variant=${e.variant}>${e.text}</sp-badge>
                 <sp-textfield
+                    data-testid="ost-promo-override-input"
                     label="Override"
                     size="s"
                     value=${n.storedPromoOverride===As?"":n.storedPromoOverride||""}
                     @input=${t=>n.setPromoCode(t.target.value)}
                 ></sp-textfield>
-                <sp-action-button
-                    quiet
-                    size="s"
-                    @click=${()=>n.setPromoCode(void 0)}
-                >
+                <sp-action-button data-testid="ost-promo-clear" quiet size="s" @click=${()=>n.setPromoCode(void 0)}>
                     Clear
                 </sp-action-button>
             </div>
@@ -3090,8 +3090,15 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
                       </div>
                   `,a=n.authoringFlow;let c="Use",i=!0;a==="single"?i=n.viewState!=="configure":a==="tryBuy"?(i=!n.canConfirm,c=n.selectedTrialOsi?"Use both offers":"Use base offer only"):a==="bundle"?(i=!n.canConfirm,c=`Use bundle (${n.selectedOffers.length} offers)`):a==="consult"&&(c="Close",i=!1);const l=d`
             <div class="ost-footer-bar">
-                ${a==="single"&&n.viewState==="configure"&&!this.wasDeepLinked?d`<sp-button variant="secondary" size="m" @click=${()=>this.handleBack()}>Back</sp-button>`:""}
+                ${a==="single"&&n.viewState==="configure"&&!this.wasDeepLinked?d`<sp-button
+                          data-testid="ost-back-button"
+                          variant="secondary"
+                          size="m"
+                          @click=${()=>this.handleBack()}
+                          >Back</sp-button
+                      >`:""}
                 <sp-button
+                    data-testid="ost-footer-use-button"
                     variant="${a==="consult"?"secondary":"accent"}"
                     size="m"
                     ?disabled=${i}
@@ -3101,8 +3108,15 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             </div>
         `,u=d`
             <div class="ost-footer-bar">
-                <sp-button variant="secondary" size="m" @click=${()=>this.handleFocusedBack()}>Back</sp-button>
-                <sp-button variant="accent" size="m" ?disabled=${this.usingFocusedOffer} @click=${()=>this.handleFocusedUse()}
+                <sp-button data-testid="ost-back-button" variant="secondary" size="m" @click=${()=>this.handleFocusedBack()}
+                    >Back</sp-button
+                >
+                <sp-button
+                    data-testid="ost-footer-use-button"
+                    variant="accent"
+                    size="m"
+                    ?disabled=${this.usingFocusedOffer}
+                    @click=${()=>this.handleFocusedUse()}
                     >${this.usingFocusedOffer?"Resolving…":"Use"}</sp-button
                 >
             </div>
@@ -3117,8 +3131,8 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
             <sp-theme system="spectrum-two" color="light" scale="medium">
                 ${this.dialog?d`
                           <div class="ost-backdrop" @click=${()=>this.cancel()}></div>
-                          <div class="ost-dialog">${m}</div>
-                      `:m}
+                          <div class="ost-dialog" data-testid="ost-modal">${m}</div>
+                      `:d`<div data-testid="ost-modal">${m}</div>`}
             </sp-theme>
         `}}k(ao,"properties",{config:{type:Object},dialog:{type:Boolean,reflect:!0},productsError:{type:String,state:!0},usingFocusedOffer:{type:Boolean,state:!0}}),k(ao,"styles",S`
         :host {

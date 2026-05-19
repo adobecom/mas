@@ -137,6 +137,7 @@ export class MasOstPlaceholderPanel extends LitElement {
                 ${types.map(
                     (t) => html`
                         <sp-action-button
+                            data-testid="ost-placeholder-chip-${t.type}"
                             ?selected=${selected === t.type}
                             ?quiet=${selected !== t.type}
                             size="s"

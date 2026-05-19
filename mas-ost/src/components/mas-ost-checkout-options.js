@@ -219,6 +219,7 @@ export class MasOstCheckoutOptions extends LitElement {
                           <div class="cta-label">Choose your CTA text</div>
                           <button
                               class="cta-button"
+                              data-testid="ost-cta-text-menu"
                               @click=${() => {
                                   this.ctaDropdownOpen = !this.ctaDropdownOpen;
                               }}
@@ -249,6 +250,7 @@ export class MasOstCheckoutOptions extends LitElement {
 
             <div class="workflow-picker">
                 <sp-picker
+                    data-testid="ost-workflow-menu"
                     label="Workflow Step"
                     value=${ctrl.workflowStep}
                     ?disabled=${ctrl.enableModal}
@@ -259,6 +261,7 @@ export class MasOstCheckoutOptions extends LitElement {
             </div>
 
             <sp-checkbox
+                data-testid="ost-checkbox-enable-modal"
                 ?checked=${ctrl.enableModal}
                 @change=${(e) => {
                     ctrl.toggleModal(e.target.checked);
@@ -273,17 +276,30 @@ export class MasOstCheckoutOptions extends LitElement {
 
             ${ctrl.enableModal
                 ? html`
-                      <sp-picker label="Modal Type" value=${ctrl.modalType} @change=${(e) => ctrl.setModalType(e.target.value)}>
+                      <sp-picker
+                          data-testid="ost-modal-type"
+                          label="Modal Type"
+                          value=${ctrl.modalType}
+                          @change=${(e) => ctrl.setModalType(e.target.value)}
+                      >
                           ${this.modalTypes.map((m) => html`<sp-menu-item value=${m.id}>${m.name}</sp-menu-item>`)}
                       </sp-picker>
                   `
                 : ''}
 
-            <sp-checkbox ?checked=${ctrl.entitlement} @change=${(e) => ctrl.toggleEntitlement(e.target.checked)}>
+            <sp-checkbox
+                data-testid="ost-checkbox-entitlements"
+                ?checked=${ctrl.entitlement}
+                @change=${(e) => ctrl.toggleEntitlement(e.target.checked)}
+            >
                 Enable Entitlements
             </sp-checkbox>
 
-            <sp-checkbox ?checked=${ctrl.upgrade} @change=${(e) => ctrl.toggleUpgrade(e.target.checked)}>
+            <sp-checkbox
+                data-testid="ost-checkbox-upgrade"
+                ?checked=${ctrl.upgrade}
+                @change=${(e) => ctrl.toggleUpgrade(e.target.checked)}
+            >
                 Enable Upgrade
             </sp-checkbox>
 

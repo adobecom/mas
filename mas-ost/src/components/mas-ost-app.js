@@ -666,9 +666,16 @@ export class MasOstApp extends LitElement {
         const footerBar = html`
             <div class="ost-footer-bar">
                 ${flow === 'single' && store.viewState === 'configure' && !this.wasDeepLinked
-                    ? html`<sp-button variant="secondary" size="m" @click=${() => this.handleBack()}>Back</sp-button>`
+                    ? html`<sp-button
+                          data-testid="ost-back-button"
+                          variant="secondary"
+                          size="m"
+                          @click=${() => this.handleBack()}
+                          >Back</sp-button
+                      >`
                     : ''}
                 <sp-button
+                    data-testid="ost-footer-use-button"
                     variant="${flow === 'consult' ? 'secondary' : 'accent'}"
                     size="m"
                     ?disabled=${useDisabled}
@@ -680,8 +687,15 @@ export class MasOstApp extends LitElement {
 
         const focusedFooterBar = html`
             <div class="ost-footer-bar">
-                <sp-button variant="secondary" size="m" @click=${() => this.handleFocusedBack()}>Back</sp-button>
-                <sp-button variant="accent" size="m" ?disabled=${this.usingFocusedOffer} @click=${() => this.handleFocusedUse()}
+                <sp-button data-testid="ost-back-button" variant="secondary" size="m" @click=${() => this.handleFocusedBack()}
+                    >Back</sp-button
+                >
+                <sp-button
+                    data-testid="ost-footer-use-button"
+                    variant="accent"
+                    size="m"
+                    ?disabled=${this.usingFocusedOffer}
+                    @click=${() => this.handleFocusedUse()}
                     >${this.usingFocusedOffer ? 'Resolving…' : 'Use'}</sp-button
                 >
             </div>
@@ -705,9 +719,9 @@ export class MasOstApp extends LitElement {
                 ${this.dialog
                     ? html`
                           <div class="ost-backdrop" @click=${() => this.cancel()}></div>
-                          <div class="ost-dialog">${content}</div>
+                          <div class="ost-dialog" data-testid="ost-modal">${content}</div>
                       `
-                    : content}
+                    : html`<div data-testid="ost-modal">${content}</div>`}
             </sp-theme>
         `;
     }

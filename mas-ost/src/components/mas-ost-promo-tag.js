@@ -60,14 +60,17 @@ export class MasOstPromoTag extends LitElement {
         return html`
             <div class="section-label">Promotion</div>
             <div class="promo-row">
-                <sp-badge variant=${status.variant}>${status.text}</sp-badge>
+                <sp-badge data-testid="ost-promo-label" variant=${status.variant}>${status.text}</sp-badge>
                 <sp-textfield
+                    data-testid="ost-promo-override-input"
                     label="Override"
                     size="s"
                     value=${store.storedPromoOverride === PROMO_CONTEXT_CANCEL_VALUE ? '' : store.storedPromoOverride || ''}
                     @input=${(e) => store.setPromoCode(e.target.value)}
                 ></sp-textfield>
-                <sp-action-button quiet size="s" @click=${() => store.setPromoCode(undefined)}> Clear </sp-action-button>
+                <sp-action-button data-testid="ost-promo-clear" quiet size="s" @click=${() => store.setPromoCode(undefined)}>
+                    Clear
+                </sp-action-button>
             </div>
         `;
     }

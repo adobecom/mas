@@ -261,13 +261,14 @@ export class MasOstProductList extends LitElement {
                     return html`
                         <div
                             class="product-card"
+                            data-testid="ost-product-card"
                             tabindex="0"
                             ?selected=${isSelected}
                             @click=${() => this.handleProductClick(product)}
                         >
                             ${product.icon ? html`<img class="product-icon" src=${product.icon} alt="" />` : nothing}
                             <div class="product-info">
-                                <div class="product-name">${product.name}</div>
+                                <div class="product-name" data-testid="ost-product-name">${product.name}</div>
                                 <div class="product-code">${code}</div>
                             </div>
                             ${product.draft ? html`<span class="draft-dot" title="Draft"></span>` : nothing}

@@ -17,9 +17,7 @@ export default {
             path: '/studio.html',
             data: {
                 parentCardId: 'd7393fa0-f1f0-457c-af4b-aa9dc3fa1017',
-                variationLocale: 'en_IE',
-                variationLocalePicker: 'English (IE)',
-                defaultLocale: 'en_US',
+                variationCardId: '9f150a53-91fb-4afa-9802-812ba09d8158',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @fragment-editor @view-variations',

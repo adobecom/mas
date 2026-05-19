@@ -47,13 +47,13 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
     // @studio-view-variations-from-variation-editor - Variation editor links to parent, not variation
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
-        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.parentCardId}`;
+        const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.variationCardId}`;
         setTestPage(testPage);
         // TODO: promote to editor page object once stable
         const viewVariationsLink = page.locator('mas-fragment-editor .related-variations-link');
         const focusedParentRow = page.locator(`.mas-fragment[data-id="${data.parentCardId}"]`);
 
-        await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
+        await test.step('step-1: Open the variation fragment directly in the editor', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
@@ -62,30 +62,24 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
             await expect(editor.panel).toBeVisible({ timeout: 15000 });
         });
 
-        await test.step('step-3: Switch locale to open the variation in the editor', async () => {
-            await expect(studio.localePicker).toBeVisible();
-            await expect(studio.localePicker).toHaveAttribute('value', data.defaultLocale);
-            await studio.selectLocale(data.variationLocalePicker);
-            await expect(studio.localePicker).toHaveAttribute('value', data.variationLocale);
-        });
-
-        await test.step('step-4: Click View variations link', async () => {
+        await test.step('step-3: Click View variations link', async () => {
             await expect(viewVariationsLink).toBeVisible({ timeout: 10000 });
             await viewVariationsLink.click();
             await page.waitForLoadState('domcontentloaded');
             await page.waitForTimeout(2000);
         });
 
-        await test.step('step-5: Verify URL hash includes the parent id, not the variation id', async () => {
+        await test.step('step-4: Verify URL hash includes the parent id, not the variation id', async () => {
             await expect(page).toHaveURL(new RegExp(`page=content`));
             await expect(page).toHaveURL(new RegExp(`query=${data.parentCardId}`));
+            await expect(page).not.toHaveURL(new RegExp(`query=${data.variationCardId}`));
         });
 
-        await test.step('step-6: Verify focused parent row is visible', async () => {
+        await test.step('step-5: Verify focused parent row is visible', async () => {
             await expect(focusedParentRow).toBeVisible({ timeout: 15000 });
         });
 
-        await test.step('step-7: Verify variations panel rendered inside the parent', async () => {
+        await test.step('step-6: Verify variations panel rendered inside the parent', async () => {
             await expect(studio.localeVariationsTabPanel(data.parentCardId)).toBeVisible({ timeout: 15000 });
             await expect(studio.regionalVariationsTable(data.parentCardId).first()).toBeVisible({ timeout: 15000 });
         });
@@ -159,7 +153,9 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
         });
 
         await test.step('step-4: Expand the parent row and verify variations panel rendered', async () => {
-            await focusedParentRow.click();
+            const expandButton = focusedParentRow.locator('.expand-cell .expand-button');
+            await expect(expandButton).toBeVisible({ timeout: 15000 });
+            await expandButton.click();
             await expect(studio.localeVariationsTabPanel(data.parentCardId)).toBeVisible({ timeout: 15000 });
             await expect(studio.regionalVariationsTable(data.parentCardId).first()).toBeVisible({ timeout: 15000 });
         });

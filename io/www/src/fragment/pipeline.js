@@ -52,6 +52,14 @@ async function main(params) {
     let returnValue;
     let cacheControl;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
+    if (context.preview) {
+        logError('Preview mode is not supported in this pipeline', context);
+        return {
+            statusCode: 400,
+            headers: RESPONSE_HEADERS,
+            message: 'Preview mode is not supported in this pipeline',
+        };
+    }
     /* c8 ignore next 3*/
     if (!context.state) {
         context.state = await stateLib.init();

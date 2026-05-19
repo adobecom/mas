@@ -125,6 +125,7 @@ function getSettings(config = {}, service) {
         config.masIOUrl ??
         `https://www${env === Env.STAGE ? '.stage' : ''}.adobe.com/mas/io`;
     const preselectPlan = getParameter('preselect-plan') ?? undefined;
+    const instant = getParameter('instant') ?? config.instant;
     return {
         ...getLocaleSettings(config),
         ...previewSettings,
@@ -148,6 +149,7 @@ function getSettings(config = {}, service) {
         landscape,
         masIOUrl,
         ...(preselectPlan && { preselectPlan }), // only add if defined
+        ...(instant && { instant }),
     };
 }
 

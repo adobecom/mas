@@ -521,6 +521,53 @@ describe('Router', () => {
             await router.navigateToFragmentEditor('test-id', { locale: 'fr_FR' });
             expect(Store.search.get().region).to.equal('fr_FR');
         });
+
+        it('should use editor-panel for a provided collection fragment store', async () => {
+            Store.page.set(PAGE_NAMES.CONTENT);
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'collection-variation-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [],
+                }),
+            );
+            const mockEditorPanel = {
+                editFragment: sandbox.stub().resolves(),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+
+            await router.navigateToFragmentEditor('collection-variation-id', { fragmentStore: collectionStore });
+
+            expect(mockEditorPanel.editFragment.calledOnceWith(collectionStore)).to.be.true;
+            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
+            expect(Store.viewMode.get()).to.equal('editing');
+        });
+
+        it('should open full-page editor for collection when viewPage is true', async () => {
+            Store.page.set(PAGE_NAMES.CONTENT);
+            const collectionStore = new FragmentStore(
+                new Fragment({
+                    id: 'new-collection-variation-id',
+                    model: { path: COLLECTION_MODEL_PATH },
+                    fields: [],
+                }),
+            );
+            const mockEditorPanel = {
+                editFragment: sandbox.stub().resolves(),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+
+            await router.navigateToFragmentEditor('new-collection-variation-id', {
+                fragmentStore: collectionStore,
+                locale: 'fr_FR',
+                viewPage: true,
+            });
+
+            expect(mockEditorPanel.editFragment.called).to.be.false;
+            expect(Store.fragmentEditor.fragmentId.get()).to.equal('new-collection-variation-id');
+            expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+            expect(Store.search.get().region).to.equal('fr_FR');
+        });
     });
 
     describe('navigateToTranslationEditor', () => {
@@ -601,7 +648,8 @@ describe('Router', () => {
 
         it('should clear settings route state when returning from settings-editor to settings', async () => {
             Store.profile.set({ email: 'power@adobe.com' });
-            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-POWERUSERS'] }]);
+            Store.users.set([{ userPrincipalName: 'power@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+            Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set(PAGE_NAMES.SETTINGS_EDITOR);
             Store.settings.creating.set(true);
             Store.settings.fragmentId.set('setting-id');

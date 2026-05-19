@@ -65,8 +65,7 @@ jobs:
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
             - name: Install Playwright system dependencies
-              if: steps.playwright-cache.outputs.cache-hit != 'true'
-              run: npx playwright install-deps
+              uses: ./.github/actions/prep-apt
 
             - name: Install/verify Playwright browsers
               run: |
@@ -92,6 +91,9 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
+                  # 4 workers × 45 RPS/worker = 180 RPS combined, safely under the 200 RPS
+                  # per-hostname limit enforced by AEM.live. Raise only if EDS grants a higher cap.
+                  NALA_PLAYWRIGHT_WORKERS: 4
 
             - name: Cleanup cloned cards
               if: always()
@@ -163,6 +165,8 @@ jobs:
                   path: ~/.cache/ms-playwright
                   key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
 
+            # Docs tests run on GitHub-hosted runners (ubuntu-latest) — no unattended-upgrades
+            # lock contention, so the prep-apt composite action is not needed here.
             - name: Install Playwright system dependencies
               if: steps.playwright-cache.outputs.cache-hit != 'true'
               run: npx playwright install-deps
@@ -179,14 +183,13 @@ jobs:
             - name: Set MAS_IO_URL when io/www has changes
               if: steps.filter.outputs.io-www == 'true'
               run: |
-                  ACTOR_NS="${{ secrets[format('AIO_NS_{0}', github.actor)] }}"
-                  if [ -n "$ACTOR_NS" ]; then
-                    echo "Using AIO namespace: actor (${{ github.actor }})"
-                    echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
-                  else
-                    echo "Using AIO namespace: QA (fallback)"
-                    echo "MAS_IO_URL=?mas-io-url=https://${{ secrets.AIO_NS_QA }}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
+                  if [ -z "${{ secrets.AIO_WWW_NS }}" ]; then
+                    echo "::error::Missing required secret: AIO_WWW_NS"
+                    exit 1
                   fi
+                  ACTOR_NS="${{ secrets.AIO_WWW_NS }}-${{ github.event.pull_request.user.login }}"
+                  echo "Using AIO namespace: PR author (${{ github.event.pull_request.user.login }})"
+                  echo "MAS_IO_URL=?mas-io-url=https://${ACTOR_NS}.adobeioruntime.net/api/v1/web/MerchAtScale" >> $GITHUB_ENV
 
             - name: Run Nala Docs Tests via gh.run.sh
               run: ./nala/utils/gh.run.sh

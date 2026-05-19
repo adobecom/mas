@@ -4,13 +4,11 @@ import { ICON_LIBRARY, renderSpIcon } from './constants/icon-library.js';
 
 class MasIconPickerModal extends LitElement {
     #originalIcon = '';
-    #originalDescription = '';
     #originalAlt = '';
 
     static properties = {
         open: { type: Boolean, reflect: true },
         icon: { type: String },
-        description: { type: String },
         alt: { type: String },
         variant: { type: String },
         selectedTab: { type: String, state: true },
@@ -182,12 +180,12 @@ class MasIconPickerModal extends LitElement {
         super();
         this.open = false;
         this.icon = '';
-        this.description = '';
         this.alt = '';
         this.variant = '';
         this.selectedTab = 'icons';
         this.selectedProductId = null;
         this._isSpectrum = false;
+        this.altHtml = '';
     }
 
     connectedCallback() {
@@ -197,7 +195,6 @@ class MasIconPickerModal extends LitElement {
 
     #storeOriginalValues() {
         this.#originalIcon = this.icon;
-        this.#originalDescription = this.description;
         this.#originalAlt = this.alt;
     }
 
@@ -273,9 +270,22 @@ class MasIconPickerModal extends LitElement {
         this.dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
     }
 
+    #hasAltContent(altCombined) {
+        const raw = (altCombined ?? '').trim();
+        if (!raw) return false;
+        if (raw.startsWith('<p>')) {
+            const doc = new DOMParser().parseFromString(raw, 'text/html');
+            const txt = doc
+                .querySelector('p')
+                ?.textContent?.replace(/\u00a0/g, ' ')
+                .trim();
+            return !!txt;
+        }
+        return true;
+    }
+
     #handleCancel() {
         this.icon = this.#originalIcon;
-        this.description = this.#originalDescription;
         this.alt = this.#originalAlt;
         this.#handleClose();
     }
@@ -299,7 +309,8 @@ class MasIconPickerModal extends LitElement {
             iconValue = this.icon || '';
         }
 
-        if (!iconValue.trim()) {
+        const altPayload = this.altHtml || this.alt || '';
+        if (!iconValue.trim() && !this.#hasAltContent(altPayload)) {
             return;
         }
 
@@ -309,8 +320,7 @@ class MasIconPickerModal extends LitElement {
                 composed: true,
                 detail: {
                     icon: iconValue,
-                    description: this.description || '',
-                    alt: this.alt || '',
+                    alt: this.altHtml || this.alt || '',
                     link: '',
                 },
             }),
@@ -349,22 +359,12 @@ class MasIconPickerModal extends LitElement {
 
                 <div class="form-field">
                     <sp-field-label for="icon-description">Description</sp-field-label>
-                    <sp-textfield
+                    <rte-field
                         id="icon-description"
-                        placeholder="Text displayed next to the icon"
-                        value="${this.description}"
-                        @input=${(e) => (this.description = e.target.value)}
-                    ></sp-textfield>
-                </div>
-
-                <div class="form-field">
-                    <sp-field-label for="icon-alt">Alt text</sp-field-label>
-                    <sp-textfield
-                        id="icon-alt"
-                        placeholder="Accessible alt text for the icon image"
-                        value="${this.alt}"
-                        @input=${(e) => (this.alt = e.target.value)}
-                    ></sp-textfield>
+                        link
+                        .value=${this.alt || ''}
+                        @change=${(e) => (this.altHtml = e.target.value)}
+                    ></rte-field>
                 </div>
             </div>
         `;
@@ -374,10 +374,9 @@ class MasIconPickerModal extends LitElement {
         return html`
             <div class="tab-content">
                 <div class="form-field">
-                    <sp-field-label for="url-icon" required>Icon URL</sp-field-label>
+                    <sp-field-label for="url-icon">Icon URL</sp-field-label>
                     <sp-textfield
                         id="url-icon"
-                        required
                         placeholder="https://example.com/icon.svg"
                         value="${!this.icon?.startsWith('sp-icon-') ? this.icon : ''}"
                         @input=${(e) => (this.icon = e.target.value)}
@@ -386,29 +385,19 @@ class MasIconPickerModal extends LitElement {
 
                 <div class="form-field">
                     <sp-field-label for="url-description">Description</sp-field-label>
-                    <sp-textfield
+                    <rte-field
                         id="url-description"
-                        placeholder="Text displayed next to the icon"
-                        value="${this.description}"
-                        @input=${(e) => (this.description = e.target.value)}
-                    ></sp-textfield>
-                </div>
-
-                <div class="form-field">
-                    <sp-field-label for="url-alt">Alt text</sp-field-label>
-                    <sp-textfield
-                        id="url-alt"
-                        placeholder="Accessible alt text for the icon image"
-                        value="${this.alt}"
-                        @input=${(e) => (this.alt = e.target.value)}
-                    ></sp-textfield>
+                        link
+                        .value=${this.alt || ''}
+                        @change=${(e) => (this.altHtml = e.target.value)}
+                    ></rte-field>
                 </div>
             </div>
         `;
     }
 
     render() {
-        const isEditing = !!this.icon;
+        const isEditing = !!(this.icon || this.#hasAltContent(this.altHtml || this.alt || ''));
 
         return html`
             <div @input=${(e) => e.stopPropagation()} @change=${(e) => e.stopPropagation()}>

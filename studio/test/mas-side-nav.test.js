@@ -95,7 +95,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.include('promoText');
             expect(names).to.include('callout');
             expect(names).to.include('subtitle');
-            expect(names).to.not.include('ctas');
+            expect(names).to.include('ctas');
             expect(names).to.not.include('cta');
             expect(names).to.not.include('quantitySelect');
             expect(names).to.not.include('perUnitLabel');
@@ -111,7 +111,7 @@ describe('MasSideNav – Copy Field', () => {
             ]);
             editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
             const map = Object.fromEntries(el.copyableFields.map((f) => [f.name, f.displayName]));
-            expect(map.ctas).to.be.undefined;
+            expect(map.ctas).to.equal('CTAs');
             expect(map.variant).to.be.undefined;
             expect(map.osi).to.be.undefined;
         });
@@ -167,6 +167,45 @@ describe('MasSideNav – Copy Field', () => {
             el.resolvedPriceText = '';
             const priceField = el.copyableFields.find((f) => f.name === 'prices');
             expect(priceField.preview).to.equal('$9.99/mo');
+        });
+
+        it('should preserve locale-driven tax label rendered on the price (e.g. FR_fr "TTC")', () => {
+            // Reproduces MWPW-193548: the source span has no data-display-tax,
+            // but the rendered preview shows the locale-default tax label.
+            // The Copy Field popover preview must mirror the rendered output.
+            const sourceFragment = mockFragment([
+                {
+                    name: 'prices',
+                    values: ['<p><span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>'],
+                },
+            ]);
+            const previewFragment = mockFragment([
+                {
+                    name: 'prices',
+                    values: ['<p><span is="inline-price" data-template="price" data-wcs-osi="abc"></span></p>'],
+                },
+            ]);
+            const editor = mockEditor(sourceFragment, previewFragment);
+            const card = document.createElement('merch-card');
+            const resolvedPrice = document.createElement('span');
+            resolvedPrice.setAttribute('is', 'inline-price');
+            resolvedPrice.setAttribute('data-template', 'price');
+            resolvedPrice.setAttribute('data-wcs-osi', 'abc');
+            const priceInner = document.createElement('span');
+            priceInner.className = 'price';
+            priceInner.append(document.createTextNode('26,21 €/mois'));
+            const taxLabel = document.createElement('span');
+            taxLabel.className = 'price-tax-inclusivity';
+            taxLabel.textContent = 'TTC';
+            priceInner.append(taxLabel);
+            resolvedPrice.append(priceInner);
+            card.append(resolvedPrice);
+            editor.querySelector = sandbox.stub().withArgs('merch-card').returns(card);
+            editorStub.withArgs('mas-fragment-editor').returns(editor);
+
+            const priceField = el.copyableFields.find((f) => f.name === 'prices');
+            expect(priceField.preview).to.include('TTC');
+            expect(priceField.preview).to.include('26,21');
         });
 
         it('should resolve inline-price tokens inside description from rendered preview card', () => {
@@ -369,7 +408,7 @@ describe('MasSideNav – Copy Field', () => {
             const fields = el.copyableFields;
             const inheritedNames = fields.filter((f) => f.source === 'inherited').map((f) => f.name);
             expect(inheritedNames).to.include('description');
-            expect(inheritedNames).to.not.include('ctas');
+            expect(inheritedNames).to.include('ctas');
             expect(inheritedNames).to.include('subtitle');
             expect(inheritedNames).to.not.include('cardTitle');
             expect(fields.find((f) => f.name === 'description').preview).to.equal('Secure transaction');
@@ -401,6 +440,112 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.not.include('quantitySelect');
             expect(names).to.not.include('perUnitLabel');
             expect(names).to.not.include('showPlanType');
+        });
+
+        it('should return only current fields when variation base fragment has no fields', () => {
+            const variationFragment = mockFragment([{ name: 'cardTitle', values: ['Variation'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([], { id: 'base-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+            const fields = el.copyableFields;
+            expect(fields.every((f) => f.source === 'current')).to.be.true;
+            expect(fields.some((f) => f.name === 'cardTitle')).to.be.true;
+        });
+    });
+
+    describe('copyableCtas', () => {
+        it('should return empty arrays when no fragment editor', () => {
+            editorStub.withArgs('mas-fragment-editor').returns(null);
+            expect(el.copyableCtas).to.deep.equal({ current: [], inherited: [] });
+        });
+
+        it('should return current CTAs for non-variation fragment', () => {
+            const fragment = mockFragment([{ name: 'ctas', values: ['<a href="/buy">Buy now</a>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const { current, inherited } = el.copyableCtas;
+            expect(current).to.have.length(1);
+            expect(current[0].text).to.equal('Buy now');
+            expect(current[0].href).to.equal('/buy');
+            expect(current[0].index).to.equal(1);
+            expect(current[0].source).to.equal('current');
+            expect(inherited).to.have.length(0);
+        });
+
+        it('should return inherited CTAs for variation with empty current ctas', () => {
+            const variationFragment = mockFragment([], { id: 'variation-123' });
+            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+            const { current, inherited } = el.copyableCtas;
+            expect(current).to.have.length(0);
+            expect(inherited).to.have.length(1);
+            expect(inherited[0].text).to.equal('Base CTA');
+            expect(inherited[0].source).to.equal('inherited');
+            expect(inherited[0].index).to.equal(1);
+        });
+
+        it('should return current CTAs and no inherited when variation has its own CTAs', () => {
+            const variationFragment = mockFragment([{ name: 'ctas', values: ['<a href="/v">Variation CTA</a>'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+            const { current, inherited } = el.copyableCtas;
+            expect(current).to.have.length(1);
+            expect(current[0].href).to.equal('/v');
+            expect(inherited).to.have.length(0);
+        });
+
+        it('should return empty arrays when fragment has no ctas field', () => {
+            const fragment = mockFragment([{ name: 'cardTitle', values: ['Title'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const { current, inherited } = el.copyableCtas;
+            expect(current).to.have.length(0);
+            expect(inherited).to.have.length(0);
+        });
+
+        it('should return empty current when ctas field has empty values', () => {
+            const fragment = mockFragment([{ name: 'ctas', values: [] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const { current, inherited } = el.copyableCtas;
+            expect(current).to.have.length(0);
+            expect(inherited).to.have.length(0);
+        });
+
+        it('should return empty inherited when base fragment has no ctas field for variation', () => {
+            const variationFragment = mockFragment([], { id: 'variation-123' });
+            const baseFragment = mockFragment([{ name: 'cardTitle', values: ['Title'] }], { id: 'base-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+            const { current, inherited } = el.copyableCtas;
+            expect(current).to.have.length(0);
+            expect(inherited).to.have.length(0);
+        });
+
+        it('should return empty inherited when base ctas values are empty for variation', () => {
+            const variationFragment = mockFragment([], { id: 'variation-123' });
+            const baseFragment = mockFragment([{ name: 'ctas', values: [] }], { id: 'base-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+            const { current, inherited } = el.copyableCtas;
+            expect(current).to.have.length(0);
+            expect(inherited).to.have.length(0);
+        });
+
+        it('should include href-only CTAs in current when text is empty', () => {
+            const fragment = mockFragment([{ name: 'ctas', values: ['<a href="/buy"></a>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const { current } = el.copyableCtas;
+            expect(current).to.have.length(1);
+            expect(current[0].href).to.equal('/buy');
         });
     });
 
@@ -494,6 +639,61 @@ describe('MasSideNav – Copy Field', () => {
         });
     });
 
+    describe('copyCtaItem', () => {
+        let clipboardStub;
+        let toastStub;
+        let clipboardItem;
+
+        beforeEach(() => {
+            clipboardStub = { write: sandbox.stub().resolves() };
+            Object.defineProperty(navigator, 'clipboard', { value: clipboardStub, configurable: true });
+            toastStub = sandbox.stub(Events.toast, 'emit');
+            sandbox.stub(Store.search, 'get').returns({ path: '/acom' });
+            clipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+
+                async getType(type) {
+                    return this.data[type];
+                }
+            };
+        });
+
+        afterEach(() => {
+            globalThis.ClipboardItem = clipboardItem;
+        });
+
+        it('should copy CTA link to clipboard and show positive toast with text', async () => {
+            const fragment = mockFragment([
+                { name: 'ctas', values: ['<a>Buy</a>'] },
+                { name: 'name', values: ['card-name'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCtaItem('Buy now', 1);
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+            expect(toastStub.firstCall.args[0].content).to.include('Buy now');
+        });
+
+        it('should show negative toast on clipboard failure', async () => {
+            clipboardStub.write.rejects(new Error('denied'));
+            const fragment = mockFragment([{ name: 'name', values: ['card-name'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            await el.copyCtaItem('Buy now', 1);
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('negative');
+        });
+
+        it('should do nothing when sourceFragment is null', async () => {
+            await el.copyCtaItem('Buy now', 1, null);
+            expect(clipboardStub.write.called).to.be.false;
+            expect(toastStub.called).to.be.false;
+        });
+    });
+
     describe('copyFieldButton', () => {
         it('should disable the trigger while variation data is loading', () => {
             el.variationDataLoading = true;
@@ -505,7 +705,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(trigger.hasAttribute('disabled')).to.be.true;
         });
 
-        it('should render one menu item per copyable field', () => {
+        it('should render one menu item per copyable field plus the JSON-LD Schema item', () => {
             const fragment = mockFragment([
                 { name: 'cardTitle', values: ['Creative Cloud'] },
                 { name: 'description', values: ['Great plan'] },
@@ -516,7 +716,7 @@ describe('MasSideNav – Copy Field', () => {
             render(el.copyFieldButton, container);
 
             const items = container.querySelectorAll('sp-menu-item');
-            expect(items.length).to.equal(2);
+            expect(items.length).to.equal(3);
         });
 
         it('should render copy field menu inside a scroll container', () => {
@@ -701,6 +901,198 @@ describe('MasSideNav – Copy Field', () => {
             );
             expect(overriddenSection).to.not.exist;
             expect(container.querySelectorAll('.field-entry-overridden').length).to.equal(0);
+        });
+
+        it('should render CTAs section for non-variation fragment with ctas', () => {
+            const fragment = mockFragment([{ name: 'ctas', values: ['<a href="/buy">Buy now</a>'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find((el) => el.textContent === 'CTAs');
+            expect(ctaLabel).to.exist;
+            const ctaValueLabels = [...container.querySelectorAll('.field-label')].filter((el) =>
+                el.textContent.startsWith('CTA '),
+            );
+            expect(ctaValueLabels).to.have.length(1);
+            expect(ctaValueLabels[0].textContent).to.equal('CTA 1');
+
+            // The combined 'ctas' field row must NOT appear — CTAs are shown as individual items only
+            const fieldLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent === 'CTAs');
+            expect(fieldLabels).to.have.length(0);
+        });
+
+        it('should render overridden CTA section for variation with current CTAs', () => {
+            const variationFragment = mockFragment([{ name: 'ctas', values: ['<a href="/v">Variation CTA</a>'] }], {
+                id: 'variation-123',
+            });
+            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const overriddenSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
+                (item) =>
+                    item.classList.contains('overridden-section') && item.textContent.includes('Overridden in this variation'),
+            );
+            expect(overriddenSection).to.exist;
+            const ctaEntries = [...container.querySelectorAll('.field-entry-overridden')];
+            expect(ctaEntries.length).to.be.greaterThan(0);
+        });
+
+        it('should render inherited CTA section for variation without current CTAs', () => {
+            const variationFragment = mockFragment([], { id: 'variation-123' });
+            const baseFragment = mockFragment([{ name: 'ctas', values: ['<a href="/base">Base CTA</a>'] }], { id: 'base-123' });
+            editorStub
+                .withArgs('mas-fragment-editor')
+                .returns(mockEditor(variationFragment, null, { isVariation: true, localeDefaultFragment: baseFragment }));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const inheritedCtaSection = [...container.querySelectorAll('sp-menu-item[disabled]')].find(
+                (item) =>
+                    item.classList.contains('inherited-section') && item.textContent.includes('Inherited from base fragment'),
+            );
+            expect(inheritedCtaSection).to.exist;
+        });
+
+        it('should render multiple CTAs with correct index labels and dividers', () => {
+            const fragment = mockFragment([
+                { name: 'ctas', values: ['<a href="/buy">Buy now</a><a href="/trial">Free trial</a>'] },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const ctaLabels = [...container.querySelectorAll('.field-label')].filter((el) => el.textContent.startsWith('CTA '));
+            expect(ctaLabels).to.have.length(2);
+            expect(ctaLabels[0].textContent).to.equal('CTA 1');
+            expect(ctaLabels[1].textContent).to.equal('CTA 2');
+        });
+
+        it('should not render CTAs section when no ctas in fragment', () => {
+            const fragment = mockFragment([{ name: 'cardTitle', values: ['Creative Cloud'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const ctaLabel = [...container.querySelectorAll('.copy-section-label')].find((el) => el.textContent === 'CTAs');
+            expect(ctaLabel).to.not.exist;
+        });
+    });
+
+    describe('copyJsonLd', () => {
+        let clipboardStub;
+        let toastStub;
+        let clipboardItem;
+
+        beforeEach(() => {
+            clipboardStub = { write: sandbox.stub().resolves() };
+            Object.defineProperty(navigator, 'clipboard', { value: clipboardStub, configurable: true });
+            toastStub = sandbox.stub(Events.toast, 'emit');
+            sandbox.stub(Store.search, 'get').returns({ path: 'sandbox' });
+            clipboardItem = globalThis.ClipboardItem;
+            globalThis.ClipboardItem = class ClipboardItemMock {
+                constructor(data) {
+                    this.data = data;
+                }
+
+                async getType(type) {
+                    return this.data[type];
+                }
+            };
+        });
+
+        afterEach(() => {
+            globalThis.ClipboardItem = clipboardItem;
+        });
+
+        it('should render JSON-LD Schema item in the Copy Field popover', () => {
+            const fragment = mockFragment([{ name: 'cardTitle', values: ['Photoshop'] }]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+
+            const items = [...container.querySelectorAll('sp-menu-item')];
+            const jsonLdItem = items.find((item) => item.textContent.trim() === 'JSON-LD Schema');
+            expect(jsonLdItem).to.exist;
+        });
+
+        it('should copy a rich link with jsonld=on to clipboard', async () => {
+            const fragment = mockFragment([], { id: 'frag-abc' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const htmlBlob = await item.getType('text/html');
+            const htmlText = await htmlBlob.text();
+            expect(htmlText).to.include('jsonld=on');
+            expect(htmlText).to.include('jsonLdSchema');
+        });
+
+        it('should include fragment id in the link href', async () => {
+            const fragment = mockFragment([], { id: 'frag-abc' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            const item = clipboardStub.write.firstCall.args[0][0];
+            const htmlBlob = await item.getType('text/html');
+            const htmlText = await htmlBlob.text();
+            expect(htmlText).to.include('frag-abc');
+        });
+
+        it('should emit positive toast on success', async () => {
+            const fragment = mockFragment([], { id: 'frag-abc' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+            expect(toastStub.firstCall.args[0].content).to.equal('Copied JSON-LD Schema link');
+        });
+
+        it('should emit negative toast on clipboard failure', async () => {
+            clipboardStub.write.rejects(new Error('denied'));
+            const fragment = mockFragment([], { id: 'frag-abc' });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('negative');
+            expect(toastStub.firstCall.args[0].content).to.equal('Failed to copy JSON-LD Schema link');
+        });
+
+        it('should emit negative toast when fragment model is unknown', async () => {
+            const fragment = mockFragment([], { id: 'frag-abc', model: { path: '/unknown/model' } });
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+
+            await el.copyJsonLd();
+
+            expect(clipboardStub.write.called).to.be.false;
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.firstCall.args[0].variant).to.equal('negative');
+        });
+
+        it('should do nothing when fragment is missing', async () => {
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(null));
+
+            await el.copyJsonLd();
+
+            expect(clipboardStub.write.called).to.be.false;
+            expect(toastStub.called).to.be.false;
         });
     });
 
@@ -900,6 +1292,28 @@ describe('MasSideNav – Copy Field', () => {
 
             expect(setPageStub.calledOnceWithExactly(PAGE_NAMES.CONTENT)).to.be.true;
             expect(el.updateVariationLoadingState.calledOnce).to.be.true;
+        });
+
+        it('should redirect away from translation editor when disabled', () => {
+            const setPageStub = sandbox.stub(Store.page, 'set');
+            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATION_EDITOR);
+            sandbox.stub(el, 'updateVariationLoadingState');
+            sandbox.stub(el, 'isTranslationEnabled').get(() => false);
+
+            el.handleStoreChanges();
+
+            expect(setPageStub.calledOnceWithExactly(PAGE_NAMES.CONTENT)).to.be.true;
+        });
+
+        it('should not redirect when translations are enabled', () => {
+            const setPageStub = sandbox.stub(Store.page, 'set');
+            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATIONS);
+            sandbox.stub(el, 'updateVariationLoadingState');
+            sandbox.stub(el, 'isTranslationEnabled').get(() => true);
+
+            el.handleStoreChanges();
+
+            expect(setPageStub.called).to.be.false;
         });
     });
 });

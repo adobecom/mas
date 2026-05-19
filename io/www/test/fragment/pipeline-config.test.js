@@ -3,15 +3,25 @@ import sinon from 'sinon';
 import { getFragment, setupFragmentMocks, EXPECTED_BODY } from './pipeline.test.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
+import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
+import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 
 let fetchStub;
+let unmatchedFetches;
 
 describe('pipeline configuration caching', () => {
     beforeEach(() => {
-        fetchStub = sinon.stub(globalThis, 'fetch');
+        unmatchedFetches = [];
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            unmatchedFetches.push(url);
+            // eslint-disable-next-line no-console
+            console.warn('[test] unmatched fetch stub:', url);
+            return createResponse(404, { detail: 'Not Found' }, 'Not Found');
+        });
         resetCache();
         clearSettingsCache();
+        clearPromoCache();
     });
 
     afterEach(() => {
@@ -19,6 +29,7 @@ describe('pipeline configuration caching', () => {
         if (typeof performance !== 'undefined' && performance.now?.restore) {
             performance.now.restore();
         }
+        expect(unmatchedFetches, `unexpected fetches: ${unmatchedFetches.join(', ')}`).to.have.length(0);
     });
 
     it('should cache configuration and reuse it on subsequent requests', async () => {
@@ -147,13 +158,13 @@ describe('pipeline configuration caching', () => {
             });
 
             const state = new MockState();
-            await state.put('configuration', '{"networkConfig":{"configTimeout": 50}}');
+            await state.put('configuration', '{"networkConfig":{"configTimeout": 5}}');
 
             const originalGet = state.get.bind(state);
             stateGetStub = sinon.stub(state, 'get');
             stateGetStub.callsFake(async (key) => {
                 if (key === 'configuration') {
-                    await new Promise((resolve) => setTimeout(resolve, 100));
+                    await new Promise((resolve) => setTimeout(resolve, 10));
                 }
                 return originalGet(key);
             });

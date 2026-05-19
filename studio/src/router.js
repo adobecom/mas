@@ -1,7 +1,10 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
-import { isPowerUser } from './groups.js';
+import { canAccessSettings } from './groups.js';
+
+const STORE_SEARCH_HASH_KEYS = ['path', 'query'];
+const STORE_SEARCH_HASH_DEFAULT = {};
 
 export class Router extends EventTarget {
     #settingsAccessRouteWatcher = () => {
@@ -97,6 +100,15 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.BULK_PUBLISH_EDITOR: {
+                const editor = document.querySelector('mas-bulk-publish-editor');
+                const hasUnsavedChanges = editor && editor.hasChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             case PAGE_NAMES.SETTINGS:
             case PAGE_NAMES.SETTINGS_EDITOR: {
                 const editor = document.querySelector('mas-settings');
@@ -115,9 +127,12 @@ export class Router extends EventTarget {
     /**
      * Navigation function to change the current page
      * @param {string} value - The page to navigate to
+     * @param {object} [options] - Optional state to set on navigation
+     * @param {string} [options.bulkPublishProjectId] - Project ID for bulk publish editor
+     * @param {string} [options.translationProjectId] - Project ID for translation editor
      * @returns {Function} A function that when called will navigate to the page
      */
-    navigateToPage(value) {
+    navigateToPage(value, options = {}) {
         return async () => {
             const targetPage = this.#getAuthorizedPage(value);
             if (Store.page.value === targetPage) return;
@@ -157,6 +172,12 @@ export class Router extends EventTarget {
                     ) {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
+                    }
+                    if (options.bulkPublishProjectId !== undefined) {
+                        Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
+                    }
+                    if (options.translationProjectId !== undefined) {
+                        Store.translationProjects.translationProjectId.set(options.translationProjectId);
                     }
                     Store.viewMode.set('default');
                     Store.page.set(targetPage);
@@ -207,6 +228,8 @@ export class Router extends EventTarget {
      * @param {string} fragmentId - The fragment ID to edit
      * @param {Object} options - Navigation options
      * @param {string} options.locale - Optional locale to set before navigation
+     * @param {import('./reactivity/fragment-store.js').FragmentStore} [options.fragmentStore] - Optional pre-resolved fragment store
+     * @param {boolean} [options.viewPage] - View page instead of editing
      */
     async navigateToFragmentEditor(fragmentId, options = {}) {
         if (!fragmentId) {
@@ -214,20 +237,15 @@ export class Router extends EventTarget {
             return;
         }
 
-        const { locale } = options;
+        const { locale, fragmentStore: providedFragmentStore, viewPage } = options;
 
         this.isNavigating = true;
         try {
-            // Set locale BEFORE setting page to include it in the first URL change
-            if (locale && locale !== Store.filters.value.locale) {
-                Store.search.set((prev) => ({ ...prev, region: locale }));
-            }
-
             // Check if this is a collection to use editor-panel instead
             const fragmentList = Store.fragments.list.data.get();
-            const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);
+            const fragmentStore = providedFragmentStore ?? fragmentList?.find((f) => f.get()?.id === fragmentId);
 
-            if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
+            if (!viewPage && fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
                 // Use editor-panel for collections
                 const editorPanel = document.querySelector('editor-panel');
                 if (editorPanel) {
@@ -242,6 +260,10 @@ export class Router extends EventTarget {
             }
 
             // Default: use full-page fragment editor for regular cards
+            if (locale && locale !== Store.filters.value.locale) {
+                Store.search.set((prev) => ({ ...prev, region: locale }));
+            }
+
             if (Store.editor.hasChanges) {
                 const fragmentEditor = document.querySelector('mas-fragment-editor');
                 const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
@@ -414,13 +436,8 @@ export class Router extends EventTarget {
     start() {
         this.currentParams = new URLSearchParams(this.#hashValue());
         const normalizedOnStart = this.#normalizeSettingsEditorRoute();
-        const redirectedOnStart = this.#enforceSettingsAccessFromParams();
-        if (normalizedOnStart || redirectedOnStart) {
-            this.updateHistory();
-        }
-        this.previousHash = this.location.hash;
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
-        this.linkStoreToHash(Store.search, ['path', 'query'], {});
+        this.linkStoreToHash(Store.search, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
         this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled'], {
             locale: 'en_US',
             personalizationFilterEnabled: false,
@@ -432,7 +449,12 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
+        this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        const redirectedOnStart = this.#enforceSettingsAccessFromParams();
+        if (normalizedOnStart || redirectedOnStart) {
+            this.updateHistory();
+        }
         if (Store.search.value.query) {
             Store.page.set(PAGE_NAMES.CONTENT);
         }
@@ -445,6 +467,8 @@ export class Router extends EventTarget {
                 this.updateHistory();
             }
         }
+
+        this.previousHash = this.location.hash;
 
         window.addEventListener('hashchange', async (event) => {
             if (!this.isNavigating) {
@@ -462,7 +486,9 @@ export class Router extends EventTarget {
 
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(this.#hashValue());
-            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
+            const currentPage = this.currentParams.get('page') || Store.page.value;
+            const isContentPage = !currentPage || currentPage === PAGE_NAMES.CONTENT || currentPage === PAGE_NAMES.WELCOME;
+            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId') && isContentPage) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
             const page = this.currentParams.get('page');
@@ -474,11 +500,8 @@ export class Router extends EventTarget {
             if (!path && Store.search.value.path) {
                 this.currentParams.set('path', Store.search.value.path);
             }
-            const locale = this.currentParams.get('locale');
-            if (!locale && Store.filters.value.locale && Store.filters.value.locale !== 'en_US') {
-                this.currentParams.set('locale', Store.filters.value.locale);
-            }
             const normalizedSettingsRoute = this.#normalizeSettingsEditorRoute();
+            this.#syncSearchStoreFromHashParams();
             const redirectedSettingsRoute = this.#enforceSettingsAccessFromParams();
             if (normalizedSettingsRoute || redirectedSettingsRoute) {
                 this.updateHistory();
@@ -523,10 +546,15 @@ export class Router extends EventTarget {
         return page === PAGE_NAMES.SETTINGS || page === PAGE_NAMES.SETTINGS_EDITOR;
     }
 
+    #syncSearchStoreFromHashParams() {
+        const currentValue = Store.search.get();
+        this.syncStoreFromHash(Store.search, currentValue, true, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
+    }
+
     #getAuthorizedPage(page) {
         if (!this.#isSettingsPage(page)) return page;
         if (!Store.users.getMeta('loaded')) return page;
-        if (isPowerUser()) return page;
+        if (canAccessSettings(Store.surface())) return page;
         Store.settings.creating.set(false);
         Store.settings.fragmentId.set(null);
         return PAGE_NAMES.WELCOME;
@@ -548,7 +576,7 @@ export class Router extends EventTarget {
             return false;
         }
         this.#stopWatchingSettingsAccessRoute();
-        if (isPowerUser()) return false;
+        if (canAccessSettings(Store.surface())) return false;
         this.currentParams.set('page', PAGE_NAMES.WELCOME);
         this.currentParams.delete('fragmentId');
         Store.page.set(PAGE_NAMES.WELCOME);

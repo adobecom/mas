@@ -5,7 +5,7 @@ export default class TranslationsPage {
         const translationHost = page.locator('mas-translation');
         this.loadingIndicator = translationHost.locator('.loading-container sp-progress-circle');
 
-        this.translationTable = translationHost.locator('sp-table.translation-table');
+        this.translationTable = translationHost.locator('sp-table.item-table');
         this.tableHeaders = {
             translationProject: translationHost.locator('sp-table-head-cell:has-text("Translation Project")'),
             lastUpdatedBy: translationHost.locator('sp-table-head-cell:has-text("Last updated by")'),
@@ -14,9 +14,9 @@ export default class TranslationsPage {
         };
         this.emptyState = translationHost.locator('.translation-empty-state');
 
-        this.tableRows = translationHost.locator('sp-table.translation-table sp-table-row');
+        this.tableRows = translationHost.locator('sp-table.item-table sp-table-row');
 
-        this.firstRow = translationHost.locator('sp-table.translation-table sp-table-row').first();
+        this.firstRow = translationHost.locator('sp-table.item-table sp-table-row').first();
         this.firstRowTitleCell = this.firstRow.locator('sp-table-cell').nth(0);
         this.firstRowActionMenu = this.firstRow.locator('sp-action-menu');
 
@@ -47,11 +47,8 @@ export default class TranslationsPage {
     }
 
     async waitForListToLoad(timeout = 15000) {
-        await this.loadingIndicator.waitFor({ state: 'hidden', timeout }).catch(() => {});
-        await Promise.race([
-            this.translationTable.waitFor({ state: 'visible', timeout }),
-            this.emptyState.waitFor({ state: 'visible', timeout }),
-        ]);
+        const dataRow = this.translationTable.locator('sp-table-row:not(.skeleton-row)').first();
+        await dataRow.or(this.emptyState).waitFor({ state: 'visible', timeout });
     }
 
     async getSentOnColumnTexts() {
@@ -65,7 +62,7 @@ export default class TranslationsPage {
         return texts;
     }
 
-    static parseSentOnText(text) {
+    parseSentOnText(text) {
         const t = (text || '').trim();
         if (!t || t === 'N/A') return 0;
         const d = new Date(t);

@@ -9,7 +9,6 @@ describe('Icon picker field', () => {
     it('should render without default properties', async () => {
         const el = await fixture(html`<mas-icon-picker-field></mas-icon-picker-field>`, { parentNode: spTheme() });
         expect(el.icon).to.equal('');
-        expect(el.description).to.equal('');
         expect(el.alt).to.equal('');
         expect(el.link).to.equal('');
         expect(el.modalOpen).to.be.false;
@@ -25,16 +24,14 @@ describe('Icon picker field', () => {
             html`
                 <mas-icon-picker-field
                     icon="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg"
-                    description="Adobe Photoshop"
-                    alt="Photoshop icon"
+                    alt="Adobe Photoshop"
                     link="https://www.adobe.com/photoshop"
                 ></mas-icon-picker-field>
             `,
             { parentNode: spTheme() },
         );
         expect(el.icon).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg');
-        expect(el.description).to.equal('Adobe Photoshop');
-        expect(el.alt).to.equal('Photoshop icon');
+        expect(el.alt).to.equal('Adobe Photoshop');
         expect(el.link).to.equal('https://www.adobe.com/photoshop');
 
         const iconImg = el.shadowRoot.querySelector('.icon-preview img');
@@ -117,6 +114,81 @@ describe('Icon picker field', () => {
         expect(deleteFired).to.be.false;
     });
 
+    it('should not dispatch delete-field when modal closes without icon when description-only row has alt text', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="Lightroom apps"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        let deleteFired = false;
+        el.addEventListener('delete-field', () => {
+            deleteFired = true;
+        });
+
+        const modal = el.shadowRoot.querySelector('mas-icon-picker-modal');
+        modal.dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+        await el.updateComplete;
+
+        expect(el.modalOpen).to.be.false;
+        expect(deleteFired).to.be.false;
+    });
+
+    it('should not dispatch delete-field when modal closes with RTE paragraph alt and no icon', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="<p>InDesign</p>"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        let deleteFired = false;
+        el.addEventListener('delete-field', () => {
+            deleteFired = true;
+        });
+
+        el.shadowRoot
+            .querySelector('mas-icon-picker-modal')
+            .dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+        await el.updateComplete;
+
+        expect(deleteFired).to.be.false;
+    });
+
+    it('should dispatch delete-field when modal closes with empty paragraph alt only', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="<p></p>"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'delete-field');
+        el.shadowRoot
+            .querySelector('mas-icon-picker-modal')
+            .dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+
+        await listener;
+        expect(el.modalOpen).to.be.false;
+    });
+
+    it('should dispatch delete-field when paragraph alt is only non-breaking spaces', async () => {
+        const el = await fixture(html`<mas-icon-picker-field alt="<p>  </p>"></mas-icon-picker-field>`, {
+            parentNode: spTheme(),
+        });
+
+        el.modalOpen = true;
+        await el.updateComplete;
+
+        const listener = oneEvent(el, 'delete-field');
+        el.shadowRoot
+            .querySelector('mas-icon-picker-modal')
+            .dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
+
+        await listener;
+    });
+
     it('should update values and dispatch change when modal saves', async () => {
         const el = await fixture(html`<mas-icon-picker-field></mas-icon-picker-field>`, { parentNode: spTheme() });
 
@@ -127,8 +199,7 @@ describe('Icon picker field', () => {
             new CustomEvent('save', {
                 detail: {
                     icon: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
-                    description: 'Photoshop',
-                    alt: 'Photoshop icon',
+                    alt: 'Photoshop',
                     link: '',
                 },
             }),
@@ -137,8 +208,7 @@ describe('Icon picker field', () => {
         await listener;
 
         expect(el.icon).to.equal('https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg');
-        expect(el.description).to.equal('Photoshop');
-        expect(el.alt).to.equal('Photoshop icon');
+        expect(el.alt).to.equal('Photoshop');
         expect(el.link).to.equal('');
         expect(el.modalOpen).to.be.false;
     });
@@ -148,7 +218,6 @@ describe('Icon picker field', () => {
             html`
                 <mas-icon-picker-field
                     icon="https://example.com/icon.svg"
-                    description="Test icon"
                     alt="Test alt"
                     link="https://example.com"
                 ></mas-icon-picker-field>
@@ -159,7 +228,6 @@ describe('Icon picker field', () => {
         const value = el.value;
         expect(value).to.deep.equal({
             icon: 'https://example.com/icon.svg',
-            description: 'Test icon',
             alt: 'Test alt',
             link: 'https://example.com',
         });

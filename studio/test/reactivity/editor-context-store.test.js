@@ -143,6 +143,16 @@ describe('Reactivity Stores', () => {
                 const result = store.detectVariationFromPath('/content/dam/mas/acom/en_US/fragment');
                 expect(result.isVariation).to.be.false;
             });
+
+            it('should treat zh_HK as a regional variation of zh_TW', () => {
+                store = new EditorContextStore(null);
+                sandbox.stub(Store, 'surface').returns('sandbox');
+
+                const result = store.detectVariationFromPath('/content/dam/mas/sandbox/zh_HK/fragment');
+                expect(result.isVariation).to.be.true;
+                expect(result.defaultLocale).to.equal('zh_TW');
+                expect(result.pathLocale).to.equal('zh_HK');
+            });
         });
 
         describe('Async Operations', () => {

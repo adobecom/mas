@@ -1,6 +1,8 @@
 const { Core } = require('@adobe/aio-sdk');
+const openwhisk = require('openwhisk');
 const logger = Core.Logger('common', { level: 'info' });
 
+const DEFAULT_PACKAGE_NAME = 'MerchAtScaleStudio';
 const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-_]+)\/(?<parsedLocale>[\w-_]+)\/(?<fragmentPath>.+)/;
 
 /**
@@ -26,6 +28,10 @@ async function postToOdinWithRetry(odinEndpoint, URI, authToken, payload, maxRet
         } catch (error) {
             lastError = error.message || error.toString();
             logger.warn(`Error POSTing ${URI} (attempt ${attempt}/${maxRetries}): ${lastError}`);
+            // 429 retries are already handled inside fetchOdin; don't add backoff retries on top
+            const statusMatch = lastError.match(/status (\d{3})/);
+            const httpStatus = statusMatch ? Number(statusMatch[1]) : 0;
+            if (httpStatus === 429) break;
             if (attempt < maxRetries) {
                 const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
                 logger.info(`Waiting ${delay}ms before retry...`);
@@ -66,6 +72,64 @@ function getValues(fragment, property) {
 function getValue(fragment, property) {
     const { field, path } = findFieldIndex(fragment, property);
     return field ? { value: field.values[0], path } : null;
+}
+
+/**
+ * @param {*} fragment fragment json representation
+ * @param {*} property nested property path, e.g. "modified.by"
+ * @returns value
+ */
+function getInternalValue(fragment, property) {
+    if (!fragment || !property) {
+        return null;
+    }
+
+    const segments = property.split('.');
+    let value = fragment;
+    for (const segment of segments) {
+        if (value == null || !Object.prototype.hasOwnProperty.call(value, segment)) {
+            return null;
+        }
+        value = value[segment];
+    }
+
+    return value;
+}
+
+function buildSiblingActionName(params = {}, targetActionName, options = {}) {
+    if (!targetActionName) {
+        throw new Error('Target action name is required');
+    }
+
+    const overrideParamName = options.overrideParamName;
+    if (overrideParamName && params[overrideParamName]) {
+        return params[overrideParamName];
+    }
+
+    const currentActionName = params.__ow_action_name;
+    if (currentActionName) {
+        return currentActionName.replace(/[^/]+$/, targetActionName);
+    }
+
+    return `${options.defaultPackageName || DEFAULT_PACKAGE_NAME}/${targetActionName}`;
+}
+
+function createRuntimeClient(params = {}, options = {}) {
+    const openwhiskFactory = options.openwhiskFactory || openwhisk;
+    return openwhiskFactory({
+        api_key: params.__ow_api_key,
+        apihost: params.__ow_api_host,
+        namespace: params.__ow_namespace,
+    });
+}
+
+async function invokeAsyncAction(actionName, actionParams, params = {}, options = {}) {
+    const client = options.client || createRuntimeClient(params, options);
+    return client.actions.invoke({
+        name: actionName,
+        params: actionParams,
+        blocking: false,
+    });
 }
 
 async function postToOdin(odinEndpoint, URI, authToken, payload) {
@@ -178,6 +242,22 @@ async function getVariationParent(odinEndpoint, variationPath, authToken) {
 }
 
 /**
+ * Parse a Retry-After header to seconds.
+ * RFC 7231 §7.1.3 allows either delay-seconds (e.g. "60") or an HTTP-date.
+ * Falls back to fallbackSecs when the header is missing or unparseable.
+ */
+function parseRetryAfter(headerValue, fallbackSecs) {
+    if (!headerValue) return fallbackSecs;
+    const asNumber = Number(headerValue);
+    if (Number.isFinite(asNumber)) return asNumber;
+    const asDate = Date.parse(headerValue);
+    if (!Number.isNaN(asDate)) {
+        return Math.max(0, Math.ceil((asDate - Date.now()) / 1000));
+    }
+    return fallbackSecs;
+}
+
+/**
  * common function to fetch from Odin with error handling
  *
  * @param {*} odinEndpoint
@@ -194,7 +274,15 @@ async function fetchOdin(
     odinEndpoint,
     URI,
     authToken,
-    { method = 'GET', body = null, contentType = null, etag = null, ignoreErrors = [] } = {},
+    {
+        method = 'GET',
+        body = null,
+        contentType = null,
+        etag = null,
+        ignoreErrors = [],
+        max429Retries = 3,
+        retryAfterFallbackSecs = 65,
+    } = {},
 ) {
     const startTime = performance.now();
     const path = `${odinEndpoint}${URI}`;
@@ -208,11 +296,20 @@ async function fetchOdin(
     if (method !== 'GET' && body) {
         headers['Content-Type'] = contentType || 'application/json';
     }
-    const response = await fetch(path, {
-        headers,
-        method,
-        body,
-    });
+
+    let response;
+    for (let attempt = 1; attempt <= max429Retries; attempt++) {
+        // eslint-disable-next-line no-await-in-loop
+        response = await fetch(path, { headers, method, body });
+        if (response.status !== 429 || attempt === max429Retries) break;
+        const retryAfterSecs = parseRetryAfter(response.headers.get('Retry-After'), retryAfterFallbackSecs);
+        logger.warn(
+            `${method} ${URI}: 429 Too Many Requests (attempt ${attempt}/${max429Retries}), waiting ${retryAfterSecs}s before retry`,
+        );
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => setTimeout(resolve, retryAfterSecs * 1000));
+    }
+
     if (!response.ok && !ignoreErrors.includes(response.status)) {
         let errorBody = {};
         try {
@@ -287,31 +384,66 @@ async function patchToOdin(odinEndpoint, fragmentId, authToken, patchBody, etag)
     return { success: true };
 }
 
-// Helper function to process items in batches with concurrency limit
-async function processBatchWithConcurrency(items, batchSize, processor) {
+// Helper function to process items in batches with concurrency limit and optional RPS throttle.
+// rpsLimit enforces a minimum batch cycle time of (batchSize / rpsLimit) seconds so that the
+// sustained request rate never exceeds rpsLimit, regardless of individual request latency.
+// onBatchCompleted(batchResults) is called after each batch completes (before the throttle wait).
+async function processBatchWithConcurrency(items, batchSize, processor, rpsLimit = null, onBatchCompleted = null) {
     const allResults = [];
+    const minBatchMs = rpsLimit ? (batchSize / rpsLimit) * 1000 : 0;
 
     for (let i = 0; i < items.length; i += batchSize) {
+        const batchStart = Date.now();
         const batch = items.slice(i, i + batchSize);
         logger.info(`Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(items.length / batchSize)}`);
 
         const batchResults = await Promise.all(batch.map(processor));
         allResults.push(...batchResults);
+
+        if (onBatchCompleted) await onBatchCompleted(batchResults);
+
+        if (minBatchMs > 0) {
+            const wait = minBatchMs - (Date.now() - batchStart);
+            if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+        }
     }
 
     return allResults;
 }
 
+async function getFragmentWithEtag(odinEndpoint, fragmentId, authToken) {
+    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
+        method: 'GET',
+    });
+    const etag = response.headers.get('etag') || response.headers.get('Etag');
+    const fragment = await response.json();
+    return { fragment, etag };
+}
+
+async function deleteFragmentById(odinEndpoint, fragmentId, authToken, etag) {
+    await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments/${fragmentId}`, authToken, {
+        method: 'DELETE',
+        etag,
+    });
+}
+
 module.exports = {
+    DEFAULT_PACKAGE_NAME,
+    buildSiblingActionName,
+    createRuntimeClient,
     fetchFragmentByPath,
     fetchOdin,
+    getInternalValue,
     getReferencedBy,
     getTargetPath,
     getValue,
     getValues,
     getVariationParent,
+    invokeAsyncAction,
     patchToOdin,
     postToOdinWithRetry,
     processBatchWithConcurrency,
     putToOdin,
+    getFragmentWithEtag,
+    deleteFragmentById,
 };

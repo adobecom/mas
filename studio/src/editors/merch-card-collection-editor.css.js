@@ -15,6 +15,67 @@ export const styles = css`
         border: 2px dashed var(--spectrum-blue-500);
     }
 
+    .collection-paste-links {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 6px;
+        background: var(--spectrum-gray-75);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .collection-paste-links sp-textfield {
+        width: 100%;
+    }
+
+    .collection-paste-url-panel {
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 6px;
+        background: var(--spectrum-gray-50);
+        overflow: hidden;
+    }
+
+    .collection-paste-url-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--spectrum-gray-700);
+        background: var(--spectrum-gray-200);
+        border-bottom: 1px solid var(--spectrum-gray-300);
+    }
+
+    .collection-paste-url-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+        border-bottom: 1px solid var(--spectrum-gray-200);
+    }
+
+    .collection-paste-url-row:last-child {
+        border-bottom: none;
+    }
+
+    .collection-paste-url-text {
+        min-width: 0;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--spectrum-gray-900);
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .collection-paste-url-col-action {
+        width: 32px;
+    }
+
     /* Default Card Drop Zone Styles */
     .default-card-section {
         margin-bottom: 24px;
@@ -152,6 +213,12 @@ export const styles = css`
         margin-bottom: 8px;
     }
 
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
     .hide-cards-control {
         display: flex;
         align-items: center;
@@ -185,6 +252,12 @@ export const styles = css`
         flex-direction: column;
         gap: 8px;
         padding: 16px 0;
+    }
+
+    .items-container.inherited {
+        opacity: 0.5;
+        pointer-events: none;
+        cursor: default;
     }
 
     .item-wrapper {
@@ -352,5 +425,70 @@ export const styles = css`
 
     .item-wrapper:hover sp-icon-preview {
         display: block;
+    }
+
+    sp-textfield[data-field-state='overridden'] {
+        --mod-textfield-border-color: #accffd;
+        --mod-textfield-background-color: #f5f9ff;
+    }
+
+    aem-tag-picker-field[data-field-state='overridden'] {
+        outline: 2px solid #accffd;
+        border-radius: 4px;
+        background-color: #f5f9ff;
+    }
+
+    mas-mnemonic-field[data-field-state='overridden'] {
+        outline: 2px solid #accffd;
+        border-radius: 4px;
+        background-color: #f5f9ff;
+    }
+
+    .field-status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        line-height: 18px;
+        color: var(--spectrum-accent-content-color-default, #3b63fb);
+    }
+
+    .field-status-icon {
+        color: inherit;
+        flex: none;
+    }
+
+    .field-status-inherited-link {
+        cursor: pointer;
+    }
+
+    .field-status-restore-link {
+        position: relative;
+        color: inherit;
+        font: inherit;
+        line-height: inherit;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .field-status-restore-link-prefix {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .field-status-restore-link:hover {
+        color: var(--spectrum-accent-content-color-hover, #2f55e0);
+    }
+
+    .field-status-restore-link:focus-visible {
+        outline: 2px solid var(--spectrum-accent-content-color-key-focus, #2f55e0);
+        outline-offset: 2px;
     }
 `;

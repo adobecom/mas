@@ -60,6 +60,17 @@ describe('commerce service', () => {
             expect(instance.defaults).to.deep.equal(Defaults);
         });
 
+        it('outputs preview mode based on attribute', async () => {
+            let el = initMasCommerceService();
+            expect(el.isPreview()).to.be.false;
+            el = initMasCommerceService({ preview: 'true' });
+            expect(el.isPreview()).to.be.true;
+            el = initMasCommerceService({ preview: 'on' });
+            expect(el.isPreview()).to.be.true;
+            el = initMasCommerceService({ preview: true });
+            expect(el.isPreview()).to.be.true;
+        });
+
         it('initialises service with milo configured locale', async () => {
             const { settings } = await initMasCommerceService({
                 locale: 'en_DZ',

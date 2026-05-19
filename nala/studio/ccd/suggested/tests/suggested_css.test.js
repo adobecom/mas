@@ -17,6 +17,7 @@ test.describe('M@S Studio CCD Suggested card CSS test suite', () => {
         });
 
         await test.step('step-2: Validate suggested card is visible and has correct variant', async () => {
+            await studio.waitForCardsLoaded();
             await expect(suggestedCard).toBeVisible();
             await expect(suggestedCard).toHaveAttribute('variant', 'ccd-suggested');
         });

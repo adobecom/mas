@@ -10,6 +10,7 @@
         "label": "Individual Plans"
     },
     "id": "e58f8f75-b882-409a-9ff8-8826b36a8368",
+    "variationId": "test-collection-variation-id",
     "model": {
         "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
     },

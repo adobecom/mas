@@ -56,11 +56,10 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
         margin: 0 auto;
     }
 
-    /* Apply synchronized heights to slots using CSS variables */
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] {
-        min-height: var(--consonant-merch-card-simplified-pricing-express-description-height);
         display: flex;
         flex-direction: column;
+        min-height: var(--consonant-merch-card-simplified-pricing-express-description-height);
     }
 
     /* Push paragraph with mnemonics to the bottom using :has() */
@@ -79,14 +78,6 @@ merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2)
     /* Additional fallback - if second paragraph exists, assume it has mnemonics */
     merch-card[variant="simplified-pricing-express"] [slot="body-xs"] p:nth-child(2) {
         margin-top: auto;
-    }
-
-    merch-card[variant="simplified-pricing-express"] [slot="price"] {
-        min-height: var(--consonant-merch-card-simplified-pricing-express-price-height);
-    }
-
-    merch-card[variant="simplified-pricing-express"] [slot="callout-content"] {
-        min-height: var(--consonant-merch-card-simplified-pricing-express-callout-height);
     }
 }
 
@@ -133,6 +124,11 @@ merch-card[variant="simplified-pricing-express"] [slot="cta"] a.con-button {
 merch-card[variant="simplified-pricing-express"] [slot="price"] {
   display: flex;
   flex-direction: column;
+}
+
+merch-card[id][variant="simplified-pricing-express"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
+merch-card[id][variant="simplified-pricing-express"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+    display: none;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="price"] > p:first-child span[is="inline-price"]:first-child {
@@ -191,6 +187,11 @@ merch-card[variant="simplified-pricing-express"] [slot="callout-content"] > p {
     font-weight: 400;
     line-height: 18px;
     padding: 0;
+}
+
+merch-card[variant="simplified-pricing-express"] [slot="callout-content"] > p:empty,
+merch-card[variant="simplified-pricing-express"] [slot="price"] > p:empty {
+    display: contents;
 }
 
 merch-card[variant="simplified-pricing-express"] [slot="callout-content"] a {

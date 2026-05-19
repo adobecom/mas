@@ -16,22 +16,45 @@ export default class StudioPage {
         this.searchInput = page.locator('#actions sp-search  input');
         this.searchIcon = page.locator('#actions sp-search[placeholder="Search"] sp-icon-search');
         this.filter = page.locator('sp-action-button[label="Filter"]');
+        this.filterPanel = page.locator('mas-filter-panel');
+        this.createdByTag = this.filterPanel.locator('sp-tag sp-icon-user');
         this.folderPicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.previewMenu = page.locator('#actions sp-action-menu[value="render"]');
         this.renderViewOption = this.previewMenu.locator('sp-menu-item[value="render"]');
         this.tableViewOption = this.previewMenu.locator('sp-menu-item[value="table"]');
-        this.renderView = page.locator('#render');
+        this.renderView = page.locator('#render:not(.next-page-skeletons)');
         this.tableView = page.locator('sp-table');
         this.contentTableBody = page.locator('#content sp-table-body');
         this.tableViewHeaders = page.locator('sp-table-head');
         this.tableViewRows = this.tableView.locator('sp-table-row');
         this.tableViewFragmentTable = (fragmentId) => this.tableView.locator(`mas-fragment-table[data-id="${fragmentId}"]`);
+        this.groupedVariationsTab = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab[value="grouped"]`,
+            );
+        this.groupedVariationsTabPanel = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"]`,
+            );
+        this.localeVariationsTabPanel = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="locale"]`,
+            );
+        this.regionalVariationsTable = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="locale"] mas-fragment-table`,
+            );
+        this.groupedVariationsTable = (parentFragmentId) =>
+            this.tableView.locator(
+                `mas-fragment:has(mas-fragment-table[data-id="${parentFragmentId}"]) mas-fragment-variations sp-tab-panel[value="grouped"] mas-fragment-table`,
+            );
         this.tableViewRowByFragmentId = (fragmentId) => this.tableView.locator(`sp-table-row[value="${fragmentId}"]`);
         this.tableViewPathCell = (row) => row.locator('sp-table-cell.name');
         this.tableViewTitleCell = (row) => row.locator('sp-table-cell.title');
         this.tableViewPriceCell = (row) => row.locator('sp-table-cell.price');
         this.tableViewActionsMenu = (row) => row.locator('sp-table-cell.actions sp-action-menu');
         this.tableViewCreateVariationOption = (menu) => menu.locator('sp-menu-item:has-text("Create variation")');
+        this.tableViewCopyCodeOption = (menu) => menu.locator('sp-menu-item:has-text("Copy Code")');
         this.variationDialog = page.locator('mas-variation-dialog > sp-dialog');
         this.variationDialogLocalePicker = this.variationDialog.locator('sp-picker[placeholder="Select a locale"]');
         this.variationDialogCreateButton = this.variationDialog.locator('sp-button:has-text("Create variation")');
@@ -61,7 +84,7 @@ export default class StudioPage {
         this.topnav = page.locator('mas-top-nav');
         this.surfacePicker = page.locator('mas-nav-folder-picker sp-action-menu');
         this.localePicker = page.locator('mas-top-nav mas-locale-picker sp-action-menu');
-        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:has-text("Fragments")');
+        this.fragmentsTable = page.locator('.nav-breadcrumbs sp-breadcrumb-item:not([hidden]):has-text("Fragments")').first();
         // Sidenav toolbar
         this.sideNav = page.locator('mas-side-nav');
         this.cloneCardButton = this.sideNav.locator('mas-side-nav-item[label="Duplicate"]');
@@ -70,6 +93,12 @@ export default class StudioPage {
         this.publishCardButton = this.sideNav.locator('mas-side-nav-item[label="Publish"]');
         this.createVariationButton = this.sideNav.locator('mas-side-nav-item[label="Create Variation"]');
         this.versionHistoryButton = this.sideNav.locator('mas-side-nav-item[label="History"]');
+        this.copyFieldButton = this.sideNav.locator('mas-side-nav-item[label="Copy Field"]');
+        // Side-nav renders the Copy Field popover inside its shadow root; Playwright CSS selectors pierce shadow.
+        this.copyFieldPopover = this.sideNav.locator('sp-popover[open]');
+        this.copyFieldRow = (label) =>
+            this.copyFieldPopover.locator('sp-menu-item', { has: this.page.locator(`.field-label:text-is("${label}")`) });
+        this.copyFieldRowValue = (label) => this.copyFieldRow(label).locator('.field-value');
         this.homeButton = this.sideNav.locator('mas-side-nav-item[label="Home"]');
         this.offersButton = this.sideNav.locator('mas-side-nav-item[label="Offers"]');
         this.fragmentsButton = this.sideNav.locator('mas-side-nav-item[label="Fragments"]');
@@ -84,6 +113,48 @@ export default class StudioPage {
         this.createDialogOSIButton = this.createDialog.locator('osi-field#osi #offerSelectorToolButtonOSI');
         this.createDialogCreateButton = this.createDialog.locator('sp-button:has-text("Create")');
         this.createDialogMerchCardOption = page.getByRole('menuitem', { name: 'Merch Card', exact: true }).first();
+    }
+
+    /**
+     * Wait for cards to load on both content and fragment-editor pages.
+     * Content pages render mas-fragment-render (lazy loaded via IntersectionObserver).
+     * Fragment-editor pages render merch-card directly inside mas-fragment-editor.
+     * @param {number} [minMerchCardsInRender=1] When >1, scroll until #render has at least this many merch-cards (lazy rows hydrate after intersecting).
+     */
+    async waitForCardsLoaded(minMerchCardsInRender = 1) {
+        const fragmentRender = this.page.locator('mas-fragment-render').first();
+        const fragmentEditor = this.page.locator('mas-fragment-editor').first();
+
+        const winner = await Promise.race([
+            fragmentRender.waitFor({ state: 'attached', timeout: 30000 }).then(() => 'content'),
+            fragmentEditor.waitFor({ state: 'attached', timeout: 30000 }).then(() => 'editor'),
+        ]);
+
+        if (winner === 'content') {
+            try {
+                await fragmentRender.scrollIntoViewIfNeeded();
+            } catch {
+                /* Grid hosts can detach during navigation/search */
+            }
+
+            const min = Math.max(1, minMerchCardsInRender);
+            const main = this.page.locator('.main-container').first();
+            for (let i = 0; i < 8; i++) {
+                if ((await this.renderView.locator('merch-card').count()) >= min) break;
+                await main.evaluate((el) => {
+                    el.scrollTop = el.scrollHeight;
+                });
+                await this.page.waitForTimeout(250);
+            }
+        }
+
+        await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 30000 });
+
+        if (minMerchCardsInRender > 1) {
+            await expect
+                .poll(async () => this.renderView.locator('merch-card').count(), { timeout: 30000 })
+                .toBeGreaterThanOrEqual(minMerchCardsInRender);
+        }
     }
 
     /**
@@ -324,15 +395,13 @@ export default class StudioPage {
 
                 await this.saveCardButton.click({ force: true });
 
-                // Wait for progress toast
-                await this.toastProgress
-                    .waitFor({
-                        state: 'visible',
-                        timeout: 5000,
-                    })
-                    .catch(() => {
-                        throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
-                    });
+                // Wait for progress toast or success toast (save may complete before progress is visible)
+                await Promise.race([
+                    this.toastProgress.waitFor({ state: 'visible', timeout: 10000 }),
+                    this.toastPositive.waitFor({ state: 'visible', timeout: 10000 }),
+                ]).catch(() => {
+                    throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
+                });
 
                 // Wait for any toast (excluding progress toast)
                 await this.page
@@ -520,6 +589,7 @@ export default class StudioPage {
     async discardEditorChanges(editor) {
         // Close the editor and verify discard is triggered
         // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
+        const fragmentUrl = this.page.url();
         await expect(this.fragmentsTable).toBeVisible();
         await this.fragmentsTable.scrollIntoViewIfNeeded();
         await this.fragmentsTable.click();
@@ -527,6 +597,9 @@ export default class StudioPage {
         await expect(await this.confirmationDialog).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
+        await this.page.goto(fragmentUrl);
+        await this.page.waitForLoadState('domcontentloaded');
+        await this.waitForCardsLoaded();
     }
 
     /**
@@ -724,7 +797,7 @@ export default class StudioPage {
         await expect(this.variationDialogLocalePicker).toBeEnabled();
         await this.variationDialogLocalePicker.scrollIntoViewIfNeeded();
         await this.page.waitForTimeout(200);
-        await this.variationDialogLocalePicker.click({ timeout: 5000 });
+        await this.variationDialogLocalePicker.click({ force: true, timeout: 5000 });
         await this.page.waitForTimeout(300);
 
         const localeOption = this.page.locator(`sp-menu-item[value="${locale}"]:visible`).first();

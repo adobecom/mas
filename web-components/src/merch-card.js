@@ -34,6 +34,7 @@ import {
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
 import { getService, printMeasure } from './utils.js';
+import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 
 const MERCH_CARD = 'merch-card';
 
@@ -56,15 +57,36 @@ function priceOptionsProvider(element, options) {
         options.literals ??= {};
         Object.assign(options.literals, card.priceLiterals);
     }
+    if (
+        !options.promotionCode &&
+        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+    ) {
+        options.promotionCode = card.contextPromotionCode;
+    }
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
     }
     card.variantLayout?.priceOptionsProvider?.(element, options);
 }
 
-function registerPriceOptionsProvider(masCommerceService) {
-    if (masCommerceService.providers.has(priceOptionsProvider)) return;
-    masCommerceService.providers.price(priceOptionsProvider);
+function checkoutOptionsProvider(element, options) {
+    const card = element.closest(MERCH_CARD);
+    if (!card) return options;
+    if (
+        !options.promotionCode &&
+        card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
+    ) {
+        options.promotionCode = card.contextPromotionCode;
+    }
+}
+
+function registerOptionsProviders(masCommerceService) {
+    if (!masCommerceService.providers.has(priceOptionsProvider)) {
+        masCommerceService.providers.price(priceOptionsProvider);
+    }
+    if (!masCommerceService.providers.has(checkoutOptionsProvider)) {
+        masCommerceService.providers.checkout(checkoutOptionsProvider);
+    }
 }
 
 const intersectionObserver = new IntersectionObserver((entries) => {
@@ -209,6 +231,7 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
+    contextPromotionCode;
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;
@@ -218,6 +241,12 @@ export class MerchCard extends LitElement {
     #hydrationPromise = new Promise((resolve) => {
         this.#resolveHydration = resolve;
     });
+
+    /**
+     * Compat version of the card.
+     * @type {number}
+     */
+    compatVersion;
 
     customerSegment;
     marketSegment;
@@ -257,12 +286,16 @@ export class MerchCard extends LitElement {
 
     updated(changedProperties) {
         if (
-            changedProperties.has('badgeBackgroundColor') ||
-            changedProperties.has('borderColor')
+            !this.style.getPropertyValue(
+                '--consonant-merch-card-border-color',
+            ) &&
+            this.computedBorderColor &&
+            (changedProperties.has('badgeBackgroundColor') ||
+                changedProperties.has('borderColor'))
         ) {
             this.style.setProperty(
-                '--consonant-merch-card-border',
-                this.computedBorderStyle,
+                '--consonant-merch-card-border-color',
+                this.computedBorderColor,
             );
         }
         if (changedProperties.has('backgroundColor')) {
@@ -297,7 +330,7 @@ export class MerchCard extends LitElement {
         return this.variantLayout.renderLayout();
     }
 
-    get computedBorderStyle() {
+    get computedBorderColor() {
         if (
             ![
                 'ccd-slice',
@@ -307,9 +340,9 @@ export class MerchCard extends LitElement {
                 'full-pricing-express',
             ].includes(this.variant)
         ) {
-            return `1px solid ${
-                this.borderColor ? this.borderColor : this.badgeBackgroundColor
-            }`;
+            return this.borderColor
+                ? this.borderColor
+                : this.badgeBackgroundColor;
         }
         return '';
     }
@@ -549,7 +582,7 @@ export class MerchCard extends LitElement {
         this.#durationMarkName = `${MARK_MERCH_CARD_PREFIX}${logId}${MARK_DURATION_SUFFIX}`;
         performance.mark(this.#startMarkName);
         this.#service = getService();
-        registerPriceOptionsProvider(this.#service);
+        registerOptionsProviders(this.#service);
         this.#log = this.#service.Log.module(MERCH_CARD);
         this.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
@@ -638,6 +671,9 @@ export class MerchCard extends LitElement {
         };
         this.#log.error(`merch-card${fragmentId}: ${error}`, detail);
         this.failed = true;
+        this.#resolveHydration?.();
+        this.#resolveHydration = undefined;
+        if (!this.#service.isPreview()) this.style.display = 'none';
         if (!dispatch) return;
         this.dispatchEvent(
             new CustomEvent(EVENT_MAS_ERROR, {
@@ -650,6 +686,7 @@ export class MerchCard extends LitElement {
 
     async checkReady() {
         if (!this.isConnected) return;
+        if (this.failed) return;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
             if (
@@ -857,8 +894,15 @@ export class MerchCard extends LitElement {
             ...this.querySelectorAll(
                 `${SELECTOR_MAS_INLINE_PRICE}[data-promotion-code],${SELECTOR_MAS_CHECKOUT_LINK}[data-promotion-code]`,
             ),
-        ].map((el) => el.dataset.promotionCode);
-        // Check if all promotion codes are the same
+        ]
+            .map((el) => el.dataset.promotionCode)
+            .filter(
+                (promotionCode) =>
+                    ![undefined, 'cancel-context'].includes(promotionCode),
+            );
+        if (promotionCodes.length === 0) {
+            return this.contextPromotionCode;
+        }
         const uniqueCodes = [...new Set(promotionCodes)];
         if (uniqueCodes.length > 1) {
             this.#log?.warn(

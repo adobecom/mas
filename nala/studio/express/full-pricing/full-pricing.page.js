@@ -5,7 +5,7 @@ export default class ACOMFullPricingExpressPage {
         this.collection = page.locator('merch-card-collection, .card-collection, .pricing-collection');
         this.collectionTitle = page.locator('.collection-title');
 
-        this.cardTitle = page.locator('h3, h2, h4, h1');
+        this.cardTitle = page.locator('merch-card :is(h1, h2, h3, h4)');
         this.cardIcon = page.locator('mas-mnemonic');
         this.cardIconsSlot = page.locator('merch-icon[slot="icons"]');
         this.cardPrice = page.locator('merch-card span[is="inline-price"]:not([data-template="strikethrough"])');
@@ -13,6 +13,9 @@ export default class ACOMFullPricingExpressPage {
         this.cardStrikethroughPrice = page.locator(
             '[slot="price"] span[is="inline-price"][data-template="strikethrough"], [slot="price"] span.price-strikethrough',
         );
+        this.cardPriceStrikethroughTaxLabel = page.locator('[slot="price"] span.price-strikethrough .price-tax-inclusivity');
+        this.cardPriceStrikethroughRecurrenceLabel = page.locator('[slot="price"] span.price-strikethrough .price-recurrence');
+        this.cardPriceStrikethroughUnitLabel = page.locator('[slot="price"] span.price-strikethrough .price-unit-type');
         this.cardPriceLegal = page.locator('span[is="inline-price"][data-template="legal"]');
         this.cardBody = page.locator('merch-card p');
         this.cardShortDescription = page.locator('div[slot="short-description"]');

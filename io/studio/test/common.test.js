@@ -635,4 +635,412 @@ describe('common.js - fetchOdin', () => {
             expect(result).to.equal(mockResponse);
         });
     });
+
+    describe('getFragmentWithEtag', () => {
+        it('should return the fragment JSON and etag header', async () => {
+            const fragment = { id: 'fragment-123', title: 'Test fragment' };
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: {
+                    get: sinon.stub().callsFake((headerName) => (headerName === 'etag' ? '"fragment-etag"' : null)),
+                },
+                json: sinon.stub().resolves(fragment),
+            };
+            fetchStub.resolves(mockResponse);
+
+            const result = await common.getFragmentWithEtag(odinEndpoint, 'fragment-123', authToken);
+
+            expect(fetchStub).to.have.been.calledOnce;
+            expect(fetchStub).to.have.been.calledWith(
+                'https://test-odin.example.com/adobe/sites/cf/fragments/fragment-123',
+                sinon.match({
+                    method: 'GET',
+                    headers: sinon.match({
+                        Authorization: 'Bearer test-auth-token',
+                        'User-Agent': 'mas-translation-project',
+                    }),
+                }),
+            );
+            expect(mockResponse.json).to.have.been.calledOnce;
+            expect(result).to.deep.equal({
+                fragment,
+                etag: '"fragment-etag"',
+            });
+        });
+
+        it('should fall back to Etag header casing when etag is missing', async () => {
+            const fragment = { id: 'fragment-456' };
+            const headersGetStub = sinon.stub();
+            headersGetStub.withArgs('etag').returns(null);
+            headersGetStub.withArgs('Etag').returns('"etag-from-uppercase-header"');
+            const mockResponse = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: {
+                    get: headersGetStub,
+                },
+                json: sinon.stub().resolves(fragment),
+            };
+            fetchStub.resolves(mockResponse);
+
+            const result = await common.getFragmentWithEtag(odinEndpoint, 'fragment-456', authToken);
+
+            expect(result).to.deep.equal({
+                fragment,
+                etag: '"etag-from-uppercase-header"',
+            });
+        });
+    });
+
+    describe('deleteFragmentById', () => {
+        it('should send DELETE with If-Match when etag is provided', async () => {
+            const mockResponse = {
+                ok: true,
+                status: 204,
+                statusText: 'No Content',
+                headers: {
+                    get: sinon.stub().returns(null),
+                },
+            };
+            fetchStub.resolves(mockResponse);
+
+            await common.deleteFragmentById(odinEndpoint, 'fragment-789', authToken, '"delete-etag"');
+
+            expect(fetchStub).to.have.been.calledOnce;
+            expect(fetchStub).to.have.been.calledWith(
+                'https://test-odin.example.com/adobe/sites/cf/fragments/fragment-789',
+                sinon.match({
+                    method: 'DELETE',
+                    body: null,
+                    headers: sinon.match({
+                        Authorization: 'Bearer test-auth-token',
+                        'If-Match': '"delete-etag"',
+                    }),
+                }),
+            );
+        });
+    });
+
+    describe('429 retry behaviour', () => {
+        beforeEach(() => {
+            // Stub setTimeout to immediately resolve so tests don't wait 60 s for real
+            sinon.stub(global, 'setTimeout').callsFake((fn) => {
+                fn();
+                return 1;
+            });
+        });
+        // No afterEach needed — outer afterEach calls sinon.restore() which restores setTimeout
+
+        it('should retry once on 429 and return the successful response', async () => {
+            const headersGet429 = sinon.stub();
+            headersGet429.withArgs('Retry-After').returns('60');
+            headersGet429.returns(null);
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: headersGet429 },
+            };
+            const mock200 = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.onFirstCall().resolves(mock429);
+            fetchStub.onSecondCall().resolves(mock200);
+
+            const result = await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+
+            expect(fetchStub).to.have.been.calledTwice;
+            expect(result).to.equal(mock200);
+            expect(global.setTimeout).to.have.been.calledOnce;
+            expect(global.setTimeout.firstCall.args[1]).to.equal(60000);
+            expect(mockLogger.warn).to.have.been.calledWith(sinon.match(/429 Too Many Requests.*attempt 1\/3.*waiting 60s/));
+        });
+
+        it('should exhaust retries and throw after 3 consecutive 429 responses', async () => {
+            const headersGet429 = sinon.stub();
+            headersGet429.withArgs('Retry-After').returns('60');
+            headersGet429.returns(null);
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: headersGet429 },
+            };
+            fetchStub.resolves(mock429);
+
+            let error;
+            try {
+                await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+            } catch (e) {
+                error = e;
+            }
+
+            expect(fetchStub).to.have.been.calledThrice;
+            expect(error).to.be.an.instanceOf(Error);
+            expect(error.message).to.include('status 429');
+        });
+
+        it('should wait exactly the Retry-After header duration', async () => {
+            const headersGet429 = sinon.stub();
+            headersGet429.withArgs('Retry-After').returns('30');
+            headersGet429.returns(null);
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: headersGet429 },
+            };
+            const mock200 = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.onFirstCall().resolves(mock429);
+            fetchStub.onSecondCall().resolves(mock200);
+
+            await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+
+            expect(global.setTimeout).to.have.been.calledOnce;
+            expect(global.setTimeout.firstCall.args[1]).to.equal(30000);
+        });
+
+        it('should parse Retry-After as an HTTP-date and wait until then', async () => {
+            // Pin "now" to a known instant and ask Odin to retry 45 s later
+            const nowMs = Date.UTC(2026, 4, 12, 17, 30, 0);
+            sinon.stub(Date, 'now').returns(nowMs);
+            const retryAt = new Date(nowMs + 45 * 1000).toUTCString();
+
+            const headersGet429 = sinon.stub();
+            headersGet429.withArgs('Retry-After').returns(retryAt);
+            headersGet429.returns(null);
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: headersGet429 },
+            };
+            const mock200 = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.onFirstCall().resolves(mock429);
+            fetchStub.onSecondCall().resolves(mock200);
+
+            await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+
+            expect(global.setTimeout).to.have.been.calledOnce;
+            expect(global.setTimeout.firstCall.args[1]).to.equal(45000);
+        });
+
+        it('should fall back to 65 s when Retry-After header is absent', async () => {
+            const mock429 = {
+                ok: false,
+                status: 429,
+                statusText: 'Too Many Requests',
+                json: sinon.stub().resolves({}),
+                headers: { get: sinon.stub().returns(null) }, // no Retry-After header
+            };
+            const mock200 = {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            };
+            fetchStub.onFirstCall().resolves(mock429);
+            fetchStub.onSecondCall().resolves(mock200);
+
+            await common.fetchOdin(odinEndpoint, '/api/test', authToken);
+
+            expect(global.setTimeout).to.have.been.calledOnce;
+            expect(global.setTimeout.firstCall.args[1]).to.equal(65000);
+        });
+    });
+});
+
+describe('common.js - processBatchWithConcurrency', () => {
+    let common;
+    let setTimeoutStub;
+
+    beforeEach(function () {
+        this.timeout(5000);
+
+        const mockLogger = {
+            info: sinon.stub(),
+            error: sinon.stub(),
+            warn: sinon.stub(),
+        };
+
+        setTimeoutStub = sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+
+        common = proxyquire('../src/common.js', {
+            '@adobe/aio-sdk': {
+                Core: {
+                    Logger: sinon.stub().returns(mockLogger),
+                },
+            },
+        });
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('should process all items across batches and return results in order', async () => {
+        const items = [10, 20, 30, 40, 50];
+        const processor = (item) => Promise.resolve(item * 2);
+
+        const results = await common.processBatchWithConcurrency(items, 2, processor);
+
+        expect(results).to.deep.equal([20, 40, 60, 80, 100]);
+    });
+
+    it('should not throttle when rpsLimit is not provided', async () => {
+        await common.processBatchWithConcurrency([1, 2, 3], 3, (item) => Promise.resolve(item));
+
+        expect(setTimeoutStub).not.to.have.been.called;
+    });
+
+    it('should sleep the remaining time when a batch completes before minBatchMs', async () => {
+        // batchSize=5, rpsLimit=10 → minBatchMs = 500ms; elapsed = 100ms → wait = 400ms
+        const dateNowStub = sinon.stub(Date, 'now');
+        dateNowStub.onCall(0).returns(0); // batchStart
+        dateNowStub.onCall(1).returns(100); // after Promise.all
+
+        await common.processBatchWithConcurrency([1, 2, 3, 4, 5], 5, (item) => Promise.resolve(item), 10);
+
+        expect(setTimeoutStub).to.have.been.calledOnce;
+        expect(setTimeoutStub.firstCall.args[1]).to.equal(400);
+    });
+
+    it('should not sleep when a batch takes longer than minBatchMs', async () => {
+        // batchSize=5, rpsLimit=10 → minBatchMs = 500ms; elapsed = 600ms → no sleep needed
+        const dateNowStub = sinon.stub(Date, 'now');
+        dateNowStub.onCall(0).returns(0); // batchStart
+        dateNowStub.onCall(1).returns(600); // after Promise.all
+
+        await common.processBatchWithConcurrency([1, 2, 3, 4, 5], 5, (item) => Promise.resolve(item), 10);
+
+        expect(setTimeoutStub).not.to.have.been.called;
+    });
+
+    it('should call onBatchCompleted with the current batch results after each batch', async () => {
+        const items = [1, 2, 3, 4];
+        const processor = (item) => Promise.resolve({ value: item, success: true });
+        const onBatchCompleted = sinon.stub().resolves();
+
+        await common.processBatchWithConcurrency(items, 2, processor, null, onBatchCompleted);
+
+        expect(onBatchCompleted).to.have.been.calledTwice;
+        expect(onBatchCompleted.firstCall.args[0]).to.deep.equal([
+            { value: 1, success: true },
+            { value: 2, success: true },
+        ]);
+        expect(onBatchCompleted.secondCall.args[0]).to.deep.equal([
+            { value: 3, success: true },
+            { value: 4, success: true },
+        ]);
+    });
+
+    it('should throttle once per batch across multiple batches', async () => {
+        // 4 items, batchSize=2, rpsLimit=10 → minBatchMs = 200ms
+        // batch 1: elapsed=50ms → wait=150ms; batch 2: elapsed=50ms → wait=150ms
+        const dateNowStub = sinon.stub(Date, 'now');
+        dateNowStub.onCall(0).returns(0); // batch 1 start
+        dateNowStub.onCall(1).returns(50); // batch 1 end
+        dateNowStub.onCall(2).returns(300); // batch 2 start
+        dateNowStub.onCall(3).returns(350); // batch 2 end
+
+        const results = await common.processBatchWithConcurrency([1, 2, 3, 4], 2, (item) => Promise.resolve(item), 10);
+
+        expect(results).to.deep.equal([1, 2, 3, 4]);
+        expect(setTimeoutStub).to.have.been.calledTwice;
+        expect(setTimeoutStub.firstCall.args[1]).to.equal(150);
+        expect(setTimeoutStub.secondCall.args[1]).to.equal(150);
+    });
+});
+
+describe('common.js - postToOdinWithRetry - 429 passthrough', () => {
+    let common;
+    let mockLogger;
+    let fetchStub;
+
+    const odinEndpoint = 'https://test-odin.example.com';
+    const authToken = 'test-auth-token';
+
+    beforeEach(function () {
+        this.timeout(5000);
+
+        mockLogger = {
+            info: sinon.stub(),
+            error: sinon.stub(),
+            warn: sinon.stub(),
+        };
+
+        fetchStub = sinon.stub();
+
+        // Stub setTimeout to immediately call the callback (avoids real 60 s waits)
+        sinon.stub(global, 'setTimeout').callsFake((fn) => {
+            fn();
+            return 1;
+        });
+
+        common = proxyquire('../src/common.js', {
+            '@adobe/aio-sdk': {
+                Core: {
+                    Logger: sinon.stub().returns(mockLogger),
+                },
+            },
+        });
+
+        global.fetch = fetchStub;
+        global.performance = { now: sinon.stub().returns(0) };
+    });
+
+    afterEach(() => {
+        sinon.restore();
+        delete global.fetch;
+    });
+
+    it('should not add backoff retries on top when fetchOdin exhausts 429 retries', async () => {
+        const headersGet = sinon.stub();
+        headersGet.withArgs('Retry-After').returns('60');
+        headersGet.returns(null);
+        const mock429 = {
+            ok: false,
+            status: 429,
+            statusText: 'Too Many Requests',
+            json: sinon.stub().resolves({}),
+            headers: { get: headersGet },
+        };
+        fetchStub.resolves(mock429);
+
+        let error;
+        try {
+            await common.postToOdinWithRetry(odinEndpoint, '/api/loc', authToken, { data: 'test' });
+        } catch (e) {
+            error = e;
+        }
+
+        // fetchOdin retries 3× internally (max429Retries default = 3).
+        // postToOdinWithRetry must NOT stack its own retries on top → exactly 3 fetch calls total.
+        expect(fetchStub).to.have.been.calledThrice;
+        expect(error).to.be.an.instanceOf(Error);
+        expect(error.message).to.include('status 429');
+    });
 });

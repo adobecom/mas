@@ -108,9 +108,13 @@
                 client_id: 'mas-studio',
                 environment: 'prod',
                 locale: 'en_US',
-                redirect_uri: (location.port && location.port !== `${localRelayPort}` && !location.hash.includes('id_token') && !location.hash.includes('access_token')
-                    ? `http://localhost:${localRelayPort}/studio.html?relayPort=${localAppPort}&proxy.port=${localProxyPort}&relay.port=${localRelayPort}`
-                    : location.href.substring(0, location.href.length - location.hash.length)),
+                redirect_uri:
+                    location.port &&
+                    location.port !== `${localRelayPort}` &&
+                    !location.hash.includes('id_token') &&
+                    !location.hash.includes('access_token')
+                        ? `http://localhost:${localRelayPort}/studio.html?relayPort=${localAppPort}&proxy.port=${localProxyPort}&relay.port=${localRelayPort}`
+                        : location.href.substring(0, location.href.length - location.hash.length),
                 response_type: 'id_token',
                 scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_members',
                 useLocalStorage: true,

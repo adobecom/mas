@@ -12,6 +12,13 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
+const TRIAL_ANALYTICS_IDS = new Set([
+    'free-trial',
+    'start-free-trial',
+    'seven-day-trial',
+    'fourteen-day-trial',
+    'thirty-day-trial',
+]);
 
 /**
  * Normalizes variant names for consistency.
@@ -271,6 +278,73 @@ export function processBorderColor(fields, merchCard, variantMapping) {
     }
 }
 
+const DEFAULT_FIELD_SENTINELS = new Set(['', 'default']);
+
+export function processWhatsIncludedDividerColor(
+    fields,
+    merchCard,
+    variantMapping,
+) {
+    const config = variantMapping?.whatsIncludedDividerColor;
+    const customVar = '--consonant-merch-card-whats-included-divider-color';
+
+    if (!config) return;
+
+    const wi =
+        merchCard.querySelector('[slot="footer-rows"] merch-whats-included') ??
+        merchCard.querySelector('merch-whats-included');
+    const fromMarkup = wi?.getAttribute('whats-included-divider-color')?.trim();
+    const fromField =
+        fields.whatsIncludedDividerColor != null
+            ? String(fields.whatsIncludedDividerColor).trim()
+            : '';
+    const raw = fromMarkup || fromField;
+
+    if (
+        raw == null ||
+        DEFAULT_FIELD_SENTINELS.has(String(raw).trim().toLowerCase())
+    ) {
+        merchCard.removeAttribute('whats-included-divider-color');
+        merchCard.style.removeProperty(customVar);
+        return;
+    }
+
+    const value = String(raw).trim();
+
+    if (value.toLowerCase() === 'transparent') {
+        merchCard.removeAttribute('whats-included-divider-color');
+        merchCard.style.setProperty(customVar, 'transparent');
+        return;
+    }
+
+    const specialValue = config.specialValues?.[value];
+    const isGradient =
+        specialValue?.includes('gradient') ||
+        /-gradient/.test(value) ||
+        /^gradient-/.test(value);
+    const isSpectrumColor = /^spectrum-.*-(plans|special-offers)$/.test(value);
+
+    if (isGradient) {
+        let dividerColorKey = value;
+        if (config.specialValues) {
+            for (const [key, v] of Object.entries(config.specialValues)) {
+                if (v === value) {
+                    dividerColorKey = key;
+                    break;
+                }
+            }
+        }
+        merchCard.setAttribute('whats-included-divider-color', dividerColorKey);
+        merchCard.style.removeProperty(customVar);
+    } else if (isSpectrumColor) {
+        merchCard.setAttribute('whats-included-divider-color', value);
+        merchCard.style.setProperty(customVar, `var(--${value})`);
+    } else {
+        merchCard.removeAttribute('whats-included-divider-color');
+        merchCard.style.setProperty(customVar, `var(--${value})`);
+    }
+}
+
 export function processBackgroundImage(
     fields,
     merchCard,
@@ -405,7 +479,7 @@ function processDescriptionLinks(merchCard, aemFragmentMapping) {
     });
 }
 
-export function processDescription(fields, merchCard, mapping) {
+export function processDescription(fields, merchCard, mapping, settings) {
     if (fields.description) {
         fields.description = processMnemonicElements(fields.description);
     }
@@ -431,8 +505,14 @@ export function processDescription(fields, merchCard, mapping) {
 
     processDescriptionLinks(merchCard, mapping);
     appendSlot('callout', fields, merchCard, mapping);
-    appendSlot('quantitySelect', fields, merchCard, mapping);
+    processQuantitySelect(fields, merchCard, mapping, settings);
     appendSlot('whatsIncluded', fields, merchCard, mapping);
+}
+
+function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
+    if (!mapping.quantitySelect) return;
+    if (!fields.quantitySelect) fields.quantitySelect = settings.quantitySelect;
+    appendSlot('quantitySelect', fields, merchCard, mapping);
 }
 
 export function processAddon(fields, merchCard, mapping, settings = {}) {
@@ -676,20 +756,60 @@ function createConsonantButton(
     return button;
 }
 
-export function processCTAs(fields, merchCard, aemFragmentMapping, variant) {
+export function processCTAs(
+    fields,
+    merchCard,
+    aemFragmentMapping,
+    variant,
+    settings,
+) {
     if (fields.ctas) {
-        // Process tooltips in CTAs
         fields.ctas = processMnemonicElements(fields.ctas);
 
         const { slot } = aemFragmentMapping.ctas;
         const footer = createTag('div', { slot }, fields.ctas);
-        const ctas = [...footer.querySelectorAll('a')].map((cta) =>
+        const allCtaLinks = [...footer.querySelectorAll('a')];
+        const filteredLinks = settings?.hideTrialCTAs
+            ? allCtaLinks.filter(
+                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),
+              )
+            : allCtaLinks;
+        const ctas = (
+            filteredLinks.length > 0 ? filteredLinks : allCtaLinks
+        ).map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping),
         );
 
-        footer.innerHTML = '';
+        footer.textContent = '';
         footer.append(...ctas);
         merchCard.append(footer);
+
+        if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
+            ctas.forEach((cta) => {
+                const checkout = cta.source ?? cta;
+                if (!checkout.onceSettled) return;
+                cta.hidden = true;
+                checkout
+                    .onceSettled()
+                    .then(() => {
+                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                            const othersVisible = ctas.some(
+                                (c) => c !== cta && !c.hidden,
+                            );
+                            if (othersVisible) {
+                                cta.remove();
+                            } else {
+                                cta.hidden = false;
+                            }
+                        } else {
+                            cta.hidden = false;
+                        }
+                    })
+                    .catch(() => {
+                        cta.hidden = false;
+                    });
+            });
+        }
     }
 }
 
@@ -745,6 +865,7 @@ export function cleanup(merchCard) {
         'background-image',
         'background-color',
         'border-color',
+        'whats-included-divider-color',
         'badge-background-color',
         'badge-color',
         'badge-text',
@@ -783,9 +904,13 @@ export async function hydrate(fragment, merchCard) {
     const { variant } = fields;
     if (!variant) throw new Error(`hydrate: no variant found in payload ${id}`);
     cleanup(merchCard);
+    merchCard.compatVersion = fields.compatVersion;
+    merchCard.contextPromotionCode = fields.promoCode;
     merchCard.settings = settings;
     if (priceLiterals) merchCard.priceLiterals = priceLiterals;
     merchCard.id ??= fragment.id;
+    if (fragment.variationId)
+        merchCard.setAttribute('variation-id', fragment.variationId ?? '');
     merchCard.variant = variant;
     await merchCard.updateComplete;
 
@@ -812,7 +937,8 @@ export async function hydrate(fragment, merchCard) {
         mapping.backgroundColor,
     );
     processBorderColor(fields, merchCard, mapping);
-    processDescription(fields, merchCard, mapping);
+    processDescription(fields, merchCard, mapping, settings);
+    processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);
     processSecureLabel(fields, merchCard, mapping, settings);
@@ -822,7 +948,7 @@ export async function hydrate(fragment, merchCard) {
         // UptLink construction may fail (customized built-in element timing);
         // must not block remaining hydration steps.
     }
-    processCTAs(fields, merchCard, mapping, variant);
+    processCTAs(fields, merchCard, mapping, variant, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

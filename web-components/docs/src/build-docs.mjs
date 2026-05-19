@@ -52,7 +52,7 @@ const outputPath = path.join(targetFile);
 const inputContent = fs.readFileSync(inputPath, 'utf8');
 
 // depending on surface, load either Milo consonant or Spectrum styles
-const styleDependecy = ['plans.md'].includes(sourceFile)
+const styleDependecy = ['plans.md', 'plans-collection.md'].includes(sourceFile)
     ? '<link rel="stylesheet" href="../styles/styles.css">'
     : '<link rel="stylesheet" href="spectrum.css">';
 
@@ -75,6 +75,7 @@ const htmlTemplate = `
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://p.typekit.net/p.css?s=1&amp;k=hah7vzn&amp;ht=tk&amp;f=7180.7181.7182.7183.22474.22749.22750.22751.22753&amp;a=8634977&amp;app=typekit&amp;e=css">
     <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+    <link rel="stylesheet" href="/studio/con-button.css">
   
   <!-- Include your custom element script as an ES6 module -->
   <script type="module">

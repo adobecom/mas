@@ -20,7 +20,6 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     shortDescription: { tag: 'div', slot: 'body-m' },
     description: { tag: 'div', slot: 'body-xs' },
     mnemonics: { size: 'l' },
-    quantitySelect: { tag: 'div', slot: 'quantity-select' },
     secureLabel: true,
     planType: true,
     badgeIcon: true,
@@ -43,7 +42,6 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     borderColor: { attribute: 'border-color' },
     size: ['wide', 'super-wide'],
     ctas: { slot: 'footer', size: 'l' },
-    footerRows: { tag: 'div', slot: 'footer-rows' },
     style: 'consonant',
 };
 
@@ -135,7 +133,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             return;
         }
 
-        let slots = [
+        const slots = [
             'heading-xs',
             'subtitle',
             'heading-m-price',

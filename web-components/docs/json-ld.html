@@ -1,0 +1,230 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>M@S Web Components</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="spectrum.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://p.typekit.net/p.css?s=1&amp;k=hah7vzn&amp;ht=tk&amp;f=7180.7181.7182.7183.22474.22749.22750.22751.22753&amp;a=8634977&amp;app=typekit&amp;e=css">
+    <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css">
+    <link rel="stylesheet" href="/studio/con-button.css">
+  
+  <!-- Include your custom element script as an ES6 module -->
+  <script type="module">
+    import { init } from './common.js';
+    init();
+  </script>
+  <!-- Include Highlight.js stylesheet for syntax highlighting -->
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+  <script type="module" src="./mas-sidenav.js"></script>
+</head>
+<body class="spectrum spectrum--medium spectrum--light">
+    <aside is="mas-sidenav"></aside>
+<main>
+<sp-theme color="light" scale="medium">
+<h1 id="json-ld-pricing-schema" tabindex="-1">JSON-LD Pricing Schema <a class="header-anchor" href="#json-ld-pricing-schema" href="#json-ld-pricing-schema" title="Permalink to this heading">#</a></h1>
+<p>Injects a <a href="https://schema.org/Product">Schema.org Product</a> <code>&lt;script type=&quot;application/ld+json&quot;&gt;</code> block into the page <code>&lt;head&gt;</code>, making Adobe product pricing discoverable to agentic and AI-driven traffic.</p>
+<h2 id="import" tabindex="-1">Import <a class="header-anchor" href="#import" href="#import" title="Permalink to this heading">#</a></h2>
+<pre><code class="hljs language-js"><span class="hljs-keyword">import</span> { injectJsonLd } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@adobecom/mas/web-components/src/json-ld.js&#x27;</span>;
+<span class="hljs-comment">// or via the commerce bundle</span>
+<span class="hljs-keyword">import</span> { injectJsonLd } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@adobecom/mas/web-components/src/commerce.js&#x27;</span>;
+</code></pre>
+<h2 id="api" tabindex="-1">API <a class="header-anchor" href="#api" href="#api" title="Permalink to this heading">#</a></h2>
+<pre><code class="hljs language-js"><span class="hljs-title function_">injectJsonLd</span>(fields, offer, regularOffer, pageUrl)
+</code></pre>
+<h3 id="parameters" tabindex="-1">Parameters <a class="header-anchor" href="#parameters" href="#parameters" title="Permalink to this heading">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fields</code></td>
+<td><code>object</code></td>
+<td>Fragment fields object. Must include <code>cardTitle</code>. Optionally includes <code>description.value</code> (HTML string) and <code>mnemonicIcon</code> (array of SVG URLs).</td>
+</tr>
+<tr>
+<td><code>offer</code></td>
+<td><code>object</code></td>
+<td>Resolved WCS offer. Must have <code>priceDetails.price</code> and <code>analytics</code> (JSON string with <code>currencyCode</code>).</td>
+</tr>
+<tr>
+<td><code>regularOffer</code></td>
+<td><code>object|null</code></td>
+<td>Resolved non-promotional offer used to derive <code>priceWithoutDiscount</code> when <code>offer</code> is a promo offer. Pass <code>null</code> if no promo is active.</td>
+</tr>
+<tr>
+<td><code>pageUrl</code></td>
+<td><code>string</code></td>
+<td>The current page URL. Query parameters are stripped before use.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="return-value" tabindex="-1">Return value <a class="header-anchor" href="#return-value" href="#return-value" title="Permalink to this heading">#</a></h3>
+<p>Returns the injected <code>&lt;script&gt;</code> element, or <code>null</code> if injection was skipped (see <a href="#skip-conditions">Skip conditions</a>).</p>
+<h2 id="behavior" tabindex="-1">Behavior <a class="header-anchor" href="#behavior" href="#behavior" title="Permalink to this heading">#</a></h2>
+<h3 id="deduplication" tabindex="-1">Deduplication <a class="header-anchor" href="#deduplication" href="#deduplication" title="Permalink to this heading">#</a></h3>
+<p>Only one JSON-LD product block is injected per page URL. The script is keyed by <code>data-id=&quot;json-ld-product-{url}&quot;</code>. Subsequent calls with the same page URL are no-ops and return <code>null</code>.</p>
+<p>This is intentional — one signal link per product page.</p>
+<h3 id="url-normalization" tabindex="-1">URL normalization <a class="header-anchor" href="#url-normalization" href="#url-normalization" title="Permalink to this heading">#</a></h3>
+<p>Query parameters are stripped from <code>pageUrl</code> before it is used in <code>@id</code> and <code>offer.url</code> fields.</p>
+<pre><code class="hljs language-js"><span class="hljs-string">&#x27;https://www.adobe.com/products/photoshop?lang=en&#x27;</span>
+<span class="hljs-comment">// → stored as</span>
+<span class="hljs-string">&#x27;https://www.adobe.com/products/photoshop&#x27;</span>
+</code></pre>
+<h3 id="pricing-logic" tabindex="-1">Pricing logic <a class="header-anchor" href="#pricing-logic" href="#pricing-logic" title="Permalink to this heading">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th><code>price</code></th>
+<th><code>priceWithoutDiscount</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Standard (no promo)</td>
+<td><code>offer.priceDetails.price</code></td>
+<td>omitted</td>
+</tr>
+<tr>
+<td>Promo with <code>priceWithoutDiscount</code> on offer</td>
+<td><code>offer.priceDetails.price</code></td>
+<td><code>offer.priceDetails.priceWithoutDiscount</code></td>
+</tr>
+<tr>
+<td>Promo via <code>regularOffer</code> (lower price)</td>
+<td><code>offer.priceDetails.price</code></td>
+<td><code>regularOffer.priceDetails.price</code></td>
+</tr>
+<tr>
+<td>Two BASE offers where offer &gt; regularOffer</td>
+<td><code>regularOffer.priceDetails.price</code></td>
+<td><code>offer.priceDetails.price</code></td>
+</tr>
+<tr>
+<td><code>priceWithoutDiscount === price</code></td>
+<td><code>offer.priceDetails.price</code></td>
+<td>omitted</td>
+</tr>
+</tbody>
+</table>
+<h3 id="billing-duration" tabindex="-1">Billing duration <a class="header-anchor" href="#billing-duration" href="#billing-duration" title="Permalink to this heading">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th><code>billingDuration</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>offer.term === 'ANNUAL'</code></td>
+<td><code>P1Y</code></td>
+</tr>
+<tr>
+<td><code>offer.commitment === 'PERPETUAL'</code></td>
+<td><code>P1Y</code></td>
+</tr>
+<tr>
+<td>All other cases</td>
+<td><code>P1M</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="images" tabindex="-1">Images <a class="header-anchor" href="#images" href="#images" title="Permalink to this heading">#</a></h3>
+<p><code>mnemonicIcon</code> SVG URLs are converted to raster by appending <code>?format=png&amp;width=800&amp;height=800</code> (<a href="http://Schema.org">Schema.org</a> recommends raster images).</p>
+<ul>
+<li>Single icon → string</li>
+<li>Multiple icons → array of strings</li>
+<li>Empty or missing → <code>image</code> field omitted</li>
+</ul>
+<h2 id="skip-conditions" tabindex="-1">Skip conditions <a class="header-anchor" href="#skip-conditions" href="#skip-conditions" title="Permalink to this heading">#</a></h2>
+<p><code>injectJsonLd</code> returns <code>null</code> and injects nothing when:</p>
+<ul>
+<li><code>fields</code> is missing or has no <code>cardTitle</code></li>
+<li><code>offer</code> is <code>null</code> or <code>undefined</code></li>
+<li><code>offer.priceDetails.price</code> is <code>null</code> or <code>undefined</code></li>
+<li><code>offer.analytics</code> is missing or malformed (no <code>currencyCode</code>)</li>
+<li>A JSON-LD block for this page URL already exists in <code>&lt;head&gt;</code></li>
+</ul>
+<p>A console warning is emitted when the currency code is missing.</p>
+<h2 id="output-schema" tabindex="-1">Output schema <a class="header-anchor" href="#output-schema" href="#output-schema" title="Permalink to this heading">#</a></h2>
+<pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;@context&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://schema.org/&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;@type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Product&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;@id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://www.adobe.com/products/photoshop#product&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Adobe Photoshop&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;brand&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;@type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Brand&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Adobe&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;description&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;The industry-standard photo editing software.&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;image&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://cdn.adobe.com/icon.svg?format=png&amp;width=800&amp;height=800&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;offers&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;@type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Offer&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;@id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://www.adobe.com/products/photoshop#offer&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;url&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://www.adobe.com/products/photoshop&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;priceCurrency&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;USD&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;price&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;22.99&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;availability&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://schema.org/InStock&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;category&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Subscription&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;seller&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;@id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://www.adobe.com/#org&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;itemOffered&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;@id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;https://www.adobe.com/products/photoshop#product&quot;</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;priceSpecification&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;@type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;UnitPriceSpecification&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;price&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;22.99&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;priceCurrency&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;USD&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;billingDuration&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;P1M&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;billingIncrement&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p><code>description</code> and <code>image</code> are omitted if not present on the fragment. <code>priceWithoutDiscount</code> is included in <code>priceSpecification</code> only when a promotion is active.</p>
+<h2 id="usage-example" tabindex="-1">Usage example <a class="header-anchor" href="#usage-example" href="#usage-example" title="Permalink to this heading">#</a></h2>
+<pre><code class="hljs language-js"><span class="hljs-keyword">import</span> { injectJsonLd } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;./json-ld.js&#x27;</span>;
+
+<span class="hljs-comment">// Called after WCS offer resolution</span>
+<span class="hljs-keyword">const</span> fields = {
+    <span class="hljs-attr">cardTitle</span>: <span class="hljs-string">&#x27;Adobe Photoshop&#x27;</span>,
+    <span class="hljs-attr">description</span>: { <span class="hljs-attr">value</span>: <span class="hljs-string">&#x27;&lt;p&gt;The industry-standard photo editing software.&lt;/p&gt;&#x27;</span> },
+    <span class="hljs-attr">mnemonicIcon</span>: [<span class="hljs-string">&#x27;https://cdn.adobe.com/ps-icon.svg&#x27;</span>],
+};
+
+<span class="hljs-keyword">const</span> offer = {
+    <span class="hljs-attr">priceDetails</span>: { <span class="hljs-attr">price</span>: <span class="hljs-number">22.99</span> },
+    <span class="hljs-attr">commitment</span>: <span class="hljs-string">&#x27;YEAR&#x27;</span>,
+    <span class="hljs-attr">term</span>: <span class="hljs-string">&#x27;MONTHLY&#x27;</span>,
+    <span class="hljs-attr">analytics</span>: <span class="hljs-title class_">JSON</span>.<span class="hljs-title function_">stringify</span>({ <span class="hljs-attr">currencyCode</span>: <span class="hljs-string">&#x27;USD&#x27;</span> }),
+};
+
+<span class="hljs-title function_">injectJsonLd</span>(fields, offer, <span class="hljs-literal">null</span>, <span class="hljs-variable language_">window</span>.<span class="hljs-property">location</span>.<span class="hljs-property">href</span>);
+</code></pre>
+
+</sp-theme>
+</main>
+<script type="module">
+  document.querySelectorAll('code.demo').forEach(el => {
+      const targetContainer = document.createElement('div');
+      targetContainer.classList.toggle('light', el.classList.contains('light'));
+      targetContainer.innerHTML = `<h4>Demo: </h4><div class="demo-container">${el.textContent}</div>`;
+      el.parentElement.after(targetContainer);
+      // Extract and evaluate <script> tags
+      const scriptTags = targetContainer.getElementsByTagName('script');
+      for (let i = 0; i < scriptTags.length; i++) {
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.text = scriptTags[i].text;
+          document.body.appendChild(script); // Appends to the document to execute
+          scriptTags[i].remove(); // Remove the script tag
+      }
+  });
+</script>
+</body>
+</html>

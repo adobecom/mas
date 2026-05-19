@@ -10,11 +10,13 @@ import { Log } from './log.js';
 import { resolvePriceTaxFlags } from './inline-price.js';
 
 import { applyPlanType } from './wcs.js';
+import { injectJsonLd } from './json-ld.js';
 export {
     CheckoutWorkflow,
     CheckoutWorkflowStep,
     Defaults,
     Log,
     applyPlanType,
+    injectJsonLd,
     resolvePriceTaxFlags,
 };

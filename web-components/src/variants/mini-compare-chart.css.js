@@ -233,6 +233,19 @@ export const CSS = `
     height: var(--consonant-merch-card-mini-compare-chart-icon-size);
   }
 
+  merch-card[variant="mini-compare-chart"]
+      merch-whats-included:not(
+          :has(
+              merch-mnemonic-list [slot="icon"] .sp-icon,
+              merch-mnemonic-list [slot="icon"] img[src]:not([src=""]),
+              merch-mnemonic-list [slot="icon"] merch-icon[src]:not([src=""])
+          )
+      )
+      merch-mnemonic-list:not([data-placeholder])
+      [slot="icon"] {
+      display: none;
+  }
+
   merch-card[variant="mini-compare-chart"] merch-mnemonic-list [slot="icon"] img {
     max-width: initial;
     width: var(--consonant-merch-card-mini-compare-chart-icon-size);
@@ -300,7 +313,10 @@ export const CSS = `
   merch-card[variant="mini-compare-chart"] merch-mnemonic-list {
     width: 100%;
     margin-inline: 0;
-    border-top: 1px solid var(--consonant-merch-card-mini-compare-border-color);
+    border-top: 1px solid var(
+        --consonant-merch-card-whats-included-divider-color,
+        var(--consonant-merch-card-mini-compare-border-color)
+    );
     display: flex;
     gap: var(--consonant-merch-spacing-xs);
     justify-content: start;
@@ -505,6 +521,7 @@ merch-card[variant="mini-compare-chart"].bullet-list [slot="body-m"] p:has(+ p) 
   margin-bottom: 8px;
 }
 
+merch-card[variant="mini-compare-chart"] [slot="footer-rows"] a.spectrum-Link.spectrum-Link--secondary,
 merch-card[variant="mini-compare-chart"] [slot="body-m"] a.spectrum-Link.spectrum-Link--secondary {
   color: inherit;
 }

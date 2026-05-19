@@ -47,12 +47,14 @@ export class MasCommerceService extends HTMLElement {
             masIOUrl: this.getAttribute('mas-io-url'),
         };
         //root parameters
-        ['locale', 'country', 'language', 'preview'].forEach((attribute) => {
-            const value = this.getAttribute(attribute);
-            if (value) {
-                config[attribute] = value;
-            }
-        });
+        ['locale', 'country', 'language', 'preview', 'instant'].forEach(
+            (attribute) => {
+                const value = this.getAttribute(attribute);
+                if (value) {
+                    config[attribute] = value;
+                }
+            },
+        );
         //commerce parameters
         [
             'checkout-workflow-step',
@@ -184,6 +186,14 @@ export class MasCommerceService extends HTMLElement {
         /* c8 ignore next 3 */
         this.flushWcsCacheInternal();
         this.log.debug('Flushed WCS cache');
+    }
+
+    isPreview() {
+        const previewAttribute = this.getAttribute('preview');
+        return (
+            previewAttribute != null &&
+            ['true', 'on', true].includes(previewAttribute)
+        );
     }
 
     refreshOffers() {

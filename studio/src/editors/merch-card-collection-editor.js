@@ -9,7 +9,8 @@ import router from '../router.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import generateFragmentStore from '../reactivity/source-fragment-store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { showToast } from '../utils.js';
+import { parseStudioDeepLinksFromText, showToast } from '../utils.js';
+import { applyCorrectorToFragment } from '../utils/corrector-helper.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 
 const CARDS_SECTION = 'cards-section';
@@ -20,8 +21,12 @@ class MerchCardCollectionEditor extends LitElement {
             draggingFieldName: { type: String, state: true },
             draggingIndex: { type: Number, state: true },
             fragmentStore: { type: Object, attribute: false },
+            localeDefaultFragment: { type: Object, attribute: false },
+            isVariation: { type: Boolean },
             updateFragment: { type: Function },
             hideCards: { type: Boolean, state: true },
+            collectionPasteLinksInput: { type: String, state: true },
+            collectionPasteLinksItems: { type: Array, state: true },
         };
     }
 
@@ -35,6 +40,8 @@ class MerchCardCollectionEditor extends LitElement {
         super();
         this.draggingIndex = -1;
         this.hideCards = false;
+        this.collectionPasteLinksInput = '';
+        this.collectionPasteLinksItems = [];
     }
 
     connectedCallback() {
@@ -64,8 +71,13 @@ class MerchCardCollectionEditor extends LitElement {
         this.removeEventListener('drop', this.handleDrop);
     }
 
+    /** @returns {import('../mas-repository.js').MasRepository | null} */
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
     update(changedProperties) {
-        if (changedProperties.has('fragmentStore')) {
+        if (changedProperties.has('fragmentStore') || changedProperties.has('localeDefaultFragment')) {
             this.initFragmentReferencesMap();
         }
         super.update(changedProperties);
@@ -75,21 +87,28 @@ class MerchCardCollectionEditor extends LitElement {
         if (!this.fragmentStore) return;
 
         this.#fragmentReferencesMap.clear();
-        const references = this.fragment?.references || [];
+        const ownReferences = this.fragment?.references || [];
+        // In variation context, also load parent references so inherited cards/categories can be displayed
+        const parentReferences = this.localeDefaultFragment?.references || [];
+        const allReferences = [...ownReferences];
+        for (const ref of parentReferences) {
+            if (!allReferences.find((r) => r.id === ref.id)) allReferences.push(ref);
+        }
 
         const previewStores = [];
-        for (const ref of references) {
+        for (const ref of allReferences) {
             let fragmentStore = Store.fragments.list.data.get().find((store) => store.value.id === ref.id);
 
             if (!fragmentStore) {
-                const fragment = await getFromFragmentCache(ref.id);
+                // Use hydrated ref data first (from ?references=direct-hydrated); fall back to aem-fragment cache
+                const fragment = ref.fields ? ref : await getFromFragmentCache(ref.id);
                 if (!fragment) continue;
                 fragmentStore = generateFragmentStore(fragment);
                 previewStores.push(fragmentStore.previewStore);
             }
             this.#fragmentReferencesMap.set(ref.path, fragmentStore);
         }
-        this.reactiveController = new ReactiveController(this, previewStores);
+        this.reactiveController = new ReactiveController(this, [this.fragmentStore, ...previewStores]);
 
         this.requestUpdate();
 
@@ -117,61 +136,162 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     get queryLabel() {
-        return this.#getFieldValue('queryLabel');
+        return this.fragment?.getEffectiveFieldValue('queryLabel', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get label() {
-        return this.#getFieldValue('label');
+        return this.fragment?.getEffectiveFieldValue('label', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get navigationLabel() {
-        return this.#getFieldValue('navigationLabel');
+        return this.fragment?.getEffectiveFieldValue('navigationLabel', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get icon() {
-        return this.#getFieldValue('icon');
+        return this.fragment?.getEffectiveFieldValue('icon', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get iconLight() {
-        return this.#getFieldValue('iconLight');
+        return this.fragment?.getEffectiveFieldValue('iconLight', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get fragment() {
         return this.fragmentStore?.get();
     }
 
+    get isGroupedVariation() {
+        return Fragment.isGroupedVariationPath(this.fragment?.path);
+    }
+
+    get pznTagsValue() {
+        return this.fragment?.getFieldValues('pznTags').join(',') ?? '';
+    }
+
     get searchText() {
-        return this.#getFieldValue('searchText');
+        return this.fragment?.getEffectiveFieldValue('searchText', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get tagFiltersTitle() {
-        return this.#getFieldValue('tagFiltersTitle');
+        return this.fragment?.getEffectiveFieldValue('tagFiltersTitle', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get tagFilters() {
-        return this.#getFieldValues('tagFilters')
-            .map((tag) => tag)
-            .join(',');
+        return (this.fragment?.getEffectiveFieldValues('tagFilters', this.localeDefaultFragment, this.isVariation) ?? []).join(
+            ',',
+        );
     }
 
     get linksTitle() {
-        return this.#getFieldValue('linksTitle');
+        return this.fragment?.getEffectiveFieldValue('linksTitle', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get link() {
-        return this.#getFieldValue('link');
+        return this.fragment?.getEffectiveFieldValue('link', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get linkIcon() {
-        return this.#getFieldValue('linkIcon');
+        return this.fragment?.getEffectiveFieldValue('linkIcon', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     get linkText() {
-        return this.#getFieldValue('linkText');
+        return this.fragment?.getEffectiveFieldValue('linkText', this.localeDefaultFragment, this.isVariation) ?? '';
     }
 
     #getField(fieldName) {
         return this.fragment?.fields?.find((field) => field.name === fieldName);
+    }
+
+    #getFieldState(fieldName) {
+        return this.fragment?.getFieldState(fieldName, this.localeDefaultFragment, this.isVariation);
+    }
+
+    /** Only shows restore indicator (sp-icon-unlink) when the field is overridden — same as card editor. */
+    #renderTextFieldStatusIndicator(fieldName) {
+        if (!this.isVariation || !this.localeDefaultFragment) return nothing;
+        if (this.#getFieldState(fieldName) !== 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.#resetTextFieldToParent(fieldName));
+    }
+
+    #resetTextFieldToParent(fieldName) {
+        const parentValues = this.localeDefaultFragment?.fields?.find((f) => f.name === fieldName)?.values || [];
+        const success = this.fragmentStore.resetFieldToParent(fieldName, parentValues);
+        if (success) showToast('Field restored to parent value', 'positive');
+    }
+
+    #renderOverrideIndicatorLink(resetCallback) {
+        return html`
+            <div class="field-status-indicator">
+                <sp-icon-unlink
+                    class="field-status-icon field-status-inherited-link"
+                    @click=${(event) => {
+                        event.preventDefault();
+                        resetCallback();
+                    }}
+                ></sp-icon-unlink>
+                <a
+                    href="#"
+                    class="field-status-restore-link"
+                    @click=${(event) => {
+                        event.preventDefault();
+                        resetCallback();
+                    }}
+                    >Click to restore.</a
+                >
+            </div>
+        `;
+    }
+
+    #renderInheritedIndicatorLink(overrideCallback) {
+        return html`
+            <div class="field-status-indicator">
+                <sp-icon-link class="field-status-icon field-status-inherited-link"></sp-icon-link>
+                <a
+                    href="#"
+                    class="field-status-restore-link"
+                    @click=${(event) => {
+                        event.preventDefault();
+                        overrideCallback();
+                    }}
+                    >Click to override.</a
+                >
+            </div>
+        `;
+    }
+
+    #renderFieldStatusIndicator(fieldName, overrideCallback, resetCallback) {
+        if (!this.isVariation || !this.localeDefaultFragment) return nothing;
+        const state = this.#getFieldState(fieldName);
+        if (state === 'inherited') return this.#renderInheritedIndicatorLink(overrideCallback);
+        if (state === 'overridden' || state === 'same-as-parent') return this.#renderOverrideIndicatorLink(resetCallback);
+        return nothing;
+    }
+
+    #overrideField(fieldName) {
+        const parentField = this.localeDefaultFragment?.fields?.find((f) => f.name === fieldName);
+        const parentValues = parentField?.values || [];
+        if (!parentValues.length) return;
+
+        // Cannot go through updateField/updateFragment because Fragment.updateField
+        // auto-resets to inherited when values exactly match the parent's.
+        // Directly mutate fields and notify the store.
+        const fragment = this.fragmentStore.get();
+        const existingField = fragment.fields?.find((f) => f.name === fieldName);
+        if (existingField) {
+            existingField.values = [...parentValues];
+        } else {
+            const newField = { name: fieldName, type: parentField?.type || 'text', values: [...parentValues] };
+            if (parentField?.multiple) newField.multiple = true;
+            fragment.fields.push(newField);
+        }
+        fragment.hasChanges = true;
+        this.fragmentStore.notify();
+        this.requestUpdate();
+        showToast(`${fieldName} overridden`, 'positive');
+    }
+
+    #resetField(fieldName) {
+        this.#updateFieldValues(fieldName, []);
+        showToast(`${fieldName} restored to parent`, 'positive');
     }
 
     get defaultChild() {
@@ -202,7 +322,14 @@ class MerchCardCollectionEditor extends LitElement {
     get #cardsHeader() {
         return html`
             <div class="section-header">
-                <h2>Cards</h2>
+                <div class="section-title">
+                    <h2>Cards</h2>
+                    ${this.#renderFieldStatusIndicator(
+                        'cards',
+                        () => this.#overrideField('cards'),
+                        () => this.#resetField('cards'),
+                    )}
+                </div>
                 <div class="hide-cards-control">
                     <sp-field-label for="hide-cards">hide</sp-field-label>
                     <sp-switch id="hide-cards" .selected=${this.hideCards} @change=${this.handleHideCardsChange}></sp-switch>
@@ -214,16 +341,171 @@ class MerchCardCollectionEditor extends LitElement {
     get #cards() {
         if (!this.fragment) return nothing;
 
-        const cardsField = this.#getField('cards');
-        const hasCards = cardsField?.values?.length > 0;
+        const cardsValues = this.fragment.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation);
+        const hasCards = cardsValues.length > 0;
+        const inherited = this.#getFieldState('cards') === 'inherited';
 
         // Always show cards section to allow drops
         return html`
             ${this.#cardsHeader}
             <div class="cards-container ${this.hideCards ? 'hidden' : ''}">
-                ${hasCards ? this.getItems(cardsField) : html`<div class="empty-cards-placeholder"></div>`}
+                ${hasCards
+                    ? this.getItems({ values: cardsValues }, inherited)
+                    : html`<div class="empty-cards-placeholder"></div>`}
+            </div>
+            ${this.#collectionPasteLinksSection}
+        `;
+    }
+
+    #getCardsPasteLinksLines() {
+        return this.collectionPasteLinksItems.filter((line) => line.trim().length > 0);
+    }
+
+    #removeCardsPasteLinkLine(line) {
+        this.collectionPasteLinksItems = this.collectionPasteLinksItems.filter((l) => l !== line);
+        this.requestUpdate();
+    }
+
+    /** Pasted clipboard lines are merged into the URL list; editing/deleting the textarea does not remove list rows. */
+    #handleCardsPasteLinksPaste(e) {
+        const clip = e.clipboardData?.getData('text/plain') ?? '';
+        const lines = clip
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean);
+        if (!lines.length) return;
+
+        const seen = new Set(this.collectionPasteLinksItems);
+        const merged = [...this.collectionPasteLinksItems];
+        for (const line of lines) {
+            if (!seen.has(line)) {
+                seen.add(line);
+                merged.push(line);
+            }
+        }
+        if (merged.length !== this.collectionPasteLinksItems.length) {
+            this.collectionPasteLinksItems = merged;
+            this.requestUpdate();
+        }
+    }
+
+    get #collectionPasteLinksSection() {
+        const lines = this.#getCardsPasteLinksLines();
+        return html`
+            <div class="collection-paste-links">
+                <sp-field-label for="collection-paste-collection-links">Paste collection links:</sp-field-label>
+                ${lines.length
+                    ? html`<div class="collection-paste-url-panel" role="list">
+                          <div class="collection-paste-url-header" role="presentation">
+                              <span class="collection-paste-url-col-url">URL</span>
+                              <span class="collection-paste-url-col-action"></span>
+                          </div>
+                          ${repeat(
+                              lines,
+                              (line) => line,
+                              (line) => html`
+                                  <div class="collection-paste-url-row" role="listitem">
+                                      <div class="collection-paste-url-text" title=${line}>${line}</div>
+                                      <sp-action-button
+                                          quiet
+                                          size="s"
+                                          label="Remove link"
+                                          @click=${() => this.#removeCardsPasteLinkLine(line)}
+                                      >
+                                          <sp-icon-delete slot="icon"></sp-icon-delete>
+                                      </sp-action-button>
+                                  </div>
+                              `,
+                          )}
+                      </div>`
+                    : nothing}
+                <sp-field-label for="collection-paste-links">Enter URLs</sp-field-label>
+                <sp-textfield
+                    id="collection-paste-links"
+                    multiline
+                    grows
+                    .value=${this.collectionPasteLinksInput}
+                    @input=${(e) => {
+                        this.collectionPasteLinksInput = e.target.value;
+                    }}
+                    @paste=${this.#handleCardsPasteLinksPaste}
+                ></sp-textfield>
+                <sp-button variant="secondary" @click=${this.handleAddCardsPasteLinks}>Add from links</sp-button>
             </div>
         `;
+    }
+
+    handleAddCardsPasteLinks = async () => {
+        if (!this.fragment) return;
+        const text =
+            this.collectionPasteLinksItems.length > 0
+                ? this.collectionPasteLinksItems.join('\n')
+                : (this.collectionPasteLinksInput ?? '').trim();
+        if (!text) {
+            showToast('Paste cards links.', 'negative');
+            return;
+        }
+        await this.#applyCollectionLinksFromText(text);
+    };
+
+    /** @param {string} text */
+    async #applyCollectionLinksFromText(text) {
+        const repo = this.repository;
+        if (!repo?.aem?.sites?.cf?.fragments?.getById) {
+            showToast('Repository not available', 'negative');
+            return;
+        }
+
+        const entries = parseStudioDeepLinksFromText(text);
+        if (!entries.length) {
+            showToast('No valid paste links found', 'negative');
+            return;
+        }
+
+        const surface =
+            Store.surface()?.split?.('/')?.filter(Boolean)?.[0]?.toLowerCase() || String(Store.surface() || '').toLowerCase();
+
+        let added = 0;
+        let skipped = 0;
+
+        for (const { contentType, fragmentId } of entries) {
+            const targetField =
+                contentType === 'merch-card' ? 'cards' : contentType === 'merch-card-collection' ? 'collections' : null;
+            if (!targetField) {
+                skipped++;
+                continue;
+            }
+            try {
+                const raw = await repo.aem.sites.cf.fragments.getById(fragmentId);
+                if (!raw?.path || !raw.model?.path) {
+                    skipped++;
+                    continue;
+                }
+                applyCorrectorToFragment(raw, surface);
+                const expectedModel = contentType === 'merch-card' ? CARD_MODEL_PATH : COLLECTION_MODEL_PATH;
+                if (raw.model.path !== expectedModel) {
+                    skipped++;
+                    continue;
+                }
+                if (this.isFragmentAlreadyInCollection(raw.path)) {
+                    skipped++;
+                    continue;
+                }
+                this.#handleExternalDrop(raw, targetField, -1, { target: this });
+                added++;
+            } catch {
+                skipped++;
+            }
+        }
+
+        if (added > 0) {
+            this.collectionPasteLinksInput = '';
+            this.collectionPasteLinksItems = [];
+            showToast(`Added ${added} item(s)${skipped ? `, skipped ${skipped}` : ''}`, 'positive');
+        } else {
+            showToast(skipped ? `Could not add items (${skipped} skipped)` : 'Nothing to add', 'negative');
+        }
+        this.requestUpdate();
     }
 
     get #defaultCardDropZone() {
@@ -290,15 +572,31 @@ class MerchCardCollectionEditor extends LitElement {
     get #collections() {
         if (!this.fragment) return nothing;
 
-        const collectionsField = this.#getField('collections');
-        if (!collectionsField?.values?.length) return nothing;
+        const collectionsValues = this.fragment.getEffectiveFieldValues(
+            'collections',
+            this.localeDefaultFragment,
+            this.isVariation,
+        );
+        const hasCollections = collectionsValues.length > 0;
+        const inherited = this.#getFieldState('collections') === 'inherited';
 
         return html`
             <div data-field-name="collections">
                 <div class="section-header">
-                    <h2>Categories</h2>
+                    <div class="section-title">
+                        <h2>Categories</h2>
+                        ${this.#renderFieldStatusIndicator(
+                            'collections',
+                            () => this.#overrideField('collections'),
+                            () => this.#resetField('collections'),
+                        )}
+                    </div>
                 </div>
-                ${this.getItems(collectionsField)}
+                <div class="collections-container">
+                    ${hasCollections
+                        ? this.getItems({ values: collectionsValues }, inherited)
+                        : html`<div class="empty-cards-placeholder"></div>`}
+                </div>
             </div>
         `;
     }
@@ -382,12 +680,12 @@ class MerchCardCollectionEditor extends LitElement {
         }
     }
 
-    getItems(field) {
+    getItems(field, inherited = false) {
         return html`
             <div
-                class="items-container"
-                @dragover="${(e) => this.#handleItemsContainerDragOver(e, field)}"
-                @drop="${(e) => this.#handleItemsContainerDrop(e, field)}"
+                class="items-container ${inherited ? 'inherited' : ''}"
+                @dragover="${(e) => !inherited && this.#handleItemsContainerDragOver(e, field)}"
+                @drop="${(e) => !inherited && this.#handleItemsContainerDrop(e, field)}"
             >
                 ${repeat(
                     field.values,
@@ -408,12 +706,12 @@ class MerchCardCollectionEditor extends LitElement {
                         return html`
                             <div
                                 class="item-wrapper ${isDefaultCard ? 'is-default-card' : ''}"
-                                draggable="true"
-                                @dragstart="${(e) => this.#dragStart(e, index, fragment.model)}"
-                                @dragover="${(e) => this.#dragOver(e, index, fragment.model)}"
-                                @dragleave="${this.#dragLeave}"
-                                @drop="${(e) => this.#drop(e, index, fragment.model)}"
-                                @dragend="${this.#dragEnd}"
+                                draggable="${!inherited}"
+                                @dragstart="${(e) => !inherited && this.#dragStart(e, index, fragment.model)}"
+                                @dragover="${(e) => !inherited && this.#dragOver(e, index, fragment.model)}"
+                                @dragleave="${!inherited ? this.#dragLeave : nothing}"
+                                @drop="${(e) => !inherited && this.#drop(e, index, fragment.model)}"
+                                @dragend="${!inherited ? this.#dragEnd : nothing}"
                             >
                                 <div class="item-content">
                                     ${isDefaultCard
@@ -431,7 +729,7 @@ class MerchCardCollectionEditor extends LitElement {
                                           `
                                         : nothing}
                                 </div>
-                                ${this.#buildItemActions(fragment)}
+                                ${inherited ? nothing : this.#buildItemActions(fragment)}
                             </div>
                         `;
                     },
@@ -544,10 +842,14 @@ class MerchCardCollectionEditor extends LitElement {
     isFragmentAlreadyInCollection(fragmentPath) {
         if (!this.fragment || !fragmentPath) return false;
 
-        const cardsField = this.#getField('cards');
-        const collectionsField = this.#getField('collections');
+        const cardPaths = this.fragment.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation);
+        const collectionPaths = this.fragment.getEffectiveFieldValues(
+            'collections',
+            this.localeDefaultFragment,
+            this.isVariation,
+        );
 
-        return [...(cardsField?.values || []), ...(collectionsField?.values || [])].includes(fragmentPath);
+        return [...cardPaths, ...collectionPaths].includes(fragmentPath);
     }
 
     handleDropOperation(event, targetFieldName = null, targetIndex = -1, isInternalDrop = false) {
@@ -635,13 +937,8 @@ class MerchCardCollectionEditor extends LitElement {
             }
         }
 
-        const field = this.#getField(fieldName);
-        if (!field) {
-            return;
-        }
-
-        // Add item to values
-        const newValues = [...(field.values || [])];
+        // Add item to values (field may not exist yet if this is the first item)
+        const newValues = [...this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.isVariation)];
 
         if (targetIndex !== -1) {
             newValues.splice(targetIndex, 0, fragmentData.path);
@@ -800,10 +1097,8 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     #isCardInCollection(fragmentId) {
-        const cardsField = this.#getField('cards');
-        if (!cardsField?.values) return false;
-
-        return cardsField.values.some((cardPath) => {
+        const cardPaths = this.fragment.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation);
+        return cardPaths.some((cardPath) => {
             const cardStore = this.#fragmentReferencesMap.get(cardPath);
             return cardStore?.get()?.id === fragmentId;
         });
@@ -828,6 +1123,34 @@ class MerchCardCollectionEditor extends LitElement {
         const value = e.target.getAttribute('value');
         const newTags = value ? value.split(',') : []; // do not overwrite the tags array
         this.fragmentStore.updateField('tagFilters', newTags);
+    }
+
+    #handlePznTagsChange(e) {
+        if (Store.showCloneDialog.get()) return;
+        const value = e.target.getAttribute('value');
+        const newTags = value ? value.split(',') : [];
+        this.fragmentStore.updateField('pznTags', newTags);
+    }
+
+    get groupedVariationTagsTemplate() {
+        if (!this.isGroupedVariation) return nothing;
+        return html`
+            <div class="form-row">
+                <sp-field-group id="grouped-variation-tags">
+                    <sp-field-label>Grouped variation tags</sp-field-label>
+                    <aem-tag-picker-field
+                        selection="checkbox-tags"
+                        display-value
+                        label="Locale tags"
+                        namespace="/content/cq:tags/mas"
+                        top="locale,pzn"
+                        multiple
+                        value="${this.pznTagsValue}"
+                        @change=${this.#handlePznTagsChange}
+                    ></aem-tag-picker-field>
+                </sp-field-group>
+            </div>
+        `;
     }
 
     #updateIcon(event, fieldName) {
@@ -976,26 +1299,32 @@ class MerchCardCollectionEditor extends LitElement {
             <div class="form-container">
                 <div class="form-row">
                     <sp-field-label for="queryLabel">Query label</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('queryLabel')}
                     <sp-textfield
                         id="queryLabel"
                         data-field="queryLabel"
+                        data-field-state="${this.#getFieldState('queryLabel')}"
                         .value=${this.queryLabel}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
                     <sp-field-label for="label">label</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('label')}
                     <sp-textfield
                         id="label"
                         data-field="label"
+                        data-field-state="${this.#getFieldState('label')}"
                         .value=${this.label}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
                     <sp-field-label for="icon">Default icon (dark, mandatory if you need icon)</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('icon')}
                     <mas-mnemonic-field
                         id="icon"
+                        data-field-state="${this.#getFieldState('icon')}"
                         .iconLibrary="${true}"
                         .icon="${this.icon}"
                         .variant="${VARIANT_NAMES.PLANS}"
@@ -1004,8 +1333,10 @@ class MerchCardCollectionEditor extends LitElement {
                 </div>
                 <div class="form-row">
                     <sp-field-label for="icon">Selected Icon (light, optional)</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('iconLight')}
                     <mas-mnemonic-field
                         id="iconLight"
+                        data-field-state="${this.#getFieldState('iconLight')}"
                         .iconLibrary="${true}"
                         .icon="${this.iconLight}"
                         .variant="${VARIANT_NAMES.PLANS}"
@@ -1022,60 +1353,80 @@ class MerchCardCollectionEditor extends LitElement {
             <div class="form-container">
                 <div class="form-row">
                     <sp-field-label for="searchText">Search Text</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('searchText')}
                     <sp-textfield
                         id="searchText"
                         data-field="searchText"
+                        data-field-state="${this.#getFieldState('searchText')}"
                         .value=${this.searchText}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
                     <sp-field-label for="tagFiltersTitle">Tag Filters Title</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('tagFiltersTitle')}
                     <sp-textfield
                         id="tagFiltersTitle"
                         data-field="tagFiltersTitle"
+                        data-field-state="${this.#getFieldState('tagFiltersTitle')}"
                         .value=${this.tagFiltersTitle}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
                     <sp-field-label for="tagFilters">Tag Filters</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('tagFilters')}
                     <aem-tag-picker-field
                         label="Tag Filters"
                         id="tagFilters"
+                        data-field-state="${this.#getFieldState('tagFilters')}"
                         namespace="/content/cq:tags/mas"
                         multiple
                         value="${this.tagFilters}"
                         @change=${this.#handleTagFilterChange}
                     ></aem-tag-picker-field>
                 </div>
+                ${this.groupedVariationTagsTemplate}
                 <div class="form-row">
                     <sp-field-label for="linksTitle">Links Title</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('linksTitle')}
                     <sp-textfield
                         id="linksTitle"
                         data-field="linksTitle"
+                        data-field-state="${this.#getFieldState('linksTitle')}"
                         .value=${this.linksTitle}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
                     <sp-field-label for="link">Link</sp-field-label>
-                    <sp-textfield id="link" data-field="link" .value=${this.link} @input=${this.updateFragment}></sp-textfield>
+                    ${this.#renderTextFieldStatusIndicator('link')}
+                    <sp-textfield
+                        id="link"
+                        data-field="link"
+                        data-field-state="${this.#getFieldState('link')}"
+                        .value=${this.link}
+                        @input=${this.updateFragment}
+                    ></sp-textfield>
                 </div>
                 <div class="form-row">
                     <sp-field-label for="linkIcon">Link Icon</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('linkIcon')}
                     <sp-textfield
                         id="linkIcon"
                         data-field="linkIcon"
+                        data-field-state="${this.#getFieldState('linkIcon')}"
                         .value=${this.linkIcon}
                         @input=${this.updateFragment}
                     ></sp-textfield>
                 </div>
                 <div class="form-row">
                     <sp-field-label for="linkText">Link Text</sp-field-label>
+                    ${this.#renderTextFieldStatusIndicator('linkText')}
                     <sp-textfield
                         id="linkText"
                         data-field="linkText"
+                        data-field-state="${this.#getFieldState('linkText')}"
                         .value=${this.linkText}
                         @input=${this.updateFragment}
                     ></sp-textfield>
@@ -1085,8 +1436,8 @@ class MerchCardCollectionEditor extends LitElement {
     }
 
     render() {
-        const cardsField = this.#getField('cards');
-        const hasCards = cardsField?.values?.length > 0;
+        const hasCards =
+            (this.fragment?.getEffectiveFieldValues('cards', this.localeDefaultFragment, this.isVariation) ?? []).length > 0;
         const supportsDefault = this.#supportsDefaultCard;
 
         return html`<div class="editor-container">

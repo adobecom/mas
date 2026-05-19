@@ -116,4 +116,31 @@ export const styles = `
     color: var(--spectrum-gray-500);
     font-style: italic;
 }
+
+.duplicate-action {
+    display: flex;
+    align-items: flex-end;
+    margin-left: auto;
+}
+
+mas-fragment-variations sp-underlay + sp-dialog {
+    position: fixed;
+    border-radius: 16px;
+    z-index: 1000;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 480px;
+    background: var(--spectrum-white);
+}
+
+#duplicate-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#duplicate-fields aem-tag-picker-field {
+    width: 100%;
+}
 `;

@@ -46,6 +46,16 @@ export const styles = css`
             &:hover {
                 color: var(--spectrum-gray-800);
             }
+
+            &.bar {
+                width: 2px;
+                height: 20px;
+                padding: 0;
+                margin-right: 12px;
+                margin-left: 4px;
+                background-color: var(--spectrum-gray-300, #dadada);
+                border-right: none;
+            }
         }
 
         .actions {
@@ -64,11 +74,13 @@ export const styles = css`
             }
 
             .delete-action:not([disabled]) {
-                sp-icon-delete {
+                sp-icon-delete,
+                sp-icon {
                     color: var(--spectrum-negative-color-900, #d31510);
                 }
 
-                &:hover sp-icon-delete {
+                &:hover sp-icon-delete,
+                &:hover sp-icon {
                     color: var(--spectrum-negative-color-1000, #b40000);
                 }
             }

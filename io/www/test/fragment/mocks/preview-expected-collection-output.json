@@ -343,6 +343,11 @@
                     ]
                 }
             ]
+        },
+        {
+            "fieldName": "collections",
+            "identifier": "/content/dam/mas/sandbox/en_US/individual-plans-cloud",
+            "referencesTree": []
         }
     ],
     "priceLiterals": {},

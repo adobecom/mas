@@ -63,6 +63,9 @@ export const PLANS_STUDENTS_AEM_FRAGMENT_MAPPING = {
 };
 
 export class Plans extends VariantLayout {
+    #syncObserver;
+    #resizeFrame;
+
     constructor(card) {
         super(card);
         this.adaptForMedia = this.adaptForMedia.bind(this);
@@ -173,6 +176,35 @@ export class Plans extends VariantLayout {
         }
     }
 
+    syncHeights() {
+        if (this.card.getBoundingClientRect().width <= 2) {
+            if (!this.#syncObserver) {
+                this.#syncObserver = new ResizeObserver(() => {
+                    if (this.card.getBoundingClientRect().width > 2) {
+                        this.#syncObserver?.disconnect();
+                        this.#syncObserver = null;
+                        this.syncHeights();
+                    }
+                });
+                this.#syncObserver.observe(this.card);
+            }
+            return;
+        }
+        const slots = [
+            'heading-xs',
+            'subtitle',
+            'heading-m',
+            'promo-text',
+            'body-xs',
+        ];
+        this.syncRowHeights(
+            slots.map((slot) => ({
+                name: slot,
+                getElement: (card) => card.querySelector(`[slot="${slot}"]`),
+            })),
+        );
+    }
+
     async adjustEduLists() {
         if (this.card.variant !== 'plans-education') return;
         const existingSpacer = this.card.querySelector('.spacer');
@@ -231,6 +263,11 @@ export class Plans extends VariantLayout {
             await this.adjustLegal();
             await this.adjustEduLists();
         }
+        if (window.matchMedia('(min-width: 768px)').matches) {
+            requestAnimationFrame(() => {
+                this.syncHeights();
+            });
+        }
     }
 
     get headingM() {
@@ -238,7 +275,7 @@ export class Plans extends VariantLayout {
     }
 
     get mainPrice() {
-        const price = this.headingM.querySelector(
+        const price = this.headingM?.querySelector(
             `${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
         );
         return price;
@@ -316,6 +353,16 @@ export class Plans extends VariantLayout {
     connectedCallbackHook() {
         Media.matchMobile.addEventListener('change', this.adaptForMedia);
         Media.matchDesktopOrUp.addEventListener('change', this.adaptForMedia);
+        this.handleResize = () => {
+            if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = requestAnimationFrame(() => {
+                this.#resizeFrame = null;
+                if (window.matchMedia('(min-width: 768px)').matches) {
+                    this.syncHeights();
+                }
+            });
+        };
+        window.addEventListener('resize', this.handleResize);
     }
 
     disconnectedCallbackHook() {
@@ -324,6 +371,16 @@ export class Plans extends VariantLayout {
             'change',
             this.adaptForMedia,
         );
+        this.#syncObserver?.disconnect();
+        this.#syncObserver = null;
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize);
+            this.handleResize = null;
+        }
+        if (this.#resizeFrame) {
+            cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = null;
+        }
     }
 
     renderLayout() {

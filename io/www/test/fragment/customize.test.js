@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
+import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
 
@@ -24,21 +25,13 @@ let fetchStub;
 
 function mockFrenchFragment() {
     fetchStub
-        .withArgs('https://odin.adobe.com/adobe/sites/fragments/some-fr-fr-fragment?references=all-hydrated')
+        .withArgs('https://odin.adobe.com/adobe/contentFragments/some-fr-fr-fragment?references=all-hydrated')
         .returns(createResponse(200, FRAGMENT_RESPONSE_FR));
     fetchStub
-        .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app')
-        .returns(
-            createResponse(200, {
-                items: [
-                    {
-                        path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
-                        id: 'some-fr-fr-fragment',
-                        some: 'corps',
-                    },
-                ],
-            }),
-        );
+        .withArgs(
+            'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+        )
+        .returns(createResponse(200, { id: 'some-fr-fr-fragment' }));
 }
 
 describe('customize collections', function () {
@@ -151,22 +144,26 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/intro',
+                        path: '/content/dam/mas/sandbox/en_KW/PA-123/pzn/intro',
                         id: pznVariationId,
                         title: 'Intro pricing',
                         fields: {
-                            pznTags: ['en_KW'],
+                            pznTags: ['/content/cq:tags/mas/locale/en_KW'],
                             badge: 'Kuwait PZN badge',
                         },
                     },
                 },
                 [pznOtherVariationId]: {
-                    path: '/content/dam/mas/pzn/sandbox/pznTest',
+                    path: '/content/dam/mas/sandbox/en_KW/PA-123/pzn/pzn-test',
                     id: pznOtherVariationId,
                     title: 'test variation',
                     description: 'has en_KW too, but appears second in the list',
                     fields: {
-                        pznTags: ['en_US', 'en_CA', 'en_KW'],
+                        pznTags: [
+                            '/content/cq:tags/mas/locale/en_US',
+                            '/content/cq:tags/mas/locale/en_CA',
+                            '/content/cq:tags/mas/locale/en_KW',
+                        ],
                         badge: 'TEST badge',
                     },
                 },
@@ -200,7 +197,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/country',
+                        path: '/content/dam/mas/sandbox/en_KW/PA-123/pzn/country',
                         id: pznVariationId,
                         title: 'Country targeting',
                         fields: {
@@ -226,6 +223,46 @@ describe('customize collections', function () {
         expect(result.body.fields.badge).to.equal('Kuwait country PZN');
     });
 
+    it('should merge personalization using country implied by locale when country param is absent', async function () {
+        const pznVariationId = 'pzn-var-br-locale-implied';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/express/pt_BR/pzn-test-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/express/pt_BR/PA-484/pzn/individual-edu-country-br',
+                        id: pznVariationId,
+                        title: 'Brazil country targeting',
+                        fields: {
+                            pznTags: ['experience-fragments:mas/express/pzn/country/br'],
+                            badge: 'Brazil country PZN',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            surface: 'express',
+            fragmentPath: 'pzn-test-fragment',
+            locale: 'pt_BR',
+            parsedLocale: 'pt_BR',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.badge).to.equal('Brazil country PZN');
+    });
+
     it('should merge personalization when country is MX and pznTags end with pzn/country/MX', async function () {
         const pznVariationId = 'pzn-var-mx';
         const bodyWithPzn = {
@@ -240,7 +277,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/mx',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/mx',
                         id: pznVariationId,
                         title: 'Mexico country targeting',
                         fields: {
@@ -280,7 +317,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/teams-edu',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/teams-edu',
                         id: pznVariationId,
                         title: 'Teams and EDU',
                         fields: {
@@ -321,7 +358,7 @@ describe('customize collections', function () {
                 [teamsOnlyId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/teams-only',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/teams-only',
                         id: teamsOnlyId,
                         title: 'Teams only',
                         fields: {
@@ -333,7 +370,7 @@ describe('customize collections', function () {
                 [teamsEduId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/teams-edu-combo',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/teams-edu-combo',
                         id: teamsEduId,
                         title: 'Teams and EDU combo',
                         fields: {
@@ -374,7 +411,7 @@ describe('customize collections', function () {
                 [teamsEduOnlyId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/no-country',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/no-country',
                         id: teamsEduOnlyId,
                         title: 'TEAMS+EDU no country tag',
                         fields: {
@@ -386,7 +423,7 @@ describe('customize collections', function () {
                 [teamsEduMxId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/with-mx',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/with-mx',
                         id: teamsEduMxId,
                         title: 'TEAMS+EDU with MX',
                         fields: {
@@ -427,7 +464,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/pzn-slash',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/pzn-slash',
                         id: pznVariationId,
                         title: 'pzn/ token',
                         fields: {
@@ -468,7 +505,7 @@ describe('customize collections', function () {
                 [oneTokenId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/one',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/one',
                         id: oneTokenId,
                         title: 'One token',
                         fields: {
@@ -480,7 +517,7 @@ describe('customize collections', function () {
                 [twoTokenId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/two',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/two',
                         id: twoTokenId,
                         title: 'Two tokens',
                         fields: {
@@ -520,7 +557,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/token',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/token',
                         id: pznVariationId,
                         title: 'Token targeting',
                         fields: {
@@ -560,7 +597,7 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/numeric',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/numeric',
                         id: pznVariationId,
                         title: 'Numeric pzn',
                         fields: {
@@ -603,7 +640,7 @@ describe('customize collections', function () {
                 [emptyArrayId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/empty-array',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/empty-array',
                         id: emptyArrayId,
                         title: 'Empty pznTags array',
                         fields: {
@@ -615,7 +652,7 @@ describe('customize collections', function () {
                 [invalidArrayId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/invalid',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/invalid',
                         id: invalidArrayId,
                         title: 'Not an array',
                         fields: {
@@ -627,7 +664,7 @@ describe('customize collections', function () {
                 [emptyTagsId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/empty-tags',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/empty-tags',
                         id: emptyTagsId,
                         title: 'Only falsy tag entries',
                         fields: {
@@ -639,11 +676,11 @@ describe('customize collections', function () {
                 [validId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/valid',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/valid',
                         id: validId,
                         title: 'Valid tags',
                         fields: {
-                            pznTags: ['en_US'],
+                            pznTags: ['/content/cq:tags/mas/locale/en_US'],
                             badge: 'Valid PZN badge',
                         },
                     },
@@ -662,6 +699,233 @@ describe('customize collections', function () {
 
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('Valid PZN badge');
+        expect(result.body.id).to.equal('root-fragment');
+        expect(result.body.variationId).to.equal(validId);
+    });
+
+    it('should adapt referencesTree to match merged cards list (drop removed card, reorder)', async function () {
+        // Default fragment has 4 cards in referencesTree but the variation (en_BE) only has 3 cards in a different order
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/coll-adapt-test',
+            id: 'coll-root',
+            title: 'Adapt test collection',
+            fields: {
+                cards: ['card-a', 'card-b', 'card-c', 'card-d'],
+                collections: [],
+                variations: ['coll-root-be'],
+            },
+            references: {
+                'coll-root-be': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_BE/coll-adapt-test',
+                        id: 'coll-root-be',
+                        fields: {
+                            // variation removes card-b and reorders
+                            cards: ['card-c', 'card-a', 'card-d'],
+                            collections: [],
+                        },
+                    },
+                },
+                'card-a': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-a',
+                        id: 'card-a',
+                        fields: { title: 'Card A', variations: [] },
+                    },
+                },
+                'card-b': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-b',
+                        id: 'card-b',
+                        fields: { title: 'Card B', variations: [] },
+                    },
+                },
+                'card-c': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-c',
+                        id: 'card-c',
+                        fields: { title: 'Card C', variations: [] },
+                    },
+                },
+                'card-d': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-d',
+                        id: 'card-d',
+                        fields: { title: 'Card D', variations: [] },
+                    },
+                },
+            },
+            referencesTree: [
+                { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },
+                { fieldName: 'cards', identifier: 'card-b', referencesTree: [] },
+                { fieldName: 'cards', identifier: 'card-c', referencesTree: [] },
+                { fieldName: 'cards', identifier: 'card-d', referencesTree: [] },
+                { fieldName: 'variations', identifier: 'coll-root-be', referencesTree: [] },
+            ],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'coll-adapt-test',
+            locale: 'en_BE',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+
+        // merged fragment cards should follow the variation order
+        expect(result.body.fields.cards).to.deep.equal(['card-c', 'card-a', 'card-d']);
+
+        // referencesTree should reflect the merged cards: card-b removed, order updated
+        const cardEntries = result.body.referencesTree.filter((e) => e.fieldName === 'cards');
+        expect(cardEntries.map((e) => e.identifier)).to.deep.equal(['card-c', 'card-a', 'card-d']);
+    });
+
+    it('should create stub referencesTree entry for a card added by a variation that had no entry in original tree', async function () {
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/coll-new-card-test',
+            id: 'coll-new-card-root',
+            title: 'New card stub test',
+            fields: {
+                cards: ['card-a'],
+                collections: [],
+                variations: ['coll-new-card-be'],
+            },
+            references: {
+                'coll-new-card-be': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_BE/coll-new-card-test',
+                        id: 'coll-new-card-be',
+                        fields: { cards: ['card-a', 'card-new'], collections: [] },
+                    },
+                },
+                'card-a': {
+                    type: 'content-fragment',
+                    value: { path: '/content/dam/mas/sandbox/en_US/card-a', id: 'card-a', fields: { variations: [] } },
+                },
+                'card-new': {
+                    type: 'content-fragment',
+                    value: { path: '/content/dam/mas/sandbox/en_US/card-new', id: 'card-new', fields: { variations: [] } },
+                },
+            },
+            referencesTree: [
+                { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },
+                // card-new has no entry in the original referencesTree
+                { fieldName: 'variations', identifier: 'coll-new-card-be', referencesTree: [] },
+            ],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'coll-new-card-test',
+            locale: 'en_BE',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.cards).to.deep.equal(['card-a', 'card-new']);
+        const cardEntries = result.body.referencesTree.filter((e) => e.fieldName === 'cards');
+        expect(cardEntries.map((e) => e.identifier)).to.deep.equal(['card-a', 'card-new']);
+        // stub entry for card-new should have empty referencesTree
+        expect(cardEntries[1].referencesTree).to.deep.equal([]);
+    });
+
+    it('should propagate adapted referencesTree of a child collection up to the parent', async function () {
+        // Parent collection has no variation. Child subcollection has a pzn variation that swaps the last card.
+        // Without propagation, the parent's referencesTree[subcoll].referencesTree still lists the base cards,
+        // while references[subcoll].value.fields.cards lists the variation cards — causing renderers to mismatch.
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/root-coll',
+            id: 'root-coll',
+            title: 'Root',
+            fields: {
+                cards: [],
+                collections: ['subcoll'],
+                variations: [],
+            },
+            references: {
+                subcoll: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/subcoll',
+                        id: 'subcoll',
+                        fields: {
+                            cards: ['card-a', 'card-base-last'],
+                            collections: [],
+                            variations: ['subcoll-pzn'],
+                        },
+                    },
+                },
+                'subcoll-pzn': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-1/pzn/subcoll-en-us',
+                        id: 'subcoll-pzn',
+                        fields: {
+                            pznTags: ['mas:locale/en_US'],
+                            cards: ['card-a', 'card-pzn-last'],
+                        },
+                    },
+                },
+                'card-a': {
+                    type: 'content-fragment',
+                    value: { path: '/content/dam/mas/sandbox/en_US/card-a', id: 'card-a', fields: { variations: [] } },
+                },
+                'card-base-last': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-base-last',
+                        id: 'card-base-last',
+                        fields: { variations: [] },
+                    },
+                },
+                'card-pzn-last': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/card-pzn-last',
+                        id: 'card-pzn-last',
+                        fields: { variations: [] },
+                    },
+                },
+            },
+            referencesTree: [
+                {
+                    fieldName: 'collections',
+                    identifier: 'subcoll',
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-a', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-base-last', referencesTree: [] },
+                        { fieldName: 'variations', identifier: 'subcoll-pzn', referencesTree: [] },
+                    ],
+                },
+            ],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'root-coll',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+
+        // sanity: subcoll value in references has the pzn cards
+        expect(result.body.references.subcoll.value.fields.cards).to.deep.equal(['card-a', 'card-pzn-last']);
+
+        // the parent's referencesTree[subcoll].referencesTree must reflect the pzn cards, NOT the base ones
+        const subcollEntry = result.body.referencesTree.find((e) => e.identifier === 'subcoll');
+        const subcollCardIds = subcollEntry.referencesTree.filter((e) => e.fieldName === 'cards').map((e) => e.identifier);
+        expect(subcollCardIds).to.deep.equal(['card-a', 'card-pzn-last']);
     });
 
     it('should not merge personalization variation when no pznTags match regionLocale', async function () {
@@ -678,10 +942,13 @@ describe('customize collections', function () {
                 [pznVariationId]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/pzn/sandbox/promo',
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/promo',
                         id: pznVariationId,
                         title: 'PZN Promo',
-                        fields: { pznTags: ['en_AE', 'fr_FR'], badge: 'Other badge' },
+                        fields: {
+                            pznTags: ['/content/cq:tags/mas/locale/en_AE', '/content/cq:tags/mas/locale/fr_FR'],
+                            badge: 'Other badge',
+                        },
                     },
                 },
             },
@@ -691,7 +958,7 @@ describe('customize collections', function () {
         const result = await process({
             ...FAKE_CONTEXT,
             fragmentPath: 'pzn-test-fragment',
-            locale: 'en_KW',
+            locale: 'en_US',
             parsedLocale: 'en_US',
             body: bodyWithPzn,
         });
@@ -699,12 +966,79 @@ describe('customize collections', function () {
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.deep.include({ value: 'default badge', mimeType: 'text/html' });
     });
+
+    it('should NOT apply a pzn variation located under en_US when the fragment is in fr_FR', async function () {
+        const pznVariationId = 'pzn-var-en-us-wrong-locale';
+        const bodyWithPzn = {
+            path: '/content/dam/mas/sandbox/fr_FR/some-fr-fragment',
+            id: 'root-fragment',
+            title: 'Root',
+            fields: {
+                badge: 'default badge',
+                variations: [pznVariationId],
+            },
+            references: {
+                [pznVariationId]: {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/en-us-variant',
+                        id: pznVariationId,
+                        title: 'EN US pzn variant',
+                        fields: {
+                            pznTags: ['/content/cq:tags/mas/locale/en_US'],
+                            badge: 'EN US PZN badge',
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'some-fr-fragment',
+            locale: 'fr_FR',
+            parsedLocale: 'fr_FR',
+            body: bodyWithPzn,
+        });
+
+        expect(result.status).to.equal(200);
+        // pzn variation lives under en_US path, must NOT be applied to a fr_FR fragment
+        expect(result.body.fields.badge).to.equal('default badge');
+    });
 });
 
 async function process(context) {
-    const initContext = { ...context };
-    context.promises = {};
-    context.promises.customize = customize.init(initContext);
+    const phase1 = {
+        status: 200,
+        body: context.body,
+        parsedLocale: context.parsedLocale,
+        surface: context.surface,
+        fragmentPath: context.fragmentPath,
+    };
+    const promises = {
+        fetchFragment: Promise.resolve(phase1),
+    };
+    promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
+    context.promises = promises;
+    return await customize.process(context);
+}
+
+async function processWithPromos(context, activeProject, promoMap) {
+    const phase1 = {
+        status: 200,
+        body: context.body,
+        parsedLocale: context.parsedLocale ?? 'en_US',
+        surface: context.surface ?? 'sandbox',
+        fragmentPath: context.fragmentPath,
+    };
+    const promises = {
+        fetchFragment: Promise.resolve(phase1),
+        promotions: Promise.resolve({ activeProject }),
+    };
+    promises.defaultLanguage = defaultLanguage.init({ ...context, promises });
+    context.promises = promises;
+    if (promoMap) context.promoMap = promoMap;
     return await customize.process(context);
 }
 
@@ -762,19 +1096,12 @@ describe('customize typical cases', function () {
         const fragmentPath = 'ccd-slice-wide-cc-all-app';
         const defaultLocaleId = 'some-fr-fr-fragment';
         fetchStub
-            .withArgs(`https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/${fragmentPath}`)
-            .returns(
-                createResponse(200, {
-                    items: [
-                        {
-                            path: `/content/dam/mas/sandbox/fr_FR/${fragmentPath}`,
-                            id: defaultLocaleId,
-                        },
-                    ],
-                }),
-            );
+            .withArgs(
+                `https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/${fragmentPath}`,
+            )
+            .returns(createResponse(200, { id: defaultLocaleId }));
         fetchStub
-            .withArgs(`https://odin.adobe.com/adobe/sites/fragments/${defaultLocaleId}?references=all-hydrated`)
+            .withArgs(`https://odin.adobe.com/adobe/contentFragments/${defaultLocaleId}?references=all-hydrated`)
             .returns(createResponse(503, { detail: 'fetch error' }, 'Service Unavailable'));
 
         const result = await process({
@@ -872,21 +1199,13 @@ describe('customize typical cases', function () {
         usFragment.fields.variations = [''];
         // french fragment by id
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments/some-en-us-fragment?references=all-hydrated')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
             .returns(createResponse(200, usFragment));
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/en_US/some-en-us-fragment')
-            .returns(
-                createResponse(200, {
-                    items: [
-                        {
-                            path: '/content/dam/mas/sandbox/en_US/some-en-us-fragment',
-                            id: 'some-en-us-fragment',
-                            some: 'body',
-                        },
-                    ],
-                }),
-            );
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/en_US/some-en-us-fragment',
+            )
+            .returns(createResponse(200, { id: 'some-en-us-fragment' }));
 
         const result = await process({
             ...FAKE_CONTEXT,
@@ -956,7 +1275,7 @@ describe('customize corner cases', function () {
 
     it('should return 503 when default locale fetch failed', async function () {
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/someFragment')
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/someFragment')
             .returns(
                 createResponse(
                     404,
@@ -982,28 +1301,21 @@ describe('customize corner cases', function () {
     it('should return 500 when default locale fetch by id failed', async function () {
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             )
-            .returns(
-                createResponse(200, {
-                    items: [
-                        {
-                            path: '/content/dam/mas/sandbox/fr_FR/someFragment',
-                            id: 'some-fr-fr-fragment-server-error',
-                        },
-                    ],
-                }),
-            );
+            .returns(createResponse(200, { id: 'some-fr-fr-fragment-server-error' }));
 
-        fetchStub.withArgs('https://odin.adobe.com/adobe/sites/fragments?path=/some-fr-fr-fragment-server-error').returns(
-            createResponse(
-                500,
-                {
-                    message: 'Error',
-                },
-                'Internal Server Error',
-            ),
-        );
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/some-fr-fr-fragment-server-error')
+            .returns(
+                createResponse(
+                    500,
+                    {
+                        message: 'Error',
+                    },
+                    'Internal Server Error',
+                ),
+            );
 
         const result = await process({
             ...FAKE_CONTEXT,
@@ -1017,16 +1329,12 @@ describe('customize corner cases', function () {
         });
     });
 
-    it('should return 404 when default locale has no items', async function () {
+    it('should return 404 when default locale fragment is not found', async function () {
         fetchStub
             .withArgs(
-                'https://odin.adobe.com/adobe/sites/fragments?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             )
-            .returns(
-                createResponse(200, {
-                    items: [],
-                }),
-            );
+            .returns(createResponse(404, {}));
 
         const result = await process({
             ...FAKE_CONTEXT,
@@ -1036,7 +1344,7 @@ describe('customize corner cases', function () {
         });
         expect(result).to.deep.include({
             status: 404,
-            message: 'Fragment not found',
+            message: 'Error fetching fragment id',
         });
     });
 
@@ -1056,5 +1364,304 @@ describe('customize corner cases', function () {
             path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
             some: 'body',
         });
+    });
+});
+
+describe('customize promo variation', function () {
+    const PROMO_VARIATION = {
+        id: 'promo-var-id',
+        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+        fields: { title: 'Promo Title', badge: 'PROMO' },
+    };
+    const ACTIVE_PROJECT = {
+        id: 'promo-proj-id',
+        path: '/content/dam/mas/promotions/black-friday',
+        defaultVariations: { 'my-card': PROMO_VARIATION },
+        regionVariations: {},
+    };
+
+    it('should merge promo variation when matching fragmentPath found in defaultVariations', async function () {
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            ACTIVE_PROJECT,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.id).to.equal('root-id');
+        expect(result.body.path).to.equal('/content/dam/mas/sandbox/en_US/my-card');
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.title).to.equal('Promo Title');
+        expect(result.body.fields.badge).to.equal('PROMO');
+    });
+
+    it('should merge region variation over default when both exist', async function () {
+        const regionVar = {
+            id: 'promo-region-id',
+            path: '/content/dam/mas/sandbox/fr_BE/promotions/black-friday/my-card',
+            fields: { title: 'Region Promo Title' },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: { 'my-card': PROMO_VARIATION },
+            regionVariations: { 'my-card': regionVar },
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('promo-region-id');
+        expect(result.body.fields.title).to.equal('Region Promo Title');
+        expect(result.body.fields.badge).to.equal('PROMO');
+    });
+
+    it('should skip promo variation when no activeProject', async function () {
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', osi: 'OSI-1' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            null,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.be.undefined;
+        expect(result.body.fields.promoCode).to.be.undefined;
+    });
+
+    it('should skip promo variation when fragment has no path', async function () {
+        const rootFragment = {
+            id: 'root-id',
+            fields: { title: 'Original Title' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            ACTIVE_PROJECT,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.be.undefined;
+    });
+
+    it('should skip promo variation when fragment path does not match expected pattern', async function () {
+        const rootFragment = {
+            id: 'root-id',
+            path: '/unexpected/path/structure',
+            fields: { title: 'Original Title' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            ACTIVE_PROJECT,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.be.undefined;
+    });
+
+    it('should skip promo variation when no matching fragmentPath in variations', async function () {
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/different-card',
+            fields: { title: 'Original Title' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'different-card', parsedLocale: 'en_US', body: rootFragment },
+            ACTIVE_PROJECT,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.be.undefined;
+    });
+
+    it('should apply region variation when only regionVariations has the entry (no defaultVar)', async function () {
+        const regionVar = {
+            id: 'region-only-id',
+            path: '/content/dam/mas/sandbox/fr_BE/promotions/black-friday/my-card',
+            fields: { title: 'Region Only Title', badge: 'REGION' },
+        };
+        const project = {
+            ...ACTIVE_PROJECT,
+            defaultVariations: {},
+            regionVariations: { 'my-card': regionVar },
+        };
+        const rootFragment = {
+            id: 'root-id',
+            path: '/content/dam/mas/sandbox/en_US/my-card',
+            fields: { title: 'Original Title', badge: 'ORIGINAL' },
+            references: {},
+            referencesTree: [],
+        };
+
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'my-card', parsedLocale: 'en_US', body: rootFragment },
+            project,
+        );
+
+        expect(result.status).to.equal(200);
+        expect(result.body.variationId).to.equal('region-only-id');
+        expect(result.body.fields.title).to.equal('Region Only Title');
+        expect(result.body.fields.badge).to.equal('REGION');
+    });
+});
+
+describe('customize promoCode application', function () {
+    const MINIMAL_PROJECT = {
+        id: 'promo-proj',
+        path: '/content/dam/mas/promotions/test',
+        defaultVariations: {},
+        regionVariations: {},
+    };
+    const CARD_PATHS = new Set(['test-card']);
+
+    function makeBody(osiValue, extra = {}) {
+        return {
+            path: '/content/dam/mas/sandbox/en_US/test-card',
+            id: 'test-card',
+            fields: { osi: osiValue },
+            references: {},
+            referencesTree: [],
+            ...extra,
+        };
+    }
+
+    it('should apply promoCode from promoMap when OSI matches', async function () {
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-123'), promoFragmentPaths: CARD_PATHS },
+            MINIMAL_PROJECT,
+            { 'OSI-123': 'SUMMER25' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('SUMMER25');
+    });
+
+    it('should apply promoCode for array OSI field', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody(['OSI-001', 'OSI-002']),
+                promoFragmentPaths: CARD_PATHS,
+            },
+            MINIMAL_PROJECT,
+            { 'OSI-002': 'MULTI10' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('MULTI10');
+    });
+
+    it('should apply wildcard promoCode when no specific OSI match', async function () {
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-UNKNOWN'), promoFragmentPaths: CARD_PATHS },
+            MINIMAL_PROJECT,
+            { '*': 'UNIVERSAL' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('UNIVERSAL');
+    });
+
+    it('should prefer specific OSI match over wildcard', async function () {
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody('OSI-1'), promoFragmentPaths: CARD_PATHS },
+            MINIMAL_PROJECT,
+            { '*': 'WILDCARD', 'OSI-1': 'SPECIFIC' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.equal('SPECIFIC');
+    });
+
+    it('should not set promoCode when fragment path is not in promoFragmentPaths', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-card',
+                body: makeBody('OSI-123'),
+                promoFragmentPaths: new Set(['other-path']),
+            },
+            MINIMAL_PROJECT,
+            { 'OSI-123': 'SUMMER25' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.be.undefined;
+    });
+
+    it('should not set promoCode when no active project', async function () {
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'test-card',
+            body: makeBody('OSI-123'),
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.be.undefined;
+    });
+
+    it('should not set promoCode when fragment has no osi field', async function () {
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, fragmentPath: 'test-card', body: makeBody(undefined), promoFragmentPaths: CARD_PATHS },
+            MINIMAL_PROJECT,
+            { '*': 'UNIVERSAL' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.promoCode).to.be.undefined;
+    });
+
+    it('should apply promoCode to child card fragments in collection', async function () {
+        const result = await processWithPromos(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'test-collection',
+                promoFragmentPaths: new Set(['card-1']),
+                body: {
+                    path: '/content/dam/mas/sandbox/en_US/test-collection',
+                    id: 'test-collection',
+                    fields: { cards: ['card-1'], collections: [] },
+                    references: {
+                        'card-1': {
+                            type: 'content-fragment',
+                            value: {
+                                path: '/content/dam/mas/sandbox/en_US/card-1',
+                                id: 'card-1',
+                                fields: { osi: 'OSI-CARD', variations: [] },
+                            },
+                        },
+                    },
+                    referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                },
+            },
+            MINIMAL_PROJECT,
+            { 'OSI-CARD': 'CARD-PROMO' },
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.references['card-1'].value.fields.promoCode).to.equal('CARD-PROMO');
     });
 });

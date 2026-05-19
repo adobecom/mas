@@ -1,3 +1,5 @@
+import { PATH_TOKENS } from './utils/paths.js';
+
 const COUNTRY_DATA = {
     AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
     AR: { name: 'Argentina', flag: '🇦🇷' },
@@ -15,6 +17,8 @@ const COUNTRY_DATA = {
     CZ: { name: 'Czech Republic', flag: '🇨🇿' },
     DE: { name: 'Germany', flag: '🇩🇪' },
     DK: { name: 'Denmark', flag: '🇩🇰' },
+    DO: { name: 'Dominican Republic', flag: '🇩🇴' },
+    DZ: { name: 'Algeria', flag: '🇩🇿' },
     EC: { name: 'Ecuador', flag: '🇪🇨' },
     EE: { name: 'Estonia', flag: '🇪🇪' },
     EG: { name: 'Egypt', flag: '🇪🇬' },
@@ -32,11 +36,13 @@ const COUNTRY_DATA = {
     IN: { name: 'India', flag: '🇮🇳' },
     IT: { name: 'Italy', flag: '🇮🇹' },
     JP: { name: 'Japan', flag: '🇯🇵' },
+    KE: { name: 'Kenya', flag: '🇰🇪' },
     KR: { name: 'South Korea', flag: '🇰🇷' },
     KW: { name: 'Kuwait', flag: '🇰🇼' },
     LT: { name: 'Lithuania', flag: '🇱🇹' },
     LU: { name: 'Luxembourg', flag: '🇱🇺' },
     LV: { name: 'Latvia', flag: '🇱🇻' },
+    MU: { name: 'Mauritius', flag: '🇲🇺' },
     MX: { name: 'Mexico', flag: '🇲🇽' },
     MY: { name: 'Malaysia', flag: '🇲🇾' },
     NG: { name: 'Nigeria', flag: '🇳🇬' },
@@ -57,6 +63,7 @@ const COUNTRY_DATA = {
     SI: { name: 'Slovenia', flag: '🇸🇮' },
     SK: { name: 'Slovakia', flag: '🇸🇰' },
     TH: { name: 'Thailand', flag: '🇹🇭' },
+    TM: { name: 'Turkmenistan', flag: '🇹🇲' },
     TR: { name: 'Türkiye', flag: '🇹🇷' },
     TW: { name: 'Taiwan', flag: '🇹🇼' },
     UA: { name: 'Ukraine', flag: '🇺🇦' },
@@ -66,7 +73,7 @@ const COUNTRY_DATA = {
 };
 
 const ACOM = [
-    { lang: 'ar', country: 'SA', regions: ['AE', 'EG', 'KW', 'QA'] },
+    { lang: 'ar', country: 'SA', regions: ['AE', 'EG', 'KW', 'QA', 'DZ'] },
     { lang: 'bg', country: 'BG' },
     { lang: 'cs', country: 'CZ' },
     { lang: 'da', country: 'DK' },
@@ -87,6 +94,7 @@ const ACOM = [
             'IL',
             'KW',
             'LU',
+            'MU',
             'MY',
             'NG',
             'NZ',
@@ -94,9 +102,11 @@ const ACOM = [
             'QA',
             'SA',
             'SG',
+            'TM',
             'TH',
             'VN',
             'ZA',
+            'DZ',
         ],
     },
     { lang: 'en', country: 'GB', regions: ['AU', 'IN'] },
@@ -120,18 +130,17 @@ const ACOM = [
     { lang: 'pt', country: 'BR' },
     { lang: 'pt', country: 'PT' },
     { lang: 'ro', country: 'RO' },
-    { lang: 'ru', country: 'RU' },
+    { lang: 'ru', country: 'RU', regions: ['TM'] },
     { lang: 'sk', country: 'SK' },
     { lang: 'sl', country: 'SI' },
-    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR'] },
+    { lang: 'es', country: 'ES', regions: ['AR', 'CL', 'CO', 'CR', 'EC', 'GT', 'MX', 'PE', 'PR', 'DO'] },
     { lang: 'sv', country: 'SE' },
     { lang: 'th', country: 'TH' },
     { lang: 'tr', country: 'TR' },
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'HK' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const CCD = [
@@ -208,8 +217,10 @@ const EXPRESS = [
             'IE',
             'IL',
             'IN',
+            'KE',
             'KW',
             'LU',
+            'MU',
             'MY',
             'NG',
             'NZ',
@@ -348,6 +359,8 @@ const COMMERCE = [
 
 const DEFAULT_LOCALES = {
     acom: ACOM,
+    'acom-cc': ACOM,
+    'acom-dc': ACOM,
     nala: ACOM,
     sandbox: ACOM,
     ccd: CCD,
@@ -397,7 +410,7 @@ const LANG_TO_LANGUAGE = {
 
 const regionLocalesCache = {};
 
-const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
+export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 
 /**
  * Get locale object from locale code
@@ -506,6 +519,27 @@ export function getRegionLocales(surface, localeCode, includeDefault) {
         regionLocalesCache[cacheKey] = regionLocales;
     }
     return regionLocalesCache[cacheKey];
+}
+
+/**
+ * Whether a variation’s path locale belongs to the same default-locale “family” as the selected
+ * locale (base locale plus regional variants for the surface). Used when filtering fragment references
+ * in the studio so locale/grouped lists stay aligned with {@link getRegionLocales}.
+ *
+ * @param {string} surface - e.g. 'acom'
+ * @param {string} selectedLocale - Locale segment to match (e.g. 'en_US')
+ * @param {string} variationPath - Full AEM path of the variation
+ * @returns {boolean}
+ */
+export function isVariationPathInParentLocaleFamily(surface, selectedLocale, variationPath) {
+    if (!surface || !variationPath) return false;
+    const selectedLangAndCountry = getLocaleByCode(selectedLocale);
+    if (!selectedLangAndCountry) return false;
+    const regionLocales = getRegionLocales(surface, selectedLocale);
+    const pathMatch = variationPath.match(PATH_TOKENS);
+    const variationLocaleCode = pathMatch?.groups?.parsedLocale ?? null;
+    if (!variationLocaleCode) return false;
+    return [selectedLangAndCountry, ...regionLocales].some((localeEntry) => variationLocaleCode === getLocaleCode(localeEntry));
 }
 
 export function getLanguageName(lang) {

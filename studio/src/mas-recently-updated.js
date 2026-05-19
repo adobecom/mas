@@ -2,6 +2,7 @@ import { html, LitElement, nothing } from 'lit';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 import { VARIANTS } from './editors/variant-picker.js';
+import { cardSkeleton } from './mas-content.js';
 
 class MasRecentlyUpdated extends LitElement {
     static get properties() {
@@ -20,7 +21,7 @@ class MasRecentlyUpdated extends LitElement {
 
     get loadingIndicator() {
         if (!this.loading.value) return nothing;
-        return html`<sp-progress-circle indeterminate size="l"></sp-progress-circle>`;
+        return html`${Array.from({ length: 3 }, cardSkeleton)}`;
     }
 
     render() {

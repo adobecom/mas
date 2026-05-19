@@ -50,7 +50,10 @@ async function fetchAttempt(path, context, timeout, marker) {
     try {
         mark(context, marker);
         const responsePromise = fetch(path, {
-            headers: context.DEFAULT_HEADERS,
+            headers: {
+                ...context.DEFAULT_HEADERS,
+                'X-Request-ID': globalThis.crypto.randomUUID(),
+            },
         });
 
         // Race the fetch promise with a timeout
@@ -68,7 +71,7 @@ async function fetchAttempt(path, context, timeout, marker) {
             return {
                 status: 200,
                 message: 'ok',
-                body: await computeBody(response, context),
+                body: await Promise.race([computeBody(response, context), createTimeoutPromise(timeout)]),
             };
         }
         return response;
@@ -162,43 +165,63 @@ async function getFragmentId(context, odinUrl, mark) {
         }
     }
     const response = await internalFetch(odinUrl, context, mark);
+    let { message, status } = response;
     if (response.status == 200) {
-        const { items } = response.body;
-        if (items?.length > 0) {
-            const id = items[0].id;
+        const { id } = response.body || {};
+        if (id) {
             context.fragmentsIds = context.fragmentsIds || {};
             context.fragmentsIds[mark] = id;
             return {
                 id,
-                status: 200,
-            };
-        } else {
-            return {
-                message: 'Fragment not found',
-                status: 404,
+                status,
             };
         }
+        message = 'No id found in response';
+        status = 503;
     }
     return {
         message: response.message || 'Error fetching fragment id',
-        status: 503,
+        status,
     };
 }
 
 /**
- * get default request information either from state cache, or from fetchFragment promise
+ * get default request information either from state cache, or from the early `requestInfos` promise (first fragment
+ * fetch + path parse).
  * @param {*} context
  * @returns parsedLocale, surface, fragmentPath
  */
 async function getRequestInfos(context) {
     let { body, parsedLocale, surface, fragmentPath } = context;
     if (!parsedLocale || !surface || !fragmentPath || !body) {
-        const fetchResult = await context.promises?.fetchFragment;
+        const fetchResult = await context.promises?.requestInfos;
         if (fetchResult) {
             ({ parsedLocale, surface, fragmentPath, body } = fetchResult);
         }
     }
     return { parsedLocale, surface, fragmentPath, body };
+}
+
+/**
+ * Returns which geo dimensions match between `tags` and the given locale/country,
+ * or null if neither matches. Tags are CQ tag paths whose last two segments
+ * must be `(locale|country)/<value>` — accepted in long form
+ * (`/content/cq:tags/mas/locale/en_US`) or short form (`mas:locale/en_US`,
+ * `mas:pzn/country/KW`). The `(locale|country)` segment must be at the start
+ * of the tag or preceded by `/` or `:`, which prevents spurious matches against
+ * unrelated taxonomies ending in `/<X>`.
+ * Falls back to extracting country from regionLocale when country is not provided.
+ * @param {string[]} tags
+ * @param {{ regionLocale?: string, country?: string }} param1
+ * @returns {{ region: boolean, country: boolean } | null}
+ */
+function matchesGeo(tags, { regionLocale, country }) {
+    const effectiveCountry = country ?? regionLocale?.split('_')[1];
+    const matchSuffix = (value) => tags.some((tag) => new RegExp(`(^|[/:])(locale|country)/([^/]+/)?${value}$`, 'i').test(tag));
+    const region = Boolean(regionLocale) && matchSuffix(regionLocale);
+    const countryMatch = Boolean(effectiveCountry) && matchSuffix(effectiveCountry);
+    if (!region && !countryMatch) return null;
+    return { region, country: countryMatch };
 }
 
 export {
@@ -209,5 +232,6 @@ export {
     getJsonFromState,
     getFromState,
     mark,
+    matchesGeo,
     measureTiming,
 };

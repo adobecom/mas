@@ -59,3 +59,63 @@ Use `--dry-run` to preview what the script would do without creating or publishi
 ```sh
 node gen-dictionaries.mjs author-*-* sandbox L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2RpY3Rpb25hcnk --dry-run
 ```
+
+# repair-dictionary-entry.mjs
+
+Checks that all dictionary entry fragments in each locale's `dictionary` folder are referenced in the index's `entries` field. Logs and repairs missing entries. Use `--publish` to publish the index after repair.
+
+```sh
+export MAS_ACCESS_TOKEN="your-access-token"
+export MAS_API_KEY="mas-studio"
+
+node repair-dictionary-entry.mjs author-*-* sandbox
+```
+
+To run for a specific locale, in dry run - no edits, no publish:
+
+```sh
+node repair-dictionary-entry.mjs author-*-* sandbox de_DE --dry-run
+```
+
+To repair and publish:
+
+```sh
+node repair-dictionary-entry.mjs author-*-* sandbox de_DE --publish
+```
+
+# bulk-publish.mjs
+
+Invokes the deployed `bulk-publish` IO Runtime action to publish many content fragments in one go. The action chunks paths per locale (≤ 50 per request — Odin silently drops anything past 50), retries transient failures, and returns a summary plus per-path details.
+
+### Prerequisites
+
+- `MAS_IMS_TOKEN`: an MAS Studio IMS access token. Copy it via `copy(adobeid.authorize())` in the browser devtools console while signed into MAS Studio. The action validates the token against the `mas-studio` allowedClientId.
+- The action must be deployed to a reachable I/O Runtime workspace.
+
+### Required flags
+
+- `--paths-file <file>`: newline-separated list of paths (lines starting with `#` and blanks are ignored).
+- `--odin-endpoint <url>`: the AEM author URL for the target environment.
+- One of:
+    - `--namespace <ns>`: I/O Runtime namespace (derives the action URL).
+    - `--action-url <url>`: full action URL if non-standard.
+
+### Optional flags
+
+- `--locales fr_FR,de_DE`: comma-separated locales to expand each path into (in addition to the source path).
+- `--concurrency <n>`: parallel chunk POSTs (default 5, max 20).
+- `--dry-run`: print the payload without calling the action.
+
+### Running the Script
+
+```sh
+export MAS_IMS_TOKEN="your-ims-token"
+
+node bulk-publish.mjs \
+    --paths-file paths.txt \
+    --namespace <your-io-runtime-namespace> \
+    --odin-endpoint https://<aem-author-host> \
+    --locales fr_FR,de_DE
+```
+
+Exit codes: `0` on full success, `1` on HTTP error or bad usage, `2` if any paths failed (summary still printed).

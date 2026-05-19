@@ -397,6 +397,7 @@ export class AemFragment extends HTMLElement {
             fields,
             id,
             tags,
+            variationId,
             settings = {},
             priceLiterals = {},
             dictionary = {},
@@ -415,6 +416,7 @@ export class AemFragment extends HTMLElement {
                 priceLiterals,
                 dictionary,
                 placeholders,
+                variationId,
             },
         );
     }
@@ -428,6 +430,7 @@ export class AemFragment extends HTMLElement {
             priceLiterals = {},
             dictionary = {},
             placeholders = {},
+            variationId,
         } = this.#rawData;
         this.#data = Object.entries(fields).reduce(
             (acc, [key, value]) => {
@@ -442,6 +445,7 @@ export class AemFragment extends HTMLElement {
                 priceLiterals,
                 dictionary,
                 placeholders,
+                variationId,
             },
         );
     }
@@ -475,11 +479,18 @@ export class AemFragment extends HTMLElement {
     async generatePreview() {
         const fragmentClientUrl = this.getFragmentClientUrl();
         const { previewFragment } = await import(fragmentClientUrl);
-        const data = await previewFragment(this.#fragmentId, {
+        const options = {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
-        });
+        };
+        const instant =
+            new URLSearchParams(window.location.search).get('instant') ??
+            this.#service.settings.instant;
+        if (instant) {
+            options.instant = instant;
+        }
+        const data = await previewFragment(this.#fragmentId, options);
         return data;
     }
 }

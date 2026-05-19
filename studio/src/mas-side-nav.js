@@ -1,12 +1,11 @@
 import { LitElement, html, css, nothing } from 'lit';
 import router from './router.js';
 import Store from './store.js';
-import { PAGE_NAMES, SURFACES } from './constants.js';
+import { PAGE_NAMES, SURFACES, TRANSLATIONS_ALLOWED_SURFACES } from './constants.js';
 import Events from './events.js';
-import { generateFieldLink, camelToTitle, previewValue } from './utils.js';
+import { generateFieldLink, generateJsonLdLink, camelToTitle, previewValue, previewFragmentOnPage } from './utils.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
-import { isPowerUser } from './groups.js';
 
 const EVENT_MAS_READY = 'mas:ready';
 const INLINE_PRICE_SELECTOR = 'span[is="inline-price"]';
@@ -35,30 +34,26 @@ class MasSideNav extends LitElement {
         :host {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            height: calc(100% - 35px);
             width: 68px;
             padding: 32px 12px 12px 5px;
             box-sizing: content-box;
-            overflow-y: overlay;
+            overflow-y: auto;
         }
 
         .nav-container {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            flex: 1;
+            min-height: 0;
         }
 
         .nav-items {
             display: flex;
             flex-direction: column;
-            height: 100%;
+            flex: 1;
             position: relative;
-            min-height: 770px;
-        }
-
-        #settings-nav-item {
-            position: absolute;
-            bottom: 42px;
+            padding-bottom: 116px;
         }
 
         .side-nav-new-window {
@@ -112,7 +107,8 @@ class MasSideNav extends LitElement {
             letter-spacing: 0.04em;
         }
 
-        .copy-section-label::before {
+        .overridden-section .copy-section-label::before,
+        .inherited-section .copy-section-label::before {
             content: '';
             width: 6px;
             height: 6px;
@@ -159,7 +155,8 @@ class MasSideNav extends LitElement {
     #copyFieldMenuOpenedByPointer = false;
     #onMerchCardReady = (event) => {
         const card = this.#getPreviewCard();
-        if (!card || event.target !== card) return;
+        if (!card) return;
+        if (!(event.composedPath?.()?.includes(card) ?? false)) return;
         this.#updateResolvedPrice(this.#getFirstResolvedPriceText(card));
     };
     #onCopyFieldTriggerPointerDown = () => {
@@ -176,6 +173,7 @@ class MasSideNav extends LitElement {
     #onCopyFieldMenuOpened = (event) => {
         if (!this.#copyFieldMenuOpenedByPointer) return;
         this.#copyFieldMenuOpenedByPointer = false;
+        this.requestUpdate();
         const overlayTrigger = event.currentTarget;
         queueMicrotask(() => {
             if (this.#clearFocusedCopyFieldMenuItem(overlayTrigger)) return;
@@ -278,7 +276,7 @@ class MasSideNav extends LitElement {
 
     get isTranslationEnabled() {
         const surface = Store.search.value?.path?.split('/').filter(Boolean)[0]?.toLowerCase();
-        return [SURFACES.ACOM.name, SURFACES.EXPRESS.name, SURFACES.SANDBOX.name, SURFACES.NALA.name].includes(surface);
+        return TRANSLATIONS_ALLOWED_SURFACES.includes(surface);
     }
 
     async saveFragment() {
@@ -301,6 +299,10 @@ class MasSideNav extends LitElement {
         await this.fragmentEditor.publishFragment();
     }
 
+    previewFragment() {
+        previewFragmentOnPage(this.fragmentEditor?.fragment);
+    }
+
     async copyCode() {
         if (!this.fragmentEditor) return;
         await this.fragmentEditor.copyToUse();
@@ -314,6 +316,7 @@ class MasSideNav extends LitElement {
         ctas: 'CTAs',
         whatsIncluded: "What's Included",
         originalId: 'Original ID',
+        jsonLdSchema: 'JSON-LD Schema',
     };
     static SHOW_FIELDS = new Set([
         'prices',
@@ -324,10 +327,23 @@ class MasSideNav extends LitElement {
         'promoText',
         'callout',
         'subtitle',
+        'ctas',
     ]);
 
     #getPreviewCard() {
         return this.fragmentEditor?.querySelector?.('merch-card');
+    }
+
+    #queryAllInlinePriceElements(card) {
+        const collected = [];
+        const visit = (root) => {
+            collected.push(...root.querySelectorAll(INLINE_PRICE_SELECTOR));
+            root.querySelectorAll('*').forEach((node) => {
+                if (node.shadowRoot) visit(node.shadowRoot);
+            });
+        };
+        visit(card);
+        return collected;
     }
 
     #syncPricePreview() {
@@ -381,7 +397,7 @@ class MasSideNav extends LitElement {
     }
 
     #getFirstResolvedPriceText(card) {
-        const prices = [...card.querySelectorAll(INLINE_PRICE_SELECTOR)];
+        const prices = this.#queryAllInlinePriceElements(card);
         let fallbackText = '';
 
         for (const price of prices) {
@@ -411,7 +427,7 @@ class MasSideNav extends LitElement {
 
     #getResolvedInlinePriceCandidates(card = this.#getPreviewCard()) {
         if (!card) return [];
-        return [...card.querySelectorAll(INLINE_PRICE_SELECTOR)]
+        return this.#queryAllInlinePriceElements(card)
             .map((el) => {
                 const { full, core } = this.#getFormattedPriceTexts(el);
                 return {
@@ -471,12 +487,13 @@ class MasSideNav extends LitElement {
             if (candidateIdx === -1) return;
             usedIndices.add(candidateIdx);
             const candidate = resolvedInlinePrices[candidateIdx];
-            // Use full text (with per-unit/tax) when the source inline-price
-            // requested those labels; otherwise use just the core price amount.
-            const wantsExtras =
-                sourceAttrs.get('data-display-per-unit') === 'true' || sourceAttrs.get('data-display-tax') === 'true';
+            // Mirror the rendered preview: per-unit and tax labels are resolved
+            // from locale defaults (e.g. FR_fr → "TTC"), not authored on the
+            // source span, so the rendered DOM is the source of truth. Fall
+            // back to coreText only if the rendered output had no labels.
+            const renderedText = candidate.formattedText || candidate.coreText;
             const temp = doc.createElement('span');
-            temp.innerHTML = wantsExtras ? candidate.formattedText : candidate.coreText;
+            temp.innerHTML = renderedText;
             inlinePrice.replaceWith(...temp.childNodes);
         });
         return doc.body.innerHTML;
@@ -499,6 +516,54 @@ class MasSideNav extends LitElement {
 
     #isVariationFragment(fragmentId) {
         return !!fragmentId && !!this.fragmentEditor?.editorContextStore?.isVariation?.(fragmentId);
+    }
+
+    /** Parses CTA HTML and returns an array of { text, href } objects, one per anchor.
+     *  Uses a <template> element so checkout-link custom elements are never upgraded
+     *  and their attributes are preserved as stored. */
+    #parseCtas(html) {
+        if (!html || typeof html !== 'string') return [];
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        return [...template.content.querySelectorAll('a')]
+            .map((a) => ({ text: a.textContent.trim(), href: a.getAttribute('href') || '' }))
+            .filter(({ text, href }) => text || href);
+    }
+
+    /** Individual CTA items extracted from the ctas field, split by source for variations. */
+    get copyableCtas() {
+        const fragment = this.fragmentEditor?.fragment;
+        if (!fragment?.fields) return { current: [], inherited: [] };
+
+        const ctasField = fragment.fields.find((f) => f.name === 'ctas');
+        const current =
+            ctasField && !fragment.isValueEmpty(ctasField.values)
+                ? this.#parseCtas(this.#getDisplayValues(ctasField)?.[0] ?? ctasField.values[0]).map((cta, i) => ({
+                      ...cta,
+                      index: i + 1,
+                      source: FIELD_SOURCE.CURRENT,
+                      sourceFragment: fragment,
+                  }))
+                : [];
+
+        const fragmentId = fragment?.id;
+        if (!this.#isVariationFragment(fragmentId) || current.length) {
+            return { current, inherited: [] };
+        }
+
+        const baseFragment = this.fragmentEditor?.localeDefaultFragment;
+        const baseCtasField = baseFragment?.fields?.find((f) => f.name === 'ctas');
+        const inherited =
+            baseCtasField && !baseFragment.isValueEmpty(baseCtasField.values)
+                ? this.#parseCtas(baseCtasField.values[0]).map((cta, i) => ({
+                      ...cta,
+                      index: i + 1,
+                      source: FIELD_SOURCE.INHERITED,
+                      sourceFragment: baseFragment,
+                  }))
+                : [];
+
+        return { current, inherited };
     }
 
     #buildCopyableField(field, source, sourceFragment, resolvedInlinePrices) {
@@ -552,10 +617,18 @@ class MasSideNav extends LitElement {
     get copyFieldButton() {
         const loading = this.variationDataLoading || Store.fragmentEditor.loading.get();
         const isVariation = this.#isVariationFragment(this.fragmentEditor?.fragment?.id);
-        const currentFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.CURRENT);
-        const inheritedFields = this.copyableFields.filter((field) => field.source === FIELD_SOURCE.INHERITED);
+        const currentFields = this.copyableFields.filter(
+            (field) => field.source === FIELD_SOURCE.CURRENT && field.name !== 'ctas',
+        );
+        const inheritedFields = this.copyableFields.filter(
+            (field) => field.source === FIELD_SOURCE.INHERITED && field.name !== 'ctas',
+        );
         const showOverriddenSection = isVariation && currentFields.length;
         const showInheritedSection = inheritedFields.length;
+        const { current: currentCtas, inherited: inheritedCtas } = this.copyableCtas;
+        const showCtaOverriddenSection = isVariation && currentCtas.length;
+        const showCtaInheritedSection = inheritedCtas.length;
+        const hasCtas = currentCtas.length || inheritedCtas.length;
         const renderRow = ({ name, displayName, preview, source, sourceFragment }) => html`
             <sp-menu-item @click=${() => this.copyField(name, sourceFragment)}>
                 ${preview
@@ -611,6 +684,60 @@ class MasSideNav extends LitElement {
                                       )}
                                   `
                                 : nothing}
+                            ${hasCtas
+                                ? html`
+                                      <sp-menu-divider></sp-menu-divider>
+                                      <sp-menu-item disabled class="copy-section-item">
+                                          <span class="copy-section-label">CTAs</span>
+                                      </sp-menu-item>
+                                      ${showCtaOverriddenSection
+                                          ? html`<sp-menu-item disabled class="copy-section-item overridden-section">
+                                                <span class="copy-section-label">${OVERRIDDEN_SECTION_LABEL}</span>
+                                            </sp-menu-item>`
+                                          : nothing}
+                                      ${currentCtas.map(
+                                          (cta, i) => html`
+                                              ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                              <sp-menu-item
+                                                  @click=${() => this.copyCtaItem(cta.text, cta.index, cta.sourceFragment)}
+                                              >
+                                                  <div
+                                                      class="field-entry ${showCtaOverriddenSection
+                                                          ? 'field-entry-overridden'
+                                                          : ''}"
+                                                  >
+                                                      <span class="field-label">CTA ${cta.index}</span>
+                                                      <span class="field-value">${cta.text || cta.href}</span>
+                                                  </div>
+                                              </sp-menu-item>
+                                          `,
+                                      )}
+                                      ${showCtaInheritedSection
+                                          ? html`
+                                                ${currentCtas.length ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                                <sp-menu-item disabled class="copy-section-item inherited-section">
+                                                    <span class="copy-section-label">${INHERITED_SECTION_LABEL}</span>
+                                                </sp-menu-item>
+                                                ${inheritedCtas.map(
+                                                    (cta, i) => html`
+                                                        ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
+                                                        <sp-menu-item
+                                                            @click=${() =>
+                                                                this.copyCtaItem(cta.text, cta.index, cta.sourceFragment)}
+                                                        >
+                                                            <div class="field-entry">
+                                                                <span class="field-label">CTA ${cta.index}</span>
+                                                                <span class="field-value">${cta.text || cta.href}</span>
+                                                            </div>
+                                                        </sp-menu-item>
+                                                    `,
+                                                )}
+                                            `
+                                          : nothing}
+                                  `
+                                : nothing}
+                            <sp-menu-divider></sp-menu-divider>
+                            <sp-menu-item @click=${() => this.copyJsonLd()}>JSON-LD Schema</sp-menu-item>
                         </sp-menu>
                     </div>
                 </sp-popover>
@@ -639,6 +766,49 @@ class MasSideNav extends LitElement {
         }
     }
 
+    /** Copies an indexed ctas field link to the clipboard (mas-field: … → ctas[N] format). */
+    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment) {
+        const fragment = sourceFragment;
+        if (!fragment) return;
+        const path = Store.search.get().path;
+        const fieldName = `ctas[${index}]`;
+        const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName);
+        if (!link) return;
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([link.displayText], { type: 'text/plain' }),
+                    'text/html': new Blob([link.richText], { type: 'text/html' }),
+                }),
+            ]);
+            Events.toast.emit({ variant: 'positive', content: `Copied CTA: "${text}"` });
+        } catch {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy CTA' });
+        }
+    }
+
+    async copyJsonLd() {
+        const fragment = this.fragmentEditor?.fragment;
+        if (!fragment) return;
+        const path = Store.search.get().path;
+        const link = generateJsonLdLink(fragment, path, PAGE_NAMES.CONTENT);
+        if (!link) {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy JSON-LD Schema link' });
+            return;
+        }
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/plain': new Blob([link.displayText], { type: 'text/plain' }),
+                    'text/html': new Blob([link.richText], { type: 'text/html' }),
+                }),
+            ]);
+            Events.toast.emit({ variant: 'positive', content: 'Copied JSON-LD Schema link' });
+        } catch {
+            Events.toast.emit({ variant: 'negative', content: 'Failed to copy JSON-LD Schema link' });
+        }
+    }
+
     async showHistory() {
         const fragmentId = this.fragmentEditor?.fragment?.id;
         if (!fragmentId) return;
@@ -660,21 +830,6 @@ class MasSideNav extends LitElement {
     async deleteFragment() {
         if (!this.fragmentEditor) return;
         await this.fragmentEditor.deleteFragment();
-    }
-
-    get settingsItem() {
-        if (!isPowerUser()) {
-            return nothing;
-        }
-        return html`
-            <mas-side-nav-item
-                id="settings-nav-item"
-                ?selected=${Store.page.get() === PAGE_NAMES.SETTINGS || Store.page.get() === PAGE_NAMES.SETTINGS_EDITOR}
-                @nav-click="${router.navigateToPage(PAGE_NAMES.SETTINGS)}"
-            >
-                <sp-icon-settings slot="icon" size="l"></sp-icon-settings>
-            </mas-side-nav-item>
-        `;
     }
 
     get defaultNavigation() {
@@ -724,7 +879,14 @@ class MasSideNav extends LitElement {
                 <sp-icon-help slot="icon"></sp-icon-help>
                 <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
             </mas-side-nav-item>
-            ${this.settingsItem}
+            <mas-side-nav-item
+                class="bottom"
+                label="Advanced tools"
+                ?selected=${Store.page.get() === PAGE_NAMES.ADVANCED_TOOLS}
+                @nav-click="${router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)}"
+            >
+                <sp-icon-briefcase slot="icon"></sp-icon-briefcase>
+            </mas-side-nav-item>
         `;
     }
 
@@ -746,6 +908,9 @@ class MasSideNav extends LitElement {
                       </mas-side-nav-item>
                   `
                 : ''}
+            <mas-side-nav-item label="Preview" ?disabled=${loading} @nav-click="${this.previewFragment}">
+                <sp-icon-preview slot="icon"></sp-icon-preview>
+            </mas-side-nav-item>
             <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>

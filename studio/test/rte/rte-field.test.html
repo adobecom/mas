@@ -298,9 +298,11 @@
 
                         rte.offerSelectorToolButtonElement.click();
                         await delay(100);
-                        const cancelButton = document.querySelector('[data-testid="productsTab/cancelButton"]');
-                        expect(cancelButton).to.exist;
-                        cancelButton.click();
+                        const ostApp = document.querySelector('mas-ost-app');
+                        expect(ostApp, 'OST dialog should be mounted').to.exist;
+                        const closeButton = ostApp.shadowRoot.querySelector('[data-testid="ost-close-button"]');
+                        expect(closeButton, 'OST close button should be present').to.exist;
+                        closeButton.click();
                     });
 
                     it('should allow to author extra checkout parameters', async function () {

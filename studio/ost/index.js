@@ -3054,7 +3054,14 @@ var tm=Object.defineProperty;var rm=(he,le,ze)=>le in he?tm(he,le,{enumerable:!0
                     ${this.renderRightPanel()}
                 </div>
             </div>
-        `}handleBack(){n.selectedOffer=void 0,n.selectedOsi=void 0,n.selectedProduct=void 0,n.notify()}get wasDeepLinked(){var e,t;return!!((e=this.config)!=null&&e.searchOfferSelectorId||(t=n.deepLink)!=null&&t.offerId)}handleFooterUse(){var o;const e=n.authoringFlow;if(e==="tryBuy"){this.selectMulti();return}if(e==="bundle"){this.selectBundle();return}if(e==="consult"){this.cancel();return}const t=this.shadowRoot.querySelector("mas-ost-placeholder-panel"),r=(o=t==null?void 0:t.shadowRoot)==null?void 0:o.querySelector("mas-ost-code-output");r&&r.handleUse()}selectBundle(){if(!n.canConfirm)return;const e={offers:n.selectedOffers.map(t=>({osi:t.osi,offer:t.offer})),country:n.country};this.dispatchEvent(new CustomEvent("ost-bundle-select",{bubbles:!0,composed:!0,detail:e})),typeof n.onBundleSelect=="function"&&n.onBundleSelect(e)}render(){const e=n.viewState==="welcome",t=n.viewState==="offer-detail-focused",r=this.dialog?d`<button class="ost-close-btn" aria-label="Close" @click=${()=>this.cancel()}>&times;</button>`:"",o=e||t?d`
+        `}handleBack(){n.selectedOffer=void 0,n.selectedOsi=void 0,n.selectedProduct=void 0,n.notify()}get wasDeepLinked(){var e,t;return!!((e=this.config)!=null&&e.searchOfferSelectorId||(t=n.deepLink)!=null&&t.offerId)}handleFooterUse(){var o;const e=n.authoringFlow;if(e==="tryBuy"){this.selectMulti();return}if(e==="bundle"){this.selectBundle();return}if(e==="consult"){this.cancel();return}const t=this.shadowRoot.querySelector("mas-ost-placeholder-panel"),r=(o=t==null?void 0:t.shadowRoot)==null?void 0:o.querySelector("mas-ost-code-output");r&&r.handleUse()}selectBundle(){if(!n.canConfirm)return;const e={offers:n.selectedOffers.map(t=>({osi:t.osi,offer:t.offer})),country:n.country};this.dispatchEvent(new CustomEvent("ost-bundle-select",{bubbles:!0,composed:!0,detail:e})),typeof n.onBundleSelect=="function"&&n.onBundleSelect(e)}render(){const e=n.viewState==="welcome",t=n.viewState==="offer-detail-focused",r=this.dialog?d`<button
+                  class="ost-close-btn"
+                  aria-label="Close"
+                  data-testid="ost-close-button"
+                  @click=${()=>this.cancel()}
+              >
+                  &times;
+              </button>`:"",o=e||t?d`
                       <div class="ost-header-bar">
                           <span class="ost-title">Offer Selector Tool</span>
                           <div class="ost-header-controls">${r}</div>

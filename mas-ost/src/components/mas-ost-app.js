@@ -604,7 +604,14 @@ export class MasOstApp extends LitElement {
         const isWelcome = store.viewState === 'welcome';
         const isFocused = store.viewState === 'offer-detail-focused';
         const closeButton = this.dialog
-            ? html`<button class="ost-close-btn" aria-label="Close" @click=${() => this.cancel()}>&times;</button>`
+            ? html`<button
+                  class="ost-close-btn"
+                  aria-label="Close"
+                  data-testid="ost-close-button"
+                  @click=${() => this.cancel()}
+              >
+                  &times;
+              </button>`
             : '';
 
         const headerBar =

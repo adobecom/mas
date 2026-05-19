@@ -512,4 +512,6 @@ class MasPromotionsItemsTable extends LitElement {
     }
 }
 
+export default MasPromotionsItemsTable;
+export { MasPromotionsItemsTable };
 customElements.define('mas-promotions-items-table', MasPromotionsItemsTable);

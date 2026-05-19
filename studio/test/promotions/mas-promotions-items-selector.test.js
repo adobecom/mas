@@ -62,4 +62,65 @@ describe('MasPromotionsItemsSelector', () => {
         const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
         expect(el.shadowRoot.querySelectorAll('mas-promotions-items-table').length).to.equal(2);
     });
+
+    it('includes selection counts in tab labels when viewOnly', async () => {
+        Store.promotions.selectedCards.set(['/a', '/b']);
+        Store.promotions.selectedCollections.set(['/c']);
+        const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const tabs = [...el.shadowRoot.querySelectorAll('sp-tab')];
+        const cardsTab = tabs.find((t) => t.value === TABLE_TYPE.CARDS);
+        const collectionsTab = tabs.find((t) => t.value === TABLE_TYPE.COLLECTIONS);
+        expect(cardsTab.textContent).to.include('(2)');
+        expect(collectionsTab.textContent).to.include('(1)');
+    });
+
+    it('toggles showSelected when the selected-items button is clicked', async () => {
+        Store.promotions.selectedCards.set(['/x']);
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const btn = [...el.shadowRoot.querySelectorAll('sp-button')].find((b) => b.textContent.includes('Selected items'));
+        expect(btn).to.exist;
+        btn.click();
+        await el.updateComplete;
+        expect(Store.promotions.showSelected.get()).to.be.true;
+    });
+
+    it('sets searchQuery on sp-search submit', async () => {
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        const search = el.shadowRoot.querySelector('sp-search');
+        search.value = 'hello';
+        search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
+        await el.updateComplete;
+        expect(el.searchQuery).to.equal('hello');
+    });
+
+    it('debounces search input into searchQuery', async () => {
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        const search = el.shadowRoot.querySelector('sp-search');
+        search.value = 'abc';
+        search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+        expect(el.searchQuery).to.equal('');
+        await new Promise((r) => setTimeout(r, 350));
+        await el.updateComplete;
+        expect(el.searchQuery).to.equal('abc');
+    });
+
+    it('updates sp-toast when a child table dispatches show-toast', async () => {
+        const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const table = el.shadowRoot.querySelector('mas-promotions-items-table');
+        table.dispatchEvent(
+            new CustomEvent('show-toast', {
+                bubbles: true,
+                composed: true,
+                detail: { text: 'Toast text', variant: 'positive' },
+            }),
+        );
+        await el.updateComplete;
+        const toast = el.shadowRoot.querySelector('sp-toast');
+        expect(toast.textContent).to.equal('Toast text');
+        expect(toast.variant).to.equal('positive');
+        expect(toast.open).to.be.true;
+    });
 });

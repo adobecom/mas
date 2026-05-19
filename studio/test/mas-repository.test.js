@@ -699,6 +699,18 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
+        it('loadPromotions calls processError when searchFragmentList rejects', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
+            sandbox.stub(repository, 'processError');
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            expect(repository.processError.calledOnce).to.be.true;
+            expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
+            expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
         it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
             const repository = createFullRepository();
             const { default: Store } = await import('../src/store.js');

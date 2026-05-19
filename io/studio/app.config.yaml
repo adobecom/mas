@@ -51,6 +51,7 @@ application:
                                 acom-dc: transcreation
                                 express: transcreation
                                 sandbox: machineTranslation
+                                nala: machineTranslation
                         annotations:
                             require-adobe-auth: false
                             final: true

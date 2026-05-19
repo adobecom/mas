@@ -20,11 +20,8 @@ function computePromoStatus(overriden, configured) {
     const localPromoUnset = overriden === PROMO_CONTEXT_CANCEL_VALUE;
     const localPromoSet = !localPromoUnset && overriden?.length > 0;
     const isOverriden =
-        (localPromoSet || localPromoUnset) &&
-        ((configured && configured != overriden) ||
-            (!configured && !localPromoUnset));
-    const isPromo =
-        (isOverriden && localPromoSet) || (!isOverriden && !!configured);
+        (localPromoSet || localPromoUnset) && ((configured && configured != overriden) || (!configured && !localPromoUnset));
+    const isPromo = (isOverriden && localPromoSet) || (!isOverriden && !!configured);
     const effectivePromoCode = isPromo ? overriden || configured : undefined;
     return {
         effectivePromoCode,

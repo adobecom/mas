@@ -43,9 +43,7 @@ const fakeOffer = {
 
 describe('mas-ost-offer-card', () => {
     it('renders price and plan type badge', async () => {
-        const el = await fixture(
-            html`<mas-ost-offer-card .offer=${mockOffer}></mas-ost-offer-card>`,
-        );
+        const el = await fixture(html`<mas-ost-offer-card .offer=${mockOffer}></mas-ost-offer-card>`);
 
         const priceCell = el.shadowRoot.querySelector('.cell-price');
         expect(priceCell).to.exist;
@@ -58,9 +56,7 @@ describe('mas-ost-offer-card', () => {
     });
 
     it('renders full offer ID', async () => {
-        const el = await fixture(
-            html`<mas-ost-offer-card .offer=${mockOffer}></mas-ost-offer-card>`,
-        );
+        const el = await fixture(html`<mas-ost-offer-card .offer=${mockOffer}></mas-ost-offer-card>`);
 
         const idCell = el.shadowRoot.querySelector('.cell-id');
         expect(idCell).to.exist;
@@ -68,20 +64,14 @@ describe('mas-ost-offer-card', () => {
     });
 
     it('applies selected attribute and style', async () => {
-        const el = await fixture(
-            html`<mas-ost-offer-card .offer=${mockOffer} selected></mas-ost-offer-card>`,
-        );
+        const el = await fixture(html`<mas-ost-offer-card .offer=${mockOffer} selected></mas-ost-offer-card>`);
         expect(el.hasAttribute('selected')).to.be.true;
     });
 
     it('renders offer type badge', async () => {
-        const el = await fixture(
-            html`<mas-ost-offer-card .offer=${mockOffer}></mas-ost-offer-card>`,
-        );
+        const el = await fixture(html`<mas-ost-offer-card .offer=${mockOffer}></mas-ost-offer-card>`);
         const badges = el.shadowRoot.querySelectorAll('sp-badge');
-        const offerTypeBadge = Array.from(badges).find(
-            (b) => b.textContent.trim() === 'BASE',
-        );
+        const offerTypeBadge = Array.from(badges).find((b) => b.textContent.trim() === 'BASE');
         expect(offerTypeBadge).to.exist;
         expect(offerTypeBadge.getAttribute('variant')).to.equal('neutral');
     });
@@ -91,9 +81,7 @@ describe('mas-ost-offer-card', () => {
         store.selectedOffer = undefined;
         store.selectedOsi = undefined;
 
-        const el = await fixture(
-            html`<mas-ost-offer-card .offer=${fakeOffer}></mas-ost-offer-card>`,
-        );
+        const el = await fixture(html`<mas-ost-offer-card .offer=${fakeOffer}></mas-ost-offer-card>`);
 
         const priceCell = el.shadowRoot.querySelector('.cell-price');
         priceCell.click();
@@ -110,26 +98,20 @@ describe('mas-ost-offer-card', () => {
             offer_type: 'TRIAL',
             price_point: 'TRIAL_7_DAY_TRIAL',
         };
-        const el = await fixture(
-            html`<mas-ost-offer-card .offer=${trialOffer}></mas-ost-offer-card>`,
-        );
+        const el = await fixture(html`<mas-ost-offer-card .offer=${trialOffer}></mas-ost-offer-card>`);
         const trialDays = el.shadowRoot.querySelector('.trial-days');
         expect(trialDays).to.exist;
         expect(trialDays.textContent.trim()).to.equal('7d');
     });
 
     it('does not show trial days for non-TRIAL offers', async () => {
-        const el = await fixture(
-            html`<mas-ost-offer-card .offer=${mockOffer}></mas-ost-offer-card>`,
-        );
+        const el = await fixture(html`<mas-ost-offer-card .offer=${mockOffer}></mas-ost-offer-card>`);
         const trialDays = el.shadowRoot.querySelector('.trial-days');
         expect(trialDays).to.not.exist;
     });
 
     it('renders nothing when offer is undefined', async () => {
-        const el = await fixture(
-            html`<mas-ost-offer-card></mas-ost-offer-card>`,
-        );
+        const el = await fixture(html`<mas-ost-offer-card></mas-ost-offer-card>`);
         const cell = el.shadowRoot.querySelector('.cell');
         expect(cell).to.not.exist;
     });

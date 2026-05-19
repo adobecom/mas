@@ -20,9 +20,7 @@ export class OfferFilterController {
     }
 
     filterOffers(offers, aosParams, criteria = null) {
-        this.filteredOffers = offers.filter((offer) =>
-            offerFilter(criteria, this.landscape, aosParams, offer),
-        );
+        this.filteredOffers = offers.filter((offer) => offerFilter(criteria, this.landscape, aosParams, offer));
         this.host.requestUpdate();
         return this.filteredOffers;
     }

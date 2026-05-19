@@ -57,9 +57,7 @@ export class MasOstCodeOutput extends LitElement {
 
     get panel() {
         const root = this.getRootNode();
-        return root?.host?.tagName === 'MAS-OST-PLACEHOLDER-PANEL'
-            ? root.host
-            : null;
+        return root?.host?.tagName === 'MAS-OST-PLACEHOLDER-PANEL' ? root.host : null;
     }
 
     getCodeString() {
@@ -73,13 +71,9 @@ export class MasOstCodeOutput extends LitElement {
         const type = this.placeholderType || ctrl.selectedType;
         const options = ctrl.getEffectiveOptions();
 
-        const checkoutCtrl = panel.shadowRoot
-            ?.querySelector('mas-ost-checkout-options')
-            ?.checkout;
+        const checkoutCtrl = panel.shadowRoot?.querySelector('mas-ost-checkout-options')?.checkout;
 
-        const osi = type === 'discount' && this.referenceOsi
-            ? `${baseOsi},${this.referenceOsi}`
-            : baseOsi;
+        const osi = type === 'discount' && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
         const parts = [`osi="${osi}"`];
         if (type !== 'price') {
             parts.push(`type="${type}"`);
@@ -123,14 +117,10 @@ export class MasOstCodeOutput extends LitElement {
         const baseOsi = store.selectedOsi;
         const ctrl = panel.placeholderCtrl;
         const type = this.placeholderType || ctrl.selectedType;
-        const osi = type === 'discount' && this.referenceOsi
-            ? `${baseOsi},${this.referenceOsi}`
-            : baseOsi;
+        const osi = type === 'discount' && this.referenceOsi ? `${baseOsi},${this.referenceOsi}` : baseOsi;
         const options = ctrl.serializeOptions();
 
-        const checkoutCtrl = panel.shadowRoot
-            ?.querySelector('mas-ost-checkout-options')
-            ?.checkout;
+        const checkoutCtrl = panel.shadowRoot?.querySelector('mas-ost-checkout-options')?.checkout;
 
         if (checkoutCtrl) {
             options.workflowStep = checkoutCtrl.workflowStep;
@@ -151,10 +141,7 @@ export class MasOstCodeOutput extends LitElement {
         options.marketSegment = store.aosParams.marketSegment || 'COM';
         options.clientId = store.checkoutClientId;
 
-        const promoStatus = computePromoStatus(
-            store.storedPromoOverride,
-            store.promotionCode,
-        );
+        const promoStatus = computePromoStatus(store.storedPromoOverride, store.promotionCode);
 
         let node = this.getRootNode();
         while (node?.host && node.host.tagName !== 'MAS-OST-APP') {
@@ -190,12 +177,7 @@ export class MasOstCodeOutput extends LitElement {
         return html`
             <div class="code-card">
                 <code>${code}</code>
-                <sp-button
-                    variant="accent"
-                    size="s"
-                    ?disabled=${!store.selectedOsi}
-                    @click=${() => this.handleUse()}
-                >
+                <sp-button variant="accent" size="s" ?disabled=${!store.selectedOsi} @click=${() => this.handleUse()}>
                     ${this.buttonText}
                 </sp-button>
             </div>

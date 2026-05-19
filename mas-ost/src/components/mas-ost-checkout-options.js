@@ -2,11 +2,7 @@ import { LitElement, html, css } from 'lit';
 import '@spectrum-web-components/picker/sp-picker.js';
 import '@spectrum-web-components/menu/sp-menu-item.js';
 import '@spectrum-web-components/checkbox/sp-checkbox.js';
-import {
-    WORKFLOW_STEPS,
-    DEFAULT_MODAL_BY_OFFER,
-    CheckoutController,
-} from '../controllers/checkout-controller.js';
+import { WORKFLOW_STEPS, DEFAULT_MODAL_BY_OFFER, CheckoutController } from '../controllers/checkout-controller.js';
 import '@spectrum-web-components/icons-ui/icons/sp-icon-chevron100.js';
 import { store } from '../store/ost-store.js';
 
@@ -98,7 +94,9 @@ export class MasOstCheckoutOptions extends LitElement {
             background: var(--spectrum-white, #fff);
             border: 1px solid var(--spectrum-gray-200);
             border-radius: var(--spectrum-popover-corner-radius, 4px);
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.1);
+            box-shadow:
+                0 1px 4px rgba(0, 0, 0, 0.15),
+                0 8px 20px rgba(0, 0, 0, 0.1);
             z-index: 10;
             margin-top: 4px;
             padding: 6px 0;
@@ -215,29 +213,39 @@ export class MasOstCheckoutOptions extends LitElement {
         const currentCta = ctrl.ctaText || this.defaultCtaText;
         const currentLabel = ctaTexts.find((t) => t.id === currentCta)?.name || currentCta;
         return html`
-            ${ctaTexts.length > 0 ? html`
-                <div class="cta-wrapper">
-                    <div class="cta-label">Choose your CTA text</div>
-                    <button
-                        class="cta-button"
-                        @click=${() => { this.ctaDropdownOpen = !this.ctaDropdownOpen; }}
-                    >
-                        <span class="cta-button-label">${currentLabel}</span>
-                        <sp-icon-chevron100 class="cta-chevron"></sp-icon-chevron100>
-                    </button>
-                    ${this.ctaDropdownOpen ? html`
-                        <div class="cta-dropdown">
-                            ${ctaTexts.map((t) => html`
-                                <div
-                                    class="cta-option"
-                                    ?data-selected=${t.id === currentCta}
-                                    @click=${() => this.selectCta(t.id)}
-                                >${t.name}</div>
-                            `)}
-                        </div>
-                    ` : ''}
-                </div>
-            ` : ''}
+            ${ctaTexts.length > 0
+                ? html`
+                      <div class="cta-wrapper">
+                          <div class="cta-label">Choose your CTA text</div>
+                          <button
+                              class="cta-button"
+                              @click=${() => {
+                                  this.ctaDropdownOpen = !this.ctaDropdownOpen;
+                              }}
+                          >
+                              <span class="cta-button-label">${currentLabel}</span>
+                              <sp-icon-chevron100 class="cta-chevron"></sp-icon-chevron100>
+                          </button>
+                          ${this.ctaDropdownOpen
+                              ? html`
+                                    <div class="cta-dropdown">
+                                        ${ctaTexts.map(
+                                            (t) => html`
+                                                <div
+                                                    class="cta-option"
+                                                    ?data-selected=${t.id === currentCta}
+                                                    @click=${() => this.selectCta(t.id)}
+                                                >
+                                                    ${t.name}
+                                                </div>
+                                            `,
+                                        )}
+                                    </div>
+                                `
+                              : ''}
+                      </div>
+                  `
+                : ''}
 
             <div class="workflow-picker">
                 <sp-picker
@@ -246,12 +254,7 @@ export class MasOstCheckoutOptions extends LitElement {
                     ?disabled=${ctrl.enableModal}
                     @change=${(e) => ctrl.setWorkflowStep(e.target.value)}
                 >
-                    ${this.workflowSteps.map(
-                        (s) =>
-                            html`<sp-menu-item value=${s.id}
-                                >${s.name}</sp-menu-item
-                            >`,
-                    )}
+                    ${this.workflowSteps.map((s) => html`<sp-menu-item value=${s.id}>${s.name}</sp-menu-item>`)}
                 </sp-picker>
             </div>
 
@@ -261,9 +264,7 @@ export class MasOstCheckoutOptions extends LitElement {
                     ctrl.toggleModal(e.target.checked);
                     if (e.target.checked) {
                         const offerType = store.selectedOffer?.offer_type;
-                        ctrl.setModalType(
-                            DEFAULT_MODAL_BY_OFFER[offerType] || 'd2p',
-                        );
+                        ctrl.setModalType(DEFAULT_MODAL_BY_OFFER[offerType] || 'd2p');
                     }
                 }}
             >
@@ -272,39 +273,23 @@ export class MasOstCheckoutOptions extends LitElement {
 
             ${ctrl.enableModal
                 ? html`
-                      <sp-picker
-                          label="Modal Type"
-                          value=${ctrl.modalType}
-                          @change=${(e) => ctrl.setModalType(e.target.value)}
-                      >
-                          ${this.modalTypes.map(
-                              (m) =>
-                                  html`<sp-menu-item value=${m.id}
-                                      >${m.name}</sp-menu-item
-                                  >`,
-                          )}
+                      <sp-picker label="Modal Type" value=${ctrl.modalType} @change=${(e) => ctrl.setModalType(e.target.value)}>
+                          ${this.modalTypes.map((m) => html`<sp-menu-item value=${m.id}>${m.name}</sp-menu-item>`)}
                       </sp-picker>
                   `
                 : ''}
 
-            <sp-checkbox
-                ?checked=${ctrl.entitlement}
-                @change=${(e) => ctrl.toggleEntitlement(e.target.checked)}
-            >
+            <sp-checkbox ?checked=${ctrl.entitlement} @change=${(e) => ctrl.toggleEntitlement(e.target.checked)}>
                 Enable Entitlements
             </sp-checkbox>
 
-            <sp-checkbox
-                ?checked=${ctrl.upgrade}
-                @change=${(e) => ctrl.toggleUpgrade(e.target.checked)}
-            >
+            <sp-checkbox ?checked=${ctrl.upgrade} @change=${(e) => ctrl.toggleUpgrade(e.target.checked)}>
                 Enable Upgrade
             </sp-checkbox>
 
             <span class="info-text">
-                Entitlement/Upgrade features will show a Download/Upgrade button
-                to logged-in eligible users. Both can be combined with Modal
-                feature or Checkout Link.
+                Entitlement/Upgrade features will show a Download/Upgrade button to logged-in eligible users. Both can be
+                combined with Modal feature or Checkout Link.
             </span>
         `;
     }

@@ -3,10 +3,7 @@ import '@spectrum-web-components/badge/sp-badge.js';
 import '@spectrum-web-components/action-button/sp-action-button.js';
 import '@spectrum-web-components/textfield/sp-textfield.js';
 import { store } from '../store/ost-store.js';
-import {
-    computePromoStatus,
-    PROMO_CONTEXT_CANCEL_VALUE,
-} from '../utils/promo-status.js';
+import { computePromoStatus, PROMO_CONTEXT_CANCEL_VALUE } from '../utils/promo-status.js';
 
 export class MasOstPromoTag extends LitElement {
     static styles = css`
@@ -55,10 +52,7 @@ export class MasOstPromoTag extends LitElement {
     }
 
     get status() {
-        return computePromoStatus(
-            store.storedPromoOverride,
-            store.promotionCode,
-        );
+        return computePromoStatus(store.storedPromoOverride, store.promotionCode);
     }
 
     render() {
@@ -70,16 +64,10 @@ export class MasOstPromoTag extends LitElement {
                 <sp-textfield
                     label="Override"
                     size="s"
-                    value=${store.storedPromoOverride === PROMO_CONTEXT_CANCEL_VALUE ? '' : (store.storedPromoOverride || '')}
+                    value=${store.storedPromoOverride === PROMO_CONTEXT_CANCEL_VALUE ? '' : store.storedPromoOverride || ''}
                     @input=${(e) => store.setPromoCode(e.target.value)}
                 ></sp-textfield>
-                <sp-action-button
-                    quiet
-                    size="s"
-                    @click=${() => store.setPromoCode(undefined)}
-                >
-                    Clear
-                </sp-action-button>
+                <sp-action-button quiet size="s" @click=${() => store.setPromoCode(undefined)}> Clear </sp-action-button>
             </div>
         `;
     }

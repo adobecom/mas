@@ -50,8 +50,7 @@ export class SearchController {
                 env: store.env,
             };
             const result = await getOfferSelector(osi, config);
-            const code = result?.product_arrangement_code
-                || result?.arrangement_code;
+            const code = result?.product_arrangement_code || result?.arrangement_code;
             if (code) {
                 this.selectProductByCode(code);
                 store.setOsi(osi);
@@ -78,9 +77,7 @@ export class SearchController {
                 store.setSearch(code, 'product');
                 store.setAosParams({
                     customerSegment: offer.customer_segment,
-                    marketSegment: Array.isArray(offer.market_segments)
-                        ? offer.market_segments[0]
-                        : offer.market_segment,
+                    marketSegment: Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segment,
                     offerType: offer.offer_type,
                     commitment: offer.commitment,
                     term: offer.term,

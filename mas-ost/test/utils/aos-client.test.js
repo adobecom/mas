@@ -73,30 +73,21 @@ describe('aos-client', () => {
 
         it('uses stage base URL for STAGE env', async () => {
             fetchResponse = [];
-            await searchOffers(
-                { arrangementCode: ['test'] },
-                { env: 'STAGE', apiKey: 'k' },
-            );
+            await searchOffers({ arrangementCode: ['test'] }, { env: 'STAGE', apiKey: 'k' });
 
             expect(fetchCalls[0].url).to.include('https://aos-stage.adobe.io/offers?');
         });
 
         it('uses custom baseUrl when provided', async () => {
             fetchResponse = [];
-            await searchOffers(
-                { arrangementCode: ['test'] },
-                { baseUrl: 'https://custom.example.com', apiKey: 'k' },
-            );
+            await searchOffers({ arrangementCode: ['test'] }, { baseUrl: 'https://custom.example.com', apiKey: 'k' });
 
             expect(fetchCalls[0].url).to.include('https://custom.example.com/offers?');
         });
 
         it('omits undefined params from URL', async () => {
             fetchResponse = [];
-            await searchOffers(
-                { arrangementCode: ['test'], language: undefined },
-                { apiKey: 'k', env: 'PRODUCTION' },
-            );
+            await searchOffers({ arrangementCode: ['test'], language: undefined }, { apiKey: 'k', env: 'PRODUCTION' });
 
             expect(fetchCalls[0].url).not.to.include('language=');
         });

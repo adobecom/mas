@@ -55,9 +55,7 @@ export async function searchOffers(params, config) {
     } = config;
 
     const queryParams = {
-        arrangement_code: Array.isArray(arrangementCode)
-            ? arrangementCode.join(',')
-            : arrangementCode,
+        arrangement_code: Array.isArray(arrangementCode) ? arrangementCode.join(',') : arrangementCode,
         buying_program: buyingProgram,
         commitment,
         country,
@@ -66,13 +64,9 @@ export async function searchOffers(params, config) {
         market_segment: marketSegment,
         merchant,
         offer_type: offerType,
-        price_point: Array.isArray(pricePoint)
-            ? pricePoint.join(',')
-            : pricePoint,
+        price_point: Array.isArray(pricePoint) ? pricePoint.join(',') : pricePoint,
         sales_channel: salesChannel,
-        service_providers: Array.isArray(serviceProviders)
-            ? serviceProviders.join(',')
-            : serviceProviders,
+        service_providers: Array.isArray(serviceProviders) ? serviceProviders.join(',') : serviceProviders,
         term,
         api_key: apiKey,
         environment,
@@ -91,9 +85,7 @@ export async function searchOffers(params, config) {
 
     if (!response.ok) {
         const message = await response.text();
-        throw new Error(
-            `AOS searchOffers failed (${response.status}): ${message}`,
-        );
+        throw new Error(`AOS searchOffers failed (${response.status}): ${message}`);
     }
 
     const json = await response.json();
@@ -101,14 +93,7 @@ export async function searchOffers(params, config) {
 }
 
 export async function getOfferById(offerId, country, config) {
-    const {
-        accessToken,
-        apiKey,
-        baseUrl,
-        env = 'PRODUCTION',
-        environment = 'PRODUCTION',
-        landscape = 'PUBLISHED',
-    } = config;
+    const { accessToken, apiKey, baseUrl, env = 'PRODUCTION', environment = 'PRODUCTION', landscape = 'PUBLISHED' } = config;
 
     const base = getBaseUrl(env, baseUrl);
     const queryParams = {
@@ -127,21 +112,14 @@ export async function getOfferById(offerId, country, config) {
 
     if (!response.ok) {
         const message = await response.text();
-        throw new Error(
-            `AOS getOfferById failed (${response.status}): ${message}`,
-        );
+        throw new Error(`AOS getOfferById failed (${response.status}): ${message}`);
     }
 
     return response.json();
 }
 
 export async function getOfferSelector(id, config) {
-    const {
-        accessToken,
-        apiKey,
-        baseUrl,
-        env = 'PRODUCTION',
-    } = config;
+    const { accessToken, apiKey, baseUrl, env = 'PRODUCTION' } = config;
 
     const base = getBaseUrl(env, baseUrl);
     const queryParams = { api_key: apiKey };
@@ -154,9 +132,7 @@ export async function getOfferSelector(id, config) {
 
     if (!response.ok) {
         const message = await response.text();
-        throw new Error(
-            `AOS getOfferSelector failed (${response.status}): ${message}`,
-        );
+        throw new Error(`AOS getOfferSelector failed (${response.status}): ${message}`);
     }
 
     return response.json();
@@ -170,25 +146,20 @@ export async function resolveOfferSelector(offer, config) {
         commitment: offer.commitment,
         term: offer.term,
         customer_segment: offer.customer_segment,
-        market_segment: Array.isArray(offer.market_segments)
-            ? offer.market_segments[0]
-            : offer.market_segments,
+        market_segment: Array.isArray(offer.market_segments) ? offer.market_segments[0] : offer.market_segments,
         sales_channel: offer.sales_channel,
         offer_type: offer.offer_type,
         price_point: offer.price_point,
         merchant: offer.merchant,
     };
-    const { data: { id } } = await createOfferSelector(params, config);
+    const {
+        data: { id },
+    } = await createOfferSelector(params, config);
     return id;
 }
 
 export async function createOfferSelector(params, config) {
-    const {
-        accessToken,
-        apiKey,
-        baseUrl,
-        env = 'PRODUCTION',
-    } = config;
+    const { accessToken, apiKey, baseUrl, env = 'PRODUCTION' } = config;
 
     const base = getBaseUrl(env, baseUrl);
     const queryParams = { api_key: apiKey };
@@ -206,9 +177,7 @@ export async function createOfferSelector(params, config) {
 
     if (!response.ok) {
         const message = await response.text();
-        throw new Error(
-            `AOS createOfferSelector failed (${response.status}): ${message}`,
-        );
+        throw new Error(`AOS createOfferSelector failed (${response.status}): ${message}`);
     }
 
     const json = await response.json();

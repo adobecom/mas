@@ -3,6 +3,21 @@ import '../../src/components/mas-ost-app.js';
 import { store } from '../../src/store/ost-store.js';
 
 describe('mas-ost-app', () => {
+    function enterOffersState() {
+        store.flowChosen = true;
+        store.authoringFlow = 'single';
+        store.selectedProduct = undefined;
+        store.selectedOffer = undefined;
+        store.notify();
+    }
+
+    function enterWelcomeState() {
+        store.flowChosen = false;
+        store.selectedProduct = undefined;
+        store.selectedOffer = undefined;
+        store.notify();
+    }
+
     it('renders sp-theme with correct attributes', async () => {
         const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
         const theme = el.shadowRoot.querySelector('sp-theme');
@@ -22,6 +37,8 @@ describe('mas-ost-app', () => {
 
     it('renders left and right panels', async () => {
         const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
+        enterOffersState();
+        await el.updateComplete;
         const leftPanel = el.shadowRoot.querySelector('.ost-left-panel');
         const rightPanel = el.shadowRoot.querySelector('.ost-right-panel');
         expect(leftPanel).to.exist;
@@ -30,6 +47,8 @@ describe('mas-ost-app', () => {
 
     it('renders child component slots in correct panels', async () => {
         const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
+        enterOffersState();
+        await el.updateComplete;
         const left = el.shadowRoot.querySelector('.ost-left-panel');
         const headerBar = el.shadowRoot.querySelector('.ost-header-bar');
         expect(headerBar.querySelector('mas-ost-country-picker')).to.exist;
@@ -39,6 +58,7 @@ describe('mas-ost-app', () => {
     });
 
     it('renders welcome screen when no product is selected', async () => {
+        enterWelcomeState();
         const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
         const welcomeScreen = el.shadowRoot.querySelector('mas-ost-welcome-screen');
         expect(welcomeScreen).to.exist;
@@ -46,6 +66,8 @@ describe('mas-ost-app', () => {
 
     it('renders header and footer bars', async () => {
         const el = await fixture(html`<mas-ost-app></mas-ost-app>`);
+        enterOffersState();
+        await el.updateComplete;
         expect(el.shadowRoot.querySelector('.ost-header-bar')).to.exist;
         expect(el.shadowRoot.querySelector('.ost-footer-bar')).to.exist;
         expect(el.shadowRoot.querySelector('.ost-title').textContent).to.equal('Offer Selector Tool');

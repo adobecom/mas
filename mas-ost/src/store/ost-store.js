@@ -60,7 +60,7 @@ export class OstStore extends EventTarget {
     authoringFlow = 'single';
     flowChosen = false;
     selectedOffers = [];
-    currentSlot = 'trial';
+    currentSlot = 'base';
     pendingFlowSwitch = null;
     promotionCode = undefined;
     storedPromoOverride = undefined;
@@ -151,7 +151,7 @@ export class OstStore extends EventTarget {
         this.authoringFlow = 'single';
         this.flowChosen = false;
         this.selectedOffers = [];
-        this.currentSlot = 'trial';
+        this.currentSlot = 'base';
         this.pendingFlowSwitch = null;
         this.offers = [];
         this.searchQuery = '';
@@ -275,7 +275,7 @@ export class OstStore extends EventTarget {
         }
         this.authoringFlow = flow;
         this.flowChosen = true;
-        this.currentSlot = 'trial';
+        this.currentSlot = 'base';
         this.selectedOffers = [];
 
         if (keepSelections && previousOffers.length > 0) {
@@ -316,8 +316,8 @@ export class OstStore extends EventTarget {
             const targetRole = role || this.currentSlot;
             this.selectedOffers = this.selectedOffers.filter((o) => o.role !== targetRole);
             this.selectedOffers.push({ offer, osi, role: targetRole });
-            if (targetRole === 'trial' && this.currentSlot === 'trial') {
-                this.currentSlot = 'base';
+            if (targetRole === 'base' && this.currentSlot === 'base') {
+                this.currentSlot = 'trial';
             }
             this.notify();
             return;

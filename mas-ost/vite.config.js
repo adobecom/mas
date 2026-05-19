@@ -10,12 +10,12 @@ function safeDefinePlugin() {
                 // Guard all customElements.define calls
                 let result = code.replace(
                     /customElements\.define\((['"])([^'"]+)\1,\s*(\w+)\)/g,
-                    '(customElements.get($1$2$1)||customElements.define($1$2$1,$3))'
+                    '(customElements.get($1$2$1)||customElements.define($1$2$1,$3))',
                 );
                 // Guard variable names: customElements.define(e,t)
                 result = result.replace(
                     /customElements\.define\((\w+),\s*(\w+)\)/g,
-                    '(customElements.get($1)||customElements.define($1,$2))'
+                    '(customElements.get($1)||customElements.define($1,$2))',
                 );
                 return result !== code ? result : null;
             }
@@ -36,12 +36,12 @@ function safeDefineEsbuildPlugin() {
                     // Guard string-literal names
                     contents = contents.replace(
                         /customElements\.define\("([^"]+)",\s*(\w+)\)/g,
-                        '(customElements.get("$1") || customElements.define("$1", $2))'
+                        '(customElements.get("$1") || customElements.define("$1", $2))',
                     );
                     // Guard variable names (defineElement helper)
                     contents = contents.replace(
                         /customElements\.define\((\w+),\s*(\w+)\)/g,
-                        '(customElements.get($1) || customElements.define($1, $2))'
+                        '(customElements.get($1) || customElements.define($1, $2))',
                     );
                 }
                 return { contents, loader: 'js' };
@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => {
                 entry: resolve(__dirname, isGlobal ? 'src/global.js' : 'src/index.js'),
                 name: isGlobal ? 'ost' : 'MasOst',
                 formats: isGlobal ? ['iife'] : ['es'],
-                fileName: (format) => isGlobal ? 'mas-ost.iife.js' : 'mas-ost.es.js',
+                fileName: (format) => (isGlobal ? 'mas-ost.iife.js' : 'mas-ost.es.js'),
             },
             outDir: 'dist',
             emptyOutDir: !isGlobal,

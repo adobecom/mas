@@ -5,7 +5,7 @@
 if (!window.__masOstSafeDefine) {
     window.__masOstSafeDefine = true;
     const origDefine = CustomElementRegistry.prototype.define;
-    CustomElementRegistry.prototype.define = function(name, ctor, options) {
+    CustomElementRegistry.prototype.define = function (name, ctor, options) {
         if (this.get(name)) return;
         return origDefine.call(this, name, ctor, options);
     };
@@ -15,7 +15,7 @@ if (!window.__masOstSafeDefine) {
 // sp-picker's strategy constructor accesses button.ownerDocument during
 // firstUpdated(), but the #button query returns null in this context.
 // This is non-fatal — the picker retries on the next update cycle.
-window.addEventListener('error', function(e) {
+window.addEventListener('error', function (e) {
     if (e.message && e.message.includes("reading 'ownerDocument'")) {
         e.preventDefault();
     }
@@ -24,6 +24,6 @@ window.addEventListener('error', function(e) {
 // Debug marker and error catcher
 window.__masOstLoading = true;
 window.__masOstErrors = [];
-window.addEventListener('error', function(e) {
+window.addEventListener('error', function (e) {
     window.__masOstErrors.push(e.message + ' at ' + (e.filename || '').split('/').pop() + ':' + e.lineno);
 });

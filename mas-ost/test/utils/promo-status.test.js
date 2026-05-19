@@ -1,8 +1,5 @@
 import { expect } from '@open-wc/testing';
-import {
-    computePromoStatus,
-    PROMO_CONTEXT_CANCEL_VALUE,
-} from '../../src/utils/promo-status.js';
+import { computePromoStatus, PROMO_CONTEXT_CANCEL_VALUE } from '../../src/utils/promo-status.js';
 
 describe('PROMO_CONTEXT_CANCEL_VALUE', () => {
     it('equals cancel-context', () => {

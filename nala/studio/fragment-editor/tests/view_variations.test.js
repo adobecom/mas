@@ -38,8 +38,9 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
             await expect(focusedParentRow).toBeVisible({ timeout: 15000 });
         });
 
-        await test.step('step-6: Verify variation rows are nested inside the parent', async () => {
-            await expect(studio.regionalVariationsTable(data.parentCardId)).toBeVisible({ timeout: 15000 });
+        await test.step('step-6: Verify variations panel rendered inside the parent', async () => {
+            await expect(studio.localeVariationsTabPanel(data.parentCardId)).toBeVisible({ timeout: 15000 });
+            await expect(studio.regionalVariationsTable(data.parentCardId).first()).toBeVisible({ timeout: 15000 });
         });
     });
 
@@ -61,7 +62,7 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
             await expect(editor.panel).toBeVisible({ timeout: 15000 });
         });
 
-        await test.step('step-3: Switch locale to TR to open the variation in the editor', async () => {
+        await test.step('step-3: Switch locale to open the variation in the editor', async () => {
             await expect(studio.localePicker).toBeVisible();
             await expect(studio.localePicker).toHaveAttribute('value', data.defaultLocale);
             await studio.selectLocale(data.variationLocalePicker);
@@ -84,8 +85,9 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
             await expect(focusedParentRow).toBeVisible({ timeout: 15000 });
         });
 
-        await test.step('step-7: Verify variation rows are nested inside the parent', async () => {
-            await expect(studio.regionalVariationsTable(data.parentCardId)).toBeVisible({ timeout: 15000 });
+        await test.step('step-7: Verify variations panel rendered inside the parent', async () => {
+            await expect(studio.localeVariationsTabPanel(data.parentCardId)).toBeVisible({ timeout: 15000 });
+            await expect(studio.regionalVariationsTable(data.parentCardId).first()).toBeVisible({ timeout: 15000 });
         });
     });
 
@@ -152,12 +154,14 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
             await expect(focusedParentRow).toBeVisible({ timeout: 30000 });
         });
 
-        await test.step('step-3: Verify variation rows are nested inside the parent', async () => {
-            await expect(studio.regionalVariationsTable(data.parentCardId)).toBeVisible({ timeout: 15000 });
+        await test.step('step-3: Verify URL hash retains query=<parentCardId>', async () => {
+            await expect(page).toHaveURL(new RegExp(`query=${data.parentCardId}`));
         });
 
-        await test.step('step-4: Verify URL hash retains query=<parentCardId>', async () => {
-            await expect(page).toHaveURL(new RegExp(`query=${data.parentCardId}`));
+        await test.step('step-4: Expand the parent row and verify variations panel rendered', async () => {
+            await focusedParentRow.click();
+            await expect(studio.localeVariationsTabPanel(data.parentCardId)).toBeVisible({ timeout: 15000 });
+            await expect(studio.regionalVariationsTable(data.parentCardId).first()).toBeVisible({ timeout: 15000 });
         });
     });
 
@@ -172,13 +176,14 @@ test.describe('M@S Studio View Variations Navigation test suite', () => {
             await page.waitForLoadState('domcontentloaded');
         });
 
-        await test.step('step-2: Verify empty-state message renders', async () => {
-            await expect(page.getByText('No fragment found', { exact: false })).toBeVisible({ timeout: 30000 });
+        await test.step('step-2: Verify search field shows the UUID and URL hash retains it', async () => {
+            await expect(studio.searchInput).toBeVisible({ timeout: 15000 });
+            await expect(studio.searchInput).toHaveValue(data.unreachableId);
+            await expect(page).toHaveURL(new RegExp(`query=${data.unreachableId}`));
         });
 
-        await test.step('step-3: Verify search field still shows the UUID', async () => {
-            await expect(studio.searchInput).toBeVisible({ timeout: 10000 });
-            await expect(studio.searchInput).toHaveValue(data.unreachableId);
+        await test.step('step-3: Verify no fragment rows render for the unreachable id', async () => {
+            await expect(page.locator(`.mas-fragment[data-id="${data.unreachableId}"]`)).toHaveCount(0);
         });
 
         await test.step('step-4: Clear the toolbar search and verify URL query is removed', async () => {

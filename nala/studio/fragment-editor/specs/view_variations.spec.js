@@ -17,8 +17,8 @@ export default {
             path: '/studio.html',
             data: {
                 parentCardId: 'd7393fa0-f1f0-457c-af4b-aa9dc3fa1017',
-                variationLocale: 'tr_TR',
-                variationLocalePicker: 'Turkish (TR)',
+                variationLocale: 'en_IE',
+                variationLocalePicker: 'English (IE)',
                 defaultLocale: 'en_US',
             },
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',

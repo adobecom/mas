@@ -7,7 +7,10 @@ export default {
     testRunnerHtml: (testFramework) =>
         `<html>
             <body>
-                <script>window.process = { env: { NODE_ENV: 'production' } };</script>
+                <script>
+                    window.process = { env: { NODE_ENV: 'production' } };
+                    window.__swc = window.__swc || {};
+                </script>
                 <script type="module" src="${testFramework}"></script>
             </body>
         </html>`,

@@ -438,7 +438,7 @@ describe('Router', () => {
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
             expect(Store.fragmentEditor.fragmentId.get()).to.be.null;
         });
-        //
+
         it('should clear translation project data when leaving translation editor', async () => {
             Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
             Store.translationProjects.translationProjectId.set('test-id');

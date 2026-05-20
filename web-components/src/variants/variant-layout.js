@@ -119,7 +119,15 @@ export class VariantLayout {
     }
 
     async postCardUpdateHook() {
-        //nothing to do by default
+        if (!this.card.isConnected) return;
+        await this.card.updateComplete;
+        if (this.card.prices?.length > 0) {
+            await Promise.allSettled(
+                this.card.prices.map(
+                    (price) => price.onceSettled?.() || Promise.resolve(),
+                ),
+            );
+        }
     }
 
     connectedCallbackHook() {

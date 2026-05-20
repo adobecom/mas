@@ -23,6 +23,7 @@ export class Mini extends VariantLayout {
     async postCardUpdateHook() {
         await this.card.updateComplete;
         this.adjustLegal();
+        await super.postCardUpdateHook();
     }
 
     getGlobalCSS() {

@@ -28,6 +28,7 @@ export class Media extends VariantLayout {
 
     async postCardUpdateHook() {
         this.removeFocusFromModalClose();
+        await super.postCardUpdateHook();
     }
 
     renderLayout() {

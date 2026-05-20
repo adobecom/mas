@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
-import { computePromoStatus } from '../utils/promo-status.js';
+import { computePromoStatus } from '@dexter/tacocat-core/src/promotion.js';
 
 export class OstCodeOutput extends LitElement {
     static properties = {

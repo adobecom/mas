@@ -1,6 +1,6 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import { store } from '../../src/store/ost-store.js';
-import { PROMO_CONTEXT_CANCEL_VALUE } from '../../src/utils/promo-status.js';
+import { PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core/src/promotion.js';
 import '../../src/components/ost-promo-tag.js';
 
 describe('ost-promo-tag', () => {

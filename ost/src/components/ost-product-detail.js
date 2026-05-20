@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { store } from '../store/ost-store.js';
-import { applyPlanType } from '../utils/plan-types.js';
+import { applyPlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
 import { searchOffers, createOfferSelector, resolveOfferSelector } from '../utils/aos-client.js';
 import './ost-offer-card.js';
 import './ost-help-icon.js';

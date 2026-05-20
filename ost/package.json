@@ -22,6 +22,7 @@
         "lint": "eslint src/"
     },
     "dependencies": {
+        "@dexter/tacocat-core": "^1.13.0",
         "lit": "^3.1.0",
         "@spectrum-web-components/theme": "^1.0.0",
         "@spectrum-web-components/button": "^1.0.0",

@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
-import { computePromoStatus, PROMO_CONTEXT_CANCEL_VALUE } from '../utils/promo-status.js';
+import { computePromoStatus, PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core/src/promotion.js';
 
 export class OstPromoTag extends LitElement {
     static styles = css`

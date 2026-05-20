@@ -9,7 +9,7 @@ export default {
             data: {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -19,7 +19,7 @@ export default {
             data: {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -29,7 +29,7 @@ export default {
             data: {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -43,7 +43,7 @@ export default {
                     updated: 'Change title',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -57,7 +57,7 @@ export default {
                     updated: 'Change badge',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -71,7 +71,7 @@ export default {
                     updated: 'New Test Description',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -85,7 +85,7 @@ export default {
                     updated: 'https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -99,7 +99,7 @@ export default {
                     updated: 'New callout text',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -113,7 +113,7 @@ export default {
                     updated: 'New Promo Text',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -133,7 +133,7 @@ export default {
                 },
                 legalText: 'per license',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -159,7 +159,7 @@ export default {
                     },
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -169,7 +169,7 @@ export default {
             data: {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit @nopr',
         },
 
@@ -188,7 +188,7 @@ export default {
                     updated: '2',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -203,7 +203,7 @@ export default {
                     iconLabel: 'Photoshop icon',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -221,7 +221,7 @@ export default {
                     updated: 'rgb(5, 131, 78)',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -239,7 +239,7 @@ export default {
                     updated: 'rgb(5, 131, 78)',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -257,7 +257,7 @@ export default {
                     updated: 'rgb(218, 218, 218)',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -271,7 +271,7 @@ export default {
                     updated: 'testpromo',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -284,7 +284,7 @@ export default {
                 promoCode: 'UMRM2MUSPr501YOC',
                 uptLinkUrl: 'https://www.adobe.com/offers/promo-terms.html',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -310,7 +310,7 @@ export default {
                     },
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -326,7 +326,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -356,7 +356,7 @@ export default {
                     promo: 'UMRM2MUSPr501YOC',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -371,7 +371,7 @@ export default {
                     updated: 'Buy now 2',
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -390,7 +390,7 @@ export default {
                 lang: 'en',
                 client: 'adobe_com',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -406,7 +406,7 @@ export default {
                 legalDisclaimer: 'per licenseAnnual, billed monthly',
                 cardLegalDisclaimer: 'per license',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -425,7 +425,7 @@ export default {
                     },
                 },
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
         {
@@ -436,7 +436,7 @@ export default {
                 cardid: '45e50a68-9bd7-4fc2-9665-12f39140a1be',
                 phoneNumber: '1234567890',
             },
-            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-edit @acom-plans @acom-plans-edit @acom-plans-individuals @acom-plans-individuals-edit',
         },
     ],

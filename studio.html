@@ -71,17 +71,9 @@
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 
-        <!-- OST: load legacy tacocat bundle by default; ?ost=new or #ost=new opts into the new Spectrum 2 Lit build. -->
-        <script>
-            (function () {
-                const search = new URLSearchParams(location.search).get('ost');
-                const hash = (location.hash.match(/(?:^#|&)ost=([^&]+)/) || [])[1];
-                const useNew = (search || hash) === 'new';
-                const base = useNew ? 'studio/ost' : 'studio/ost-legacy';
-                document.write(`<script src="${base}/index.js" defer><\/script>`);
-                document.write(`<link rel="stylesheet" href="./${base}/index.css" />`);
-            })();
-        </script>
+        <!-- OST -->
+        <script src="studio/ost/index.js" defer></script>
+        <link rel="stylesheet" href="./studio/ost/index.css" />
         <link rel="stylesheet" href="studio/libs/spectrum.css" />
         <link rel="stylesheet" href="./studio/style.css" />
         <link rel="stylesheet" href="./studio/merch-card.css" />

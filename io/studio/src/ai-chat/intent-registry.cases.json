@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "id": "slug-fabrication-from-titles",
+      "intent_under_test": "ASK_USER",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": []
+      },
+      "conversationHistory": [
+        { "role": "user", "content": "show me the firefly essentials cards" },
+        { "role": "assistant", "content": "I found 2 Firefly Essentials cards: Firefly Essentials - Plans and Firefly Essentials - Catalog" }
+      ],
+      "user_message": "update the description of both to \"X\"",
+      "expect": {
+        "intent": "ASK_USER",
+        "clarification_question_includes": "search"
+      }
+    },
+    {
+      "id": "update-verb-with-card-noun",
+      "intent_under_test": "ASK_USER",
+      "context": { "flow": null, "lastOperation": null, "workingSet": [] },
+      "user_message": "update the description of the 2 cards to \"testing testing\"",
+      "expect": {
+        "intent": "ASK_USER",
+        "clarification_question_includes": "search"
+      }
+    },
+    {
+      "id": "create-flow-search-drift",
+      "intent_under_test": "release_create.set_commitment",
+      "context": {
+        "flow": { "active": "release_create", "step": "awaiting_commitment" }
+      },
+      "user_message": "Annual, billed monthly",
+      "expect": {
+        "intent": "release_create.set_commitment",
+        "slots_include": { "commitment": "YEAR", "term": "MONTHLY" }
+      }
+    },
+    {
+      "id": "quoted-value-in-update-not-title-search",
+      "intent_under_test": "ASK_USER",
+      "context": { "flow": null, "lastOperation": null, "workingSet": [] },
+      "user_message": "change the description to \"testing testing\"",
+      "expect": {
+        "intent": "ASK_USER",
+        "clarification_question_includes": "card"
+      }
+    }
+  ]
+}

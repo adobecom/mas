@@ -16,7 +16,86 @@
  *   confirmation_template string|null — Mustache-style; required if category === 'state-changing'
  */
 
-export const INTENTS = [];
+export const INTENTS = [
+    // ===== Card CRUD =====
+    {
+        name: 'get_card',
+        category: 'read-only',
+        description: 'Fetch a single card by UUID.',
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: 'get_card',
+        confirmation_template: null,
+    },
+    {
+        name: 'search_cards',
+        category: 'read-only',
+        description: 'Search the AEM Content Fragment catalog for cards.',
+        required_slots: [],
+        optional_slots: ['query', 'titleSearch', 'surface', 'locale', 'tags', 'osi', 'limit', 'offset'],
+        slot_validators: {
+            query: 'string',
+            titleSearch: 'boolean',
+            surface: 'surface',
+            locale: 'locale',
+            tags: 'string[]',
+            osi: 'osi',
+        },
+        tool_target: 'search_cards',
+        confirmation_template: null,
+    },
+    {
+        name: 'publish_card',
+        category: 'state-changing',
+        description: 'Publish a single card to production.',
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: 'publish_card',
+        confirmation_template: 'Publish card {{id}} to production?',
+    },
+    {
+        name: 'unpublish_card',
+        category: 'state-changing',
+        description: 'Unpublish a single card.',
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: 'unpublish_card',
+        confirmation_template: 'Unpublish card {{id}}?',
+    },
+    {
+        name: 'update_card',
+        category: 'state-changing',
+        description: 'Update fields of a single card.',
+        required_slots: ['id', 'updates'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: 'update_card',
+        confirmation_template: 'Update card {{id}}?',
+    },
+    {
+        name: 'delete_card',
+        category: 'state-changing',
+        description: 'Permanently delete a card.',
+        required_slots: ['id'],
+        optional_slots: [],
+        slot_validators: { id: 'uuid' },
+        tool_target: 'delete_card',
+        confirmation_template: 'PERMANENTLY delete card {{id}}? This cannot be undone.',
+    },
+    {
+        name: 'copy_card',
+        category: 'state-changing',
+        description: 'Duplicate a card.',
+        required_slots: ['id'],
+        optional_slots: ['parentPath', 'title'],
+        slot_validators: { id: 'uuid', parentPath: 'string', title: 'string' },
+        tool_target: 'copy_card',
+        confirmation_template: 'Duplicate card {{id}}?',
+    },
+];
 
 /**
  * Multi-step flows are declared separately. Each flow has a name and an

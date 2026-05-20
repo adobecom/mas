@@ -14,25 +14,26 @@ export class OstPlaceholderOptions extends LitElement {
     static styles = css`
         :host {
             font-family: inherit;
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            column-gap: 16px;
         }
 
         .option-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            height: 40px;
+            height: 32px;
             padding: 0 12px;
             border-bottom: 1px solid var(--spectrum-gray-100);
         }
 
-        .option-row:last-child {
+        .option-row:nth-last-child(-n + 2) {
             border-bottom: none;
         }
 
         .option-label {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--spectrum-gray-800);
         }
     `;

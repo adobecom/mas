@@ -15,6 +15,7 @@ import {
     buildReleaseTags,
 } from './utils/ai-card-mapper.js';
 import { shouldRequireConfirmation } from './utils/ai-operations-executor.js';
+import { classifyEnvelopeIntent, renderConfirmationTemplate, META_INTENTS } from './utils/ai-chat-envelope-dispatcher.js';
 import {
     getProductName,
     extractCardTitle,
@@ -508,6 +509,19 @@ export class MasChat extends LitElement {
                 intentHint: enrichedContext.intentHint || null,
             });
 
+            // Envelope-first dispatcher (Stage 3.2). When the backend
+            // returned an envelope (always, since Stage 3.1), prefer it
+            // over the legacy `response.type` switch. If the envelope path
+            // throws or chooses to defer, fall back to the old switch
+            // below so a one-release-cycle rollback is always available.
+            const envelopeHandled = await this.tryDispatchEnvelope(response, message);
+            if (envelopeHandled) {
+                if (response.conversationHistory) {
+                    this.conversationHistory = response.conversationHistory;
+                }
+                return;
+            }
+
             // If the assistant resolved into a terminal action (operation,
             // card creation, plain message), the guided flow has completed —
             // clear the sticky intent so subsequent turns are classified
@@ -785,6 +799,166 @@ export class MasChat extends LitElement {
         } finally {
             this.isLoading = false;
         }
+    }
+
+    /**
+     * Envelope-first dispatcher (Stage 3.2).
+     *
+     * Reads `response.envelope` and routes meta / read-only / state-changing
+     * intents directly. Returns true when handled (caller skips the legacy
+     * `response.type` switch). Returns false when the envelope is absent OR
+     * the intent should be handled by the existing type-based switch (guided
+     * steps, release_confirmation, release_cards, draft card creation —
+     * these have rich UI integrations that still live in the old switch).
+     *
+     * Any exception inside this method is logged and we return false so the
+     * old path runs as a safety net.
+     */
+    async tryDispatchEnvelope(response, originalMessage) {
+        if (!response || typeof response !== 'object') return false;
+        const envelope = response.envelope;
+        if (!envelope || typeof envelope !== 'object' || typeof envelope.intent !== 'string') {
+            return false;
+        }
+        try {
+            const category = classifyEnvelopeIntent(envelope);
+
+            if (category === 'meta') {
+                return this.dispatchMetaEnvelope(envelope);
+            }
+
+            if (envelope.clarification_question || envelope.missing_slots?.length) {
+                const text =
+                    envelope.clarification_question || `I need a bit more information: ${envelope.missing_slots.join(', ')}.`;
+                this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now() }];
+                return true;
+            }
+
+            if (category === 'guided') {
+                // Guided-step intents still flow through the legacy
+                // response.type path (guided_step / release_confirmation /
+                // release_cards / open_ost), which carries the rich UI
+                // payloads (buttonGroup, productCards, confirmationSummary,
+                // cardConfigs). Let the old switch handle it.
+                return false;
+            }
+
+            if (category === 'unknown') {
+                return false;
+            }
+
+            const mcpTool = envelope.intent;
+            const mcpParams = envelope.slots ?? {};
+            const requiresConfirmation = category === 'mcp-state-changing' || shouldRequireConfirmation(mcpTool, false);
+
+            if (mcpTool === 'search_cards') {
+                this.autoInjectSearchCardsContext(mcpParams);
+            }
+
+            recordSearchIntentTelemetry({
+                source: 'envelope',
+                intent: mcpTool,
+                confidence: 1,
+                tool: mcpTool,
+            });
+
+            const messageContent =
+                envelope.user_message ||
+                response.message ||
+                (requiresConfirmation
+                    ? renderConfirmationTemplate(mcpTool, mcpParams) || 'Confirm this action?'
+                    : 'Processing your request...');
+
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: messageContent,
+                    confirmationRequired: requiresConfirmation,
+                    mcpOperation: { mcpTool, mcpParams },
+                    operationType: 'mcp_operation',
+                    timestamp: Date.now(),
+                },
+            ];
+
+            if (!requiresConfirmation) {
+                await this.executeOperation({
+                    type: 'mcp_operation',
+                    mcpTool,
+                    mcpParams,
+                });
+            }
+
+            if (this.activeGuidedFlow) {
+                this.activeGuidedFlow = null;
+            }
+
+            return true;
+        } catch (err) {
+            logError('Envelope dispatch failed; falling back to legacy switch', err);
+            return false;
+        }
+    }
+
+    /**
+     * Handle meta intents (ASK_USER / ABORT / START_OVER / SHOW_HELP /
+     * REPORT_ERROR). Returns true — meta is always terminal for the turn.
+     */
+    dispatchMetaEnvelope(envelope) {
+        const { intent } = envelope;
+
+        if (intent === 'ASK_USER') {
+            const text =
+                envelope.clarification_question || envelope.user_message || 'Could you clarify what you would like me to do?';
+            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now() }];
+            return true;
+        }
+
+        if (intent === 'ABORT') {
+            this.activeGuidedFlow = null;
+            this.pendingSearchIntent = null;
+            this.selectedReleaseProduct = null;
+            this.selectedReleaseOffer = null;
+            this.selectedReleaseOsi = null;
+            this.selectedReleaseTrialOffer = null;
+            this.selectedReleaseTrialOsi = null;
+            this.trialCtaAsked = false;
+            const text = envelope.user_message || 'Cancelled. What would you like to do next?';
+            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now() }];
+            return true;
+        }
+
+        if (intent === 'START_OVER') {
+            this.activeGuidedFlow = null;
+            this.pendingSearchIntent = null;
+            this.selectedReleaseProduct = null;
+            this.selectedReleaseOffer = null;
+            this.selectedReleaseOsi = null;
+            this.selectedReleaseTrialOffer = null;
+            this.selectedReleaseTrialOsi = null;
+            this.trialCtaAsked = false;
+            this.messages = [];
+            this.conversationHistory = [];
+            const text = envelope.user_message || 'Starting fresh. How can I help?';
+            this.messages = [{ role: 'assistant', content: text, timestamp: Date.now() }];
+            return true;
+        }
+
+        if (intent === 'SHOW_HELP') {
+            const text = envelope.user_message || 'Here are some things I can help with.';
+            this.messages = [...this.messages, { role: 'assistant', content: text, timestamp: Date.now() }];
+            return true;
+        }
+
+        if (intent === 'REPORT_ERROR') {
+            const text = envelope.user_message || envelope.slots?.message || 'An error occurred.';
+            this.messages = [...this.messages, { role: 'error', content: text, timestamp: Date.now() }];
+            return true;
+        }
+
+        // Should never reach here — META_INTENTS set is closed. Defer to old path.
+        if (META_INTENTS.has(intent)) return true;
+        return false;
     }
 
     /**

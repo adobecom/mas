@@ -535,21 +535,19 @@ async function main(params) {
                     confirmationRequired: false,
                     conversationHistory: [...conversationHistory, { role: 'user', content: message }],
                 };
-                if (params.useShadowPrompt === true) {
-                    titleSearchBody.envelope = {
-                        intent: 'search_cards',
-                        slots: {
-                            query: titleQuery,
-                            surface: enrichedContext?.surface ?? null,
-                            titleSearch: true,
-                            locale: wantsAllLocales ? 'all' : (enrichedContext?.locale ?? null),
-                        },
-                        confidence: 'high',
-                        missing_slots: [],
-                        clarification_question: null,
-                        user_message: null,
-                    };
-                }
+                titleSearchBody.envelope = {
+                    intent: 'search_cards',
+                    slots: {
+                        query: titleQuery,
+                        surface: enrichedContext?.surface ?? null,
+                        titleSearch: true,
+                        locale: wantsAllLocales ? 'all' : (enrichedContext?.locale ?? null),
+                    },
+                    confidence: 'high',
+                    missing_slots: [],
+                    clarification_question: null,
+                    user_message: null,
+                };
                 return {
                     statusCode: 200,
                     headers: { ...getResponseHeaders() },
@@ -585,6 +583,7 @@ async function main(params) {
                     statusCode: 200,
                     headers: { ...getResponseHeaders() },
                     body: {
+                        envelope: buildDeterministicEnvelope('get_offer_by_id', { offerId: id }),
                         type: 'mcp_operation',
                         mcpTool: 'get_offer_by_id',
                         mcpParams: { offerId: id },
@@ -599,6 +598,7 @@ async function main(params) {
                     statusCode: 200,
                     headers: { ...getResponseHeaders() },
                     body: {
+                        envelope: buildDeterministicEnvelope('get_product_by_arrangement_code', { arrangementCode }),
                         type: 'mcp_operation',
                         mcpTool: 'get_product_by_arrangement_code',
                         mcpParams: { arrangementCode },
@@ -615,6 +615,7 @@ async function main(params) {
                         statusCode: 200,
                         headers: { ...getResponseHeaders() },
                         body: {
+                            envelope: buildDeterministicEnvelope('search_cards', { osi: osiCandidate }),
                             type: 'mcp_operation',
                             mcpTool: 'search_cards',
                             mcpParams: { osi: osiCandidate },
@@ -628,6 +629,7 @@ async function main(params) {
                     statusCode: 200,
                     headers: { ...getResponseHeaders() },
                     body: {
+                        envelope: buildDeterministicEnvelope('resolve_offer_selector', { offerSelectorId: osiCandidate }),
                         type: 'mcp_operation',
                         mcpTool: 'resolve_offer_selector',
                         mcpParams: { offerSelectorId: osiCandidate },
@@ -656,9 +658,9 @@ async function main(params) {
             detectedVariant,
         });
 
-        let shadowPrompt = null;
+        let registryPrompt = null;
         try {
-            shadowPrompt = buildPrompt({
+            registryPrompt = buildPrompt({
                 flow: params.context?.flow ?? null,
                 lastOperation: params.context?.lastOperation,
                 workingSet: params.context?.workingSet,
@@ -669,7 +671,7 @@ async function main(params) {
                 JSON.stringify({
                     phase: 'shadow-prompt',
                     req: params.requestId ?? null,
-                    newPromptLength: shadowPrompt.length,
+                    newPromptLength: registryPrompt.length,
                     oldPromptLength: typeof systemPrompt === 'string' ? systemPrompt.length : null,
                 }),
             );
@@ -677,9 +679,8 @@ async function main(params) {
             console.log(JSON.stringify({ phase: 'shadow-prompt', req: params.requestId ?? null, error: shadowErr.message }));
         }
 
-        let effectiveSystemPrompt = systemPrompt;
-        if (params.useShadowPrompt === true && shadowPrompt !== null) {
-            effectiveSystemPrompt = shadowPrompt;
+        const effectiveSystemPrompt = registryPrompt !== null ? registryPrompt : systemPrompt;
+        if (registryPrompt !== null) {
             console.log(JSON.stringify({ phase: 'shadow-primary', req: params.requestId ?? null, used: true }));
         }
 
@@ -694,7 +695,7 @@ async function main(params) {
         );
         const shadowValidation = logShadowValidation(response, params);
         const envelopePayload =
-            params.useShadowPrompt === true && shadowValidation !== null
+            shadowValidation !== null
                 ? { envelope: shadowValidation.ok ? shadowValidation.envelope : shadowValidation.coerced }
                 : {};
 
@@ -1020,6 +1021,23 @@ async function main(params) {
             },
         };
     }
+}
+
+/**
+ * Build a high-confidence envelope for deterministic identifier-shortcut
+ * routes (offer-id, arrangement code, OSI). Mirrors the schema produced by
+ * the envelope validator so the frontend dispatcher can consume it the
+ * same way as LLM-produced envelopes.
+ */
+function buildDeterministicEnvelope(intent, slots) {
+    return {
+        intent,
+        slots,
+        confidence: 'high',
+        missing_slots: [],
+        clarification_question: null,
+        user_message: null,
+    };
 }
 
 /**

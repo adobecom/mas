@@ -606,7 +606,21 @@ export const INTENTS = [
  * Multi-step flows are declared separately. Each flow has a name and an
  * ordered list of steps; each step lists the legal next intent names.
  */
-export const FLOWS = [];
+export const FLOWS = [
+    {
+        name: 'release_create',
+        steps: [
+            { name: 'awaiting_product', next_intents: ['release_create.set_product', 'ASK_USER', 'ABORT'] },
+            { name: 'awaiting_commitment', next_intents: ['release_create.set_commitment', 'ASK_USER', 'ABORT'] },
+            {
+                name: 'awaiting_offers',
+                next_intents: ['release_create.list_offers', 'release_create.no_offers', 'ASK_USER', 'ABORT'],
+            },
+            { name: 'confirming', next_intents: ['release_create.confirm', 'ABORT', 'ASK_USER'] },
+            { name: 'done', next_intents: [] },
+        ],
+    },
+];
 
 /**
  * Slot validators. Each validator is a pure function (value) => boolean.

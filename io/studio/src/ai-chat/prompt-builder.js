@@ -40,6 +40,7 @@ function intentBlock(intent) {
 }
 
 export function buildPrompt(context = {}) {
+    if (context === null) context = {};
     const intentsList = INTENTS.map(intentBlock).join('\n');
 
     let contextBlock = '';

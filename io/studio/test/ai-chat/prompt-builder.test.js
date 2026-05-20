@@ -78,4 +78,10 @@ describe('prompt-builder', () => {
         expect(prompt).to.be.a('string');
         expect(prompt.length).to.be.greaterThan(100);
     });
+
+    it('handles null context gracefully', () => {
+        const prompt = buildPrompt(null);
+        expect(prompt).to.be.a('string');
+        expect(prompt.length).to.be.greaterThan(100);
+    });
 });

@@ -298,7 +298,7 @@
 
                         rte.offerSelectorToolButtonElement.click();
                         await delay(100);
-                        const ostApp = document.querySelector('mas-ost-app');
+                        const ostApp = document.querySelector('ost-app');
                         expect(ostApp, 'OST dialog should be mounted').to.exist;
                         const closeButton = ostApp.shadowRoot.querySelector('[data-testid="ost-close-button"]');
                         expect(closeButton, 'OST close button should be present').to.exist;

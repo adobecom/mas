@@ -102,6 +102,10 @@ export class VariantLayout {
         }
     }
 
+    get legalDisplayDot() {
+        return true;
+    }
+
     constructor(card) {
         this.card = card;
         this.insertVariantStyle();

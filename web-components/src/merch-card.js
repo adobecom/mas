@@ -761,7 +761,17 @@ export class MerchCard extends LitElement {
                     details,
                 );
             } else {
-                this.#fail(`Contains unresolved offers`, details);
+                const ctaFailed = masElements.some(
+                    (el) =>
+                        el.matches(SELECTOR_MAS_CHECKOUT_LINK) &&
+                        el.classList.contains('placeholder-failed'),
+                );
+                this.#fail(
+                    ctaFailed
+                        ? `CTA has an invalid offer`
+                        : `Contains unresolved offers`,
+                    details,
+                );
             }
         }
     }

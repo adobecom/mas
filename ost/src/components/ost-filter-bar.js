@@ -1,6 +1,4 @@
 import { LitElement, html, css } from 'lit';
-import '@spectrum-web-components/picker/sp-picker.js';
-import '@spectrum-web-components/menu/sp-menu-item.js';
 import { store } from '../store/ost-store.js';
 import { HELP_TOOLTIPS } from '../data/help-content.js';
 import './ost-help-icon.js';

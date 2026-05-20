@@ -1,6 +1,4 @@
 import { LitElement, html, css, nothing } from 'lit';
-import '@spectrum-web-components/action-button/sp-action-button.js';
-import '@spectrum-web-components/icons-workflow/icons/sp-icon-info.js';
 import { store } from '../store/ost-store.js';
 
 export class OstHelpIcon extends LitElement {

@@ -1,4 +1,4 @@
-import './utils/safe-define.js';
+import './swc.js';
 import './components/ost-app.js';
 import { store } from './store/ost-store.js';
 

@@ -1,8 +1,4 @@
 import { LitElement, html, css, nothing } from 'lit';
-import '@spectrum-web-components/picker/sp-picker.js';
-import '@spectrum-web-components/menu/sp-menu-item.js';
-import '@spectrum-web-components/switch/sp-switch.js';
-import '@spectrum-web-components/textfield/sp-textfield.js';
 import { store } from '../store/ost-store.js';
 import { countries as staticCountries } from '../data/countries.js';
 import { HELP_TOOLTIPS } from '../data/help-content.js';

@@ -1,8 +1,4 @@
 import { LitElement, html, css } from 'lit';
-import '@spectrum-web-components/badge/sp-badge.js';
-import '@spectrum-web-components/action-button/sp-action-button.js';
-import '@spectrum-web-components/icons-workflow/icons/sp-icon-copy.js';
-import '@spectrum-web-components/progress-circle/sp-progress-circle.js';
 import { store } from '../store/ost-store.js';
 import { resolveOfferSelector } from '../utils/aos-client.js';
 

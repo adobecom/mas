@@ -1,5 +1,4 @@
 import { LitElement, html, css } from 'lit';
-import '@spectrum-web-components/button/sp-button.js';
 import { store } from '../store/ost-store.js';
 import { computePromoStatus } from '../utils/promo-status.js';
 

@@ -1,7 +1,4 @@
 import { LitElement, html, css } from 'lit';
-import '@spectrum-web-components/badge/sp-badge.js';
-import '@spectrum-web-components/action-button/sp-action-button.js';
-import '@spectrum-web-components/textfield/sp-textfield.js';
 import { store } from '../store/ost-store.js';
 import { computePromoStatus, PROMO_CONTEXT_CANCEL_VALUE } from '../utils/promo-status.js';
 

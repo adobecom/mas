@@ -178,18 +178,12 @@ describe('ost-product-detail', () => {
             expect(el.shadowRoot.querySelector('.offers-table')).to.not.exist;
         });
 
-        it('shows the selected offer price next to the product header in summary mode', async () => {
+        it('does not render a static summary price (Live Preview is the source of truth)', async () => {
+            // Static AOS-derived price and the WCS-resolved Live Preview price can
+            // disagree on tax-inclusive locales (e.g. FR), so the static header
+            // price was removed; the user should rely on Live Preview only.
             store.selectedProduct = makeProduct();
             store.selectedOffer = makeOffer();
-            const el = await fixture(html`<ost-product-detail summary></ost-product-detail>`);
-            const price = el.shadowRoot.querySelector('.summary-price');
-            expect(price).to.exist;
-            expect(price.textContent.trim()).to.equal('$19.99');
-        });
-
-        it('omits the price when no offer is selected in summary mode', async () => {
-            store.selectedProduct = makeProduct();
-            store.selectedOffer = undefined;
             const el = await fixture(html`<ost-product-detail summary></ost-product-detail>`);
             expect(el.shadowRoot.querySelector('.summary-price')).to.not.exist;
         });

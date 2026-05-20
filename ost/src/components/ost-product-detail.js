@@ -6,21 +6,6 @@ import './ost-offer-card.js';
 import './ost-help-icon.js';
 import { HELP_TOOLTIPS } from '../data/help-content.js';
 
-function formatPrice(offer) {
-    if (!offer) return '';
-    const pricing = offer.pricing;
-    if (!pricing) return '';
-    const symbol = pricing.currency?.symbol || '';
-    const formatString = pricing.currency?.format_string || '';
-    const priceValue = pricing.prices?.[0]?.price_details?.display_rules?.price;
-    if (priceValue === undefined) return '';
-    if (symbol) return `${symbol}${priceValue.toFixed(2)}`;
-    if (formatString) {
-        return formatString.replace(/#[#,.0]+/, priceValue.toFixed(2));
-    }
-    return String(priceValue);
-}
-
 const DEFAULT_AOS_PARAMS = {
     buyingProgram: 'RETAIL',
     merchant: 'ADOBE',
@@ -178,12 +163,6 @@ export class OstProductDetail extends LitElement {
 
         .change-link:hover {
             text-decoration: underline;
-        }
-
-        .summary-price {
-            font-weight: 700;
-            font-size: 14px;
-            white-space: nowrap;
         }
 
         .hint-text {
@@ -441,8 +420,6 @@ export class OstProductDetail extends LitElement {
         const arrangementCode = product.arrangement_code || product.arrangementCode || store.aosParams.arrangementCode;
 
         if (this.summary) {
-            const offer = store.selectedOffer;
-            const price = offer ? formatPrice(offer) : '';
             return html`
                 <div class="header">
                     ${product.icon ? html`<img class="header-icon" src="${product.icon}" alt="" />` : ''}
@@ -450,7 +427,6 @@ export class OstProductDetail extends LitElement {
                         <div class="product-name">${product.name}</div>
                         <div class="arrangement-code">${arrangementCode}</div>
                     </div>
-                    ${price ? html`<span class="summary-price">${price}</span>` : ''}
                     ${store.landscape === 'BOTH'
                         ? nothing
                         : html`<sp-badge size="s" variant="informative">${store.landscape}</sp-badge>`}

@@ -1516,6 +1516,10 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
     line-height: 16px;
   }
 
+  merch-card[variant="mini-compare-chart-mweb"] [slot="badge"] span {
+    min-height: auto;
+  }
+
   merch-card[variant="mini-compare-chart-mweb"] div[class$='-badge']:dir(rtl) {
     left: 0;
     right: initial;

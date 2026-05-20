@@ -913,6 +913,7 @@ export default class MasFragmentEditor extends LitElement {
 
         if (existingStore) {
             this.groupedVariationOrphanMessage = null;
+            this.previewError = null;
             await this.#initializeFromCachedStore(fragmentId, existingStore);
             return;
         }

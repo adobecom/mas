@@ -21,9 +21,8 @@ export class Mini extends VariantLayout {
     legal = undefined;
 
     async postCardUpdateHook() {
-        await this.card.updateComplete;
-        this.adjustLegal();
         await super.postCardUpdateHook();
+        this.adjustLegal();
     }
 
     getGlobalCSS() {

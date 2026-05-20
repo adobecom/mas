@@ -158,17 +158,11 @@ export default class MasFragmentEditor extends LitElement {
             gap: 8px;
         }
 
-        .preview-error-messages {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 8px 0;
-        }
-
         .preview-error-item {
             display: flex;
             align-items: center;
             gap: 8px;
+            padding: 8px 0;
             font-size: 14px;
             color: var(--merch-color-error);
         }
@@ -1701,17 +1695,15 @@ export default class MasFragmentEditor extends LitElement {
         this.previewError = e.detail?.message ?? 'Card failed to load';
     };
 
-    #clearPreviewErrors = () => {
+    #clearPreviewError = () => {
         this.previewError = null;
     };
 
     get previewErrorMessages() {
         if (!this.previewError) return nothing;
-        return html`<div class="preview-error-messages">
-            <div class="preview-error-item">
-                <sp-icon-alert class="price-error-icon"></sp-icon-alert>
-                <span>${this.previewError}</span>
-            </div>
+        return html`<div class="preview-error-item">
+            <sp-icon-alert class="price-error-icon"></sp-icon-alert>
+            <span>${this.previewError}</span>
         </div>`;
     }
 
@@ -1763,7 +1755,7 @@ export default class MasFragmentEditor extends LitElement {
                                 .heightSync=${false}
                                 style=${cssProps || nothing}
                                 @mas:error=${this.#handlePreviewError}
-                                @aem:load=${this.#clearPreviewErrors}
+                                @aem:load=${this.#clearPreviewError}
                             >
                                 <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                             </merch-card>

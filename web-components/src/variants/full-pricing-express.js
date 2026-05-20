@@ -121,8 +121,8 @@ export class FullPricingExpress extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await super.postCardUpdateHook();
         if (!this.card.isConnected) return;
+        await super.postCardUpdateHook();
 
         const container = this.getContainer();
         if (container) {

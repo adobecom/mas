@@ -185,10 +185,12 @@ export class VariantLayout {
                     (price) => price.onceSettled?.() || Promise.resolve(),
                 ),
             );
-            const timeout = new Promise((resolve) =>
-                setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT),
-            );
+            let timeoutId;
+            const timeout = new Promise((resolve) => {
+                timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
+            });
             await Promise.race([settle, timeout]);
+            clearTimeout(timeoutId);
         }
     }
 

@@ -416,7 +416,7 @@ describe('MasCollapsibleTableRow', () => {
 
         it('should render "Placeholder" for dictionary path', async () => {
             const topLevelCard = createMockTopLevelCard({
-                modelPath: '/something/dictionary/other',
+                modelPath: '/something/dictionnary/other',
                 path: '/content/dam/mas/dictionary/item',
             });
             const el = await fixture(

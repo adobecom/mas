@@ -38,7 +38,7 @@ describe('render-utils', () => {
         });
 
         it('returns Placeholder for dictionary model', () => {
-            expect(getItemTypeLabel({ model: { path: '/conf/.../dictionary/foo' } })).to.equal('Placeholder');
+            expect(getItemTypeLabel({ model: { path: '/conf/.../dictionnary/foo' } })).to.equal('Placeholder');
         });
 
         it('returns Collection for collection model', () => {

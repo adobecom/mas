@@ -13,6 +13,7 @@ export class MasCollapsibleTableRow extends LitElement {
     static properties = {
         topLevelCard: { type: Object },
         tabs: { type: Array },
+        selectedTabKey: { type: String, state: true },
         viewOnly: { type: Boolean },
         isTopLevelExpanded: { type: Boolean },
         expandedVariationsPaths: { type: Set, state: true },
@@ -29,18 +30,12 @@ export class MasCollapsibleTableRow extends LitElement {
         this.renderFragmentStatusCell = () => nothing;
         if (!this.tabs) {
             this.tabs = [
-                {
-                    label: 'Promotion',
-                    key: 'promotion',
-                    disabled: true,
-                },
-                {
-                    label: 'Grouped variation',
-                    key: 'groupedVariation',
-                    selected: true,
-                },
+                { label: 'Locale', key: 'locale' },
+                { label: 'Promotion', key: 'promotion', disabled: true },
+                { label: 'Grouped variation', key: 'groupedVariation' },
             ];
         }
+        this.selectedTabKey = 'locale';
         this.isTopLevelExpanded = false;
         this.expandedVariationsPaths = new Set();
         this.resizeObserver = null;
@@ -97,19 +92,56 @@ export class MasCollapsibleTableRow extends LitElement {
         return Fragment.isGroupedVariationPath(this.topLevelCard.path);
     }
 
+    get groupedVariationPaths() {
+        return this.variationPaths.filter(
+            (path) => Fragment.isGroupedVariationPath(path) && this.topLevelCardVariationsByPaths.has(path),
+        );
+    }
+
+    get allGroupedVariationsSelected() {
+        const paths = this.groupedVariationPaths;
+        return paths.length > 0 && paths.every((p) => this.selectedCards.includes(p));
+    }
+
+    get someGroupedVariationsSelected() {
+        return this.groupedVariationPaths.some((p) => this.selectedCards.includes(p));
+    }
+
+    #toggleSelectAllGrouped(e) {
+        e.stopPropagation();
+        const paths = this.groupedVariationPaths;
+        const current = getItemsSelectionStore().selectedCards.value || [];
+        if (this.allGroupedVariationsSelected) {
+            getItemsSelectionStore().selectedCards.set(current.filter((p) => !paths.includes(p)));
+        } else {
+            getItemsSelectionStore().selectedCards.set([...new Set([...current, ...paths])]);
+        }
+    }
+
     get groupedVariationTabTemplate() {
         if (this.isLoadingVariations) {
             return html` <div class="loading-container--flex">
                 <sp-progress-circle label="Loading variations" indeterminate size="l"></sp-progress-circle>
             </div>`;
         }
-        /* Some grouped variations may not have tags - we do not save them in the Store, and do not show them in the table */
-        const filteredVariationPaths = this.variationPaths.filter(
-            (path) => Fragment.isGroupedVariationPath(path) && this.topLevelCardVariationsByPaths.has(path),
-        );
+        const filteredVariationPaths = this.groupedVariationPaths;
         return filteredVariationPaths.length === 0
             ? html`<div class="empty-grouped-variations">No grouped variations found</div>`
             : html`<sp-table>
+                  <sp-table-row class="select-all-row">
+                      <sp-table-cell class="translation-table-icon-cell"></sp-table-cell>
+                      <sp-table-cell class="translation-table-icon-cell">
+                          <sp-checkbox
+                              ?checked=${this.allGroupedVariationsSelected}
+                              ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
+                              @change=${this.#toggleSelectAllGrouped}
+                          ></sp-checkbox>
+                      </sp-table-cell>
+                      <sp-table-cell class="select-all-label" colspan="5">
+                          <span>Select all</span>
+                          <span class="fragment-count">${filteredVariationPaths.length} fragment(s)</span>
+                      </sp-table-cell>
+                  </sp-table-row>
                   <sp-table-body>
                       ${repeat(filteredVariationPaths, (variationPath) => {
                           const variation = this.topLevelCardVariationsByPaths.get(variationPath);
@@ -149,6 +181,32 @@ export class MasCollapsibleTableRow extends LitElement {
               </sp-table>`;
     }
 
+    get localeTabTemplate() {
+        const localeVariations = new Fragment(this.topLevelCard).listLocaleVariations();
+        if (!localeVariations.length) {
+            return html`<div class="empty-grouped-variations">No locale variations found</div>`;
+        }
+        return html`<sp-table>
+            <sp-table-body>
+                ${repeat(
+                    localeVariations,
+                    (variation) => variation.path,
+                    (variation) =>
+                        html`<sp-table-row value=${variation.path}>
+                            <sp-table-cell
+                                class="translation-table-icon-cell translation-table-icon-cell--chevron"
+                            ></sp-table-cell>
+                            <sp-table-cell
+                                class="translation-table-icon-cell translation-table-icon-cell--checkbox"
+                            ></sp-table-cell>
+                            ${this.renderOfferName(variation)} ${this.renderTitle(variation)} ${this.renderOfferId(variation)}
+                            ${this.renderStudioPath(variation)} ${this.renderStatus(variation)}
+                        </sp-table-row>`,
+                )}
+            </sp-table-body>
+        </sp-table>`;
+    }
+
     get promotionTabTemplate() {
         return html`<div>To be implemented</div>`;
     }
@@ -181,13 +239,17 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     renderOfferName(item) {
-        return html`<sp-table-cell>
-            ${item?.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || 'no offer name'}
+        const iconSrc =
+            item?.getFieldValue?.('mnemonicIcon') ?? item?.fields?.find((f) => f.name === 'mnemonicIcon')?.values?.[0];
+        const offerName = item?.tags?.find(({ id }) => id.startsWith('mas:product_code/'))?.title || 'no offer name';
+        return html`<sp-table-cell class="offer-cell">
+            ${iconSrc ? html`<img class="mnemonic-icon" src=${iconSrc} alt="" />` : nothing}
+            <span>${offerName}</span>
         </sp-table-cell>`;
     }
 
     renderStudioPath(item) {
-        return html`<sp-table-cell>${item?.studioPath || 'no path'}</sp-table-cell>`;
+        return html`<sp-table-cell class="path"><span>${item?.studioPath || 'no path'}</span></sp-table-cell>`;
     }
 
     renderOfferId(item) {
@@ -217,7 +279,7 @@ export class MasCollapsibleTableRow extends LitElement {
         if (!tagNames.length) return html`<sp-table-cell>no tags</sp-table-cell>`;
         return html` <sp-table-cell class="tags-cell">
             <div class="tags-label">Grouped variation tags</div>
-            <sp-tags>${repeat(tagNames, (tagName) => html`<sp-tag>${tagName}</sp-tag>`)}</sp-tags>
+            <sp-tags>${tagNames.map((tagName) => html`<sp-tag>${tagName}</sp-tag>`)}</sp-tags>
         </sp-table-cell>`;
     }
 
@@ -257,8 +319,10 @@ export class MasCollapsibleTableRow extends LitElement {
         }
     }
 
-    #hasConnector(tab) {
-        return tab?.key === 'groupedVariation' && this.topLevelCardVariationsByPaths.size > 0;
+    #hasConnector() {
+        if (this.selectedTabKey === 'groupedVariation') return this.topLevelCardVariationsByPaths.size > 0;
+        if (this.selectedTabKey === 'locale') return new Fragment(this.topLevelCard).listLocaleVariations().length > 0;
+        return false;
     }
 
     /** Updates the bottom position of the connector between the nested content and the last row of the selected tab panel */
@@ -360,10 +424,13 @@ export class MasCollapsibleTableRow extends LitElement {
               </sp-table-row>`;
     }
 
+    #handleTabChange({ target: { selected } }) {
+        this.selectedTabKey = selected;
+    }
+
     render() {
         if (this.viewOnly) return this.viewOnlyTemplate;
         const isSelected = this.selectedCards.includes(this.topLevelCard.path);
-        const selectedTab = this.tabs.find((tab) => tab.selected);
         return html`
             <sp-table-row
                 value=${this.topLevelCard.path}
@@ -384,22 +451,20 @@ export class MasCollapsibleTableRow extends LitElement {
                         @change=${(e) => this.#toggleSelect(e, this.topLevelCard.path)}
                     ></sp-checkbox>
                 </sp-table-cell>
-                ${repeat(this.cells, (cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
+                ${this.cells.map((cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
             </sp-table-row>
 
             ${this.isTopLevelExpanded
                 ? html`<div class="nested-content-container">
-                      <div class="nested-content ${this.#hasConnector(selectedTab) ? 'has-connector' : ''}">
-                          <sp-tabs quiet .selected=${selectedTab?.key}>
-                              ${repeat(
-                                  this.tabs,
+                      <div class="nested-content ${this.#hasConnector() ? 'has-connector' : ''}">
+                          <sp-tabs quiet .selected=${this.selectedTabKey} @change=${this.#handleTabChange}>
+                              ${this.tabs.map(
                                   (tab) =>
                                       html`<sp-tab value=${tab.key} label=${tab.label} ?disabled=${tab.disabled}>
                                           ${tab.label}
                                       </sp-tab>`,
                               )}
-                              ${repeat(
-                                  this.tabs,
+                              ${this.tabs.map(
                                   (tab) =>
                                       html`<sp-tab-panel value=${tab.key}>
                                           ${this[`${tab.key}TabTemplate`] ?? nothing}

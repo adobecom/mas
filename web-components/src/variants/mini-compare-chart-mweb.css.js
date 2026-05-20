@@ -31,6 +31,10 @@ export const CSS = `
     line-height: 16px;
   }
 
+  merch-card[variant="mini-compare-chart-mweb"] [slot="badge"] span {
+    min-height: auto;
+  }
+
   merch-card[variant="mini-compare-chart-mweb"] div[class$='-badge']:dir(rtl) {
     left: 0;
     right: initial;

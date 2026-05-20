@@ -29,6 +29,7 @@ import {
 import { classifySearchIntent, resumeWithSlot } from './utils/ai-chat-search-router.js';
 import { isDeterministicSearchEnabled, recordSearchIntentTelemetry } from './utils/ai-chat-search-telemetry.js';
 import { validateFragmentIds, fragmentIdGuardMessage } from './utils/fragment-id-guard.js';
+import { extractFragmentIdsFromMessage, extractFragmentSummariesFromMessage } from './utils/operation-result-extractors.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, normalizeFragmentForCache, logError } from './utils.js';
 import { TAG_MODEL_ID_MAPPING } from './constants.js';
@@ -2302,28 +2303,21 @@ export class MasChat extends LitElement {
 
         if (!lastOp) return null;
 
-        const fragmentIds = lastOp.operationResult.results?.map((f) => f.id) || [];
+        const fragmentIds = extractFragmentIdsFromMessage(lastOp);
 
         return {
-            type: lastOp.operationResult.operation,
+            type: lastOp.operationResult.operation || lastOp.operationType || null,
             fragmentIds,
-            count: lastOp.operationResult.count || 0,
+            count: lastOp.operationResult.count || fragmentIds.length,
             timestamp: lastOp.timestamp,
         };
     }
 
     getRecentFragments(limit = 50) {
         return this.messages
-            .filter((m) => m.operationResult?.results)
+            .filter((m) => m.operationResult)
             .slice(-3)
-            .flatMap((m) =>
-                m.operationResult.results.map((f) => ({
-                    id: f.id,
-                    title: f.title || f.cardTitle,
-                    variant: this.extractVariant(f),
-                    osi: this.extractOsi(f),
-                })),
-            )
+            .flatMap((m) => extractFragmentSummariesFromMessage(m, this))
             .slice(0, limit);
     }
 

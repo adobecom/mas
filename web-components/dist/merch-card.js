@@ -8828,6 +8828,10 @@ Caused by: ${this.cause}`),e}};var he={clientId:"merch-at-scale",delimiter:"\xB6
             margin-right: 16px;
         }
 
+        ::slotted([slot='heading']:empty) {
+            display: none;
+        }
+
         ::slotted([slot='content']) {
             display: contents;
         }

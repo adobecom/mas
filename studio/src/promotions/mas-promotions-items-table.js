@@ -246,6 +246,7 @@ class MasPromotionsItemsTable extends LitElement {
 
     #loadedPathsKey = null;
     #processAbortController = null;
+    #selectionController = null;
 
     constructor() {
         super();
@@ -258,7 +259,7 @@ class MasPromotionsItemsTable extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         const upper = this.typeUppercased;
-        this._selectionController = new ReactiveController(this, [getItemsSelectionStore()[`selected${upper}`]]);
+        this.#selectionController = new ReactiveController(this, [getItemsSelectionStore()[`selected${upper}`]]);
     }
 
     disconnectedCallback() {

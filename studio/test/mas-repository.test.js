@@ -663,6 +663,21 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('calls searchFragments for PROMOTIONS_EDITOR page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.searchFragments = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.searchFragments.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
         it('getPromotionsPath returns promotions folder under root', () => {
             const repository = createRepository();
             expect(repository.getPromotionsPath()).to.equal(`${ROOT_PATH}/promotions`);
@@ -895,6 +910,34 @@ describe('MasRepository dictionary helpers', () => {
             });
             await repository.searchFragments();
             expect(searchStub.called).to.be.false;
+        });
+
+        it('executes search when page is PROMOTIONS_EDITOR', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            const cursor = createMockCursor([[]]);
+            const searchStub = sandbox.stub().resolves(cursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
         });
 
         it('returns early when profile is not set', async () => {

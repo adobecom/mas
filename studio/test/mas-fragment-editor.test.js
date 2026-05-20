@@ -1,7 +1,7 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
-import MasFragmentEditor from '../src/mas-fragment-editor.js';
+import MasFragmentEditor, { snapFilterToPathDefault } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
@@ -514,7 +514,9 @@ describe('MasFragmentEditor', () => {
                 },
             });
 
-            expect(navigateSpy.calledOnceWith('new-variation-id')).to.be.true;
+            expect(navigateSpy.calledOnce).to.be.true;
+            expect(navigateSpy.firstCall.args[0]).to.equal('new-variation-id');
+            expect(navigateSpy.firstCall.args[1]).to.deep.equal({ viewPage: false });
 
             Store.fragmentEditor.fragmentId.value = 'new-variation-id';
             await el.initFragment();
@@ -1344,6 +1346,30 @@ describe('MasFragmentEditor', () => {
             const attrs = el.previewBorderColorAttributes;
             expect(attrs.gradientBorder).to.be.true;
             expect(attrs.borderColor).to.equal('blue-gradient');
+        });
+    });
+
+    describe('snapFilterToPathDefault', () => {
+        let savedSearch;
+        let savedFilters;
+
+        beforeEach(() => {
+            savedSearch = structuredClone(Store.search.get());
+            savedFilters = structuredClone(Store.filters.get());
+        });
+
+        afterEach(() => {
+            Store.search.set(savedSearch);
+            Store.filters.set(savedFilters);
+        });
+
+        it('syncs locale filter to path default when filter and path defaults differ', () => {
+            Store.search.set({ path: 'sandbox' });
+            Store.filters.set({ locale: 'it_IT' });
+            const path = '/content/dam/mas/sandbox/fr_FR/some/pzn/card';
+            expect(snapFilterToPathDefault(path)).to.be.true;
+            expect(Store.filters.get().locale).to.equal('fr_FR');
+            expect(Store.search.get().region).to.be.null;
         });
     });
 });

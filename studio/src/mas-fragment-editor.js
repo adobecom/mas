@@ -16,19 +16,47 @@ import {
 import router from './router.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import { getActiveMerchCardEditor } from './editors/merch-card-editor.js';
-import { extractLocaleFromPath, generateCodeToUse, getFragmentMapping, replaceLocaleInPath, showToast } from './utils.js';
+import {
+    extractLocaleFromPath,
+    extractSurfaceFromPath,
+    generateCodeToUse,
+    getFragmentMapping,
+    replaceLocaleInPath,
+    showToast,
+} from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import { getFragmentPartsToUse } from './editor-panel.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
-import { getCountryName, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
+import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/www/src/fragment/locales.js';
 import { branch2Icon } from './icons.js';
 
 const MODEL_WEB_COMPONENT_MAPPING = {
     [CARD_MODEL_PATH]: 'merch-card',
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
+
+/**
+ * When {@link Store.filters} locale does not match the default for the fragment path’s locale
+ * (see {@link getDefaultLocaleCode}), set it to that default and clear region so the URL hash stays aligned.
+ * @param {string} fragmentPath
+ * @returns {boolean} true if filters were updated
+ */
+export function snapFilterToPathDefault(fragmentPath) {
+    const pathLocale = extractLocaleFromPath(fragmentPath);
+    if (!pathLocale) return false;
+    const surface = extractSurfaceFromPath(fragmentPath) || Store.surface();
+    if (!surface) return false;
+    const pathCatalog = getDefaultLocaleCode(surface, pathLocale);
+    const filterLocale = Store.filters.value?.locale;
+    if (!pathCatalog || !filterLocale) return false;
+    const filterCatalog = getDefaultLocaleCode(surface, filterLocale);
+    if (!filterCatalog || pathCatalog === filterCatalog) return false;
+    Store.search.set((prev) => ({ ...prev, region: null }));
+    Store.filters.set((prev) => ({ ...prev, locale: pathCatalog }));
+    return true;
+}
 
 function getWhatsIncludedDividerColorFromMarkup(fragment) {
     if (!fragment) return '';
@@ -757,6 +785,7 @@ export default class MasFragmentEditor extends LitElement {
             void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
         }
         const fragmentPath = existingStore.get().path;
+        snapFilterToPathDefault(fragmentPath);
 
         const fragmentLocale = extractLocaleFromPath(fragmentPath);
         const pathDetection = this.editorContextStore.detectVariationFromPath(fragmentPath);
@@ -839,6 +868,8 @@ export default class MasFragmentEditor extends LitElement {
             }
             const fragmentData = await this.repository.aem.sites.cf.fragments.getById(fragmentId);
             const fragment = new Fragment(fragmentData);
+
+            snapFilterToPathDefault(fragment.path);
 
             this.#updateLocaleIfNeeded(fragment.path);
             await this.editorContextStore.loadFragmentContext(fragmentId, fragment.path);
@@ -1416,9 +1447,8 @@ export default class MasFragmentEditor extends LitElement {
             if (AemFragment?.cache) {
                 AemFragment.cache.add(copiedFragment);
             }
-            const locale = extractLocaleFromPath(copiedFragment.path);
             const viewPage = this.fragment?.model?.path === COLLECTION_MODEL_PATH;
-            router.navigateToFragmentEditor(copiedFragment.id, { locale, viewPage });
+            router.navigateToFragmentEditor(copiedFragment.id, { viewPage });
         }
     }
 

@@ -34,6 +34,7 @@ export async function executeMCPTool(toolName, params) {
         const requestBody = {
             ...params,
             _aemBaseUrl: aemBaseUrl,
+            landscape: params.landscape ?? 'DRAFT',
         };
 
         const ACTION_NAME_OVERRIDES = {

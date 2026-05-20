@@ -71,7 +71,7 @@ export const INTENTS = [
         description: 'Update fields of a single card.',
         required_slots: ['id', 'updates'],
         optional_slots: [],
-        slot_validators: { id: 'uuid' },
+        slot_validators: { id: 'uuid', updates: 'object' },
         tool_target: 'update_card',
         confirmation_template: 'Update card {{id}}?',
     },
@@ -300,7 +300,12 @@ export const INTENTS = [
         description: 'Create a new AOS offer selector and return its OSI.',
         required_slots: ['productArrangementCode', 'customerSegment', 'marketSegment', 'offerType'],
         optional_slots: ['commitment', 'term', 'pricePoint'],
-        slot_validators: { productArrangementCode: 'string' },
+        slot_validators: {
+            productArrangementCode: 'string',
+            customerSegment: 'string',
+            marketSegment: 'string',
+            offerType: 'string',
+        },
         tool_target: 'create_offer_selector',
         confirmation_template:
             'Create offer selector for {{productArrangementCode}} ({{customerSegment}}/{{marketSegment}}, {{offerType}})?',
@@ -393,7 +398,7 @@ export const INTENTS = [
         description: 'Create a new translation project.',
         required_slots: ['title', 'targetLocales'],
         optional_slots: ['cardPaths'],
-        slot_validators: { title: 'string', cardPaths: 'string[]' },
+        slot_validators: { title: 'string', targetLocales: 'string[]', cardPaths: 'string[]' },
         tool_target: 'create_translation_project',
         confirmation_template: 'Create translation project "{{title}}" for {{targetLocales.length}} locales?',
     },
@@ -494,7 +499,7 @@ export const INTENTS = [
         description: 'Create the release cards.',
         required_slots: ['cardConfigs', 'parentPath'],
         optional_slots: [],
-        slot_validators: { parentPath: 'string' },
+        slot_validators: { cardConfigs: 'object[]', parentPath: 'string' },
         tool_target: 'create_release_cards',
         confirmation_template: 'Create {{cardConfigs.length}} release cards?',
     },
@@ -637,6 +642,8 @@ export const SLOT_VALIDATORS = {
     locale: (v) => typeof v === 'string' && /^[a-z]{2}_[A-Z]{2,4}$/.test(v),
     paCode: (v) => typeof v === 'string' && /^PA-?\d+$/.test(v),
     boolean: (v) => typeof v === 'boolean',
+    object: (v) => v !== null && typeof v === 'object' && !Array.isArray(v),
+    'object[]': (v) => Array.isArray(v) && v.length > 0 && v.every((x) => x !== null && typeof x === 'object'),
 };
 
 /** Meta intents that exist outside any flow and may fire at any time. */

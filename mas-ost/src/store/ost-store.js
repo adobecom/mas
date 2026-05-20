@@ -183,6 +183,14 @@ export class OstStore extends EventTarget {
         }
         if (config.offerSelectorPlaceholderOptions) {
             this.offerSelectorPlaceholderOptions = config.offerSelectorPlaceholderOptions;
+            const incomingPromoOverride = config.offerSelectorPlaceholderOptions.storedPromoOverride;
+            if (incomingPromoOverride !== undefined && this.storedPromoOverride === undefined) {
+                this.storedPromoOverride = incomingPromoOverride;
+            }
+            const incomingPromotionCode = config.offerSelectorPlaceholderOptions.promotionCode;
+            if (incomingPromotionCode !== undefined && this.promotionCode === undefined) {
+                this.promotionCode = incomingPromotionCode;
+            }
         }
         this.notify();
     }

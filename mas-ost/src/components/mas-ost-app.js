@@ -282,6 +282,11 @@ export class MasOstApp extends LitElement {
         }
         const osiId = this.config?.searchOfferSelectorId;
         const offerId = store.deepLink.offerId;
+        const hasDeepLinkIntent = osiId || offerId || store.deepLink.type || store.aosParams.arrangementCode;
+        if (hasDeepLinkIntent && !store.flowChosen) {
+            store.flowChosen = true;
+            store.notify();
+        }
         if (osiId || offerId) {
             this.resolveDeepLinkOffer(osiId || offerId);
         } else if (store.aosParams.arrangementCode) {
@@ -672,7 +677,7 @@ export class MasOstApp extends LitElement {
 
         const footerBar = html`
             <div class="ost-footer-bar">
-                ${flow === 'single' && store.viewState === 'configure' && !this.wasDeepLinked
+                ${flow === 'single' && store.viewState === 'configure'
                     ? html`<sp-button
                           data-testid="ost-back-button"
                           variant="secondary"

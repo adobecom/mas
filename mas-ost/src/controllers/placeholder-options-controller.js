@@ -8,7 +8,7 @@ export class PlaceholderOptionsController {
         this.host = host;
         this.store = store;
         host.addController(this);
-        this.options = { ...store.defaultPlaceholderOptions };
+        this.options = { ...store.defaultPlaceholderOptions, ...store.offerSelectorPlaceholderOptions };
     }
 
     hostConnected() {}
@@ -17,7 +17,7 @@ export class PlaceholderOptionsController {
 
     setType(type) {
         this.selectedType = type;
-        this.options = { ...this.store.defaultPlaceholderOptions };
+        this.options = { ...this.store.defaultPlaceholderOptions, ...this.store.offerSelectorPlaceholderOptions };
         this.host.requestUpdate();
     }
 

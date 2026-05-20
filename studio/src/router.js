@@ -2,6 +2,7 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PAT
 import Store from './store.js';
 import { debounce } from './utils.js';
 import { canAccessSettings } from './groups.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query'];
 const STORE_SEARCH_HASH_DEFAULT = {};
@@ -180,6 +181,12 @@ export class Router extends EventTarget {
                         Store.translationProjects.translationProjectId.set(options.translationProjectId);
                     }
                     Store.viewMode.set('default');
+                    if (
+                        targetPage === PAGE_NAMES.CONTENT &&
+                        (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION)
+                    ) {
+                        this.#snapContentLocaleToParentDefault();
+                    }
                     Store.page.set(targetPage);
                 }
             } finally {
@@ -206,6 +213,9 @@ export class Router extends EventTarget {
 
             if (!confirmed) return;
 
+            const leavingFragmentEditor =
+                Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION;
+
             // Set the fragment ID to be expanded
             Store.fragments.expandedId.set(fragmentId);
 
@@ -217,6 +227,9 @@ export class Router extends EventTarget {
             // Navigate to content page in table view
             Store.viewMode.set('default');
             Store.renderMode.set('table');
+            if (leavingFragmentEditor) {
+                this.#snapContentLocaleToParentDefault();
+            }
             Store.page.set(PAGE_NAMES.CONTENT);
         } finally {
             this.isNavigating = false;
@@ -535,6 +548,8 @@ export class Router extends EventTarget {
                 this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
             });
 
+            this.#snapLocaleWhenLeavingFragmentEditorForContent(this.previousHash);
+
             this.previousHash = this.location.hash;
         });
 
@@ -545,6 +560,26 @@ export class Router extends EventTarget {
                 return '';
             }
         });
+    }
+
+    #snapContentLocaleToParentDefault() {
+        const surface = Store.surface();
+        if (!surface) return;
+        Store.removeRegionOverride();
+        const current = Store.filters.value.locale;
+        const parent = getDefaultLocaleCode(surface, current);
+        if (!parent || parent === current) return;
+        Store.filters.set((prev) => ({ ...prev, locale: parent }));
+    }
+
+    #snapLocaleWhenLeavingFragmentEditorForContent(previousHash) {
+        const raw = previousHash?.startsWith('#') ? previousHash.slice(1) : previousHash || '';
+        const prev = new URLSearchParams(raw);
+        const prevPage = prev.get('page');
+        const wasEditor = prevPage === PAGE_NAMES.FRAGMENT_EDITOR || prevPage === PAGE_NAMES.VERSION;
+        if (!wasEditor) return;
+        if (Store.page.value !== PAGE_NAMES.CONTENT) return;
+        this.#snapContentLocaleToParentDefault();
     }
 
     #isSettingsPage(page) {

@@ -439,6 +439,15 @@ describe('Router', () => {
             expect(Store.fragmentEditor.fragmentId.get()).to.be.null;
         });
 
+        it('should reset regional variation locale to parent default when leaving fragment editor for content', async () => {
+            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
+            Store.fragments.inEdit.set(null);
+            Store.search.set({ ...Store.search.get(), path: 'sandbox' });
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_BE' }));
+            await router.navigateToPage(PAGE_NAMES.CONTENT)();
+            expect(Store.filters.value.locale).to.equal('en_US');
+        });
+
         it('should clear translation project data when leaving translation editor', async () => {
             Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
             Store.translationProjects.translationProjectId.set('test-id');

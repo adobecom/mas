@@ -134,7 +134,6 @@ export class MasOstLivePreview extends LitElement {
 
         const placeholderOptions = {
             ...options,
-            forceTaxExclusive: !options.forceTaxExclusive,
             promotionCode: promoStatus || promotionCode,
             wcsOsi,
             template: type,

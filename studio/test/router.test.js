@@ -581,6 +581,20 @@ describe('Router', () => {
             expect(Store.translationProjects.prefill.get()).to.deep.equal({
                 targetLocale: 'de_DE',
                 fragmentPath: '/path',
+                isCollection: false,
+            });
+        });
+
+        it('should set isCollection in prefill when true', async () => {
+            await router.navigateToTranslationEditor({
+                targetLocale: 'de_DE',
+                fragmentPath: '/path',
+                isCollection: true,
+            });
+            expect(Store.translationProjects.prefill.get()).to.deep.equal({
+                targetLocale: 'de_DE',
+                fragmentPath: '/path',
+                isCollection: true,
             });
         });
     });

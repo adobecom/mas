@@ -1,3 +1,4 @@
+// Country → default language. Mirrors tacocat's mapping (no canonical shared module in mas/ today; dedupe when one lands).
 export const languageMappings = {
     AE: 'ar',
     AR: 'es',

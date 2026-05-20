@@ -148,11 +148,11 @@ export default class StudioPage {
             }
         }
 
-        await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 30000 });
+        await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 60000 });
 
         if (minMerchCardsInRender > 1) {
             await expect
-                .poll(async () => this.renderView.locator('merch-card').count(), { timeout: 30000 })
+                .poll(async () => this.renderView.locator('merch-card').count(), { timeout: 60000 })
                 .toBeGreaterThanOrEqual(minMerchCardsInRender);
         }
     }

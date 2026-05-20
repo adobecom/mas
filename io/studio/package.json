@@ -27,6 +27,7 @@
         "sinon-chai": "^3.7.0"
     },
     "scripts": {
+        "eval": "node test/ai-chat-eval.mjs",
         "test": "c8 mocha --recursive ./test",
         "test:ci": "c8 mocha --recursive ./test",
         "test:watch": "mocha --watch --recursive ./test",

@@ -243,6 +243,10 @@ export class MiniCompareChartMweb extends VariantLayout {
         titleEl.replaceWith(titleDiv);
     }
 
+    get legalDisplayDot() {
+        return false;
+    }
+
     get mainPrice() {
         return this.card.querySelector(
             `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,

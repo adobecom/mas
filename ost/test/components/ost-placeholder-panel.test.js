@@ -75,4 +75,52 @@ describe('ost-placeholder-panel', () => {
         expect(el.shadowRoot.querySelector('ost-live-preview')).to.exist;
         expect(el.shadowRoot.querySelector('ost-code-output')).to.exist;
     });
+
+    it('initializes with price type and default options', async () => {
+        const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        expect(el.selectedType).to.equal('price');
+        expect(el.options.displayFormatted).to.be.true;
+        expect(el.options.displayRecurrence).to.be.true;
+    });
+
+    it('exposes back-compat placeholderCtrl getter pointing at self', async () => {
+        const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        expect(el.placeholderCtrl).to.equal(el);
+    });
+
+    it('applies displayPlanType override for legal type', async () => {
+        const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        el.setType('legal');
+        const effective = el.getEffectiveOptions();
+        expect(effective.displayPlanType).to.be.true;
+    });
+
+    it('does not apply displayPlanType for price type', async () => {
+        const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        el.setType('price');
+        const effective = el.getEffectiveOptions();
+        expect(effective.displayPlanType).to.be.undefined;
+    });
+
+    it('toggleOption flips a boolean option', async () => {
+        const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        const before = !!el.options.displayTax;
+        el.toggleOption('displayTax');
+        expect(el.options.displayTax).to.equal(!before);
+    });
+
+    it('resets options when changing type', async () => {
+        const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        el.toggleOption('displayTax');
+        expect(el.options.displayTax).to.be.true;
+        el.setType('optical');
+        expect(el.options.displayTax).to.be.false;
+    });
+
+    it('serializeOptions returns effective options including overrides', async () => {
+        const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        el.setType('legal');
+        const serialized = el.serializeOptions();
+        expect(serialized.displayPlanType).to.be.true;
+    });
 });

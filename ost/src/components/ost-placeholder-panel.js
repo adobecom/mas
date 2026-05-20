@@ -1,9 +1,5 @@
 import { LitElement, html, css, nothing } from 'lit';
-import '@spectrum-web-components/action-button/sp-action-button.js';
-import '@spectrum-web-components/textfield/sp-textfield.js';
-import '@spectrum-web-components/field-label/sp-field-label.js';
 import { store } from '../store/ost-store.js';
-import { PlaceholderOptionsController } from '../controllers/placeholder-options-controller.js';
 import './ost-placeholder-options.js';
 import './ost-checkout-options.js';
 import './ost-live-preview.js';
@@ -67,10 +63,36 @@ export class OstPlaceholderPanel extends LitElement {
 
     constructor() {
         super();
-        this.placeholderCtrl = new PlaceholderOptionsController(this, store);
         this.handleStoreChange = this.handleStoreChange.bind(this);
         this.deepLinkApplied = false;
         this.referenceOsi = '';
+        this.selectedType = 'price';
+        this.options = { ...store.defaultPlaceholderOptions, ...store.offerSelectorPlaceholderOptions };
+    }
+
+    get placeholderCtrl() {
+        return this;
+    }
+
+    setType(type) {
+        this.selectedType = type;
+        this.options = { ...store.defaultPlaceholderOptions, ...store.offerSelectorPlaceholderOptions };
+        this.requestUpdate();
+    }
+
+    toggleOption(key) {
+        this.options[key] = !this.options[key];
+        this.requestUpdate();
+    }
+
+    getEffectiveOptions() {
+        const typeConfig = store.placeholderTypes.find((t) => t.type === this.selectedType);
+        const overrides = typeConfig?.overrides || {};
+        return { ...this.options, ...overrides };
+    }
+
+    serializeOptions() {
+        return { ...this.getEffectiveOptions() };
     }
 
     connectedCallback() {
@@ -94,7 +116,7 @@ export class OstPlaceholderPanel extends LitElement {
         const dl = store.deepLink;
         if (!dl?.type) return;
         this.deepLinkApplied = true;
-        this.placeholderCtrl.setType(dl.type);
+        this.setType(dl.type);
         const config = this.getRootNode()?.host?.config;
         if (config?.initialReferenceOsi) {
             this.referenceOsi = config.initialReferenceOsi;
@@ -109,16 +131,12 @@ export class OstPlaceholderPanel extends LitElement {
         this.referenceOsi = e.target.value;
     }
 
-    get selectedType() {
-        return this.placeholderCtrl.selectedType;
-    }
-
     get isCheckoutUrl() {
         return this.selectedType === 'checkoutUrl';
     }
 
     selectType(type) {
-        this.placeholderCtrl.setType(type);
+        this.setType(type);
     }
 
     render() {

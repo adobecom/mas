@@ -1,10 +1,19 @@
 import { LitElement, html, css } from 'lit';
-import '@spectrum-web-components/picker/sp-picker.js';
-import '@spectrum-web-components/menu/sp-menu-item.js';
-import '@spectrum-web-components/checkbox/sp-checkbox.js';
-import { WORKFLOW_STEPS, DEFAULT_MODAL_BY_OFFER, CheckoutController } from '../controllers/checkout-controller.js';
-import '@spectrum-web-components/icons-ui/icons/sp-icon-chevron100.js';
 import { store } from '../store/ost-store.js';
+
+export const WORKFLOW_STEPS = [
+    { id: 'email', name: 'Email' },
+    { id: 'bundle', name: 'Bundle' },
+    { id: 'commitment', name: 'Commitment' },
+    { id: 'segmentation', name: 'Segmentation' },
+    { id: 'recommendation', name: 'Recommendation' },
+    { id: 'payment', name: 'Payment' },
+    { id: 'change-plan/team-upgrade/plans', name: 'Change Plan Team Plans' },
+    { id: 'change-plan/team-upgrade/payment', name: 'Change Plan Team Payment' },
+];
+
+export const MODAL_TYPES = { TWP: 'twp', D2P: 'd2p', CRM: 'crm' };
+export const DEFAULT_MODAL_BY_OFFER = { BASE: 'd2p', TRIAL: 'twp' };
 
 export class OstCheckoutOptions extends LitElement {
     static properties = {
@@ -121,15 +130,61 @@ export class OstCheckoutOptions extends LitElement {
 
     constructor() {
         super();
-        this.checkout = new CheckoutController(this, store);
         this.deepLinkApplied = false;
         this.ctaDropdownOpen = false;
         this.ctaFilter = '';
+        this.workflowStep = 'email';
+        this.ctaText = '';
+        this.enableModal = false;
+        this.modalType = '';
+        this.entitlement = false;
+        this.upgrade = false;
         this.handleDocClick = this.handleDocClick.bind(this);
     }
 
+    get checkout() {
+        return this;
+    }
+
+    setWorkflowStep(step) {
+        this.workflowStep = step;
+        this.requestUpdate();
+        store.notify();
+    }
+
+    setCtaText(text) {
+        this.ctaText = text;
+        this.requestUpdate();
+        store.notify();
+    }
+
+    toggleModal(enabled) {
+        this.enableModal = enabled;
+        this.workflowStep = enabled ? 'segmentation' : 'email';
+        this.requestUpdate();
+        store.notify();
+    }
+
+    setModalType(type) {
+        this.modalType = type;
+        this.requestUpdate();
+        store.notify();
+    }
+
+    toggleEntitlement(v) {
+        this.entitlement = v;
+        this.requestUpdate();
+        store.notify();
+    }
+
+    toggleUpgrade(v) {
+        this.upgrade = v;
+        this.requestUpdate();
+        store.notify();
+    }
+
     get workflowSteps() {
-        if (this.checkout.enableModal) {
+        if (this.enableModal) {
             return [{ id: 'segmentation', name: 'Segmentation' }];
         }
         return WORKFLOW_STEPS;

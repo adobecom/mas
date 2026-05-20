@@ -50,4 +50,36 @@ describe('ost-search', () => {
         expect(badge).to.exist;
         expect(badge.textContent.trim()).to.equal('OSI');
     });
+
+    it('initializes with empty state', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        expect(el.query).to.equal('');
+        expect(el.resultType).to.equal('');
+    });
+
+    it('exposes back-compat `search` getter pointing at self', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        expect(el.search).to.equal(el);
+    });
+
+    it('detectType returns product for plain text', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        expect(el.detectType('Photoshop')).to.equal('product');
+    });
+
+    it('detectType returns offer for 32-char hex offer ID', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        expect(el.detectType('257E1D82082387D152029F93C1030624')).to.equal('offer');
+    });
+
+    it('detectType returns osi for a 43-char base64 OSI', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        const osi = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0ABC';
+        expect(el.detectType(osi)).to.equal('osi');
+    });
+
+    it('detectType returns product for empty string', async () => {
+        const el = await fixture(html`<ost-search></ost-search>`);
+        expect(el.detectType('')).to.equal('product');
+    });
 });

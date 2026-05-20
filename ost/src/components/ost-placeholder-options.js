@@ -1,5 +1,4 @@
 import { LitElement, html, css } from 'lit';
-import '@spectrum-web-components/switch/sp-switch.js';
 import { store } from '../store/ost-store.js';
 
 const OPTION_LABELS = {
@@ -63,7 +62,7 @@ export class OstPlaceholderOptions extends LitElement {
                                 } else {
                                     ctrl.options[key] = e.target.checked;
                                 }
-                                ctrl.host.requestUpdate();
+                                ctrl.requestUpdate();
                                 store.notify();
                             }}
                         ></sp-switch>

@@ -744,6 +744,58 @@ describe('ai-chat-search-router', () => {
         });
     });
 
+    describe('Mutation intent abstain', () => {
+        // The router must NOT dispatch a search when the message describes
+        // a mutation (update / change / publish / delete / etc.). Before
+        // this guard, "cards"/"fragments" as the OBJECT of a mutation verb
+        // tripped SEARCH_NOUN_RE, and any quoted value (e.g. the new
+        // description) was treated as a title-search query.
+        it('abstains on "update the description of the 2 cards to \\"X\\""', () => {
+            const result = classifySearchIntent('update the description of the 2 cards to "testing testing"', {
+                currentSurface: 'sandbox',
+                currentLocale: 'en_US',
+            });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains on "change the title of these cards to \\"X\\""', () => {
+            const result = classifySearchIntent('change the title of these cards to "New Title"', {
+                currentSurface: 'sandbox',
+            });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains on "publish the cards"', () => {
+            const result = classifySearchIntent('publish the cards', { currentSurface: 'sandbox' });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains on "delete those fragments"', () => {
+            const result = classifySearchIntent('delete those fragments', { currentSurface: 'sandbox' });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('abstains on "replace 20+ apps with 30+ apps in those cards"', () => {
+            const result = classifySearchIntent('replace 20+ apps with 30+ apps in those cards', {
+                currentSurface: 'sandbox',
+            });
+            expect(result.intent).to.equal('unknown');
+            expect(result.dispatch).to.equal(null);
+        });
+
+        it('still dispatches a search when no mutation verb is present', () => {
+            const result = classifySearchIntent('find cards titled "Firefly"', {
+                currentSurface: 'sandbox',
+            });
+            expect(result.intent).to.equal('title-search');
+            expect(result.dispatch).to.not.equal(null);
+        });
+    });
+
     describe('Adversarial inputs', () => {
         it('handles a UUID inside a markdown link', () => {
             const result = classifySearchIntent(`[card](https://example.com/${UUID})`);

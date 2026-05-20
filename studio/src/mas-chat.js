@@ -28,6 +28,7 @@ import {
 } from './utils/mas-chat-helpers.js';
 import { classifySearchIntent, resumeWithSlot } from './utils/ai-chat-search-router.js';
 import { isDeterministicSearchEnabled, recordSearchIntentTelemetry } from './utils/ai-chat-search-telemetry.js';
+import { validateFragmentIds, fragmentIdGuardMessage } from './utils/fragment-id-guard.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import { showToast, getHashParam, normalizeFragmentForCache, logError } from './utils.js';
 import { TAG_MODEL_ID_MAPPING } from './constants.js';
@@ -1429,6 +1430,16 @@ export class MasChat extends LitElement {
         this.isLoading = true;
 
         const operationType = operation.mcpTool;
+
+        const validation = validateFragmentIds(operationType, operation.mcpParams);
+        if (!validation.ok) {
+            const content = fragmentIdGuardMessage(validation.invalid);
+            this.messages = [...this.messages, { role: 'error', content, timestamp: Date.now() }];
+            showToast(content, 'negative');
+            this.isLoading = false;
+            return;
+        }
+
         const isPreviewOperation = ['preview_bulk_update', 'preview_bulk_publish'].includes(operationType);
         const isBulkOperation = ['bulk_update_cards', 'bulk_publish_cards'].includes(operationType);
 

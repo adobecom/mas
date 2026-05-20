@@ -42,6 +42,14 @@ const CONTENT_QUOTED_RE =
     /\b(?:usages?\s+of|instances?\s+of|occurrences?\s+of|references?\s+to|mentions?\s+of|appearances?\s+of)\s+["']([^"']{2,120})["']/i;
 const SEARCH_VERB_RE = /\b(?:find|show|get|search|look up|list|give me|grab|where(?:'s|\s+is)?)\b/i;
 const SEARCH_NOUN_RE = /\b(?:cards?|fragments?)\b/i;
+// Mutation intents. When any of these appears, the message is asking to
+// CHANGE state, not to search — even if "cards"/"fragments" also appears as
+// the object of the verb. Without this guard, "update the 2 cards to X"
+// hits SEARCH_NOUN_RE on "cards" and any quoted phrase ("X") is treated as
+// a title-search query, dispatching search_cards with the new value as the
+// search term.
+const MUTATION_VERB_RE =
+    /\b(?:update|updates|updating|change|changes|changing|set|sets|setting|modify|modifies|modifying|edit|edits|editing|replace|replaces|replacing|delete|deletes|deleting|remove|removes|removing|publish|publishes|publishing|unpublish|unpublishes|unpublishing|create|creates|creating|add|adds|adding|copy|copies|copying|duplicate|duplicates|duplicating|rename|renames|renaming|tag|tags|tagging|untag|untags|untagging|link|links|linking|unlink|unlinks|unlinking)\b/i;
 
 // Template / variant / type anchors. Each pattern captures the candidate
 // variant token (which is then validated via normalizeVariantName — typos
@@ -557,6 +565,7 @@ function looksLikeBareOsi(text, candidate) {
 }
 
 function hasSearchAnchor(text) {
+    if (MUTATION_VERB_RE.test(text)) return false;
     return SEARCH_VERB_RE.test(text) || SEARCH_NOUN_RE.test(text);
 }
 

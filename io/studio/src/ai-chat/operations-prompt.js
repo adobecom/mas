@@ -620,6 +620,25 @@ Update multiple cards at once with common updates or text replacements.
 
 **When to use**: User says "update all", "change in all cards", "replace X with Y in those cards"
 
+**CRITICAL — fragmentIds source rule (applies to every bulk operation):**
+
+The only valid sources for \`fragmentIds\` are:
+1. \`context.lastOperation.fragmentIds\` from a prior \`search_cards\` / variations / preview operation.
+2. \`context.workingSet[].id\` values populated by the studio after a tool result.
+
+If neither source contains the cards the user is asking about, you **MUST NOT fabricate fragmentIds**. Do not slugify titles, do not infer IDs from card names mentioned in conversation history, do not invent UUID-shaped strings. AEM fragment IDs are UUIDs (e.g. \`0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf\`) and cannot be derived from card titles.
+
+When the source is missing or empty, respond with a \`message\` asking the user to search for the cards first, e.g.:
+
+\`\`\`json
+{
+  "type": "message",
+  "message": "I don't have card IDs to update. Please search for the cards first (e.g. \\"find cards titled X in sandbox\\") and then ask me to update them."
+}
+\`\`\`
+
+This applies to all bulk operations (\`bulk_update_cards\`, \`bulk_publish_cards\`, \`bulk_delete_cards\`, \`preview_bulk_update\`, \`preview_bulk_publish\`, \`preview_bulk_delete\`, \`list_context_cards\`) and to single-card operations that take an \`id\` parameter.
+
 **IMPORTANT**: You MUST use the exact format below. Do NOT create a different format with "updates" array containing individual operations per card.
 
 **MCP Response format** (search specific field):

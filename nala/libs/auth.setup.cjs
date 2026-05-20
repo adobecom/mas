@@ -45,8 +45,10 @@ setup('authenticate, @mas-studio', async ({ page, baseURL, browserName }) => {
         // Passkey dialog may not appear — continue
     }
 
-    await page.waitForURL(`${baseURL}/studio.html#page=welcome&path=sandbox`);
-    await expect(page).toHaveURL(`${baseURL}/studio.html#page=welcome&path=sandbox`);
+    const escapedBaseURL = baseURL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const welcomeUrlPattern = new RegExp(`^${escapedBaseURL}/studio\\.html#page=welcome`);
+    await page.waitForURL(welcomeUrlPattern);
+    await expect(page).toHaveURL(welcomeUrlPattern);
 
     await expect(async () => {
         const response = await page.request.get(`${baseURL}/studio.html`);

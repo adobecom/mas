@@ -516,9 +516,18 @@ async function main(params) {
         //                          Route to resolve_offer_selector.
         const searchIntent = /\b(find|show|search|which|get|look\s*up|cards?)\b/i.test(message);
 
+        // Abstain from the deterministic title-search bypass when the message starts with a
+        // mutation verb. Otherwise the colon-or-quote fallback regex on the next branch matches
+        // possessive apostrophes ("the card's description to say: …") and captures the wrong
+        // span — routing a mutation request to a title search using gibberish as the query.
+        const mutationVerb =
+            /\b(?:edit|change|update|modify|set|replace|rename|delete|remove|publish|unpublish|create|add|copy|duplicate|tag|link)\b/i.test(
+                message,
+            );
+
         // Deterministic title search: detect "fragment title" or "title" followed by a quoted or
         // colon-containing title string. Bypass the LLM entirely.
-        if (searchIntent) {
+        if (searchIntent && !mutationVerb) {
             const titleMatch =
                 message.match(
                     /(?:fragment\s+title|cards?\s+(?:named|with\s+title|titled))\s+[""']?([^""']+?)[""']?\s*(?:in\s+(?:all\s+locales?|\w+))?$/i,

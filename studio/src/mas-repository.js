@@ -315,12 +315,25 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Builds a lowercase haystack covering title, description, path, and every string-valued
-     * field. AEM's fullText index only covers title+description, so this is what makes
-     * searches like "Photoshop" match cards whose product name lives in cardTitle/description fields.
+     * Builds a lowercase haystack covering title, description, path, fragment display name,
+     * and every string-valued field. AEM's fullText index only covers title+description,
+     * so this is what makes searches like "Photoshop" match cards whose product name lives
+     * in cardTitle/description fields, and searches like "CC Catalog Merch Card: Adobe Embedded
+     * Print Engine: Individuals: default" match the fragment's display name.
      */
     #queryHaystack(item) {
         const parts = [item.title || '', item.description || '', item.path || ''];
+
+        // Include the fragment display name (e.g., "merch-card: ACOM / Catalog / Product / Customer")
+        try {
+            const fragmentName = getFragmentName(item);
+            if (fragmentName) {
+                parts.push(fragmentName);
+            }
+        } catch (e) {
+            // Ignore errors from getFragmentName - fragment may not have all required fields
+        }
+
         for (const field of item.fields || []) {
             for (const value of field.values || []) {
                 if (typeof value === 'string') parts.push(value);

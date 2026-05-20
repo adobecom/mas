@@ -139,6 +139,16 @@ export class OstStore extends EventTarget {
         this.dispatchEvent(new Event('state-changed'));
     }
 
+    setEnv(env) {
+        if (this.env === env) return;
+        this.env = env;
+        // Offers were fetched at the old env; force re-resolution at the new one.
+        // Selected product/offer/OSI/flow context are intentionally preserved so
+        // the user does not get bounced back to the welcome screen on stage toggle.
+        this.offers = [];
+        this.notify();
+    }
+
     init(config) {
         this.aosParams = { ...DEFAULT_AOS_PARAMS };
         this.selectedProduct = undefined;

@@ -192,7 +192,7 @@ export class OstCountryPicker extends LitElement {
 
     handleEnvToggle(event) {
         const env = event.target.checked ? 'STAGE' : 'PRODUCTION';
-        store.init({ env });
+        store.setEnv(env);
     }
 
     render() {

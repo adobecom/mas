@@ -16,12 +16,16 @@ import {
 
 /**
  * Resolves WCS offer data for a view-only table row: uses the fragment's own OSI, or parent card OSI when the row is a grouped variation without OSI.
- * @param {Object} card - Fragment payload (may be a parent card or a /pzn/ variation)
- * @param {Object} repository - MasRepository
- * @param {AbortSignal} [signal] - Abort signal
+ * Honors a caller-provided `fallbackWcsOsi` to avoid re-fetching a parent whose OSI is already known.
+ * @param {Object} options
+ * @param {Object} options.card - Fragment payload (may be a parent card or a /pzn/ variation)
+ * @param {Object} options.repository - MasRepository
+ * @param {Map} [options.cache] - Offer data cache
+ * @param {AbortSignal} [options.signal] - Abort signal
+ * @param {string} [options.fallbackWcsOsi] - Parent OSI supplied by caller; skips the parent round trip
  * @returns {Promise<Object|null>}
  */
-async function loadOfferDataForViewOnlyCard(card, repository, signal, cache = new Map()) {
+async function loadOfferDataForViewOnlyCard({ card, repository, cache = new Map(), signal, fallbackWcsOsi } = {}) {
     if (!repository || !card) return null;
 
     const ownOsi = new Fragment(card).getFieldValue('osi');
@@ -29,17 +33,17 @@ async function loadOfferDataForViewOnlyCard(card, repository, signal, cache = ne
         return loadOfferData(card, { cache, signal });
     }
 
-    let fallbackWcsOsi;
-    if (repository.resolveHydratedParentFragment && Fragment.isGroupedVariationPath(card.path)) {
+    let resolvedFallbackWcsOsi = fallbackWcsOsi;
+    if (!resolvedFallbackWcsOsi && repository.resolveHydratedParentFragment && Fragment.isGroupedVariationPath(card.path)) {
         try {
             const parentFromAem = await repository.resolveHydratedParentFragment(card.path);
-            fallbackWcsOsi = new Fragment(parentFromAem).getFieldValue('osi');
+            resolvedFallbackWcsOsi = new Fragment(parentFromAem).getFieldValue('osi');
         } catch (err) {
             console.warn(`Failed to load parent fragment for grouped variation ${card.id}:`, err.message);
         }
     }
 
-    return loadOfferData(card, { cache, signal, timeoutMs: 10000, fallbackWcsOsi });
+    return loadOfferData(card, { cache, signal, fallbackWcsOsi: resolvedFallbackWcsOsi });
 }
 
 /**
@@ -362,7 +366,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
         if (type === TABLE_TYPE.CARDS) {
             const enriched = await enrichCards(validFragments, {
                 getByPath: repository.aem.getFragmentByPath,
-                getOfferData: (card, { cache, signal: sig }) => loadOfferDataForViewOnlyCard(card, repository, sig, cache),
+                getOfferData: (card, options) => loadOfferDataForViewOnlyCard({ card, repository, ...options }),
                 signal,
                 getDisplayName,
                 offerDataCache: getItemsSelectionStore().offerDataCache,

@@ -71,14 +71,14 @@ export async function fetchProducts(options = {}) {
     return { success: true, operation: 'list_products', products, count: products.length };
 }
 
-export async function fetchProductDetail(arrangementCode) {
+export async function fetchProductDetail(arrangementCode, { landscape = 'DRAFT' } = {}) {
     if (typeof arrangementCode !== 'string' || !ARRANGEMENT_CODE_PATTERN.test(arrangementCode)) {
         throw new Error(`Invalid arrangement code: must match ${ARRANGEMENT_CODE_PATTERN}`);
     }
     const response = await fetchWithTimeout(`${IO_MCP_URL}/get-product-detail`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ arrangementCode }),
+        body: JSON.stringify({ arrangementCode, landscape }),
     });
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));

@@ -195,7 +195,7 @@ export class OstSelectionList extends LitElement {
         this.requestUpdate();
     }
 
-    renderConfirmBar() {
+    get confirmBar() {
         if (!store.pendingFlowSwitch) return nothing;
         const offerNames =
             store.selectedOffers.length > 0
@@ -213,13 +213,13 @@ export class OstSelectionList extends LitElement {
         `;
     }
 
-    renderTryBuy() {
+    get tryBuyContent() {
         const baseOffer = store.selectedBaseOffer;
         const trialOffer = store.selectedTrialOffer;
         const currentSlot = store.currentSlot;
 
         return html`
-            ${this.renderConfirmBar()}
+            ${this.confirmBar}
             <div
                 class="selection-slot clickable ${currentSlot === 'trial' ? 'active' : ''} ${trialOffer ? 'filled' : ''}"
                 @click=${() => store.setCurrentSlot('trial')}
@@ -271,10 +271,10 @@ export class OstSelectionList extends LitElement {
         `;
     }
 
-    renderBundle() {
+    get bundleContent() {
         const offers = store.selectedOffers;
         return html`
-            ${this.renderConfirmBar()}
+            ${this.confirmBar}
             ${offers.map(
                 (entry, index) => html`
                     <div class="selection-slot filled">
@@ -294,8 +294,8 @@ export class OstSelectionList extends LitElement {
     }
 
     render() {
-        if (store.authoringFlow === 'tryBuy') return this.renderTryBuy();
-        if (store.authoringFlow === 'bundle') return this.renderBundle();
+        if (store.authoringFlow === 'tryBuy') return this.tryBuyContent;
+        if (store.authoringFlow === 'bundle') return this.bundleContent;
         return nothing;
     }
 }

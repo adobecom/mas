@@ -221,7 +221,7 @@ export class OstProductList extends LitElement {
         store.setAosParams({ arrangementCode: code });
     }
 
-    renderSkeletons() {
+    get skeletons() {
         return html`
             <div class="product-scroll">
                 ${Array.from(
@@ -242,7 +242,7 @@ export class OstProductList extends LitElement {
 
     render() {
         if (store.productsLoading) {
-            return this.renderSkeletons();
+            return this.skeletons;
         }
 
         const products = this.filteredProducts;

@@ -487,7 +487,7 @@ export class OstApp extends LitElement {
         }
     }
 
-    renderRightPanel() {
+    get rightPanel() {
         const state = store.viewState;
         if (state === 'welcome') {
             return html`<ost-welcome-screen></ost-welcome-screen>`;
@@ -502,7 +502,7 @@ export class OstApp extends LitElement {
         return html` <ost-product-detail></ost-product-detail> `;
     }
 
-    renderContent() {
+    get content() {
         const showSelectionList = store.authoringFlow === 'tryBuy' || store.authoringFlow === 'bundle';
         // Hide the product picker only while the deep-linked user is in
         // the configure view. The moment they click "Change" (selectedOffer
@@ -530,7 +530,7 @@ export class OstApp extends LitElement {
                       `}
                 <div class="ost-right-panel">
                     <ost-help-banner></ost-help-banner>
-                    ${this.renderRightPanel()}
+                    ${this.rightPanel}
                 </div>
             </div>
         `;
@@ -714,7 +714,7 @@ export class OstApp extends LitElement {
                     <ost-offer-detail-focused></ost-offer-detail-focused>
                     ${focusedFooterBar}
                 `
-              : html` ${headerBar} ${this.renderContent()} ${footerBar} `;
+              : html` ${headerBar} ${this.content} ${footerBar} `;
 
         return html`
             <sp-theme system="spectrum-two" color="light" scale="medium">

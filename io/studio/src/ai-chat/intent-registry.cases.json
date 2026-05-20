@@ -94,7 +94,7 @@
         "currentLocale": "en_US"
       },
       "conversationHistory": [],
-      "user_message": "open card 0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+      "user_message": "show me card 0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
       "expect": {
         "intent": "get_card",
         "slots_include": { "id": "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf" }

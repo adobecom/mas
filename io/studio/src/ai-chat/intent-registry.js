@@ -21,7 +21,8 @@ export const INTENTS = [
     {
         name: 'get_card',
         category: 'read-only',
-        description: 'Fetch a single card by UUID.',
+        description:
+            'Fetch a single card\'s data by UUID. Use when the user wants to SEE or READ the card\'s contents (e.g. "show me card X", "what does card X contain", "get card X"). Do NOT use when the user wants to OPEN the card for EDITING — use open_card_editor for that.',
         required_slots: ['id'],
         optional_slots: [],
         slot_validators: { id: 'uuid' },
@@ -537,7 +538,8 @@ export const INTENTS = [
     {
         name: 'open_card_editor',
         category: 'read-only',
-        description: 'Open the editor for a card in MAS Studio.',
+        description:
+            'Navigate the studio UI to the editor for a card. Use when the user wants to OPEN, EDIT, or NAVIGATE TO a card (e.g. "open card X", "edit card X", "let me look at card X"). Do NOT use when the user just wants to read the card\'s contents — use get_card for that.',
         required_slots: ['id'],
         optional_slots: [],
         slot_validators: { id: 'uuid' },

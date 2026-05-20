@@ -30,6 +30,21 @@ export function serializePromotionSurfacesForAem(values) {
 }
 
 /**
+ * @param {unknown[]|undefined} values Raw `surfaces` field values from a promotion fragment
+ * @returns {string[]} surfaces
+ */
+export function parsePromotionSurfacesFieldValues(values) {
+    if (!Array.isArray(values) || !values.length) return [];
+    const tokens = values.flatMap((v) =>
+        String(v)
+            .split(/[,\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean),
+    );
+    return [...new Set(tokens.map((t) => t.toLowerCase()))];
+}
+
+/**
  * @param {string[]} allPaths
  * @param {(path: string) => Promise<unknown>} getFragmentByPath
  * @param {string} [collectionModelPath]

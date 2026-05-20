@@ -8,7 +8,8 @@ import ReactiveController from './reactivity/reactive-controller.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
 import styles from './mas-promotions-editor-css.js';
 import { SURFACES, PAGE_NAMES, PROMOTION_MODEL_ID, TABLE_TYPE } from './constants.js';
-import { normalizeKey, showToast } from './utils.js';
+import { normalizeKey, showToast, extractSurfaceFromPath } from './utils.js';
+import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING } from './editor-panel.js';
 import { Promotion } from './aem/promotion.js';
 import './promotions/mas-promotions-items-selector.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-selection-store.js';
@@ -16,10 +17,27 @@ import {
     classifyPromotionPathsForSelection,
     isPromotionItemSelectionDirty,
     isPromotionRequiredFieldsValid,
+    parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
 } from './promotions/promotion-editor-utils.js';
-import { getFragmentName } from './translation/translation-utils.js';
 import { renderFragmentStatusCell } from './common/utils/render-utils.js';
+
+function getPromotionPickerFragmentLabel(data) {
+    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
+    const fragmentPath = typeof data?.path === 'string' ? data.path : data?.get?.()?.path;
+    const pathSurface = extractSurfaceFromPath(fragmentPath);
+    const searchSnapshot = Store.search.get();
+    const storeLike = {
+        search: {
+            value: {
+                ...searchSnapshot,
+                path: pathSurface ?? searchSnapshot.path,
+            },
+        },
+    };
+    const { fragmentParts } = getFragmentPartsToUse(storeLike, data);
+    return `${webComponentName}: ${fragmentParts}`;
+}
 
 const typeMap = {
     title: { type: 'text' },
@@ -118,6 +136,7 @@ class MasPromotionsEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        Store.promotions.itemPickerSurface.set(null);
         setItemsSelectionStore(this.#itemsSelectionStoreSnapshot);
         this.#itemsSelectionStoreSnapshot = null;
     }
@@ -141,6 +160,10 @@ class MasPromotionsEditor extends LitElement {
 
     get selectedItemsCount() {
         return Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
+    }
+
+    get promotionPickerSurfaces() {
+        return parsePromotionSurfacesFieldValues(this.fragment?.fields?.find((f) => f.name === 'surfaces')?.values ?? []);
     }
 
     get #itemsSelectionDirty() {
@@ -456,11 +479,19 @@ class MasPromotionsEditor extends LitElement {
         });
     }
 
+    #clearPromotionItemPickerSurface() {
+        Store.promotions.itemPickerSurface.set(null);
+        if (Store.page.get() === PAGE_NAMES.PROMOTIONS_EDITOR) {
+            this.repository?.searchFragments?.();
+        }
+    }
+
     #confirmItemSelection = ({ target }) => {
         this.showSelectedEmptyState = this.selectedItemsCount === 0;
         this.#cardsSnapshot = [];
         this.#collectionsSnapshot = [];
         this.#itemsConfirmed = true;
+        this.#clearPromotionItemPickerSurface();
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
@@ -470,6 +501,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.selectedCollections.set(this.#collectionsSnapshot);
         this.showSelectedEmptyState = this.selectedItemsCount === 0;
         this.#itemsConfirmed = true;
+        this.#clearPromotionItemPickerSurface();
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
     };
@@ -491,7 +523,16 @@ class MasPromotionsEditor extends LitElement {
             selector.selectedTab = TABLE_TYPE.CARDS;
             selector.shadowRoot?.querySelectorAll('mas-search-and-filters').forEach((el) => el.resetFilters());
         }
+        const surfaces = this.promotionPickerSurfaces;
+        if (surfaces.length) {
+            const current = Store.promotions.itemPickerSurface.get();
+            Store.promotions.itemPickerSurface.set(surfaces.includes(current) ? current : surfaces[0]);
+        } else {
+            Store.promotions.itemPickerSurface.set(null);
+        }
+        if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadAllCollections) this.repository.loadAllCollections();
+        if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
     }
 
     #restoreItemsSnapshot = () => {
@@ -499,6 +540,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.selectedCards.set(this.#cardsSnapshot);
         Store.promotions.selectedCollections.set(this.#collectionsSnapshot);
         this.showSelectedEmptyState = this.selectedItemsCount === 0;
+        this.#clearPromotionItemPickerSurface();
     };
 
     #dispatchDialogEvent = (name) => {
@@ -537,7 +579,8 @@ class MasPromotionsEditor extends LitElement {
                 @close=${this.#restoreItemsSnapshot}
             >
                 <mas-promotions-items-selector
-                    .getDisplayName=${getFragmentName}
+                    .fragmentSurfaceOptions=${this.promotionPickerSurfaces}
+                    .getDisplayName=${getPromotionPickerFragmentLabel}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     @promotion-items-tab-change=${this.#onPromotionItemsTabChange}
                 ></mas-promotions-items-selector>
@@ -733,7 +776,7 @@ class MasPromotionsEditor extends LitElement {
                               ${this.isSelectedItemsOpen
                                   ? html`<mas-promotions-items-selector
                                         .viewOnly=${true}
-                                        .getDisplayName=${getFragmentName}
+                                        .getDisplayName=${getPromotionPickerFragmentLabel}
                                         .renderFragmentStatusCell=${renderFragmentStatusCell}
                                     ></mas-promotions-items-selector>`
                                   : nothing}

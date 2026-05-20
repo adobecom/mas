@@ -132,6 +132,7 @@ export class MasRepository extends LitElement {
         this.publishFragment = this.publishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
         this.search = new StoreController(this, Store.search);
+        this.promotionsItemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
         this.filters = new StoreController(this, Store.filters);
         this.page = new StoreController(this, Store.page);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
@@ -387,6 +388,13 @@ export class MasRepository extends LitElement {
         });
     }
 
+    /** Fragment list surface on promotions editor item picker; falls back to top-nav folder. */
+    #promotionsItemPickerSurfaceOrNavPath() {
+        const override = Store.promotions.itemPickerSurface.get();
+        if (override != null && override !== '') return override;
+        return this.search.value.path;
+    }
+
     async searchFragments() {
         if (
             !(
@@ -399,7 +407,10 @@ export class MasRepository extends LitElement {
             return;
         if (!Store.profile.value) return;
 
-        const path = this.search.value.path;
+        const path =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                ? this.#promotionsItemPickerSurfaceOrNavPath()
+                : this.search.value.path;
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
 
@@ -449,7 +460,15 @@ export class MasRepository extends LitElement {
 
         const tracing = typeof localStorage !== 'undefined' && localStorage.getItem('mas-perf-trace');
 
+        const promotionPickerSurfaceMark =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? Store.promotions.itemPickerSurface.get() : undefined;
+        const currentPromotionPickerMark = dataStore.getMeta('promotionPickerSurface');
+        const promotionPickerMatches =
+            this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR ||
+            (promotionPickerSurfaceMark ?? null) === (currentPromotionPickerMark ?? null);
+
         const sameSurface =
+            promotionPickerMatches &&
             currentData?.length > 0 &&
             currentPath === path &&
             currentLocale === locale &&
@@ -616,7 +635,16 @@ export class MasRepository extends LitElement {
                     }
 
                     // Backfill the surface for pathless UUID deep-links so the picker and URL normalize.
-                    if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
+                    if (
+                        canSyncSurface &&
+                        fragmentSurface &&
+                        Store.search.value.path !== fragmentSurface &&
+                        !(
+                            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR &&
+                            Store.promotions.itemPickerSurface.get() != null &&
+                            Store.promotions.itemPickerSurface.get() !== ''
+                        )
+                    ) {
                         Store.search.set((prev) => ({
                             ...prev,
                             query: prev.query ?? query,
@@ -672,6 +700,9 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', this.filters.value.tags || '');
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
+            if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
+                dataStore.setMeta('promotionPickerSurface', Store.promotions.itemPickerSurface.get());
+            }
             dataStore.setMeta('lastLoad', Date.now());
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -886,7 +917,11 @@ export class MasRepository extends LitElement {
     async loadPlaceholders() {
         try {
             /* If surface is not set yet, skip loading placeholders */
-            if (!this.search.value.path) return;
+            const surfaceKey =
+                this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                    ? this.#promotionsItemPickerSurfaceOrNavPath()
+                    : this.search.value.path;
+            if (!surfaceKey) return;
 
             const dictionaryPath = this.getDictionaryPath();
             try {
@@ -924,12 +959,16 @@ export class MasRepository extends LitElement {
     }
 
     async loadAllCollections() {
-        if (!this.search.value.path) return;
+        const surfaceKey =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                ? this.#promotionsItemPickerSurfaceOrNavPath()
+                : this.search.value.path;
+        if (!surfaceKey) return;
         try {
             if (this.#abortControllers.collections) this.#abortControllers.collections.abort();
             this.#abortControllers.collections = new AbortController();
 
-            const damPath = getDamPath(this.search.value.path);
+            const damPath = getDamPath(surfaceKey);
             const locale = this.filters.value.locale;
             const searchOptions = {
                 path: `${damPath}/${locale}`,
@@ -941,7 +980,14 @@ export class MasRepository extends LitElement {
             const collections = [];
             const collectionsByPath = new Map();
             for (const fragment of fragments) {
-                const collection = { ...fragment, studioPath: getFragmentName(fragment) };
+                let studioPath;
+                if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
+                    const surface = (extractSurfaceFromPath(fragment.path) ?? this.search.value.path)?.toUpperCase();
+                    studioPath = `merch-card-collection: ${surface} / ${fragment.title || ''}`;
+                } else {
+                    studioPath = getFragmentName(fragment);
+                }
+                const collection = { ...fragment, studioPath };
                 collections.push(collection);
                 collectionsByPath.set(fragment.path, collection);
             }
@@ -1085,7 +1131,9 @@ export class MasRepository extends LitElement {
     }
 
     getDictionaryPath() {
-        return `${ROOT_PATH}/${Store.surface()}/${Store.localeOrRegion()}/dictionary`;
+        const surfaceKey =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? this.#promotionsItemPickerSurfaceOrNavPath() : Store.surface();
+        return `${ROOT_PATH}/${surfaceKey}/${Store.localeOrRegion()}/dictionary`;
     }
 
     parseDictionaryPath(dictionaryPath) {

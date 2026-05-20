@@ -118,6 +118,8 @@ const Store = {
         selectedPlaceholders: new ReactiveStore([]),
 
         showSelected: new ReactiveStore(false),
+        // for "Select items" modal from Promotion editor
+        itemPickerSurface: new ReactiveStore(null),
     },
     localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';

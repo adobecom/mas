@@ -1,8 +1,10 @@
 import { LitElement, html, nothing, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import StoreController from '../reactivity/store-controller.js';
+import Store from '../store.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
-import { TABLE_TYPE } from '../constants.js';
+import { SURFACES, TABLE_TYPE } from '../constants.js';
 import { toggleSidebarIcon } from '../icons.js';
 import '../common/components/mas-select-items-table.js';
 import './mas-promotions-items-table.js';
@@ -37,6 +39,7 @@ class MasPromotionsItemsSelector extends LitElement {
         selectedTab: { type: String, state: true },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
+        fragmentSurfaceOptions: { type: Array },
     };
 
     constructor() {
@@ -46,6 +49,8 @@ class MasPromotionsItemsSelector extends LitElement {
         this.selectedTab = TABLE_TYPE.CARDS;
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = renderFragmentStatusCell;
+        this.fragmentSurfaceOptions = [];
+        this.itemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
     }
 
     connectedCallback() {
@@ -114,10 +119,43 @@ class MasPromotionsItemsSelector extends LitElement {
         }
     }
 
+    #surfaceLabel(surfaceKey) {
+        const entry = Object.values(SURFACES).find((s) => s.name === surfaceKey);
+        return entry?.label ?? surfaceKey;
+    }
+
+    #onPromotionItemSurfaceChange(event) {
+        const value = event.detail?.value ?? event.target?.value ?? event.target?.selectedItem?.value ?? '';
+        if (!value) return;
+        Store.promotions.itemPickerSurface.set(value);
+        const repo = document.querySelector('mas-repository');
+        Store.fragments.list.data.set([]);
+        Store.fragments.list.hasMore.set(false);
+        const s = Store.promotions;
+        s.allCards.set([]);
+        s.displayCards.set([]);
+        s.groupedVariationsByParent.set(new Map());
+        s.groupedVariationsData.set(new Map());
+        s.allCollections.set([]);
+        s.allCollections.setMeta('loaded', false);
+        s.displayCollections.set([]);
+        repo?.searchFragments?.();
+        repo?.loadAllCollections?.();
+        repo?.loadPlaceholders?.();
+    }
+
     render() {
         const count = this.selectedCount;
         const showingSelection = this.showSelected && count;
         const toggleLabel = showingSelection ? 'Hide selection' : 'Selected items';
+        const showSurfacePicker = !this.viewOnly && this.fragmentSurfaceOptions?.length > 1;
+        const promotionSurfaceOptions = showSurfacePicker
+            ? this.fragmentSurfaceOptions.map((key) => ({ id: key, title: this.#surfaceLabel(key) }))
+            : [];
+        const surfacePickerValue =
+            this.itemPickerSurface.value && this.fragmentSurfaceOptions.includes(this.itemPickerSurface.value)
+                ? this.itemPickerSurface.value
+                : this.fragmentSurfaceOptions[0];
         return html`
             ${this.viewOnly
                 ? nothing
@@ -150,6 +188,9 @@ class MasPromotionsItemsSelector extends LitElement {
                                           .type=${tab.value}
                                           .searchQuery=${tab.value === this.selectedTab ? this.searchQuery : ''}
                                           .searchOnly=${[TABLE_TYPE.PLACEHOLDERS, TABLE_TYPE.COLLECTIONS].includes(tab.value)}
+                                          .promotionSurfaceOptions=${promotionSurfaceOptions}
+                                          .promotionSurface=${surfacePickerValue ?? ''}
+                                          @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
                                       ></mas-search-and-filters>
                                   `}
                             <div class="container ${this.viewOnly ? 'view-only' : ''}">

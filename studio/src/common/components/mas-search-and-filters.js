@@ -24,7 +24,9 @@ class MasSearchAndFilters extends LitElement {
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
         productOptions: { type: Array },
-        searchOnly: { type: Boolean },
+        searchOnly: { type: Boolean, reflect: true },
+        promotionSurfaceOptions: { type: Array },
+        promotionSurface: { type: String },
     };
 
     constructor() {
@@ -39,6 +41,8 @@ class MasSearchAndFilters extends LitElement {
         this.customerSegmentOptions = [];
         this.productOptions = [];
         this.dataSubscription = null;
+        this.promotionSurfaceOptions = [];
+        this.promotionSurface = '';
     }
 
     connectedCallback() {
@@ -297,6 +301,47 @@ class MasSearchAndFilters extends LitElement {
         `;
     }
 
+    #renderPromotionSurfacePicker() {
+        if (!this.promotionSurfaceOptions?.length || this.promotionSurfaceOptions.length <= 1) {
+            return nothing;
+        }
+        const displayLabel = 'Surface';
+
+        return html`
+            <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
+                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading}>
+                    ${displayLabel}
+                    <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
+                </sp-action-button>
+                <sp-popover slot="click-content" class="filter-popover">
+                    <sp-menu>
+                        ${this.promotionSurfaceOptions.map(
+                            (opt) => html`
+                                <sp-menu-item
+                                    value=${opt.id}
+                                    ?selected=${opt.id === this.promotionSurface}
+                                    @click=${(e) => {
+                                        e.stopPropagation();
+                                        if (opt.id === this.promotionSurface) return;
+                                        this.dispatchEvent(
+                                            new CustomEvent('promotion-surface-change', {
+                                                detail: { value: opt.id },
+                                                bubbles: true,
+                                                composed: true,
+                                            }),
+                                        );
+                                    }}
+                                >
+                                    ${opt.title}
+                                </sp-menu-item>
+                            `,
+                        )}
+                    </sp-menu>
+                </sp-popover>
+            </overlay-trigger>
+        `;
+    }
+
     #applyFilters() {
         const source = getItemsSelectionStore()[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
@@ -361,8 +406,9 @@ class MasSearchAndFilters extends LitElement {
     }
 
     render() {
+        const surfacePicker = this.#renderPromotionSurfacePicker();
         if (this.searchOnly) {
-            return html`${this.renderCount()}`;
+            return html`${this.renderCount()} ${surfacePicker}`;
         }
         return html`
             <div class="filters">
@@ -381,6 +427,7 @@ class MasSearchAndFilters extends LitElement {
                     FILTER_TYPE.CUSTOMER_SEGMENT,
                 )}
                 ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
+                ${surfacePicker}
             </div>
             ${this.#renderAppliedFilters()}
         `;

@@ -342,6 +342,24 @@ describe('MasTopNav', () => {
             expect(folderPicker.hasAttribute('disabled')).to.be.true;
         });
 
+        it('should disable folder picker on promotions list page', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should disable folder picker on promotions editor page', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
         it('should not disable folder picker on bulk publish list page', async () => {
             Store.page.value = PAGE_NAMES.BULK_PUBLISH;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);

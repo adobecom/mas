@@ -3,6 +3,7 @@ import {
     classifyPromotionPathsForSelection,
     isPromotionItemSelectionDirty,
     isPromotionRequiredFieldsValid,
+    parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
 } from '../../src/promotions/promotion-editor-utils.js';
 import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
@@ -52,6 +53,18 @@ describe('promotion-editor-utils', () => {
 
         it('merges comma and newline separated tokens into one AEM value', () => {
             expect(serializePromotionSurfacesForAem([' a , b\n c , a '])).to.deep.equal(['a,b,c']);
+        });
+    });
+
+    describe('parsePromotionSurfacesFieldValues', () => {
+        it('returns empty array for non-array or empty input', () => {
+            expect(parsePromotionSurfacesFieldValues()).to.deep.equal([]);
+            expect(parsePromotionSurfacesFieldValues(null)).to.deep.equal([]);
+            expect(parsePromotionSurfacesFieldValues([])).to.deep.equal([]);
+        });
+
+        it('returns unique lowercase surface keys', () => {
+            expect(parsePromotionSurfacesFieldValues(['NALA, sandbox', 'nala'])).to.deep.equal(['nala', 'sandbox']);
         });
     });
 

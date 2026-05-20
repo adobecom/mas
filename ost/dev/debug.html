@@ -47,7 +47,7 @@
                 type="password"
                 placeholder="Paste AOS_ACCESS_TOKEN here (from MAS Studio network tab or milo.adobe.com/tools/ost)"
             />
-            <button onclick="applyToken()">Apply & Reload</button>
+            <button id="apply-token-btn">Apply & Reload</button>
             <span class="status" id="status"></span>
         </div>
         <div id="ost-root"></div>
@@ -63,13 +63,13 @@
                 statusEl.textContent = 'Token loaded from localStorage';
             }
 
-            window.applyToken = function () {
+            document.getElementById('apply-token-btn').addEventListener('click', () => {
                 const val = inputEl.value.trim();
                 if (val && !val.endsWith('...')) {
                     localStorage.setItem('AOS_ACCESS_TOKEN', val);
                     location.reload();
                 }
-            };
+            });
 
             const { store } = await import('/src/store/ost-store.js');
 

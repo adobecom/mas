@@ -71,10 +71,18 @@
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 
-        <!-- OST -->
-        <script src="studio/ost/index.js" defer></script>
+        <!-- OST: load new Spectrum 2 build by default; ?ost=legacy or #ost=legacy switches to the legacy tacocat bundle. -->
+        <script>
+            (function () {
+                const search = new URLSearchParams(location.search).get('ost');
+                const hash = (location.hash.match(/(?:^#|&)ost=([^&]+)/) || [])[1];
+                const useLegacy = (search || hash) === 'legacy';
+                const base = useLegacy ? 'studio/ost-legacy' : 'studio/ost';
+                document.write(`<script src="${base}/index.js" defer><\/script>`);
+                document.write(`<link rel="stylesheet" href="./${base}/index.css" />`);
+            })();
+        </script>
         <link rel="stylesheet" href="studio/libs/spectrum.css" />
-        <link rel="stylesheet" href="./studio/ost/index.css" />
         <link rel="stylesheet" href="./studio/style.css" />
         <link rel="stylesheet" href="./studio/merch-card.css" />
         <link rel="stylesheet" href="./studio/con-button.css" />

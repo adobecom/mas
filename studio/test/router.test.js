@@ -438,18 +438,7 @@ describe('Router', () => {
             await router.navigateToPage(PAGE_NAMES.CONTENT)();
             expect(Store.fragmentEditor.fragmentId.get()).to.be.null;
         });
-
-        it('should reset list locale and region when leaving fragment editor for content', async () => {
-            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
-            Store.fragments.inEdit.set(null);
-            Store.fragmentEditor.fragmentId.set('test-id');
-            Store.filters.set((prev) => ({ ...prev, locale: 'en_CA' }));
-            Store.search.set((prev) => ({ ...prev, region: 'fr_FR', path: 'sandbox' }));
-            await router.navigateToPage(PAGE_NAMES.CONTENT)();
-            expect(Store.filters.get().locale).to.equal('en_US');
-            expect(Store.search.get().region).to.be.null;
-        });
-
+        //
         it('should clear translation project data when leaving translation editor', async () => {
             Store.page.value = PAGE_NAMES.TRANSLATION_EDITOR;
             Store.translationProjects.translationProjectId.set('test-id');
@@ -530,8 +519,7 @@ describe('Router', () => {
         it('should set locale if provided', async () => {
             Store.filters.value = { locale: 'en_US' };
             await router.navigateToFragmentEditor('test-id', { locale: 'fr_FR' });
-            expect(Store.filters.get().locale).to.equal('fr_FR');
-            expect(Store.search.get().region).to.be.null;
+            expect(Store.search.get().region).to.equal('fr_FR');
         });
 
         it('should use editor-panel for a provided collection fragment store', async () => {
@@ -578,8 +566,7 @@ describe('Router', () => {
             expect(mockEditorPanel.editFragment.called).to.be.false;
             expect(Store.fragmentEditor.fragmentId.get()).to.equal('new-collection-variation-id');
             expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
-            expect(Store.filters.get().locale).to.equal('fr_FR');
-            expect(Store.search.get().region).to.be.null;
+            expect(Store.search.get().region).to.equal('fr_FR');
         });
     });
 

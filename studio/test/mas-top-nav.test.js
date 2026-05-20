@@ -303,15 +303,6 @@ describe('MasTopNav', () => {
             expect(buttons[0].hasAttribute('disabled')).to.be.false;
             expect(buttons[1].hasAttribute('disabled')).to.be.true;
         });
-
-        it('should navigate to content when back is clicked on fragment editor', async () => {
-            Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
-            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => Promise.resolve());
-            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            const backButton = el.querySelector('.history-navigation .history-nav-button');
-            backButton.click();
-            expect(navigateStub.calledOnceWith(PAGE_NAMES.CONTENT)).to.be.true;
-        });
     });
 
     describe('picker disabled states', () => {
@@ -447,7 +438,7 @@ describe('MasTopNav', () => {
         });
 
         it('should show parent locale when viewing a variation fragment', async () => {
-            const variationFragment = { id: 'variation-id', path: '/content/dam/mas/sandbox/fr_FR/card' };
+            const variationFragment = { id: 'variation-id' };
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.search.set((prev) => ({ ...prev, region: 'en_IN' }));
             Store.fragments.inEdit.value = { get: () => variationFragment };
@@ -459,7 +450,7 @@ describe('MasTopNav', () => {
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
             const localePicker = el.querySelector('mas-locale-picker');
-            expect(localePicker.getAttribute('locale')).to.equal('fr_FR');
+            expect(localePicker.getAttribute('locale')).to.equal('en_GB');
 
             editorContext.isVariationByPath = false;
             editorContext.localeDefaultFragment = null;

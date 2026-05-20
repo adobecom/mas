@@ -1,9 +1,7 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
-import MasFragmentEditor, {
-    alignStoreLocaleFromFragmentPath,
-    syncVariationLocaleInUrlForHash,
-} from '../src/mas-fragment-editor.js';
+import '../src/mas-fragment-editor.js';
+import MasFragmentEditor from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
@@ -365,8 +363,7 @@ describe('MasFragmentEditor', () => {
             expect(mockRepo.refreshFragment.calledOnce).to.be.true;
             expect(el.editorContextStore.loadFragmentContext.calledOnceWith('existing-id', existingData.path)).to.be.true;
             expect(el.inEdit.get()).to.equal(existingStore);
-            expect(Store.filters.get().locale).to.equal('fr_FR');
-            expect(Store.search.get().region).to.be.null;
+            expect(Store.search.get().region).to.equal('fr_FR');
             expect(el.updateTranslatedLocalesStore.calledOnceWith(false, existingData.path)).to.be.true;
             expect(el.initState).to.equal(MasFragmentEditor.INIT_STATE.READY);
             expect(Store.fragmentEditor.loading.get()).to.equal(false);
@@ -450,9 +447,8 @@ describe('MasFragmentEditor', () => {
 
             await el.initFragment();
 
-            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(3);
-            expect(Store.filters.get().locale).to.equal('fr_FR');
-            expect(Store.search.get().region == null).to.be.true;
+            expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
+            expect(Store.search.get().region).to.equal('fr_FR');
             expect(Store.previewDictionary()).to.deep.equal({ testDictionary: true });
         });
 
@@ -477,8 +473,7 @@ describe('MasFragmentEditor', () => {
             await el.initFragment();
 
             expect(mockRepo.loadPreviewPlaceholders.callCount).to.equal(2);
-            expect(Store.filters.get().locale).to.equal('fr_FR');
-            expect(Store.search.get().region == null).to.be.true;
+            expect(Store.search.get().region).to.equal('fr_FR');
             expect(Store.previewDictionary()).to.deep.equal({ fromCachedVariation: true });
             expect(sourceStore.resolvePreviewFragment.calledOnce).to.be.true;
         });
@@ -1189,95 +1184,6 @@ describe('MasFragmentEditor', () => {
         it('renders variation counts', () => {
             const section = el.relatedVariationsSection;
             expect(section).to.not.equal(nothing);
-        });
-    });
-
-    describe('syncVariationLocaleInUrlForHash', () => {
-        const frPath = '/content/dam/mas/sandbox/fr_FR/pac/card';
-
-        let savedSearch;
-        let savedFilters;
-
-        beforeEach(() => {
-            savedSearch = structuredClone(Store.search.get());
-            savedFilters = structuredClone(Store.filters.get());
-            Store.search.set({});
-            Store.filters.set({ locale: 'en_US' });
-        });
-
-        afterEach(() => {
-            Store.search.set(savedSearch);
-            Store.filters.set(savedFilters);
-        });
-
-        it('returns false when path has no parseable locale', () => {
-            expect(syncVariationLocaleInUrlForHash('')).to.be.false;
-            expect(syncVariationLocaleInUrlForHash('/invalid')).to.be.false;
-        });
-
-        it('returns false when filter and region already match path locale', () => {
-            Store.filters.set({ locale: 'fr_FR' });
-            expect(syncVariationLocaleInUrlForHash(frPath)).to.be.false;
-        });
-
-        it('updates filters.locale and clears region when URL locale mismatched', () => {
-            Store.filters.set({ locale: 'it_IT' });
-            Store.search.set({ path: 'sandbox', region: 'fr_FR' });
-
-            expect(syncVariationLocaleInUrlForHash(frPath)).to.be.true;
-            expect(Store.filters.get().locale).to.equal('fr_FR');
-            expect(Store.search.get().region).to.be.null;
-        });
-
-        it('clears stale region when filter already matches path locale', () => {
-            Store.filters.set({ locale: 'fr_FR' });
-            Store.search.set({ path: 'sandbox', region: 'de_DE' });
-
-            expect(syncVariationLocaleInUrlForHash(frPath)).to.be.true;
-            expect(Store.filters.get().locale).to.equal('fr_FR');
-            expect(Store.search.get().region).to.be.null;
-        });
-    });
-
-    describe('alignStoreLocaleFromFragmentPath', () => {
-        const frCaPath = '/content/dam/mas/sandbox/fr_CA/pac/card';
-
-        let savedSearch;
-        let savedFilters;
-
-        beforeEach(() => {
-            savedSearch = structuredClone(Store.search.get());
-            savedFilters = structuredClone(Store.filters.get());
-            Store.search.set({ path: 'sandbox' });
-            Store.filters.set({ locale: 'en_US' });
-        });
-
-        afterEach(() => {
-            Store.search.set(savedSearch);
-            Store.filters.set(savedFilters);
-        });
-
-        it('returns null for empty path and leaves store unchanged', () => {
-            expect(alignStoreLocaleFromFragmentPath('')).to.be.null;
-            expect(Store.filters.get().locale).to.equal('en_US');
-        });
-
-        it('sets filters.locale from path when filter is default en_US (avoids region cleared by filters subscriber)', () => {
-            expect(alignStoreLocaleFromFragmentPath(frCaPath)).to.equal('fr_CA');
-            expect(Store.filters.get().locale).to.equal('fr_CA');
-            expect(Store.search.get().region).to.be.null;
-        });
-
-        it('does not override a non-default filter locale', () => {
-            Store.filters.set({ locale: 'it_IT' });
-            expect(alignStoreLocaleFromFragmentPath(frCaPath)).to.equal('fr_CA');
-            expect(Store.filters.get().locale).to.equal('it_IT');
-        });
-
-        it('no-ops when locale already matches effective store locale', () => {
-            Store.filters.set({ locale: 'fr_CA' });
-            expect(alignStoreLocaleFromFragmentPath(frCaPath)).to.equal('fr_CA');
-            expect(Store.filters.get().locale).to.equal('fr_CA');
         });
     });
 

@@ -172,9 +172,8 @@ export class OstCodeOutput extends LitElement {
         }
 
         this.buttonText = 'Copied';
-        const resetTimer = window.setTimeout(() => {
+        window.setTimeout(() => {
             this.buttonText = 'Use';
-            window.clearTimeout(resetTimer);
         }, 400);
     }
 

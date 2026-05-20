@@ -479,11 +479,18 @@ export class AemFragment extends HTMLElement {
     async generatePreview() {
         const fragmentClientUrl = this.getFragmentClientUrl();
         const { previewFragment } = await import(fragmentClientUrl);
-        const data = await previewFragment(this.#fragmentId, {
+        const options = {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
-        });
+        };
+        const instant =
+            new URLSearchParams(window.location.search).get('instant') ??
+            this.#service.settings.instant;
+        if (instant) {
+            options.instant = instant;
+        }
+        const data = await previewFragment(this.#fragmentId, options);
         return data;
     }
 }

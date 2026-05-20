@@ -224,13 +224,13 @@ async function runLiveLlm() {
     // Soft gate while iterating; will tighten to 0.95 once stable
     const THRESHOLD = 0.75;
 
+    const pct = Math.round(passRate * 100);
+    const failureSummary = failures.length ? `\n  ${failures.join('\n  ')}` : '';
+
     if (passRate < THRESHOLD) {
-        const pct = Math.round(passRate * 100);
-        const summary = failures.length ? `\n  ${failures.join('\n  ')}` : '';
-        exitWith(1, `--live-llm FAIL (${pass}/${total} = ${pct}% < ${Math.round(THRESHOLD * 100)}%)${summary}`);
+        exitWith(1, `--live-llm FAIL (${pass}/${total} = ${pct}% < ${Math.round(THRESHOLD * 100)}%)${failureSummary}`);
     } else {
-        const pct = Math.round(passRate * 100);
-        exitWith(0, `--live-llm PASS (${pass}/${total} = ${pct}%)`);
+        exitWith(0, `--live-llm PASS (${pass}/${total} = ${pct}%)${failureSummary}`);
     }
 }
 

@@ -49,6 +49,224 @@
         "intent": "ASK_USER",
         "clarification_question_includes": "card"
       }
+    },
+    {
+      "id": "search-by-title-happy",
+      "intent_under_test": "search_cards",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "find cards titled firefly in sandbox",
+      "expect": {
+        "intent": "search_cards",
+        "slots_include": { "query": "firefly" }
+      }
+    },
+    {
+      "id": "search-by-content-happy",
+      "intent_under_test": "search_cards",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "find cards containing 'creative cloud' in sandbox",
+      "expect": {
+        "intent": "search_cards"
+      }
+    },
+    {
+      "id": "get-card-by-uuid-happy",
+      "intent_under_test": "get_card",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "open card 0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+      "expect": {
+        "intent": "get_card",
+        "slots_include": { "id": "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf" }
+      }
+    },
+    {
+      "id": "bulk-update-with-context-happy",
+      "intent_under_test": "bulk_update_cards",
+      "context": {
+        "flow": null,
+        "lastOperation": {
+          "fragmentIds": [
+            "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+            "12f26a12-118e-4367-b4d2-d8b6995bd9ab"
+          ],
+          "type": "search_cards"
+        },
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "update the description on those to \"X\"",
+      "expect": {
+        "intent": "bulk_update_cards",
+        "slots_include": {
+          "fragmentIds": [
+            "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+            "12f26a12-118e-4367-b4d2-d8b6995bd9ab"
+          ]
+        }
+      }
+    },
+    {
+      "id": "bulk-publish-with-context-happy",
+      "intent_under_test": "bulk_publish_cards",
+      "context": {
+        "flow": null,
+        "lastOperation": {
+          "fragmentIds": [
+            "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+            "12f26a12-118e-4367-b4d2-d8b6995bd9ab"
+          ],
+          "type": "search_cards"
+        },
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "publish them",
+      "expect": {
+        "intent": "bulk_publish_cards",
+        "slots_include": {
+          "fragmentIds": [
+            "0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf",
+            "12f26a12-118e-4367-b4d2-d8b6995bd9ab"
+          ]
+        }
+      }
+    },
+    {
+      "id": "release-create-start-happy",
+      "intent_under_test": "release_create.start",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "create cards for photoshop",
+      "expect": {
+        "intent": "release_create.start"
+      }
+    },
+    {
+      "id": "release-create-set-product-happy",
+      "intent_under_test": "release_create.set_product",
+      "context": {
+        "flow": { "active": "release_create", "step": "awaiting_product" },
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "Photoshop",
+      "expect": {
+        "intent": "release_create.set_product"
+      }
+    },
+    {
+      "id": "abort-mid-flow-happy",
+      "intent_under_test": "ABORT",
+      "context": {
+        "flow": { "active": "release_create", "step": "awaiting_commitment" },
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "cancel",
+      "expect": {
+        "intent": "ABORT"
+      }
+    },
+    {
+      "id": "start-over-happy",
+      "intent_under_test": "START_OVER",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "start over",
+      "expect": {
+        "intent": "START_OVER"
+      }
+    },
+    {
+      "id": "show-help-happy",
+      "intent_under_test": "SHOW_HELP",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "what can you do?",
+      "expect": {
+        "intent": "SHOW_HELP"
+      }
+    },
+    {
+      "id": "list-products-happy",
+      "intent_under_test": "list_products",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "list adobe products",
+      "expect": {
+        "intent": "list_products"
+      }
+    },
+    {
+      "id": "search-offers-happy",
+      "intent_under_test": "search_offers",
+      "context": {
+        "flow": null,
+        "lastOperation": null,
+        "workingSet": [],
+        "currentPath": "/content/dam/mas/sandbox",
+        "currentLocale": "en_US"
+      },
+      "conversationHistory": [],
+      "user_message": "find offers for photoshop",
+      "expect": {
+        "intent": "search_offers"
+      }
     }
   ]
 }

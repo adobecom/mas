@@ -25,12 +25,6 @@ export class OstPlaceholderPanel extends LitElement {
             margin-bottom: 4px;
         }
 
-        .type-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spectrum-spacing-100, 8px);
-        }
-
         .chips-divider {
             border: none;
             border-top: 1px solid var(--spectrum-gray-200);
@@ -151,21 +145,13 @@ export class OstPlaceholderPanel extends LitElement {
             <div class="section-label">
                 Placeholder Type <ost-help-icon text="${HELP_TOOLTIPS.placeholderType}"></ost-help-icon>
             </div>
-            <div class="type-chips">
+            <sp-tabs size="s" selected=${selected} @change=${(e) => this.selectType(e.target.selected)}>
                 ${types.map(
                     (t) => html`
-                        <sp-action-button
-                            data-testid="ost-placeholder-chip-${t.type}"
-                            ?selected=${selected === t.type}
-                            ?quiet=${selected !== t.type}
-                            size="s"
-                            @click=${() => this.selectType(t.type)}
-                        >
-                            ${t.name}
-                        </sp-action-button>
+                        <sp-tab data-testid="ost-placeholder-chip-${t.type}" label=${t.name} value=${t.type}></sp-tab>
                     `,
                 )}
-            </div>
+            </sp-tabs>
 
             <hr class="chips-divider" />
 

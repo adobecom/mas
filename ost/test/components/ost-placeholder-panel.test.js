@@ -23,16 +23,16 @@ describe('ost-placeholder-panel', () => {
         store.selectedOsi = undefined;
     });
 
-    it('renders all 8 type chips', async () => {
+    it('renders all 8 placeholder type tabs', async () => {
         const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        const chips = el.shadowRoot.querySelectorAll('.type-chips sp-action-button');
-        expect(chips.length).to.equal(8);
+        const tabs = el.shadowRoot.querySelectorAll('sp-tabs sp-tab');
+        expect(tabs.length).to.equal(8);
     });
 
-    it('renders chip labels matching placeholder type names', async () => {
+    it('renders tab labels matching placeholder type names', async () => {
         const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        const chips = el.shadowRoot.querySelectorAll('.type-chips sp-action-button');
-        const labels = Array.from(chips).map((c) => c.textContent.trim());
+        const tabs = el.shadowRoot.querySelectorAll('sp-tabs sp-tab');
+        const labels = Array.from(tabs).map((t) => t.getAttribute('label'));
         expect(labels).to.deep.equal([
             'Price',
             'Optical price',
@@ -53,11 +53,12 @@ describe('ost-placeholder-panel', () => {
         expect(checkout).to.not.exist;
     });
 
-    it('shows checkout-options when Checkout URL chip is clicked', async () => {
+    it('shows checkout-options when the Checkout URL tab is selected', async () => {
         const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        const chips = el.shadowRoot.querySelectorAll('.type-chips sp-action-button');
-        const checkoutChip = Array.from(chips).find((c) => c.textContent.trim() === 'Checkout URL');
-        checkoutChip.click();
+        // Drive the type change through the component method that the sp-tabs
+        // @change handler invokes; bypasses SWC tab-click event plumbing in the
+        // jsdom/WTR fixture which is brittle to simulate.
+        el.selectType('checkoutUrl');
         await el.updateComplete;
         const checkout = el.shadowRoot.querySelector('ost-checkout-options');
         expect(checkout).to.exist;

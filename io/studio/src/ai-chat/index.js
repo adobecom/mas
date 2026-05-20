@@ -28,6 +28,8 @@ import { getVariantConfig, VARIANT_METADATA, getVariantsForSurface } from './var
 import { buildVariantRAGQuery } from './variant-knowledge-builder.js';
 import { KnowledgeClient } from './knowledge-client.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
+import { buildPrompt } from './prompt-builder.js';
+import { validateEnvelope } from './envelope-validator.js';
 
 /**
  * IMS client_id allowlist for the AI Chat action.
@@ -637,6 +639,26 @@ async function main(params) {
             detectedVariant,
         });
 
+        try {
+            const shadowPrompt = buildPrompt({
+                flow: params.context?.flow ?? null,
+                lastOperation: params.context?.lastOperation,
+                workingSet: params.context?.workingSet,
+                currentPath: params.context?.currentPath,
+                currentLocale: params.context?.currentLocale,
+            });
+            console.log(
+                JSON.stringify({
+                    phase: 'shadow-prompt',
+                    req: params.requestId ?? null,
+                    newPromptLength: shadowPrompt.length,
+                    oldPromptLength: typeof systemPrompt === 'string' ? systemPrompt.length : null,
+                }),
+            );
+        } catch (shadowErr) {
+            console.log(JSON.stringify({ phase: 'shadow-prompt', req: params.requestId ?? null, error: shadowErr.message }));
+        }
+
         const maxTokens = isDocumentation ? 2048 : isCardCreation ? 2048 : 1024;
 
         const response = await bedrockClient.sendWithContext(
@@ -704,6 +726,24 @@ async function main(params) {
 
         let parsedResponse = parseAIResponse(response.message);
         let totalUsage = response.usage;
+
+        try {
+            const maybeEnvelope = tryExtractEnvelopeFromLLMText(response.message);
+            const validation = validateEnvelope(maybeEnvelope, { flow: params.context?.flow ?? null });
+            console.log(
+                JSON.stringify({
+                    phase: 'shadow-validation',
+                    req: params.requestId ?? null,
+                    ok: validation.ok,
+                    reason: validation.reason ?? null,
+                    intent: validation.envelope?.intent ?? validation.coerced?.intent ?? null,
+                }),
+            );
+        } catch (shadowErr) {
+            console.log(
+                JSON.stringify({ phase: 'shadow-validation', req: params.requestId ?? null, error: shadowErr.message }),
+            );
+        }
 
         if (parsedResponse.type === 'card' && parsedResponse.cardConfig) {
             const variantConfig = getVariantConfig(parsedResponse.cardConfig.variant);
@@ -956,6 +996,22 @@ async function main(params) {
                 error: 'Internal server error',
             },
         };
+    }
+}
+
+/**
+ * Extract an envelope-shaped JSON object from raw LLM text.
+ * Looks for a fenced ```json``` block first, then tries the bare text.
+ * Returns null if no parseable JSON is found.
+ */
+function tryExtractEnvelopeFromLLMText(text) {
+    if (!text || typeof text !== 'string') return null;
+    const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const candidate = fence ? fence[1] : text;
+    try {
+        return JSON.parse(candidate);
+    } catch {
+        return null;
     }
 }
 

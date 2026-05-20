@@ -29,7 +29,7 @@ export function renderFragmentStatusCell(status) {
 export function getItemTypeLabel(item) {
     if (!item) return 'Unknown';
     if (Fragment.isGroupedVariationPath(item.path)) return 'Grouped variation';
-    if (item.model?.path?.includes('/diction')) return 'Placeholder';
+    if (item.model?.path?.includes('/dictionnary')) return 'Placeholder';
     if (item.model?.path === COLLECTION_MODEL_PATH) return 'Collection';
     if (item.model?.path === CARD_MODEL_PATH) return 'Default';
     return 'Unknown';

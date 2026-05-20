@@ -1,6 +1,7 @@
-import { getJsonFromState, mark, measureTiming } from './common.js';
+import { getCountry, getJsonFromState, mark, measureTiming } from './common.js';
 import { log } from './log.js';
-const getRequestMetadataKey = (context) => `req-${context.id}-${context.locale}`;
+const getRequestMetadataKey = (context) =>
+    `req-${context.id}-${context.locale}-${getCountry(context)}-${context.pzn ?? ''}`;
 
 async function getRequestMetadata(context) {
     const requestKey = getRequestMetadataKey(context);

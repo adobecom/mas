@@ -224,9 +224,18 @@ function matchesGeo(tags, { regionLocale, country }) {
     return { region, country: countryMatch };
 }
 
+/**
+ * Effective country for a request context. Prefer explicit `context.country`, otherwise
+ * fall back to the country segment of `context.locale` (e.g. `en_US` → `US`).
+ * @param {{ country?: string, locale?: string }} context
+ * @returns {string}
+ */
+const getCountry = (context) => context.country || context.locale?.split('_')[1] || '';
+
 export {
     createTimeoutPromise,
     internalFetch as fetch,
+    getCountry,
     getRequestInfos,
     getFragmentId,
     getJsonFromState,

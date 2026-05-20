@@ -1,4 +1,4 @@
-import { fetch } from '../utils/common.js';
+import { fetch, getCountry } from '../utils/common.js';
 import { log, logError } from '../utils/log.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
@@ -100,7 +100,7 @@ async function wcs(context) {
 
         // Convert Map values back to array
         const tokens = Array.from(tokenMap.values());
-        const country = context.country || locale.split('_')[1];
+        const country = getCountry(context);
         const wcsContext = {
             locale,
             country,

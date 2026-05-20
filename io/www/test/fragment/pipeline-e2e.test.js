@@ -55,8 +55,8 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
         expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-FR-');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-FR-']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
             fragmentsIds: {
@@ -115,8 +115,8 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA-CA-');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA-CA-']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
@@ -146,8 +146,8 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
-        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA-CA-');
+        const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA-CA-']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });

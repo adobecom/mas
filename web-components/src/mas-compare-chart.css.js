@@ -43,8 +43,6 @@ export const styles = css`
         --compare-chart-toggle-icon-minus: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="12" fill="%23292929"/><path d="M14 26C7.38258 26 2 20.6174 2 14C2 7.38258 7.38258 2 14 2C20.6174 2 26 7.38258 26 14C26 20.6174 20.6174 26 14 26ZM14 4.05714C8.51696 4.05714 4.05714 8.51696 4.05714 14C4.05714 19.483 8.51696 23.9429 14 23.9429C19.483 23.9429 23.9429 19.483 23.9429 14C23.9429 8.51696 19.483 4.05714 14 4.05714Z" fill="%23292929"/><path d="M9 14L19 14" stroke="%23F8F8F8" stroke-width="2" stroke-linecap="round"/></svg>');
 
         display: block;
-        container-type: inline-size;
-        container-name: compare-chart;
         max-width: 100%;
         margin: 0 auto;
         box-sizing: border-box;
@@ -351,13 +349,18 @@ export const styles = css`
 
     /* ---------- per-group container ---------- */
     .table-container {
+        display: block;
         max-width: calc(100% - 32px);
-        box-sizing: border-box;
         margin: var(--spacing-xs, 16px) auto 0;
-        border: 1px solid var(--color-gray-300, #d5d5d5);
-        border-radius: var(--comparison-border-radius);
-        overflow: hidden;
-        background-color: var(--color-white, #fff);
+        padding: 0;
+        box-sizing: border-box;
+        color: var(--color-gray-700-variant, var(--color-text));
+        font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
+        font-size: var(--ax-body-xs-size, var(--type-body-xs-size, 14px));
+        font-style: normal;
+        font-weight: var(--ax-body-weight-bold, 700);
+        line-height: var(--heading-line-height, 130%);
+        text-align: left;
     }
     .accessibility-header-row + .table-container {
         margin-top: 0;

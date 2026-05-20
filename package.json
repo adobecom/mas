@@ -8,7 +8,7 @@
         "studio",
         "web-components",
         "io/studio",
-        "mas-ost"
+        "ost"
     ],
     "scripts": {
         "lint": "eslint --fix web-components studio",

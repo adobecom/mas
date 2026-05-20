@@ -54,6 +54,8 @@ export class OstPromoTag extends LitElement {
 
     render() {
         const status = this.status;
+        const hasContextualPromo = !!store.promotionCode;
+        const isCancelled = store.storedPromoOverride === PROMO_CONTEXT_CANCEL_VALUE;
         return html`
             <div class="section-label">Promotion</div>
             <div class="promo-row">
@@ -62,12 +64,25 @@ export class OstPromoTag extends LitElement {
                     data-testid="ost-promo-override-input"
                     label="Override"
                     size="s"
-                    value=${store.storedPromoOverride === PROMO_CONTEXT_CANCEL_VALUE ? '' : store.storedPromoOverride || ''}
+                    value=${isCancelled ? '' : store.storedPromoOverride || ''}
                     @input=${(e) => store.setPromoCode(e.target.value)}
                 ></sp-textfield>
                 <sp-action-button data-testid="ost-promo-clear" quiet size="s" @click=${() => store.setPromoCode(undefined)}>
                     Clear
                 </sp-action-button>
+                ${hasContextualPromo
+                    ? html`
+                          <sp-action-button
+                              data-testid="ost-promo-cancel-context"
+                              quiet
+                              size="s"
+                              ?selected=${isCancelled}
+                              @click=${() => store.setPromoCode(isCancelled ? undefined : PROMO_CONTEXT_CANCEL_VALUE)}
+                          >
+                              ${isCancelled ? 'Restore context promo' : 'Cancel context promo'}
+                          </sp-action-button>
+                      `
+                    : ''}
             </div>
         `;
     }

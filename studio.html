@@ -53,8 +53,7 @@
             let bucket;
             let baseUrl;
             if (isLocal) {
-                const aemPort = parseInt(window.location.port || '3000', 10);
-                const proxyPort = params.get('proxy.port') || aemPort + 5080;
+                const proxyPort = params.get('proxy.port') || 8080;
                 baseUrl = `http://localhost:${proxyPort}`;
             } else {
                 bucket = envOverride && BUCKETS[envOverride] ? BUCKETS[envOverride] : BUCKETS.prod;

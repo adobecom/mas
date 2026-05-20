@@ -15,9 +15,21 @@ function exitWith(code, msg) {
 }
 
 function runUnit() {
+    let cases;
+    try {
+        const parsed = JSON.parse(readFileSync(CASES_PATH, 'utf8'));
+        cases = parsed.cases;
+    } catch (err) {
+        exitWith(1, `--unit FAIL: ${err.message}`);
+        return;
+    }
+    if (!Array.isArray(cases)) {
+        exitWith(1, '--unit FAIL: cases.json missing "cases" array');
+        return;
+    }
+
     const failures = [];
     const knownNames = new Set([...INTENTS.map((i) => i.name), ...META_INTENTS]);
-    const cases = JSON.parse(readFileSync(CASES_PATH, 'utf8')).cases;
 
     for (const c of cases) {
         if (!knownNames.has(c.intent_under_test))
@@ -26,7 +38,10 @@ function runUnit() {
         if (!c.expect) failures.push(`case ${c.id}: missing expect`);
     }
 
-    if (failures.length) exitWith(1, `--unit FAIL\n  ${failures.join('\n  ')}`);
+    if (failures.length) {
+        exitWith(1, `--unit FAIL\n  ${failures.join('\n  ')}`);
+        return;
+    }
     exitWith(0, `--unit PASS (${cases.length} cases, ${INTENTS.length} intents, ${FLOWS.length} flows)`);
 }
 

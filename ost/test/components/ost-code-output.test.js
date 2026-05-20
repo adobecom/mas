@@ -72,4 +72,44 @@ describe('ost-code-output', () => {
         const code = codeOutput.shadowRoot.querySelector('code');
         expect(code.textContent).to.include('type="optical"');
     });
+
+    it('omits options that equal their default value', async () => {
+        const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        await panel.updateComplete;
+        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        await codeOutput.updateComplete;
+        const code = codeOutput.shadowRoot.querySelector('code');
+        // displayFormatted=true and displayRecurrence=true and displayOldPrice=true
+        // are all defaults — they MUST NOT appear in the emitted markup.
+        expect(code.textContent).to.not.include('displayFormatted');
+        expect(code.textContent).to.not.include('displayRecurrence');
+        expect(code.textContent).to.not.include('displayOldPrice');
+    });
+
+    it('emits promotionCode="cancel-context" when storedPromoOverride is set to the sentinel', async () => {
+        store.storedPromoOverride = 'cancel-context';
+        store.promotionCode = 'BLACK_FRIDAY';
+        const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        await panel.updateComplete;
+        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        codeOutput.requestUpdate();
+        await codeOutput.updateComplete;
+        const code = codeOutput.shadowRoot.querySelector('code');
+        expect(code.textContent).to.include('promotionCode="cancel-context"');
+        store.storedPromoOverride = undefined;
+        store.promotionCode = undefined;
+    });
+
+    it('emits an option only when it differs from the default', async () => {
+        const panel = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
+        await panel.updateComplete;
+        // Default for displayTax is false. Flipping to true should emit it.
+        panel.toggleOption('displayTax');
+        await panel.updateComplete;
+        const codeOutput = panel.shadowRoot.querySelector('ost-code-output');
+        codeOutput.requestUpdate();
+        await codeOutput.updateComplete;
+        const code = codeOutput.shadowRoot.querySelector('code');
+        expect(code.textContent).to.include('displayTax="true"');
+    });
 });

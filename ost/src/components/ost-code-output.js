@@ -78,12 +78,19 @@ export class OstCodeOutput extends LitElement {
             parts.push(`type="${type}"`);
         }
 
+        const typeConfig = store.placeholderTypes.find((t) => t.type === type);
+        const typeOverrides = typeConfig?.overrides || {};
+        const defaults = { ...store.defaultPlaceholderOptions, ...typeOverrides };
+
         const optionParts = [];
         Object.entries(options).forEach(([key, val]) => {
-            if (val !== undefined && val !== false && val !== '') {
-                optionParts.push(`${key}="${val}"`);
-            }
+            if (val === undefined || val === false || val === '') return;
+            if (defaults[key] === val) return;
+            optionParts.push(`${key}="${val}"`);
         });
+        if (store.storedPromoOverride) {
+            optionParts.push(`promotionCode="${store.storedPromoOverride}"`);
+        }
         if (optionParts.length > 0) {
             parts.push(optionParts.join(' '));
         }

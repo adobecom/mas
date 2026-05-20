@@ -190,6 +190,7 @@ async function generateSessionTitle(params) {
             : `First user message:\n${userMessage}`;
 
         const result = await bedrockClient.sendMessage([{ role: 'user', content: userContent }], systemPrompt, 40);
+        logShadowValidation(result, params);
 
         if (!result.success) {
             return {
@@ -668,6 +669,7 @@ async function main(params) {
             enrichedContext,
             maxTokens,
         );
+        logShadowValidation(response, params);
 
         if (!response.success) {
             console.error('Bedrock request failed', { errorType: response.errorType, error: response.error });
@@ -727,24 +729,6 @@ async function main(params) {
         let parsedResponse = parseAIResponse(response.message);
         let totalUsage = response.usage;
 
-        try {
-            const maybeEnvelope = tryExtractEnvelopeFromLLMText(response.message);
-            const validation = validateEnvelope(maybeEnvelope, { flow: params.context?.flow ?? null });
-            console.log(
-                JSON.stringify({
-                    phase: 'shadow-validation',
-                    req: params.requestId ?? null,
-                    ok: validation.ok,
-                    reason: validation.reason ?? null,
-                    intent: validation.envelope?.intent ?? validation.coerced?.intent ?? null,
-                }),
-            );
-        } catch (shadowErr) {
-            console.log(
-                JSON.stringify({ phase: 'shadow-validation', req: params.requestId ?? null, error: shadowErr.message }),
-            );
-        }
-
         if (parsedResponse.type === 'card' && parsedResponse.cardConfig) {
             const variantConfig = getVariantConfig(parsedResponse.cardConfig.variant);
             let validation = validateAIConfig(parsedResponse.cardConfig, variantConfig);
@@ -762,6 +746,7 @@ async function main(params) {
                     enrichedContext,
                     2048,
                 );
+                logShadowValidation(retryResponse, params);
 
                 if (retryResponse.success) {
                     const retryParsed = parseAIResponse(retryResponse.message);
@@ -1012,6 +997,26 @@ function tryExtractEnvelopeFromLLMText(text) {
         return JSON.parse(candidate);
     } catch {
         return null;
+    }
+}
+
+function logShadowValidation(bedrockResponse, params) {
+    try {
+        const message = bedrockResponse?.message;
+        if (typeof message !== 'string') return;
+        const maybeEnvelope = tryExtractEnvelopeFromLLMText(message);
+        const validation = validateEnvelope(maybeEnvelope, { flow: params?.context?.flow ?? null });
+        console.log(
+            JSON.stringify({
+                phase: 'shadow-validation',
+                req: params?.requestId ?? null,
+                ok: validation.ok,
+                reason: validation.reason ?? null,
+                intent: validation.envelope?.intent ?? validation.coerced?.intent ?? null,
+            }),
+        );
+    } catch (shadowErr) {
+        console.log(JSON.stringify({ phase: 'shadow-validation', req: params?.requestId ?? null, error: shadowErr.message }));
     }
 }
 

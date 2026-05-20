@@ -7,7 +7,7 @@ export default {
             tcid: '0',
             name: '@studio-create-variation-editor',
             path: '/studio.html',
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 locale: 'en_CA',
@@ -21,7 +21,7 @@ export default {
             tcid: '1',
             name: '@studio-create-variation-table-view',
             path: '/studio.html',
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 locale: 'en_CA',
@@ -34,7 +34,7 @@ export default {
             tcid: '2',
             name: '@studio-create-variation-new-fragment',
             path: '/studio.html',
-            browserParams: '#page=content&path=nala',
+            browserParams: '#ost=new&page=content&path=nala',
             data: {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 variant: 'plans',
@@ -48,7 +48,7 @@ export default {
             tcid: '3',
             name: '@studio-delete-variation',
             path: '/studio.html',
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 locale: 'en_CA',
@@ -61,7 +61,7 @@ export default {
             tcid: '4',
             name: '@studio-variation-locales-US',
             path: '/studio.html',
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 locales: {
@@ -76,7 +76,7 @@ export default {
             tcid: '5',
             name: '@studio-variation-locales-GB',
             path: '/studio.html',
-            browserParams: '#locale=en_GB&page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&locale=en_GB&page=fragment-editor&path=nala&fragmentId=',
             data: {
                 cardid: 'afddc0f8-c88f-4be7-b515-9f9e8127dc3d',
                 locales: {
@@ -90,7 +90,7 @@ export default {
             tcid: '6',
             name: '@studio-variation-override-restore',
             path: '/studio.html',
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             data: {
                 cardid: '287ef7ee-b0e3-4d95-a689-578de492ceae',
                 locale: 'en_CA',
@@ -137,7 +137,7 @@ export default {
             tcid: '7',
             name: '@studio-create-variation-GB',
             path: '/studio.html',
-            browserParams: '#locale=en_GB&page=content&path=nala',
+            browserParams: '#ost=new&locale=en_GB&page=content&path=nala',
             data: {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 variant: 'plans',
@@ -151,7 +151,7 @@ export default {
             tcid: '8',
             name: '@studio-variation-selfreference',
             path: '/studio.html',
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
                 locale: 'en_CA',

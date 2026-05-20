@@ -8,7 +8,7 @@ export default {
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -18,7 +18,7 @@ export default {
             data: {
                 cardid: '6f189be0-d64b-468f-b340-92888206cce8',
             },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -65,7 +65,7 @@ export default {
                     css: 'rgb(218, 218, 218)',
                 },
             },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -79,7 +79,7 @@ export default {
                 newPrice: 'US$17.24/moper license',
                 newStrikethroughPrice: 'US$34.49/moper license',
             },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -89,7 +89,7 @@ export default {
             data: {
                 cardid: 'e8364315-f3d0-45c3-ab1d-8fc6455f1fe2',
             },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
 
@@ -123,7 +123,7 @@ export default {
                     mv2: '2',
                 },
             },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -138,7 +138,7 @@ export default {
                 legalDisclaimerTax: 'par licenceTTC. Annual, billed monthly',
                 cardLegalDisclaimerTax: 'par licenceTTC',
             },
-            browserParams: '#locale=fr_FR&query=',
+            browserParams: '#ost=new&locale=fr_FR&query=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {
@@ -157,7 +157,7 @@ export default {
                     },
                 },
             },
-            browserParams: '#page=fragment-editor&path=nala&fragmentId=',
+            browserParams: '#ost=new&page=fragment-editor&path=nala&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
     ],

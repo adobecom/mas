@@ -260,6 +260,7 @@ export class Plans extends VariantLayout {
             await this.adjustLegal();
             await this.adjustEduLists();
         }
+        await super.postCardUpdateHook();
         if (window.matchMedia('(min-width: 768px)').matches) {
             const container = this.getContainer();
             if (!container) return;

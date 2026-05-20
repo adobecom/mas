@@ -137,6 +137,7 @@ export class Product extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
+        await super.postCardUpdateHook();
     }
 
     async adjustLegal() {

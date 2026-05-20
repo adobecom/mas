@@ -422,7 +422,7 @@ export default class MasFragmentEditor extends LitElement {
         cloneInProgress: { type: Boolean, state: true },
         localeDefaultFragment: { type: Object, state: true },
         previewResolved: { type: Boolean, state: true },
-        previewErrors: { type: Array, state: true },
+        previewError: { type: String, state: true },
         variationsToDelete: { type: Array, state: true },
         initState: { type: String, state: true },
         groupedVariationOrphanMessage: { type: String, state: true },
@@ -469,7 +469,7 @@ export default class MasFragmentEditor extends LitElement {
         this.showCreateVariationDialog = false;
         this.cloneInProgress = false;
         this.previewResolved = false;
-        this.previewErrors = [];
+        this.previewError = null;
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
         this.initState = MasFragmentEditor.INIT_STATE.IDLE;
@@ -911,7 +911,7 @@ export default class MasFragmentEditor extends LitElement {
 
         this.groupedVariationOrphanMessage = null;
         this.previewResolved = false;
-        this.previewErrors = [];
+        this.previewError = null;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
         Store.fragmentEditor.loading.set(true);
 
@@ -1665,23 +1665,20 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     #handlePreviewError = (e) => {
-        this.previewErrors = [e.detail?.message ?? 'Card failed to load'];
+        this.previewError = e.detail?.message ?? 'Card failed to load';
     };
 
     #clearPreviewErrors = () => {
-        this.previewErrors = [];
+        this.previewError = null;
     };
 
     get previewErrorMessages() {
-        if (!this.previewErrors?.length) return nothing;
+        if (!this.previewError) return nothing;
         return html`<div class="preview-error-messages">
-            ${this.previewErrors.map(
-                (msg) =>
-                    html`<div class="preview-error-item">
-                        <sp-icon-alert class="price-error-icon"></sp-icon-alert>
-                        <span>${msg}</span>
-                    </div>`,
-            )}
+            <div class="preview-error-item">
+                <sp-icon-alert class="price-error-icon"></sp-icon-alert>
+                <span>${this.previewError}</span>
+            </div>
         </div>`;
     }
 

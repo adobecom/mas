@@ -202,15 +202,7 @@ export class PlansV2 extends VariantLayout {
             await this.adjustLegal();
         }
 
-        // Wait for card and prices to be ready
-        await this.card.updateComplete;
-        if (this.card.prices?.length > 0) {
-            await Promise.all(
-                this.card.prices.map(
-                    (price) => price.onceSettled?.() || Promise.resolve(),
-                ),
-            );
-        }
+        await super.postCardUpdateHook();
 
         // Sync heights after all adjustments complete (desktop only)
         if (window.matchMedia('(min-width: 768px)').matches) {

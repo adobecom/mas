@@ -1,5 +1,6 @@
 import { html, nothing } from 'lit';
 import { getFragmentMapping } from './variants';
+import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
 export class VariantLayout {
     static styleMap = {};
@@ -122,11 +123,15 @@ export class VariantLayout {
         if (!this.card.isConnected) return;
         await this.card.updateComplete;
         if (this.card.prices?.length > 0) {
-            await Promise.allSettled(
+            const settle = Promise.allSettled(
                 this.card.prices.map(
                     (price) => price.onceSettled?.() || Promise.resolve(),
                 ),
             );
+            const timeout = new Promise((resolve) =>
+                setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT),
+            );
+            await Promise.race([settle, timeout]);
         }
     }
 

@@ -107,14 +107,9 @@ export class SimplifiedPricingExpress extends VariantLayout {
     }
 
     async postCardUpdateHook() {
+        await super.postCardUpdateHook();
         if (!this.card.isConnected) return;
 
-        await this.card.updateComplete;
-        if (this.card.prices?.length) {
-            await Promise.all(
-                this.card.prices.map((price) => price.onceSettled?.()),
-            );
-        }
         const container = this.getContainer();
         if (!container) return;
         const cards = container.querySelectorAll(

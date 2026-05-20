@@ -521,23 +521,39 @@ async function main(params) {
         if (searchIntent) {
             const titleMatch =
                 message.match(
-                    /(?:fragment\s+title|cards?\s+(?:named|with\s+title|titled))\s+[""']?([^""']+?)[""']?\s*(?:in\s+all\s+locales?)?$/i,
+                    /(?:fragment\s+title|cards?\s+(?:named|with\s+title|titled))\s+[""']?([^""']+?)[""']?\s*(?:in\s+(?:all\s+locales?|\w+))?$/i,
                 ) || message.match(/[""']([^""']+:[^""']+)[""']/);
             if (titleMatch) {
                 const titleQuery = titleMatch[1].trim();
                 const wantsAllLocales = /\ball\s+locales?\b/i.test(message);
                 console.log(`[Backend] Deterministic title search bypass: "${titleQuery}" allLocales=${wantsAllLocales}`);
+                const titleSearchBody = {
+                    type: 'mcp_operation',
+                    mcpTool: 'search_cards',
+                    mcpParams: { query: titleQuery, titleSearch: true, ...(wantsAllLocales ? { locale: 'all' } : {}) },
+                    message: `Searching for all cards with title "${titleQuery}"${wantsAllLocales ? ' across all locales' : ''}...`,
+                    confirmationRequired: false,
+                    conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                };
+                if (params.useShadowPrompt === true) {
+                    titleSearchBody.envelope = {
+                        intent: 'search_cards',
+                        slots: {
+                            query: titleQuery,
+                            surface: enrichedContext?.surface ?? null,
+                            titleSearch: true,
+                            locale: wantsAllLocales ? 'all' : (enrichedContext?.locale ?? null),
+                        },
+                        confidence: 'high',
+                        missing_slots: [],
+                        clarification_question: null,
+                        user_message: null,
+                    };
+                }
                 return {
                     statusCode: 200,
                     headers: { ...getResponseHeaders() },
-                    body: {
-                        type: 'mcp_operation',
-                        mcpTool: 'search_cards',
-                        mcpParams: { query: titleQuery, titleSearch: true, ...(wantsAllLocales ? { locale: 'all' } : {}) },
-                        message: `Searching for all cards with title "${titleQuery}"${wantsAllLocales ? ' across all locales' : ''}...`,
-                        confirmationRequired: false,
-                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
-                    },
+                    body: titleSearchBody,
                 };
             }
         }

@@ -38,6 +38,31 @@ describe('function "createLegalTemplate"', () => {
         );
     });
 
+    it('displays legal template with tax and plan type texts without dot separator', () => {
+        renderAndComparePrice(
+            'createLegalTemplate4',
+            legalTemplate(
+                {
+                    country: 'FR',
+                    language: 'fr',
+                    displayTax: true,
+                    displayPlanType: true,
+                    displayDot: false,
+                    literals: {
+                        taxInclusiveLabel: 'incl. VAT',
+                        planTypeLabel: 'Annuel, facturé mensuellement',
+                    },
+                },
+                {
+                    taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                    taxTerm: 'VAT',
+                    planType: 'ABM',
+                },
+                {},
+            ),
+        );
+    });
+
     it('displays legal template with plan type text and hides tax text when country is US and language is en', () => {
         renderAndComparePrice(
             'createLegalTemplate3',

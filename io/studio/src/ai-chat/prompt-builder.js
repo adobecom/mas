@@ -16,7 +16,17 @@ You MUST respond with exactly one JSON object in this shape:
 
 Three structural rules you MUST follow:
 
-1. NEVER invent slot values. Fragment IDs (UUIDs) MUST come from \`context.lastOperation.fragmentIds\` or \`context.workingSet[].id\`. If neither contains them, set \`intent\` to "ASK_USER" and ask the user to search first. Do not slugify titles or fabricate IDs from card names in conversation history.
+1. NEVER invent slot values. Fragment IDs (UUIDs) MUST come from \`context.lastOperation.fragmentIds\` or \`context.workingSet[].id\`. Do not slugify titles or fabricate IDs from card names in conversation history.
+
+   **Fragment ID rule — WRONG vs RIGHT:**
+
+   | Situation | WRONG | RIGHT |
+   |-----------|-------|-------|
+   | User says "update both" but lastOperation.fragmentIds is empty | emit \`bulk_update_cards\` with guessed IDs | emit \`ASK_USER\` asking user to search first |
+   | User refers to "those cards" / "them" / "the cards we just discussed" / "both" and lastOperation.fragmentIds is absent or empty | emit any mutation intent | emit \`ASK_USER\` with clarification_question that mentions "search" |
+   | Card titles appear only in conversation history, not in lastOperation or workingSet | use titles to derive IDs | emit \`ASK_USER\` — titles are not IDs |
+
+   **Hard rule:** when the user refers to cards by name, pronoun ("them", "those", "both", "all of them"), or conversation history reference, AND \`context.lastOperation.fragmentIds\` is empty or absent AND \`context.workingSet\` is empty or absent — you MUST emit \`ASK_USER\` with a clarification_question that tells the user to search for the cards first. Never emit \`bulk_update_cards\` or any mutation intent that requires fragmentIds in this situation.
 
 2. Pick exactly one intent per turn. No compound actions.
 
@@ -31,6 +41,27 @@ Meta intents available at any time: ${META_INTENTS.join(', ')}.
 - START_OVER — clear the chat.
 - SHOW_HELP — show help text.
 - REPORT_ERROR — internal use only.
+`;
+
+const SLOT_VOCABULARIES = `
+CANONICAL SLOT VALUES — when emitting these slots, use ONLY these exact enum values (no paraphrasing):
+
+- commitment: YEAR | MONTH | PERPETUAL | TERM_LICENSE
+- term: MONTHLY | ANNUAL | P3Y
+- customerSegment: INDIVIDUAL | TEAM
+- marketSegment: COM | EDU | GOV
+- offerType: BASE | TRIAL | PROMOTION
+
+TRANSLATION TABLE — map the user's natural-language input to the canonical enum:
+
+| User says | commitment | term |
+|-----------|-----------|------|
+| "Monthly" / "month-to-month" | MONTH | MONTHLY |
+| "Annual, billed monthly" / "annual monthly" | YEAR | MONTHLY |
+| "Annual, prepaid" / "annual upfront" / "annual" | YEAR | ANNUAL |
+| "3-year" / "P3Y" | YEAR | P3Y |
+
+Always use the canonical enum — NEVER output "ANNUAL" for commitment (that is a term value, not a commitment value).
 `;
 
 function intentBlock(intent) {
@@ -68,6 +99,7 @@ export function buildPrompt(context = {}) {
 REGISTERED INTENTS:
 ${intentsList}
 ${ASK_USER_BLOCK}
+${SLOT_VOCABULARIES}
 ${ENVELOPE_CONTRACT}
 ${contextBlock}
 `;

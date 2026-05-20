@@ -122,6 +122,118 @@ function runMockLlm() {
     exitWith(0, `--mock-llm PASS (${cases.length} cases)`);
 }
 
+async function runLiveLlm() {
+    let cases;
+    try {
+        const parsed = JSON.parse(readFileSync(CASES_PATH, 'utf8'));
+        cases = parsed.cases;
+    } catch (err) {
+        exitWith(1, `--live-llm FAIL: ${err.message}`);
+        return;
+    }
+    if (!Array.isArray(cases)) {
+        exitWith(1, '--live-llm FAIL: cases.json missing "cases" array');
+        return;
+    }
+
+    const token = process.env.MAS_IMS_TOKEN;
+    if (!token) {
+        exitWith(1, '--live-llm FAIL: MAS_IMS_TOKEN environment variable is required');
+        return;
+    }
+
+    const url =
+        process.env.AI_CHAT_URL ?? 'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScaleStudio/ai-chat';
+
+    let pass = 0;
+    let fail = 0;
+    const failures = [];
+
+    for (const c of cases) {
+        const body = {
+            message: c.user_message,
+            conversationHistory: c.conversationHistory ?? [],
+            context: c.context ?? {},
+            requestId: `eval-${c.id}`,
+            useShadowPrompt: true,
+        };
+
+        let data;
+        let status;
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                    'x-api-key': 'mas-studio',
+                },
+                body: JSON.stringify(body),
+            });
+            status = res.status;
+            data = await res.json();
+        } catch (err) {
+            fail += 1;
+            failures.push(`${c.id}: network error — ${err.message}`);
+            continue;
+        }
+
+        const envelope = data.envelope ?? null;
+        if (!envelope) {
+            fail += 1;
+            failures.push(`${c.id}: no envelope (status=${status})`);
+            continue;
+        }
+
+        if (envelope.intent !== c.expect.intent) {
+            fail += 1;
+            failures.push(`${c.id}: expected intent ${c.expect.intent}, got ${envelope.intent}`);
+            continue;
+        }
+
+        let slotOk = true;
+        if (c.expect.slots_include) {
+            for (const [key, want] of Object.entries(c.expect.slots_include)) {
+                if (JSON.stringify(envelope.slots?.[key]) !== JSON.stringify(want)) {
+                    fail += 1;
+                    failures.push(
+                        `${c.id}: slot ${key}: expected ${JSON.stringify(want)}, got ${JSON.stringify(envelope.slots?.[key])}`,
+                    );
+                    slotOk = false;
+                    break;
+                }
+            }
+        }
+        if (!slotOk) continue;
+
+        if (c.expect.clarification_question_includes) {
+            const needle = c.expect.clarification_question_includes.toLowerCase();
+            const haystack = (envelope.clarification_question ?? '').toLowerCase();
+            if (!haystack.includes(needle)) {
+                fail += 1;
+                failures.push(`${c.id}: clarification_question missing "${c.expect.clarification_question_includes}"`);
+                continue;
+            }
+        }
+
+        pass += 1;
+    }
+
+    const total = pass + fail;
+    const passRate = total > 0 ? pass / total : 0;
+    // Soft gate while iterating; will tighten to 0.95 once stable
+    const THRESHOLD = 0.75;
+
+    if (passRate < THRESHOLD) {
+        const pct = Math.round(passRate * 100);
+        const summary = failures.length ? `\n  ${failures.join('\n  ')}` : '';
+        exitWith(1, `--live-llm FAIL (${pass}/${total} = ${pct}% < ${Math.round(THRESHOLD * 100)}%)${summary}`);
+    } else {
+        const pct = Math.round(passRate * 100);
+        exitWith(0, `--live-llm PASS (${pass}/${total} = ${pct}%)`);
+    }
+}
+
 switch (mode) {
     case '--unit':
         runUnit();
@@ -130,7 +242,7 @@ switch (mode) {
         runMockLlm();
         break;
     case '--live-llm':
-        exitWith(2, '--live-llm not implemented yet (Stage 3)');
+        runLiveLlm();
         break;
     default:
         exitWith(2, `Unknown mode ${mode}. Use --unit, --mock-llm, or --live-llm.`);

@@ -640,8 +640,9 @@ async function main(params) {
             detectedVariant,
         });
 
+        let shadowPrompt = null;
         try {
-            const shadowPrompt = buildPrompt({
+            shadowPrompt = buildPrompt({
                 flow: params.context?.flow ?? null,
                 lastOperation: params.context?.lastOperation,
                 workingSet: params.context?.workingSet,
@@ -660,16 +661,26 @@ async function main(params) {
             console.log(JSON.stringify({ phase: 'shadow-prompt', req: params.requestId ?? null, error: shadowErr.message }));
         }
 
+        let effectiveSystemPrompt = systemPrompt;
+        if (params.useShadowPrompt === true && shadowPrompt !== null) {
+            effectiveSystemPrompt = shadowPrompt;
+            console.log(JSON.stringify({ phase: 'shadow-primary', req: params.requestId ?? null, used: true }));
+        }
+
         const maxTokens = isDocumentation ? 2048 : isCardCreation ? 2048 : 1024;
 
         const response = await bedrockClient.sendWithContext(
             conversationHistory,
             message,
-            systemPrompt,
+            effectiveSystemPrompt,
             enrichedContext,
             maxTokens,
         );
-        logShadowValidation(response, params);
+        const shadowValidation = logShadowValidation(response, params);
+        const envelopePayload =
+            params.useShadowPrompt === true && shadowValidation !== null
+                ? { envelope: shadowValidation.ok ? shadowValidation.envelope : shadowValidation.coerced }
+                : {};
 
         if (!response.success) {
             console.error('Bedrock request failed', { errorType: response.errorType, error: response.error });
@@ -694,6 +705,7 @@ async function main(params) {
                         ...getResponseHeaders(),
                     },
                     body: {
+                        ...envelopePayload,
                         type: 'mcp_operation',
                         mcpTool: operationResult.mcpTool,
                         mcpParams: operationResult.mcpParams,
@@ -715,6 +727,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     ...operationResult,
                     usage: response.usage,
                     conversationHistory: [
@@ -742,7 +755,7 @@ async function main(params) {
                         { role: 'assistant', content: response.message },
                     ],
                     correctiveMessage,
-                    systemPrompt,
+                    effectiveSystemPrompt,
                     enrichedContext,
                     2048,
                 );
@@ -767,6 +780,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     type: 'card',
                     message: parsedResponse.message,
                     cardConfig: parsedResponse.cardConfig,
@@ -814,6 +828,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     type: 'collection',
                     message: parsedResponse.message,
                     collectionConfig: parsedResponse.collectionConfig,
@@ -838,6 +853,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     type: 'collection-selection',
                     message: parsedResponse.message,
                     usage: response.usage,
@@ -857,6 +873,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     type: 'collection-preview',
                     message: parsedResponse.message,
                     fragmentIds: parsedResponse.fragmentIds,
@@ -878,6 +895,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     type: 'guided_step',
                     message: parsedResponse.message,
                     buttonGroup: parsedResponse.buttonGroup,
@@ -899,6 +917,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     type: 'release_confirmation',
                     message: parsedResponse.message,
                     confirmationSummary: parsedResponse.confirmationSummary,
@@ -919,6 +938,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     type: 'release_cards',
                     message: parsedResponse.message,
                     parentPath: parsedResponse.parentPath,
@@ -940,6 +960,7 @@ async function main(params) {
                     ...getResponseHeaders(),
                 },
                 body: {
+                    ...envelopePayload,
                     type: 'open_ost',
                     message: parsedResponse.message,
                     searchParams: parsedResponse.searchParams,
@@ -959,6 +980,7 @@ async function main(params) {
                 ...getResponseHeaders(),
             },
             body: {
+                ...envelopePayload,
                 type: 'message',
                 message: parsedResponse.message,
                 sources: ragSources,
@@ -1003,7 +1025,7 @@ function tryExtractEnvelopeFromLLMText(text) {
 function logShadowValidation(bedrockResponse, params) {
     try {
         const message = bedrockResponse?.message;
-        if (typeof message !== 'string') return;
+        if (typeof message !== 'string') return null;
         const maybeEnvelope = tryExtractEnvelopeFromLLMText(message);
         const validation = validateEnvelope(maybeEnvelope, { flow: params?.context?.flow ?? null });
         console.log(
@@ -1015,8 +1037,10 @@ function logShadowValidation(bedrockResponse, params) {
                 intent: validation.envelope?.intent ?? validation.coerced?.intent ?? null,
             }),
         );
+        return validation;
     } catch (shadowErr) {
         console.log(JSON.stringify({ phase: 'shadow-validation', req: params?.requestId ?? null, error: shadowErr.message }));
+        return null;
     }
 }
 

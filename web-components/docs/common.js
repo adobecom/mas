@@ -25,7 +25,7 @@ const toggleTheme = (theme, event, params) => {
     }
 };
 
-const LOCALE_MAP = {
+const LANG_LOCALE_MAP = {
     en: 'en_US',
     fr: 'fr_FR',
     de: 'de_DE',
@@ -38,7 +38,7 @@ const toggleLocale = (event, params) => {
     if (val.includes(',')) {
         const [country, language] = val.split(',');
         params.set('country', country);
-        params.set('locale', LOCALE_MAP[language]);
+        params.set('locale', LANG_LOCALE_MAP[language]);
     } else {
         params.set('locale', val);
         params.delete('country');
@@ -70,6 +70,9 @@ const createMasCommerceService = (params, commerceEnv) => {
         const value = params[attribute];
         if (value) masCommerceService.setAttribute(attribute, value);
     });
+    if (!masCommerceService.getAttributeNames().includes('locale')){
+        masCommerceService.setAttribute('locale', 'en_US');
+    }
     document.head.appendChild(masCommerceService);
 
     return masCommerceService;

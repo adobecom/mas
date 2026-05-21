@@ -157,11 +157,15 @@ describe('pipeline end to end', () => {
         // Override the fr_FR dictionary stub from setupFragmentMocks → empty response to ensure
         // a fr_FR fetch would NOT yield a dictionary-id (forces the regression test to be honest).
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index')
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/dictionary/index',
+            )
             .returns(createResponse(200, {}));
         // Mock fr_BE dictionary explicitly.
         fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_BE/dictionary/index')
+            .withArgs(
+                'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_BE/dictionary/index',
+            )
             .returns(createResponse(200, { id: 'sandbox_fr_BE_dictionary' }));
         fetchStub
             .withArgs('https://odin.adobe.com/adobe/contentFragments/sandbox_fr_BE_dictionary?references=all-hydrated')

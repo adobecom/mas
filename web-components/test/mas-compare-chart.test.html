@@ -102,10 +102,8 @@
                             'Adobe Firefly Pro',
                         ]);
                         expect(
-                            chart
-                                .querySelector(
-                                    ':scope > [slot="compare-features"]',
-                                )
+                            chart.shadowRoot
+                                .querySelector('.header-leading-cta')
                                 .textContent.trim(),
                         ).to.equal('Compare Features');
                         expect(
@@ -491,7 +489,6 @@
                         chart.style.width = '100%';
                         chart.setAttribute('expanded-groups', 'all');
                         chart.innerHTML = `
-                            <span slot="compare-features">Compare Features</span>
                             <merch-card slot="cards" variant="compare-chart">
                                 <h3 slot="header">Plan A</h3>
                                 <p slot="price">$10/mo</p>
@@ -651,7 +648,6 @@
                         frame.style.width = '500px';
                         chart.setAttribute('expanded-groups', 'all');
                         chart.innerHTML = `
-                            <span slot="compare-features">Compare Features</span>
                             <merch-card slot="cards" variant="compare-chart">
                                 <h3 slot="header">Plan A</h3>
                                 <div slot="features">
@@ -697,7 +693,6 @@
                         frame.style.width = '500px';
                         chart.setAttribute('expanded-groups', 'all');
                         chart.innerHTML = `
-                            <span slot="compare-features">Compare Features</span>
                             <merch-card slot="cards" variant="compare-chart">
                                 <h3 slot="header">Plan A with a much longer title</h3>
                                 <p slot="price">$10/mo</p>
@@ -1103,7 +1098,6 @@
                         const chart =
                             document.createElement('mas-compare-chart');
                         chart.innerHTML = `
-                            <span slot="compare-features">Compare Features</span>
                             <merch-card slot="cards" variant="compare-chart">
                                 <h3 slot="header">Plan</h3>
                                 <div slot="price">
@@ -1144,7 +1138,7 @@
                         const headingXsLineHeight = `${parseFloat(headingXsResolvedSize) * 1.5}px`;
                         const typographyCases = [
                             [
-                                '[slot="compare-features"]',
+                                '.header-leading-cta',
                                 '16px',
                                 '24px',
                                 '700',
@@ -1172,9 +1166,10 @@
                                 fontWeight,
                                 fontStyle = 'normal',
                             ]) => {
-                                const style = getComputedStyle(
-                                    chart.querySelector(selector),
-                                );
+                                const target = selector.startsWith('.')
+                                    ? chart.shadowRoot.querySelector(selector)
+                                    : chart.querySelector(selector);
+                                const style = getComputedStyle(target);
                                 expect(style.fontSize).to.equal(fontSize);
                                 expect(style.lineHeight).to.equal(lineHeight);
                                 expect(style.fontWeight).to.equal(fontWeight);

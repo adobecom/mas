@@ -158,7 +158,6 @@
                         expect(compareChartField).to.exist;
                         expect(compareChartField.type).to.equal('long-text');
                         expect(compareChartField.values[0]).to.include('<mas-compare-chart>');
-                        expect(compareChartField.values[0]).to.include('<span slot="compare-features">Compare Features</span>');
                     });
 
                     it('should not retry compare chart creation after a non-conflict failure', async () => {

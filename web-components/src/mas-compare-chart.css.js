@@ -4,7 +4,7 @@ export const styles = css`
     :host {
         --comparison-border-radius: 8px;
         --comparison-row-border-color: #e9e9e9;
-        --comparison-desktop-max-width: 1348px;
+        --comparison-desktop-max-width: 1200px;
         --comparison-tablet-spacing: 50px;
         --comparison-table-spacing: 12px;
         --compare-chart-row-border-color: var(--comparison-row-border-color);
@@ -95,7 +95,13 @@ export const styles = css`
         align-items: end;
         transition:
             transform var(--transition-smooth, 0.3s ease),
-            opacity var(--transition-fade, 0.2s ease);
+            opacity var(--transition-fade, 0.2s ease),
+            gap var(--transition-smooth, 0.3s ease);
+    }
+    .sticky-header {
+        transition:
+            background var(--transition-smooth, 0.3s ease),
+            box-shadow var(--transition-smooth, 0.3s ease);
     }
     .sticky-header.is-stuck {
         width: 100%;
@@ -109,6 +115,7 @@ export const styles = css`
     }
     .sticky-header.is-stuck .sticky-header-wrapper {
         justify-content: space-between;
+        gap: 0;
     }
     slot[name='cards'] {
         display: none;
@@ -143,6 +150,8 @@ export const styles = css`
     }
     .header-leading-cta {
         grid-row: 5;
+        font: var(--compare-chart-header-title-font);
+        letter-spacing: 0;
     }
     .header-card-segment {
         grid-column: calc(var(--col) + 1);
@@ -165,6 +174,10 @@ export const styles = css`
         border-radius: var(--comparison-border-radius);
         padding: var(--spacing-xxs, 8px);
         background: #fff;
+        transition:
+            border-color var(--transition-smooth, 0.3s ease),
+            background var(--transition-smooth, 0.3s ease),
+            padding var(--transition-smooth, 0.3s ease);
     }
     .header-segment[data-card-index='1'],
     .header-segment[data-card-index='3'],
@@ -234,12 +247,23 @@ export const styles = css`
     }
     .sticky-header.is-stuck .header-segment,
     .sticky-header.is-stuck .price-segment {
-        border: none;
+        border-color: transparent;
         background: transparent;
         min-height: 0;
     }
     .sticky-header.is-stuck .mobile-filter-select {
         display: none;
+    }
+    ::slotted(p),
+    ::slotted(h1),
+    ::slotted(h2),
+    ::slotted(h3),
+    ::slotted(h4),
+    ::slotted(h5),
+    ::slotted(h6) {
+        margin: 0 !important;
+        margin-block: 0 !important;
+        padding: 0 !important;
     }
     ::slotted(h1),
     ::slotted(h2),
@@ -247,7 +271,6 @@ export const styles = css`
     ::slotted(h4),
     ::slotted(h5),
     ::slotted(h6) {
-        margin: 0;
         text-align: center;
         font:
             700 var(--type-heading-s-size, 18px) / 1.25 'Adobe Clean',
@@ -255,7 +278,6 @@ export const styles = css`
         color: var(--color-text);
     }
     ::slotted(p) {
-        margin: 0;
         text-align: center;
     }
     ::slotted([slot^='card-']) {
@@ -263,32 +285,28 @@ export const styles = css`
     }
     ::slotted(p[slot^='card-']),
     ::slotted(a[slot^='card-']) {
-        margin: 0 !important;
-    }
-    ::slotted([slot='compare-features']) {
-        font: var(--compare-chart-header-title-font);
-        letter-spacing: 0;
+        margin: 0;
     }
     ::slotted([slot$='-header']) {
-        display: flex !important;
-        flex: none !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
-        align-self: stretch !important;
-        width: 100% !important;
-        padding: 0 !important;
-        box-sizing: border-box !important;
+        display: flex;
+        flex: none;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        align-self: stretch;
+        width: 100%;
+        padding: 0;
+        box-sizing: border-box;
         font:
             normal var(--type-heading-all-weight, 700)
                 var(--type-heading-xs-size, 18px) / 1.5 'Adobe Clean',
             sans-serif !important;
-        -webkit-hyphens: manual !important;
-        hyphens: manual !important;
-        letter-spacing: 0 !important;
-        margin: 0 !important;
-        margin-block: 0 !important;
-        text-align: center !important;
+        -webkit-hyphens: manual;
+        hyphens: manual;
+        letter-spacing: 0;
+        margin: 0;
+        margin-block: 0;
+        text-align: center;
     }
     ::slotted([slot$='-price']) {
         display: flex;
@@ -305,7 +323,7 @@ export const styles = css`
                 var(--type-body-s-size, 16px) / 1.25 'Adobe Clean',
             sans-serif !important;
         letter-spacing: 0;
-        margin: 0 !important;
+        margin: 0;
         text-align: center;
     }
     ::slotted([slot$='-description']),
@@ -324,7 +342,7 @@ export const styles = css`
             italic 400 var(--type-body-xxs-size, 12px) / 1.25 'Adobe Clean',
             sans-serif !important;
         letter-spacing: 0;
-        margin: 0 !important;
+        margin: 0;
         text-align: center;
         color: #2c2c2c;
     }
@@ -333,7 +351,7 @@ export const styles = css`
         justify-content: center;
         font: var(--compare-chart-header-cta-font);
         letter-spacing: 0;
-        margin: 0 !important;
+        margin: 0;
         text-align: center;
     }
 
@@ -350,7 +368,7 @@ export const styles = css`
     /* ---------- per-group container ---------- */
     .table-container {
         display: block;
-        max-width: calc(100% - 32px);
+        max-width: calc(100% - 60px);
         margin: var(--spacing-xs, 16px) auto 0;
         padding: 0;
         box-sizing: border-box;
@@ -501,11 +519,11 @@ export const styles = css`
     .table-row p[role='cell'] > small {
         color: var(--color-black, #000);
         display: block;
-        font-size: var(--type-body-xxs-size, 12px) !important;
-        font-weight: 400 !important;
-        line-height: var(--type-body-xxs-lh, 15px) !important;
-        margin-top: 4px !important;
-        text-align: center !important;
+        font-size: var(--type-body-xxs-size, 12px);
+        font-weight: 400;
+        line-height: var(--type-body-xxs-lh, 15px);
+        margin-top: 4px;
+        text-align: center;
     }
 
     .table-row p.primary-cell > small {
@@ -659,10 +677,10 @@ export const styles = css`
     }
 
     /* ---------- breakpoints (container-driven) ---------- */
-    @container compare-chart (max-width: 599px) {
+    @media screen and (max-width: 599px) {
         :host {
             --compare-chart-leading-col: 0px;
-            --compare-chart-sticky-top: 0px !important;
+            --compare-chart-sticky-top: 0px;
             padding: 0;
         }
         .sticky-header-wrapper {
@@ -728,10 +746,10 @@ export const styles = css`
         }
     }
 
-    @container compare-chart (min-width: 600px) and (max-width: 899px) {
+    @media screen and (min-width: 600px) and (max-width: 899px) {
         :host {
             --compare-chart-leading-col: 0px;
-            --compare-chart-sticky-top: 0px !important;
+            --compare-chart-sticky-top: 0px;
             padding: 0;
         }
         .sticky-header-wrapper {
@@ -793,7 +811,7 @@ export const styles = css`
         }
     }
 
-    @container compare-chart (min-width: 900px) {
+    @media screen and (min-width: 900px) {
         :host {
             padding: 0;
         }
@@ -831,7 +849,7 @@ export const styles = css`
         }
     }
 
-    @container compare-chart (min-width: 1200px) {
+    @media screen and (min-width: 1200px) {
         :host {
             max-width: var(--comparison-desktop-max-width);
             padding: 0;

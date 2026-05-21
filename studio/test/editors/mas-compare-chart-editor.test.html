@@ -157,7 +157,6 @@
                         expect(editHeaders).to.include(columns[1].title);
                         expect(editHeaders).to.include(columns[2].title);
                         expect(el.shadowRoot.querySelector('.compchart-cards-table').textContent).to.not.include(firstCardOsi);
-                        expect(el.effectiveValue).to.include('<span slot="compare-features">Compare Features</span>');
                         expect(el.effectiveValue).to.include('<div name="adobe-apps">');
                         expect(el.effectiveValue).to.include('<div name="generative-ai">');
                         expect(el.effectiveValue).to.not.include('<merch-card');

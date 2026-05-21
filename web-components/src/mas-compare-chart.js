@@ -268,14 +268,7 @@ export class MasCompareChart extends LitElement {
         if (table.hasAttribute?.('expanded-groups')) {
             this.expandedGroups = table.getAttribute('expanded-groups');
         }
-        const compareFeatures = table.querySelector(
-            ':scope > [slot="compare-features"]',
-        );
-        if (compareFeatures) {
-            const clone = compareFeatures.cloneNode(true);
-            clone.dataset.compareChartGenerated = 'true';
-            this.append(clone);
-        }
+
         table.querySelectorAll(':scope > div[name]').forEach((group) => {
             const clone = group.cloneNode(true);
             clone.dataset.compareChartGenerated = 'true';
@@ -992,9 +985,7 @@ export class MasCompareChart extends LitElement {
                     visibleSlots,
                 ),
             )}
-            <div class="header-leading header-leading-cta">
-                <slot name="compare-features"></slot>
-            </div>
+            <div class="header-leading header-leading-cta">Compare Features</div>
             ${cards.map((card, i) =>
                 this.#renderHeaderSegment(card, 'cta', i + 1, i, visibleSlots),
             )}

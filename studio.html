@@ -71,15 +71,22 @@
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>
 
-        <!-- OST: load legacy tacocat bundle by default; ?ost=new or #ost=new opts into the new Spectrum 2 Lit build. -->
+        <!-- OST: load the legacy tacocat bundle by default (from main's deployed copy, which IS the legacy bundle until PR-B flips the default).
+             ?ost=new or #ost=new opts into the new Spectrum 2 Lit build that this branch ships at studio/ost/.
+             Cross-branch load is intentional: the 865 KB legacy bundle is too large for EDS to sync as a new directory, but it IS available at main's URL where it has lived in production for months. CORS on the AEM-Live CDN is *, so the cross-origin script + link work without crossorigin attrs. -->
         <script>
             (function () {
                 const search = new URLSearchParams(location.search).get('ost');
                 const hash = (location.hash.match(/(?:^#|&)ost=([^&]+)/) || [])[1];
                 const useNew = (search || hash) === 'new';
-                const base = useNew ? 'studio/ost' : 'studio/ost-legacy';
-                document.write(`<script src="${base}/index.js" defer><\/script>`);
-                document.write(`<link rel="stylesheet" href="./${base}/index.css" />`);
+                const newJs = 'studio/ost/index.js';
+                const newCss = './studio/ost/index.css';
+                const legacyJs = 'https://main--mas--adobecom.aem.live/studio/ost/index.js';
+                const legacyCss = 'https://main--mas--adobecom.aem.live/studio/ost/index.css';
+                const js = useNew ? newJs : legacyJs;
+                const css = useNew ? newCss : legacyCss;
+                document.write(`<script src="${js}" defer><\/script>`);
+                document.write(`<link rel="stylesheet" href="${css}" />`);
             })();
         </script>
         <link rel="stylesheet" href="studio/libs/spectrum.css" />

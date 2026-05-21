@@ -9611,7 +9611,6 @@ merch-card[border-color="spectrum-red-700-plans"] {
 
         display: block;
         max-width: 100%;
-        margin: 0 auto;
         box-sizing: border-box;
         font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
         color: var(--color-text);
@@ -9671,7 +9670,8 @@ merch-card[border-color="spectrum-red-700-plans"] {
             box-shadow var(--transition-smooth, 0.3s ease);
     }
     .sticky-header.is-stuck {
-        width: 100%;
+        width: 100vw;
+        margin-inline: calc(50% - 50vw);
         z-index: 9;
         background: var(--color-white, #fff);
         box-shadow: 0 1px 6px 0 rgb(0 0 0 / 12%);
@@ -9875,6 +9875,12 @@ merch-card[border-color="spectrum-red-700-plans"] {
         margin-block: 0;
         text-align: center;
     }
+    ::slotted([slot$='-icons']) {
+        --mod-img-height: var(--icon-size-xs, 24px);
+        --mod-img-width: var(--icon-size-xs, 24px);
+        align-self: center;
+        margin-inline: auto;
+    }
     ::slotted([slot$='-price']) {
         display: flex;
         flex: none;
@@ -9960,13 +9966,14 @@ merch-card[border-color="spectrum-red-700-plans"] {
         width: 100%;
         box-sizing: border-box;
         padding: var(--spacing-s, 24px);
-        background: var(--color-gray-100, #f8f8f8);
+        background: var(--C1-Web-Gray-Scale-gray-100, #f8f8f8);
+        border: 1px solid var(--C1-Stroke-compare-table-border, #d4d4d4);
         font-size: var(--type-heading-s-size, 18px);
         font-weight: 700;
         line-height: var(--type-heading-s-lh, 22.5px);
         min-height: 72px;
-        border-radius: var(--comparison-border-radius)
-            var(--comparison-border-radius) 0 0;
+        border-radius: var(--Radius-corner-radius-100, 8px)
+            var(--Radius-corner-radius-100, 8px) 8px 8px;
         font-family: var(--body-font-family, 'Adobe Clean', sans-serif);
         color: var(--color-black, #000);
         text-align: center;
@@ -10033,7 +10040,20 @@ merch-card[border-color="spectrum-red-700-plans"] {
         line-height: 1.3;
     }
     .row-label {
+        color: var(--C1-Text-text, #2c2c2c);
+        display: inline;
         flex: 1 1 auto;
+        font-family: var(--Font-adobe-clean, 'Adobe Clean');
+        font-size: var(--ax-body-xs-size, var(--type-body-xs-size, 14px));
+        font-style: normal;
+        font-weight: var(--ax-body-weight, 400);
+        line-height: 150%;
+    }
+    .row-label strong {
+        color: inherit;
+        display: inline;
+        font: inherit;
+        font-weight: var(--ax-body-weight-bold, 700);
     }
 
     .description-row {
@@ -10469,7 +10489,6 @@ merch-card[border-color="spectrum-red-700-plans"] {
             ${e.map((a,n)=>b(this,x,Lr).call(this,a,"description",n+1,n,i))}
             <div class="header-leading header-leading-detail"></div>
             ${e.map((a,n)=>b(this,x,Lr).call(this,a,"detail",n+1,n,i))}
-            <div class="header-leading header-leading-cta">Compare Features</div>
             ${e.map((a,n)=>b(this,x,Lr).call(this,a,"cta",n+1,n,i))}
         `},Fd=function(e){let i=new Set;for(let a of e)for(let n of a.presentSlots)i.add(n);return i},pt=function(e,i,a){return a.has(i)?f`<slot name=${e.slots[i]}></slot>`:S},Lr=function(e,i,a,n,o){let s=["header-card-segment",`${i}-segment`],c=e.cellColor;return f`<div
             class=${s.join(" ")}

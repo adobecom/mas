@@ -14,8 +14,19 @@
         />
         <link
             rel="stylesheet"
+            href="https://www.adobe.com/libs/blocks/section-metadata/section-metadata.css"
+        />
+        <link
+            rel="stylesheet"
             href="https://www.adobe.com/express/code/styles/styles.css"
         />
+        <style>
+            .mas-compare-chart-container mas-compare-chart {
+                display: block;
+                width: 100%;
+                margin-inline: auto;
+            }
+        </style>
     </head>
     <body>
         <mas-commerce-service env="stage"></mas-commerce-service>
@@ -23,9 +34,13 @@
         <!-- Inert until cloned in describe before() so aem-fragment / fetch
              never run until mocks and mas.js are fully ready. -->
         <template id="compare-chart-shared-fixture">
-            <mas-compare-chart id="t" consonant spectrum="swc">
-                <aem-fragment fragment="compare-chart-express"></aem-fragment>
-            </mas-compare-chart>
+            <div class="mas-compare-chart-container">
+                <mas-compare-chart consonant>
+                    <aem-fragment
+                        fragment="compare-chart-express"
+                    ></aem-fragment>
+                </mas-compare-chart>
+            </div>
         </template>
 
         <script type="module">
@@ -44,6 +59,10 @@
                         mockLana();
                         await mockFetch(withWcs, withAem);
 
+                        document
+                            .querySelectorAll('.mas-compare-chart-container')
+                            .forEach((el) => el.remove());
+
                         const fixture = document.getElementById(
                             'compare-chart-shared-fixture',
                         );
@@ -51,13 +70,32 @@
                     });
 
                     afterEach(() => {
+                        const sharedChart = document.querySelector(
+                            '.mas-compare-chart-container > mas-compare-chart',
+                        );
                         document
-                            .querySelectorAll('mas-compare-chart:not(#t)')
-                            .forEach((chart) => chart.remove());
+                            .querySelectorAll('mas-compare-chart')
+                            .forEach((chart) => {
+                                if (chart === sharedChart) return;
+                                const parent = chart.parentElement;
+                                chart.remove();
+                                if (
+                                    parent &&
+                                    parent !== document.body &&
+                                    !parent.classList.contains(
+                                        'mas-compare-chart-container',
+                                    ) &&
+                                    !parent.querySelector('mas-compare-chart')
+                                ) {
+                                    parent.remove();
+                                }
+                            });
                     });
 
                     it('hydrates a compare chart fragment with card CTAs', async () => {
-                        const chart = document.querySelector('#t');
+                        const chart = document.querySelector(
+                            '.mas-compare-chart-container > mas-compare-chart',
+                        );
                         await customElements.whenDefined('mas-compare-chart');
                         expect(await chart.checkReady()).to.be.true;
                         expect(
@@ -101,11 +139,6 @@
                             'Adobe Express Premium',
                             'Adobe Firefly Pro',
                         ]);
-                        expect(
-                            chart.shadowRoot
-                                .querySelector('.header-leading-cta')
-                                .textContent.trim(),
-                        ).to.equal('Compare Features');
                         expect(
                             chart.shadowRoot.querySelectorAll(
                                 '.table-column-header',
@@ -153,7 +186,9 @@
                     });
 
                     it('persists each section expand state in expanded-groups', async () => {
-                        const chart = document.querySelector('#t');
+                        const chart = document.querySelector(
+                            '.mas-compare-chart-container > mas-compare-chart',
+                        );
                         await customElements.whenDefined('mas-compare-chart');
                         await chart.updateComplete;
                         const headers = chart.shadowRoot.querySelectorAll(
@@ -1137,12 +1172,7 @@
                         headingProbe.remove();
                         const headingXsLineHeight = `${parseFloat(headingXsResolvedSize) * 1.5}px`;
                         const typographyCases = [
-                            [
-                                '.header-leading-cta',
-                                '16px',
-                                '24px',
-                                '700',
-                            ],
+                            ['.header-leading-cta', '16px', '24px', '700'],
                             [
                                 '[slot="card-1-header"]',
                                 headingXsResolvedSize,

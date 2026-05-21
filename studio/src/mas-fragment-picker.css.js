@@ -65,7 +65,7 @@ export const masFragmentPickerStyles = css`
     .picker-search {
         flex: 1 1 auto;
         min-inline-size: 112px;
-        --mod-search-border-color-default: var(--spectrum-gray-300, #dadada);
+        --mod-search-border-color-default: var(--spectrum-gray-300);
         --mod-search-border-radius: 16px;
         --mod-search-border-width: 2px;
     }
@@ -75,7 +75,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-result-count {
-        color: var(--spectrum-gray-800, #292929);
+        color: var(--spectrum-gray-800);
         flex-shrink: 0;
         font-size: 12px;
         font-weight: 500;
@@ -84,7 +84,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-result-count-label {
-        color: var(--spectrum-gray-700, #505050);
+        color: var(--spectrum-gray-700);
     }
 
     .picker-filters {
@@ -101,7 +101,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-table-wrap {
-        border: 1px solid var(--spectrum-gray-300, #dadada);
+        border: 1px solid var(--spectrum-gray-300);
         border-radius: 12px;
         display: flex;
         flex-direction: column;
@@ -118,9 +118,9 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-table-head {
-        background: var(--spectrum-gray-75, #f3f3f3);
-        border-block-end: 1px solid var(--spectrum-gray-300, #dadada);
-        color: var(--spectrum-gray-800, #222222);
+        background: var(--spectrum-gray-75);
+        border-block-end: 1px solid var(--spectrum-gray-300);
+        color: var(--spectrum-gray-800);
         display: grid;
         font-size: 14px;
         font-weight: 700;
@@ -141,7 +141,7 @@ export const masFragmentPickerStyles = css`
     .picker-table-head > span,
     .picker-cell {
         align-items: center;
-        border-inline-end: 1px solid var(--spectrum-gray-300, #dadada);
+        border-inline-end: 1px solid var(--spectrum-gray-300);
         display: flex;
         min-inline-size: 0;
         padding-block: 16px;
@@ -163,7 +163,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-row {
-        border-block-end: 1px solid var(--spectrum-gray-300, #dadada);
+        border-block-end: 1px solid var(--spectrum-gray-300);
         cursor: pointer;
         display: grid;
         grid-template-columns:
@@ -177,11 +177,11 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-row:hover:not(.is-selected) {
-        background: var(--spectrum-gray-75, #f3f3f3);
+        background: var(--spectrum-gray-75);
     }
 
     .picker-row.is-selected {
-        background: #ebeeff;
+        background: var(--spectrum-table-selected-row-background-color);
     }
 
     .picker-cell-expand,
@@ -197,7 +197,7 @@ export const masFragmentPickerStyles = css`
 
     .picker-cell-title,
     .picker-offer-name {
-        color: var(--spectrum-gray-800, #222222);
+        color: var(--spectrum-gray-800);
         font-size: 14px;
         font-weight: 700;
         line-height: 18px;
@@ -212,7 +212,7 @@ export const masFragmentPickerStyles = css`
 
     .picker-cell-offer-id,
     .picker-row-path {
-        color: var(--spectrum-gray-800, #222222);
+        color: var(--spectrum-gray-800);
         font-size: 14px;
         font-weight: 500;
         line-height: 18px;
@@ -225,7 +225,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-muted {
-        color: var(--spectrum-gray-700, #505050);
+        color: var(--spectrum-gray-700);
     }
 
     .picker-offer {
@@ -236,7 +236,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-offer-icon {
-        background: var(--spectrum-gray-200, #e1e1e1);
+        background: var(--spectrum-gray-200);
         border-radius: 4px;
         block-size: 32px;
         flex: 0 0 32px;
@@ -246,7 +246,7 @@ export const masFragmentPickerStyles = css`
 
     .picker-status {
         align-items: center;
-        color: var(--spectrum-gray-800, #292929);
+        color: var(--spectrum-gray-800);
         display: flex;
         font-size: 14px;
         gap: 6px;
@@ -255,24 +255,24 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-status-dot {
-        background: var(--spectrum-green-900, #008f5d);
+        background: var(--spectrum-green-900);
         border-radius: 50%;
         block-size: 10px;
         inline-size: 10px;
     }
 
     .picker-status.draft .picker-status-dot {
-        background: var(--spectrum-gray-600, #6d6d6d);
+        background: var(--spectrum-gray-600);
     }
 
     .picker-status.modified .picker-status-dot {
-        background: var(--spectrum-orange-900, #d97000);
+        background: var(--spectrum-orange-900);
     }
 
     .picker-variation-badge {
-        background: var(--spectrum-gray-200, #e1e1e1);
+        background: var(--spectrum-gray-200);
         border-radius: 4px;
-        color: var(--spectrum-gray-800, #292929);
+        color: var(--spectrum-gray-800);
         font-size: 11px;
         font-weight: 600;
         margin-inline-start: 6px;
@@ -282,7 +282,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-empty {
-        color: var(--spectrum-gray-700, #505050);
+        color: var(--spectrum-gray-700);
         font-size: 14px;
         padding: 24px 12px;
         text-align: center;
@@ -299,8 +299,8 @@ export const masFragmentPickerStyles = css`
 
     .picker-variation-panel,
     .picker-variation-empty {
-        background: var(--spectrum-gray-50, #f8f8f8);
-        border-block-end: 1px solid var(--spectrum-gray-300, #dadada);
+        background: var(--spectrum-gray-50);
+        border-block-end: 1px solid var(--spectrum-gray-300);
         padding-block: 20px;
         padding-inline: 28px 20px;
     }
@@ -310,7 +310,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-variation-list {
-        background: var(--spectrum-white, #ffffff);
+        background: var(--spectrum-white);
         border-radius: 12px;
         margin-block-start: 28px;
         overflow: hidden;
@@ -323,7 +323,7 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-variation-row:not(:last-child) {
-        border-block-end: 1px solid var(--spectrum-gray-400, #c6c6c6);
+        border-block-end: 1px solid var(--spectrum-gray-400);
     }
 
     .picker-variation-row .picker-cell:last-child {
@@ -344,6 +344,6 @@ export const masFragmentPickerStyles = css`
     }
 
     .picker-footer-summary-num {
-        color: var(--spectrum-gray-800, #292929);
+        color: var(--spectrum-gray-800);
     }
 `;

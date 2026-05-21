@@ -1,5 +1,6 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { CARD_MODEL_PATH, MAS_PRODUCT_CODE_PREFIX, TAG_MODEL_ID_MAPPING } from './constants.js';
 import Store from './store.js';
 import { getDamPath } from './mas-repository.js';
@@ -430,6 +431,10 @@ export class MasFragmentPicker extends LitElement {
         return title;
     }
 
+    #renderFragmentTitle(title) {
+        return title ? unsafeHTML(title) : nothing;
+    }
+
     #offerName(fragment) {
         const hasTags = Array.isArray(fragment.tags);
         return (
@@ -546,7 +551,9 @@ export class MasFragmentPicker extends LitElement {
         return html`
             <div class="picker-variation-row">
                 <div class="picker-cell picker-cell-title">${this.#offerName(fragment)}</div>
-                <div class="picker-cell picker-cell-title picker-truncate">${this.#fragmentTitle(fragment)}</div>
+                <div class="picker-cell picker-cell-title picker-truncate">
+                    ${this.#renderFragmentTitle(this.#fragmentTitle(fragment))}
+                </div>
                 <div class="picker-cell picker-cell-offer-id">${this.#renderOfferId(fragment)}</div>
                 <div class="picker-cell picker-row-path">${this.#authorPath(fragment)}</div>
                 <div class="picker-cell picker-cell-status">${this.#renderStatus(fragment)}</div>
@@ -619,7 +626,9 @@ export class MasFragmentPicker extends LitElement {
                         ></sp-checkbox>
                     </div>
                     <div class="picker-cell picker-cell-offer">${this.#renderOffer(fragment)}</div>
-                    <div class="picker-cell picker-cell-title">${title} ${this.#renderVariationBadge(fragment)}</div>
+                    <div class="picker-cell picker-cell-title">
+                        ${this.#renderFragmentTitle(title)} ${this.#renderVariationBadge(fragment)}
+                    </div>
                     <div class="picker-cell picker-cell-offer-id">${this.#renderOfferId(fragment)}</div>
                     <div class="picker-cell picker-row-path">${this.#authorPath(fragment)}</div>
                     <div class="picker-cell picker-cell-status">${this.#renderStatus(fragment)}</div>

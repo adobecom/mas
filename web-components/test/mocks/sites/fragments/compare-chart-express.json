@@ -14,11 +14,11 @@
             "e7563f87-7cf6-4126-b395-e4dc78b9099e"
         ],
         "collections": [],
-        "variations": [],
+        "variations": ["8efdf6ca-1561-4ee3-8e1f-a70e847f10e0"],
         "tagFilters": [],
         "pznTags": [],
         "compareChart": {
-            "value": "<mas-compare-chart expanded-groups=\"1\"><div name=\"adobe-apps\"><h4>Adobe apps</h4><p name=\"seamless-integration-across-adobe-apps\">Seamless integration across Adobe apps <a href=\"#\" class=\"secondary-link\" title=\"Photoshop, Illustrator, InDesign, Firefly, Acrobat and Lightroom\">ℹ️</a></p><p name=\"boost-your-creativity-with-photoshop\">Boost your creativity with Photoshop <a href=\"#\" class=\"secondary-link\" title=\"Full access to Photoshop on web and mobile, in addition to Adobe Express Premium\">ℹ️</a></p><p name=\"adobe-firefly-pro\">Adobe Firefly Pro <a href=\"#\" class=\"secondary-link\" title=\"Create images, video, audio, vector graphics, Firefly Boards, and use latest commercially safe Firefly AI models\">ℹ️</a></p><p name=\"integration-with-adobe-experience-manager-workfront-and-genstudio\">Integration with Adobe Experience Manager, Workfront, and GenStudio <a href=\"#\" class=\"secondary-link\" title=\"For performance marketing\">ℹ️</a></p></div><div name=\"templates-and-design-assets\"><h4>Templates and design assets</h4><p name=\"professionally-designed-templates\">Professionally designed templates <a href=\"#\" class=\"secondary-link\" title=\"Static, motion, and video templates\">ℹ️</a></p><p name=\"template-recommendations\">Template recommendations <a href=\"#\" class=\"secondary-link\" title=\"Preview your photo in editable templates that match the photo context\">ℹ️</a></p><p name=\"adobe-stock-photos\">Adobe Stock photos</p><p name=\"adobe-stock-videos\">Adobe Stock videos</p><p name=\"adobe-stock-audiomusic\">Adobe Stock audio/music</p><p name=\"adobe-stock-sound-effects\">Adobe Stock sound effects</p><p name=\"adobe-stock-backgrounds\">Adobe Stock backgrounds</p><p name=\"adobe-stock-design-assets\">Adobe Stock design assets <a href=\"#\" class=\"secondary-link\" title=\"Illustrations, brushes, textures, frames, and more\">ℹ️</a></p><p name=\"adobe-stock-icons\">Adobe Stock icons</p><p name=\"basic-shapes\">Basic Shapes</p></div><div name=\"generative-ai\"><h4>Generative AI</h4><p name=\"ai-assistant-beta\">AI Assistant Beta <a href=\"#\" class=\"secondary-link\" title=\"Prompt-anything, edit-everything\">ℹ️</a></p><p name=\"generate-presentations\">Generate Presentations <a href=\"#\" class=\"secondary-link\" title=\"Turn documents into presentations in minutes\">ℹ️</a></p><p name=\"generative-credits\">Generative credits</p><p name=\"generate-images-text-effects-templates--more\">Generate images, text effects, templates &amp; more</p><p name=\"insert--remove-objects\">Insert &amp; Remove Objects</p><p name=\"commercial-use\">Commercial Use <a href=\"#\" class=\"secondary-link\" title=\"Features designed to be commercially safe, powered by Adobe Firefly generative AI\">ℹ️</a></p><p name=\"partner-generative-ai-models\">Partner generative AI models <a href=\"#\" class=\"secondary-link\" title=\"Access partner models in Firefly such as Google, OpenAI, Flux, and more\">ℹ️</a></p><p name=\"generate-5-second-videos\">Generate 5-second videos</p><p name=\"adobe-firefly-boards\">Adobe Firefly Boards</p></div><div name=\"photo-and-design\"><h4>Photo and design</h4><p name=\"erase\">Erase</p><p name=\"photo-adjustments-and-effects\">Photo Adjustments and Effects <a href=\"#\" class=\"secondary-link\" title=\"Adjust contrast, shadows, saturation, effects, and blend modes, powered by Photoshop\">ℹ️</a></p><p name=\"start-from-photos\">Start from photos <a href=\"#\" class=\"secondary-link\" title=\"Start from JPG, PNG, PSD, and more\">ℹ️</a></p><p name=\"adobe-fonts\">Adobe Fonts</p><p name=\"font-recommendations\">Font recommendations <a href=\"#\" class=\"secondary-link\" title=\"Recommendations for fonts that match your design\">ℹ️</a></p><p name=\"add-and-sync-psd-and-ai-files\">Add and sync .psd and .ai files <a href=\"#\" class=\"secondary-link\" title=\"Edits made in Photoshop or Illustrator sync without reimporting\">ℹ️</a></p><p name=\"export-in-jpeg-png-pdf-gif-ppt\">Export in JPEG, PNG, PDF, GIF, PPT</p><p name=\"export-as-png-with-transparent-background\">Export as PNG with transparent background</p><p name=\"draw-and-paint-with-85-brushes-and-coloring-pages\">Draw and paint with 85+ brushes and coloring pages</p></div><div name=\"video-and-motion\"><h4>Video and motion</h4><p name=\"drag-and-drop-video-creation\">Drag-and-drop video creation</p><p name=\"remove-video-background\">Remove video background</p><p name=\"animate-all\">Animate All <a href=\"#\" class=\"secondary-link\" title=\"Automatically apply motion to your entire design\">ℹ️</a></p><p name=\"dynamic-animations\">Dynamic Animations <a href=\"#\" class=\"secondary-link\" title=\"Add physics-based animation to photos, videos, text, shapes, and icons\">ℹ️</a></p><p name=\"record-voiceover-and-video-directly-in-app\">Record voiceover and video directly in-app</p><p name=\"video-transitions\">Video transitions</p><p name=\"video-length\">Video length</p><p name=\"export-in-4k\">Export in 4K</p><p name=\"enhance-speech\">Enhance Speech</p><p name=\"tiktok-symphony-assistant-add-on\">TikTok Symphony Assistant Add-on <a href=\"#\" class=\"secondary-link\" title=\"1M+ songs and sounds from TikTok’s Commercial Music Library\">ℹ️</a></p></div><div name=\"quick-actions\"><h4>Quick Actions</h4><p name=\"remove-image-background\">Remove Image Background</p><p name=\"resize-image\">Resize Image</p><p name=\"crop-image\">Crop Image</p><p name=\"generate-qr-code\">Generate QR Code</p><p name=\"pdf-quick-actions\">PDF Quick Actions <a href=\"#\" class=\"secondary-link\" title=\"Edit, combine, organize, import/enhance PDF\">ℹ️</a></p><p name=\"convert-to-gif\">Convert to GIF</p><p name=\"convert-to-jpgpngsvgmp4\">Convert to JPG/PNG/SVG/MP4</p><p name=\"caption-video\">Caption Video</p><p name=\"resize-video\">Resize Video</p><p name=\"clip-maker\">Clip Maker <a href=\"#\" class=\"secondary-link\" title=\"Turn video podcasts, educational videos, and product reviews into social clips with captions\">ℹ️</a></p><p name=\"merge-crop-and-trim-video\">Merge, Crop, and Trim Video</p><p name=\"animate-characters\">Animate Characters</p></div><div name=\"brand-management-and-collaboration\"><h4>Brand management and collaboration</h4><p name=\"brand-kits\">Brand Kits <a href=\"#\" class=\"secondary-link\" title=\"Keep colors, fonts, logos, and graphics in one brand kit\">ℹ️</a></p><p name=\"extract-brand-colors-fonts-logos-from-image\">Extract brand colors, fonts, logos from image <a href=\"#\" class=\"secondary-link\" title=\"One-click extraction\">ℹ️</a></p><p name=\"libraries\">Libraries <a href=\"#\" class=\"secondary-link\" title=\"Store Adobe Express and Creative Cloud assets in one place\">ℹ️</a></p><p name=\"branded-templates\">Branded templates <a href=\"#\" class=\"secondary-link\" title=\"Create brand-specific templates for teams\">ℹ️</a></p><p name=\"brand-controls\">Brand controls <a href=\"#\" class=\"secondary-link\" title=\"Specify which brand colors and fonts can be used in shared templates\">ℹ️</a></p><p name=\"custom-home\">Custom Home <a href=\"#\" class=\"secondary-link\" title=\"Branded banner and access to approved templates\">ℹ️</a></p><p name=\"adobe-experience-manager-integration\">Adobe Experience Manager integration <a href=\"#\" class=\"secondary-link\" title=\"Access, edit, and save assets back to AEM\">ℹ️</a></p><p name=\"custom-models\">Custom Models <a href=\"#\" class=\"secondary-link\" title=\"Generate on-brand content with Firefly Custom Models\">ℹ️</a></p><p name=\"protect-your-brand\">Protect your brand <a href=\"#\" class=\"secondary-link\" title=\"IP indemnification for Adobe Firefly generated content\">ℹ️</a></p><p name=\"real-time-co-editing-and-commenting\">Real-time co-editing and commenting</p><p name=\"share-templates-across-teams\">Share templates across teams</p></div><div name=\"campaigns-and-publishing\"><h4>Campaigns and publishing</h4><p name=\"resize\">Resize <a href=\"#\" class=\"secondary-link\" title=\"Resize for multiple formats at one time in the same file\">ℹ️</a></p><p name=\"translate\">Translate <a href=\"#\" class=\"secondary-link\" title=\"Automatically translate text into 45+ languages\">ℹ️</a></p><p name=\"safe-zones\">Safe Zones <a href=\"#\" class=\"secondary-link\" title=\"Format-aware guides to keep text, visuals, and logos visible\">ℹ️</a></p><p name=\"caption-writer\">Caption Writer <a href=\"#\" class=\"secondary-link\" title=\"AI-generated social captions tailored to your design\">ℹ️</a></p><p name=\"social-mentions\">Social Mentions <a href=\"#\" class=\"secondary-link\" title=\"Add mentions directly in captions when scheduling posts\">ℹ️</a></p><p name=\"content-scheduler\">Content Scheduler <a href=\"#\" class=\"secondary-link\" title=\"Plan, publish, and schedule direct to social channels\">ℹ️</a></p><p name=\"shared-social-calendars\">Shared social calendars</p><p name=\"publish-paid-ads-directly\">Publish paid ads directly</p><p name=\"publish-to-multiple-channels-simultaneously\">Publish to multiple channels simultaneously</p><p name=\"metricool-add-on\">Metricool Add-On <a href=\"#\" class=\"secondary-link\" title=\"Track social metrics, competitive insights, and download custom reports\">ℹ️</a></p></div><div name=\"support-and-storage\"><h4>Support and Storage</h4><p name=\"cloud-storage\">Cloud storage</p><p name=\"version-history\">Version history</p><p name=\"admin-console\">Admin Console <a href=\"#\" class=\"secondary-link\" title=\"License/user management\">ℹ️</a></p><p name=\"flexible-license-management\">Flexible license management <a href=\"#\" class=\"secondary-link\" title=\"Reassign licenses when team changes occur\">ℹ️</a></p><p name=\"admin-roles\">Admin roles <a href=\"#\" class=\"secondary-link\" title=\"Assign total access to select staff\">ℹ️</a></p><p name=\"asset-reclamation\">Asset reclamation <a href=\"#\" class=\"secondary-link\" title=\"Retrieve assets when users leave the org\">ℹ️</a></p><p name=\"asset-sharing-restrictions\">Asset sharing restrictions <a href=\"#\" class=\"secondary-link\" title=\"Limit who can see specific assets\">ℹ️</a></p><p name=\"consolidated-billing\">Consolidated billing</p><p name=\"24x7-technical-support\">24x7 technical support <a href=\"#\" class=\"secondary-link\" title=\"Multilingual customer care, dedicated line for admins\">ℹ️</a></p><p name=\"11-sessions-with-product-experts\">1:1 sessions with product experts <a href=\"#\" class=\"secondary-link\" title=\"Accessible from Admin Console\">ℹ️</a></p><p name=\"single-sign-on\">Single sign-on</p><p name=\"encryption-key-support\">Encryption key support <a href=\"#\" class=\"secondary-link\" title=\"Assets can be encrypted for additional security\">ℹ️</a></p><p name=\"user-directory-sync\">User directory sync <a href=\"#\" class=\"secondary-link\" title=\"Sync with Microsoft Azure or Google Admin Console\">ℹ️</a></p><p name=\"firefly-output-indemnification\">Firefly output indemnification <a href=\"#\" class=\"secondary-link\" title=\"Select plans eligible for IP indemnification for Firefly generated images\">ℹ️</a></p><p name=\"flexible-purchasing-options\">Flexible purchasing options <a href=\"#\" class=\"secondary-link\" title=\"Purchasing, deploying, and managing Adobe licenses for organizations\">ℹ️</a></p></div></mas-compare-chart>",
+            "value": "<mas-compare-chart expanded-groups=\"1\"><span slot=\"compare-features\">Compare Features</span><div name=\"adobe-apps\"><h4>Adobe apps</h4><p name=\"seamless-integration-across-adobe-apps\"><strong>Seamless integration across Adobe apps like Photoshop, Illustrator, InDesign, Firefly, Acrobat and Lightroom</strong></p><p name=\"boost-your-creativity-with-photoshop\"><strong>Boost your creativity with Photoshop:</strong>In addition to the Adobe Express Premium plan, get full access to Adobe Photoshop on web and mobile.</p><p name=\"adobe-firefly-pro\"><strong>Adobe Firefly Pro</strong>Create images, video, audio, and vector graphics. Ideate, create, and collaborate with Firefly Boards. And work with the latest commercially safe Firefly generative AI models.</p><p name=\"integration-with-adobe-experience-manager-workfront-and-genstudio\"><strong>Integration with Adobe Experience Manager, Workfront, and GenStudio for performance marketing</strong></p></div><div name=\"templates-and-design-assets\"><h4>Templates and design assets</h4><p name=\"professionally-designed-templates\">Professionally designed templates <a href=\"#\" class=\"secondary-link\" title=\"Static, motion, and video templates\">ℹ️</a></p><p name=\"template-recommendations\">Template recommendations <a href=\"#\" class=\"secondary-link\" title=\"Preview your photo in editable templates that match the photo context\">ℹ️</a></p><p name=\"adobe-stock-photos\">Adobe Stock photos</p><p name=\"adobe-stock-videos\">Adobe Stock videos</p><p name=\"adobe-stock-audiomusic\">Adobe Stock audio/music</p><p name=\"adobe-stock-sound-effects\">Adobe Stock sound effects</p><p name=\"adobe-stock-backgrounds\">Adobe Stock backgrounds</p><p name=\"adobe-stock-design-assets\">Adobe Stock design assets <a href=\"#\" class=\"secondary-link\" title=\"Illustrations, brushes, textures, frames, and more\">ℹ️</a></p><p name=\"adobe-stock-icons\">Adobe Stock icons</p><p name=\"basic-shapes\">Basic Shapes</p></div><div name=\"generative-ai\"><h4>Generative AI</h4><p name=\"ai-assistant-beta\">AI Assistant Beta <a href=\"#\" class=\"secondary-link\" title=\"Prompt-anything, edit-everything\">ℹ️</a></p><p name=\"generate-presentations\">Generate Presentations <a href=\"#\" class=\"secondary-link\" title=\"Turn documents into presentations in minutes\">ℹ️</a></p><p name=\"generative-credits\">Generative credits</p><p name=\"generate-images-text-effects-templates--more\">Generate images, text effects, templates &amp; more</p><p name=\"insert--remove-objects\">Insert &amp; Remove Objects</p><p name=\"commercial-use\">Commercial Use <a href=\"#\" class=\"secondary-link\" title=\"Features designed to be commercially safe, powered by Adobe Firefly generative AI\">ℹ️</a></p><p name=\"partner-generative-ai-models\">Partner generative AI models <a href=\"#\" class=\"secondary-link\" title=\"Access partner models in Firefly such as Google, OpenAI, Flux, and more\">ℹ️</a></p><p name=\"generate-5-second-videos\">Generate 5-second videos</p><p name=\"adobe-firefly-boards\">Adobe Firefly Boards</p></div><div name=\"photo-and-design\"><h4>Photo and design</h4><p name=\"erase\">Erase</p><p name=\"photo-adjustments-and-effects\">Photo Adjustments and Effects <a href=\"#\" class=\"secondary-link\" title=\"Adjust contrast, shadows, saturation, effects, and blend modes, powered by Photoshop\">ℹ️</a></p><p name=\"start-from-photos\">Start from photos <a href=\"#\" class=\"secondary-link\" title=\"Start from JPG, PNG, PSD, and more\">ℹ️</a></p><p name=\"adobe-fonts\">Adobe Fonts</p><p name=\"font-recommendations\">Font recommendations <a href=\"#\" class=\"secondary-link\" title=\"Recommendations for fonts that match your design\">ℹ️</a></p><p name=\"add-and-sync-psd-and-ai-files\">Add and sync .psd and .ai files <a href=\"#\" class=\"secondary-link\" title=\"Edits made in Photoshop or Illustrator sync without reimporting\">ℹ️</a></p><p name=\"export-in-jpeg-png-pdf-gif-ppt\">Export in JPEG, PNG, PDF, GIF, PPT</p><p name=\"export-as-png-with-transparent-background\">Export as PNG with transparent background</p><p name=\"draw-and-paint-with-85-brushes-and-coloring-pages\">Draw and paint with 85+ brushes and coloring pages</p></div><div name=\"video-and-motion\"><h4>Video and motion</h4><p name=\"drag-and-drop-video-creation\">Drag-and-drop video creation</p><p name=\"remove-video-background\">Remove video background</p><p name=\"animate-all\">Animate All <a href=\"#\" class=\"secondary-link\" title=\"Automatically apply motion to your entire design\">ℹ️</a></p><p name=\"dynamic-animations\">Dynamic Animations <a href=\"#\" class=\"secondary-link\" title=\"Add physics-based animation to photos, videos, text, shapes, and icons\">ℹ️</a></p><p name=\"record-voiceover-and-video-directly-in-app\">Record voiceover and video directly in-app</p><p name=\"video-transitions\">Video transitions</p><p name=\"video-length\">Video length</p><p name=\"export-in-4k\">Export in 4K</p><p name=\"enhance-speech\">Enhance Speech</p><p name=\"tiktok-symphony-assistant-add-on\">TikTok Symphony Assistant Add-on <a href=\"#\" class=\"secondary-link\" title=\"1M+ songs and sounds from TikTok’s Commercial Music Library\">ℹ️</a></p></div><div name=\"quick-actions\"><h4>Quick Actions</h4><p name=\"remove-image-background\">Remove Image Background</p><p name=\"resize-image\">Resize Image</p><p name=\"crop-image\">Crop Image</p><p name=\"generate-qr-code\">Generate QR Code</p><p name=\"pdf-quick-actions\">PDF Quick Actions <a href=\"#\" class=\"secondary-link\" title=\"Edit, combine, organize, import/enhance PDF\">ℹ️</a></p><p name=\"convert-to-gif\">Convert to GIF</p><p name=\"convert-to-jpgpngsvgmp4\">Convert to JPG/PNG/SVG/MP4</p><p name=\"caption-video\">Caption Video</p><p name=\"resize-video\">Resize Video</p><p name=\"clip-maker\">Clip Maker <a href=\"#\" class=\"secondary-link\" title=\"Turn video podcasts, educational videos, and product reviews into social clips with captions\">ℹ️</a></p><p name=\"merge-crop-and-trim-video\">Merge, Crop, and Trim Video</p><p name=\"animate-characters\">Animate Characters</p></div><div name=\"brand-management-and-collaboration\"><h4>Brand management and collaboration</h4><p name=\"brand-kits\">Brand Kits <a href=\"#\" class=\"secondary-link\" title=\"Keep colors, fonts, logos, and graphics in one brand kit\">ℹ️</a></p><p name=\"extract-brand-colors-fonts-logos-from-image\">Extract brand colors, fonts, logos from image <a href=\"#\" class=\"secondary-link\" title=\"One-click extraction\">ℹ️</a></p><p name=\"libraries\">Libraries <a href=\"#\" class=\"secondary-link\" title=\"Store Adobe Express and Creative Cloud assets in one place\">ℹ️</a></p><p name=\"branded-templates\">Branded templates <a href=\"#\" class=\"secondary-link\" title=\"Create brand-specific templates for teams\">ℹ️</a></p><p name=\"brand-controls\">Brand controls <a href=\"#\" class=\"secondary-link\" title=\"Specify which brand colors and fonts can be used in shared templates\">ℹ️</a></p><p name=\"custom-home\">Custom Home <a href=\"#\" class=\"secondary-link\" title=\"Branded banner and access to approved templates\">ℹ️</a></p><p name=\"adobe-experience-manager-integration\">Adobe Experience Manager integration <a href=\"#\" class=\"secondary-link\" title=\"Access, edit, and save assets back to AEM\">ℹ️</a></p><p name=\"custom-models\">Custom Models <a href=\"#\" class=\"secondary-link\" title=\"Generate on-brand content with Firefly Custom Models\">ℹ️</a></p><p name=\"protect-your-brand\">Protect your brand <a href=\"#\" class=\"secondary-link\" title=\"IP indemnification for Adobe Firefly generated content\">ℹ️</a></p><p name=\"real-time-co-editing-and-commenting\">Real-time co-editing and commenting</p><p name=\"share-templates-across-teams\">Share templates across teams</p></div><div name=\"campaigns-and-publishing\"><h4>Campaigns and publishing</h4><p name=\"resize\">Resize <a href=\"#\" class=\"secondary-link\" title=\"Resize for multiple formats at one time in the same file\">ℹ️</a></p><p name=\"translate\">Translate <a href=\"#\" class=\"secondary-link\" title=\"Automatically translate text into 45+ languages\">ℹ️</a></p><p name=\"safe-zones\">Safe Zones <a href=\"#\" class=\"secondary-link\" title=\"Format-aware guides to keep text, visuals, and logos visible\">ℹ️</a></p><p name=\"caption-writer\">Caption Writer <a href=\"#\" class=\"secondary-link\" title=\"AI-generated social captions tailored to your design\">ℹ️</a></p><p name=\"social-mentions\">Social Mentions <a href=\"#\" class=\"secondary-link\" title=\"Add mentions directly in captions when scheduling posts\">ℹ️</a></p><p name=\"content-scheduler\">Content Scheduler <a href=\"#\" class=\"secondary-link\" title=\"Plan, publish, and schedule direct to social channels\">ℹ️</a></p><p name=\"shared-social-calendars\">Shared social calendars</p><p name=\"publish-paid-ads-directly\">Publish paid ads directly</p><p name=\"publish-to-multiple-channels-simultaneously\">Publish to multiple channels simultaneously</p><p name=\"metricool-add-on\">Metricool Add-On <a href=\"#\" class=\"secondary-link\" title=\"Track social metrics, competitive insights, and download custom reports\">ℹ️</a></p></div><div name=\"support-and-storage\"><h4>Support and Storage</h4><p name=\"cloud-storage\">Cloud storage</p><p name=\"version-history\">Version history</p><p name=\"admin-console\">Admin Console <a href=\"#\" class=\"secondary-link\" title=\"License/user management\">ℹ️</a></p><p name=\"flexible-license-management\">Flexible license management <a href=\"#\" class=\"secondary-link\" title=\"Reassign licenses when team changes occur\">ℹ️</a></p><p name=\"admin-roles\">Admin roles <a href=\"#\" class=\"secondary-link\" title=\"Assign total access to select staff\">ℹ️</a></p><p name=\"asset-reclamation\">Asset reclamation <a href=\"#\" class=\"secondary-link\" title=\"Retrieve assets when users leave the org\">ℹ️</a></p><p name=\"asset-sharing-restrictions\">Asset sharing restrictions <a href=\"#\" class=\"secondary-link\" title=\"Limit who can see specific assets\">ℹ️</a></p><p name=\"consolidated-billing\">Consolidated billing</p><p name=\"24x7-technical-support\">24x7 technical support <a href=\"#\" class=\"secondary-link\" title=\"Multilingual customer care, dedicated line for admins\">ℹ️</a></p><p name=\"11-sessions-with-product-experts\">1:1 sessions with product experts <a href=\"#\" class=\"secondary-link\" title=\"Accessible from Admin Console\">ℹ️</a></p><p name=\"single-sign-on\">Single sign-on</p><p name=\"encryption-key-support\">Encryption key support <a href=\"#\" class=\"secondary-link\" title=\"Assets can be encrypted for additional security\">ℹ️</a></p><p name=\"user-directory-sync\">User directory sync <a href=\"#\" class=\"secondary-link\" title=\"Sync with Microsoft Azure or Google Admin Console\">ℹ️</a></p><p name=\"firefly-output-indemnification\">Firefly output indemnification <a href=\"#\" class=\"secondary-link\" title=\"Select plans eligible for IP indemnification for Firefly generated images\">ℹ️</a></p><p name=\"flexible-purchasing-options\">Flexible purchasing options <a href=\"#\" class=\"secondary-link\" title=\"Purchasing, deploying, and managing Adobe licenses for organizations\">ℹ️</a></p></div></mas-compare-chart>",
             "mimeType": "text/plain"
         }
     },
@@ -74,7 +74,7 @@
                     "compatVersion": 1,
                     "features": {
                         "value": [
-                            "<p name=\"adobe-apps@seamless-integration-across-adobe-apps\">✓</p>",
+                            "<p name=\"adobe-apps@seamless-integration-across-adobe-apps\">✅</p>",
                             "<p name=\"adobe-apps@boost-your-creativity-with-photoshop\">—</p>",
                             "<p name=\"adobe-apps@adobe-firefly-pro\">—</p>",
                             "<p name=\"adobe-apps@integration-with-adobe-experience-manager-workfront-and-genstudio\">—</p>",
@@ -594,6 +594,43 @@
                 "titlePath": "Merch at Scale : Product code / Firefly Pro",
                 "description": ""
             }
+        },
+        "8efdf6ca-1561-4ee3-8e1f-a70e847f10e0": {
+            "type": "content-fragment",
+            "value": {
+                "path": "/content/dam/mas/sandbox/en_US/merch-card-collection/pzn/ilyas-test-compare-chart-mas-pzn-country-fr",
+                "name": "ilyas-test-compare-chart-mas-pzn-country-fr",
+                "title": "Ilyas Test Compare Chart",
+                "id": "8efdf6ca-1561-4ee3-8e1f-a70e847f10e0",
+                "description": "",
+                "model": {
+                    "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24"
+                },
+                "fields": {
+                    "cards": [
+                        "6b9b9e9b-b71e-4943-88e2-540129295614",
+                        "0385f7e9-888c-4eda-936d-9e870c994c59",
+                        "e7563f87-7cf6-4126-b395-e4dc78b9099e"
+                    ],
+                    "collections": [],
+                    "variations": [],
+                    "tagFilters": [],
+                    "pznTags": ["mas:pzn/country/fr"],
+                    "compareChart": { "mimeType": "text/plain" }
+                }
+            }
+        },
+        "mas:pzn/country/fr": {
+            "type": "tag",
+            "value": {
+                "path": "/content/cq:tags/mas/pzn/country/fr",
+                "name": "fr",
+                "title": "France",
+                "id": "mas:pzn/country/fr",
+                "i18n": [],
+                "titlePath": "Merch at Scale : Personalization / country / France",
+                "description": null
+            }
         }
     },
     "referencesTree": [
@@ -686,6 +723,110 @@
                 {
                     "fieldName": "tags",
                     "identifier": "mas:market_segments/com",
+                    "referencesTree": []
+                }
+            ]
+        },
+        {
+            "fieldName": "variations",
+            "identifier": "8efdf6ca-1561-4ee3-8e1f-a70e847f10e0",
+            "referencesTree": [
+                {
+                    "fieldName": "cards",
+                    "identifier": "6b9b9e9b-b71e-4943-88e2-540129295614",
+                    "referencesTree": [
+                        {
+                            "fieldName": "variations",
+                            "identifier": "868a081e-8fb9-4c4e-ab3f-0e683ba087da",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/base",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:plan_type/m2m",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:customer_segment/individual",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/edu",
+                            "referencesTree": []
+                        }
+                    ]
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "0385f7e9-888c-4eda-936d-9e870c994c59",
+                    "referencesTree": [
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/trial",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:plan_type/m2m",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:customer_segment/individual",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product_code/ccex",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        }
+                    ]
+                },
+                {
+                    "fieldName": "cards",
+                    "identifier": "e7563f87-7cf6-4126-b395-e4dc78b9099e",
+                    "referencesTree": [
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:offer_type/trial",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:plan_type/m2m",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:customer_segment/individual",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:product_code/ffpo",
+                            "referencesTree": []
+                        },
+                        {
+                            "fieldName": "tags",
+                            "identifier": "mas:market_segments/com",
+                            "referencesTree": []
+                        }
+                    ]
+                },
+                {
+                    "fieldName": "pznTags",
+                    "identifier": "mas:pzn/country/fr",
                     "referencesTree": []
                 }
             ]

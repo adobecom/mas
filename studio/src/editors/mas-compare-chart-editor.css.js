@@ -36,7 +36,7 @@ export const styles = css`
     }
 
     .section-title h2 {
-        color: #292929;
+        color: var(--spectrum-gray-900);
         font-size: 22px;
         font-weight: 700;
         line-height: 26px;
@@ -51,7 +51,7 @@ export const styles = css`
         min-width: 120px;
         min-height: 32px;
         border-radius: 8px;
-        background: #e9e9e9;
+        background: var(--spectrum-gray-200);
         box-sizing: border-box;
     }
 
@@ -62,7 +62,7 @@ export const styles = css`
         min-height: 32px;
         padding: 5px 12px;
         background: transparent;
-        color: #505050;
+        color: var(--spectrum-gray-700);
         font:
             700 14px/18px 'Adobe Clean',
             var(--spectrum-sans-font-family-stack);
@@ -70,13 +70,13 @@ export const styles = css`
     }
 
     .editor-view-toggle button[aria-selected='true'] {
-        border-color: #292929;
-        background: #fff;
-        color: #292929;
+        border-color: var(--spectrum-gray-900);
+        background: var(--spectrum-white);
+        color: var(--spectrum-gray-900);
     }
 
     .editor-view-toggle button:focus-visible {
-        outline: 2px solid var(--spectrum-global-color-blue-600);
+        outline: 2px solid var(--spectrum-focus-indicator-color);
         outline-offset: 2px;
     }
 
@@ -107,7 +107,7 @@ export const styles = css`
     }
 
     .compchart-restore-all {
-        color: var(--spectrum-accent-color-900, #3b63fb);
+        color: var(--spectrum-accent-color-900);
         flex: 0 0 auto;
         font-weight: 400;
         text-decoration: underline;
@@ -176,12 +176,12 @@ export const styles = css`
     }
 
     .compchart-overridden-cell {
-        background: var(--spectrum-blue-100, #f5f9ff);
-        border-color: var(--spectrum-blue-400, #78b6ff);
+        background: var(--spectrum-blue-100);
+        border-color: var(--spectrum-blue-400);
     }
 
     .compchart-cell-restore {
-        color: var(--spectrum-accent-color-900, #3b63fb);
+        color: var(--spectrum-accent-color-900);
         flex: 0 0 auto;
     }
 
@@ -303,7 +303,7 @@ export const styles = css`
     }
 
     .compchart-cards-title {
-        color: var(--spectrum-gray-900, #292929);
+        color: var(--spectrum-gray-900);
         font-size: 18px;
         font-weight: 700;
         line-height: 22px;
@@ -329,9 +329,9 @@ export const styles = css`
     }
 
     .compchart-cards-table-head {
-        background: var(--spectrum-gray-75, #f3f3f3);
+        background: var(--spectrum-gray-75);
         border-bottom: 1px solid var(--spectrum-gray-300);
-        color: var(--spectrum-gray-800, #222222);
+        color: var(--spectrum-gray-800);
         font-size: 14px;
         font-weight: 700;
         line-height: 18px;
@@ -381,7 +381,7 @@ export const styles = css`
     .compchart-group-handle {
         align-items: center;
         border-radius: 6px;
-        color: var(--spectrum-gray-700, #4b4b4b);
+        color: var(--spectrum-gray-700);
         cursor: grab;
         display: flex;
         height: 28px;
@@ -392,8 +392,8 @@ export const styles = css`
     .compchart-card-handle:hover,
     .compchart-feature-handle:hover,
     .compchart-group-handle:hover {
-        background: var(--spectrum-gray-200, #e6e6e6);
-        color: var(--spectrum-gray-900, #292929);
+        background: var(--spectrum-gray-200);
+        color: var(--spectrum-gray-900);
     }
 
     .compchart-card-handle:active,
@@ -411,7 +411,7 @@ export const styles = css`
     .compchart-card-title,
     .compchart-card-offer-name {
         font-weight: 600;
-        color: var(--spectrum-gray-800, #222222);
+        color: var(--spectrum-gray-800);
     }
 
     .compchart-card-offer {
@@ -422,7 +422,7 @@ export const styles = css`
     }
 
     .compchart-card-icon {
-        background: var(--spectrum-gray-200, #e1e1e1);
+        background: var(--spectrum-gray-200);
         border-radius: 4px;
         height: 32px;
         flex: 0 0 32px;
@@ -456,7 +456,7 @@ export const styles = css`
 
     .compchart-card-status {
         align-items: center;
-        color: var(--spectrum-gray-800, #292929);
+        color: var(--spectrum-gray-800);
         display: flex;
         font-size: 14px;
         gap: 6px;
@@ -465,23 +465,23 @@ export const styles = css`
     }
 
     .compchart-status-dot {
-        background: var(--spectrum-green-900, #008f5d);
+        background: var(--spectrum-green-900);
         border-radius: 50%;
         height: 10px;
         width: 10px;
     }
 
     .compchart-card-status.draft .compchart-status-dot {
-        background: var(--spectrum-gray-600, #6d6d6d);
+        background: var(--spectrum-gray-600);
     }
 
     .compchart-card-status.modified .compchart-status-dot {
-        background: var(--spectrum-orange-900, #d97000);
+        background: var(--spectrum-orange-900);
     }
 
     .compchart-card-variation-panel,
     .compchart-card-variation-empty {
-        background: var(--spectrum-gray-50, #f8f8f8);
+        background: var(--spectrum-gray-50);
         border-bottom: 1px solid var(--spectrum-gray-300);
         padding: 20px 24px;
     }
@@ -525,12 +525,11 @@ export const styles = css`
     }
 
     .compchart-card-variation-row.selected {
-        background: var(--spectrum-indigo-100, #f7f8ff);
-        box-shadow: inset 3px 0 0 var(--spectrum-accent-color-900, #3b63fb);
+        background: var(--spectrum-table-selected-row-background-color);
     }
 
     .compchart-card-variation-row:not(:last-child) {
-        border-bottom: 1px solid var(--spectrum-gray-400, #c6c6c6);
+        border-bottom: 1px solid var(--spectrum-gray-400);
     }
 
     .compchart-card-variation-row .compchart-card-cell {
@@ -583,7 +582,7 @@ export const styles = css`
     }
 
     .compchart-preview-locale-label {
-        color: var(--spectrum-gray-900, #292929);
+        color: var(--spectrum-gray-900);
         font-size: 14px;
         line-height: 18px;
         white-space: nowrap;
@@ -591,11 +590,11 @@ export const styles = css`
 
     .compchart-preview-locale-field {
         align-items: center;
-        background: var(--spectrum-gray-25, #ffffff);
-        border: 2px solid var(--spectrum-gray-300, #dadada);
+        background: var(--spectrum-gray-25);
+        border: 2px solid var(--spectrum-gray-300);
         border-radius: 8px;
         box-sizing: border-box;
-        color: var(--spectrum-gray-900, #292929);
+        color: var(--spectrum-gray-900);
         display: flex;
         font-size: 14px;
         font-weight: 700;

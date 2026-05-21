@@ -985,7 +985,6 @@ export class MasCompareChart extends LitElement {
                     visibleSlots,
                 ),
             )}
-            <div class="header-leading header-leading-cta">Compare Features</div>
             ${cards.map((card, i) =>
                 this.#renderHeaderSegment(card, 'cta', i + 1, i, visibleSlots),
             )}

@@ -361,7 +361,7 @@ class AEM {
             method: 'POST',
             headers: {
                 ...this.headers,
-                'csrf-token': csrfToken,
+                'CSRF-Token': csrfToken,
             },
             body: formData,
         }).catch((err) => {
@@ -529,6 +529,7 @@ class AEM {
      * @returns {Promise<void>}
      */
     async setFragmentToDraft(fragmentPath) {
+        if (!fragmentPath) throw new Error('fragmentPath is required');
         const csrfToken = await this.getCsrfToken();
         const formData = new FormData();
         formData.append('cq:lastReplicationAction@Delete', '');
@@ -537,7 +538,7 @@ class AEM {
             method: 'POST',
             headers: {
                 ...this.headers,
-                'csrf-token': csrfToken,
+                'CSRF-Token': csrfToken,
             },
             body: formData,
         }).catch((err) => {

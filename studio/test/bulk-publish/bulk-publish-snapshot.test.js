@@ -103,6 +103,17 @@ describe('createSnapshot()', () => {
         const snapshot = await createSnapshot(project, aem, 'u@e.com');
         expect(snapshot.source).to.equal('pre-publish');
     });
+
+    it('processes all items and creates a version for each', async () => {
+        const aem = makeAem({ versionId: 'v1' });
+        const project = {
+            id: 'p-multi',
+            items: [{ fragmentId: 'f1' }, { fragmentId: 'f2' }, { fragmentId: 'f3' }],
+        };
+        const snapshot = await createSnapshot(project, aem, 'u@e.com');
+        expect(Object.keys(snapshot.fragments)).to.have.lengthOf(3);
+        expect(aem.sites.cf.fragments.createVersion.callCount).to.equal(3);
+    });
 });
 
 describe('revertSnapshot()', () => {
@@ -145,30 +156,34 @@ describe('revertSnapshot()', () => {
         expect(aem.sites.cf.fragments.setToDraft.called).to.equal(false);
     });
 
-    it('throws with list of failed fragment IDs/paths on partial failure', async () => {
+    it('returns failures array with path and error for failed fragments (never throws)', async () => {
         const aem = makeAem();
         aem.sites.cf.fragments.restoreVersion = sinon.stub().rejects(new Error('restore failed'));
         const snapshot = makeSnapshot([{ id: 'f1', path: '/fail-path', versionId: 'v1', wasPublished: true }]);
-        let errorMessage = '';
-        try {
-            await revertSnapshot(snapshot, aem);
-        } catch (err) {
-            errorMessage = err.message;
-        }
-        expect(errorMessage).to.include('/fail-path');
-        expect(errorMessage).to.include('restore failed');
+        const { failures } = await revertSnapshot(snapshot, aem);
+        expect(failures).to.have.length(1);
+        expect(failures[0].path).to.equal('/fail-path');
+        expect(failures[0].error).to.include('restore failed');
     });
 
-    it('resolves cleanly when all restores succeed', async () => {
+    it('continues processing remaining fragments after a partial failure', async () => {
+        const aem = makeAem();
+        aem.sites.cf.fragments.restoreVersion = sinon.stub().onFirstCall().rejects(new Error('404')).onSecondCall().resolves();
+        const snapshot = makeSnapshot([
+            { id: 'f1', path: '/fail-path', versionId: 'v1', wasPublished: true },
+            { id: 'f2', path: '/ok-path', versionId: 'v2', wasPublished: true },
+        ]);
+        const { failures } = await revertSnapshot(snapshot, aem);
+        expect(failures).to.have.length(1);
+        expect(failures[0].path).to.equal('/fail-path');
+        expect(aem.sites.cf.fragments.restoreVersion.callCount).to.equal(2);
+    });
+
+    it('returns empty failures array when all restores succeed', async () => {
         const aem = makeAem();
         const snapshot = makeSnapshot([{ id: 'f1', path: '/p1', versionId: 'v1', wasPublished: true }]);
-        let threw = false;
-        try {
-            await revertSnapshot(snapshot, aem);
-        } catch {
-            threw = true;
-        }
-        expect(threw).to.equal(false);
+        const { failures } = await revertSnapshot(snapshot, aem);
+        expect(failures).to.deep.equal([]);
     });
 });
 

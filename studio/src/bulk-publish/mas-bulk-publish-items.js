@@ -93,7 +93,18 @@ class MasBulkPublishItems extends LitElement {
         const modified = this.modifications.get(item.path);
         if (modified === undefined) return html`<span class="modification-cell">–</span>`;
         if (modified === null)
-            return html`<span class="modification-cell"> <span class="modification-dot not-found-dot"></span>Not found </span>`;
+            return html`<span class="modification-cell not-found-cell">
+                <span class="modification-dot not-found-dot"></span>Not found
+                <sp-action-button
+                    size="xs"
+                    quiet
+                    label="Remove fragment"
+                    @click=${() => emit(this, 'remove-not-found-item', { url: item.url, path: item.path })}
+                >
+                    <sp-icon-delete slot="icon"></sp-icon-delete>
+                    Remove
+                </sp-action-button>
+            </span>`;
         return modified
             ? html`<span class="modification-cell"><span class="modification-dot"></span>Modified</span>`
             : html`<span class="modification-cell">–</span>`;

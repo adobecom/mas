@@ -65,11 +65,17 @@ export async function startReverting({ project, repository }) {
 
     const raw = getProjectField(project, 'snapshot');
     let snapshot;
+    if (!raw) {
+        setField(project, 'lastError', 'REVERT:\nNo snapshot found. Please re-publish to create a snapshot.');
+        setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
+        await repository.saveFragment(project, false);
+        return;
+    }
     if (typeof raw === 'string') {
         try {
             snapshot = JSON.parse(raw);
         } catch {
-            setField(project, 'lastError', 'Snapshot data is corrupted. Please re-publish to create a new snapshot.');
+            setField(project, 'lastError', 'REVERT:\nSnapshot data is corrupted. Please re-publish to create a new snapshot.');
             setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
             await repository.saveFragment(project, false);
             return;
@@ -79,12 +85,12 @@ export async function startReverting({ project, repository }) {
     }
 
     const aem = repository.aem;
-    try {
-        await revertSnapshot(snapshot, aem);
+    const { failures } = await revertSnapshot(snapshot, aem);
+    if (failures.length === 0) {
         setField(project, 'status', BULK_PUBLISH_STATUS.REVERTED);
-    } catch (err) {
-        console.error('Failed to revert bulk publish project:', err);
-        setField(project, 'lastError', err.message);
+    } else {
+        const lines = failures.map((f) => `${f.path}: ${f.error}`).join('\n');
+        setField(project, 'lastError', `REVERT:\n${lines}`);
         setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
     }
     await repository.saveFragment(project, false);

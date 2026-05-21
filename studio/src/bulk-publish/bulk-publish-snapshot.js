@@ -1,5 +1,20 @@
 import { STATUS_PUBLISHED, STATUS_MODIFIED } from '../constants.js';
 
+const SNAPSHOT_CONCURRENCY = 5;
+
+async function runConcurrent(items, fn, limit) {
+    const results = new Array(items.length);
+    let next = 0;
+    async function worker() {
+        while (next < items.length) {
+            const i = next++;
+            results[i] = await fn(items[i]);
+        }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return results;
+}
+
 /**
  * Create a pre-publish snapshot of all fragments in the project.
  * @param {Object} project - Bulk publish project (has project.items and project.id/path)
@@ -8,16 +23,13 @@ import { STATUS_PUBLISHED, STATUS_MODIFIED } from '../constants.js';
  * @returns {Promise<Object>} snapshot
  */
 export async function createSnapshot(project, aem, userEmail) {
-    const items = project.items ?? [];
+    const items = (project.items ?? []).filter((item) => item.fragmentId || item.path);
     const projectId = project.id ?? project.path?.split('/').pop() ?? 'unknown';
     const projectTitle = project.title ?? '';
     const timestamp = Date.now();
     const snapshotId = `snap-${projectId}-${timestamp}`;
-    const fragments = {};
 
-    for (const item of items) {
-        if (!item.fragmentId && !item.path) continue;
-
+    async function processItem(item) {
         let fragmentId = item.fragmentId;
         if (!fragmentId) {
             const results = [];
@@ -42,12 +54,11 @@ export async function createSnapshot(project, aem, userEmail) {
             throw new Error(`Failed to create version for fragment: ${fragment.path}`);
         }
 
-        fragments[fragmentId] = {
-            path: fragment.path,
-            versionId,
-            wasPublished,
-        };
+        return [fragmentId, { path: fragment.path, versionId, wasPublished }];
     }
+
+    const entries = await runConcurrent(items, processItem, SNAPSHOT_CONCURRENCY);
+    const fragments = Object.fromEntries(entries);
 
     return {
         id: snapshotId,
@@ -78,10 +89,7 @@ export async function revertSnapshot(snapshot, aem) {
         }
     }
 
-    if (failures.length > 0) {
-        const paths = failures.map((f) => `${f.path}: ${f.error}`).join('; ');
-        throw new Error(`Failed to revert fragments: ${paths}`);
-    }
+    return { failures };
 }
 
 /**

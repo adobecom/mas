@@ -27,7 +27,7 @@ describe('getProjectField()', () => {
         expect(getProjectField(project, 'missing', 'default')).to.equal('default');
     });
 
-    it('returns undefined (not fallback) when field value is null', () => {
+    it('returns fallback when field value is null', () => {
         const project = { getFieldValue: () => null };
         expect(getProjectField(project, 'field', 'default')).to.equal('default');
     });

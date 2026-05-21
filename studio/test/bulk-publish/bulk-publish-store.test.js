@@ -258,7 +258,7 @@ describe('startReverting()', () => {
         expect(repo.aem.sites.cf.fragments.restoreVersion.calledOnce).to.equal(true);
     });
 
-    it('keeps status PUBLISHED and sets lastError if revertSnapshot throws', async () => {
+    it('keeps status PUBLISHED and sets lastError with REVERT prefix on partial failure', async () => {
         const project = makeProject();
         const repo = makeRepo({ restoreRejects: true });
 
@@ -271,6 +271,39 @@ describe('startReverting()', () => {
         expect(statusValues[statusValues.length - 1]).to.equal(BULK_PUBLISH_STATUS.PUBLISHED);
         const errorCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'lastError');
         expect(errorCalls.length).to.be.greaterThan(0);
+        expect(errorCalls[errorCalls.length - 1].args[1]).to.include('REVERT:\n');
+    });
+
+    it('keeps status PUBLISHED and uses REVERT prefix when snapshot is missing', async () => {
+        const project = makeProject({ snapshot: null });
+        const repo = makeRepo();
+
+        await startReverting({ project, repository: repo });
+
+        const statusValues = project.setFieldValue
+            .getCalls()
+            .filter((c) => c.args[0] === 'status')
+            .map((c) => c.args[1]);
+        expect(statusValues[statusValues.length - 1]).to.equal(BULK_PUBLISH_STATUS.PUBLISHED);
+        const errorCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'lastError');
+        expect(errorCalls[errorCalls.length - 1].args[1]).to.include('REVERT:\n');
+        expect(repo.aem.sites.cf.fragments.restoreVersion.called).to.equal(false);
+    });
+
+    it('keeps status PUBLISHED and uses REVERT prefix when snapshot JSON is corrupted', async () => {
+        const project = makeProject({ snapshot: 'not-valid-json{{{' });
+        const repo = makeRepo();
+
+        await startReverting({ project, repository: repo });
+
+        const statusValues = project.setFieldValue
+            .getCalls()
+            .filter((c) => c.args[0] === 'status')
+            .map((c) => c.args[1]);
+        expect(statusValues[statusValues.length - 1]).to.equal(BULK_PUBLISH_STATUS.PUBLISHED);
+        const errorCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'lastError');
+        expect(errorCalls[errorCalls.length - 1].args[1]).to.include('REVERT:\n');
+        expect(repo.aem.sites.cf.fragments.restoreVersion.called).to.equal(false);
     });
 
     it('does not clear snapshot field after successful revert', async () => {

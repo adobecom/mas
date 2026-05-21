@@ -602,6 +602,43 @@ class MasBulkPublishEditor extends LitElement {
         });
     }
 
+    async handleRemoveNotFoundItem(e) {
+        const { url, path } = e.detail;
+        const updatedItems = this.items.filter((i) => i.path !== path);
+        const updatedUrls = this.urlLines.filter((l) => l !== url).join('\n');
+        this.setProjectField('items', JSON.stringify(updatedItems));
+        this.setProjectField('urls', updatedUrls);
+
+        const snapshotRaw = this.getField('snapshot');
+        if (snapshotRaw) {
+            try {
+                const snapshot = JSON.parse(snapshotRaw);
+                for (const [id, entry] of Object.entries(snapshot.fragments)) {
+                    if (entry.path === path) {
+                        delete snapshot.fragments[id];
+                        break;
+                    }
+                }
+                this.setProjectField('snapshot', JSON.stringify(snapshot));
+            } catch {
+                /* corrupted snapshot — leave as-is */
+            }
+        }
+
+        try {
+            await this.repository.saveFragment(this.project, false);
+            this.hasChanges = false;
+        } catch {
+            showToast('Failed to save project after removing fragment.', 'negative');
+            return;
+        }
+
+        const updated = new Map(this.modifications);
+        updated.delete(path);
+        this.modifications = updated.size > 0 ? updated : null;
+        showToast('Fragment removed from project.', 'positive');
+    }
+
     handleRevert() {
         this.revertDialogOpen = true;
     }
@@ -690,6 +727,7 @@ class MasBulkPublishEditor extends LitElement {
                 @url-remove=${this.handleUrlRemove}
                 @remove-all=${this.handleRemoveAll}
                 @check-modifications=${this.handleCheckModifications}
+                @remove-not-found-item=${this.handleRemoveNotFoundItem}
             ></mas-bulk-publish-items>
             <mas-bulk-publish-locales
                 .locales=${this.locales}

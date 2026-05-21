@@ -149,4 +149,52 @@ describe('mas-bulk-publish-items', () => {
         el.toggleCollapse();
         expect(el.collapsed).to.equal(false);
     });
+
+    it('shows Remove button for not-found items in modification cell', async () => {
+        const modifications = new Map([['/content/dam/frag', null]]);
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .isPublished=${true}
+                .items=${[{ url: 'https://a', path: '/content/dam/frag', status: 'valid' }]}
+                .urls=${'https://a'}
+                .modifications=${modifications}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const btn = el.shadowRoot.querySelector('.not-found-cell sp-action-button');
+        expect(btn).to.exist;
+        expect(btn.textContent.trim()).to.include('Remove');
+    });
+
+    it('Remove button in modification cell dispatches remove-not-found-item with path and url', async () => {
+        const modifications = new Map([['/content/dam/frag', null]]);
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .isPublished=${true}
+                .items=${[{ url: 'https://a', path: '/content/dam/frag', status: 'valid' }]}
+                .urls=${'https://a'}
+                .modifications=${modifications}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        const btn = el.shadowRoot.querySelector('.not-found-cell sp-action-button');
+        setTimeout(() => btn.click());
+        const ev = await oneEvent(el, 'remove-not-found-item');
+        expect(ev.detail.path).to.equal('/content/dam/frag');
+        expect(ev.detail.url).to.equal('https://a');
+    });
+
+    it('does not show Remove button for modified (non-null) items', async () => {
+        const modifications = new Map([['/content/dam/frag', true]]);
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .isPublished=${true}
+                .items=${[{ url: 'https://a', path: '/content/dam/frag', status: 'valid' }]}
+                .urls=${'https://a'}
+                .modifications=${modifications}
+            ></mas-bulk-publish-items>
+        `);
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.not-found-cell')).to.be.null;
+    });
 });

@@ -52,6 +52,16 @@ class MasBulkPublishSuccessBanner extends LitElement {
         sp-icon-alert {
             color: var(--spectrum-semantic-negative-color-icon, #d7373f);
         }
+        .failure-list {
+            margin: 4px 0 0 0;
+            padding-left: 20px;
+        }
+        .failure-list li {
+            font-size: 13px;
+            line-height: 18px;
+            color: var(--spectrum-alias-text-color, #292929);
+            word-break: break-all;
+        }
     `;
 
     constructor() {
@@ -75,14 +85,31 @@ class MasBulkPublishSuccessBanner extends LitElement {
         }
     }
 
+    get isRevertError() {
+        return this.error.startsWith('REVERT:\n');
+    }
+
+    get revertFailures() {
+        return this.error.slice('REVERT:\n'.length).split('\n').filter(Boolean);
+    }
+
     render() {
         if (this.error) {
+            const title = this.isRevertError ? 'Revert failed' : 'Publish failed';
+            const body = this.isRevertError
+                ? html`
+                      <p class="body">The following fragments could not be reverted:</p>
+                      <ul class="failure-list">
+                          ${this.revertFailures.map((line) => html`<li>${line}</li>`)}
+                      </ul>
+                  `
+                : html`<p class="body">${this.error}</p>`;
             return html`
                 <div class="header">
                     <sp-icon-alert></sp-icon-alert>
-                    <p class="title">Publish failed</p>
+                    <p class="title">${title}</p>
                 </div>
-                <p class="body">${this.error}</p>
+                ${body}
             `;
         }
         return html`

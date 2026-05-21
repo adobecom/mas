@@ -159,7 +159,6 @@ export const styles = css`
 
     .compchart-row-label,
     .compchart-cell {
-        min-height: 56px;
         padding: 10px 12px;
         border-bottom: 1px solid var(--spectrum-gray-300);
         border-right: 1px solid var(--spectrum-gray-300);
@@ -202,6 +201,7 @@ export const styles = css`
     }
 
     .compchart-cell-value {
+        display: flex;
         align-items: center;
         flex: 1;
         min-width: 0;
@@ -220,11 +220,15 @@ export const styles = css`
         word-break: break-word;
     }
 
+    .compchart-cell-value {
+        min-height: 62px;
+        }
+    
+
     .compchart-cell-value rte-field {
         display: block;
         flex: 1;
         width: 100%;
-        min-height: inherit;
         color: inherit;
         font: inherit;
         line-height: inherit;
@@ -235,6 +239,7 @@ export const styles = css`
     .compchart-cell-value h4,
     .compchart-cell-value div {
         margin: 0;
+        padding: 0;
         max-width: 100%;
         min-width: 0;
         overflow-wrap: anywhere;
@@ -464,22 +469,7 @@ export const styles = css`
         white-space: nowrap;
     }
 
-    .compchart-status-dot {
-        background: var(--spectrum-green-900);
-        border-radius: 50%;
-        height: 10px;
-        width: 10px;
-    }
-
-    .compchart-card-status.draft .compchart-status-dot {
-        background: var(--spectrum-gray-600);
-    }
-
-    .compchart-card-status.modified .compchart-status-dot {
-        background: var(--spectrum-orange-900);
-    }
-
-    .compchart-card-variation-panel,
+.compchart-card-variation-panel,
     .compchart-card-variation-empty {
         background: var(--spectrum-gray-50);
         border-bottom: 1px solid var(--spectrum-gray-300);

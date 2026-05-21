@@ -496,12 +496,29 @@ class MasCompareChartEditor extends LitElement {
 
     #renderCardStatus(fragment) {
         const status = fragment?.status || '';
+        const variant = this.#statusLightVariant(status);
         return html`
             <span class="compchart-card-status ${status.toLowerCase()}">
-                <span class="compchart-status-dot"></span>
+                <sp-status-light size="s" variant=${variant}></sp-status-light>
                 <span>${status ? status[0] + status.slice(1).toLowerCase() : 'Unknown'}</span>
             </span>
         `;
+    }
+
+    #statusLightVariant(status) {
+        switch ((status || '').toLowerCase()) {
+            case 'new':
+            case 'draft':
+                return 'info';
+            case 'published':
+                return 'positive';
+            case 'modified':
+                return 'yellow';
+            case 'unpublished':
+                return 'neutral';
+            default:
+                return 'neutral';
+        }
     }
 
     async #toggleCardExpanded(event, path) {
@@ -2016,9 +2033,9 @@ class MasCompareChartEditor extends LitElement {
                 >
                     ${this.activeRteCell === key
                         ? this.#renderInlineRte(editor, key)
-                        : displayHtml
-                          ? unsafeHTML(displayHtml)
-                          : html`<span class="compchart-rte-placeholder">Click to edit</span>`}
+                        : html`<p>${displayHtml
+                              ? unsafeHTML(displayHtml)
+                              : html`<span class="compchart-rte-placeholder">Click to edit</span>`}</p>`}
                 </div>
                 <sp-action-button quiet title="Add row" label="Add row" @click=${() => this.#addRow(group.name)}>
                     <sp-icon-add slot="icon"></sp-icon-add>
@@ -2064,9 +2081,9 @@ class MasCompareChartEditor extends LitElement {
                 >
                     ${this.activeRteCell === key
                         ? this.#renderInlineRte(editor, key)
-                        : displayHtml
-                          ? unsafeHTML(displayHtml)
-                          : html`<span class="compchart-rte-placeholder">Click to edit</span>`}
+                        : html`<p>${displayHtml
+                              ? unsafeHTML(displayHtml)
+                              : html`<span class="compchart-rte-placeholder">Click to edit</span>`}</p>`}
                 </div>
                 <div class="compchart-row-actions">
                     <sp-action-button
@@ -2111,9 +2128,9 @@ class MasCompareChartEditor extends LitElement {
                 >
                     ${this.activeRteCell === key
                         ? this.#renderInlineRte(editor, key)
-                        : displayHtml
-                          ? unsafeHTML(displayHtml)
-                          : html`<span class="compchart-rte-placeholder">Click to edit</span>`}
+                        : html`<p>${displayHtml
+                              ? unsafeHTML(displayHtml)
+                              : html`<span class="compchart-rte-placeholder">Click to edit</span>`}</p>`}
                 </div>
                 ${overridden
                     ? html`<sp-action-button

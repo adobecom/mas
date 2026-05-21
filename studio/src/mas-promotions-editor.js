@@ -73,7 +73,7 @@ class MasPromotionsEditor extends LitElement {
     #itemsSelectionStoreSnapshot = null;
     #cardsSnapshot = [];
     #collectionsSnapshot = [];
-    #itemsConfirmed = false;
+    #itemsDialogClosed = false;
 
     constructor() {
         super();
@@ -495,7 +495,7 @@ class MasPromotionsEditor extends LitElement {
         this.showSelectedEmptyState = this.selectedItemsCount === 0;
         this.#cardsSnapshot = [];
         this.#collectionsSnapshot = [];
-        this.#itemsConfirmed = true;
+        this.#itemsDialogClosed = true;
         this.#clearPromotionItemPickerSurface();
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -505,7 +505,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.selectedCards.set(this.#cardsSnapshot);
         Store.promotions.selectedCollections.set(this.#collectionsSnapshot);
         this.showSelectedEmptyState = this.selectedItemsCount === 0;
-        this.#itemsConfirmed = true;
+        this.#itemsDialogClosed = true;
         this.#clearPromotionItemPickerSurface();
         const closeEvent = new Event('close', { bubbles: true, composed: true });
         target.dispatchEvent(closeEvent);
@@ -518,7 +518,7 @@ class MasPromotionsEditor extends LitElement {
 
     #openAddItemsOverlay() {
         this.promotionItemsAddButtonLabel = 'Add selected fragments';
-        this.#itemsConfirmed = false;
+        this.#itemsDialogClosed = false;
         this.#cardsSnapshot = Store.promotions.selectedCards.value;
         this.#collectionsSnapshot = Store.promotions.selectedCollections.value;
 
@@ -526,7 +526,7 @@ class MasPromotionsEditor extends LitElement {
         if (selector) {
             selector.searchQuery = '';
             selector.selectedTab = TABLE_TYPE.CARDS;
-            selector.shadowRoot?.querySelectorAll('mas-search-and-filters').forEach((el) => el.resetFilters());
+            selector.resetFilters();
         }
         const surfaces = this.promotionPickerSurfaces;
         if (surfaces.length) {
@@ -541,7 +541,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #restoreItemsSnapshot = () => {
-        if (this.#itemsConfirmed) return;
+        if (this.#itemsDialogClosed) return;
         Store.promotions.selectedCards.set(this.#cardsSnapshot);
         Store.promotions.selectedCollections.set(this.#collectionsSnapshot);
         this.showSelectedEmptyState = this.selectedItemsCount === 0;

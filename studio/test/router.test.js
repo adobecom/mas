@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { Router } from '../src/router.js';
+import { Router, promoHashIsSearchSync } from '../src/router.js';
 import Store from '../src/store.js';
 import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
@@ -59,7 +59,7 @@ describe('Router', () => {
             { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
             { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
             { name: 'tags', type: 'tag', values: [] },
-            { name: 'surfaces', type: 'long-text', values: [] },
+            { name: 'surfaces', type: 'text', values: [] },
             { name: 'fragments', type: 'text', values: fragments },
         ];
         if (collectionsValues !== undefined) {
@@ -803,6 +803,32 @@ describe('Router', () => {
             expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
             expect(Store.settings.creating.get()).to.equal(false);
             expect(Store.settings.fragmentId.get()).to.equal(null);
+        });
+    });
+
+    describe('promoHashIsSearchSync', () => {
+        it('returns true when only query is added on promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=sandbox&query=a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns true when path and query change but page and promotionId stay', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=promotions-editor&path=nala&query=uuid';
+            expect(promoHashIsSearchSync(prev, next)).to.be.true;
+        });
+
+        it('returns false when leaving promotions-editor', () => {
+            const prev = '#page=promotions-editor&path=sandbox';
+            const next = '#page=content&path=sandbox';
+            expect(promoHashIsSearchSync(prev, next)).to.be.false;
+        });
+
+        it('returns false when promotionId changes', () => {
+            const prev = '#page=promotions-editor&promotionId=a&path=sandbox';
+            const next = '#page=promotions-editor&promotionId=b&path=sandbox&query=x';
+            expect(promoHashIsSearchSync(prev, next)).to.be.false;
         });
     });
 

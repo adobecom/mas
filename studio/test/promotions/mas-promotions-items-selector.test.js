@@ -106,6 +106,16 @@ describe('MasPromotionsItemsSelector', () => {
         expect(el.searchQuery).to.equal('abc');
     });
 
+    it('resetFilters calls resetFilters on each mas-search-and-filters', async () => {
+        const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
+        await el.updateComplete;
+        const filters = [...el.renderRoot.querySelectorAll('mas-search-and-filters')];
+        expect(filters.length).to.equal(2);
+        const spies = filters.map((f) => sandbox.spy(f, 'resetFilters'));
+        el.resetFilters();
+        spies.forEach((s) => expect(s.callCount).to.equal(1));
+    });
+
     it('updates sp-toast when a child table dispatches show-toast', async () => {
         const el = await fixture(html`<mas-promotions-items-selector .viewOnly=${true}></mas-promotions-items-selector>`);
         await el.updateComplete;

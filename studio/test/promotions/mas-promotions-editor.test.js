@@ -161,7 +161,7 @@ describe('MasPromotionsEditor', () => {
             const el = new MasPromotionsEditor();
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
-            await new Promise((r) => setTimeout(r, 20));
+            await Promise.resolve();
             await el.updateComplete;
             expect(el.isNewPromotion).to.be.false;
             expect(el.fragment).to.not.be.null;
@@ -181,7 +181,8 @@ describe('MasPromotionsEditor', () => {
             const consoleError = sandbox.stub(console, 'error');
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
-            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
+            await Promise.resolve();
             await el.updateComplete;
             expect(el.loadingPromotion).to.be.false;
             consoleError.restore();
@@ -255,7 +256,7 @@ describe('MasPromotionsEditor', () => {
             expect(el.loadingPromotion).to.be.true;
             expect(el.renderRoot.querySelector('sp-progress-circle')).to.not.be.null;
             deferred.resolve(null);
-            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
         });
 
         it('shows empty surfaces state when no surfaces are selected', async () => {
@@ -338,7 +339,7 @@ describe('MasPromotionsEditor', () => {
             const { el, repo } = await mountEditorWithRepo();
             const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
             buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
             expect(repo.createFragment.called).to.be.false;
             expect(el.isCreated).to.be.false;
         });
@@ -348,7 +349,6 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
             buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 50));
             await el.updateComplete;
             expect(repo.createFragment.calledOnce).to.be.true;
             expect(el.isCreated).to.be.true;
@@ -361,7 +361,7 @@ describe('MasPromotionsEditor', () => {
             await fillValidFields(el);
             const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
             buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 50));
+            await el.updateComplete;
             expect(el.isCreated).to.be.false;
         });
     });
@@ -374,7 +374,7 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
             buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 50));
+            await el.updateComplete;
             expect(repo.saveFragment.calledOnce).to.be.true;
         });
 
@@ -384,7 +384,7 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
             buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 20));
+            await el.updateComplete;
             expect(repo.saveFragment.called).to.be.false;
         });
 
@@ -397,7 +397,7 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
             buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 50));
+            await el.updateComplete;
             expect(repo.saveFragment.calledOnce).to.be.true;
         });
     });
@@ -407,7 +407,7 @@ describe('MasPromotionsEditor', () => {
             const el = await mountEditor();
             const cancelBtn = el.renderRoot.querySelector('.promotions-form-buttons sp-button');
             cancelBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
             expect(Store.promotions.inEdit.get()).to.not.exist;
         });
 
@@ -422,7 +422,7 @@ describe('MasPromotionsEditor', () => {
             el.renderRoot
                 .querySelector('#promotion-unsaved-changes-dialog')
                 .dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
         });
 
         it('discards changes and navigates after confirmation', async () => {
@@ -435,7 +435,9 @@ describe('MasPromotionsEditor', () => {
             el.renderRoot
                 .querySelector('#promotion-unsaved-changes-dialog')
                 .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 10));
+            await el.updateComplete;
+            await Promise.resolve();
+            await el.updateComplete;
             expect(Store.promotions.inEdit.get()).to.not.exist;
         });
     });

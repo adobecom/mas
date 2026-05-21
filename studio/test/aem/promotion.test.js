@@ -30,7 +30,7 @@ describe('Promotion', () => {
                 { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
                 { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
                 { name: 'tags', type: 'tag', values: [] },
-                { name: 'surfaces', type: 'long-text', values: [] },
+                { name: 'surfaces', type: 'text', values: [] },
             ],
             tags: [],
         };

@@ -1,4 +1,29 @@
-import { COLLECTION_MODEL_PATH } from '../constants.js';
+import { COLLECTION_MODEL_PATH, ROOT_PATH } from '../constants.js';
+import { isUUID, parseStudioDeepLinksFromText } from '../utils.js';
+
+/**
+ * Normalizes pasted Studio deep links, full DAM paths under {@link ROOT_PATH}, or bare UUIDs
+ * for the promotion item picker search field.
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function normalizePromotionSearchInput(raw) {
+    if (raw == null || typeof raw !== 'string') return '';
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+    const deepLinks = parseStudioDeepLinksFromText(trimmed);
+    if (deepLinks.length && deepLinks[0].fragmentId) return deepLinks[0].fragmentId;
+    if (isUUID(trimmed)) return trimmed;
+    const marker = ROOT_PATH;
+    const idx = trimmed.indexOf(marker);
+    if (idx !== -1) {
+        let path = trimmed.slice(idx);
+        const cut = path.search(/[?#]/);
+        if (cut !== -1) path = path.slice(0, cut);
+        return path.replace(/\/+$/, '');
+    }
+    return trimmed;
+}
 
 /**
  * True when fragments + collections saved on the promotion differ from selected cards/collections in store.

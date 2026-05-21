@@ -93,6 +93,14 @@ export const styles = [
         #add-surfaces-overlay sp-table {
             border-radius: 8px;
             border: 1px solid var(--spectrum-gray-200);
+            --spectrum-table-row-checkbox-block-spacing: 0px;
+            --spectrum-table-header-checkbox-block-spacing: 0px;
+        }
+
+        #add-surfaces-overlay #surfaces-table sp-table-cell,
+        #add-surfaces-overlay #surfaces-table sp-table-head-cell {
+            display: flex;
+            align-items: center;
         }
 
         .surfaces-results {

@@ -3,6 +3,7 @@ import {
     classifyPromotionPathsForSelection,
     isPromotionItemSelectionDirty,
     isPromotionRequiredFieldsValid,
+    normalizePromotionSearchInput,
     parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
 } from '../../src/promotions/promotion-editor-utils.js';
@@ -119,6 +120,31 @@ describe('promotion-editor-utils', () => {
             expect(out.cols).to.deep.equal(['/p']);
             expect(out.cards).to.deep.equal([]);
             expect(out.unreachable).to.deep.equal([]);
+        });
+    });
+
+    describe('normalizePromotionSearchInput', () => {
+        it('returns empty for non-string or blank', () => {
+            expect(normalizePromotionSearchInput()).to.equal('');
+            expect(normalizePromotionSearchInput(null)).to.equal('');
+            expect(normalizePromotionSearchInput('  \n')).to.equal('');
+        });
+
+        it('returns bare UUID unchanged', () => {
+            const id = '00000000-1111-2222-3333-444444444444';
+            expect(normalizePromotionSearchInput(`  ${id}  `)).to.equal(id);
+        });
+
+        it('extracts fragment id from a Studio merch-card deep link', () => {
+            const id = '00000000-1111-2222-3333-444444444444';
+            const line = `https://mas.adobe.com/studio.html#content-type=merch-card&query=${id}`;
+            expect(normalizePromotionSearchInput(line)).to.equal(id);
+        });
+
+        it('strips query/hash from pasted full DAM path', () => {
+            const path = '/content/dam/mas/surface/en_US/foo';
+            expect(normalizePromotionSearchInput(`${path}?x=1`)).to.equal(path);
+            expect(normalizePromotionSearchInput(`https://example.com${path}#edit`)).to.equal(path);
         });
     });
 

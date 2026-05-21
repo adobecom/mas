@@ -360,12 +360,14 @@ class MasSearchAndFilters extends LitElement {
                     const title = (fragment.title || '').toLowerCase();
                     const studioPath = (fragment.studioPath || '').toLowerCase();
                     const path = (fragment.path || '').toLowerCase();
+                    const fragmentId = (fragment.id || '').toLowerCase();
                     const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
                     const offerId = fragment.offerData?.offerId || '';
                     if (
                         !title.includes(query) &&
                         !studioPath.includes(query) &&
                         !path.includes(query) &&
+                        !(fragmentId && fragmentId === query) &&
                         !productTag.toLowerCase().includes(query) &&
                         !offerId.toLowerCase().includes(query)
                     ) {

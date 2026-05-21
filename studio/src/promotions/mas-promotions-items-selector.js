@@ -11,7 +11,8 @@ import './mas-promotions-items-table.js';
 import '../common/components/mas-selected-items.js';
 import '../common/components/mas-search-and-filters.js';
 import { styles } from '../common/components/mas-items-selector.css.js';
-import { debounce } from '../utils.js';
+import { debounce, isUUID } from '../utils.js';
+import { normalizePromotionSearchInput } from './promotion-editor-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 
 const PROMOTION_TABS = [
@@ -86,15 +87,44 @@ class MasPromotionsItemsSelector extends LitElement {
 
     #setSearchQuery = debounce((value) => {
         this.searchQuery = value;
+        this.#syncPromotionSearchToRepository(value);
     }, 300);
 
+    #clearSearchUuidMeta() {
+        Store.search.removeMeta('uuid-query');
+        Store.search.removeMeta('uuid-path');
+        Store.filters.removeMeta('uuid-query');
+        Store.filters.removeMeta('uuid-locale');
+    }
+
+    #syncPromotionSearchToRepository(normalized) {
+        if (isUUID(normalized)) {
+            Store.search.set((prev) => ({ ...prev, query: normalized }));
+            return;
+        }
+        if (!normalized) {
+            this.#clearSearchUuidMeta();
+            Store.search.set((prev) => ({ ...prev, query: '' }));
+            return;
+        }
+    }
+
     #handleSearchInput(e) {
-        this.#setSearchQuery(e.currentTarget?.value ?? '');
+        const search = e.currentTarget;
+        const raw = search?.value ?? '';
+        const normalized = normalizePromotionSearchInput(raw);
+        if (normalized !== raw && search) search.value = normalized;
+        this.#setSearchQuery(normalized);
     }
 
     #handleSearchSubmit(e) {
         e.preventDefault();
-        this.searchQuery = e.currentTarget?.value ?? '';
+        const search = e.currentTarget;
+        const raw = search?.value ?? '';
+        const normalized = normalizePromotionSearchInput(raw);
+        if (normalized !== raw && search) search.value = normalized;
+        this.searchQuery = normalized;
+        this.#syncPromotionSearchToRepository(normalized);
     }
 
     #handleTabChange({ target: { selected } }) {
@@ -148,6 +178,10 @@ class MasPromotionsItemsSelector extends LitElement {
         repo?.searchFragments?.();
         repo?.loadAllCollections?.();
         repo?.loadPlaceholders?.();
+    }
+
+    resetFilters() {
+        this.renderRoot.querySelectorAll('mas-search-and-filters').forEach((el) => el.resetFilters());
     }
 
     render() {

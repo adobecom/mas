@@ -278,7 +278,7 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     get selectedPaths() {
-        return getItemsSelectionStore()[`selected${this.typeUppercased}`].value ?? [];
+        return getItemsSelectionStore()[`selected${this.typeUppercased}`].value;
     }
 
     get tableColumns() {

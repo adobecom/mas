@@ -31,6 +31,7 @@ import {
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
     FF_DEFAULTS,
     MERCH_CARD_LOAD_TIMEOUT,
+    TEMPLATE_PRICE_LEGAL,
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
@@ -65,6 +66,9 @@ function priceOptionsProvider(element, options) {
         options[FF_DEFAULTS] = true;
     }
     card.variantLayout?.priceOptionsProvider?.(element, options);
+    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+        options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
+    }
 }
 
 function checkoutOptionsProvider(element, options) {

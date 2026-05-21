@@ -388,4 +388,201 @@ describe('cleanup-variations/index.js', () => {
             expect(variationsField.values).to.deep.equal(['/content/dam/mas/sandbox/de_AT/card', '/not/a/mas/path']);
         });
     });
+
+    // ---------------------------------------------------------------------------
+    // listFragmentPaths — pagination
+    // ---------------------------------------------------------------------------
+
+    describe('main — listFragmentPaths pagination', () => {
+        it('follows cursor across multiple folder-listing pages', async () => {
+            const pageOnePaths = ['/content/dam/mas/sandbox/de_DE/card-1', '/content/dam/mas/sandbox/de_DE/card-2'];
+            const pageTwoPaths = ['/content/dam/mas/sandbox/de_DE/card-3'];
+
+            fetchStub.onFirstCall().resolves(makeFolderResponse(pageOnePaths, 'cursor-abc'));
+            fetchStub.onSecondCall().resolves(makeFolderResponse(pageTwoPaths, null));
+
+            // every fragment is clean (no invalid variations) so we only assert pagination side-effects
+            fetchFragmentByPathStub.callsFake((_endpoint, path) =>
+                Promise.resolve({
+                    fragment: makeFragment(path, path, []),
+                    status: 200,
+                    etag: `"etag-${path}"`,
+                }),
+            );
+
+            const result = await action.main({ ...baseParams, surface: 'sandbox', locale: 'de_DE' });
+
+            expect(fetchStub).to.have.been.calledTwice;
+            expect(fetchStub.secondCall.args[1]).to.include('cursor=cursor-abc');
+            expect(result.body.processed).to.equal(3);
+        });
+
+        it('stops listing when folder response is not ok', async () => {
+            fetchStub.resolves({
+                ok: false,
+                status: 500,
+                json: () => Promise.resolve({}),
+                headers: { get: () => null },
+            });
+
+            const result = await action.main({ ...baseParams, surface: 'sandbox', locale: 'de_DE' });
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.processed).to.equal(0);
+            expect(result.body.removed).to.equal(0);
+            expect(result.body.errors).to.be.empty;
+        });
+    });
+
+    // ---------------------------------------------------------------------------
+    // main — default parameter behavior
+    // ---------------------------------------------------------------------------
+
+    describe('main — defaults', () => {
+        it('dryRun defaults to true when the param is omitted', async () => {
+            const fragment = makeFragment('frag-default', '/content/dam/mas/sandbox/de_DE/default-card', [
+                '/content/dam/mas/sandbox/en_US/default-card',
+            ]);
+
+            fetchStub.resolves(makeFolderResponse(['/content/dam/mas/sandbox/de_DE/default-card']));
+            fetchFragmentByPathStub.resolves({ fragment, status: 200, etag: fragment.etag });
+
+            const result = await action.main({ ...baseParams, surface: 'sandbox', locale: 'de_DE' });
+
+            expect(result.body.dryRun).to.equal(true);
+            expect(result.body.removed).to.equal(1);
+            expect(putToOdinStub).to.not.have.been.called;
+        });
+
+        it('iterates every configured surface when surface param is omitted', async () => {
+            fetchStub.resolves(makeFolderResponse([]));
+
+            await action.main({ ...baseParams, locale: 'de_DE' });
+
+            const surfacesTouched = new Set(
+                fetchStub.args.map((args) => {
+                    const url = args[1];
+                    const match = url.match(/path=\/content\/dam\/mas\/([^/]+)\//);
+                    return match ? match[1] : null;
+                }),
+            );
+            // all 9 surfaces in DEFAULT_LOCALES should appear at least once
+            expect(surfacesTouched.size).to.equal(9);
+            expect(surfacesTouched).to.include('acom');
+            expect(surfacesTouched).to.include('ccd');
+            expect(surfacesTouched).to.include('express');
+            expect(surfacesTouched).to.include('adobe-home');
+            expect(surfacesTouched).to.include('commerce');
+        });
+    });
+
+    // ---------------------------------------------------------------------------
+    // main — retry behavior
+    // ---------------------------------------------------------------------------
+
+    describe('main — fetchFragmentWithRetry', () => {
+        it('retries on 500 and succeeds on the next attempt', async () => {
+            const fragment = makeFragment('frag-500', '/content/dam/mas/sandbox/de_DE/retry-500', [
+                '/content/dam/mas/sandbox/en_US/retry-500',
+            ]);
+
+            fetchStub.resolves(makeFolderResponse(['/content/dam/mas/sandbox/de_DE/retry-500']));
+            fetchFragmentByPathStub
+                .onFirstCall()
+                .resolves({ fragment: null, status: 500 })
+                .onSecondCall()
+                .resolves({ fragment, status: 200, etag: fragment.etag });
+
+            const clock = sinon.useFakeTimers({ shouldAdvanceTime: true });
+            const resultPromise = action.main({ ...baseParams, surface: 'sandbox', locale: 'de_DE' });
+            await clock.tickAsync(5000);
+            const result = await resultPromise;
+            clock.restore();
+
+            expect(fetchFragmentByPathStub).to.have.been.calledTwice;
+            expect(result.body.removed).to.equal(1);
+        });
+
+        it('gives up after maxRetries on persistent 429 and treats the fragment as not found', async () => {
+            fetchStub.resolves(makeFolderResponse(['/content/dam/mas/sandbox/de_DE/exhaust-card']));
+            fetchFragmentByPathStub.resolves({ fragment: null, status: 429 });
+
+            const clock = sinon.useFakeTimers({ shouldAdvanceTime: true });
+            const resultPromise = action.main({ ...baseParams, surface: 'sandbox', locale: 'de_DE' });
+            // 3 retries → delays of 1s + 2s + 4s = 7s total
+            await clock.tickAsync(10000);
+            const result = await resultPromise;
+            clock.restore();
+
+            // initial call + 3 retries = 4 calls
+            expect(fetchFragmentByPathStub.callCount).to.equal(4);
+            expect(result.body.processed).to.equal(1);
+            expect(result.body.removed).to.equal(0);
+            expect(result.body.errors).to.be.empty;
+            expect(mockLogger.warn).to.have.been.called;
+        });
+    });
+
+    // ---------------------------------------------------------------------------
+    // main — fragment edge cases
+    // ---------------------------------------------------------------------------
+
+    describe('main — fragment edge cases', () => {
+        it('skips a fragment that has no variations field at all', async () => {
+            const fragmentNoVariations = {
+                id: 'no-var',
+                path: '/content/dam/mas/sandbox/de_DE/no-var',
+                title: 'No variations',
+                description: '',
+                fields: [{ name: 'variant', type: 'text', multiple: false, values: ['plans'] }],
+                etag: '"etag-no-var"',
+            };
+
+            fetchStub.resolves(makeFolderResponse(['/content/dam/mas/sandbox/de_DE/no-var']));
+            fetchFragmentByPathStub.resolves({
+                fragment: fragmentNoVariations,
+                status: 200,
+                etag: fragmentNoVariations.etag,
+            });
+
+            const result = await action.main({ ...baseParams, surface: 'sandbox', locale: 'de_DE' });
+
+            expect(result.body.processed).to.equal(1);
+            expect(result.body.removed).to.equal(0);
+            expect(result.body.details).to.be.empty;
+            expect(putToOdinStub).to.not.have.been.called;
+        });
+
+        it('records a per-fragment error when putToOdin throws and continues processing', async () => {
+            const failingFragment = makeFragment('frag-throw', '/content/dam/mas/sandbox/de_DE/throw-card', [
+                '/content/dam/mas/sandbox/en_US/throw-card',
+            ]);
+            const cleanFragment = makeFragment('frag-clean', '/content/dam/mas/sandbox/de_DE/clean-card', [
+                '/content/dam/mas/sandbox/de_AT/clean-card',
+            ]);
+
+            fetchStub.resolves(
+                makeFolderResponse([
+                    '/content/dam/mas/sandbox/de_DE/throw-card',
+                    '/content/dam/mas/sandbox/de_DE/clean-card',
+                ]),
+            );
+            fetchFragmentByPathStub.callsFake((_endpoint, path) =>
+                Promise.resolve({
+                    fragment: path.includes('throw-card') ? failingFragment : cleanFragment,
+                    status: 200,
+                    etag: path.includes('throw-card') ? failingFragment.etag : cleanFragment.etag,
+                }),
+            );
+            putToOdinStub.rejects(new Error('Connection reset'));
+
+            const result = await action.main({ ...baseParams, surface: 'sandbox', locale: 'de_DE', dryRun: false });
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.processed).to.equal(2);
+            expect(result.body.errors).to.have.length(1);
+            expect(result.body.errors[0].fragmentPath).to.include('throw-card');
+            expect(result.body.errors[0].error).to.include('Connection reset');
+        });
+    });
 });

@@ -174,7 +174,7 @@
 
                             const availableLocales = dialog.availableTargetLocales;
                             expect(availableLocales.length).to.be.equal(24);
-                            const enKW = availableLocales.find((locale) => locale.lang === 'en' && locale.country === 'KW');
+                            const enKW = availableLocales.find((l) => l.lang === 'en' && l.country === 'KW');
                             expect(enKW?.disabled).to.be.true;
                         });
 

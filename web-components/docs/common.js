@@ -25,14 +25,20 @@ const toggleTheme = (theme, event, params) => {
     }
 };
 
+const LOCALE_MAP = {
+    en: 'en_US',
+    fr: 'fr_FR',
+    de: 'de_DE',
+    es: 'es_ES',
+};
+
 const toggleLocale = (event, params) => {
     event?.preventDefault();
     const val = event.target.getAttribute('value');
     if (val.includes(',')) {
         const [country, language] = val.split(',');
         params.set('country', country);
-        params.set('language', language);
-        params.delete('locale');
+        params.set('locale', LOCALE_MAP[language]);
     } else {
         params.set('locale', val);
         params.delete('country');

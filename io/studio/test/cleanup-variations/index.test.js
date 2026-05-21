@@ -562,10 +562,7 @@ describe('cleanup-variations/index.js', () => {
             ]);
 
             fetchStub.resolves(
-                makeFolderResponse([
-                    '/content/dam/mas/sandbox/de_DE/throw-card',
-                    '/content/dam/mas/sandbox/de_DE/clean-card',
-                ]),
+                makeFolderResponse(['/content/dam/mas/sandbox/de_DE/throw-card', '/content/dam/mas/sandbox/de_DE/clean-card']),
             );
             fetchFragmentByPathStub.callsFake((_endpoint, path) =>
                 Promise.resolve({

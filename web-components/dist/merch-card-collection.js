@@ -435,6 +435,12 @@ merch-card[variant="catalog"] [slot="footer"] .spectrum-Link--primary {
     min-width: 1px;
   }
 
+  merch-card[variant="mini-compare-chart"] merch-badge span,
+  merch-card[variant="mini-compare-chart"] merch-badge [is="inline-price"] {
+    line-height: 1;
+    min-height: auto;
+  }
+
   merch-card[variant="mini-compare-chart"] [slot="heading-m-price"]  {
     min-height: 30px;
     line-height: 30px;
@@ -1516,10 +1522,6 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
     line-height: 16px;
   }
 
-  merch-card[variant="mini-compare-chart-mweb"] [slot="badge"] span {
-    min-height: auto;
-  }
-
   merch-card[variant="mini-compare-chart-mweb"] div[class$='-badge']:dir(rtl) {
     left: 0;
     right: initial;
@@ -1569,6 +1571,12 @@ merch-card[variant="mini-compare-chart"] merch-mnemonic-list:nth-child(8) {
     display: inline-block;
     min-height: 30px;
     min-width: 1px;
+  }
+
+  merch-card[variant="mini-compare-chart-mweb"] merch-badge span,
+  merch-card[variant="mini-compare-chart-mweb"] merch-badge [is="inline-price"] {
+    line-height: 1;
+    min-height: auto;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] .price-unit-type.disabled,

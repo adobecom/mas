@@ -82,6 +82,22 @@ const init = async (params = {}) => {
     await polyfills();
     const urlParams = new URLSearchParams(document.location.search);
 
+    // Derive locale from URL `language` (+ optional `country`) so io receives a real locale
+    // instead of falling back to `en_US`. Examples:
+    //   ?country=FR&language=fr  → locale=fr_FR
+    //   ?country=AR&language=es  → locale=es_AR
+    //   ?language=es             → locale=es_ES (via LANG_LOCALE_MAP)
+    // `?country=XX` alone is left as-is (mas-commerce-service applies its own default).
+    if (!urlParams.has('locale')) {
+        const language = urlParams.get('language');
+        const country = urlParams.get('country');
+        if (language && country) {
+            urlParams.set('locale', `${language}_${country.toUpperCase()}`);
+        } else if (language && LANG_LOCALE_MAP[language]) {
+            urlParams.set('locale', LANG_LOCALE_MAP[language]);
+        }
+    }
+
     const commerceEnv = document.querySelector(
         'meta[name="commerce.env"]',
     )?.content;

@@ -1,4 +1,4 @@
-import { fetch, getCountry } from '../utils/common.js';
+import { fetch, getCountry, getRegionalLocale } from '../utils/common.js';
 import { log, logError } from '../utils/log.js';
 
 const MAS_ELEMENT_REGEXP = /<[^>]+data-wcs-osi=\\"(?<osi>[^\\]+)\\"[^>]*?>/gm;
@@ -73,7 +73,7 @@ async function wcs(context) {
         log(`No WCS configurations found for API key ${context.api_key}`, context);
         return context;
     }
-    const { body, locale, regionLocale } = context;
+    const { body } = context;
     const bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
     if (matches.length > 0) {
@@ -102,7 +102,7 @@ async function wcs(context) {
         const tokens = Array.from(tokenMap.values());
         const country = getCountry(context);
         const wcsContext = {
-            locale: regionLocale ?? locale,
+            locale: getRegionalLocale(context),
             country,
             context,
         };

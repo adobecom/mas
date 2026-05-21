@@ -232,10 +232,20 @@ function matchesGeo(tags, { regionLocale, country }) {
  */
 const getCountry = (context) => context.country || context.locale?.split('_')[1] || '';
 
+/**
+ * Effective locale for region-aware operations (dictionary fetch, settings overrides, WCS).
+ * Uses `regionLocale` once `defaultLanguage` has resolved it (e.g. fr_BE for fr_FR + country=BE),
+ * otherwise falls back to the request `locale`.
+ * @param {{ regionLocale?: string, locale?: string }} context
+ * @returns {string|undefined}
+ */
+const getRegionalLocale = (context) => context.regionLocale ?? context.locale;
+
 export {
     createTimeoutPromise,
     internalFetch as fetch,
     getCountry,
+    getRegionalLocale,
     getRequestInfos,
     getFragmentId,
     getJsonFromState,

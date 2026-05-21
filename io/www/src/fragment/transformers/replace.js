@@ -1,5 +1,5 @@
 import { odinReferences, odinUrl } from '../utils/paths.js';
-import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const DICTIONARY_ID_PATH = 'dictionary/index';
@@ -25,8 +25,7 @@ export function clearDictionaryCache(preview = false) {
 
 async function cacheKey(context) {
     const { surface } = await getRequestInfos(context);
-    const { locale } = context;
-    return `dictionary-${surface}-${locale}`;
+    return `dictionary-${surface}-${getRegionalLocale(context)}`;
 }
 
 async function getCachedDictionary(context) {
@@ -57,8 +56,8 @@ async function cache(context, dictionary) {
 async function getDictionaryId(context) {
     const { surface } = await getRequestInfos(context);
     if (!surface) return { status: 400, message: 'surface not available' };
-    const { locale, preview } = context;
-    const dictionaryUrl = odinUrl(surface, { locale, fragmentPath: DICTIONARY_ID_PATH, preview });
+    const { preview } = context;
+    const dictionaryUrl = odinUrl(surface, { locale: getRegionalLocale(context), fragmentPath: DICTIONARY_ID_PATH, preview });
     const { id, status, message } = await getFragmentId(context, dictionaryUrl, 'dictionary-id');
     if (status != 200) {
         return { status, message };
@@ -155,8 +154,9 @@ function replaceValues(input, dictionary, calls) {
 }
 
 async function init(context) {
-    // Dictionary cache key needs merged `locale` (region) from defaultLanguage init (after fetchFragment).
-    // Parallelism for dictionary id is via `getRequestInfos` → `requestInfos` inside getDictionaryId, not here.
+    // Dictionary URL and cache key use the regional locale resolved by `defaultLanguage` (e.g. fr_BE
+    // when locale=fr_FR + country=BE) — see `cacheKey`/`getDictionaryId` reading `context.regionLocale`.
+    // Parallelism for dictionary id is via `getRequestInfos` → `requestInfos` inside getDictionaryId.
     const fetchResult = await context?.promises?.defaultLanguage;
     // If defaultLanguage is missing or non-200 (e.g. fragment not found), skip dictionary fetch entirely.
     if (fetchResult?.status !== 200) return null;

@@ -30,6 +30,7 @@ import {
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
     FF_DEFAULTS,
+    TEMPLATE_PRICE_LEGAL,
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
@@ -61,12 +62,15 @@ function priceOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        options.promotionCode = card.contextPromotionCode;
     }
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
     }
     card.variantLayout?.priceOptionsProvider?.(element, options);
+    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+        options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
+    }
 }
 
 function checkoutOptionsProvider(element, options) {
@@ -76,7 +80,7 @@ function checkoutOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        options.promotionCode = card.contextPromotionCode;
     }
 }
 
@@ -231,7 +235,7 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
-    #contextPromotionCode;
+    contextPromotionCode;
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;
@@ -270,10 +274,6 @@ export class MerchCard extends LitElement {
     }
 
     static getFragmentMapping = getFragmentMapping;
-
-    set contextPromotionCode(value) {
-        this.#contextPromotionCode = value;
-    }
 
     firstUpdated() {
         this.variantLayout = getVariantLayout(this);
@@ -905,7 +905,7 @@ export class MerchCard extends LitElement {
                     ![undefined, 'cancel-context'].includes(promotionCode),
             );
         if (promotionCodes.length === 0) {
-            return this.#contextPromotionCode;
+            return this.contextPromotionCode;
         }
         const uniqueCodes = [...new Set(promotionCodes)];
         if (uniqueCodes.length > 1) {

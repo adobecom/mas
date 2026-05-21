@@ -28,7 +28,7 @@ export const styles = [
                 }
             }
 
-            .translation-table {
+            .item-table {
                 sp-table-head-cell:last-child,
                 sp-table-cell:last-child {
                     max-width: 100px;

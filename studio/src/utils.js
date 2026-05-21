@@ -4,6 +4,7 @@ import {
     COMPARE_CHART_FIELD,
     MAS_PRODUCT_CODE_PREFIX,
     TAG_PROMOTION_PREFIX,
+    STATUS_PUBLISHED,
 } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
@@ -278,6 +279,48 @@ function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fie
 }
 
 /**
+ * Cards deep link for a merch card or merch-card-collection
+ * @param {{ id: string, model?: { path?: string } }} fragment
+ * @param {string} [path] surface path
+ * @param {string} [page] hash page param
+ * @returns {string | null}
+ */
+export function buildCardsDeepLink(fragment, path, page = 'content') {
+    const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
+    if (!webComponentName || !fragment?.id) return null;
+    return buildStudioFragmentHref({ webComponentName, fragmentId: fragment.id, page, path });
+}
+
+/**
+ * Parses pasted multi-line URLs
+ * @param {string} text
+ * @returns {{ contentType: string, fragmentId: string }[]}
+ */
+export function parseStudioDeepLinksFromText(text) {
+    if (!text || typeof text !== 'string') return [];
+    const lines = text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+    const out = [];
+    for (const line of lines) {
+        const hashIdx = line.indexOf('#');
+        if (hashIdx === -1) continue;
+        try {
+            const params = new URLSearchParams(line.slice(hashIdx + 1));
+            const contentType = params.get('content-type');
+            const query = params.get('query');
+            if (!query || !isUUID(query)) continue;
+            if (contentType !== 'merch-card' && contentType !== 'merch-card-collection') continue;
+            out.push({ contentType, fragmentId: query });
+        } catch {
+            /* skip invalid entries */
+        }
+    }
+    return out;
+}
+
+/**
  * Generates a rich link for a single fragment field.
  * Used by the "Copy Field" sidebar button to produce a clipboard entry
  * that pastes as a clickable "alias → fieldName" link in SharePoint.
@@ -390,6 +433,18 @@ export function extractLocaleFromPath(fragmentPath) {
     if (!fragmentPath) return null;
     const match = fragmentPath.match(PATH_TOKENS);
     return match?.groups?.parsedLocale ?? null;
+}
+
+export function previewFragmentOnPage(fragment) {
+    if (!fragment?.id) return;
+
+    const locale = extractLocaleFromPath(fragment.path);
+    const type = fragment?.model?.path === CARD_MODEL_PATH ? 'merch-card' : 'merch-card-collection';
+    const hostname = fragment?.status === STATUS_PUBLISHED ? 'milo.adobe.com' : 'main--milo--adobecom.aem.page';
+    window.open(
+        `https://${hostname}/merch/mas/preview?fragment-id=${fragment?.id}&content-type=${type}&locale=${locale}`,
+        '_blank',
+    );
 }
 
 /**

@@ -36,6 +36,20 @@ runTests(async () => {
                 expect(quantitySelect.step).to.equal(1);
             });
 
+            it('uses min when default-value is not on the step ladder', async () => {
+                const el = document.createElement('merch-quantity-select');
+                el.setAttribute('title', 'Qty');
+                el.setAttribute('min', '2');
+                el.setAttribute('max', '10');
+                el.setAttribute('step', '2');
+                el.setAttribute('default-value', '3');
+                document.querySelector('main').append(el);
+                await delay();
+                expect(el.selectedValue).to.equal(2);
+                expect(el.highlightedIndex).to.equal(0);
+                el.remove();
+            });
+
             it('should open and close the menu', async () => {
                 expect(popOver.classList.contains('closed')).to.be.true;
                 pickerButton.click();

@@ -43,7 +43,7 @@ export default {
             tcid: '4',
             name: '@studio-goto-content',
             path: '/studio.html',
-            tags: '@mas-studio @monitor',
+            tags: '@mas-studio @monitor @nopr',
         },
         {
             tcid: '5',
@@ -138,7 +138,7 @@ export default {
             name: '@studio-sandbox-no-created-by-filter',
             path: '/studio.html',
             browserParams: '#page=content&path=sandbox',
-            tags: '@mas-studio',
+            tags: '@mas-studio @nopr',
         },
     ],
 };

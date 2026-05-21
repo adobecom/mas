@@ -126,6 +126,9 @@ export const PAGE_NAMES = {
     PROMOTIONS_EDITOR: 'promotions-editor',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
+    BULK_PUBLISH: 'bulkPublish',
+    BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
+    ADVANCED_TOOLS: 'advanced-tools',
 };
 
 export const TAG_STATUS_PUBLISHED = 'mas:status/published';
@@ -145,6 +148,8 @@ export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
 export const COMPARE_CHART_FIELD = 'compareChart';
+
+export const COLLECTION_GROUPED_VARIATION_PAC = 'merch-card-collection';
 
 export const FIELD_MODEL_MAPPING = {
     [CARD_MODEL_PATH]: 'cards',
@@ -247,6 +252,8 @@ export const QUICK_ACTION = {
     DISCARD: 'discard',
     DELETE: 'delete',
     LOC: 'loc',
+    VALIDATE: 'validate',
+    LINK: 'link',
 };
 
 export const FILTER_TYPE = {
@@ -273,6 +280,17 @@ export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express'
 
 /** Plain preview origin — use for direct `.json` lookups (e.g. fil_PH placeholder fallback). */
 export const ODIN_PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
+
+export const BULK_PUBLISH_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstcHVibGlzaC1wcm9qZWN0';
+
+export const BULK_PUBLISH_STATUS = {
+    DRAFT: 'Draft',
+    PUBLISHING: 'Publishing',
+    PUBLISHED: 'Published',
+    LOCKED: 'Locked',
+};
+
+export const BULK_PUBLISH_PARENT_PATH = '/content/dam/mas/bulk-publish-projects';
 
 /**
  * Compat version of the card.

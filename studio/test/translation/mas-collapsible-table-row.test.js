@@ -3,8 +3,10 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
-import { setCardVariationsByPaths } from '../../src/translation/translation-items-loader.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
+import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../src/constants.js';
+import { renderFragmentStatusCell } from '../../src/translation/translation-utils.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-collapsible-table-row.js';
 
@@ -48,6 +50,7 @@ describe('MasCollapsibleTableRow', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         resetStore();
         createMockRepository();
     });
@@ -57,6 +60,7 @@ describe('MasCollapsibleTableRow', () => {
         sandbox.restore();
         resetStore();
         removeMockRepository();
+        setItemsSelectionStore(null);
     });
 
     describe('initialization', () => {
@@ -68,22 +72,25 @@ describe('MasCollapsibleTableRow', () => {
             expect(el.isTopLevelExpanded).to.be.false;
             expect(el.viewOnly).to.not.equal(true);
             expect(el.tabs).to.be.an('array');
-            expect(el.tabs).to.have.lengthOf(2);
+            expect(el.tabs).to.have.lengthOf(3);
         });
 
-        it('should have default tabs with Promotion and Grouped variation', async () => {
+        it('should have default tabs with Locale, Promotion and Grouped variation', async () => {
             const topLevelCard = createMockTopLevelCard();
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
+            const localeTab = el.tabs.find((t) => t.key === 'locale');
             const promotionTab = el.tabs.find((t) => t.key === 'promotion');
             const groupedTab = el.tabs.find((t) => t.key === 'groupedVariation');
+            expect(localeTab).to.exist;
+            expect(localeTab.label).to.equal('Locale');
             expect(promotionTab).to.exist;
             expect(promotionTab.label).to.equal('Promotion');
             expect(promotionTab.disabled).to.be.true;
             expect(groupedTab).to.exist;
             expect(groupedTab.label).to.equal('Grouped variation');
-            expect(groupedTab.selected).to.be.true;
+            expect(el.selectedTabKey).to.equal('locale');
         });
 
         it('should accept viewOnly property', async () => {
@@ -184,6 +191,7 @@ describe('MasCollapsibleTableRow', () => {
                     .isTopLevelExpanded=${true}
                 ></mas-collapsible-table-row>`,
             );
+            el.selectedTabKey = 'groupedVariation';
             await el.updateComplete;
             const nestedContent = el.shadowRoot.querySelector('.nested-content');
             expect(nestedContent?.classList.contains('has-connector')).to.be.true;
@@ -424,7 +432,10 @@ describe('MasCollapsibleTableRow', () => {
         it('should render published status with green class', async () => {
             const topLevelCard = createMockTopLevelCard({ status: FRAGMENT_STATUS.PUBLISHED });
             const el = await fixture(
-                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-collapsible-table-row>`,
             );
             const statusDot = el.shadowRoot.querySelector('.status-dot.green');
             expect(statusDot).to.exist;
@@ -433,7 +444,10 @@ describe('MasCollapsibleTableRow', () => {
         it('should render modified status with blue class', async () => {
             const topLevelCard = createMockTopLevelCard({ status: FRAGMENT_STATUS.MODIFIED });
             const el = await fixture(
-                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .renderFragmentStatusCell=${renderFragmentStatusCell}
+                ></mas-collapsible-table-row>`,
             );
             const statusDot = el.shadowRoot.querySelector('.status-dot.blue');
             expect(statusDot).to.exist;
@@ -488,7 +502,7 @@ describe('MasCollapsibleTableRow', () => {
             expect(groupedCell).to.exist;
         });
 
-        it('should render "no type" for unknown model path', async () => {
+        it('should render "Unknown" for unknown model path', async () => {
             const topLevelCard = createMockTopLevelCard({
                 modelPath: '/conf/mas/settings/dam/cfm/models/unknown',
             });
@@ -496,7 +510,7 @@ describe('MasCollapsibleTableRow', () => {
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
             const shadowText = el.shadowRoot?.textContent || '';
-            expect(shadowText).to.include('no type');
+            expect(shadowText).to.include('Unknown');
         });
     });
 
@@ -593,8 +607,10 @@ describe('MasCollapsibleTableRow', () => {
                     .isTopLevelExpanded=${true}
                 ></mas-collapsible-table-row>`,
             );
+            el.selectedTabKey = 'groupedVariation';
             await el.updateComplete;
-            const emptyMsg = el.shadowRoot.querySelector('.empty-grouped-variations');
+            const groupedVariationPanel = el.shadowRoot.querySelector('sp-tab-panel[value="groupedVariation"]');
+            const emptyMsg = groupedVariationPanel?.querySelector('.empty-grouped-variations');
             expect(emptyMsg).to.exist;
             expect(emptyMsg.textContent).to.include('No grouped variations found');
         });
@@ -794,7 +810,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
-            const chevronCell = el.shadowRoot.querySelector('.translation-table-icon-cell--chevron');
+            const chevronCell = el.shadowRoot.querySelector('.table-icon-cell--chevron');
             expect(chevronCell).to.exist;
         });
 

@@ -37,6 +37,7 @@ import {
     CompareChart,
     COMPARE_CHART_AEM_FRAGMENT_MAPPING,
 } from './compare-chart.js';
+import { FriesCard, FRIES_AEM_FRAGMENT_MAPPING } from './fries.js';
 
 // Registry for dynamic variants
 const variantRegistry = new Map();
@@ -155,6 +156,12 @@ registerVariant(
     CompareChart,
     COMPARE_CHART_AEM_FRAGMENT_MAPPING,
     CompareChart.variantStyle,
+);
+registerVariant(
+    'fries',
+    FriesCard,
+    FRIES_AEM_FRAGMENT_MAPPING,
+    FriesCard.variantStyle,
 );
 
 const applyStyleSheet = (card, style, state) => {

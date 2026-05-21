@@ -1,6 +1,6 @@
 import { STATUS_PUBLISHED, STATUS_MODIFIED } from '../constants.js';
 
-const SNAPSHOT_CONCURRENCY = 5;
+const FRAGMENT_CONCURRENCY = 5;
 
 async function runConcurrent(items, fn, limit) {
     const results = new Array(items.length);
@@ -57,7 +57,7 @@ export async function createSnapshot(project, aem, userEmail) {
         return [fragmentId, { path: fragment.path, versionId, wasPublished }];
     }
 
-    const entries = await runConcurrent(items, processItem, SNAPSHOT_CONCURRENCY);
+    const entries = await runConcurrent(items, processItem, FRAGMENT_CONCURRENCY);
     const fragments = Object.fromEntries(entries);
 
     return {
@@ -91,7 +91,7 @@ export async function revertSnapshot(snapshot, aem) {
                 return { path: entry.path, error: err.message };
             }
         },
-        SNAPSHOT_CONCURRENCY,
+        FRAGMENT_CONCURRENCY,
     );
 
     return { failures: results.filter(Boolean) };
@@ -119,7 +119,7 @@ export async function checkModifications(snapshot, aem) {
                 return { path: entry.path, modified: null };
             }
         },
-        SNAPSHOT_CONCURRENCY,
+        FRAGMENT_CONCURRENCY,
     );
 
     return results.sort((a, b) => a.path.localeCompare(b.path));

@@ -31,10 +31,6 @@ export const CSS = `
     line-height: 16px;
   }
 
-  merch-card[variant="mini-compare-chart-mweb"] [slot="badge"] span {
-    line-height: 1;
-  }
-
   merch-card[variant="mini-compare-chart-mweb"] div[class$='-badge']:dir(rtl) {
     left: 0;
     right: initial;
@@ -84,6 +80,12 @@ export const CSS = `
     display: inline-block;
     min-height: 30px;
     min-width: 1px;
+  }
+
+  merch-card[variant="mini-compare-chart-mweb"] merch-badge span,
+  merch-card[variant="mini-compare-chart-mweb"] merch-badge [is="inline-price"] {
+    line-height: 1;
+    min-height: auto;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] .price-unit-type.disabled,

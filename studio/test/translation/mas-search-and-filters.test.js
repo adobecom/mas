@@ -378,6 +378,34 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayCards.get().length).to.equal(1);
         });
 
+        it('should filter fragments by Fragment Title field (title property)', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'Adobe Firefly Pro Plan' }),
+                createMockFragment({ title: 'Adobe Photoshop Pro' }),
+                createMockFragment({ title: 'Standard Illustrator' }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'Firefly Pro';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayCards.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].title).to.equal('Adobe Firefly Pro Plan');
+        });
+
+        it('should filter fragments by partial Fragment Title match', async () => {
+            Store.translationProjects.allCards.set([
+                createMockFragment({ title: 'CC Catalog Merch Card: Adobe Embedded Print Engine: Individuals: default' }),
+                createMockFragment({ title: 'CC Plans Merch Card: Adobe Photoshop: Team: promo' }),
+                createMockFragment({ title: 'Regular Card without match' }),
+            ]);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            el.searchQuery = 'Embedded Print Engine';
+            await el.updateComplete;
+            const result = Store.translationProjects.displayCards.get();
+            expect(result.length).to.equal(1);
+            expect(result[0].title).to.include('Embedded Print Engine');
+        });
+
         it('should filter placeholders by key', async () => {
             Store.translationProjects.allPlaceholders.set([
                 createMockPlaceholder({ key: 'buy-now', value: 'Buy Now' }),

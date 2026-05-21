@@ -117,14 +117,15 @@ async function defaultLanguageProcess(context) {
     if (response?.status !== 200) {
         return response;
     }
+    const { body, parsedLocale, surface, fragmentPath, defaultLocale, regionLocale } = response;
     return {
         ...context,
-        body: response.body,
-        parsedLocale: response.parsedLocale,
-        surface: response.surface,
-        fragmentPath: response.fragmentPath,
-        defaultLocale: response.defaultLocale,
-        regionLocale: response.regionLocale,
+        body,
+        parsedLocale,
+        surface,
+        fragmentPath,
+        defaultLocale,
+        regionLocale,
     };
 }
 

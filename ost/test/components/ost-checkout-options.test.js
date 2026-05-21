@@ -23,7 +23,12 @@ describe('ost-checkout-options', () => {
 
     it('has correct initial defaults', () => {
         expect(el.workflowStep).to.equal('email');
-        expect(el.ctaText).to.equal('');
+        // ctaText is auto-initialized in connectedCallback to defaultCtaText so
+        // the UI's displayed default matches the underlying state (otherwise
+        // handleUse emits an empty options.ctaText and Studio drops the
+        // checkout link's text attribute). When store.ctaTextOption is unset
+        // (as in unit tests) defaultCtaText falls back to 'Buy now'.
+        expect(el.ctaText).to.equal('Buy now');
         expect(el.enableModal).to.be.false;
         expect(el.modalType).to.equal('');
         expect(el.entitlement).to.be.false;

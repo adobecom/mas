@@ -140,7 +140,11 @@ export class OstCodeOutput extends LitElement {
             if (checkoutCtrl.upgrade) {
                 options.upgrade = true;
             }
-            options.ctaText = checkoutCtrl.ctaText;
+            // Fall back to the UI's displayed default; ctaText may be '' if
+            // the user opened the checkout config but didn't pick from the
+            // dropdown — Studio looks up CTA_TEXTS[options.ctaText] and would
+            // skip the text attribute entirely on an empty string.
+            options.ctaText = checkoutCtrl.ctaText || checkoutCtrl.defaultCtaText;
         }
 
         options.workflow = 'UCv3';

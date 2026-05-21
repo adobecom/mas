@@ -208,6 +208,14 @@ export class OstCheckoutOptions extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+        // Sync the ctaText state with the value the UI displays as "current"
+        // (defaultCtaText getter). The render method falls back to defaultCtaText
+        // when ctaText is empty, but the underlying state stays empty, so
+        // handleUse emits an empty options.ctaText → Studio's CTA-text lookup
+        // returns undefined and the checkout link gets no visible text.
+        if (!this.ctaText) {
+            this.ctaText = this.defaultCtaText;
+        }
         this.handleStoreChange = () => {
             this.applyDeepLink();
             this.requestUpdate();

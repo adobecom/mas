@@ -6,6 +6,7 @@ import {
     normalizePromotionSearchInput,
     parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
+    splitPromotionTagsFieldValues,
 } from '../../src/promotions/promotion-editor-utils.js';
 import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
@@ -148,6 +149,27 @@ describe('promotion-editor-utils', () => {
         });
     });
 
+    describe('splitPromotionTagsFieldValues', () => {
+        it('splits mas:promotion tags from other tag ids', () => {
+            const out = splitPromotionTagsFieldValues([
+                'mas:promotion/sale',
+                'mas:status/published',
+                '/content/cq:tags/mas/promotion/path-format',
+            ]);
+            expect(out.promotion).to.deep.equal(['mas:promotion/sale', '/content/cq:tags/mas/promotion/path-format']);
+            expect(out.retained).to.deep.equal(['mas:status/published']);
+        });
+
+        it('promotion slice is the picker value set (non-promotion tags excluded)', () => {
+            const { promotion } = splitPromotionTagsFieldValues(['mas:promotion/a', 'mas:status/draft', 'mas:promotion/b']);
+            expect(promotion).to.deep.equal(['mas:promotion/a', 'mas:promotion/b']);
+        });
+
+        it('promotion slice is empty when no mas:promotion tag', () => {
+            expect(splitPromotionTagsFieldValues(['mas:status/published']).promotion).to.deep.equal([]);
+        });
+    });
+
     describe('isPromotionRequiredFieldsValid', () => {
         const baseFragment = () => ({
             getFieldValue: (name) => {
@@ -158,7 +180,11 @@ describe('promotion-editor-utils', () => {
                 };
                 return map[name];
             },
-            getFieldValues: (name) => (name === 'geos' ? ['us'] : []),
+            getFieldValues: (name) => {
+                if (name === 'geos') return ['us'];
+                if (name === 'tags') return ['mas:promotion/test'];
+                return [];
+            },
         });
 
         it('returns false when a required field is empty', () => {
@@ -172,7 +198,11 @@ describe('promotion-editor-utils', () => {
         it('returns false when geos is empty', () => {
             const f = {
                 ...baseFragment(),
-                getFieldValues: () => [],
+                getFieldValues: (name) => {
+                    if (name === 'tags') return ['mas:promotion/test'];
+                    if (name === 'geos') return [];
+                    return [];
+                },
             };
             expect(isPromotionRequiredFieldsValid(f, 1)).to.be.false;
         });
@@ -181,7 +211,19 @@ describe('promotion-editor-utils', () => {
             expect(isPromotionRequiredFieldsValid(baseFragment(), 0)).to.be.false;
         });
 
-        it('returns true when required fields, geos, and items are present', () => {
+        it('returns false when no promotion classification tag', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValues: (name) => {
+                    if (name === 'geos') return ['us'];
+                    if (name === 'tags') return ['mas:status/published'];
+                    return [];
+                },
+            };
+            expect(isPromotionRequiredFieldsValid(f, 1)).to.be.false;
+        });
+
+        it('returns true when required fields, geos, items, and promotion tag are present', () => {
             expect(isPromotionRequiredFieldsValid(baseFragment(), 2)).to.be.true;
         });
     });

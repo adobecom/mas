@@ -19,6 +19,7 @@ import {
     isPromotionRequiredFieldsValid,
     parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
+    splitPromotionTagsFieldValues,
 } from './promotions/promotion-editor-utils.js';
 import { renderFragmentStatusCell } from './common/utils/render-utils.js';
 
@@ -357,8 +358,14 @@ class MasPromotionsEditor extends LitElement {
 
     #handeTagsChange = (event) => {
         const tags = event.target.getAttribute('value');
-        const newTags = tags ? tags.split(',') : [];
-        this.fragmentStore.updateField('tags', newTags);
+        const fromPicker = tags
+            ? tags
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+            : [];
+        const { retained } = splitPromotionTagsFieldValues(this.fragment.getFieldValues('tags'));
+        this.fragmentStore.updateField('tags', [...retained, ...fromPicker]);
     };
 
     #handleGeosChange = (event) => {
@@ -725,12 +732,13 @@ class MasPromotionsEditor extends LitElement {
                                 data-field="endDate"
                                 @change=${this.#handleDateUpdate}
                             />
-                            <sp-field-label>Tags</sp-field-label>
+                            <sp-field-label required>Promotion tags</sp-field-label>
                             <aem-tag-picker-field
-                                label="Tags"
+                                label="Promotion tags"
                                 namespace="/content/cq:tags/mas"
+                                top="promotion"
                                 multiple
-                                value="${form.tags?.values.join(',') || ''}"
+                                value="${splitPromotionTagsFieldValues(form.tags?.values).promotion.join(',') || ''}"
                                 @change=${this.#handeTagsChange}
                             ></aem-tag-picker-field>
                             <sp-field-group id="promotion-geos-tags">

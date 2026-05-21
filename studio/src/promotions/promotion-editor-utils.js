@@ -1,9 +1,9 @@
-import { COLLECTION_MODEL_PATH, ROOT_PATH } from '../constants.js';
+import { COLLECTION_MODEL_PATH, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { isUUID, parseStudioDeepLinksFromText } from '../utils.js';
 
 /**
- * Normalizes pasted Studio deep links, full DAM paths under {@link ROOT_PATH}, or bare UUIDs
- * for the promotion item picker search field.
+ * Normalize deep links, DAM paths and UUIDs for promotion item picker search.
  * @param {unknown} raw
  * @returns {string}
  */
@@ -53,6 +53,22 @@ export function isPromotionItemSelectionDirty(promotionLike, selectedCards, sele
 }
 
 const REQUIRED_PROMOTION_FIELDS = ['title', 'startDate', 'endDate'];
+
+/**
+ * @param {unknown[]} [allValues]
+ * @returns {{ promotion: string[], retained: string[] }}
+ */
+export function splitPromotionTagsFieldValues(allValues) {
+    const list = Array.isArray(allValues) ? allValues.filter(Boolean) : [];
+    const promotion = [];
+    const retained = [];
+    for (const t of list) {
+        const id = normalizeTagId(t);
+        if (id.startsWith(TAG_PROMOTION_PREFIX)) promotion.push(t);
+        else retained.push(t);
+    }
+    return { promotion, retained };
+}
 
 export function serializePromotionSurfacesForAem(values) {
     if (!Array.isArray(values) || !values.length) return [];
@@ -117,6 +133,9 @@ export async function classifyPromotionPathsForSelection(
 
 export function isPromotionRequiredFieldsValid(fragment, itemCount) {
     if (!REQUIRED_PROMOTION_FIELDS.every((field) => fragment.getFieldValue(field))) {
+        return false;
+    }
+    if (splitPromotionTagsFieldValues(fragment.getFieldValues('tags')).promotion.length === 0) {
         return false;
     }
     const geos = fragment.getFieldValues('geos');

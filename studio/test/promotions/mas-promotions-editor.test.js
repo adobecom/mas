@@ -106,6 +106,7 @@ describe('MasPromotionsEditor', () => {
         el.fragmentStore.updateField('title', ['Test Promotion']);
         el.fragmentStore.updateField('startDate', ['2024-01-01T00:00:00.000Z']);
         el.fragmentStore.updateField('endDate', ['2024-12-31T00:00:00.000Z']);
+        el.fragmentStore.updateField('tags', ['mas:promotion/code-test']);
         el.fragmentStore.updateField('geos', ['mas:locale/us']);
         Store.promotions.selectedCards.set(['/some/card']);
         await el.updateComplete;
@@ -387,16 +388,32 @@ describe('MasPromotionsEditor', () => {
             expect(stored).to.include('2024-06-15');
         });
 
-        it('updates tags via change on aem-tag-picker-field', async () => {
+        it('scopes promotion tags picker to promotion taxonomy', async () => {
             const el = await mountEditor();
-            const tagPickers = el.renderRoot.querySelectorAll('aem-tag-picker-field');
-            const tagsPicker = tagPickers[0];
+            const tagsPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[0];
+            expect(tagsPicker.getAttribute('top')).to.equal('promotion');
+        });
+
+        it('updates promotion tags via change on aem-tag-picker-field', async () => {
+            const el = await mountEditor();
+            const tagsPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[0];
             expect(tagsPicker).to.not.be.null;
-            tagsPicker.setAttribute('value', 'mas:plan_type/abm,mas:plan_type/m2m');
+            tagsPicker.setAttribute('value', 'mas:promotion/back-to-school');
             tagsPicker.dispatchEvent(new Event('change', { bubbles: true }));
             await el.updateComplete;
             const tags = el.fragment.getFieldValues('tags');
-            expect(tags).to.deep.equal(['mas:plan_type/abm', 'mas:plan_type/m2m']);
+            expect(tags).to.deep.equal(['mas:promotion/back-to-school']);
+        });
+
+        it('merges promotion tag change while retaining non-promotion tags', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('tags', ['mas:status/published', 'mas:promotion/old']);
+            await el.updateComplete;
+            const tagsPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[0];
+            tagsPicker.setAttribute('value', 'mas:promotion/new');
+            tagsPicker.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal(['mas:status/published', 'mas:promotion/new']);
         });
 
         it('updates geos via change on geos tag-picker-field', async () => {

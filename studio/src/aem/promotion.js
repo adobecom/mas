@@ -1,4 +1,6 @@
+import { FRAGMENT_STATUS, STATUS_PUBLISHED, TAG_STATUS_PUBLISHED } from '../constants.js';
 import { Fragment } from './fragment.js';
+import { normalizeTagId } from './tag-id-utils.js';
 
 export class Promotion extends Fragment {
     constructor(fragmentData) {
@@ -25,6 +27,13 @@ export class Promotion extends Fragment {
         return this.created?.fullName || 'Unknown';
     }
 
+    get isPromotionPublished() {
+        const tagsPublished = this.getFieldValues('tags').some((t) => normalizeTagId(t) === TAG_STATUS_PUBLISHED);
+        const statusUpper = typeof this.status === 'string' ? this.status.toUpperCase() : '';
+        const statusPublished = statusUpper === STATUS_PUBLISHED || statusUpper === FRAGMENT_STATUS.MODIFIED;
+        return tagsPublished || statusPublished;
+    }
+
     get promotionStatus() {
         if (!this.startDateValue || !this.endDateValue) {
             return 'unknown';
@@ -34,22 +43,22 @@ export class Promotion extends Fragment {
         const startDate = new Date(this.startDateValue);
         const endDate = new Date(this.endDateValue);
 
-        // Check if dates are valid
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
             return 'unknown';
         }
 
-        // Active: current time is between startDate and endDate
-        if (now >= startDate && now <= endDate) {
-            return 'active';
-        }
-
-        // Expired: endDate is in the past
         if (now > endDate) {
             return 'expired';
         }
 
-        // Scheduled: startDate and endDate are in the future
-        return 'scheduled';
+        if (!this.isPromotionPublished) {
+            return 'draft';
+        }
+
+        if (now < startDate) {
+            return 'scheduled';
+        }
+
+        return 'active';
     }
 }

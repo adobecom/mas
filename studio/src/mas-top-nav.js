@@ -269,7 +269,7 @@ class MasTopNav extends LitElement {
     }
 
     get promotionsEditorBreadcrumbLabel() {
-        return this.promotions.promotionId.get() ? 'Edit project' : 'Create new project';
+        return this.promotions.promotionId.get() ? 'Edit promotion project' : 'Create new promotion project';
     }
 
     get translationEditorBreadcrumbLabel() {

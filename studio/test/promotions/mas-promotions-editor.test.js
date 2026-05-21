@@ -22,12 +22,18 @@ function makeFragmentData(overrides = {}) {
         ],
         tags: overrides.tags ?? [],
         etag: '"etag"',
-        status: 'DRAFT',
+        status: overrides.status ?? 'DRAFT',
     };
 }
 
 function makePromotion(overrides = {}) {
     return new Promotion(makeFragmentData(overrides));
+}
+
+function clickPromotionsFormButton(el, label) {
+    const buttons = [...el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')];
+    const btn = buttons.find((b) => b.textContent.trim() === label);
+    btn.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
 }
 
 describe('MasPromotionsEditor', () => {
@@ -75,6 +81,8 @@ describe('MasPromotionsEditor', () => {
             getPromotionsPath: () => '/content/dam/mas/promotions',
             createFragment: sandbox.stub().resolves(makePromotion({ id: 'created-id', title: 'T' })),
             saveFragment: sandbox.stub().resolves(),
+            publishFragment: sandbox.stub().resolves(true),
+            unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
             aem: {
@@ -167,6 +175,39 @@ describe('MasPromotionsEditor', () => {
             expect(el.fragment).to.not.be.null;
         });
 
+        it('unpublishes when loaded promotion is expired and still published', async () => {
+            const expiredPublished = makeFragmentData({
+                id: 'promo-exp',
+                title: 'Expired',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2020-06-01T00:00:00.000Z',
+                status: 'PUBLISHED',
+            });
+            const afterUnpublish = makeFragmentData({
+                id: 'promo-exp',
+                title: 'Expired',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2020-06-01T00:00:00.000Z',
+                status: 'DRAFT',
+            });
+            Store.promotions.promotionId.set('promo-exp');
+            const getById = sandbox.stub().onFirstCall().resolves(expiredPublished).onSecondCall().resolves(afterUnpublish);
+            const unpublishFragment = sandbox.stub().resolves(true);
+            const repo = makeRepo({
+                unpublishFragment,
+                aem: {
+                    sites: { cf: { fragments: { getById } } },
+                    getFragmentByPath: null,
+                },
+            });
+            const el = new MasPromotionsEditor();
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await Promise.resolve();
+            await el.updateComplete;
+            expect(unpublishFragment.calledOnce).to.be.true;
+        });
+
         it('handles load failure gracefully and shows empty state', async () => {
             Store.promotions.promotionId.set('bad-id');
             const repo = makeRepo({
@@ -181,8 +222,10 @@ describe('MasPromotionsEditor', () => {
             const consoleError = sandbox.stub(console, 'error');
             sandbox.stub(el, 'repository').get(() => repo);
             document.body.appendChild(el);
-            await el.updateComplete;
-            await Promise.resolve();
+            for (let i = 0; i < 40; i += 1) {
+                await Promise.resolve();
+                if (!el.loadingPromotion) break;
+            }
             await el.updateComplete;
             expect(el.loadingPromotion).to.be.false;
             consoleError.restore();
@@ -230,13 +273,61 @@ describe('MasPromotionsEditor', () => {
             expect(buttonTexts).to.include('Create');
         });
 
-        it('shows Update button for existing promotions', async () => {
+        it('shows Update and Publish on the toggle when promotion is not published', async () => {
             const el = await mountEditor();
             el.isNewPromotion = false;
             await el.updateComplete;
-            const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
-            const buttonTexts = Array.from(buttons).map((b) => b.textContent.trim());
+            const buttonTexts = Array.from(el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')).map((b) =>
+                b.textContent.trim(),
+            );
             expect(buttonTexts).to.include('Update');
+            const publishOrUnpublish = buttonTexts.filter((t) => t === 'Publish' || t === 'Unpublish');
+            expect(publishOrUnpublish.length).to.equal(1);
+            expect(publishOrUnpublish[0]).to.equal('Publish');
+        });
+
+        it('shows Unpublish on the toggle when promotion is published', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-1',
+                        title: 'Published promo',
+                        startDate: '2024-01-01T00:00:00.000Z',
+                        endDate: '2025-12-31T23:59:59.000Z',
+                        status: 'PUBLISHED',
+                    }),
+                ),
+            );
+            const el = await mountEditor();
+            await el.updateComplete;
+            const buttonTexts = Array.from(el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')).map((b) =>
+                b.textContent.trim(),
+            );
+            expect(buttonTexts).to.include('Unpublish');
+            expect(buttonTexts.filter((t) => t === 'Publish').length).to.equal(0);
+        });
+
+        it('disables Publish when promotion is expired and not published', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-exp-draft',
+                        title: 'Old',
+                        startDate: '2020-01-01T00:00:00.000Z',
+                        endDate: '2020-06-01T00:00:00.000Z',
+                        status: 'DRAFT',
+                    }),
+                ),
+            );
+            const el = await mountEditor();
+            await el.updateComplete;
+            const publishBtn = [...el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')].find(
+                (b) => b.textContent.trim() === 'Publish',
+            );
+            expect(publishBtn).to.exist;
+            expect(publishBtn.disabled === true || publishBtn.hasAttribute('disabled')).to.be.true;
         });
 
         it('shows loading progress circle when loadingPromotion is true', async () => {
@@ -337,8 +428,7 @@ describe('MasPromotionsEditor', () => {
     describe('create flow', () => {
         it('aborts create and does not call repository when required fields are missing', async () => {
             const { el, repo } = await mountEditorWithRepo();
-            const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
-            buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            clickPromotionsFormButton(el, 'Create');
             await el.updateComplete;
             expect(repo.createFragment.called).to.be.false;
             expect(el.isCreated).to.be.false;
@@ -347,8 +437,7 @@ describe('MasPromotionsEditor', () => {
         it('creates promotion when all required fields are valid', async () => {
             const { el, repo } = await mountEditorWithRepo();
             await fillValidFields(el);
-            const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
-            buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            clickPromotionsFormButton(el, 'Create');
             await el.updateComplete;
             expect(repo.createFragment.calledOnce).to.be.true;
             expect(el.isCreated).to.be.true;
@@ -359,8 +448,7 @@ describe('MasPromotionsEditor', () => {
                 createFragment: sandbox.stub().rejects(new Error('create failed')),
             });
             await fillValidFields(el);
-            const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
-            buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            clickPromotionsFormButton(el, 'Create');
             await el.updateComplete;
             expect(el.isCreated).to.be.false;
         });
@@ -372,8 +460,7 @@ describe('MasPromotionsEditor', () => {
             el.isNewPromotion = false;
             await fillValidFields(el);
             await el.updateComplete;
-            const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
-            buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            clickPromotionsFormButton(el, 'Update');
             await el.updateComplete;
             expect(repo.saveFragment.calledOnce).to.be.true;
         });
@@ -382,8 +469,7 @@ describe('MasPromotionsEditor', () => {
             const { el, repo } = await mountEditorWithRepo();
             el.isNewPromotion = false;
             await el.updateComplete;
-            const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
-            buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            clickPromotionsFormButton(el, 'Update');
             await el.updateComplete;
             expect(repo.saveFragment.called).to.be.false;
         });
@@ -395,8 +481,7 @@ describe('MasPromotionsEditor', () => {
             el.isNewPromotion = false;
             await fillValidFields(el);
             await el.updateComplete;
-            const buttons = el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button');
-            buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            clickPromotionsFormButton(el, 'Update');
             await el.updateComplete;
             expect(repo.saveFragment.calledOnce).to.be.true;
         });

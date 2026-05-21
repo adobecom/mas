@@ -90,6 +90,7 @@ const Store = {
             filter: new ReactiveStore('scheduled'),
             filterOptions: new ReactiveStore([
                 { value: 'all', label: 'All' },
+                { value: 'draft', label: 'Draft' },
                 { value: 'active', label: 'Active' },
                 { value: 'scheduled', label: 'Scheduled' },
                 { value: 'expired', label: 'Expired' },

@@ -1,6 +1,11 @@
 import { expect } from '@esm-bundle/chai';
 import { nothing, render } from 'lit';
-import { renderFragmentStatusCell, getItemTypeLabel, getItemTitle } from '../../../src/common/utils/render-utils.js';
+import {
+    renderFragmentStatusCell,
+    renderPromotionStatusCell,
+    getItemTypeLabel,
+    getItemTitle,
+} from '../../../src/common/utils/render-utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
 
 describe('render-utils', () => {
@@ -24,6 +29,32 @@ describe('render-utils', () => {
             const dot = container.querySelector('.status-dot');
             expect(dot?.classList.contains('blue')).to.be.true;
             expect(container.textContent).to.include('Modified');
+        });
+    });
+
+    describe('renderPromotionStatusCell', () => {
+        it('renders active with green dot', () => {
+            const container = document.createElement('div');
+            render(renderPromotionStatusCell('active'), container);
+            const dot = container.querySelector('.status-dot');
+            expect(dot?.classList.contains('green')).to.be.true;
+            expect(container.textContent).to.include('ACTIVE');
+        });
+
+        it('renders draft with blue dot', () => {
+            const container = document.createElement('div');
+            render(renderPromotionStatusCell('draft'), container);
+            const dot = container.querySelector('.status-dot');
+            expect(dot?.classList.contains('blue')).to.be.true;
+            expect(container.textContent).to.include('DRAFT');
+        });
+
+        it('renders scheduled with yellow dot', () => {
+            const container = document.createElement('div');
+            render(renderPromotionStatusCell('scheduled'), container);
+            const dot = container.querySelector('.status-dot');
+            expect(dot?.classList.contains('yellow')).to.be.true;
+            expect(container.textContent).to.include('SCHEDULED');
         });
     });
 

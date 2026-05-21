@@ -173,7 +173,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Promotions', 'Edit project']);
+            expect(items).to.deep.equal(['Promotions', 'Edit promotion project']);
         });
 
         it('should render promotions editor breadcrumbs and label for create flow', async () => {
@@ -183,7 +183,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Promotions', 'Create new project']);
+            expect(items).to.deep.equal(['Promotions', 'Create new promotion project']);
         });
 
         it('should navigate to promotions page when promotions breadcrumb is clicked', async () => {

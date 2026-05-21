@@ -62,6 +62,7 @@ class MasPromotionsEditor extends LitElement {
         isSelectedItemsOpen: { type: Boolean, state: true },
         showSelectedEmptyState: { type: Boolean, state: true },
         promotionItemsAddButtonLabel: { type: String, state: true },
+        promotionPublish: { type: Boolean, state: true },
     };
 
     #promotionItemsReactive;
@@ -85,6 +86,7 @@ class MasPromotionsEditor extends LitElement {
         this.isSelectedItemsOpen = false;
         this.showSelectedEmptyState = true;
         this.promotionItemsAddButtonLabel = 'Add selected fragments';
+        this.promotionPublish = false;
     }
 
     async connectedCallback() {
@@ -127,7 +129,9 @@ class MasPromotionsEditor extends LitElement {
             this.repository.loadAllCollections();
         }
 
-        this.storeController = new StoreController(this, this.fragmentStore);
+        if (this.fragmentStore) {
+            this.storeController = new StoreController(this, this.fragmentStore);
+        }
         this.#promotionItemsReactive = new ReactiveController(this, [
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
@@ -242,22 +246,97 @@ class MasPromotionsEditor extends LitElement {
         }
     }
 
+    async #fetchPromotionModelById(id) {
+        let fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+        if (!fragment) return null;
+        let promotion = new Promotion(fragment);
+        this.#ensurePromotionModelFields(promotion);
+        if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished) {
+            const ok = await this.repository.unpublishFragment(promotion, false);
+            if (ok) {
+                fragment = await this.repository.aem.sites.cf.fragments.getById(id);
+                if (!fragment) return null;
+                promotion = new Promotion(fragment);
+                this.#ensurePromotionModelFields(promotion);
+            }
+        }
+        return promotion;
+    }
+
     async #loadPromotionById(id) {
         try {
-            const fragment = await this.repository.aem.sites.cf.fragments.getById(id);
-            if (fragment) {
-                const promotion = new Promotion(fragment);
-
-                // Create a new FragmentStore and set it in the store
-                this.#ensurePromotionModelFields(promotion);
-                const fragmentStore = new FragmentStore(promotion);
-                Store.promotions.inEdit.set(fragmentStore);
-            }
+            const promotion = await this.#fetchPromotionModelById(id);
+            if (!promotion) return;
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
         } catch (error) {
             console.error('Failed to load promotion:', error);
             showToast('Failed to load promotion.', 'negative');
         }
     }
+
+    async #reloadPromotionFromServer() {
+        const id = this.fragment?.id;
+        if (!id) return;
+        try {
+            const promotion = await this.#fetchPromotionModelById(id);
+            if (!promotion) return;
+            this.storeController?.hostDisconnected();
+            this.fragmentStore = new FragmentStore(promotion);
+            this.storeController = new StoreController(this, this.fragmentStore);
+            this.storeController.hostConnected();
+            await this.#hydratePromotionItemSelectionFromFragment();
+            this.requestUpdate();
+        } catch (error) {
+            console.error(error);
+            showToast('Failed to refresh promotion.', 'negative');
+        }
+    }
+
+    #handlePublishPromotion = async () => {
+        if (!this.fragment?.id || this.isNewPromotion) return;
+        if (this.fragment.hasChanges || this.#itemsSelectionDirty) {
+            showToast('Save your changes before publishing.', 'info');
+            return;
+        }
+        if (this.fragment.promotionStatus === 'expired') {
+            showToast('This promotion has ended. Update the dates to publish again.', 'info');
+            return;
+        }
+        if (this.fragment.isPromotionPublished) {
+            return;
+        }
+        this.promotionPublish = true;
+        try {
+            const ok = await this.repository.publishFragment(this.fragment, ['DRAFT', 'UNPUBLISHED'], true);
+            if (ok) await this.#reloadPromotionFromServer();
+        } finally {
+            this.promotionPublish = false;
+        }
+    };
+
+    #handleUnpublishPromotion = async () => {
+        if (!this.fragment?.id || this.isNewPromotion) return;
+        if (!this.fragment.isPromotionPublished) {
+            showToast('This promotion is not published.', 'info');
+            return;
+        }
+        this.promotionPublish = true;
+        try {
+            const ok = await this.repository.unpublishFragment(this.fragment, true);
+            if (ok) await this.#reloadPromotionFromServer();
+        } finally {
+            this.promotionPublish = false;
+        }
+    };
+
+    #handleTogglePublishPromotion = async () => {
+        if (!this.fragment?.id || this.isNewPromotion) return;
+        if (this.fragment.isPromotionPublished) {
+            await this.#handleUnpublishPromotion();
+        } else {
+            await this.#handlePublishPromotion();
+        }
+    };
 
     #initializeNewPromotion() {
         return new Promotion({
@@ -603,7 +682,7 @@ class MasPromotionsEditor extends LitElement {
             ${this.renderConfirmDialog()}
             <div class="promotions-form-container">
                 <div class="promotions-form-header">
-                    <h1>${this.isNewPromotion ? 'Create new project' : 'Edit project'}</h1>
+                    <h1>${this.isNewPromotion ? 'Create new promotion project' : 'Edit promotion project'}</h1>
                 </div>
                 <div class="promotions-form-panel">
                     ${this.loadingPromotion
@@ -791,7 +870,18 @@ class MasPromotionsEditor extends LitElement {
                     <sp-button @click=${this.#handleCancel}>Cancel</sp-button>
                     ${this.isNewPromotion
                         ? html`<sp-button @click=${this.#handleCreatePromotion} ?disabled=${this.isCreated}>Create</sp-button>`
-                        : html`<sp-button @click=${this.#handleUpdatePromotion} ?disabled=${updateDisabled}>Update</sp-button>`}
+                        : html`
+                              <sp-button
+                                  variant="secondary"
+                                  treatment="outline"
+                                  @click=${this.#handleTogglePublishPromotion}
+                                  ?disabled=${this.promotionPublish ||
+                                  (!this.fragment?.isPromotionPublished && this.fragment?.promotionStatus === 'expired')}
+                              >
+                                  ${this.fragment?.isPromotionPublished ? 'Unpublish' : 'Publish'}
+                              </sp-button>
+                              <sp-button @click=${this.#handleUpdatePromotion} ?disabled=${updateDisabled}>Update</sp-button>
+                          `}
                 </div>
             </div>
         `;

@@ -130,6 +130,7 @@ export class MasRepository extends LitElement {
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
+        this.unpublishFragment = this.unpublishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
         this.search = new StoreController(this, Store.search);
         this.promotionsItemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
@@ -1117,6 +1118,16 @@ export class MasRepository extends LitElement {
             const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
 
             const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
+            const signal = this.#abortControllers.promotions.signal;
+            for (const store of promotions) {
+                if (signal.aborted) break;
+                const p = store.get();
+                if (p?.promotionStatus !== 'expired' || !p.isPromotionPublished) continue;
+                const ok = await this.unpublishFragment(p, false);
+                if (!ok || signal.aborted) continue;
+                const fresh = await this.aem.sites.cf.fragments.getById(p.id);
+                if (fresh) store.set(new Promotion(fresh));
+            }
 
             Store.promotions.list.data.set(promotions);
         } catch (error) {
@@ -1670,6 +1681,25 @@ export class MasRepository extends LitElement {
             return true;
         } catch (error) {
             this.processError(error, 'Failed to publish fragment.');
+            return false;
+        } finally {
+            this.operation.set(null);
+        }
+    }
+
+    /**
+     * @param {Fragment} fragment Fragment to unpublish
+     * @param {boolean} [withToast=true]
+     * @returns {Promise<boolean>}
+     */
+    async unpublishFragment(fragment, withToast = true) {
+        try {
+            this.operation.set(OPERATIONS.UNPUBLISH);
+            await this.aem.sites.cf.fragments.unpublish(fragment);
+            if (withToast) showToast('Fragment successfully unpublished.', 'positive');
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to unpublish fragment.');
             return false;
         } finally {
             this.operation.set(null);

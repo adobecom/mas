@@ -714,6 +714,46 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
+        it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const expiredPublished = {
+                id: 'promo-exp',
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: '/content/dam/mas/promotions/promo-exp',
+                title: 'Expired Pub',
+                description: '',
+                status: 'PUBLISHED',
+                created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
+                fields: [
+                    { name: 'title', type: 'text', values: ['Expired Pub'] },
+                    { name: 'promoCode', type: 'text', values: ['X'] },
+                    { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
+                    { name: 'tags', type: 'tag', values: ['mas:status/published'] },
+                    { name: 'surfaces', type: 'text', values: [] },
+                ],
+                tags: [],
+            };
+            const refreshed = {
+                ...expiredPublished,
+                status: 'DRAFT',
+                fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
+            };
+            repository.aem = createAemMock();
+            repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
+            const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
+            repository.aem.sites.cf.fragments.getById.resolves(refreshed);
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
+            const row = Store.promotions.list.data.get()[0].get();
+            expect(row.isPromotionPublished).to.be.false;
+        });
+
         it('loadPromotions calls processError when searchFragmentList rejects', async () => {
             const repository = createFullRepository();
             const { default: Store } = await import('../src/store.js');

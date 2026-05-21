@@ -6,6 +6,7 @@ import styles from './mas-promotions-css.js';
 import { PAGE_NAMES } from './constants.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import { showToast } from './utils.js';
+import { renderPromotionStatusCell } from './common/utils/render-utils.js';
 
 class MasPromotions extends LitElement {
     static styles = styles;
@@ -176,7 +177,7 @@ class MasPromotions extends LitElement {
                 key: 'createdBy',
                 label: 'Owner',
             },
-            { key: 'actions', label: 'Actions', align: 'right' },
+            { key: 'actions', label: 'Actions', align: 'center' },
         ];
 
         if (!filteredPromotions || filteredPromotions.length === 0) {
@@ -194,10 +195,14 @@ class MasPromotions extends LitElement {
                     ${repeat(
                         filteredPromotions,
                         (promotion) => html`
-                            <sp-table-row value=${promotion.get().path} data-id=${promotion.get().id}>
+                            <sp-table-row
+                                value=${promotion.get().path}
+                                data-id=${promotion.get().id}
+                                @dblclick=${(e) => this.#handlePromotionRowDblClick(e, promotion)}
+                            >
                                 <sp-table-cell>${promotion.get().title}</sp-table-cell>
                                 <sp-table-cell>${promotion.get().timeline}</sp-table-cell>
-                                <sp-table-cell>${this.#upperCaseFirst(promotion.get().promotionStatus)}</sp-table-cell>
+                                ${renderPromotionStatusCell(promotion.get().promotionStatus)}
                                 <sp-table-cell>${promotion.get().createdBy}</sp-table-cell>
                                 ${this.renderActionCell(promotion)}
                             </sp-table-row>
@@ -215,7 +220,7 @@ class MasPromotions extends LitElement {
                     <sp-search size="m" placeholder="Search"></sp-search>
                     <sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
                         <sp-icon-add slot="icon"></sp-icon-add>
-                        Create project
+                        Create promotion project
                     </sp-button>
                 </div>
 
@@ -256,7 +261,11 @@ class MasPromotions extends LitElement {
                             class=${key}
                             ?sortable=${sortable}
                             @click=${sortable ? () => this.handleSort(key) : undefined}
-                            style="${align === 'right' ? 'text-align: right;' : ''}"
+                            style="${align === 'right'
+                                ? 'text-align: right;'
+                                : align === 'center'
+                                  ? 'text-align: center;'
+                                  : ''}"
                         >
                             ${label}
                         </sp-table-head-cell>
@@ -272,24 +281,36 @@ class MasPromotions extends LitElement {
                 <sp-action-menu size="m">
                     ${html`
                         <sp-menu-item @click="${() => this.#handleEditPromotion(promotion)}">
-                            <sp-icon-edit></sp-icon-edit>
-                            <span>Edit</span>
+                            <sp-icon-edit slot="icon"></sp-icon-edit>
+                            Edit
+                        </sp-menu-item>
+                        ${promotion.get().isPromotionPublished
+                            ? html`<sp-menu-item @click=${() => this.#handleUnpublishPromotionFromList(promotion)}>
+                                  <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
+                                  Unpublish
+                              </sp-menu-item>`
+                            : html`<sp-menu-item
+                                  ?disabled=${promotion.get().promotionStatus === 'expired'}
+                                  @click=${() => this.#handlePublishPromotionFromList(promotion)}
+                              >
+                                  <sp-icon-publish slot="icon"></sp-icon-publish>
+                                  Publish
+                              </sp-menu-item>`}
+                        <sp-menu-item disabled>
+                            <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                            Duplicate
                         </sp-menu-item>
                         <sp-menu-item disabled>
-                            <sp-icon-duplicate></sp-icon-duplicate>
-                            <span>Duplicate</span>
+                            <sp-icon-pause slot="icon"></sp-icon-pause>
+                            Pause
                         </sp-menu-item>
                         <sp-menu-item disabled>
-                            <sp-icon-pause></sp-icon-pause>
-                            <span>Pause</span>
-                        </sp-menu-item>
-                        <sp-menu-item disabled>
-                            <sp-icon-archive></sp-icon-archive>
-                            <span>Archive</span>
+                            <sp-icon-archive slot="icon"></sp-icon-archive>
+                            Archive
                         </sp-menu-item>
                         <sp-menu-item @click=${() => this.#handleDeletePromotion(promotion)}>
-                            <sp-icon-delete></sp-icon-delete>
-                            <span>Delete</span>
+                            <sp-icon-delete slot="icon"></sp-icon-delete>
+                            Delete
                         </sp-menu-item>
                     `}
                 </sp-action-menu>
@@ -345,6 +366,52 @@ class MasPromotions extends LitElement {
         Store.page.set(PAGE_NAMES.PROMOTIONS_EDITOR);
     }
 
+    #handlePromotionRowDblClick(event, promotion) {
+        if (
+            event.composedPath().some((node) => {
+                const name = node?.localName;
+                return name === 'sp-action-menu' || name === 'sp-overlay' || name === 'sp-popover';
+            })
+        ) {
+            return;
+        }
+        this.#handleEditPromotion(promotion);
+    }
+
+    async #handlePublishPromotionFromList(promotion) {
+        const fragment = promotion.get();
+        if (!fragment?.id) return;
+        if (fragment.isPromotionPublished) {
+            return;
+        }
+        if (fragment.promotionStatus === 'expired') {
+            showToast('This promotion has ended. Update the dates to publish again.', 'info');
+            return;
+        }
+        try {
+            this.loading = true;
+            const ok = await this.repository.publishFragment(fragment, ['DRAFT', 'UNPUBLISHED'], true);
+            if (ok) await this.loadPromotions();
+        } finally {
+            this.loading = false;
+        }
+    }
+
+    async #handleUnpublishPromotionFromList(promotion) {
+        const fragment = promotion.get();
+        if (!fragment?.id) return;
+        if (!fragment.isPromotionPublished) {
+            return;
+        }
+        try {
+            this.loading = true;
+            const ok = await this.repository.unpublishFragment(fragment, true);
+            if (ok) await this.loadPromotions();
+        } finally {
+            this.loading = false;
+        }
+    }
+
     async #handleDeletePromotion(promotion) {
         if (this.isDialogOpen) {
             return;
@@ -385,11 +452,6 @@ class MasPromotions extends LitElement {
             const filteredPromotions = this.promotionsData.filter((promotion) => promotion.value?.promotionStatus === filter);
             this.promotionsData = filteredPromotions;
         }
-    }
-
-    #upperCaseFirst(str) {
-        if (!str) return '';
-        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
     }
 }
 

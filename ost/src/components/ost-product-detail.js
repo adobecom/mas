@@ -219,6 +219,7 @@ export class OstProductDetail extends LitElement {
         // back in configure. Reset those filters here so Change actually
         // surfaces all offers for the product. arrangementCode is kept so
         // we stay on the same product.
+        store.lastSelectedOfferId = store.selectedOffer?.offer_id;
         store.selectedOffer = undefined;
         store.selectedOsi = undefined;
         store.aosParams = {
@@ -485,6 +486,8 @@ export class OstProductDetail extends LitElement {
                                         <ost-offer-card
                                             .offer=${offer}
                                             ?selected=${store.isOfferSelected(offer)}
+                                            ?last-selected=${!store.selectedOffer &&
+                                            store.lastSelectedOfferId === offer.offer_id}
                                         ></ost-offer-card>
                                     `,
                                 )}

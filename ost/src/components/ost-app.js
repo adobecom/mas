@@ -543,6 +543,7 @@ export class OstApp extends LitElement {
         // to the welcome screen. (For deep-linked opens — e.g. RTE
         // double-click on an existing CTA — the Back button is hidden in
         // render since there's no product list to return to.)
+        store.lastSelectedOfferId = store.selectedOffer?.offer_id;
         store.selectedOffer = undefined;
         store.selectedOsi = undefined;
         store.selectedProduct = undefined;

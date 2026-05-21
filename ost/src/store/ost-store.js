@@ -57,6 +57,9 @@ export class OstStore extends EventTarget {
     offers = [];
     selectedOffer = undefined;
     selectedOsi = undefined;
+    // Tracks the offer the user had selected before clicking Back/Change so the
+    // offer-card render can highlight it as a "previously used" choice.
+    lastSelectedOfferId = undefined;
     authoringFlow = 'single';
     flowChosen = false;
     selectedOffers = [];

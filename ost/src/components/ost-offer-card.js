@@ -57,6 +57,7 @@ export class OstOfferCard extends LitElement {
     static properties = {
         offer: { type: Object },
         selected: { type: Boolean, reflect: true },
+        lastSelected: { type: Boolean, reflect: true, attribute: 'last-selected' },
         resolving: { type: Boolean, state: true },
         copied: { type: Boolean, state: true },
     };
@@ -74,6 +75,15 @@ export class OstOfferCard extends LitElement {
 
         :host([selected]) {
             background: var(--spectrum-blue-50);
+        }
+
+        :host([last-selected]:not([selected])) {
+            background: var(--spectrum-gray-75, #fafafa);
+            box-shadow: inset 3px 0 0 var(--spectrum-blue-700, #1473e6);
+        }
+
+        :host([last-selected]:not([selected])):hover {
+            background: var(--spectrum-gray-100);
         }
 
         .cell {
@@ -130,6 +140,7 @@ export class OstOfferCard extends LitElement {
         super();
         this.offer = undefined;
         this.selected = false;
+        this.lastSelected = false;
         this.resolving = false;
         this.copied = false;
     }

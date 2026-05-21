@@ -241,7 +241,9 @@ class MasTopNav extends LitElement {
                     const translatedLocales = Store.fragmentEditor.translatedLocales.get();
                     const enUsTranslation = translatedLocales?.find((t) => t.locale === 'en_US');
                     const enUsFragmentId = enUsTranslation?.id || currentFragment?.id;
-                    router.navigateToFragmentEditor(enUsFragmentId);
+                    if (enUsFragmentId && enUsFragmentId !== currentFragment?.id) {
+                        router.navigateToFragmentEditor(enUsFragmentId);
+                    }
                 }
             }
             return;

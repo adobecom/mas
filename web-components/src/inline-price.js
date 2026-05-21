@@ -442,6 +442,11 @@ export class InlinePrice extends HTMLSpanElement {
         }
     }
 
+    htmlDecode(input) {
+        const doc = new DOMParser().parseFromString(input, "text/html");
+        return doc.documentElement.textContent;
+    }
+
     // TODO: can be extended to accept array of offers and compute subtotal price
     /**
      * Renders price offer as HTML of this component
@@ -457,6 +462,14 @@ export class InlinePrice extends HTMLSpanElement {
         version ??= this.masElement.togglePending();
         if (offers.length) {
             if (this.masElement.toggleResolved(version, offers, options)) {
+                // strikethrough price followed with promo price, or with some empty text in between, needs to have labels hidden
+                if (this.options.template === 'strikethrough'
+                    && this.nextElementSibling
+                    && (this.nextSibling.nodeName !== '#text' || this.htmlDecode(this.nextSibling.textContent).trim() === '')
+                    && this.nextElementSibling.getAttribute('is') === 'inline-price'
+                    && this.nextElementSibling.dataset.template === 'price') {
+                    this.options.hideLabels = true;
+                }
                 this.innerHTML = service.buildPriceHTML(offers, this.options);
 
                 // Adding logic for options.alternativePrice to add <sr-only>Alternatively at</sr-only>

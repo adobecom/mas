@@ -126,8 +126,7 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] {
   flex-direction: column;
 }
 
-merch-card[id][variant="simplified-pricing-express"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
-merch-card[id][variant="simplified-pricing-express"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+merch-card[variant="simplified-pricing-express"] .price-strikethrough.price-labels-hidden .price-recurrence {
     display: none;
 }
 

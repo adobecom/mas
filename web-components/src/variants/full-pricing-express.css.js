@@ -253,8 +253,7 @@ merch-card[variant="full-pricing-express"] [slot="price"] {
     justify-content: center;
 }
 
-merch-card[id][variant="full-pricing-express"] [data-template="price"] .price-strikethrough span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type),
-merch-card[id][variant="full-pricing-express"] [data-template="strikethrough"]:has(+ [data-template="price"]) span:is(.price-tax-inclusivity, .price-recurrence, .price-unit-type) {
+merch-card[variant="full-pricing-express"] .price-strikethrough.price-labels-hidden .price-recurrence {
     display: none;
 }
 

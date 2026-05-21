@@ -76,20 +76,25 @@ export async function createSnapshot(project, aem, userEmail) {
  * @returns {Promise<void>}
  */
 export async function revertSnapshot(snapshot, aem) {
-    const failures = [];
+    const entries = Object.entries(snapshot.fragments);
 
-    for (const [fragmentId, entry] of Object.entries(snapshot.fragments)) {
-        try {
-            await aem.sites.cf.fragments.restoreVersion(fragmentId, entry.versionId);
-            if (!entry.wasPublished) {
-                await aem.sites.cf.fragments.setToDraft(entry.path);
+    const results = await runConcurrent(
+        entries,
+        async ([fragmentId, entry]) => {
+            try {
+                await aem.sites.cf.fragments.restoreVersion(fragmentId, entry.versionId);
+                if (!entry.wasPublished) {
+                    await aem.sites.cf.fragments.setToDraft(entry.path);
+                }
+                return null;
+            } catch (err) {
+                return { path: entry.path, error: err.message };
             }
-        } catch (err) {
-            failures.push({ path: entry.path, error: err.message });
-        }
-    }
+        },
+        SNAPSHOT_CONCURRENCY,
+    );
 
-    return { failures };
+    return { failures: results.filter(Boolean) };
 }
 
 /**
@@ -100,18 +105,22 @@ export async function revertSnapshot(snapshot, aem) {
  */
 export async function checkModifications(snapshot, aem) {
     const snapshotTime = new Date(snapshot.createdAt).getTime();
-    const results = [];
+    const entries = Object.entries(snapshot.fragments);
 
-    for (const [fragmentId, entry] of Object.entries(snapshot.fragments)) {
-        try {
-            const fragment = await aem.sites.cf.fragments.getById(fragmentId);
-            const modifiedAt = fragment.modified?.at;
-            const modified = modifiedAt ? new Date(modifiedAt).getTime() > snapshotTime : false;
-            results.push({ path: entry.path, modified });
-        } catch {
-            results.push({ path: entry.path, modified: null });
-        }
-    }
+    const results = await runConcurrent(
+        entries,
+        async ([fragmentId, entry]) => {
+            try {
+                const fragment = await aem.sites.cf.fragments.getById(fragmentId);
+                const modifiedAt = fragment.modified?.at;
+                const modified = modifiedAt ? new Date(modifiedAt).getTime() > snapshotTime : false;
+                return { path: entry.path, modified };
+            } catch {
+                return { path: entry.path, modified: null };
+            }
+        },
+        SNAPSHOT_CONCURRENCY,
+    );
 
     return results.sort((a, b) => a.path.localeCompare(b.path));
 }

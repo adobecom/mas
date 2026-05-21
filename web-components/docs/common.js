@@ -38,6 +38,7 @@ const toggleLocale = (event, params) => {
     if (val.includes(',')) {
         const [country, language] = val.split(',');
         params.set('country', country);
+        params.delete('language');
         params.set('locale', LANG_LOCALE_MAP[language]);
     } else {
         params.set('locale', val);

@@ -1433,9 +1433,27 @@ class RteField extends LitElement {
             attributes.is === CUSTOM_ELEMENT_CHECKOUT_LINK && attributes.text ? state.schema.text(attributes.text) : null;
 
         const node = nodeType.create(mergedAttributes, content, selection.node?.marks);
-        const tr = selection.empty
-            ? state.tr.insert(selection.from, node)
-            : state.tr.replaceWith(selection.from, selection.to, node);
+
+        // If the cursor is sitting inside an existing link node (cursor placed
+        // mid-link or right at its boundary), inserting a sibling link splits
+        // the host link and leaves a phantom empty <a></a> behind. Lift the
+        // insertion position OUT of the host link so the new node lands as a
+        // proper sibling. Only does anything when there's no selected range
+        // (a range selection already replaces the host content cleanly).
+        let from = selection.from;
+        let to = selection.to;
+        if (selection.empty) {
+            const $pos = state.doc.resolve(selection.from);
+            for (let depth = $pos.depth; depth > 0; depth--) {
+                if ($pos.node(depth).type === state.schema.nodes.link) {
+                    from = $pos.after(depth);
+                    to = from;
+                    break;
+                }
+            }
+        }
+
+        const tr = from === to ? state.tr.insert(from, node) : state.tr.replaceWith(from, to, node);
 
         dispatch(tr);
         this.showOfferSelector = false;

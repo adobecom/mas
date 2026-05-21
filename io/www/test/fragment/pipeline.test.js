@@ -106,7 +106,7 @@ const runOnFilledState = async (fetchStub, entry, headers) => {
         },
     });
     const state = new MockState();
-    await state.put('req-some-en-us-fragment-fr_FR-FR-', entry);
+    await state.put('req-some-en-us-fragment-fr_FR', entry);
     await state.put('configuration', JSON.stringify({ debugLogs: true }));
     return await getFragment({
         id: 'some-en-us-fragment',
@@ -143,7 +143,7 @@ describe('collection placeholders', () => {
             )
             .returns(createResponse(200, DICTIONARY_FOR_COLLECTION_RESPONSE));
         state.put(
-            'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US-US-',
+            'req-07f9729e-dc1f-4634-829d-7aa469bb0d33-en_US',
             '{"hash":"c4b6f3c040708c47444316d4e103268c8f2fb91c35dc4609ecccc29803f2aec0","lastModified":"Mon, 09 Jun 2025 07:43:58 GMT","fragmentsIds":{"settings-id":"settings-id","dictionary-id":"412fda08-7b73-4a01-a04f-1953e183bad2"}}',
         );
         const result = await getFragment({
@@ -229,13 +229,24 @@ describe('pipeline corner cases', () => {
         });
     });
 
+    it('unknown locale should return 400 without hitting Odin', async () => {
+        const result = await getFragment({
+            id: 'some-fragment',
+            locale: 'zz_ZZ',
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(400);
+        expect(result.body.message).to.match(/unknown locale/i);
+        expect(fetchStub.called).to.be.false;
+    });
+
     it('bad path should return 400', async () => {
         fetchStub
             .withArgs('https://odin.adobe.com/adobe/contentFragments/some-fr-fr-fragment?references=all-hydrated')
             .returns(createResponse(200, { path: '/content/bad-path' }));
         const state = new MockState();
         await state.put(
-            'req-some-en-us-fragment-fr_FR-FR-',
+            'req-some-en-us-fragment-fr_FR',
             JSON.stringify({
                 fragmentsIds: {
                     'dictionary-id': 'sandbox_fr_FR_dictionary',

@@ -73,7 +73,7 @@ async function wcs(context) {
         log(`No WCS configurations found for API key ${context.api_key}`, context);
         return context;
     }
-    const { body, locale } = context;
+    const { body, locale, regionLocale } = context;
     const bodyString = JSON.stringify(body);
     const matches = [...bodyString.matchAll(MAS_ELEMENT_REGEXP)];
     if (matches.length > 0) {
@@ -102,7 +102,7 @@ async function wcs(context) {
         const tokens = Array.from(tokenMap.values());
         const country = getCountry(context);
         const wcsContext = {
-            locale,
+            locale: regionLocale ?? locale,
             country,
             context,
         };

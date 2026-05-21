@@ -108,7 +108,6 @@ async function init(initContext) {
         surface,
         fragmentPath,
         defaultLocale,
-        locale: regionLocale,
         regionLocale,
     };
 }
@@ -125,7 +124,6 @@ async function defaultLanguageProcess(context) {
         surface: response.surface,
         fragmentPath: response.fragmentPath,
         defaultLocale: response.defaultLocale,
-        locale: response.locale,
         regionLocale: response.regionLocale,
     };
 }

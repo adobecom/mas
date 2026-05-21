@@ -181,8 +181,16 @@ runTests(async () => {
                     '.renewal-text [data-wcs-osi]',
                 );
                 await priceElement.onceSettled();
-                expect(priceElement.querySelector('.price-strikethrough').classList.contains('price-labels-hidden')).to.be.true;
-                expect(priceElement.querySelector('.price-alternative').classList.contains('price-labels-hidden')).to.be.false;
+                expect(
+                    priceElement
+                        .querySelector('.price-strikethrough')
+                        .classList.contains('price-labels-hidden'),
+                ).to.be.true;
+                expect(
+                    priceElement
+                        .querySelector('.price-alternative')
+                        .classList.contains('price-labels-hidden'),
+                ).to.be.false;
             });
             it('should render US standard with secondary cta as regular link', async () => {
                 const [card] = getTemplateContent('template-mini-photo-link');

@@ -443,7 +443,7 @@ export class InlinePrice extends HTMLSpanElement {
     }
 
     htmlDecode(input) {
-        const doc = new DOMParser().parseFromString(input, "text/html");
+        const doc = new DOMParser().parseFromString(input, 'text/html');
         return doc.documentElement.textContent;
     }
 
@@ -463,11 +463,16 @@ export class InlinePrice extends HTMLSpanElement {
         if (offers.length) {
             if (this.masElement.toggleResolved(version, offers, options)) {
                 // strikethrough price followed with promo price, or with some empty text in between, needs to have labels hidden
-                if (this.options.template === 'strikethrough'
-                    && this.nextElementSibling
-                    && (this.nextSibling.nodeName !== '#text' || this.htmlDecode(this.nextSibling.textContent).trim() === '')
-                    && this.nextElementSibling.getAttribute('is') === 'inline-price'
-                    && this.nextElementSibling.dataset.template === 'price') {
+                if (
+                    this.options.template === 'strikethrough' &&
+                    this.nextElementSibling &&
+                    (this.nextSibling.nodeName !== '#text' ||
+                        this.htmlDecode(this.nextSibling.textContent).trim() ===
+                            '') &&
+                    this.nextElementSibling.getAttribute('is') ===
+                        'inline-price' &&
+                    this.nextElementSibling.dataset.template === 'price'
+                ) {
                     this.options.hideLabels = true;
                 }
                 this.innerHTML = service.buildPriceHTML(offers, this.options);

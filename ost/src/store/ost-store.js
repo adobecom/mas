@@ -45,10 +45,6 @@ const SLICES = [
     ['accessToken', ''],
     ['wcsApiKey', ''],
     ['checkoutClientId', 'mas-commerce-service'],
-    ['onSelect', null],
-    ['onCancel', null],
-    ['onMultiSelect', null],
-    ['onBundleSelect', null],
     ['zIndex', 20000],
     ['aosParams', { ...DEFAULT_AOS_PARAMS }],
     ['country', 'US'],
@@ -85,6 +81,14 @@ export class OstStore extends EventTarget {
     stores = {};
     #batchDepth = 0;
     #batchedDuringRun = false;
+
+    // Callback slots set once during init() — held as plain fields because
+    // ReactiveStore.set(fn) treats `fn` as an updater function and would invoke
+    // it with the current value, mangling the stored callback.
+    onSelect = null;
+    onCancel = null;
+    onMultiSelect = null;
+    onBundleSelect = null;
 
     constructor() {
         super();
@@ -248,9 +252,13 @@ export class OstStore extends EventTarget {
             this.authoringFlow = config.authoringFlow;
             this.flowChosen = true;
         }
+        const CALLBACK_KEYS = ['onSelect', 'onCancel', 'onMultiSelect', 'onBundleSelect'];
         Object.keys(config).forEach((key) => {
             if (key === 'multiSelect' || key === 'bundleSelect' || key === 'authoringFlow') return;
-            if (key in this.stores && config[key] !== undefined) {
+            if (config[key] === undefined) return;
+            if (key in this.stores) {
+                this[key] = config[key];
+            } else if (CALLBACK_KEYS.includes(key)) {
                 this[key] = config[key];
             }
         });

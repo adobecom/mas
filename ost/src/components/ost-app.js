@@ -298,8 +298,12 @@ export class OstApp extends LitElement {
         };
         if (tryResolve()) return;
         const handler = () => {
-            if (store.allProducts.length > 0 && tryResolve()) {
+            if (store.allProducts.length > 0) {
+                // Detach BEFORE calling setProduct — setProduct synchronously
+                // fires state-changed, which would re-enter this handler and
+                // recurse infinitely on a "Maximum call stack size" error.
                 store.removeEventListener('state-changed', handler);
+                tryResolve();
             }
         };
         store.addEventListener('state-changed', handler);

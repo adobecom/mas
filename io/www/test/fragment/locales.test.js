@@ -404,5 +404,10 @@ describe('locales', function () {
             // resolution happens in computeRegionLocale where surface is known.
             expect(geoCacheKey('fr_FR', 'US')).to.deep.equal({ locale: 'fr_FR', country: 'US' });
         });
+
+        it('handles malformed locale (no underscore) without crashing', function () {
+            expect(geoCacheKey('fr', undefined)).to.deep.equal({ locale: 'fr', country: null });
+            expect(geoCacheKey('fr', 'FR')).to.deep.equal({ locale: 'fr', country: 'FR' });
+        });
     });
 });

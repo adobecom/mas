@@ -152,6 +152,22 @@ describe('pipeline end to end', () => {
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
     });
 
+    it('should include pzn segment in cache key when pzn is provided', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        const result = await getFragment({
+            id: 'some-en-us-fragment',
+            state: state,
+            locale: 'fr_FR',
+            pzn: 'segment-A',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-segment-A');
+    });
+
     it('should fix corrupted data-extra-options in adobe-home fragment', async () => {
         const fragmentId = '8ede258f-a996-43c4-8525-b52543925ab0';
 

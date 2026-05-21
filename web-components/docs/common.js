@@ -84,17 +84,18 @@ const init = async (params = {}) => {
 
     // Derive locale from URL `language` (+ optional `country`) so io receives a real locale
     // instead of falling back to `en_US`. Examples:
-    //   ?country=FR&language=fr  → locale=fr_FR
-    //   ?country=AR&language=es  → locale=es_AR
-    //   ?language=es             → locale=es_ES (via LANG_LOCALE_MAP)
+    //   ?country=FR&language=fr  → locale=fr_FR  (fr is native to FR per LANG_LOCALE_MAP)
+    //   ?country=AR&language=es  → no derivation  (es maps to ES, not AR; leave locale as en_US)
+    //   ?language=fr             → locale=fr_FR (via LANG_LOCALE_MAP)
     // `?country=XX` alone is left as-is (mas-commerce-service applies its own default).
     if (!urlParams.has('locale')) {
         const language = urlParams.get('language');
         const country = urlParams.get('country');
-        if (language && country) {
-            urlParams.set('locale', `${language}_${country.toUpperCase()}`);
-        } else if (language && LANG_LOCALE_MAP[language]) {
-            urlParams.set('locale', LANG_LOCALE_MAP[language]);
+        const mappedLocale = LANG_LOCALE_MAP[language];
+        if (language && country && mappedLocale?.split('_')[1] === country.toUpperCase()) {
+            urlParams.set('locale', mappedLocale);
+        } else if (language && mappedLocale && !country) {
+            urlParams.set('locale', mappedLocale);
         }
     }
 

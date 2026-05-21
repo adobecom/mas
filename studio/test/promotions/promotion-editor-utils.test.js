@@ -8,6 +8,9 @@ import {
 } from '../../src/promotions/promotion-editor-utils.js';
 import { COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
+const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
+const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
+
 function makePromotionLike({ fragments = [], collections } = {}) {
     return {
         getField: (name) => (name === 'collections' ? collections !== undefined : null),
@@ -42,6 +45,16 @@ describe('promotion-editor-utils', () => {
             };
             expect(isPromotionItemSelectionDirty(p, ['/a'], ['/b'])).to.be.true;
         });
+
+        it('returns false when saved paths missing from selection are hydrate-unreachable', () => {
+            const p = makePromotionLike({ fragments: [resolved, fetchFailed] });
+            expect(isPromotionItemSelectionDirty(p, [resolved], [], [fetchFailed])).to.be.false;
+        });
+
+        it('returns true when saved paths missing from selection are not hydrate-unreachable', () => {
+            const p = makePromotionLike({ fragments: [resolved, fetchFailed] });
+            expect(isPromotionItemSelectionDirty(p, [resolved], [], [])).to.be.true;
+        });
     });
 
     describe('serializePromotionSurfacesForAem', () => {
@@ -51,8 +64,8 @@ describe('promotion-editor-utils', () => {
             expect(serializePromotionSurfacesForAem([])).to.deep.equal([]);
         });
 
-        it('merges comma and newline separated tokens into one AEM value', () => {
-            expect(serializePromotionSurfacesForAem([' a , b\n c , a '])).to.deep.equal(['a,b,c']);
+        it('normalizes comma and newline separated tokens into separate AEM values', () => {
+            expect(serializePromotionSurfacesForAem([' a , b\n c , a '])).to.deep.equal(['a', 'b', 'c']);
         });
     });
 
@@ -71,7 +84,7 @@ describe('promotion-editor-utils', () => {
     describe('classifyPromotionPathsForSelection', () => {
         it('returns empty buckets for empty paths', async () => {
             const out = await classifyPromotionPathsForSelection([], () => Promise.resolve({}));
-            expect(out).to.deep.equal({ cards: [], cols: [] });
+            expect(out).to.deep.equal({ cards: [], cols: [], unreachable: [] });
         });
 
         it('classifies collection model as collections and others as cards', async () => {
@@ -82,12 +95,21 @@ describe('promotion-editor-utils', () => {
             const out = await classifyPromotionPathsForSelection(['/card', '/col'], getFragmentByPath);
             expect(out.cards).to.deep.equal(['/card']);
             expect(out.cols).to.deep.equal(['/col']);
+            expect(out.unreachable).to.deep.equal([]);
         });
 
-        it('treats rejected fetches as card paths', async () => {
-            const out = await classifyPromotionPathsForSelection(['/bad'], () => Promise.reject(new Error('x')));
-            expect(out.cards).to.deep.equal(['/bad']);
+        it('lists rejected fetches as unreachable instead of card paths', async () => {
+            const out = await classifyPromotionPathsForSelection([fetchFailed], () => Promise.reject(new Error('x')));
+            expect(out.cards).to.deep.equal([]);
             expect(out.cols).to.deep.equal([]);
+            expect(out.unreachable).to.deep.equal([fetchFailed]);
+        });
+
+        it('lists fulfilled fragments without model path as unreachable', async () => {
+            const out = await classifyPromotionPathsForSelection(['/no-model'], () => Promise.resolve(null));
+            expect(out.cards).to.deep.equal([]);
+            expect(out.cols).to.deep.equal([]);
+            expect(out.unreachable).to.deep.equal(['/no-model']);
         });
 
         it('respects custom collection model path', async () => {
@@ -96,6 +118,7 @@ describe('promotion-editor-utils', () => {
             const out = await classifyPromotionPathsForSelection(['/p'], getFragmentByPath, custom);
             expect(out.cols).to.deep.equal(['/p']);
             expect(out.cards).to.deep.equal([]);
+            expect(out.unreachable).to.deep.equal([]);
         });
     });
 

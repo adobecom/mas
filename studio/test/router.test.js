@@ -810,20 +810,24 @@ describe('Router', () => {
         let originalPromotionsInEdit;
         let originalPromotionsSelectedCards;
         let originalPromotionsSelectedCollections;
+        let originalItemHydrateUnreachablePaths;
 
         beforeEach(() => {
             originalPromotionsInEdit = Store.promotions.inEdit.get();
             originalPromotionsSelectedCards = [...(Store.promotions.selectedCards.value || [])];
             originalPromotionsSelectedCollections = [...(Store.promotions.selectedCollections.value || [])];
+            originalItemHydrateUnreachablePaths = [...(Store.promotions.itemHydrateUnreachablePaths.value || [])];
             Store.promotions.inEdit.set(null);
             Store.promotions.selectedCards.set([]);
             Store.promotions.selectedCollections.set([]);
+            Store.promotions.itemHydrateUnreachablePaths.set([]);
         });
 
         afterEach(() => {
             Store.promotions.inEdit.set(originalPromotionsInEdit);
             Store.promotions.selectedCards.set(originalPromotionsSelectedCards);
             Store.promotions.selectedCollections.set(originalPromotionsSelectedCollections);
+            Store.promotions.itemHydrateUnreachablePaths.set(originalItemHydrateUnreachablePaths);
         });
 
         it('returns false when there is no promotion in edit', () => {
@@ -862,16 +866,14 @@ describe('Router', () => {
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
 
-        it('returns false when saved selections live only on collections field with empty fragments', () => {
-            Store.promotions.inEdit.set(
-                createPromotionInEditStore({
-                    fragments: [],
-                    collectionsValues: ['/col-only'],
-                    hasChanges: false,
-                }),
-            );
-            Store.promotions.selectedCards.set([]);
-            Store.promotions.selectedCollections.set(['/col-only']);
+        it('returns false when saved paths missing from selection are hydrate-unreachable', () => {
+            const resolved = '/content/dam/mas/promotions/test-items/resolved-card-fragment';
+            const fetchFailed = '/content/dam/mas/promotions/test-items/fetch-failed-card-fragment';
+
+            Store.promotions.inEdit.set(createPromotionInEditStore({ fragments: [resolved, fetchFailed], hasChanges: false }));
+            Store.promotions.selectedCards.set([resolved]);
+            Store.promotions.selectedCollections.set([]);
+            Store.promotions.itemHydrateUnreachablePaths.set([fetchFailed]);
             expect(router.promotionsEditorHasUnsavedChanges()).to.be.false;
         });
     });

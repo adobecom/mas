@@ -266,6 +266,7 @@ class MasPromotionsItemsTable extends LitElement {
         super.disconnectedCallback();
         this.#processAbortController?.abort();
         this.#processAbortController = null;
+        this.viewOnlyLoading = false;
     }
 
     get repository() {

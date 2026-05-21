@@ -22,12 +22,14 @@ export class MasCollapsibleTableRow extends LitElement {
         repository: { type: Object, state: true },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
+        disableCardExpansion: { type: Boolean },
     };
 
     constructor() {
         super();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
+        this.disableCardExpansion = false;
         if (!this.tabs) {
             this.tabs = [
                 { label: 'Locale', key: 'locale' },
@@ -52,6 +54,9 @@ export class MasCollapsibleTableRow extends LitElement {
 
     updated(changedProperties) {
         super.updated(changedProperties);
+        if (changedProperties.has('disableCardExpansion') && this.disableCardExpansion) {
+            this.isTopLevelExpanded = false;
+        }
         if (changedProperties.has('isTopLevelExpanded')) {
             if (this.isTopLevelExpanded) {
                 requestAnimationFrame(() => {
@@ -437,13 +442,21 @@ export class MasCollapsibleTableRow extends LitElement {
                 ?selected=${isSelected}
                 aria-selected=${isSelected ? 'true' : 'false'}
             >
-                <sp-table-cell class="table-icon-cell">
-                    <sp-button class="expand-button" icon-only quiet variant="secondary" @click=${this.#toggleExpandTopLevel}>
-                        ${this.isTopLevelExpanded
-                            ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
-                            : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
-                    </sp-button>
-                </sp-table-cell>
+                ${this.disableCardExpansion
+                    ? html`<sp-table-cell class="table-icon-cell table-icon-cell--chevron"></sp-table-cell>`
+                    : html`<sp-table-cell class="table-icon-cell">
+                          <sp-button
+                              class="expand-button"
+                              icon-only
+                              quiet
+                              variant="secondary"
+                              @click=${this.#toggleExpandTopLevel}
+                          >
+                              ${this.isTopLevelExpanded
+                                  ? html`<sp-icon-chevron-up></sp-icon-chevron-up>`
+                                  : html`<sp-icon-chevron-down></sp-icon-chevron-down>`}
+                          </sp-button>
+                      </sp-table-cell>`}
                 <sp-table-cell class="table-icon-cell">
                     <sp-checkbox
                         value=${this.topLevelCard.path}
@@ -454,7 +467,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 ${this.cells.map((cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
             </sp-table-row>
 
-            ${this.isTopLevelExpanded
+            ${this.isTopLevelExpanded && !this.disableCardExpansion
                 ? html`<div class="nested-content-container">
                       <div class="nested-content ${this.#hasConnector() ? 'has-connector' : ''}">
                           <sp-tabs quiet .selected=${this.selectedTabKey} @change=${this.#handleTabChange}>

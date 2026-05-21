@@ -118,6 +118,7 @@ const Store = {
         selectedPlaceholders: new ReactiveStore([]),
 
         showSelected: new ReactiveStore(false),
+        itemHydrateUnreachablePaths: new ReactiveStore([]),
         // for "Select items" modal from Promotion editor
         itemPickerSurface: new ReactiveStore(null),
     },

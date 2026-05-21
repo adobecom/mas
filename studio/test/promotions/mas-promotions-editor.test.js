@@ -35,15 +35,18 @@ describe('MasPromotionsEditor', () => {
     let originalInEdit;
     let originalSelectedCards;
     let originalSelectedCollections;
+    let originalItemHydrateUnreachablePaths;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         originalInEdit = Store.promotions.inEdit.get();
         originalSelectedCards = [...Store.promotions.selectedCards.value];
         originalSelectedCollections = [...Store.promotions.selectedCollections.value];
+        originalItemHydrateUnreachablePaths = [...Store.promotions.itemHydrateUnreachablePaths.value];
         Store.promotions.inEdit.set(null);
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedCollections.set([]);
+        Store.promotions.itemHydrateUnreachablePaths.set([]);
         Store.promotions.promotionId.set(null);
         setItemsSelectionStore(Store.promotions);
     });
@@ -53,6 +56,7 @@ describe('MasPromotionsEditor', () => {
         Store.promotions.inEdit.set(originalInEdit);
         Store.promotions.selectedCards.set(originalSelectedCards);
         Store.promotions.selectedCollections.set(originalSelectedCollections);
+        Store.promotions.itemHydrateUnreachablePaths.set(originalItemHydrateUnreachablePaths);
         Store.promotions.promotionId.set(null);
         document.querySelectorAll('mas-promotions-editor').forEach((n) => n.remove());
         setItemsSelectionStore(null);

@@ -45,7 +45,7 @@ const typeMap = {
     startDate: { type: 'date-time' },
     endDate: { type: 'date-time' },
     tags: { type: 'tag', multiple: true },
-    surfaces: { type: 'text', multiple: false },
+    surfaces: { type: 'text', multiple: true },
     geos: { type: 'tag', multiple: true },
     fragments: { type: 'content-fragment', multiple: true },
 };
@@ -171,6 +171,7 @@ class MasPromotionsEditor extends LitElement {
             this.fragment,
             Store.promotions.selectedCards.value,
             Store.promotions.selectedCollections.value,
+            Store.promotions.itemHydrateUnreachablePaths.value,
         );
     }
 
@@ -191,6 +192,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.displayPlaceholders.set([]);
         Store.promotions.selectedPlaceholders.set([]);
         Store.promotions.showSelected.set(false);
+        Store.promotions.itemHydrateUnreachablePaths.set([]);
     }
 
     async #hydratePromotionItemSelectionFromFragment() {
@@ -198,6 +200,7 @@ class MasPromotionsEditor extends LitElement {
         if (!f || !this.repository?.aem?.getFragmentByPath) {
             Store.promotions.selectedCards.set([]);
             Store.promotions.selectedCollections.set([]);
+            Store.promotions.itemHydrateUnreachablePaths.set([]);
             return;
         }
         const fromFragments = f.getFieldValues('fragments');
@@ -213,11 +216,13 @@ class MasPromotionsEditor extends LitElement {
         if (!allPaths.length) {
             Store.promotions.selectedCards.set([]);
             Store.promotions.selectedCollections.set([]);
+            Store.promotions.itemHydrateUnreachablePaths.set([]);
             return;
         }
-        const { cards, cols } = await classifyPromotionPathsForSelection(allPaths, (path) =>
+        const { cards, cols, unreachable } = await classifyPromotionPathsForSelection(allPaths, (path) =>
             this.repository.aem.getFragmentByPath(path),
         );
+        Store.promotions.itemHydrateUnreachablePaths.set(unreachable);
         Store.promotions.selectedCards.set(cards);
         Store.promotions.selectedCollections.set(cols);
         this.requestUpdate();
@@ -264,7 +269,7 @@ class MasPromotionsEditor extends LitElement {
                 { name: 'startDate', values: [''] },
                 { name: 'endDate', values: [''] },
                 { name: 'tags', values: [] },
-                { name: 'surfaces', type: 'text', multiple: false, values: [] },
+                { name: 'surfaces', type: 'text', multiple: true, values: [] },
                 { name: 'geos', type: 'tag', multiple: true, values: [] },
                 { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
             ],
@@ -327,7 +332,7 @@ class MasPromotionsEditor extends LitElement {
         const field = this.fragment?.getField?.('surfaces');
         if (!field) return;
         field.type = 'text';
-        field.multiple = false;
+        field.multiple = true;
         field.values = serializePromotionSurfacesForAem(field.values);
         this.fragment.hasChanges = true;
     }

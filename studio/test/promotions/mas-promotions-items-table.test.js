@@ -314,7 +314,7 @@ describe('MasPromotionsItemsTable', () => {
 
     it('aborts loading when disconnected before fetch completes', async () => {
         Store.promotions.selectedCards.set(['/content/dam/mas/card-abort']);
-        let abortCalled = false;
+        const abortSpy = sandbox.spy(AbortController.prototype, 'abort');
         const el = new MasPromotionsItemsTable();
         el.type = TABLE_TYPE.CARDS;
         sandbox.stub(el, 'repository').get(() => ({
@@ -330,9 +330,10 @@ describe('MasPromotionsItemsTable', () => {
         await new Promise((r) => setTimeout(r, 5));
         expect(el.viewOnlyLoading).to.be.true;
         el.remove();
-        expect(el.viewOnlyLoading).to.be.true;
-        abortCalled = true;
-        expect(abortCalled).to.be.true;
+        expect(abortSpy.called, 'disconnect should abort the load AbortController').to.be.true;
+        expect(el.viewOnlyLoading).to.be.false;
+        await new Promise((r) => setTimeout(r, 550));
+        expect(el.viewOnlyLoading).to.be.false;
     });
 
     it('skips reload when selected paths have not changed', async () => {

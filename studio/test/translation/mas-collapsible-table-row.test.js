@@ -101,6 +101,20 @@ describe('MasCollapsibleTableRow', () => {
             expect(el.viewOnly).to.be.true;
         });
 
+        it('should not render expand or variation tabs when disableCardExpansion', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .disableCardExpansion=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.expand-button')).to.be.null;
+            expect(el.shadowRoot.querySelector('sp-tabs')).to.be.null;
+            expect(el.shadowRoot.querySelector('sp-checkbox')).to.exist;
+        });
+
         it('should initialize expandedVariationsPaths from topLevelCard variations field', async () => {
             const variationPaths = ['/path/v1', '/path/v2'];
             const topLevelCard = createMockTopLevelCard({

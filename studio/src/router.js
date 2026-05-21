@@ -85,6 +85,7 @@ export class Router extends EventTarget {
             inEdit,
             Store.promotions.selectedCards.value,
             Store.promotions.selectedCollections.value,
+            Store.promotions.itemHydrateUnreachablePaths.value,
         );
     }
 

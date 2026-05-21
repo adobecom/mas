@@ -28,6 +28,12 @@ const promotionsItemsSelectorStyles = css`
         align-self: stretch;
         display: flex;
     }
+
+    .selected-items-count {
+        z-index: 10001;
+        bottom: 128px;
+        pointer-events: auto;
+    }
 `;
 
 class MasPromotionsItemsSelector extends LitElement {
@@ -204,6 +210,7 @@ class MasPromotionsItemsSelector extends LitElement {
                                     : html`<mas-select-items-table
                                           .viewOnly=${false}
                                           .type=${tab.value}
+                                          .disableCardExpansion=${true}
                                           .getDisplayName=${this.getDisplayName}
                                           .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                                           @show-toast=${this.#showToast}

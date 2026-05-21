@@ -9339,6 +9339,10 @@ merch-card[border-color="spectrum-red-700-plans"] {
             margin-right: 16px;
         }
 
+        ::slotted([slot='heading']:empty) {
+            display: none;
+        }
+
         ::slotted([slot='content']) {
             display: contents;
         }

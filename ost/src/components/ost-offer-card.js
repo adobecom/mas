@@ -1,14 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { store } from '../store/ost-store.js';
 import { resolveOfferSelector } from '../utils/aos-client.js';
-
-const PLAN_TYPE_COLORS = {
-    ABM: 'positive',
-    PUF: 'informative',
-    M2M: 'yellow',
-    PERPETUAL: 'seafoam',
-    P3Y: 'fuchsia',
-};
+import { PLAN_TYPE_COLORS } from '../data/plan-type-colors.js';
 
 function getTrialDays(offer) {
     if (offer.offer_type !== 'TRIAL') return null;
@@ -200,12 +193,12 @@ export class OstOfferCard extends LitElement {
                               ? html`<span class="trial-days">${getTrialDays(offer)}d</span>`
                               : ''}`
                     : ''}
-                ${offer.__landscape
+                ${offer.landscapeSource
                     ? html`<sp-badge
                           size="s"
-                          variant="${offer.__landscape === 'DRAFT' ? 'yellow' : 'informative'}"
+                          variant="${offer.landscapeSource === 'DRAFT' ? 'yellow' : 'informative'}"
                           style="margin-left:4px;"
-                          >${offer.__landscape}</sp-badge
+                          >${offer.landscapeSource}</sp-badge
                       >`
                     : ''}
             </span>

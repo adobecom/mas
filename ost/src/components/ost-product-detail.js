@@ -373,7 +373,7 @@ export class OstProductDetail extends LitElement {
             const responses = await Promise.all(
                 landscapesToFetch.map(async (ls) => {
                     const res = await searchOffers(searchParams, { ...baseConfig, landscape: ls });
-                    return (res.data || res).map((o) => ({ ...o, __landscape: ls }));
+                    return (res.data || res).map((o) => ({ ...o, landscapeSource: ls }));
                 }),
             );
             let offers = responses.flat().map(applyPlanType);
@@ -384,7 +384,7 @@ export class OstProductDetail extends LitElement {
                 const seen = new Map();
                 for (const offer of offers) {
                     const id = offer.offer_id;
-                    if (!seen.has(id) || offer.__landscape === 'PUBLISHED') {
+                    if (!seen.has(id) || offer.landscapeSource === 'PUBLISHED') {
                         seen.set(id, offer);
                     }
                 }

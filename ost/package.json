@@ -47,12 +47,6 @@
         "@spectrum-web-components/popover": "^1.0.0",
         "@spectrum-web-components/switch": "^1.0.0"
     },
-    "optionalDependencies": {
-        "@pandora/data-source-aos": "0.6.4",
-        "@pandora/data-models-odm": "0.5.4",
-        "@pandora/data-source-utils": "0.3.1",
-        "@pandora/commerce-checkout-url-builder": "1.5.2"
-    },
     "devDependencies": {
         "vite": "^5.0.0",
         "@web/test-runner": "^0.18.0",

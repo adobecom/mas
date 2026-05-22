@@ -1,5 +1,5 @@
 import { odinUrl, odinReferences } from '../utils/paths.js';
-import { fetch, getFragmentId, getRequestInfos } from '../utils/common.js';
+import { fetch, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
@@ -283,7 +283,8 @@ async function settings(context) {
 
     logDebug(() => `Settings transformer: fetched settings ${JSON.stringify(settings)}`, context);
 
-    const { body, locale } = context;
+    const { body } = context;
+    const locale = getRegionalLocale(context);
 
     if (settings) {
         if (body?.model?.id === COLLECTION_MODEL_ID) {

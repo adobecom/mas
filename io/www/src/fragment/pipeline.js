@@ -13,6 +13,7 @@ import { transformer as promotions } from './transformers/promotions.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
+import { isKnownLocale } from './locales.js';
 
 let cachedConfiguration = null;
 let configurationTimestamp = null;
@@ -152,6 +153,15 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
+    if (!context.id || !context.locale) {
+        return { statusCode: 400, body: JSON.stringify({ message: 'requested parameters id & locale are not present' }) };
+    }
+    if (!isKnownLocale(context.locale)) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: `unknown locale '${context.locale}'` }),
+        };
+    }
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };

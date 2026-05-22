@@ -410,6 +410,36 @@ const LANG_TO_LANGUAGE = {
 
 const regionLocalesCache = {};
 
+const ALL_KNOWN_LOCALES = new Set(
+    Object.values(DEFAULT_LOCALES).flatMap((entries) =>
+        entries.flatMap(({ lang, country, regions = [] }) => [`${lang}_${country}`, ...regions.map((r) => `${lang}_${r}`)]),
+    ),
+);
+
+/**
+ * Whether `locale` is a known locale code across any surface (e.g. `fr_FR`, `en_AU`).
+ * Used to short-circuit obviously bogus requests before any Odin call.
+ */
+export function isKnownLocale(locale) {
+    return Boolean(locale) && ALL_KNOWN_LOCALES.has(locale);
+}
+
+/**
+ * Geo segment of the request cache key. Intentionally dumb: it does not attempt to
+ * resolve `(locale, country)` into a regional locale — that requires surface-specific
+ * knowledge and happens later in `computeRegionLocale`. It only drops the country
+ * segment when it is redundant (matches the locale's own country), so requests like
+ * `fr_FR` and `fr_FR + country=FR` share a cache bucket.
+ *
+ * @returns {{locale: string, country: string|null}}
+ */
+export function geoCacheKey(locale, country) {
+    const normalizedCountry = country?.toUpperCase() || null;
+    const localeCountry = locale?.split('_')[1]?.toUpperCase() || null;
+    const keyCountry = normalizedCountry && normalizedCountry !== localeCountry ? normalizedCountry : null;
+    return { locale, country: keyCountry };
+}
+
 export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 
 /**

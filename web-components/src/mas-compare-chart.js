@@ -847,15 +847,20 @@ export class MasCompareChart extends LitElement {
         const top = parseFloat(getComputedStyle(headerContent).top) || 0;
         const scrollY = window.scrollY || window.pageYOffset;
         const hostRect = this.getBoundingClientRect();
+        const headerHeight = headerContent.getBoundingClientRect().height;
         const stickyStart = scrollY + hostRect.top - top;
         const releaseOffset = this.#isMobile ? 24 : 1;
         const isStuck = this.#isStickyHeaderActive;
-        if (!isStuck && scrollY >= stickyStart) {
-            this.#setStickyHeaderActive(true);
-        } else if (
+        const shouldActivate =
+            !isStuck &&
+            scrollY >= stickyStart &&
+            hostRect.bottom > top + headerHeight;
+        const shouldRelease =
             isStuck &&
-            (scrollY < stickyStart - releaseOffset || hostRect.bottom <= top)
-        ) {
+            (scrollY < stickyStart - releaseOffset || hostRect.bottom <= top);
+        if (shouldActivate) {
+            this.#setStickyHeaderActive(true);
+        } else if (shouldRelease) {
             this.#setStickyHeaderActive(false);
         }
     }
@@ -863,6 +868,16 @@ export class MasCompareChart extends LitElement {
     #setStickyHeaderActive(active) {
         const headerContent = this.shadowRoot?.querySelector('.header-content');
         if (active === this.#isStickyHeaderActive) return;
+        if (active) {
+            const headerHeight =
+                headerContent?.getBoundingClientRect().height ?? 0;
+            this.style.setProperty(
+                '--compare-chart-sticky-spacer-height',
+                `${headerHeight}px`,
+            );
+        } else {
+            this.style.removeProperty('--compare-chart-sticky-spacer-height');
+        }
         this.#isStickyHeaderActive = active;
         this.toggleAttribute('data-sticky-header', active);
         headerContent?.classList.toggle('sticky', active);

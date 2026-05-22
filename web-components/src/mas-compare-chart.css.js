@@ -709,6 +709,10 @@ export const styles = css`
             padding: var(--spectrum-spacing-500, 24px) 0
                 var(--spectrum-spacing-800, 48px);
         }
+        :host([data-sticky-header]) .sticky-header-spacer {
+            display: block;
+            height: var(--compare-chart-sticky-spacer-height, 0px);
+        }
         .sticky-header-wrapper {
             grid-template-columns: repeat(2, minmax(0, 1fr));
             justify-content: space-between;
@@ -771,6 +775,10 @@ export const styles = css`
             --compare-chart-sticky-top: 0px;
             padding: var(--spectrum-spacing-500, 24px) 0
                 var(--spectrum-spacing-800, 48px);
+        }
+        :host([data-sticky-header]) .sticky-header-spacer {
+            display: block;
+            height: var(--compare-chart-sticky-spacer-height, 0px);
         }
         .sticky-header-wrapper {
             grid-template-columns: repeat(2, minmax(0, 1fr));

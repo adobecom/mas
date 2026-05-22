@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { matchesGeo } from '../../src/fragment/utils/common.js';
+import { matchesGeo, getCountry } from '../../src/fragment/utils/common.js';
 
 describe('common utils', () => {
     describe('matchesGeo', () => {
@@ -71,6 +71,21 @@ describe('common utils', () => {
                 const result = matchesGeo(['mas:locale/en_US'], {});
                 expect(result).to.be.null;
             });
+        });
+    });
+
+    describe('getCountry', () => {
+        it('prefers explicit country', () => {
+            expect(getCountry({ country: 'LU', locale: 'fr_FR' })).to.equal('LU');
+        });
+
+        it('falls back to country segment of locale', () => {
+            expect(getCountry({ locale: 'fr_FR' })).to.equal('FR');
+        });
+
+        it('returns empty string when both are missing or malformed', () => {
+            expect(getCountry({})).to.equal('');
+            expect(getCountry({ locale: 'fr' })).to.equal('');
         });
     });
 });

@@ -385,6 +385,12 @@ class MasCompareChartEditor extends LitElement {
         return fragment?.getFieldValue?.('cardTitle') || fragment?.title || fragment?.path || '';
     }
 
+    #variationOfferName(fragment) {
+        const name = this.#offerName(fragment);
+        const locale = getLocaleByCode(this.#pathLocale(fragment?.path));
+        return locale?.country ? `${name} (${locale.country.toUpperCase()})` : name;
+    }
+
     #offerName(fragment) {
         const hasTags = Array.isArray(fragment?.tags);
         return (
@@ -581,7 +587,7 @@ class MasCompareChartEditor extends LitElement {
                 @drop=${(event) => this.#handleVariationDrop(event, parentPath, variationPath)}
             >
                 <div class="compchart-card-cell compchart-card-cell-controls"></div>
-                <div class="compchart-card-cell compchart-card-title">${this.#offerName(displayFragment)}</div>
+                <div class="compchart-card-cell compchart-card-title">${this.#variationOfferName(displayFragment)}</div>
                 <div class="compchart-card-cell compchart-card-title compchart-truncate">
                     ${this.#fragmentTitle(displayFragment)}
                 </div>
@@ -1734,10 +1740,46 @@ class MasCompareChartEditor extends LitElement {
         `;
     }
 
+    #handleFragmentTitleUpdate(e) {
+        this.fragmentStore?.updateFieldInternal('title', e.target.value);
+    }
+
+    #handleFragmentDescriptionUpdate(e) {
+        this.fragmentStore?.updateFieldInternal('description', e.target.value);
+    }
+
+    #renderGeneralInfo() {
+        return html`
+            <div class="compchart-general-info">
+                <h3 class="compchart-general-info-title">General info</h3>
+                <div class="compchart-general-info-grid">
+                    <sp-field-group>
+                        <sp-field-label for="compchart-fragment-title" required>Fragment title</sp-field-label>
+                        <sp-textfield
+                            id="compchart-fragment-title"
+                            placeholder="Enter fragment title"
+                            value=${this.fragment?.title || ''}
+                            @input=${this.#handleFragmentTitleUpdate}
+                        ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group>
+                        <sp-field-label for="compchart-fragment-description">Fragment description</sp-field-label>
+                        <sp-textfield
+                            id="compchart-fragment-description"
+                            placeholder="Enter fragment description"
+                            value=${this.fragment?.description || ''}
+                            @input=${this.#handleFragmentDescriptionUpdate}
+                        ></sp-textfield>
+                    </sp-field-group>
+                </div>
+            </div>
+        `;
+    }
+
     #renderEditView(groups, columns) {
         const expandedGroups = this.#expandedGroupNames(groups);
         return html`
-            ${this.groupedVariationTagsTemplate} ${this.#renderCardsSection(columns)}
+            ${this.#renderGeneralInfo()} ${this.groupedVariationTagsTemplate} ${this.#renderCardsSection(columns)}
             <div class="compchart-grid" style="--compchart-editor-columns: ${columns.length}">
                 <div class="compchart-header-cell">Feature</div>
                 ${columns.map((column) => {

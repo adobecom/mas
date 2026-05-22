@@ -15,4 +15,26 @@ export const CSS = `
     mas-compare-chart [data-compare-chart-slot] a {
         margin: 0 !important;
     }
+
+    mas-compare-chart [data-compare-chart-slot][slot$='-detail'],
+    mas-compare-chart [data-compare-chart-slot][slot$='-detail'] p {
+        color: var(--C1-Text-text, #2C2C2C) !important;
+        font-family: var(--Font-adobe-clean, "Adobe Clean"), sans-serif !important;
+        font-size: 12px !important;
+        font-style: italic !important;
+        font-weight: 400 !important;
+        line-height: 150% !important;
+        text-decoration-line: underline;
+        text-decoration-style: solid;
+        text-decoration-skip-ink: auto;
+        text-decoration-thickness: auto;
+        text-underline-offset: auto;
+        text-underline-position: from-font;
+    }
+
+    mas-compare-chart [data-compare-chart-slot][slot$='-detail'] {
+        flex-grow: 0 !important;
+        min-height: auto !important;
+        padding-block: 0 !important;
+    }
 `;

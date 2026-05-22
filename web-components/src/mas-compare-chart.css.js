@@ -5,8 +5,8 @@ export const styles = css`
         --comparison-border-radius: 8px;
         --comparison-row-border-color: #e9e9e9;
         --comparison-desktop-max-width: 1200px;
-        --comparison-tablet-spacing: 50px;
-        --comparison-table-spacing: 12px;
+        --comparison-tablet-spacing: var(--spectrum-spacing-800, 48px);
+        --comparison-table-spacing: var(--spectrum-spacing-300, 12px);
         --compare-chart-row-border-color: var(--comparison-row-border-color);
         --compare-chart-desktop-max-width: var(--comparison-desktop-max-width);
         --compare-chart-spacing: var(--comparison-table-spacing);
@@ -34,7 +34,7 @@ export const styles = css`
             sans-serif;
         --compare-chart-header-price-font: 700 16px/20px 'Adobe Clean',
             sans-serif;
-        --compare-chart-header-detail-font: italic 400 12px/15px 'Adobe Clean',
+        --compare-chart-header-detail-font: italic 400 12px/150% 'Adobe Clean',
             sans-serif;
         --compare-chart-header-cta-font: 700 15px/19px 'Adobe Clean', sans-serif;
 
@@ -74,13 +74,14 @@ export const styles = css`
                 var(--compare-chart-sticky-gap, 0px)
         );
         z-index: 9;
-        background: transparent;
+        background: var(--spectrum-gray-50, #fff);
         box-shadow: none;
         box-sizing: border-box;
-        padding-bottom: var(--spacing-s, 24px);
+        padding-bottom: var(--spectrum-spacing-500, 24px);
         transform: translateZ(0);
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
+        overflow-anchor: none;
     }
     .sticky-header-wrapper {
         box-sizing: border-box;
@@ -113,10 +114,6 @@ export const styles = css`
         -webkit-backface-visibility: hidden;
         opacity: 1;
     }
-    .sticky-header.is-stuck .sticky-header-wrapper {
-        justify-content: space-between;
-        gap: 0;
-    }
     slot[name='cards'] {
         display: none;
     }
@@ -137,24 +134,25 @@ export const styles = css`
         white-space: nowrap;
     }
     .header-leading-header {
-        grid-row: 1;
+        grid-row: var(--row);
     }
     .header-leading-price {
-        grid-row: 2;
+        grid-row: var(--row);
     }
     .header-leading-description {
-        grid-row: 3;
+        grid-row: var(--row);
     }
     .header-leading-detail {
-        grid-row: 4;
+        grid-row: var(--row);
     }
     .header-leading-cta {
-        grid-row: 5;
+        grid-row: var(--row);
         font: var(--compare-chart-header-title-font);
         letter-spacing: 0;
     }
     .header-card-segment {
         grid-column: calc(var(--col) + 1);
+        grid-row: var(--row);
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -172,7 +170,7 @@ export const styles = css`
     .price-segment {
         border: 1px solid var(--color-gray-300, #d5d5d5);
         border-radius: var(--comparison-border-radius);
-        padding: var(--spacing-xxs, 8px);
+        padding: var(--spectrum-spacing-200, 8px);
         background: #fff;
         transition:
             border-color var(--transition-smooth, 0.3s ease),
@@ -188,26 +186,21 @@ export const styles = css`
         background: var(--color-gray-100, #f8f8f8);
     }
     .header-segment {
-        grid-row: 1;
         position: relative;
         justify-content: flex-start;
     }
     .price-segment {
-        grid-row: 2;
         align-self: stretch;
     }
     .description-segment {
-        grid-row: 3;
         padding: 0 var(--comparison-table-spacing);
     }
     .detail-segment {
-        grid-row: 4;
         padding: 0 var(--comparison-table-spacing);
     }
     .cta-segment {
-        grid-row: 5;
         gap: 8px;
-        padding: var(--spacing-xxs, 8px);
+        padding: 0;
     }
     .cta-segment slot {
         display: flex;
@@ -215,7 +208,13 @@ export const styles = css`
         align-items: center;
         align-self: stretch;
         width: 100%;
-        gap: var(--spacing-xxs, 8px);
+        gap: var(--spectrum-spacing-200, 8px);
+    }
+    .cta-segment ::slotted(a),
+    .cta-segment ::slotted(button) {
+        margin: 0 !important;
+        padding: 5px 8px !important;
+        white-space: nowrap;
     }
     .mobile-filter-select {
         display: none;
@@ -322,7 +321,7 @@ export const styles = css`
         align-items: center;
         align-self: stretch;
         width: 100%;
-        padding: var(--spacing-xxs, 8px);
+        padding: var(--spectrum-spacing-200, 8px);
         box-sizing: border-box;
         font:
             normal var(--type-detail-all-weight, 700)
@@ -341,23 +340,28 @@ export const styles = css`
         align-self: stretch;
         flex-grow: 1;
         width: 100%;
-        padding: var(--spacing-xxs, 8px);
+        padding: var(--spectrum-spacing-200, 8px);
         box-sizing: border-box;
         background: rgba(255, 255, 255, 0.001);
         font:
-            italic 400 var(--type-body-xxs-size, 12px) / 1.25 'Adobe Clean',
+            italic 400 var(--type-body-xxs-size, 12px) / 150% 'Adobe Clean',
             sans-serif !important;
         letter-spacing: 0;
         margin: 0;
         text-align: center;
-        color: #2c2c2c;
+        color: var(--C1-Text-text, #2c2c2c);
+        text-decoration-line: underline;
+        text-decoration-style: solid;
+        text-decoration-skip-ink: auto;
+        text-decoration-thickness: auto;
+        text-underline-offset: auto;
+        text-underline-position: from-font;
     }
     ::slotted([slot$='-cta']) {
         display: flex;
         justify-content: center;
         font: var(--compare-chart-header-cta-font);
         letter-spacing: 0;
-        margin: 0;
         text-align: center;
     }
 
@@ -375,7 +379,7 @@ export const styles = css`
     .table-container {
         display: block;
         max-width: calc(100% - 60px);
-        margin: var(--spacing-xs, 16px) auto 0;
+        margin: var(--spectrum-spacing-400, 16px) auto 0;
         padding: 0;
         box-sizing: border-box;
         color: var(--color-gray-700-variant, var(--color-text));
@@ -398,7 +402,7 @@ export const styles = css`
         position: relative;
         width: 100%;
         box-sizing: border-box;
-        padding: var(--spacing-s, 24px);
+        padding: var(--spectrum-spacing-500, 24px);
         background: var(--C1-Web-Gray-Scale-gray-100, #f8f8f8);
         border: 1px solid var(--C1-Stroke-compare-table-border, #d4d4d4);
         font-size: var(--type-heading-s-size, 18px);
@@ -443,7 +447,7 @@ export const styles = css`
     }
 
     .table-row {
-        margin: 0 var(--spacing-s, 24px);
+        margin: 0 var(--spectrum-spacing-500, 24px);
         display: grid;
         grid-template-columns: var(--compare-chart-leading-col) var(
                 --compare-chart-data-cols
@@ -465,7 +469,7 @@ export const styles = css`
         grid-column: 1 / -1;
         justify-content: center;
         margin: 0 auto;
-        padding: var(--spacing-xs, 16px) 0 0 0;
+        padding: var(--spectrum-spacing-400, 16px) 0 0 0;
         text-align: center;
         font-size: var(--type-body-xs-size, 14px);
         font-style: normal;
@@ -502,7 +506,7 @@ export const styles = css`
 
     .table-row p[role='cell'] {
         margin: 0;
-        padding: 0 0 var(--spacing-s, 24px) 0;
+        padding: 0 0 var(--spectrum-spacing-500, 24px) 0;
         border: none;
         background: transparent;
         text-align: center;
@@ -526,7 +530,8 @@ export const styles = css`
         gap: 6px;
         justify-content: center;
         min-height: 18px;
-        padding: var(--spacing-xs, 16px) var(--comparison-table-spacing);
+        padding: var(--spectrum-spacing-400, 16px)
+            var(--comparison-table-spacing);
         width: calc(100% - 2 * var(--comparison-table-spacing) - 2px);
     }
     .table-row p[role='cell']:not(:nth-child(2)) .compare-chart-chip {
@@ -701,10 +706,19 @@ export const styles = css`
         :host {
             --compare-chart-leading-col: 0px;
             --compare-chart-sticky-top: 0px;
-            padding: 0;
+            padding: var(--spectrum-spacing-500, 24px) 0
+                var(--spectrum-spacing-800, 48px);
         }
         .sticky-header-wrapper {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+            justify-content: space-between;
+        }
+        .sticky-header.is-stuck {
+            position: fixed;
+            inset-inline: 0;
+            width: auto;
+            margin-inline: 0;
+            top: 0;
         }
         .header-leading {
             display: none;
@@ -715,21 +729,6 @@ export const styles = css`
         .header-card-segment {
             grid-column: var(--col);
             align-self: stretch;
-        }
-        .header-segment {
-            grid-row: 1;
-        }
-        .price-segment {
-            grid-row: 2;
-        }
-        .description-segment {
-            grid-row: 3;
-        }
-        .detail-segment {
-            grid-row: 4;
-        }
-        .cta-segment {
-            grid-row: 5;
         }
         .header-segment:has(.mobile-filter-select) {
             padding-bottom: 30px;
@@ -770,11 +769,19 @@ export const styles = css`
         :host {
             --compare-chart-leading-col: 0px;
             --compare-chart-sticky-top: 0px;
-            padding: 0;
+            padding: var(--spectrum-spacing-500, 24px) 0
+                var(--spectrum-spacing-800, 48px);
         }
         .sticky-header-wrapper {
             grid-template-columns: repeat(2, minmax(0, 1fr));
             max-width: calc(100% - 160px);
+        }
+        .sticky-header.is-stuck {
+            position: fixed;
+            inset-inline: 0;
+            width: auto;
+            margin-inline: 0;
+            top: 0;
         }
         .table-container {
             max-width: calc(100% - 130px);
@@ -791,21 +798,6 @@ export const styles = css`
         .header-card-segment {
             grid-column: var(--col);
             align-self: stretch;
-        }
-        .header-segment {
-            grid-row: 1;
-        }
-        .price-segment {
-            grid-row: 2;
-        }
-        .description-segment {
-            grid-row: 3;
-        }
-        .detail-segment {
-            grid-row: 4;
-        }
-        .cta-segment {
-            grid-row: 5;
         }
         .header-segment:has(.mobile-filter-select) {
             padding-bottom: 30px;
@@ -833,10 +825,11 @@ export const styles = css`
 
     @media screen and (min-width: 900px) {
         :host {
-            padding: 0;
+            padding: var(--spectrum-spacing-500, 24px) 0
+                var(--spectrum-spacing-800, 48px);
         }
         .sticky-header-wrapper {
-            max-width: calc(100% - 4 * var(--spacing-s, 24px));
+            max-width: calc(100% - 4 * var(--spectrum-spacing-500, 24px));
         }
         .table-container {
             max-width: calc(100% - var(--comparison-tablet-spacing));
@@ -852,17 +845,18 @@ export const styles = css`
             justify-content: flex-start;
             margin: 0;
             margin-inline-end: var(--comparison-table-spacing);
-            padding: var(--spacing-s, 24px) var(--spacing-s, 24px)
-                var(--spacing-s, 24px) 0;
+            padding: var(--spectrum-spacing-500, 24px)
+                var(--spectrum-spacing-500, 24px)
+                var(--spectrum-spacing-500, 24px) 0;
             text-align: start;
         }
         .table-row p[role='cell'] {
-            padding: var(--spacing-s, 24px) 0;
+            padding: var(--spectrum-spacing-500, 24px) 0;
         }
         .table-column-header {
             justify-content: space-between;
             position: static;
-            padding: var(--spacing-s, 24px);
+            padding: var(--spectrum-spacing-500, 24px);
         }
         .toggle-icon {
             position: static;
@@ -872,12 +866,13 @@ export const styles = css`
     @media screen and (min-width: 1200px) {
         :host {
             max-width: var(--comparison-desktop-max-width);
-            padding: 0;
+            padding: var(--spectrum-spacing-500, 24px) 0
+                var(--spectrum-spacing-800, 48px);
         }
         .sticky-header-wrapper {
             max-width: calc(
                 var(--comparison-desktop-max-width) - 2 *
-                    var(--spacing-s, 24px) - 2px
+                    var(--spectrum-spacing-500, 24px) - 2px
             );
         }
         .table-container {

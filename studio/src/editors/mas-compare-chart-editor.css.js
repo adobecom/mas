@@ -185,7 +185,7 @@ export const styles = css`
     }
 
     .compchart-row-label {
-        background: var(--spectrum-gray-50);
+        background: var(--spectrum-gray-100);
     }
 
     .compchart-row-label.dragover {
@@ -283,6 +283,47 @@ export const styles = css`
 
     sp-dialog {
         min-width: 360px;
+    }
+
+    .compchart-general-info {
+        margin-bottom: 16px;
+        border: 1px solid var(--spectrum-gray-300);
+        border-radius: 12px;
+        padding: 20px;
+        background: var(--spectrum-white);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .compchart-general-info-title {
+        color: var(--spectrum-gray-900);
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 22px;
+        margin: 0;
+    }
+
+    .compchart-general-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .compchart-general-info-grid sp-field-group {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .compchart-general-info-grid sp-textfield {
+        width: 100%;
+    }
+
+    @media (max-width: 720px) {
+        .compchart-general-info-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .compchart-cards-section {
@@ -485,6 +526,11 @@ export const styles = css`
         border-radius: 12px;
         margin-top: 28px;
         overflow: hidden;
+        width: 100%;
+    }
+
+    .compchart-card-variation-list .compchart-card-variation-row {
+        width: 100%;
     }
 
     .compchart-card-variation-row {
@@ -515,7 +561,7 @@ export const styles = css`
     }
 
     .compchart-card-variation-row.selected {
-        background: var(--spectrum-table-selected-row-background-color);
+        background: var(--spectrum-gray-100);
     }
 
     .compchart-card-variation-row:not(:last-child) {

@@ -845,13 +845,19 @@ export class MasCompareChart extends LitElement {
             return;
         }
         const top = parseFloat(getComputedStyle(headerContent).top) || 0;
-        const headerRect = headerContent.getBoundingClientRect();
+        const scrollY = window.scrollY || window.pageYOffset;
         const hostRect = this.getBoundingClientRect();
-        this.#setStickyHeaderActive(
-            hostRect.top < top &&
-                hostRect.bottom > top &&
-                headerRect.top <= top + 1,
-        );
+        const stickyStart = scrollY + hostRect.top - top;
+        const releaseOffset = this.#isMobile ? 24 : 1;
+        const isStuck = this.#isStickyHeaderActive;
+        if (!isStuck && scrollY >= stickyStart) {
+            this.#setStickyHeaderActive(true);
+        } else if (
+            isStuck &&
+            (scrollY < stickyStart - releaseOffset || hostRect.bottom <= top)
+        ) {
+            this.#setStickyHeaderActive(false);
+        }
     }
 
     #setStickyHeaderActive(active) {
@@ -944,49 +950,49 @@ export class MasCompareChart extends LitElement {
     #renderHeaderGrid() {
         const cards = this.#visibleCardHeaders();
         const visibleSlots = this.#visibleSlotPresence(cards);
+        let row = 1;
         return html`
-            <div class="header-leading header-leading-header"></div>
+            ${this.#renderHeaderRow(
+                cards,
+                'header',
+                row++,
+                visibleSlots,
+            )}
+            ${visibleSlots.has('price')
+                ? this.#renderHeaderRow(cards, 'price', row++, visibleSlots)
+                : nothing}
+            ${visibleSlots.has('description')
+                ? this.#renderHeaderRow(
+                      cards,
+                      'description',
+                      row++,
+                      visibleSlots,
+                  )
+                : nothing}
+            ${visibleSlots.has('detail')
+                ? this.#renderHeaderRow(cards, 'detail', row++, visibleSlots)
+                : nothing}
+            ${visibleSlots.has('cta')
+                ? this.#renderHeaderRow(cards, 'cta', row++, visibleSlots)
+                : nothing}
+        `;
+    }
+
+    #renderHeaderRow(cards, segment, row, visibleSlots) {
+        return html`
+            <div
+                class="header-leading header-leading-${segment}"
+                style="--row: ${row};"
+            ></div>
             ${cards.map((card, i) =>
                 this.#renderHeaderSegment(
                     card,
-                    'header',
+                    segment,
                     i + 1,
                     i,
+                    row,
                     visibleSlots,
                 ),
-            )}
-            <div class="header-leading header-leading-price"></div>
-            ${cards.map((card, i) =>
-                this.#renderHeaderSegment(
-                    card,
-                    'price',
-                    i + 1,
-                    i,
-                    visibleSlots,
-                ),
-            )}
-            <div class="header-leading header-leading-description"></div>
-            ${cards.map((card, i) =>
-                this.#renderHeaderSegment(
-                    card,
-                    'description',
-                    i + 1,
-                    i,
-                    visibleSlots,
-                ),
-            )}
-            <div class="header-leading header-leading-detail"></div>
-            ${cards.map((card, i) =>
-                this.#renderHeaderSegment(
-                    card,
-                    'detail',
-                    i + 1,
-                    i,
-                    visibleSlots,
-                ),
-            )}
-            ${cards.map((card, i) =>
-                this.#renderHeaderSegment(card, 'cta', i + 1, i, visibleSlots),
             )}
         `;
     }
@@ -1011,6 +1017,7 @@ export class MasCompareChart extends LitElement {
         segment,
         visibleCol,
         visibleIndex,
+        row,
         visibleSlots,
     ) {
         const classes = ['header-card-segment', `${segment}-segment`];
@@ -1020,7 +1027,7 @@ export class MasCompareChart extends LitElement {
             data-card-id=${card.cardId}
             data-card-index=${card.col - 1}
             data-cell-color=${dataCellColor}
-            style="--col: ${visibleCol};"
+            style="--col: ${visibleCol}; --row: ${row};"
         >
             ${segment === 'header'
                 ? html`

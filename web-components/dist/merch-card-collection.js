@@ -6975,6 +6975,28 @@ merch-card[variant="mini"] span.renewal-text {
     mas-compare-chart [data-compare-chart-slot] a {
         margin: 0 !important;
     }
+
+    mas-compare-chart [data-compare-chart-slot][slot$='-detail'],
+    mas-compare-chart [data-compare-chart-slot][slot$='-detail'] p {
+        color: var(--C1-Text-text, #2C2C2C) !important;
+        font-family: var(--Font-adobe-clean, "Adobe Clean"), sans-serif !important;
+        font-size: 12px !important;
+        font-style: italic !important;
+        font-weight: 400 !important;
+        line-height: 150% !important;
+        text-decoration-line: underline;
+        text-decoration-style: solid;
+        text-decoration-skip-ink: auto;
+        text-decoration-thickness: auto;
+        text-underline-offset: auto;
+        text-underline-position: from-font;
+    }
+
+    mas-compare-chart [data-compare-chart-slot][slot$='-detail'] {
+        flex-grow: 0 !important;
+        min-height: auto !important;
+        padding-block: 0 !important;
+    }
 `;var ha={mnemonics:{size:"l"},title:{tag:"h3",slot:"header",maxCount:100},prices:{tag:"p",slot:"price"},description:{tag:"div",slot:"detail",maxCount:1e3},ctas:{slot:"cta",size:"M"},features:{tag:"div",slot:"features",unwrap:!0}},Qs=[{key:"header",selector:".seg-header"},{key:"price",selector:".seg-price"},{key:"detail",selector:".seg-detail"},{key:"cta",selector:".seg-cta"}],ir,Xi,dt=class extends C{constructor(t){super(t);U(this,ir);this.postCardUpdateHook=this.postCardUpdateHook.bind(this)}getGlobalCSS(){return Yi}get aemFragmentMapping(){return ha}getContainer(){return this.card.closest("mas-compare-chart")??this.card.parentElement}connectedCallbackHook(){window.addEventListener("resize",this.postCardUpdateHook)}disconnectedCallbackHook(){window.removeEventListener("resize",this.postCardUpdateHook)}async postCardUpdateHook(){this.card.isConnected&&(await this.card.updateComplete,Oe(this,ir,Xi).call(this))}renderLayout(){return Ks`
             <div class="card">
                 <div class="seg seg-header">

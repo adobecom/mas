@@ -1,6 +1,6 @@
 import { PRICE_PATTERN, DOCS_GALLERY_PATH } from '../../../utils/commerce.js';
 
-export const FeatureName = 'Merch Acom Cards Feature';
+export const FeatureName = 'Merch Acom Cards Variations Feature';
 export const features = [
     {
         tcid: '0',
@@ -32,7 +32,7 @@ export const features = [
             subtitle: 'GR regional variation',
             price: PRICE_PATTERN.GR.mo_en,
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '2',
@@ -44,7 +44,7 @@ export const features = [
             removed_id: '7545e2eb-8fad-47d8-96cf-e76d3370c9f4',
             reorder: ['40d5ebda-a155-4375-91c3-fbb788ab5314', 'd4faa487-d88e-4fb7-b42f-c1a3101ea937'],
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '3',
@@ -59,7 +59,7 @@ export const features = [
                 '40d5ebda-a155-4375-91c3-fbb788ab5314',
             ],
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '4',
@@ -73,7 +73,7 @@ export const features = [
             subtitle: 'en_GR grouped variation',
             price: PRICE_PATTERN.GR.mo_en,
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '5',
@@ -87,7 +87,7 @@ export const features = [
             subtitle: 'GR regional variation',
             price: PRICE_PATTERN.GR.mo_en,
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '6',
@@ -104,7 +104,7 @@ export const features = [
                 ar_en: PRICE_PATTERN.AR.mo_en,
             },
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     {
         tcid: '7',
@@ -120,7 +120,7 @@ export const features = [
                 ar_en: PRICE_PATTERN.AR.mo_en,
             },
         },
-        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+        tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     },
     // once issue with AR is fixed, add this test
     // {
@@ -134,6 +134,6 @@ export const features = [
     //         variation_collection_id: '',
     //         subtitle: '',
     //     },
-    //     tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo @regional-variation',
+    //     tags: '@mas-docs @mas-acom @mas-variations @commerce @smoke @regression @milo',
     // },
 ];

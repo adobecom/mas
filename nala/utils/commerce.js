@@ -5,6 +5,10 @@ const MAS_LIBS = process.env.MAS_LIBS || '';
 const MAS_IO_URL = process.env.MAS_IO_URL || '';
 
 const PRICE_PATTERN = {
+    FAKE: {
+        promo: 'US$55.55/mo',
+        regular: 'US$99.99/mo',
+    },
     US: {
         mo: /US\$\d+\.\d\d\/mo/,
         yr: /US\$\d+\.\d\d\/yr/,
@@ -36,6 +40,7 @@ const DOCS_GALLERY_PATH = {
     },
     PLANS_COLLECTION: {
         US: '/web-components/docs/plans-collection.html',
+        ES_ES: '/web-components/docs/plans-collection.html?country=ES&language=es',
         GR_co: '/web-components/docs/plans-collection.html?country=GR',
         GR_EN: '/web-components/docs/plans-collection.html?locale=en_GR',
         AR_co: '/web-components/docs/plans-collection.html?country=AR',

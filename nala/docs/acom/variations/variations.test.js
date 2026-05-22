@@ -11,7 +11,6 @@ const workerSetup = createWorkerPageSetup({
         { name: 'GR_EN', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN },
         { name: 'AR_co', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co },
         { name: 'AR_ES', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES },
-        { name: 'AR', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR },
     ],
 });
 

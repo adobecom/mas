@@ -553,7 +553,6 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     async adjustLegal() {
-        return;
         if (this.legalAdjusted) return;
 
         try {
@@ -591,8 +590,8 @@ export class MiniCompareChart extends VariantLayout {
                 );
                 this.legalElement = legal;
             }
-        } catch (error) {
-            console.error('Error adjusting legal price', error);
+        } catch {
+            // Proceed with other adjustments
         }
     }
 

@@ -625,59 +625,6 @@ mas-field span.price.price-promo-strikethrough {
   color: var(--merch-color-inline-price-strikethrough);
 }
 
-mas-compare-chart > [slot$="-description"],
-mas-compare-chart > [slot$="-detail"] {
-  min-height: 52px;
-  color: #2c2c2c;
-  font: italic 400 12px/18px 'Adobe Clean', sans-serif;
-  text-align: center;
-  letter-spacing: 0;
-}
-
-mas-compare-chart > [slot$="-price"].price,
-mas-compare-chart > [slot$="-price"] .price,
-mas-compare-chart > [slot$="-price"][is="inline-price"],
-mas-compare-chart > [slot$="-price"] [is="inline-price"],
-mas-compare-chart > [slot$="-price"].price-recurrence,
-mas-compare-chart > [slot$="-price"] .price-recurrence,
-mas-compare-chart > [slot$="-price"].price-tax-inclusivity,
-mas-compare-chart > [slot$="-price"] .price-tax-inclusivity,
-mas-compare-chart > [slot$="-price"].price-unit-type,
-mas-compare-chart > [slot$="-price"] .price-unit-type {
-  width: 144px;
-  max-width: 100%;
-  color: #000;
-  text-align: center;
-  letter-spacing: 0;
-  flex: none;
-}
-
-mas-compare-chart > [slot$="-price"].price-strikethrough,
-mas-compare-chart > [slot$="-price"] .price-strikethrough {
-  order: 0;
-  height: 15px;
-  font: 700 12px/15px 'Adobe Clean', sans-serif;
-  text-decoration-line: line-through;
-}
-
-mas-compare-chart > [slot$="-price"].price:not(.price-strikethrough),
-mas-compare-chart > [slot$="-price"] .price:not(.price-strikethrough) {
-  order: 1;
-  height: 20px;
-  font: 700 16px/20px 'Adobe Clean', sans-serif;
-}
-
-mas-compare-chart > [slot$="-price"].price-recurrence,
-mas-compare-chart > [slot$="-price"] .price-recurrence,
-mas-compare-chart > [slot$="-price"].price-tax-inclusivity,
-mas-compare-chart > [slot$="-price"] .price-tax-inclusivity,
-mas-compare-chart > [slot$="-price"].price-unit-type,
-mas-compare-chart > [slot$="-price"] .price-unit-type {
-  order: 2;
-  height: 15px;
-  font: italic 400 12px/15px 'Adobe Clean', sans-serif;
-}
-
 merch-card [slot^="body-"] ul {
     margin: 0;
     padding-inline-start: var(--merch-card-ul-padding);

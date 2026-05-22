@@ -31,13 +31,10 @@ export class VariantLayout {
     updateCardElementMinHeight(el, name) {
         if (!el || this.card.heightSync === false) return;
         const elMinHeightPropertyName = `--consonant-merch-card-${this.card.variant}-${name}-height`;
-        // <slot> and some flex children report computed height as "auto" →
-        // parseInt yields NaN; use layout box size so comparison tables can sync.
-        let height = parseInt(window.getComputedStyle(el).height, 10);
-        if (!Number.isFinite(height) || height <= 0) {
-            height = Math.round(el.getBoundingClientRect().height);
-        }
-        height = Math.max(0, height);
+        const height = Math.max(
+            0,
+            parseInt(window.getComputedStyle(el).height) || 0,
+        );
         const container = this.getContainer();
         const maxMinHeight =
             parseInt(

@@ -2924,6 +2924,11 @@ merch-card-collection:has([slot="subtitle"]) merch-card {
         width: 100%;
     }
 
+    merch-whats-included merch-mnemonic-list:not(:has([slot="description"] span:not(:empty))) {
+        width: auto;
+        margin-right: unset;
+    }
+
     merch-card[variant="plans-education"] .spacer {
         height: 0px;
     }

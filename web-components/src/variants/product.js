@@ -47,6 +47,8 @@ export const PRODUCT_AEM_FRAGMENT_MAPPING = {
 };
 
 export class Product extends VariantLayout {
+    #resizeFrame;
+
     constructor(card) {
         super(card);
         this.postCardUpdateHook = this.postCardUpdateHook.bind(this);
@@ -113,7 +115,14 @@ export class Product extends VariantLayout {
     }
 
     connectedCallbackHook() {
-        window.addEventListener('resize', this.postCardUpdateHook);
+        this.handleResize = () => {
+            if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = requestAnimationFrame(() => {
+                this.#resizeFrame = null;
+                this.postCardUpdateHook();
+            });
+        };
+        window.addEventListener('resize', this.handleResize);
         this.card.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
@@ -121,7 +130,14 @@ export class Product extends VariantLayout {
     }
 
     disconnectedCallbackHook() {
-        window.removeEventListener('resize', this.postCardUpdateHook);
+        if (this.handleResize) {
+            window.removeEventListener('resize', this.handleResize);
+            this.handleResize = null;
+        }
+        if (this.#resizeFrame) {
+            cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = null;
+        }
         this.card.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
@@ -137,6 +153,7 @@ export class Product extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
+        await super.postCardUpdateHook();
     }
 
     async adjustLegal() {

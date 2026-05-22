@@ -40,6 +40,10 @@ const toggleLocale = (event, params) => {
         params.set('country', country);
         params.delete('language');
         params.set('locale', LANG_LOCALE_MAP[language]);
+        if (country === 'AU' && language === 'en') {            
+            params.set('locale', 'en_AU');
+            params.delete('country');
+        }
     } else {
         params.set('locale', val);
         params.delete('country');

@@ -50,9 +50,10 @@ export class CCDSuggested extends VariantLayout {
             <slot></slot>`;
     }
 
-    postCardUpdateHook(changedProperties) {
+    async postCardUpdateHook(changedProperties) {
         if (changedProperties.has('backgroundImage'))
             this.styleBackgroundImage();
+        await super.postCardUpdateHook();
     }
 
     styleBackgroundImage() {

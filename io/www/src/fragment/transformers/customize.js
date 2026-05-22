@@ -3,6 +3,7 @@ import { getRequestInfos, matchesGeo } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
 
 const PZN_FOLDER = '/pzn/';
+const COMPARE_CHART_VARIANT = 'compare-chart';
 
 function skimFragmentFromReferences(fragment) {
     const skimmedFragment = structuredClone(fragment);
@@ -29,6 +30,11 @@ async function resolveFragmentInit(context, requestInfos) {
 }
 
 function deepMerge(...objects) {
+    // variation template is empty
+    if (objects?.[0]?.fields?.variant === COMPARE_CHART_VARIANT) {
+        const [parent, child] = objects;
+        child.fields.features.value = [...(parent?.fields?.features.value || []), ...(child?.fields?.features.value || [])];
+    }
     const result = {};
     for (const obj of objects) {
         for (const key in obj) {

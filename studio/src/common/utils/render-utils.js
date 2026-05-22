@@ -36,6 +36,23 @@ export function getItemTypeLabel(item) {
 }
 
 /**
+ * Detects clicks that originated on an interactive control inside a selectable
+ * `sp-table-row` (checkbox, expand chevron, copy/action button). Used to avoid
+ * toggling row selection when the user is interacting with such controls.
+ * @param {Event} event
+ * @returns {boolean}
+ */
+export function shouldIgnoreRowClickForSelection(event) {
+    return event.composedPath().some((node) => {
+        if (!(node instanceof Element)) return false;
+        if (node.tagName === 'SP-CHECKBOX') return true;
+        if (node.classList?.contains('expand-button')) return true;
+        if (node.tagName === 'SP-ACTION-BUTTON') return true;
+        return false;
+    });
+}
+
+/**
  * Returns a display title for an item (card, collection, or placeholder).
  * @param {Object} item
  * @param {number} [maxLength=54]

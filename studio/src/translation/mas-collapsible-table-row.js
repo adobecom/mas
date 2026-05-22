@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { styles } from './mas-collapsible-table-row.css.js';
 import { Fragment } from '../aem/fragment.js';
-import { getItemTypeLabel } from '../common/utils/render-utils.js';
+import { getItemTypeLabel, shouldIgnoreRowClickForSelection } from '../common/utils/render-utils.js';
 import { getItemsSelectionStore } from '../common/items-selection-store.js';
 import { loadCardVariations, fetchVariationByPath } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -294,13 +294,7 @@ export class MasCollapsibleTableRow extends LitElement {
     }
 
     #onRowClickForSelection(e, path) {
-        const shouldIgnore = e.composedPath().some((node) => {
-            if (!(node instanceof Element)) return false;
-            if (node.tagName === 'SP-CHECKBOX') return true;
-            if (node.classList?.contains('expand-button')) return true;
-            if (node.tagName === 'SP-ACTION-BUTTON') return true;
-        });
-        if (shouldIgnore) return;
+        if (shouldIgnoreRowClickForSelection(e)) return;
         this.#toggleSelect(e, path);
     }
 

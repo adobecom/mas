@@ -1,6 +1,11 @@
 import { expect } from '@esm-bundle/chai';
 import { nothing, render } from 'lit';
-import { renderFragmentStatusCell, getItemTypeLabel, getItemTitle } from '../../../src/common/utils/render-utils.js';
+import {
+    renderFragmentStatusCell,
+    getItemTypeLabel,
+    getItemTitle,
+    shouldIgnoreRowClickForSelection,
+} from '../../../src/common/utils/render-utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, FRAGMENT_STATUS } from '../../../src/constants.js';
 
 describe('render-utils', () => {
@@ -71,6 +76,51 @@ describe('render-utils', () => {
                     getFieldValue: (f) => (f === 'key' ? 'from-field' : ''),
                 }),
             ).to.equal('from-field');
+        });
+    });
+
+    describe('shouldIgnoreRowClickForSelection', () => {
+        const fakeEvent = (...nodes) => ({ composedPath: () => nodes });
+
+        it('returns false when the path contains no interactive controls', () => {
+            const cell = document.createElement('sp-table-cell');
+            const row = document.createElement('sp-table-row');
+            row.appendChild(cell);
+            expect(shouldIgnoreRowClickForSelection(fakeEvent(cell, row))).to.be.false;
+        });
+
+        it('returns true when the path contains an sp-checkbox', () => {
+            const checkbox = document.createElement('sp-checkbox');
+            const cell = document.createElement('sp-table-cell');
+            cell.appendChild(checkbox);
+            expect(shouldIgnoreRowClickForSelection(fakeEvent(checkbox, cell))).to.be.true;
+        });
+
+        it('returns true when the path contains an element with the expand-button class', () => {
+            const button = document.createElement('sp-button');
+            button.classList.add('expand-button');
+            const cell = document.createElement('sp-table-cell');
+            cell.appendChild(button);
+            expect(shouldIgnoreRowClickForSelection(fakeEvent(button, cell))).to.be.true;
+        });
+
+        it('returns true when the path contains an sp-action-button', () => {
+            const button = document.createElement('sp-action-button');
+            const cell = document.createElement('sp-table-cell');
+            cell.appendChild(button);
+            expect(shouldIgnoreRowClickForSelection(fakeEvent(button, cell))).to.be.true;
+        });
+
+        it('ignores non-Element nodes in the composed path', () => {
+            const row = document.createElement('sp-table-row');
+            expect(shouldIgnoreRowClickForSelection(fakeEvent(row, document, window))).to.be.false;
+        });
+
+        it('returns false when expand-button class is on an unrelated node not in the path', () => {
+            const sibling = document.createElement('sp-button');
+            sibling.classList.add('expand-button');
+            const cell = document.createElement('sp-table-cell');
+            expect(shouldIgnoreRowClickForSelection(fakeEvent(cell))).to.be.false;
         });
     });
 });

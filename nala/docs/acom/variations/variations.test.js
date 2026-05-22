@@ -11,6 +11,7 @@ const workerSetup = createWorkerPageSetup({
         { name: 'GR_EN', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN },
         { name: 'AR_co', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co },
         { name: 'AR_ES', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES },
+        { name: 'AR_ES_co', url: DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co },
     ],
 });
 
@@ -231,9 +232,9 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify translated grouped card variation on AR_co', async () => {
-            const page = workerSetup.getPage('AR_co');
+            const page = workerSetup.getPage('AR_ES_co');
             const acomPage = new MasPlans(page);
-            await workerSetup.verifyPageURL('AR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co, expect);
+            await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
             await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);
@@ -259,9 +260,9 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify translated regional card variation on AR_co', async () => {
-            const page = workerSetup.getPage('AR_co');
+            const page = workerSetup.getPage('AR_ES_co');
             const acomPage = new MasPlans(page);
-            await workerSetup.verifyPageURL('AR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co, expect);
+            await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
             await expect(acomPage.getCard(data.cardid)).toHaveAttribute('variation-id', data.variation_card_id);
             await expect(acomPage.getCardSubtitle(data.cardid)).toContainText(data.subtitle);

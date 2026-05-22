@@ -26,7 +26,7 @@ const DOCS_GALLERY_PATH = {
     },
     CCD_MINI: {
         US: '/web-components/docs/ccd-mini.html',
-        FR: '/web-components/docs/ccd-mini.html?country=FR&language=fr',
+        FR: '/web-components/docs/ccd-mini.html?locale=fr_FR',
         AU: '/web-components/docs/ccd-mini.html?locale=en_AU',
     },
     ADOBE_HOME: { US: '/web-components/docs/adobe-home.html' },
@@ -39,7 +39,8 @@ const DOCS_GALLERY_PATH = {
         GR_co: '/web-components/docs/plans-collection.html?country=GR',
         GR_EN: '/web-components/docs/plans-collection.html?locale=en_GR',
         AR_co: '/web-components/docs/plans-collection.html?country=AR',
-        AR_ES: '/web-components/docs/plans-collection.html?locale=es_ES&country=AR',
+        AR_ES_co: '/web-components/docs/plans-collection.html?locale=es_ES&country=AR',
+        AR_ES: '/web-components/docs/plans-collection.html?locale=es_AR',
     },
     MINICOMPARE: '/web-components/docs/minicompare.html',
     MINICOMPARE_MWEB: '/web-components/docs/minicomparemweb.html',

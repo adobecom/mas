@@ -1,6 +1,41 @@
 import { transformBody } from './odinSchemaTransform.js';
 import { log, logDebug, logError, getErrorMessage } from '../utils/log.js';
 
+/**
+ * Shared shape of the pipeline context passed between transformers. Documented here
+ * because locale-related properties are easy to confuse. Only the load-bearing
+ * properties are listed — transformers may attach surface-specific state too.
+ *
+ * Locale lifecycle (set by `defaultLanguage` init, read by everyone downstream):
+ *   request:  { locale: 'fr_FR', country: 'LU' }
+ *   →  parsedLocale = 'fr_LU'   (locale segment of the matched fragment's AEM path)
+ *   →  defaultLocale = 'fr_FR'  (surface's base locale for that lang — fetch source for translation)
+ *   →  regionLocale = 'fr_LU'   (regional variant resolved from locale + country, surface-aware)
+ *   context.locale stays 'fr_FR' the whole time — never mutated. Use {@link getRegionalLocale}
+ *   to read the effective regional locale for dictionary/settings/WCS calls.
+ *
+ * @typedef {Object} PipelineContext
+ * @property {string} id - Fragment id requested by the caller.
+ * @property {string} locale - Original request locale (e.g. 'fr_FR'). Never mutated.
+ * @property {string} [country] - Explicit country override from the request (e.g. 'LU').
+ * @property {string} [pzn] - Personalization segment from the request.
+ * @property {string} [api_key] - Client API key (selects WCS configuration).
+ * @property {boolean} [preview] - Whether the request targets preview Odin (studio-only).
+ * @property {string} [surface] - Surface identifier (e.g. 'acom'), parsed from fragment path.
+ * @property {string} [fragmentPath] - Fragment path under the surface (no locale prefix).
+ * @property {string} [parsedLocale] - Locale segment of the matched fragment's AEM path.
+ * @property {string} [defaultLocale] - Surface's base locale for the request lang (e.g. 'fr_FR').
+ *   Used to fetch the default-language fragment when a regional variation is missing.
+ * @property {string} [regionLocale] - Resolved regional locale (e.g. 'fr_LU') derived from
+ *   (locale, country, surface). Set by `defaultLanguage`. Consumed by dictionary fetch
+ *   ({@link transformers/replace.js}), settings overrides ({@link transformers/settings.js}),
+ *   and WCS pricing ({@link transformers/wcs.js}).
+ * @property {*} [body] - Response body being built across transformers.
+ * @property {*} [state] - aio-lib-state instance for the per-request metadata cache.
+ * @property {Object<string, Promise>} [promises] - Per-transformer init promises.
+ * @property {Object<string, string>} [__ow_headers] - OpenWhisk request headers (e.g. for If-Modified-Since).
+ */
+
 async function computeBody(response, context) {
     let body = await response.json();
     if (context.preview && Array.isArray(body.fields)) {
@@ -224,9 +259,28 @@ function matchesGeo(tags, { regionLocale, country }) {
     return { region, country: countryMatch };
 }
 
+/**
+ * Effective country for a request context. Prefer explicit `context.country`, otherwise
+ * fall back to the country segment of `context.locale` (e.g. `en_US` → `US`).
+ * @param {PipelineContext} context
+ * @returns {string}
+ */
+const getCountry = (context) => context.country || context.locale?.split('_')[1] || '';
+
+/**
+ * Effective locale for region-aware operations (dictionary fetch, settings overrides, WCS).
+ * Uses `regionLocale` once `defaultLanguage` has resolved it (e.g. fr_BE for fr_FR + country=BE),
+ * otherwise falls back to the request `locale`.
+ * @param {PipelineContext} context
+ * @returns {string|undefined}
+ */
+const getRegionalLocale = (context) => context.regionLocale ?? context.locale;
+
 export {
     createTimeoutPromise,
     internalFetch as fetch,
+    getCountry,
+    getRegionalLocale,
     getRequestInfos,
     getFragmentId,
     getJsonFromState,

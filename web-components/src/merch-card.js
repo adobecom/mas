@@ -30,6 +30,8 @@ import {
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
     FF_DEFAULTS,
+    MERCH_CARD_LOAD_TIMEOUT,
+    TEMPLATE_PRICE_LEGAL,
 } from './constants.js';
 import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
@@ -37,9 +39,6 @@ import { getService, printMeasure } from './utils.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from './compat-version.js';
 
 const MERCH_CARD = 'merch-card';
-
-// if merch card does not initialise in 20 seconds, it will dispatch mas:error event
-const MERCH_CARD_LOAD_TIMEOUT = 20000;
 
 const MARK_MERCH_CARD_PREFIX = 'merch-card:';
 
@@ -61,12 +60,15 @@ function priceOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        options.promotionCode = card.contextPromotionCode;
     }
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
     }
     card.variantLayout?.priceOptionsProvider?.(element, options);
+    if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+        options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
+    }
 }
 
 function checkoutOptionsProvider(element, options) {
@@ -76,7 +78,7 @@ function checkoutOptionsProvider(element, options) {
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE
     ) {
-        options.promotionCode = card.promotionCode;
+        options.promotionCode = card.contextPromotionCode;
     }
 }
 
@@ -231,7 +233,7 @@ export class MerchCard extends LitElement {
 
     static getCollectionOptions = getCollectionOptions;
 
-    #contextPromotionCode;
+    contextPromotionCode;
     #durationMarkName;
     #internalId; // internal unique card identifier
     #log;
@@ -270,10 +272,6 @@ export class MerchCard extends LitElement {
     }
 
     static getFragmentMapping = getFragmentMapping;
-
-    set contextPromotionCode(value) {
-        this.#contextPromotionCode = value;
-    }
 
     firstUpdated() {
         this.variantLayout = getVariantLayout(this);
@@ -767,7 +765,17 @@ export class MerchCard extends LitElement {
                     details,
                 );
             } else {
-                this.#fail(`Contains unresolved offers`, details);
+                const ctaFailed = masElements.some(
+                    (el) =>
+                        el.matches(SELECTOR_MAS_CHECKOUT_LINK) &&
+                        el.classList.contains('placeholder-failed'),
+                );
+                this.#fail(
+                    ctaFailed
+                        ? `CTA has an invalid offer`
+                        : `Contains unresolved offers`,
+                    details,
+                );
             }
         }
     }
@@ -905,7 +913,7 @@ export class MerchCard extends LitElement {
                     ![undefined, 'cancel-context'].includes(promotionCode),
             );
         if (promotionCodes.length === 0) {
-            return this.#contextPromotionCode;
+            return this.contextPromotionCode;
         }
         const uniqueCodes = [...new Set(promotionCodes)];
         if (uniqueCodes.length > 1) {

@@ -285,6 +285,21 @@ export const styles = css`
         min-width: 360px;
     }
 
+    .compchart-items-selector-dialog {
+        --mod-dialog-confirm-large-width: 90vw;
+        --mod-dialog-confirm-buttongroup-padding-top: 32px;
+    }
+
+    .compchart-items-selector-dialog mas-items-selector {
+        display: block;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        min-height: 60vh;
+        max-width: 100%;
+        max-height: 70vh;
+    }
+
     .compchart-general-info {
         margin-bottom: 16px;
         border: 1px solid var(--spectrum-gray-300);

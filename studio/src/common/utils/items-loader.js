@@ -173,7 +173,14 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         }
         if (signal?.aborted) return;
 
-        const cardsByPaths = new Map(enrichedCards.map((card) => [card.path, card]));
+        const cardsByPaths = new Map(getItemsSelectionStore().cardsByPaths.get() || []);
+        enrichedCards.forEach((card) => cardsByPaths.set(card.path, card));
+        const selectedCardPaths = getItemsSelectionStore().selectedCards.get() || [];
+        const selectedCards = selectedCardPaths
+            .map((path) => cardsByPaths.get(path))
+            .filter(Boolean);
+        const selectedCardPathSet = new Set(selectedCardPaths);
+        const displayCards = [...selectedCards, ...enrichedCards.filter((card) => !selectedCardPathSet.has(card.path))];
         const prefetchedVariations = new Map(
             enrichedCards
                 .filter((card) => card.groupedVariations?.length)
@@ -187,8 +194,8 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
             }
             setCardVariationsByPaths(merged);
         }
-        getItemsSelectionStore().displayCards.set(enrichedCards);
-        getItemsSelectionStore().allCards.set(enrichedCards);
+        getItemsSelectionStore().displayCards.set(displayCards);
+        getItemsSelectionStore().allCards.set(displayCards);
         getItemsSelectionStore().cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;

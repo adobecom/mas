@@ -25,6 +25,8 @@ class MasSearchAndFilters extends LitElement {
         customerSegmentOptions: { type: Array },
         productOptions: { type: Array },
         searchOnly: { type: Boolean },
+        /** When set, preselects this template variant and prevents changing the Template filter. */
+        lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
     };
 
     constructor() {
@@ -39,10 +41,21 @@ class MasSearchAndFilters extends LitElement {
         this.customerSegmentOptions = [];
         this.productOptions = [];
         this.dataSubscription = null;
+        this.lockedTemplateFilter = '';
+    }
+
+    get #isTemplateFilterLocked() {
+        return Boolean(this.lockedTemplateFilter);
+    }
+
+    #syncLockedTemplateFilter() {
+        if (!this.#isTemplateFilterLocked) return;
+        this.templateFilter = [this.lockedTemplateFilter];
     }
 
     connectedCallback() {
         super.connectedCallback();
+        this.#syncLockedTemplateFilter();
         if (this.type === TABLE_TYPE.CARDS) {
             this.#savedSearch = Store.search.get();
             this.#savedFilters = Store.filters.get();
@@ -151,6 +164,9 @@ class MasSearchAndFilters extends LitElement {
     }
 
     willUpdate(changed) {
+        if (changed.has('lockedTemplateFilter') || (changed.has('templateFilter') && this.#isTemplateFilterLocked)) {
+            this.#syncLockedTemplateFilter();
+        }
         if (
             changed.has('searchQuery') ||
             changed.has('templateFilter') ||
@@ -164,6 +180,7 @@ class MasSearchAndFilters extends LitElement {
 
     #handleCheckboxChange(filterType, optionId, e) {
         e.stopPropagation();
+        if (filterType === FILTER_TYPE.TEMPLATE && this.#isTemplateFilterLocked) return;
         let currentValues;
         switch (filterType) {
             case FILTER_TYPE.TEMPLATE:
@@ -213,6 +230,7 @@ class MasSearchAndFilters extends LitElement {
     }) {
         switch (type) {
             case FILTER_TYPE.TEMPLATE:
+                if (this.#isTemplateFilterLocked) return;
                 this.templateFilter = this.templateFilter.filter((filterId) => filterId !== id);
                 break;
             case FILTER_TYPE.MARKET_SEGMENT:
@@ -228,7 +246,11 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #clearAllFilters() {
-        this.templateFilter = [];
+        if (this.#isTemplateFilterLocked) {
+            this.#syncLockedTemplateFilter();
+        } else {
+            this.templateFilter = [];
+        }
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
@@ -246,7 +268,7 @@ class MasSearchAndFilters extends LitElement {
                         (filter) => html`
                             <sp-tag
                                 size="s"
-                                deletable
+                                ?deletable=${!(filter.type === FILTER_TYPE.TEMPLATE && this.#isTemplateFilterLocked)}
                                 .value=${{ type: filter.type, id: filter.id }}
                                 @delete=${this.#handleTagDelete}
                             >
@@ -260,13 +282,13 @@ class MasSearchAndFilters extends LitElement {
         `;
     }
 
-    #renderFilterPicker(label, options, selectedValues, filterType) {
+    #renderFilterPicker(label, options, selectedValues, filterType, { locked = false } = {}) {
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
         return html`
-            <overlay-trigger placement="bottom-start" @sp-closed=${(e) => e.stopPropagation()}>
-                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading}>
+            <overlay-trigger placement="bottom-start" ?disabled=${locked} @sp-closed=${(e) => e.stopPropagation()}>
+                <sp-action-button slot="trigger" class="filter-trigger" quiet .disabled=${this.isLoading || locked}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -279,6 +301,7 @@ class MasSearchAndFilters extends LitElement {
                                 <sp-checkbox
                                     value=${optionId}
                                     ?checked=${isChecked}
+                                    ?disabled=${locked}
                                     @change=${(e) => this.#handleCheckboxChange(filterType, optionId, e)}
                                 >
                                     ${option.title || option.label}
@@ -361,7 +384,9 @@ class MasSearchAndFilters extends LitElement {
         return html`
             <div class="filters">
                 ${this.renderCount()}
-                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE)}
+                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE, {
+                    locked: this.#isTemplateFilterLocked,
+                })}
                 ${this.#renderFilterPicker(
                     'Market Segment',
                     this.marketSegmentOptions,

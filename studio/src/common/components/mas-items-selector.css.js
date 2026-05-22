@@ -47,21 +47,30 @@ export const styles = [
         }
 
         .container {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 308px;
             flex: 1;
+            gap: 12px;
             min-height: 0;
+            min-width: 0;
             width: 100%;
             padding-bottom: 48px;
         }
 
         mas-select-items-table {
-            flex: 1;
             min-width: 0;
             min-height: 0;
             display: flex;
+            overflow-x: auto;
+        }
+
+        mas-selected-items {
+            min-width: 0;
+            width: 308px;
         }
 
         .container.view-only {
+            display: flex;
             width: 100%;
             padding-bottom: 0;
         }

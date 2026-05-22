@@ -113,36 +113,6 @@ describe('MasSelectedItems', () => {
         });
     });
 
-    describe('isLoadingItems getter', () => {
-        it('should return false when neither fragments nor placeholders are loading', async () => {
-            Store.fragments.list.loading.set(false);
-            Store.placeholders.list.loading.set(false);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.isLoadingItems).to.be.false;
-        });
-
-        it('should return true when fragments are loading', async () => {
-            Store.fragments.list.loading.set(true);
-            Store.placeholders.list.loading.set(false);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.isLoadingItems).to.be.true;
-        });
-
-        it('should return true when placeholders are loading', async () => {
-            Store.fragments.list.loading.set(false);
-            Store.placeholders.list.loading.set(true);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.isLoadingItems).to.be.true;
-        });
-
-        it('should return true when both fragments and placeholders are loading', async () => {
-            Store.fragments.list.loading.set(true);
-            Store.placeholders.list.loading.set(true);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            expect(el.isLoadingItems).to.be.true;
-        });
-    });
-
     describe('selectedItems getter', () => {
         it('should return empty array when no items selected', async () => {
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
@@ -403,24 +373,12 @@ describe('MasSelectedItems', () => {
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/path/card1']);
         });
 
-        it('should disable remove button when items are loading', async () => {
+        it('should keep remove button enabled when items are loading', async () => {
             const card = createMockCard('/path/card1', 'Test Card');
             setCardsByPaths(new Map([['/path/card1', card]]));
             Store.translationProjects.selectedCards.set(['/path/card1']);
             Store.translationProjects.showSelected.set(true);
             Store.fragments.list.loading.set(true);
-            const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
-            const removeButton = el.shadowRoot.querySelector('.remove-button');
-            expect(removeButton.disabled).to.be.true;
-        });
-
-        it('should enable remove button when items are not loading', async () => {
-            const card = createMockCard('/path/card1', 'Test Card');
-            setCardsByPaths(new Map([['/path/card1', card]]));
-            Store.translationProjects.selectedCards.set(['/path/card1']);
-            Store.translationProjects.showSelected.set(true);
-            Store.fragments.list.loading.set(false);
-            Store.placeholders.list.loading.set(false);
             const el = await fixture(html`<mas-selected-items></mas-selected-items>`);
             const removeButton = el.shadowRoot.querySelector('.remove-button');
             expect(removeButton.disabled).to.be.false;

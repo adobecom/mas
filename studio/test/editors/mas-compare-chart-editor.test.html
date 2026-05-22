@@ -30,6 +30,7 @@
             import { withAem } from '../../../web-components/test/mocks/aem.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
             import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from '../../src/constants.js';
+            import Store from '../../src/store.js';
             import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 
             const fixtureHost = () => document.querySelector('sp-theme');
@@ -64,15 +65,26 @@
                 fragment.fields.push({ name, values, multiple });
             };
             const inferModelPath = (fields) => ('cards' in fields ? COLLECTION_MODEL_PATH : CARD_MODEL_PATH);
-            const normalizeField = ([name, rawValue]) => {
-                if (Array.isArray(rawValue)) return { name, values: rawValue, multiple: true };
-                if (rawValue && typeof rawValue === 'object' && 'value' in rawValue) {
-                    return { name, values: [rawValue.value], mimeType: rawValue.mimeType, multiple: false };
+            const referencedPath = (source, value) => {
+                const reference = source.references?.[value];
+                return reference?.type === 'content-fragment' ? reference.value.path : value;
+            };
+            const normalizeField = (source, [name, rawValue]) => {
+                if (Array.isArray(rawValue)) {
+                    return { name, values: rawValue.map((value) => referencedPath(source, value)), multiple: true };
+                }
+                if (rawValue && typeof rawValue === 'object' && ('value' in rawValue || 'mimeType' in rawValue)) {
+                    return {
+                        name,
+                        values: 'value' in rawValue ? [rawValue.value] : [],
+                        mimeType: rawValue.mimeType,
+                        multiple: false,
+                    };
                 }
                 return { name, values: [rawValue], multiple: false };
             };
             const toStudioFragment = (source) => {
-                const fields = Object.entries(source.fields || {}).map(normalizeField);
+                const fields = Object.entries(source.fields || {}).map((field) => normalizeField(source, field));
                 const fragment = {
                     id: source.id,
                     path: source.path,
@@ -240,6 +252,81 @@
                         expect(tooltipLinks.map((link) => link.getAttribute('title'))).to.include(tooltipTitlesInValue[0]);
                         expect(chart.shadowRoot.querySelectorAll('.tooltip-wrapper').length).to.be.greaterThan(10);
                         expect(chart.shadowRoot.querySelectorAll('.tooltip-trigger').length).to.be.greaterThan(10);
+                    });
+
+                    it('uses mas-items-selector and accepts pasted merch-card Studio URLs', async () => {
+                        const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
+                        const pastedCard = structuredClone(columns[0].fragment);
+                        const pastedId = 'e7563f87-7cf6-4126-b395-e4dc78b9099e';
+                        const pastedPath = pastedCard.path.replace('/cards/', '/cards/pasted-');
+                        pastedCard.id = pastedId;
+                        pastedCard.path = pastedPath;
+                        pastedCard.title = 'Pasted card';
+                        upsertField(pastedCard, 'cardTitle', ['Pasted card']);
+
+                        const repository = {
+                            searchFragments: () => {
+                                Store.fragments.list.data.set(columns.map((column) => generateFragmentStore(column.fragment)));
+                                Store.fragments.list.firstPageLoaded.set(true);
+                            },
+                            aem: {
+                                getFragmentByPath: async (path) =>
+                                    [...columns.map((column) => column.fragment), pastedCard].find(
+                                        (fragment) => fragment.path === path,
+                                    ),
+                                sites: {
+                                    cf: {
+                                        fragments: {
+                                            getById: async (id) => (id === pastedId ? pastedCard : null),
+                                        },
+                                    },
+                                },
+                            },
+                        };
+                        const originalQuerySelector = document.querySelector.bind(document);
+                        document.querySelector = (selector) =>
+                            selector === 'mas-repository' ? repository : originalQuerySelector(selector);
+
+                        try {
+                            const el = await fixture(
+                                html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
+                                { parentNode: fixtureHost() },
+                            );
+                            await el.updateComplete;
+
+                            el.shadowRoot.querySelector('.compchart-cards-header sp-button').click();
+                            await el.updateComplete;
+                            const selector = el.shadowRoot.querySelector('mas-items-selector');
+                            expect(selector).to.exist;
+
+                            await selector.updateComplete;
+                            const spSearch = selector.shadowRoot.querySelector('sp-search');
+                            spSearch.value = `https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=${pastedId}`;
+                            spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                            let row;
+                            for (let i = 0; i < 10; i += 1) {
+                                await selector.updateComplete;
+                                const table = selector.shadowRoot.querySelector('mas-select-items-table');
+                                await table?.updateComplete;
+                                await nextFrame();
+                                row = table?.shadowRoot.querySelector('mas-collapsible-table-row');
+                                if (row) break;
+                            }
+
+                            expect(spSearch.value).to.equal('');
+                            expect(row).to.exist;
+                            await row.updateComplete;
+                            row.shadowRoot.querySelector('sp-checkbox').click();
+                            await selector.updateComplete;
+                            el.shadowRoot
+                                .querySelector('.compchart-items-selector-dialog sp-button[variant="accent"]')
+                                .click();
+                            await el.updateComplete;
+
+                            expect(fragmentStore.get().getFieldValues('cards')).to.include(pastedPath);
+                        } finally {
+                            document.querySelector = originalQuerySelector;
+                        }
                     });
                 });
             });

@@ -31,20 +31,29 @@ export const styles = [
 
         .offer-id {
             color: var(--spectrum-blue-900);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 4px;
 
-            div {
+            overlay-trigger {
+                min-width: 0;
+                overflow: hidden;
+            }
+
+            [slot='trigger'] {
                 overflow: hidden;
                 white-space: nowrap;
                 text-overflow: ellipsis;
-                margin-right: 4px;
             }
 
-            div:hover {
+            [slot='trigger']:hover {
                 text-decoration: underline;
                 color: var(--spectrum-blue-1000);
             }
 
             sp-action-button {
+                flex-shrink: 0;
                 --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
 
                 &:hover {

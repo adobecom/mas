@@ -20,6 +20,7 @@ export class MasCollapsibleTableRow extends LitElement {
         isLoadingVariations: { type: Boolean, state: true },
         resizeObserver: { type: Object },
         repository: { type: Object, state: true },
+        maxSelectedCards: { type: Number },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
     };
@@ -39,6 +40,7 @@ export class MasCollapsibleTableRow extends LitElement {
         this.isTopLevelExpanded = false;
         this.expandedVariationsPaths = new Set();
         this.resizeObserver = null;
+        this.maxSelectedCards = Infinity;
         this.variationsController = new ReactiveController(this, [getItemsSelectionStore().groupedVariationsByParent]);
         this.selectedCardsController = new ReactiveController(this, [getItemsSelectionStore().selectedCards]);
     }
@@ -114,7 +116,7 @@ export class MasCollapsibleTableRow extends LitElement {
         if (this.allGroupedVariationsSelected) {
             getItemsSelectionStore().selectedCards.set(current.filter((p) => !paths.includes(p)));
         } else {
-            getItemsSelectionStore().selectedCards.set([...new Set([...current, ...paths])]);
+            getItemsSelectionStore().selectedCards.set([...new Set([...current, ...paths])].slice(0, this.maxSelectedCards));
         }
     }
 
@@ -134,6 +136,8 @@ export class MasCollapsibleTableRow extends LitElement {
                           <sp-checkbox
                               ?checked=${this.allGroupedVariationsSelected}
                               ?indeterminate=${!this.allGroupedVariationsSelected && this.someGroupedVariationsSelected}
+                              ?disabled=${this.selectedCards.length >= this.maxSelectedCards &&
+                              !this.someGroupedVariationsSelected}
                               @change=${this.#toggleSelectAllGrouped}
                           ></sp-checkbox>
                       </sp-table-cell>
@@ -169,6 +173,7 @@ export class MasCollapsibleTableRow extends LitElement {
                                       <sp-checkbox
                                           value=${variationPath}
                                           ?checked=${isSelected}
+                                          ?disabled=${!isSelected && this.selectedCards.length >= this.maxSelectedCards}
                                           @change=${(e) => this.#toggleSelect(e, variationPath)}
                                       ></sp-checkbox>
                                   </sp-table-cell>
@@ -359,8 +364,10 @@ export class MasCollapsibleTableRow extends LitElement {
         const current = getItemsSelectionStore().selectedCards.value || [];
         if (current.includes(path)) {
             getItemsSelectionStore().selectedCards.set(current.filter((p) => p !== path));
-        } else {
+        } else if (current.length < this.maxSelectedCards) {
             getItemsSelectionStore().selectedCards.set([...current, path]);
+        } else {
+            e.currentTarget.checked = false;
         }
     }
 
@@ -431,6 +438,7 @@ export class MasCollapsibleTableRow extends LitElement {
     render() {
         if (this.viewOnly) return this.viewOnlyTemplate;
         const isSelected = this.selectedCards.includes(this.topLevelCard.path);
+        const maxSelected = this.selectedCards.length >= this.maxSelectedCards;
         return html`
             <sp-table-row
                 value=${this.topLevelCard.path}
@@ -448,6 +456,7 @@ export class MasCollapsibleTableRow extends LitElement {
                     <sp-checkbox
                         value=${this.topLevelCard.path}
                         ?checked=${isSelected}
+                        ?disabled=${!isSelected && maxSelected}
                         @change=${(e) => this.#toggleSelect(e, this.topLevelCard.path)}
                     ></sp-checkbox>
                 </sp-table-cell>

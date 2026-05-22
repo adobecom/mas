@@ -4,22 +4,45 @@ import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { TABLE_TYPE } from '../../src/constants.js';
+import { CARD_MODEL_PATH, TABLE_TYPE } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-items-selector.js';
 import { TABS } from '../../src/common/components/mas-items-selector.js';
 
 describe('MasItemsSelector', () => {
     let sandbox;
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    const card = (path, title = path) => ({
+        id: path.split('/').pop(),
+        path,
+        title,
+        status: 'PUBLISHED',
+        model: { path: CARD_MODEL_PATH },
+        fields: [],
+        tags: [],
+    });
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         setItemsSelectionStore(Store.translationProjects);
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.showSelected.set(false);
+        Store.translationProjects.allCards.set([]);
+        Store.translationProjects.cardsByPaths.set(new Map());
+        Store.translationProjects.displayCards.set([]);
         Store.translationProjects.selectedCards.set([]);
+        Store.translationProjects.allCollections.set([]);
+        Store.translationProjects.collectionsByPaths.set(new Map());
+        Store.translationProjects.displayCollections.set([]);
         Store.translationProjects.selectedCollections.set([]);
+        Store.translationProjects.allPlaceholders.set([]);
+        Store.translationProjects.placeholdersByPaths.set(new Map());
+        Store.translationProjects.displayPlaceholders.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
+        Store.fragments.list.data.set([]);
+        Store.fragments.list.firstPageLoaded.set(true);
+        Store.fragments.list.loading.set(false);
+        Store.fragments.list.hasMore.set(false);
     });
 
     afterEach(() => {
@@ -27,9 +50,20 @@ describe('MasItemsSelector', () => {
         sandbox.restore();
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.showSelected.set(false);
+        Store.translationProjects.allCards.set([]);
+        Store.translationProjects.cardsByPaths.set(new Map());
+        Store.translationProjects.displayCards.set([]);
         Store.translationProjects.selectedCards.set([]);
+        Store.translationProjects.allCollections.set([]);
+        Store.translationProjects.collectionsByPaths.set(new Map());
+        Store.translationProjects.displayCollections.set([]);
         Store.translationProjects.selectedCollections.set([]);
+        Store.translationProjects.allPlaceholders.set([]);
+        Store.translationProjects.placeholdersByPaths.set(new Map());
+        Store.translationProjects.displayPlaceholders.set([]);
         Store.translationProjects.selectedPlaceholders.set([]);
+        Store.fragments.list.data.set([]);
+        Store.fragments.list.hasMore.set(false);
         setItemsSelectionStore(null);
     });
 
@@ -200,6 +234,76 @@ describe('MasItemsSelector', () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
             const countButton = el.shadowRoot.querySelector('.selected-items-count sp-button');
             expect(countButton.textContent).to.include('(2)');
+        });
+
+        it('should render only allowed tabs', async () => {
+            const el = await fixture(html`<mas-items-selector .allowedTypes=${[TABLE_TYPE.CARDS]}></mas-items-selector>`);
+            expect(el.shadowRoot.querySelectorAll('sp-tab')).to.have.lengthOf(1);
+            expect(el.shadowRoot.querySelector('sp-tab[value="cards"]')).to.exist;
+            expect(el.shadowRoot.querySelector('sp-tab[value="collections"]')).to.be.null;
+            expect(el.shadowRoot.querySelector('sp-tab[value="placeholders"]')).to.be.null;
+        });
+
+        it('should pass maxSelectedCards to card tables', async () => {
+            const el = await fixture(
+                html`<mas-items-selector .allowedTypes=${[TABLE_TYPE.CARDS]} .maxSelectedCards=${2}></mas-items-selector>`,
+            );
+            await el.updateComplete;
+            const table = el.shadowRoot.querySelector('mas-select-items-table');
+            expect(table.maxSelectedCards).to.equal(2);
+        });
+
+        it('should resolve pasted merch-card Studio URLs into card results and append it to selected cards', async function () {
+            this.timeout(10000);
+            const fragmentId = 'e7563f87-7cf6-4126-b395-e4dc78b9099e';
+            const fragment = card('/content/dam/mas/sandbox/en_US/cards/from-link', 'From link');
+            fragment.id = fragmentId;
+            const existingCard = card('/content/dam/mas/sandbox/en_US/cards/existing', 'Existing card');
+            Store.translationProjects.cardsByPaths.set(new Map([[existingCard.path, existingCard]]));
+            Store.translationProjects.selectedCards.set([existingCard.path]);
+            const getById = sandbox.stub().withArgs(fragmentId).resolves(fragment);
+            const originalQuerySelector = document.querySelector.bind(document);
+            sandbox.stub(document, 'querySelector').callsFake((selector) => {
+                if (selector === 'mas-repository') {
+                    return { aem: { sites: { cf: { fragments: { getById } } } } };
+                }
+                return originalQuerySelector(selector);
+            });
+
+            const el = await fixture(html`<mas-items-selector .allowedTypes=${[TABLE_TYPE.CARDS]}></mas-items-selector>`);
+            const spSearch = el.shadowRoot.querySelector('sp-search');
+            spSearch.value = `https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=sandbox&query=${fragmentId}`;
+            spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+            await nextFrame();
+            await nextFrame();
+
+            expect(getById.calledOnceWith(fragmentId)).to.be.true;
+            expect(spSearch.value).to.equal('');
+            expect(Store.translationProjects.displayCards.value.map((item) => item.path)).to.include(fragment.path);
+            expect(Store.translationProjects.cardsByPaths.value.get(fragment.path).title).to.equal('From link');
+            expect(Store.translationProjects.selectedCards.value).to.deep.equal([existingCard.path, fragment.path]);
+        });
+
+        it('should ignore pasted non-card Studio URLs', async function () {
+            this.timeout(10000);
+            const getById = sandbox.stub();
+            const originalQuerySelector = document.querySelector.bind(document);
+            sandbox.stub(document, 'querySelector').callsFake((selector) => {
+                if (selector === 'mas-repository') {
+                    return { aem: { sites: { cf: { fragments: { getById } } } } };
+                }
+                return originalQuerySelector(selector);
+            });
+
+            const el = await fixture(html`<mas-items-selector .allowedTypes=${[TABLE_TYPE.CARDS]}></mas-items-selector>`);
+            const spSearch = el.shadowRoot.querySelector('sp-search');
+            spSearch.value =
+                'https://mas.adobe.com/studio.html#content-type=merch-card-collection&page=content&path=sandbox&query=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+            spSearch.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+            await nextFrame();
+
+            expect(getById.called).to.be.false;
+            expect(Store.translationProjects.displayCards.value).to.be.empty;
         });
     });
 

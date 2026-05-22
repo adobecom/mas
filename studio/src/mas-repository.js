@@ -434,8 +434,9 @@ export class MasRepository extends LitElement {
         });
     }
 
-    async searchFragments() {
+    async searchFragments({ force = false, tags: tagsOverride } = {}) {
         if (
+            !force &&
             !(
                 this.page.value === PAGE_NAMES.CONTENT ||
                 this.page.value === PAGE_NAMES.TRANSLATION_EDITOR ||
@@ -460,7 +461,8 @@ export class MasRepository extends LitElement {
         let resolvedPath = path;
 
         const currentTags = dataStore.getMeta('tags');
-        const tagsString = this.filters.value.tags || '';
+        const rawTags = tagsOverride ?? this.filters.value.tags;
+        const tagsString = Array.isArray(rawTags) ? rawTags.join(',') : rawTags || '';
         const currentCreatedBy = dataStore.getMeta('createdBy');
         const createdBy = Store.createdByUsers.get().map((user) => user.userPrincipalName);
         const createdByString = createdBy.join(',');
@@ -468,13 +470,13 @@ export class MasRepository extends LitElement {
         const TAG_VARIANT_PREFIX = 'mas:variant/';
 
         let tags = [];
-        if (this.filters.value.tags) {
-            if (typeof this.filters.value.tags === 'string') {
-                tags = this.filters.value.tags.split(',').filter(Boolean);
-            } else if (Array.isArray(this.filters.value.tags)) {
-                tags = this.filters.value.tags.filter(Boolean);
+        if (rawTags) {
+            if (typeof rawTags === 'string') {
+                tags = rawTags.split(',').filter(Boolean);
+            } else if (Array.isArray(rawTags)) {
+                tags = rawTags.filter(Boolean);
             } else {
-                console.warn('Unexpected tags format:', this.filters.value.tags);
+                console.warn('Unexpected tags format:', rawTags);
             }
         }
 
@@ -729,7 +731,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('path', resolvedPath);
             dataStore.setMeta('query', query);
             dataStore.setMeta('locale', resolvedLocale);
-            dataStore.setMeta('tags', this.filters.value.tags || '');
+            dataStore.setMeta('tags', tagsString);
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
             dataStore.setMeta('lastLoad', Date.now());

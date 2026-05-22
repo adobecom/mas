@@ -91,6 +91,43 @@
                             chart.shadowRoot.querySelector('.table-container'),
                         ).to.exist;
                     });
+
+                    it('uses the last duplicate feature row and cell', async () => {
+                        const duplicateChart =
+                            document.createElement('mas-compare-chart');
+                        duplicateChart.expandedGroups = 'all';
+                        duplicateChart.innerHTML = `
+                            <merch-card slot="cards" variant="compare-chart">
+                                <h3 slot="header">Plan</h3>
+                                <div slot="features">
+                                    <p name="group@feature">Parent cell</p>
+                                    <p name="group@feature">Variation cell</p>
+                                </div>
+                            </merch-card>
+                            <div name="group">
+                                <h4>Group</h4>
+                                <p name="feature">Parent row</p>
+                                <p name="feature">Variation row</p>
+                            </div>
+                        `;
+                        main.append(duplicateChart);
+                        await duplicateChart.updateComplete;
+                        await duplicateChart.updateComplete;
+
+                        const rows =
+                            duplicateChart.shadowRoot.querySelectorAll(
+                                '.table-row',
+                            );
+                        expect(rows).to.have.length(1);
+                        expect(
+                            rows[0].querySelector('.row-label').textContent,
+                        ).to.equal('Variation row');
+                        expect(
+                            rows[0].querySelector('[role="cell"]').textContent,
+                        ).to.contain('Variation cell');
+
+                        duplicateChart.remove();
+                    });
                 });
             });
         </script>

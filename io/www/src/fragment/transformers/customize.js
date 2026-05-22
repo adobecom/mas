@@ -44,6 +44,10 @@ function deepMerge(...objects) {
             }
         }
     }
+    if (objects?.[0]?.fields?.template === 'mas-compare-chart') {
+        const features = objects.flatMap((obj) => (Array.isArray(obj?.fields?.features) ? obj.fields.features : []));
+        if (features.length) result.fields.features = features;
+    }
     return result;
 }
 

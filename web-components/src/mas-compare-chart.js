@@ -433,8 +433,11 @@ export class MasCompareChart extends LitElement {
                 const group = { heading, groupIndex, groupKey, rows: [] };
                 this.#groups.push(group);
 
+                const lastByFeature = new Map();
                 groupDiv.querySelectorAll(':scope > p[name]').forEach((p) => {
-                    const featureKey = p.getAttribute('name');
+                    lastByFeature.set(p.getAttribute('name'), p);
+                });
+                lastByFeature.forEach((p, featureKey) => {
                     const key = `${groupKey}@${featureKey}`;
                     rowIndex++;
                     group.rows.push({ slot: key, rowIndex });
@@ -505,8 +508,12 @@ export class MasCompareChart extends LitElement {
         Array.from(this.querySelectorAll(':scope > div[name]')).forEach(
             (groupDiv) => {
                 const groupKey = groupDiv.getAttribute('name');
+                const lastByFeature = new Map();
                 groupDiv.querySelectorAll(':scope > p[name]').forEach((p) => {
-                    const key = `${groupKey}@${p.getAttribute('name')}`;
+                    lastByFeature.set(p.getAttribute('name'), p);
+                });
+                lastByFeature.forEach((p, featureKey) => {
+                    const key = `${groupKey}@${featureKey}`;
                     const clone = p.cloneNode(true);
                     const title = this.#extractTooltipTitle(clone);
                     this.#rowMeta.set(key, {

@@ -84,6 +84,52 @@ describe('customize collections', function () {
         expect(result.fields.variant).to.equal('');
     });
 
+    it('should append child features to parent features for mas-compare-chart templates', async function () {
+        const body = {
+            path: '/content/dam/mas/sandbox/en_US/compare-chart-card',
+            id: 'compare-chart-card',
+            title: 'Compare chart card',
+            fields: {
+                template: 'mas-compare-chart',
+                features: [
+                    '<p name="group-a@parent-only">Parent only</p>',
+                    '<p name="group-a@override">Parent value</p>',
+                ],
+                variations: ['compare-chart-card-be'],
+            },
+            references: {
+                'compare-chart-card-be': {
+                    type: 'content-fragment',
+                    value: {
+                        path: '/content/dam/mas/sandbox/en_BE/compare-chart-card',
+                        id: 'compare-chart-card-be',
+                        fields: {
+                            features: [
+                                '<p name="group-a@override">Child value</p>',
+                            ],
+                        },
+                    },
+                },
+            },
+            referencesTree: [],
+        };
+
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'compare-chart-card',
+            locale: 'en_BE',
+            parsedLocale: 'en_US',
+            body,
+        });
+
+        expect(result.status).to.equal(200);
+        expect(result.body.fields.features).to.deep.equal([
+            '<p name="group-a@parent-only">Parent only</p>',
+            '<p name="group-a@override">Parent value</p>',
+            '<p name="group-a@override">Child value</p>',
+        ]);
+    });
+
     it('should customize subcollections and sub fragments', async function () {
         const result = await process({
             ...FAKE_CONTEXT,

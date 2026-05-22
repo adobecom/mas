@@ -40,7 +40,6 @@ const DOCS_GALLERY_PATH = {
         GR_EN: '/web-components/docs/plans-collection.html?locale=en_GR',
         AR_co: '/web-components/docs/plans-collection.html?country=AR',
         AR_ES: '/web-components/docs/plans-collection.html?locale=es_ES&country=AR',
-        AR_EN: '/web-components/docs/plans-collection.html?locale=en_US&country=AR',
     },
     MINICOMPARE: '/web-components/docs/minicompare.html',
     MINICOMPARE_MWEB: '/web-components/docs/minicomparemweb.html',

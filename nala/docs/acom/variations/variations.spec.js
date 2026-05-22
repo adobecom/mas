@@ -92,7 +92,7 @@ export const features = [
     {
         tcid: '6',
         name: '@MAS-Translated-Card-Grouped-Variation-in-Translated-Collection',
-        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_EN],
+        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
         data: {
             cardid: '395f87f1-13b2-4c6a-8c69-2353fd5c9a77',
             variation_card_id: 'ffa6f532-f131-42f9-ad63-11325a06a740',
@@ -109,7 +109,7 @@ export const features = [
     {
         tcid: '7',
         name: '@MAS-Translated-Card-Regional-Variation-in-Translated-Collection',
-        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_EN],
+        path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
         data: {
             cardid: '2edb6d25-e05b-4ec1-8a9a-fe5298d499b8',
             variation_card_id: '9e201d14-c100-4397-a9a7-7ee1116e09f9',
@@ -126,7 +126,7 @@ export const features = [
     // {
     //     tcid: '8',
     //     name: '@MAS-Translated-Card-Regional-Variation-in-Translated-Collection-Grouped-Variation',
-    //     path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_EN],
+    //     path: [DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES],
     //     data: {
     //         cardid: '',
     //         variation_card_id: '',

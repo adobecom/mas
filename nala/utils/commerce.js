@@ -27,7 +27,7 @@ const DOCS_GALLERY_PATH = {
     CCD_MINI: {
         US: '/web-components/docs/ccd-mini.html',
         FR: '/web-components/docs/ccd-mini.html?country=FR&language=fr',
-        AU: '/web-components/docs/ccd-mini.html?country=AU&language=en',
+        AU: '/web-components/docs/ccd-mini.html?locale=en_AU',
     },
     ADOBE_HOME: { US: '/web-components/docs/adobe-home.html' },
     PLANS: {

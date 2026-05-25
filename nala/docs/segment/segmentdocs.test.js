@@ -96,8 +96,12 @@ test.describe('Segment gallery feature test suite', () => {
             await expect(galleryPage.getCard(data.id)).toBeVisible();
             await expect(galleryPage.getCard(data.id)).toHaveAttribute('variant', data.variant);
             await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi]')).toContainText(data.calloutPriceText);
-            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough')).toHaveAttribute('class', /price price-strikethrough price-labels-hidden/);
-            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative')).toHaveAttribute('class', /price price-alternative/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-recurrence')).toHaveAttribute('class', /price-recurrence/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-unit-type')).toHaveAttribute('class', /price-unit-type disabled/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-strikethrough .price-tax-inclusivity')).toHaveAttribute('class', /price-tax-inclusivity disabled/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-recurrence')).toHaveAttribute('class', /price-recurrence/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-unit-type')).toHaveAttribute('class', /price-unit-type/);
+            await expect(galleryPage.getCard(data.id).locator('[slot="callout-content"] [data-wcs-osi] .price-alternative .price-tax-inclusivity')).toHaveAttribute('class', /price-tax-inclusivity/);
         });
     });    
 });

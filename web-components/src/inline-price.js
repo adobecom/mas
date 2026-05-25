@@ -473,7 +473,8 @@ export class InlinePrice extends HTMLSpanElement {
                         'inline-price' &&
                     this.nextElementSibling.dataset.template === 'price'
                 ) {
-                    this.options.hideLabels = true;
+                    this.options.displayPerUnit = false;
+                    this.options.displayTax = false;
                 }
                 this.innerHTML = service.buildPriceHTML(offers, this.options);
 

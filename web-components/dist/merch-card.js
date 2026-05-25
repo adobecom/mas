@@ -5726,7 +5726,8 @@ merch-card[variant="simplified-pricing-express"] [slot="price"] {
   flex-direction: column;
 }
 
-merch-card[variant="simplified-pricing-express"] .price-strikethrough.price-labels-hidden .price-recurrence {
+merch-card[variant="simplified-pricing-express"] [data-template="price"] .price-strikethrough span.price-recurrence,
+merch-card[variant="simplified-pricing-express"] [data-template="strikethrough"]:has(+ [data-template="price"]) span.price-recurrence {
     display: none;
 }
 
@@ -6762,7 +6763,8 @@ merch-card[variant="full-pricing-express"] [slot="price"] {
     justify-content: center;
 }
 
-merch-card[variant="full-pricing-express"] .price-strikethrough.price-labels-hidden .price-recurrence {
+merch-card[variant="full-pricing-express"] [data-template="price"] .price-strikethrough span.price-recurrence,
+merch-card[variant="full-pricing-express"] [data-template="strikethrough"]:has(+ [data-template="price"]) span.price-recurrence {
     display: none;
 }
 
@@ -8665,15 +8667,6 @@ merch-card merch-whats-included[has-bullets] [slot="content"] {
 merch-badge[background-color="spectrum-red-700-plans"],
 merch-badge[background-color="spectrum-green-900-special-offers"] {
   color: #FFFFFF;
-}
-
-merch-card .price-strikethrough.price-labels-hidden span:is(.price-tax-inclusivity, .price-unit-type) {
-  display: none;
-}
-
-merch-card:is([variant^="ccd-"],[variant^="ah-"],[variant="fries"]) .price-strikethrough.price-labels-hidden span.price-tax-inclusivity:not(.disabled),
-merch-card:is([variant^="ccd-"],[variant^="ah-"],[variant="fries"]) .price-strikethrough.price-labels-hidden span.price-unit-type:not(.disabled) {
-    display: inline;
 }
 
 /* Badge border-radius with RTL support */

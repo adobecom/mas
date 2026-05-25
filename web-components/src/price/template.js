@@ -55,7 +55,6 @@ export const cssClassNames = {
     recurrence: 'price-recurrence',
     taxInclusivity: 'price-tax-inclusivity',
     unitType: 'price-unit-type',
-    labelsHidden: 'price-labels-hidden',
 };
 
 export const literalKeys = {
@@ -227,7 +226,6 @@ const createPriceTemplate =
             displayRecurrence = true,
             displayPerUnit = false,
             displayTax = false,
-            hideLabels = false,
             language,
             literals: priceLiterals = {},
             quantity = 1,
@@ -374,9 +372,6 @@ const createPriceTemplate =
         if (displayStrikethrough) {
             cssClass += ` ${cssClassNames.containerStrikethrough}`;
         }
-        if (displayStrikethrough && hideLabels) {
-            cssClass += ` ${cssClassNames.labelsHidden}`;
-        }
         if (displayPromoStrikethrough) {
             cssClass += ` ${cssClassNames.containerPromoStrikethrough}`;
         }
@@ -457,7 +452,7 @@ const createPromoPriceTemplate = () => (context, value, attributes) => {
             ? `${createPriceTemplate({
                   displayStrikethrough: true,
               })(
-                  { isPromoApplied, ...context, hideLabels: true },
+                  { isPromoApplied, ...context, displayPerUnit: false, displayTax: false },
                   value,
                   attributes,
               )}&nbsp;`
@@ -524,11 +519,7 @@ const createPromoPriceWithAnnualTemplate =
             shouldDisplayOldPrice
                 ? `${createPriceTemplate({
                       displayStrikethrough: true,
-                  })(
-                      { ...ctxStAnnual, hideLabels: true },
-                      value,
-                      attributes,
-                  )}&nbsp;`
+                  })(ctxStAnnual, value, attributes)}&nbsp;`
                 : ''
         }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, ' (')}${createPriceTemplate(
             {

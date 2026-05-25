@@ -148,14 +148,14 @@ describe('buildCardsDeepLink', () => {
     it('builds merch-card URL', () => {
         const href = buildCardsDeepLink({ id: uuid, model: { path: CARD_MODEL_PATH } }, 'sandbox', 'content');
         expect(href).to.include('content-type=merch-card');
-        expect(href).to.include('query=' + uuid);
+        expect(href).to.include(`query=${uuid}`);
         expect(href).to.include('path=sandbox');
     });
 
     it('builds merch-card-collection URL', () => {
         const href = buildCardsDeepLink({ id: uuid, model: { path: COLLECTION_MODEL_PATH } }, 'sandbox', 'content');
         expect(href).to.include('content-type=merch-card-collection');
-        expect(href).to.include('query=' + uuid);
+        expect(href).to.include(`query=${uuid}`);
     });
 
     it('returns null when fragment id is missing', () => {

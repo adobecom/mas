@@ -1,5 +1,6 @@
 import { html, nothing } from 'lit';
 import { getFragmentMapping } from './variants';
+import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
 export class VariantLayout {
     static styleMap = {};
@@ -180,7 +181,21 @@ export class VariantLayout {
     }
 
     async postCardUpdateHook() {
-        //nothing to do by default
+        if (!this.card.isConnected) return;
+        await this.card.updateComplete;
+        if (this.card.prices?.length > 0) {
+            const settle = Promise.allSettled(
+                this.card.prices.map(
+                    (price) => price.onceSettled?.() || Promise.resolve(),
+                ),
+            );
+            let timeoutId;
+            const timeout = new Promise((resolve) => {
+                timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
+            });
+            await Promise.race([settle, timeout]);
+            clearTimeout(timeoutId);
+        }
     }
 
     connectedCallbackHook() {

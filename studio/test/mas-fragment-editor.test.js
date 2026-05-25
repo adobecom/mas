@@ -1371,5 +1371,14 @@ describe('MasFragmentEditor', () => {
             expect(Store.filters.get().locale).to.equal('fr_FR');
             expect(Store.search.get().region).to.be.null;
         });
+
+        it('moves regional hash locale to region when path is a regional variation of same catalog', () => {
+            Store.search.set({ path: 'sandbox' });
+            Store.filters.set({ locale: 'en_BE' });
+            const path = '/content/dam/mas/sandbox/en_BE/some/pzn/card';
+            expect(snapFilterToPathDefault(path)).to.be.true;
+            expect(Store.filters.get().locale).to.equal('en_US');
+            expect(Store.search.get().region).to.equal('en_BE');
+        });
     });
 });

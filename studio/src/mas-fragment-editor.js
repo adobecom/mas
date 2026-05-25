@@ -52,7 +52,15 @@ export function snapFilterToPathDefault(fragmentPath) {
     const filterLocale = Store.filters.value?.locale;
     if (!pathCatalog || !filterLocale) return false;
     const filterCatalog = getDefaultLocaleCode(surface, filterLocale);
-    if (!filterCatalog || pathCatalog === filterCatalog) return false;
+    if (!filterCatalog) return false;
+    if (pathCatalog === filterCatalog) {
+        if (pathLocale !== pathCatalog && filterLocale !== pathCatalog) {
+            Store.filters.set((prev) => ({ ...prev, locale: pathCatalog }));
+            Store.search.set((prev) => ({ ...prev, region: pathLocale }));
+            return true;
+        }
+        return false;
+    }
     Store.search.set((prev) => ({ ...prev, region: null }));
     Store.filters.set((prev) => ({ ...prev, locale: pathCatalog }));
     return true;

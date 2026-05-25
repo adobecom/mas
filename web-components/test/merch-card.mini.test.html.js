@@ -185,7 +185,7 @@ runTests(async () => {
                     priceElement
                         .querySelector('.price-strikethrough .price-recurrence')
                         .classList.contains('disabled'),
-                ).to.be.false;                
+                ).to.be.false;
                 expect(
                     priceElement
                         .querySelector('.price-strikethrough .price-unit-type')
@@ -193,14 +193,16 @@ runTests(async () => {
                 ).to.be.true;
                 expect(
                     priceElement
-                        .querySelector('.price-strikethrough .price-tax-inclusivity')
+                        .querySelector(
+                            '.price-strikethrough .price-tax-inclusivity',
+                        )
                         .classList.contains('disabled'),
                 ).to.be.true;
                 expect(
                     priceElement
                         .querySelector('.price-alternative .price-recurrence')
                         .classList.contains('disabled'),
-                ).to.be.false;                
+                ).to.be.false;
                 expect(
                     priceElement
                         .querySelector('.price-alternative .price-unit-type')
@@ -208,7 +210,9 @@ runTests(async () => {
                 ).to.be.false;
                 expect(
                     priceElement
-                        .querySelector('.price-alternative .price-tax-inclusivity')
+                        .querySelector(
+                            '.price-alternative .price-tax-inclusivity',
+                        )
                         .classList.contains('disabled'),
                 ).to.be.false;
             });

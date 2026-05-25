@@ -452,7 +452,12 @@ const createPromoPriceTemplate = () => (context, value, attributes) => {
             ? `${createPriceTemplate({
                   displayStrikethrough: true,
               })(
-                  { isPromoApplied, ...context, displayPerUnit: false, displayTax: false },
+                  {
+                      isPromoApplied,
+                      ...context,
+                      displayPerUnit: false,
+                      displayTax: false,
+                  },
                   value,
                   attributes,
               )}&nbsp;`

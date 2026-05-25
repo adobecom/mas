@@ -32,6 +32,7 @@ export const Term = Object.freeze({
  * @see https://git.corp.adobe.com/wcms/team/discussions/27
  */
 export const NAMESPACE = 'merch';
+export const MERCH_CARD_LOAD_TIMEOUT = 20000;
 /**
  * This CSS class name is used to:
  * - show only selected offer on a card connected to a subscription panel

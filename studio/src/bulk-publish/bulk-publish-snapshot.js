@@ -81,7 +81,7 @@ export async function revertSnapshot(snapshot, aem) {
             try {
                 fragment = await aem.sites.cf.fragments.getById(fragmentId);
             } catch (err) {
-                if (err?.response?.status === 404) return null;
+                if (err?.response?.status === 404) return { skipped: fragmentId };
                 return { path: fragmentId, error: err.message };
             }
             try {
@@ -97,7 +97,10 @@ export async function revertSnapshot(snapshot, aem) {
         FRAGMENT_CONCURRENCY,
     );
 
-    return { failures: results.filter(Boolean) };
+    return {
+        failures: results.filter((r) => r?.error),
+        skipped: results.filter((r) => r?.skipped).map((r) => r.skipped),
+    };
 }
 
 /**

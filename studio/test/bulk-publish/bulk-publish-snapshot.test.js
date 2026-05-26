@@ -185,14 +185,15 @@ describe('revertSnapshot()', () => {
         expect(aem.sites.cf.fragments.restoreVersion.callCount).to.equal(2);
     });
 
-    it('skips deleted fragments (getById 404) without counting as failure', async () => {
+    it('skips deleted fragments (getById 404) and returns them in skipped array', async () => {
         const aem = makeAem();
         const notFoundErr = new Error('Not Found');
         notFoundErr.response = { status: 404 };
         aem.sites.cf.fragments.getById = sinon.stub().rejects(notFoundErr);
         const snapshot = makeSnapshot([{ id: 'deleted-frag', path: '/gone', versionId: 'v1', wasPublished: true }]);
-        const { failures } = await revertSnapshot(snapshot, aem);
+        const { failures, skipped } = await revertSnapshot(snapshot, aem);
         expect(failures).to.deep.equal([]);
+        expect(skipped).to.deep.equal(['deleted-frag']);
         expect(aem.sites.cf.fragments.restoreVersion.called).to.equal(false);
     });
 

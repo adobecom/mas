@@ -110,7 +110,20 @@ export async function startReverting({ project, repository }) {
     }
 
     const aem = repository.aem;
-    const { failures } = await revertSnapshot(snapshot, aem);
+    const { failures, skipped } = await revertSnapshot(snapshot, aem);
+
+    if (skipped.length > 0) {
+        const skipSet = new Set(skipped);
+        const updated = entries.filter((e) => {
+            try {
+                return !skipSet.has(JSON.parse(e).fragmentId);
+            } catch {
+                return true;
+            }
+        });
+        setSnapshots(project, updated);
+    }
+
     if (failures.length === 0) {
         setField(project, 'status', BULK_PUBLISH_STATUS.REVERTED);
     } else {

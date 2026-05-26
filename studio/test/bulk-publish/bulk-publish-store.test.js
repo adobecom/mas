@@ -316,4 +316,35 @@ describe('startReverting()', () => {
         const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshots');
         expect(snapshotCalls.length).to.equal(0);
     });
+
+    it('removes snapshot entry for deleted fragment (404 on revert) and still sets REVERTED', async () => {
+        const createdAt = new Date().toISOString();
+        const project = makeProject({
+            snapshots: [
+                JSON.stringify({ fragmentId: 'frag-rev', versionId: 'v-rev', wasPublished: true, createdAt }),
+                JSON.stringify({ fragmentId: 'frag-deleted', versionId: 'v-del', wasPublished: false, createdAt }),
+            ],
+        });
+        const repo = makeRepo();
+        const notFoundErr = new Error('Not Found');
+        notFoundErr.response = { status: 404 };
+        repo.aem.sites.cf.fragments.getById = sinon.stub().callsFake(async (id) => {
+            if (id === 'frag-deleted') throw notFoundErr;
+            return { id, path: `/content/dam/${id}`, status: 'Draft' };
+        });
+
+        await startReverting({ project, repository: repo });
+
+        const statusValues = project.setFieldValue
+            .getCalls()
+            .filter((c) => c.args[0] === 'status')
+            .map((c) => c.args[1]);
+        expect(statusValues[statusValues.length - 1]).to.equal(BULK_PUBLISH_STATUS.REVERTED);
+
+        const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshots');
+        expect(snapshotCalls.length).to.equal(1);
+        const remaining = snapshotCalls[0].args[1];
+        expect(remaining).to.have.length(1);
+        expect(JSON.parse(remaining[0]).fragmentId).to.equal('frag-rev');
+    });
 });

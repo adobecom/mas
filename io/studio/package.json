@@ -10,6 +10,7 @@
         "cloudevents": "^4.0.2",
         "node-fetch": "^2.6.0",
         "regenerator-runtime": "^0.13.5",
+        "openwhisk": "^3.21.7",
         "uuid": "^8.0.0"
     },
     "devDependencies": {

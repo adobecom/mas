@@ -55,22 +55,6 @@ export class MasCollapsibleTableRow extends LitElement {
         if (changedProperties.has('disableCardExpansion') && this.disableCardExpansion) {
             this.isTopLevelExpanded = false;
         }
-        if (changedProperties.has('isTopLevelExpanded')) {
-            if (this.isTopLevelExpanded) {
-                requestAnimationFrame(() => {
-                    this.#updateConnectorBottom();
-                    this.#observeResize();
-                });
-            } else {
-                this.resizeObserver?.disconnect();
-            }
-        }
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        this.resizeObserver?.disconnect();
-        this.resizeObserver = null;
     }
 
     get variationPaths() {

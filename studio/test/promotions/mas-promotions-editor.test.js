@@ -45,6 +45,15 @@ describe('MasPromotionsEditor', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        sandbox.stub(window, 'fetch').callsFake(async (url) => {
+            if (String(url).includes('querybuilder.json') && String(url).includes('cq:Tag')) {
+                return new Response(JSON.stringify({ hits: [] }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
+            return Promise.reject(new TypeError('Failed to fetch'));
+        });
         originalInEdit = Store.promotions.inEdit.get();
         originalSelectedCards = [...Store.promotions.selectedCards.value];
         originalSelectedCollections = [...Store.promotions.selectedCollections.value];
@@ -57,14 +66,19 @@ describe('MasPromotionsEditor', () => {
         setItemsSelectionStore(Store.promotions);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
+        const editors = [...document.querySelectorAll('mas-promotions-editor')];
+        for (const el of editors) {
+            el.remove();
+            await el.updateComplete;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 350));
         sandbox.restore();
         Store.promotions.inEdit.set(originalInEdit);
         Store.promotions.selectedCards.set(originalSelectedCards);
         Store.promotions.selectedCollections.set(originalSelectedCollections);
         Store.promotions.itemHydrateUnreachablePaths.set(originalItemHydrateUnreachablePaths);
         Store.promotions.promotionId.set(null);
-        document.querySelectorAll('mas-promotions-editor').forEach((n) => n.remove());
         setItemsSelectionStore(null);
     });
 

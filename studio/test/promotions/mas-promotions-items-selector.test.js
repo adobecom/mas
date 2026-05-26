@@ -21,8 +21,9 @@ describe('MasPromotionsItemsSelector', () => {
         Store.promotions.selectedPlaceholders.set([]);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         fixtureCleanup();
+        await new Promise((resolve) => setTimeout(resolve, 350));
         sandbox.restore();
         Store.promotions.inEdit.set(null);
         Store.promotions.showSelected.set(false);

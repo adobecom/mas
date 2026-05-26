@@ -1,6 +1,5 @@
 import Store from '../store.js';
 import { BULK_PUBLISH_STATUS } from '../constants.js';
-import { createSnapshot, revertSnapshot } from './bulk-publish-snapshot.js';
 import { getProjectField, getProjectFieldList } from './bulk-publish-utils.js';
 
 function setField(project, name, value) {
@@ -19,28 +18,7 @@ function setSnapshots(project, entries) {
     }
 }
 
-function serializeSnapshot(snapshot) {
-    return Object.entries(snapshot.fragments).map(([fragmentId, entry]) =>
-        JSON.stringify({
-            fragmentId,
-            versionId: entry.versionId,
-            wasPublished: entry.wasPublished,
-            createdAt: snapshot.createdAt,
-        }),
-    );
-}
-
-export function deserializeSnapshots(entries) {
-    const parsed = entries.map((e) => JSON.parse(e));
-    return {
-        createdAt: parsed[0].createdAt,
-        fragments: Object.fromEntries(
-            parsed.map(({ fragmentId, versionId, wasPublished }) => [fragmentId, { versionId, wasPublished }]),
-        ),
-    };
-}
-
-export async function startPublishing({ project, items, paths, locales, token, ioBaseUrl, publishFn, repository }) {
+export async function startPublishing({ project, paths, locales, token, ioBaseUrl, publishFn, repository }) {
     setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHING);
     setField(project, 'lastError', '');
     await repository.saveFragment(project, false);
@@ -48,18 +26,18 @@ export async function startPublishing({ project, items, paths, locales, token, i
     const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
     const userEmail = profile?.email ?? '';
 
-    const aem = repository.aem;
-    let snapshot;
+    let snapshotEntries;
     try {
+        const { createSnapshotAction } = await import('./bulk-publish-client.js');
         const projectTitle = getProjectField(project, 'title', '');
-        snapshot = await createSnapshot({ items, id: project.id, title: projectTitle }, aem, userEmail);
+        snapshotEntries = await createSnapshotAction({ ioBaseUrl, paths, projectId: project.id, projectTitle, token });
     } catch (err) {
         setField(project, 'lastError', err.message);
         setField(project, 'status', BULK_PUBLISH_STATUS.DRAFT);
         await repository.saveFragment(project, false);
         return;
     }
-    setSnapshots(project, serializeSnapshot(snapshot));
+    setSnapshots(project, snapshotEntries);
 
     const promise = publishFn({ ioBaseUrl, paths, locales, token });
     Store.bulkPublishProjects.publishing.set({
@@ -87,30 +65,21 @@ export async function startPublishing({ project, items, paths, locales, token, i
     }
 }
 
-export async function startReverting({ project, repository }) {
+export async function startReverting({ project, token, ioBaseUrl, repository }) {
     setField(project, 'status', BULK_PUBLISH_STATUS.REVERTING);
     setField(project, 'lastError', '');
     await repository.saveFragment(project, false);
 
     const entries = getProjectFieldList(project, 'snapshots');
-    let snapshot;
     if (!entries.length) {
         setField(project, 'lastError', 'REVERT:\nNo snapshot found. Please re-publish to create a snapshot.');
         setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
         await repository.saveFragment(project, false);
         return;
     }
-    try {
-        snapshot = deserializeSnapshots(entries);
-    } catch {
-        setField(project, 'lastError', 'REVERT:\nSnapshot data is corrupted. Please re-publish to create a new snapshot.');
-        setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
-        await repository.saveFragment(project, false);
-        return;
-    }
 
-    const aem = repository.aem;
-    const { failures, skipped } = await revertSnapshot(snapshot, aem);
+    const { revertSnapshotAction } = await import('./bulk-publish-client.js');
+    const { failures, skipped } = await revertSnapshotAction({ ioBaseUrl, entries, token });
 
     if (skipped.length > 0) {
         const skipSet = new Set(skipped);

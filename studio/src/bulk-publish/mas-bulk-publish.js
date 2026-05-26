@@ -106,7 +106,9 @@ class MasBulkPublish extends LitElement {
         const { projectStore } = this.revertPending;
         this.revertPending = null;
         const project = projectStore.get();
-        await startReverting({ project, repository: this.repository });
+        const token = window.adobeIMS?.getAccessToken()?.token;
+        const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
+        await startReverting({ project, token, ioBaseUrl, repository: this.repository });
     }
 
     openDuplicateDialog(projectStore) {

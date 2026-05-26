@@ -1,6 +1,7 @@
 import { css } from 'lit';
 import {
     tableHeaderBaseStyles,
+    tableBodyBaseStyles,
     tableCellBaseStyles,
     tableColumnIconStyles,
     tableSelectedRowStyles,
@@ -10,6 +11,7 @@ import { skeletonStyles } from '../skeleton-styles.css.js';
 
 export const styles = [
     tableHeaderBaseStyles,
+    tableBodyBaseStyles,
     tableCellBaseStyles,
     tableColumnIconStyles,
     tableSelectedRowStyles,
@@ -19,6 +21,7 @@ export const styles = [
         :host {
             width: 100%;
             display: flex;
+            justify-content: center;
             min-height: 0;
         }
 
@@ -28,11 +31,6 @@ export const styles = [
             overflow: auto;
             border: 1px solid var(--spectrum-gray-300);
             border-radius: 12px;
-        }
-
-        .fragments-table sp-table-head {
-            border: none;
-            border-radius: 0;
         }
 
         .fragments-table sp-table-head sp-table-head-cell:first-of-type,
@@ -52,6 +50,7 @@ export const styles = [
                 z-index: 10;
                 background: var(--spectrum-gray-75);
                 box-shadow: 0 -2px 0 0 var(--spectrum-gray-75);
+                border-bottom: 1px solid var(--spectrum-gray-300);
             }
 
             sp-table-head sp-table-head-cell,
@@ -65,6 +64,10 @@ export const styles = [
 
             sp-table-cell {
                 word-break: break-word;
+            }
+
+            sp-table-body > mas-collapsible-table-row + mas-collapsible-table-row {
+                border-top: 1px solid var(--spectrum-gray-300);
             }
         }
 

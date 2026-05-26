@@ -1,10 +1,11 @@
 import { css } from 'lit';
-import { tableHeaderBaseStyles, tableCellBaseStyles } from './translation-common-styles.css.js';
+import { tableHeaderBaseStyles, tableBodyBaseStyles, tableCellBaseStyles } from './translation-common-styles.css.js';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
 
 export const styles = [
     skeletonStyles,
     tableHeaderBaseStyles,
+    tableBodyBaseStyles,
     tableCellBaseStyles,
     css`
         .translation-container {

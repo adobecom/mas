@@ -272,11 +272,13 @@ describe('checkModifications()', () => {
     });
 
     it('returns modified: null when getById throws (fragment not found)', async () => {
+        const notFoundErr = new Error('Not Found');
+        notFoundErr.response = { status: 404 };
         const aem = {
             sites: {
                 cf: {
                     fragments: {
-                        getById: sinon.stub().rejects(new Error('404 Not Found')),
+                        getById: sinon.stub().rejects(notFoundErr),
                     },
                 },
             },
@@ -285,7 +287,17 @@ describe('checkModifications()', () => {
         const results = await checkModifications(snapshot, aem);
         expect(results[0].modified).to.equal(null);
         expect(results[0].fragmentId).to.equal('missing-id');
-        expect(results[0].path).to.equal('missing-id');
+        expect(results[0].deleted).to.equal(true);
+    });
+
+    it('returns deleted: false for non-404 errors', async () => {
+        const serverErr = new Error('Internal Server Error');
+        serverErr.response = { status: 500 };
+        const aem = { sites: { cf: { fragments: { getById: sinon.stub().rejects(serverErr) } } } };
+        const snapshot = makeSnapshot('2026-01-01T10:00:00.000Z', [{ id: 'err-id', path: '/err' }]);
+        const results = await checkModifications(snapshot, aem);
+        expect(results[0].modified).to.equal(null);
+        expect(results[0].deleted).to.equal(false);
     });
 
     it('handles mixed results: found modified, found unmodified, not found', async () => {

@@ -616,19 +616,21 @@ class MasBulkPublishEditor extends LitElement {
                 const modifiedCount = results.filter((r) => r.modified === true).length;
                 const notFoundCount = results.filter((r) => r.modified === null).length;
                 if (notFoundCount > 0) {
-                    const notFoundIds = new Set(results.filter((r) => r.modified === null).map((r) => r.fragmentId));
-                    const currentEntries = this.getFields('snapshots');
-                    const updatedEntries = currentEntries.filter((e) => {
-                        try {
-                            return !notFoundIds.has(JSON.parse(e).fragmentId);
-                        } catch {
-                            return true;
+                    const deletedIds = new Set(results.filter((r) => r.deleted).map((r) => r.fragmentId));
+                    if (deletedIds.size > 0) {
+                        const currentEntries = this.getFields('snapshots');
+                        const updatedEntries = currentEntries.filter((e) => {
+                            try {
+                                return !deletedIds.has(JSON.parse(e).fragmentId);
+                            } catch {
+                                return true;
+                            }
+                        });
+                        if (this.isNewProject) {
+                            this.project.setFieldValue('snapshots', updatedEntries);
+                        } else {
+                            this.project.updateField('snapshots', updatedEntries);
                         }
-                    });
-                    if (this.isNewProject) {
-                        this.project.setFieldValue('snapshots', updatedEntries);
-                    } else {
-                        this.project.updateField('snapshots', updatedEntries);
                     }
                     showToast(`${notFoundCount} item${notFoundCount !== 1 ? 's' : ''} not found.`, 'negative');
                 } else if (modifiedCount > 0) {

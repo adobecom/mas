@@ -121,8 +121,9 @@ export async function checkModifications(snapshot, aem) {
                 const modifiedAt = fragment.modified?.at;
                 const modified = modifiedAt ? new Date(modifiedAt).getTime() > snapshotTime : false;
                 return { fragmentId, path: fragment.path, modified };
-            } catch {
-                return { fragmentId, path: fragmentId, modified: null };
+            } catch (err) {
+                const deleted = err?.response?.status === 404;
+                return { fragmentId, path: fragmentId, modified: null, deleted };
             }
         },
         FRAGMENT_CONCURRENCY,

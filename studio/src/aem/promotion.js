@@ -1,6 +1,5 @@
-import { FRAGMENT_STATUS, STATUS_PUBLISHED, TAG_STATUS_PUBLISHED } from '../constants.js';
+import { FRAGMENT_STATUS } from '../constants.js';
 import { Fragment } from './fragment.js';
-import { normalizeTagId } from './tag-id-utils.js';
 
 export class Promotion extends Fragment {
     constructor(fragmentData) {
@@ -28,10 +27,7 @@ export class Promotion extends Fragment {
     }
 
     get isPromotionPublished() {
-        const tagsPublished = this.getFieldValues('tags').some((t) => normalizeTagId(t) === TAG_STATUS_PUBLISHED);
-        const statusUpper = typeof this.status === 'string' ? this.status.toUpperCase() : '';
-        const statusPublished = statusUpper === STATUS_PUBLISHED || statusUpper === FRAGMENT_STATUS.MODIFIED;
-        return tagsPublished || statusPublished;
+        return this.status === FRAGMENT_STATUS.PUBLISHED || this.status === FRAGMENT_STATUS.MODIFIED;
     }
 
     get promotionStatus() {

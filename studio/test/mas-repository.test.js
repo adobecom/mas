@@ -748,6 +748,13 @@ describe('MasRepository dictionary helpers', () => {
             repository.aem.sites.cf.fragments.getById.resolves(refreshed);
             Store.promotions.list.data.set([]);
             await repository.loadPromotions();
+            await new Promise((resolve) => {
+                const wait = () => {
+                    if (unpublishStub.called) resolve();
+                    else setTimeout(wait, 0);
+                };
+                wait();
+            });
             expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
             expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
             const row = Store.promotions.list.data.get()[0].get();

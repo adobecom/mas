@@ -1119,21 +1119,31 @@ export class MasRepository extends LitElement {
 
             const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
             const signal = this.#abortControllers.promotions.signal;
-            for (const store of promotions) {
-                if (signal.aborted) break;
+            const expiredPublished = promotions.filter((store) => {
                 const p = store.get();
-                if (p?.promotionStatus !== 'expired' || !p.isPromotionPublished) continue;
-                const ok = await this.unpublishFragment(p, false);
-                if (!ok || signal.aborted) continue;
-                const fresh = await this.aem.sites.cf.fragments.getById(p.id);
-                if (fresh) store.set(new Promotion(fresh));
-            }
+                return p?.promotionStatus === 'expired' && p.isPromotionPublished;
+            });
 
             Store.promotions.list.data.set(promotions);
+
+            if (expiredPublished.length) {
+                void this.#unpublishExpiredPromotions(expiredPublished, signal);
+            }
         } catch (error) {
             this.processError(error, 'Could not load promotions.');
         } finally {
             Store.promotions.list.loading.set(false);
+        }
+    }
+
+    async #unpublishExpiredPromotions(stores, signal) {
+        for (const store of stores) {
+            if (signal.aborted) break;
+            const p = store.get();
+            const ok = await this.unpublishFragment(p, false);
+            if (!ok || signal.aborted) continue;
+            const fresh = await this.aem.sites.cf.fragments.getById(p.id);
+            if (fresh) store.set(new Promotion(fresh));
         }
     }
 

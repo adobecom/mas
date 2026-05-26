@@ -104,32 +104,12 @@ describe('Promotion', () => {
     describe('promotionStatus getter', () => {
         let now;
 
-        const setPublishedTag = (published) => {
-            const tagsField = mockFragmentData.fields.find((f) => f.name === 'tags');
-            tagsField.values = published ? ['mas:status/published'] : [];
-        };
-
         beforeEach(() => {
             now = new Date();
-            setPublishedTag(false);
+            mockFragmentData.status = 'DRAFT';
         });
 
         it('returns active when in date range and published', () => {
-            const yesterday = new Date(now);
-            yesterday.setDate(yesterday.getDate() - 1);
-            const tomorrow = new Date(now);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            mockFragmentData.fields[2].values = [yesterday.toISOString()];
-            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
-            setPublishedTag(true);
-
-            const promotion = new Promotion(mockFragmentData);
-
-            expect(promotion.promotionStatus).to.equal('active');
-        });
-
-        it('returns active when in date range and fragment status is PUBLISHED without tag', () => {
             const yesterday = new Date(now);
             yesterday.setDate(yesterday.getDate() - 1);
             const tomorrow = new Date(now);
@@ -180,7 +160,7 @@ describe('Promotion', () => {
 
             mockFragmentData.fields[2].values = [tomorrow.toISOString()];
             mockFragmentData.fields[3].values = [nextWeek.toISOString()];
-            setPublishedTag(true);
+            mockFragmentData.status = 'PUBLISHED';
 
             const promotion = new Promotion(mockFragmentData);
 
@@ -226,20 +206,6 @@ describe('Promotion', () => {
             expect(promotion.promotionStatus).to.equal('unknown');
         });
 
-        it('returns active when current time equals start date and published', () => {
-            const nowISO = now.toISOString();
-            const tomorrow = new Date(now);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            mockFragmentData.fields[2].values = [nowISO];
-            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
-            setPublishedTag(true);
-
-            const promotion = new Promotion(mockFragmentData);
-
-            expect(promotion.promotionStatus).to.equal('active');
-        });
-
         it('returns draft when current time equals start date and not published', () => {
             const nowISO = now.toISOString();
             const tomorrow = new Date(now);
@@ -252,33 +218,14 @@ describe('Promotion', () => {
 
             expect(promotion.promotionStatus).to.equal('draft');
         });
-
-        it('returns active when in window ending near now and published', () => {
-            const yesterday = new Date(now);
-            yesterday.setDate(yesterday.getDate() - 1);
-            const nearNow = new Date(now.getTime() + 1000);
-
-            mockFragmentData.fields[2].values = [yesterday.toISOString()];
-            mockFragmentData.fields[3].values = [nearNow.toISOString()];
-            setPublishedTag(true);
-
-            const promotion = new Promotion(mockFragmentData);
-
-            expect(promotion.promotionStatus).to.equal('active');
-        });
     });
 
     describe('isPromotionPublished getter', () => {
-        it('returns false without published tag', () => {
-            const promotion = new Promotion(mockFragmentData);
-            expect(promotion.isPromotionPublished).to.be.false;
-        });
-
-        it('returns true with published tag', () => {
+        it('returns false when only published tag is set', () => {
             const tagsField = mockFragmentData.fields.find((f) => f.name === 'tags');
             tagsField.values = ['mas:status/published'];
             const promotion = new Promotion(mockFragmentData);
-            expect(promotion.isPromotionPublished).to.be.true;
+            expect(promotion.isPromotionPublished).to.be.false;
         });
 
         it('returns true when fragment status is PUBLISHED', () => {

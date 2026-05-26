@@ -158,17 +158,13 @@ export default class MasFragmentEditor extends LitElement {
             gap: 8px;
         }
 
-        .cta-error-message {
-            display: none;
+        .preview-error-item {
+            display: flex;
             align-items: center;
             gap: 8px;
             padding: 8px 0;
             font-size: 14px;
             color: var(--merch-color-error);
-        }
-
-        .preview-content:has(a[is='checkout-link'].placeholder-failed) .cta-error-message {
-            display: flex;
         }
 
         .section {
@@ -421,6 +417,7 @@ export default class MasFragmentEditor extends LitElement {
         cloneInProgress: { type: Boolean, state: true },
         localeDefaultFragment: { type: Object, state: true },
         previewResolved: { type: Boolean, state: true },
+        previewError: { type: String, state: true },
         variationsToDelete: { type: Array, state: true },
         initState: { type: String, state: true },
         groupedVariationOrphanMessage: { type: String, state: true },
@@ -467,6 +464,7 @@ export default class MasFragmentEditor extends LitElement {
         this.showCreateVariationDialog = false;
         this.cloneInProgress = false;
         this.previewResolved = false;
+        this.previewError = null;
         this.discardPromiseResolver = null;
         this.variationsToDelete = [];
         this.initState = MasFragmentEditor.INIT_STATE.IDLE;
@@ -917,12 +915,14 @@ export default class MasFragmentEditor extends LitElement {
 
         if (existingStore) {
             this.groupedVariationOrphanMessage = null;
+            this.previewError = null;
             await this.#initializeFromCachedStore(fragmentId, existingStore);
             return;
         }
 
         this.groupedVariationOrphanMessage = null;
         this.previewResolved = false;
+        this.previewError = null;
         this.initState = MasFragmentEditor.INIT_STATE.LOADING;
         Store.fragmentEditor.loading.set(true);
 
@@ -1693,6 +1693,22 @@ export default class MasFragmentEditor extends LitElement {
         `;
     }
 
+    #handlePreviewError = (e) => {
+        this.previewError = e.detail?.message ?? 'Card failed to load';
+    };
+
+    #clearPreviewError = () => {
+        this.previewError = null;
+    };
+
+    get previewErrorMessages() {
+        if (!this.previewError) return nothing;
+        return html`<div class="preview-error-item">
+            <sp-icon-alert class="price-error-icon"></sp-icon-alert>
+            <span>${this.previewError}</span>
+        </div>`;
+    }
+
     get previewColumn() {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
@@ -1740,14 +1756,13 @@ export default class MasFragmentEditor extends LitElement {
                                 ?gradient-border=${borderAttrs.gradientBorder}
                                 .heightSync=${false}
                                 style=${cssProps || nothing}
+                                @mas:error=${this.#handlePreviewError}
+                                @aem:load=${this.#clearPreviewError}
                             >
                                 <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                             </merch-card>
                         </sp-theme>
-                        <div class="cta-error-message">
-                            <sp-icon-alert class="price-error-icon"></sp-icon-alert>
-                            <span>CTA has an invalid offer</span>
-                        </div>
+                        ${this.previewErrorMessages}
                     </div>
                 </div>
                 ${this.relatedVariationsSection}

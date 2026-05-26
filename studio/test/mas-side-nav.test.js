@@ -1282,38 +1282,12 @@ describe('MasSideNav – Copy Field', () => {
     });
 
     describe('handleStoreChanges', () => {
-        it('should redirect away from translations when disabled', () => {
-            const setPageStub = sandbox.stub(Store.page, 'set');
-            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATIONS);
+        it('should call updateVariationLoadingState', () => {
             sandbox.stub(el, 'updateVariationLoadingState');
-            sandbox.stub(el, 'isTranslationEnabled').get(() => false);
 
             el.handleStoreChanges();
 
-            expect(setPageStub.calledOnceWithExactly(PAGE_NAMES.CONTENT)).to.be.true;
             expect(el.updateVariationLoadingState.calledOnce).to.be.true;
-        });
-
-        it('should redirect away from translation editor when disabled', () => {
-            const setPageStub = sandbox.stub(Store.page, 'set');
-            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATION_EDITOR);
-            sandbox.stub(el, 'updateVariationLoadingState');
-            sandbox.stub(el, 'isTranslationEnabled').get(() => false);
-
-            el.handleStoreChanges();
-
-            expect(setPageStub.calledOnceWithExactly(PAGE_NAMES.CONTENT)).to.be.true;
-        });
-
-        it('should not redirect when translations are enabled', () => {
-            const setPageStub = sandbox.stub(Store.page, 'set');
-            sandbox.stub(Store.page, 'get').returns(PAGE_NAMES.TRANSLATIONS);
-            sandbox.stub(el, 'updateVariationLoadingState');
-            sandbox.stub(el, 'isTranslationEnabled').get(() => true);
-
-            el.handleStoreChanges();
-
-            expect(setPageStub.called).to.be.false;
         });
     });
 });

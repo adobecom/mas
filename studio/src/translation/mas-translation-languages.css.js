@@ -21,6 +21,7 @@ export const styles = css`
         display: flex;
         flex-direction: column;
         gap: 12px;
+        padding: 4px 0 0 4px;
     }
 
     .select-all-row {

@@ -56,7 +56,7 @@ class MasBulkPublish extends LitElement {
         Store.bulkPublishProjects.projectId.set(null);
         Store.bulkPublishProjects.inEdit.set({
             id: null,
-            getFieldValue: (k) => ({ status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '' })[k],
+            getFieldValue: (k) => ({ status: BULK_PUBLISH_STATUS.DRAFT, urls: '', locales: [], title: '' })[k],
             setFieldValue: () => {},
         });
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();

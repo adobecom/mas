@@ -110,7 +110,7 @@ class MasBulkPublishItems extends LitElement {
             : html`<span class="modification-cell">–</span>`;
     }
 
-    renderModificationFooter() {
+    get modificationFooter() {
         if (!this.modifications) return html`<span class="modification-cell">–</span>`;
         const values = [...this.modifications.values()];
         const modifiedCount = values.filter((v) => v === true).length;
@@ -172,7 +172,7 @@ class MasBulkPublishItems extends LitElement {
                                     </span>`
                                   : html`<span class="status-cell"></span>`}
                               ${this.isPublished
-                                  ? this.renderModificationFooter()
+                                  ? this.modificationFooter
                                   : html`<span class="actions-cell">
                                         <sp-action-button
                                             size="xs"

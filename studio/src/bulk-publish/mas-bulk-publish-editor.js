@@ -71,7 +71,7 @@ class MasBulkPublishEditor extends LitElement {
         discardDialogOpen: { state: true },
         modifications: { state: true },
         revertDialogOpen: { state: true },
-        _items: { state: true },
+        localItems: { state: true },
     };
 
     #abortController = null;
@@ -89,7 +89,7 @@ class MasBulkPublishEditor extends LitElement {
         this.discardDialogOpen = false;
         this.modifications = null;
         this.revertDialogOpen = false;
-        this._items = null;
+        this.localItems = null;
     }
 
     async connectedCallback() {
@@ -146,7 +146,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get items() {
-        if (this._items !== null) return this._items;
+        if (this.localItems !== null) return this.localItems;
         const paths = this.getFields('fragments');
         if (paths.length) return paths.map((path) => ({ path, url: path, status: 'valid' }));
         // Legacy fallback for existing projects that still have items JSON field
@@ -339,7 +339,7 @@ class MasBulkPublishEditor extends LitElement {
         const updated = this.urlLines.filter((l) => l !== urlToRemove).join('\n');
         this.setProjectField('urls', updated);
         const updatedItems = this.items.filter((i) => i.url !== urlToRemove);
-        this._items = updatedItems;
+        this.localItems = updatedItems;
         const validPaths = updatedItems.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
         this.setFragments(validPaths);
         this.requestUpdate();
@@ -348,7 +348,7 @@ class MasBulkPublishEditor extends LitElement {
     handleRemoveAll() {
         if (this.isLocked) return;
         this.setProjectField('urls', '');
-        this._items = [];
+        this.localItems = [];
         this.setFragments([]);
         this.requestUpdate();
     }
@@ -540,7 +540,7 @@ class MasBulkPublishEditor extends LitElement {
         const urls = this.urlLines.filter((raw) => !existingUrls.has(raw));
 
         const newPending = urls.map((raw) => ({ url: raw, status: 'pending' }));
-        this._items = [...existingItems, ...newPending];
+        this.localItems = [...existingItems, ...newPending];
         this.hasChanges = true;
         this.setProjectField('urls', '');
         this.requestUpdate();
@@ -584,8 +584,8 @@ class MasBulkPublishEditor extends LitElement {
                     }
                 }
                 if (runId !== this.#validateId) return;
-                this._items = [...existingItems, ...results];
-                const validPaths = this._items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
+                this.localItems = [...existingItems, ...results];
+                const validPaths = this.localItems.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                 this.setFragments(validPaths);
                 this.requestUpdate();
             }),
@@ -650,7 +650,7 @@ class MasBulkPublishEditor extends LitElement {
         const removedItem = this.items.find((i) => i.path === path);
         const updatedItems = this.items.filter((i) => i.path !== path);
         const updatedUrls = this.urlLines.filter((l) => l !== url).join('\n');
-        this._items = updatedItems;
+        this.localItems = updatedItems;
         const validPaths = updatedItems.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
         this.setFragments(validPaths);
         this.setProjectField('urls', updatedUrls);

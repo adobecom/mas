@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '@spectrum-web-components/button/sp-button.js';
+import '@spectrum-web-components/link/sp-link.js';
 import '../src/mas.js';
 import {
     hydrate,
@@ -564,9 +565,9 @@ describe('processFeatures', () => {
         const slot = merchCard.querySelector(':scope > [slot="features"]');
         expect(slot).to.exist;
         expect(slot.querySelectorAll('p[name]')).to.have.length(2);
-        expect(slot.querySelector('p[name="group@a"]').textContent.trim()).to.equal(
-            '✓',
-        );
+        expect(
+            slot.querySelector('p[name="group@a"]').textContent.trim(),
+        ).to.equal('✓');
         merchCard.remove();
     });
 
@@ -577,10 +578,7 @@ describe('processFeatures', () => {
             {
                 features: {
                     mimeType: 'text/html',
-                    value: [
-                        '<p name="g@x">✓</p>',
-                        '<p name="g@y">—</p>',
-                    ],
+                    value: ['<p name="g@x">✓</p>', '<p name="g@y">—</p>'],
                 },
             },
             merchCard,
@@ -767,13 +765,12 @@ describe('MerchCard promotionCode getter', () => {
     });
 
     function addPriceChild(promotionCode) {
-        const span = document.createElement('span');
+        const span = document.createElement('span', { is: 'inline-price' });
         span.setAttribute('is', 'inline-price');
         span.dataset.wcsOsi = 'abm';
         if (promotionCode !== undefined)
             span.dataset.promotionCode = promotionCode;
         card.appendChild(span);
-        return span;
     }
 
     it('returns contextPromotionCode when no descendant carries a promotion code', () => {
@@ -935,6 +932,44 @@ describe('processDescription', async () => {
         expect(merchCard.innerHTML).to.equal(
             '<div slot="body-xs"><sp-button treatment="fill" variant="accent" tabindex="0" size="m" dir="ltr">Click me</sp-button></div>',
         );
+    });
+
+    it('should convert primary-link and secondary-link to sp-link when spectrum is swc', async () => {
+        const fields = {
+            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
+        };
+        merchCard.spectrum = 'swc';
+
+        processDescription(fields, merchCard, aemFragmentMapping);
+        updateLinksCSS(merchCard);
+
+        const primary = merchCard.querySelector('sp-link[href="#"]');
+        const secondary = merchCard.querySelector(
+            'sp-link[variant="secondary"]',
+        );
+        expect(primary).to.exist;
+        expect(primary.tagName.toLowerCase()).to.equal('sp-link');
+        expect(primary.hasAttribute('variant')).to.be.false;
+        expect(primary.textContent.trim()).to.equal('Primary');
+        expect(secondary).to.exist;
+        expect(secondary.textContent.trim()).to.equal('Secondary');
+        expect(merchCard.querySelector('a.primary-link')).to.be.null;
+        expect(merchCard.querySelector('a.secondary-link')).to.be.null;
+    });
+
+    it('should preserve primary-link and secondary-link on consonant cards', async () => {
+        const fields = {
+            description: `See <a href="#" class="primary-link">Primary</a> and <a href="#" class="secondary-link">Secondary</a>`,
+        };
+        merchCard.consonant = true;
+        merchCard.spectrum = 'swc';
+
+        processDescription(fields, merchCard, aemFragmentMapping);
+        updateLinksCSS(merchCard);
+
+        expect(merchCard.querySelector('a.primary-link')).to.exist;
+        expect(merchCard.querySelector('a.secondary-link')).to.exist;
+        expect(merchCard.querySelector('sp-link')).to.be.null;
     });
 
     it('should process promo and callout', async () => {

@@ -350,12 +350,6 @@ export const styles = css`
         margin: 0;
         text-align: center;
         color: var(--C1-Text-text, #2c2c2c);
-        text-decoration-line: underline;
-        text-decoration-style: solid;
-        text-decoration-skip-ink: auto;
-        text-decoration-thickness: auto;
-        text-underline-offset: auto;
-        text-underline-position: from-font;
     }
     ::slotted([slot$='-cta']) {
         display: flex;

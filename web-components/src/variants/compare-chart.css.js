@@ -24,12 +24,6 @@ export const CSS = `
         font-style: italic !important;
         font-weight: 400 !important;
         line-height: 150% !important;
-        text-decoration-line: underline;
-        text-decoration-style: solid;
-        text-decoration-skip-ink: auto;
-        text-decoration-thickness: auto;
-        text-underline-offset: auto;
-        text-underline-position: from-font;
     }
 
     mas-compare-chart [data-compare-chart-slot][slot$='-detail'] {

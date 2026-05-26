@@ -352,7 +352,6 @@ async function customize(context) {
         ...context,
         status: 200,
         body: customizedFragment,
-        locale: regionLocale,
         defaultLocale,
     };
 }

@@ -29,10 +29,27 @@ export function renderFragmentStatusCell(status) {
 export function getItemTypeLabel(item) {
     if (!item) return 'Unknown';
     if (Fragment.isGroupedVariationPath(item.path)) return 'Grouped variation';
-    if (item.model?.path?.includes('/dictionary/')) return 'Placeholder';
+    if (item.model?.path?.includes('/dictionnary')) return 'Placeholder';
     if (item.model?.path === COLLECTION_MODEL_PATH) return 'Collection';
     if (item.model?.path === CARD_MODEL_PATH) return 'Default';
     return 'Unknown';
+}
+
+/**
+ * Detects clicks that originated on an interactive control inside a selectable
+ * `sp-table-row` (checkbox, expand chevron, copy/action button). Used to avoid
+ * toggling row selection when the user is interacting with such controls.
+ * @param {Event} event
+ * @returns {boolean}
+ */
+export function shouldIgnoreRowClickForSelection(event) {
+    return event.composedPath().some((node) => {
+        if (!(node instanceof Element)) return false;
+        if (node.tagName === 'SP-CHECKBOX') return true;
+        if (node.classList?.contains('expand-button')) return true;
+        if (node.tagName === 'SP-ACTION-BUTTON') return true;
+        return false;
+    });
 }
 
 /**

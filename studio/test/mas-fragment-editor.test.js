@@ -1,7 +1,7 @@
 import { expect, fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
-import MasFragmentEditor, { snapFilterToPathDefault } from '../src/mas-fragment-editor.js';
+import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedVariationRegion } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
@@ -1108,6 +1108,20 @@ describe('MasFragmentEditor', () => {
             expect(state.strings.join('')).to.contain('id="missing-variation-panel"');
         });
 
+        it('does not show missing variation when grouped preview locale is in pzn tags', () => {
+            Store.search.set({ path: 'sandbox', region: 'fr_CA' });
+            Store.filters.set({ locale: 'fr_FR' });
+            sandbox.stub(el.editorContextStore, 'isGroupedVariationByPath').value(true);
+            const groupedFragment = new Fragment({
+                id: 'grouped-id',
+                path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
+                fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/locale/fr_CA'] }],
+            });
+            el.inEdit.value = { get: () => groupedFragment };
+            Store.fragmentEditor.fragmentId.set('grouped-id');
+            expect(el.missingVariationState).to.be.null;
+        });
+
         it('viewSourceFragment resets region and sets locale to en_US', () => {
             const searchSetSpy = sandbox.stub(Store.search, 'set');
             const filtersSetSpy = sandbox.stub(Store.filters, 'set');
@@ -1379,6 +1393,58 @@ describe('MasFragmentEditor', () => {
             expect(snapFilterToPathDefault(path)).to.be.true;
             expect(Store.filters.get().locale).to.equal('en_US');
             expect(Store.search.get().region).to.equal('en_BE');
+        });
+
+        it('sets region when filter is default catalog and path is regional variation', () => {
+            Store.search.set({ path: 'sandbox' });
+            Store.filters.set({ locale: 'en_US' });
+            const path = '/content/dam/mas/sandbox/en_BE/some/pzn/card';
+            expect(snapFilterToPathDefault(path)).to.be.true;
+            expect(Store.filters.get().locale).to.equal('en_US');
+            expect(Store.search.get().region).to.equal('en_BE');
+        });
+    });
+
+    describe('syncGroupedVariationRegion', () => {
+        let savedSearch;
+        let savedFilters;
+
+        beforeEach(() => {
+            savedSearch = structuredClone(Store.search.get());
+            savedFilters = structuredClone(Store.filters.get());
+            Store.search.set({ path: 'sandbox' });
+            Store.filters.set({ locale: 'fr_FR' });
+        });
+
+        afterEach(() => {
+            Store.search.set(savedSearch);
+            Store.filters.set(savedFilters);
+        });
+
+        it('sets region from pzn tags when parent catalog is fr_FR', () => {
+            const fragment = new Fragment({
+                id: 'grouped',
+                path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
+                fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/locale/fr_CA'] }],
+            });
+            expect(syncGroupedVariationRegion(fragment, 'fr_FR')).to.be.true;
+            expect(Store.search.get().region).to.equal('fr_CA');
+        });
+
+        it('keeps region from URL when it matches a pzn tag', () => {
+            Store.search.set({ path: 'sandbox', region: 'fr_CA' });
+            const fragment = new Fragment({
+                id: 'grouped',
+                path: '/content/dam/mas/sandbox/fr_FR/pac/pzn/grouped',
+                fields: [
+                    {
+                        name: 'pznTags',
+                        values: ['/content/cq:tags/mas/locale/fr_FR', '/content/cq:tags/mas/locale/fr_CA'],
+                    },
+                ],
+            });
+            expect(syncGroupedVariationRegion(fragment, 'fr_FR')).to.be.false;
+            expect(Store.search.get().region).to.equal('fr_CA');
         });
     });
 });

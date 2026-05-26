@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { Router } from '../src/router.js';
+import { Router, orderHashParamEntries } from '../src/router.js';
 import Store from '../src/store.js';
 import { PAGE_NAMES, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
@@ -499,6 +499,63 @@ describe('Router', () => {
             expect(mockLocation.hash).to.include('translationProjectId=project-789');
             expect(mockLocation.hash).to.include('page=content');
             expect(mockLocation.hash).to.include('path=');
+        });
+    });
+
+    describe('locale and region hash params', () => {
+        it('should sync region from store to hash', async () => {
+            mockLocation.hash = '#page=fragment-editor&path=sandbox';
+            router.start();
+            Store.search.set((prev) => ({ ...prev, path: 'sandbox', region: 'en_BE' }));
+            Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('region=en_BE');
+        });
+
+        it('should remove region from hash when cleared', async () => {
+            mockLocation.hash = '#page=fragment-editor&path=sandbox&region=en_BE';
+            router.start();
+            Store.search.set((prev) => ({ ...prev, path: 'sandbox', region: null }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.not.include('region=');
+        });
+
+        it('should move regional locale from locale param to region on start', async () => {
+            mockLocation.hash = '#fragmentId=test-id&locale=en_BE&page=fragment-editor&path=sandbox';
+            router.start();
+            expect(Store.filters.value.locale).to.equal('en_US');
+            expect(Store.search.value.region).to.equal('en_BE');
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('region=en_BE');
+            expect(mockLocation.hash).to.not.include('locale=en_BE');
+        });
+
+        it('should sync locale to hash when not default', async () => {
+            mockLocation.hash = '#fragmentId=test-id&page=fragment-editor&path=sandbox';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, locale: 'fr_FR' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.include('locale=fr_FR');
+        });
+
+        it('should keep locale and region together for grouped preview', async () => {
+            mockLocation.hash = '#fragmentId=test-id&page=fragment-editor&path=sandbox';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, locale: 'fr_FR' }));
+            Store.search.set((prev) => ({ ...prev, path: 'sandbox', region: 'fr_CA' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(mockLocation.hash).to.match(/locale=fr_FR&region=fr_CA/);
+        });
+
+        it('should place region after locale without moving locale from alphabetical position', () => {
+            const keys = orderHashParamEntries([
+                ['fragmentId', 'test-id'],
+                ['page', 'fragment-editor'],
+                ['path', 'sandbox'],
+                ['locale', 'fr_FR'],
+                ['region', 'fr_CA'],
+            ]).map(([key]) => key);
+            expect(keys).to.deep.equal(['fragmentId', 'locale', 'region', 'page', 'path']);
         });
     });
 

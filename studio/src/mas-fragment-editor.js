@@ -43,6 +43,50 @@ const MODEL_WEB_COMPONENT_MAPPING = {
  * @param {string} fragmentPath
  * @returns {boolean} true if filters were updated
  */
+export function getGroupedPreviewLocaleCodes(fragment) {
+    const tags = fragment?.getFieldValues('pznTags') || [];
+    return [...new Set(tags.map((tag) => tag?.split('/').pop()?.trim()).filter((code) => code && getLocaleByCode(code)))];
+}
+
+/**
+ * Sets {@link Store.search.region} and grouped preview locale
+ * @param {import('./aem/fragment.js').Fragment} fragment
+ * @param {string} parentLocale locale of the parent (catalog) fragment
+ * @returns {boolean} true when region or preview override changed
+ */
+export function syncGroupedVariationRegion(fragment, parentLocale) {
+    if (!fragment?.path || !Fragment.isGroupedVariationPath(fragment.path) || !parentLocale) return false;
+
+    const surface = Store.surface();
+    const catalogLocale = (surface && getDefaultLocaleCode(surface, parentLocale)) || parentLocale;
+    const codes = getGroupedPreviewLocaleCodes(fragment);
+    if (!codes.length) return false;
+
+    let region = Store.search.value.region;
+    if (region && !codes.includes(region)) {
+        region = null;
+    }
+    if (!region) {
+        region = codes.find((code) => code !== catalogLocale) || null;
+    }
+    const nextRegion = region && region !== catalogLocale ? region : null;
+    const previewLocale = nextRegion || catalogLocale;
+
+    let changed = false;
+    if ((Store.search.value.region || null) !== nextRegion) {
+        Store.search.set((prev) => ({ ...prev, region: nextRegion }));
+        changed = true;
+    }
+
+    const editor = getActiveMerchCardEditor();
+    if (editor && editor.previewLocaleOverride !== previewLocale) {
+        editor.previewLocaleOverride = previewLocale;
+        changed = true;
+    }
+
+    return changed;
+}
+
 export function snapFilterToPathDefault(fragmentPath) {
     const pathLocale = extractLocaleFromPath(fragmentPath);
     if (!pathLocale) return false;
@@ -54,12 +98,13 @@ export function snapFilterToPathDefault(fragmentPath) {
     const filterCatalog = getDefaultLocaleCode(surface, filterLocale);
     if (!filterCatalog) return false;
     if (pathCatalog === filterCatalog) {
-        if (pathLocale !== pathCatalog && filterLocale !== pathCatalog) {
-            Store.filters.set((prev) => ({ ...prev, locale: pathCatalog }));
-            Store.search.set((prev) => ({ ...prev, region: pathLocale }));
-            return true;
-        }
-        return false;
+        if (pathLocale === pathCatalog) return false;
+        const needsFilterUpdate = filterLocale !== pathCatalog;
+        const needsRegionUpdate = Store.search.value.region !== pathLocale;
+        if (!needsFilterUpdate && !needsRegionUpdate) return false;
+        Store.filters.set((prev) => ({ ...prev, locale: pathCatalog }));
+        Store.search.set((prev) => ({ ...prev, region: pathLocale }));
+        return true;
     }
     Store.search.set((prev) => ({ ...prev, region: null }));
     Store.filters.set((prev) => ({ ...prev, locale: pathCatalog }));
@@ -833,6 +878,17 @@ export default class MasFragmentEditor extends LitElement {
             this.dispatchFragmentLoaded();
         });
 
+        if (isGroupedVariation) {
+            const parentLocale =
+                extractLocaleFromPath(this.localeDefaultFragment?.path) ||
+                getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
+                Store.filters.value.locale;
+            if (syncGroupedVariationRegion(existingStore.get(), parentLocale)) {
+                void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+                existingStore.resolvePreviewFragment();
+            }
+        }
+
         this.#activateEditorStore(existingStore, { resetChanges: true });
         this.#markInitReady();
     }
@@ -913,6 +969,17 @@ export default class MasFragmentEditor extends LitElement {
             // Only add to main list if not a variation (variations appear under parent's variations panel)
             if (!isVariationForStore) {
                 Store.fragments.list.data.set((prev) => [fragmentStore, ...prev]);
+            }
+
+            if (isGroupedVariation) {
+                const parentLocale =
+                    extractLocaleFromPath(this.localeDefaultFragment?.path) ||
+                    getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
+                    Store.filters.value.locale;
+                if (syncGroupedVariationRegion(fragment, parentLocale)) {
+                    void this.repository.loadPreviewPlaceholders(Store.localeOrRegion());
+                    fragmentStore.resolvePreviewFragment();
+                }
             }
 
             this.#activateEditorStore(fragmentStore);
@@ -1487,7 +1554,19 @@ export default class MasFragmentEditor extends LitElement {
     #handleGroupedPreviewLocaleChange = (event) => {
         const editor = getActiveMerchCardEditor();
         if (!editor) return;
-        editor.previewLocaleOverride = event.target.value || null;
+        const previewLocale = event.target.value || null;
+        editor.previewLocaleOverride = previewLocale;
+        const parentLocale =
+            extractLocaleFromPath(this.localeDefaultFragment?.path) ||
+            getDefaultLocaleCode(Store.surface(), Store.filters.value.locale) ||
+            Store.filters.value.locale;
+        const catalogLocale = (Store.surface() && getDefaultLocaleCode(Store.surface(), parentLocale)) || parentLocale;
+        const nextRegion = previewLocale && previewLocale !== catalogLocale ? previewLocale : null;
+        if ((Store.search.value.region || null) !== nextRegion) {
+            Store.search.set((prev) => ({ ...prev, region: nextRegion }));
+            void this.repository?.loadPreviewPlaceholders(Store.localeOrRegion());
+            this.fragmentStore?.resolvePreviewFragment();
+        }
     };
 
     #handlePreviewLocaleChange = (event) => {
@@ -1810,6 +1889,15 @@ export default class MasFragmentEditor extends LitElement {
 
     get missingVariationState() {
         if (this.fragmentId && this.fragment?.id !== this.fragmentId) return null;
+
+        if (this.editorContextStore.isGroupedVariationByPath && this.fragment) {
+            const groupedLocales = getGroupedPreviewLocaleCodes(this.fragment);
+            const previewLocale = Store.search.value.region || Store.filters.value.locale;
+            if (groupedLocales.includes(previewLocale)) {
+                return null;
+            }
+        }
+
         const currentLocale = Store.localeOrRegion();
         const fragmentLocale = extractLocaleFromPath(this.fragment?.path);
 

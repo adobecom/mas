@@ -10,6 +10,7 @@ import {
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD,
     TAG_PROMOTION_PREFIX,
+    TAG_STUDIO_CONTENT_TYPE,
 } from '../constants.js';
 import Store from '../store.js';
 import { generateCodeToUse, getService, normalizeKey } from '../utils.js';
@@ -46,6 +47,7 @@ export const DEFAULT_COMPARE_CHART_HTML =
 const PREVIEW_SLOT = 'compare-chart-preview';
 const MAX_COMPARE_CHART_CARDS = 4;
 const COMPARE_CHART_RTE_MARKS = ['small'];
+const VARIANT_TAG_PREFIX = 'mas:variant/';
 
 class MasCompareChartEditor extends LitElement {
     static properties = {
@@ -1640,7 +1642,14 @@ class MasCompareChartEditor extends LitElement {
         this.itemsSelectionStore = this.#createItemsSelectionStore(this.#cardPaths);
         setItemsSelectionStore(this.itemsSelectionStore);
         const repository = document.querySelector('mas-repository');
-        repository?.searchFragments?.({ force: true, tags: [TAG_MERCH_CARD] });
+        const currentTags = Store.filters.get()?.tags;
+        const tags = (Array.isArray(currentTags) ? currentTags : String(currentTags || '').split(',')).filter(
+            (tag) => tag && !tag.startsWith(TAG_STUDIO_CONTENT_TYPE) && !tag.startsWith(VARIANT_TAG_PREFIX),
+        );
+        repository?.searchFragments?.({
+            force: true,
+            tags: [TAG_MERCH_CARD, ...tags, `${VARIANT_TAG_PREFIX}${VARIANT_NAMES.COMPARE_CHART}`],
+        });
         this.pickerOpen = true;
         this.requestUpdate();
     }

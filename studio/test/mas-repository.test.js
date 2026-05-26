@@ -2655,6 +2655,39 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('force-routes single variant via fullText.EDGES from FRAGMENT_EDITOR', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.FRAGMENT_EDITOR };
+            repository.search = { value: { path: 'sandbox', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: 'mas:variant/compare-chart' } };
+            const searchStub = sandbox.stub().resolves(createMockCursorFromPages([[]]));
+            repository.aem = createAemMock({
+                fragments: { search: searchStub },
+            });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments({ force: true });
+                expect(searchStub.calledOnce).to.be.true;
+                const callArg = searchStub.firstCall.args[0];
+                expect(callArg.query).to.equal('compare-chart');
+                expect(callArg.tags).to.deep.equal([]);
+                expect(callArg.modelIds).to.deep.equal(EDITABLE_FRAGMENT_MODEL_IDS);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('multi-word query: sends longest token to AEM and phrase-filters client-side', async () => {
             // AEM's fullText.EDGES ANDs across tokens, so "creative cloud" returns 0 if no
             // card has both at edge positions in title/description. Workaround: send the

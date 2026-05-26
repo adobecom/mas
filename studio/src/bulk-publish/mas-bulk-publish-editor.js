@@ -614,25 +614,7 @@ class MasBulkPublishEditor extends LitElement {
                 const results = await checkModifications(snapshot, this.repository.aem);
                 this.modifications = new Map(results.map(({ path, modified }) => [path, modified]));
 
-                const deletedIds = new Set(results.filter((r) => r.deleted).map((r) => r.fragmentId));
-                if (deletedIds.size > 0) {
-                    const currentEntries = this.getFields('snapshots');
-                    const updatedEntries = currentEntries.filter((e) => {
-                        try {
-                            return !deletedIds.has(JSON.parse(e).fragmentId);
-                        } catch {
-                            return true;
-                        }
-                    });
-                    if (this.isNewProject) {
-                        this.project.setFieldValue('snapshots', updatedEntries);
-                    } else {
-                        this.project.updateField('snapshots', updatedEntries);
-                    }
-                    await this.repository.saveFragment(this.project, false);
-                }
-
-                const modifiedCount = results.filter((r) => !r.deleted && r.modified === true).length;
+                const modifiedCount = results.filter((r) => r.modified === true).length;
                 if (modifiedCount > 0) {
                     showToast(`${modifiedCount} item${modifiedCount !== 1 ? 's' : ''} modified since last publish.`, 'info');
                 } else {

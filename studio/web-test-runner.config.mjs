@@ -59,6 +59,7 @@ export default {
         }),
     ],
     nodeResolve: true,
+    // Distinct from web-components' 2023 so both runners can coexist locally.
     port: 2024,
     testFramework: {
         config: {

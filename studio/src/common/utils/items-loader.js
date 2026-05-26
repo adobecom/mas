@@ -120,9 +120,14 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
     }
     state.isProcessingCards = true;
     const signal = state.abortController?.signal;
+    const store = getItemsSelectionStore({ allowUnset: true });
+    if (!store) {
+        state.isProcessingCards = false;
+        return;
+    }
 
     try {
-        const existingCards = getItemsSelectionStore().allCards.get() || [];
+        const existingCards = store.allCards.get() || [];
         const existingOfferDataByPath = new Map(
             existingCards.filter((card) => card.offerData !== undefined).map((card) => [card.path, card.offerData]),
         );
@@ -136,7 +141,7 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         if (cardsNeedingOfferData.length > 0) {
             const offerDataResults = await processConcurrently(
                 cardsNeedingOfferData,
-                (card) => loadOfferData(card, { cache: getItemsSelectionStore().offerDataCache, signal }),
+                (card) => loadOfferData(card, { cache: store.offerDataCache, signal }),
                 OFFER_DATA_CONCURRENCY_LIMIT,
             );
             if (signal?.aborted) return;
@@ -173,12 +178,11 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
         }
         if (signal?.aborted) return;
 
-        const cardsByPaths = new Map(getItemsSelectionStore().cardsByPaths.get() || []);
+        if (getItemsSelectionStore({ allowUnset: true }) !== store) return;
+        const cardsByPaths = new Map(store.cardsByPaths.get() || []);
         enrichedCards.forEach((card) => cardsByPaths.set(card.path, card));
-        const selectedCardPaths = getItemsSelectionStore().selectedCards.get() || [];
-        const selectedCards = selectedCardPaths
-            .map((path) => cardsByPaths.get(path))
-            .filter(Boolean);
+        const selectedCardPaths = store.selectedCards.get() || [];
+        const selectedCards = selectedCardPaths.map((path) => cardsByPaths.get(path)).filter(Boolean);
         const selectedCardPathSet = new Set(selectedCardPaths);
         const displayCards = [...selectedCards, ...enrichedCards.filter((card) => !selectedCardPathSet.has(card.path))];
         const prefetchedVariations = new Map(
@@ -187,16 +191,16 @@ async function processCardsData(allCards, repository, state, getDisplayName) {
                 .map((card) => [card.path, new Map(card.groupedVariations.map((v) => [v.path, v]))]),
         );
         if (prefetchedVariations.size > 0) {
-            const existing = getItemsSelectionStore().groupedVariationsByParent.value || new Map();
+            const existing = store.groupedVariationsByParent.value || new Map();
             const merged = new Map(existing);
             for (const [cardPath, varMap] of prefetchedVariations) {
                 merged.set(cardPath, varMap);
             }
             setCardVariationsByPaths(merged);
         }
-        getItemsSelectionStore().displayCards.set(displayCards);
-        getItemsSelectionStore().allCards.set(displayCards);
-        getItemsSelectionStore().cardsByPaths.set(cardsByPaths);
+        store.displayCards.set(displayCards);
+        store.allCards.set(displayCards);
+        store.cardsByPaths.set(cardsByPaths);
     } finally {
         state.isProcessingCards = false;
         if (state.pendingCards && !signal?.aborted) {

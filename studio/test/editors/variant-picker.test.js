@@ -79,7 +79,7 @@ describe('VariantPicker', () => {
         });
 
         it('should include compchart variant', () => {
-            const compchart = VARIANTS.find((v) => v.value === VARIANT_NAMES.COMPCHART);
+            const compchart = VARIANTS.find((v) => v.value === VARIANT_NAMES.COMPARE_CHART);
             expect(compchart).to.exist;
             expect(compchart.label).to.equal('Compare Chart');
         });

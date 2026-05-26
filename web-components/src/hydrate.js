@@ -443,23 +443,38 @@ function coerceMultivalueFeatureField(raw) {
     return [];
 }
 
-export function processFeatures(fields, merchCard) {
-    const values = coerceMultivalueFeatureField(fields.features).filter((html) =>
-        html.trim(),
+export function processFeatures(fields, merchCard, mapping) {
+    const values = coerceMultivalueFeatureField(fields.features).filter(
+        (html) => html.trim(),
     );
+    if (!mapping?.features) {
+        if (values.length) {
+            console.warn(
+                `[mas] features field present but ${merchCard?.variant ?? 'variant'} has no features mapping; output dropped.`,
+            );
+        }
+        return;
+    }
     if (!values.length) return;
     const container = createTag('div', {
-        slot: 'features',
+        slot: mapping.features.slot ?? 'features',
         hidden: '',
         'data-compare-chart-features': '',
     });
     values.forEach((value) => {
-        const doc = new DOMParser().parseFromString(value, 'text/html');
+        let doc;
+        try {
+            doc = new DOMParser().parseFromString(value, 'text/html');
+        } catch {
+            return;
+        }
         const p = doc.body.querySelector('p[name]');
         if (p) {
             container.append(p);
             return;
         }
+        // Trust boundary: features payload originates from AEM-authored
+        // fragments via IMS-gated write path. Do not call with untrusted input.
         container.insertAdjacentHTML('beforeend', value);
     });
     if (container.children.length) merchCard.append(container);
@@ -1020,7 +1035,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
-    processFeatures(fields, merchCard);
+    processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
     processAddonConfirmation(fields, merchCard, mapping);

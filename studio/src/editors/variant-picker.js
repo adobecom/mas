@@ -1,5 +1,5 @@
 import { html, LitElement, css } from 'lit';
-import { SURFACES } from '../constants.js';
+import { COMPARE_CHART_CREATE_TYPE, SURFACES } from '../constants.js';
 
 export const VARIANT_NAMES = {
     ALL: 'all',
@@ -24,7 +24,7 @@ export const VARIANT_NAMES = {
     FULL_PRICING_EXPRESS: 'full-pricing-express',
     HEADLESS: 'headless',
     MEDIA: 'media',
-    COMPCHART: 'compare-chart',
+    COMPARE_CHART: COMPARE_CHART_CREATE_TYPE,
 };
 //TODO make that feed (excepts ALL maybe) dynamically served from milo
 
@@ -113,7 +113,7 @@ export const VARIANTS = [
     },
     {
         label: 'Compare Chart',
-        value: VARIANT_NAMES.COMPCHART,
+        value: VARIANT_NAMES.COMPARE_CHART,
         surface: SURFACES.ACOM_CC.name,
     },
 ];
@@ -124,7 +124,7 @@ const ACOM_CC_TEMPLATES = new Set([
     VARIANT_NAMES.MINI_COMPARE_CHART,
     VARIANT_NAMES.IMAGE,
     VARIANT_NAMES.SPECIAL_OFFERS,
-    VARIANT_NAMES.COMPCHART,
+    VARIANT_NAMES.COMPARE_CHART,
 ]);
 
 const ACOM_DC_TEMPLATES = new Set([

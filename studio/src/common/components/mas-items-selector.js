@@ -189,14 +189,17 @@ class MasItemsSelector extends LitElement {
         `;
     }
 
+    willUpdate() {
+        const tabs = this.tabs;
+        const next = tabs.some((tab) => tab.value === this.selectedTab) ? this.selectedTab : tabs[0]?.value || TABLE_TYPE.CARDS;
+        if (next !== this.selectedTab) this.selectedTab = next;
+    }
+
     render() {
         const count = this.selectedCount;
         const showingSelection = this.showSelected && count;
         const toggleLabel = showingSelection ? 'Hide selection' : 'Selected items';
         const tabs = this.tabs;
-        if (!tabs.some((tab) => tab.value === this.selectedTab)) {
-            this.selectedTab = tabs[0]?.value || TABLE_TYPE.CARDS;
-        }
         return html`
             ${this.viewOnly
                 ? nothing

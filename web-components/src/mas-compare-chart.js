@@ -1,8 +1,11 @@
 import { html, LitElement, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import {
     EVENT_AEM_ERROR,
     EVENT_AEM_LOAD,
+    EVENT_COMPARE_CHART_REHYDRATE,
+    EVENT_EXPANDED_GROUPS_CHANGE,
     EVENT_MAS_READY,
 } from './constants.js';
 import { parseCompareChartTables } from './compare-chart-table-parser.js';
@@ -51,6 +54,8 @@ export class MasCompareChart extends LitElement {
         },
         consonant: { type: Boolean, attribute: 'consonant' },
         spectrum: { type: String, attribute: 'spectrum' },
+        // Map of locale-aware aria-label strings used by `placeholder()`.
+        // Assigned by the host page; falls back to English defaults when unset.
         placeholders: { type: Object },
     };
 
@@ -70,6 +75,7 @@ export class MasCompareChart extends LitElement {
     #selectionA = 0;
     #selectionB = 1;
     #hydrating = false;
+    #hydratingFromFragment = false;
     #hydrationReady = null;
     #resolveHydrationReady = null;
     #isStickyHeaderActive = false;
@@ -88,7 +94,7 @@ export class MasCompareChart extends LitElement {
         // (e.g. Studio after a save) dispatch this event explicitly. No
         // MutationObserver — cell-level DOM mutations don't auto-rebuild,
         // and the table content is fully present at parse time.
-        this.addEventListener('mas-compare-chart:rehydrate', () =>
+        this.addEventListener(EVENT_COMPARE_CHART_REHYDRATE, () =>
             this.#hydrate(),
         );
         this.addEventListener(EVENT_AEM_LOAD, this.#handleAemLoad);
@@ -98,6 +104,8 @@ export class MasCompareChart extends LitElement {
             this.#applyResponsive(),
         );
         this.#resizeObserver.observe(this);
+        // Idempotent (teardown-first); survives detach + reattach.
+        this.#setupSticky();
     }
 
     disconnectedCallback() {
@@ -111,7 +119,6 @@ export class MasCompareChart extends LitElement {
 
     firstUpdated() {
         this.#hydrate();
-        this.#setupSticky();
     }
 
     updated(changed) {
@@ -256,6 +263,23 @@ export class MasCompareChart extends LitElement {
 
     async #hydrateFromFragment(fragment, sourceAemFragment) {
         if (!fragment) return;
+        // Re-entrancy guard: nested aem-fragments dispatch EVENT_AEM_LOAD
+        // while we're still appending merch-card children below; without this
+        // a second pass would race the first, double-cloning groups/cards.
+        if (this.#hydratingFromFragment) return;
+        this.#hydratingFromFragment = true;
+        try {
+            await this.#runHydrateFromFragment(fragment, sourceAemFragment);
+        } finally {
+            this.#hydratingFromFragment = false;
+        }
+    }
+
+    // Light-DOM projection is intentional: child merch-cards are themselves
+    // first-class elements with their own lifecycle (aem-fragment, hydration,
+    // mas:ready) and must be regular slot-projected children, not virtual
+    // nodes rendered inside this component's shadow root.
+    async #runHydrateFromFragment(fragment, sourceAemFragment) {
         this.#ensureHydrationReady();
         this.querySelectorAll('[data-compare-chart-generated]').forEach(
             (node) => node.remove(),
@@ -293,7 +317,9 @@ export class MasCompareChart extends LitElement {
             cards.push(card);
         });
 
-        this.#hydrate();
+        // Nested aem-fragments fire EVENT_AEM_LOAD as they resolve, each
+        // triggering a guarded #hydrate(); the final call below catches the
+        // fully-loaded set after all cards report ready.
         await Promise.all(
             cards.map((card) => card.checkReady?.().catch(() => false)),
         );
@@ -806,12 +832,8 @@ export class MasCompareChart extends LitElement {
             this.style.setProperty('--compare-chart-sticky-top', '0px');
             return;
         }
-        const headerEl = document.querySelector('header');
-        const localnav = document.querySelector('.feds-localnav');
-        const top =
-            (headerEl?.getBoundingClientRect().height || 0) +
-            (localnav?.getBoundingClientRect().height || 0);
-        this.style.setProperty('--compare-chart-sticky-top', `${top}px`);
+        // Page owns the top offset; consumers set --compare-chart-sticky-top
+        // (or the `sticky-top` attribute) to account for their global nav.
     }
 
     #setupSticky() {
@@ -903,7 +925,7 @@ export class MasCompareChart extends LitElement {
         }
         this.expandedGroups = this.#serializeExpanded();
         this.dispatchEvent(
-            new CustomEvent('expanded-groups-change', {
+            new CustomEvent(EVENT_EXPANDED_GROUPS_CHANGE, {
                 detail: { value: this.expandedGroups },
                 bubbles: true,
                 composed: true,
@@ -965,7 +987,11 @@ export class MasCompareChart extends LitElement {
                     (c) => html`<span role="columnheader">${c.title}</span>`,
                 )}
             </div>
-            ${this.#groups.map((g) => this.#renderGroup(g))}
+            ${repeat(
+                this.#groups,
+                (g, i) => `${g.groupIndex}:${i}`,
+                (g) => this.#renderGroup(g),
+            )}
         `;
     }
 
@@ -974,12 +1000,7 @@ export class MasCompareChart extends LitElement {
         const visibleSlots = this.#visibleSlotPresence(cards);
         let row = 1;
         return html`
-            ${this.#renderHeaderRow(
-                cards,
-                'header',
-                row++,
-                visibleSlots,
-            )}
+            ${this.#renderHeaderRow(cards, 'header', row++, visibleSlots)}
             ${visibleSlots.has('price')
                 ? this.#renderHeaderRow(cards, 'price', row++, visibleSlots)
                 : nothing}
@@ -1130,7 +1151,11 @@ export class MasCompareChart extends LitElement {
                     role="rowgroup"
                     aria-label=${g.heading}
                 >
-                    ${g.rows.map((r) => this.#renderRow(r))}
+                    ${repeat(
+                        g.rows,
+                        (r, i) => `${r.slot}:${i}`,
+                        (r) => this.#renderRow(r),
+                    )}
                 </div>
             </div>
         `;
@@ -1186,7 +1211,11 @@ export class MasCompareChart extends LitElement {
                     >
                     ${this.#renderTooltip(meta.title, meta.tooltipPosition)}
                 </div>
-                ${cells.map((c) => this.#renderCell(c))}
+                ${repeat(
+                    cells,
+                    (c, i) => `${c.cardId}:${i}`,
+                    (c) => this.#renderCell(c),
+                )}
             </div>
         `;
     }

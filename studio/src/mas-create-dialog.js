@@ -5,6 +5,7 @@ import {
     COMPAT_VERSION,
     EVENT_KEYDOWN,
     EVENT_OST_OFFER_SELECT,
+    TAG_COMPARE_CHART,
     TAG_MODEL_ID_MAPPING,
 } from './constants.js';
 import router from './router.js';
@@ -12,6 +13,7 @@ import Store from './store.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
+import { showToast } from './utils.js';
 import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
 
 export class MasCreateDialog extends LitElement {
@@ -243,6 +245,7 @@ export class MasCreateDialog extends LitElement {
         } else if (this.type === COMPARE_CHART_CREATE_TYPE) {
             fragmentData.data = {
                 [COMPARE_CHART_FIELD]: DEFAULT_COMPARE_CHART_HTML,
+                tags: [TAG_COMPARE_CHART],
             };
         }
 
@@ -261,6 +264,7 @@ export class MasCreateDialog extends LitElement {
         } catch (error) {
             if (error.message !== 'Fragment was not created.') {
                 console.error(error.message, error.stack);
+                showToast(`Failed to create fragment: ${error.message}`, 'negative');
             }
             this.loading = false;
         }

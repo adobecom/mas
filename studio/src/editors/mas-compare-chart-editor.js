@@ -35,6 +35,7 @@ import {
 } from './variation-utils.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 import { parseCompareChartTables } from '../../../web-components/src/compare-chart-table-parser.js';
+import { EVENT_COMPARE_CHART_REHYDRATE } from '../../../web-components/src/constants.js';
 import { dragHandleIcon } from '../icons.js';
 import { VARIANT_NAMES } from './variant-picker.js';
 import { styles } from './mas-compare-chart-editor.css.js';
@@ -96,6 +97,10 @@ class MasCompareChartEditor extends LitElement {
     #parentPathByVariationPath = new Map();
     #previewRoot = null;
     #pendingOfferDataByOsi = new Map();
+    #initFragmentReferencesMapToken = 0;
+    #parseCache = { source: null, table: null, doc: null };
+    #previewCacheIds = new Set();
+    #lastPreviewSignature = '';
 
     #reactiveStores(stores) {
         return stores.filter((store) => store?.subscribe && store?.unsubscribe);
@@ -112,6 +117,7 @@ class MasCompareChartEditor extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#clearLightDomPreview();
+        if (this.pickerOpen) this.#handlePickerClose();
         Store.editor.referencedFragmentStoresHaveChanges.set(false);
     }
 
@@ -120,7 +126,8 @@ class MasCompareChartEditor extends LitElement {
             this.#ensureCompareChartTag();
         }
         if (changedProperties.has('fragmentStore') || changedProperties.has('localeDefaultFragment')) {
-            this.#initFragmentReferencesMap();
+            this.#initFragmentReferencesMapToken += 1;
+            this.#initFragmentReferencesMap(this.#initFragmentReferencesMapToken);
         }
         super.update(changedProperties);
     }
@@ -129,7 +136,7 @@ class MasCompareChartEditor extends LitElement {
         this.#syncLightDomPreview();
     }
 
-    async #initFragmentReferencesMap() {
+    async #initFragmentReferencesMap(token = ++this.#initFragmentReferencesMapToken) {
         if (!this.fragmentStore) {
             this.reactiveController.updateStores([]);
             Store.editor.referencedFragmentStoresHaveChanges.set(false);
@@ -144,6 +151,8 @@ class MasCompareChartEditor extends LitElement {
         const stores = [this.fragmentStore];
         for (const ref of allReferences) {
             const fragmentStore = await this.#ensureReferenceStore(ref);
+            // Cancellation: rapid locale/variation switches supersede this run.
+            if (token !== this.#initFragmentReferencesMapToken) return;
             if (!fragmentStore) continue;
             this.#fragmentReferencesMap.set(ref.path, fragmentStore);
             stores.push(fragmentStore, fragmentStore.previewStore);
@@ -676,9 +685,20 @@ class MasCompareChartEditor extends LitElement {
     }
 
     #getDocument() {
+        // Memoize: render() + #expandedGroupsAttribute() both call into #parse,
+        // double-parsing the same HTML per update. Cache invalidates whenever
+        // effectiveValue changes (which is what every write path triggers).
+        // CONTRACT: callers must treat the returned doc/table as read-only —
+        // clone before mutating, or the next consumer in the same tick sees
+        // stale/edited DOM.
+        const source = this.effectiveValue;
+        if (this.#parseCache.source === source) {
+            return { doc: this.#parseCache.doc, table: this.#parseCache.table };
+        }
         const parser = new DOMParser();
-        const doc = parser.parseFromString(this.effectiveValue, 'text/html');
+        const doc = parser.parseFromString(source, 'text/html');
         const table = doc.body.querySelector('mas-compare-chart');
+        this.#parseCache = { source, doc, table };
         return { doc, table };
     }
 
@@ -792,6 +812,12 @@ class MasCompareChartEditor extends LitElement {
         });
     }
 
+    // HTML helpers below (#normalizeRowHtml, #normalizeCellHtml, #displayHtml,
+    // #cellInnerHtml) round-trip author-supplied markup through DOMParser. This
+    // is NOT sanitization — script/event-handler/javascript: URLs survive.
+    // Trust boundary: input comes from AEM RTE fields gated by IMS auth, and
+    // the AEM write path strips dangerous tags/attributes server-side. Do not
+    // call these helpers on untrusted input from other sources.
     #normalizeRowHtml(rawHtml) {
         const doc = new DOMParser().parseFromString(rawHtml || '', 'text/html');
         const blocks = doc.body.querySelectorAll('p, div');
@@ -1905,7 +1931,18 @@ class MasCompareChartEditor extends LitElement {
         previewCards.forEach((card) => cache.remove(card.id));
         previewCards.forEach((card) => cache.add(card, false));
         cache.add(previewChart, false);
+        this.#previewCacheIds.add(previewChartId);
+        previewCards.forEach((card) => this.#previewCacheIds.add(card.id));
         return previewChartId;
+    }
+
+    #evictPreviewCache() {
+        if (!this.#previewCacheIds.size) return;
+        const cache = customElements.get('aem-fragment')?.cache;
+        if (cache) {
+            this.#previewCacheIds.forEach((id) => cache.remove(id));
+        }
+        this.#previewCacheIds.clear();
     }
 
     #renderPreviewChart(previewFragmentId) {
@@ -1963,7 +2000,6 @@ class MasCompareChartEditor extends LitElement {
                 <span class="compchart-preview-locale-label">Preview card for:</span>
                 <div class="compchart-preview-locale-field" title=${label}>
                     <span>${label}</span>
-                    <sp-icon-chevron-down size="xxs"></sp-icon-chevron-down>
                 </div>
             </div>
         `;
@@ -1981,10 +2017,25 @@ class MasCompareChartEditor extends LitElement {
     }
 
     #clearLightDomPreview() {
+        this.#evictPreviewCache();
+        this.#lastPreviewSignature = '';
         if (!this.#previewRoot) return;
         litRender(nothing, this.#previewRoot);
         this.#previewRoot.remove();
         this.#previewRoot = null;
+    }
+
+    #previewSignature(columns) {
+        // Cheap structural hash of preview inputs — skip rebuild when unchanged.
+        return JSON.stringify({
+            chart: this.fragmentStore?.previewStore?.get?.()?.id ?? this.fragment?.id ?? '',
+            value: this.effectiveValue,
+            columns: columns.map((c) => ({
+                path: c.path,
+                id: c.fragment?.id ?? c.sourceFragment?.id ?? '',
+                features: c.features ?? [],
+            })),
+        });
     }
 
     #syncLightDomPreview() {
@@ -1997,16 +2048,20 @@ class MasCompareChartEditor extends LitElement {
             this.#clearLightDomPreview();
             return;
         }
-        const previewFragmentId = this.#previewFragmentId(this.effectiveColumns);
+        const columns = this.effectiveColumns;
+        const signature = this.#previewSignature(columns);
+        if (signature === this.#lastPreviewSignature && this.#previewRoot?.isConnected) return;
+        const previewFragmentId = this.#previewFragmentId(columns);
         if (!previewFragmentId) {
             this.#clearLightDomPreview();
             return;
         }
+        this.#lastPreviewSignature = signature;
         const previewRoot = this.#ensurePreviewRoot();
         litRender(this.#renderPreviewChart(previewFragmentId), previewRoot);
         previewRoot
             .querySelector('mas-compare-chart')
-            ?.dispatchEvent(new CustomEvent('mas-compare-chart:rehydrate', { bubbles: true }));
+            ?.dispatchEvent(new CustomEvent(EVENT_COMPARE_CHART_REHYDRATE, { bubbles: true }));
     }
 
     #renderPreviewView(groups, columns) {
@@ -2362,7 +2417,7 @@ class MasCompareChartEditor extends LitElement {
                       <mas-items-selector
                           .allowedTypes=${[TABLE_TYPE.CARDS]}
                           .maxSelectedCards=${MAX_COMPARE_CHART_CARDS}
-                          .lockedTemplateFilter=${VARIANT_NAMES.COMPCHART}
+                          .lockedTemplateFilter=${VARIANT_NAMES.COMPARE_CHART}
                           hide-selected-toggle
                       ></mas-items-selector>
                   </sp-dialog-wrapper>`

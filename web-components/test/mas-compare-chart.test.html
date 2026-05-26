@@ -8,6 +8,7 @@
             window.process = { env: {} };
         </script>
         <script type="module" src="../src/mas.js"></script>
+        <script type="module" src="../src/mas-compare-chart.js"></script>
         <link
             rel="stylesheet"
             href="https://www.adobe.com/libs/styles/styles.css"
@@ -128,7 +129,87 @@
 
                         duplicateChart.remove();
                     });
+
+                    it('reflects expanded-groups attribute', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.setAttribute('expanded-groups', '1,2');
+                        local.innerHTML = `
+                            <div name="g1"><h4>G1</h4><p name="r1">R1</p></div>
+                            <div name="g2"><h4>G2</h4><p name="r2">R2</p></div>
+                        `;
+                        main.append(local);
+                        await local.updateComplete;
+                        await local.updateComplete;
+                        const groups =
+                            local.shadowRoot.querySelectorAll('.table-group');
+                        expect(groups.length).to.be.greaterThan(0);
+                        local.remove();
+                    });
+
+                    it('honors sticky-top attribute', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.setAttribute('sticky-top', '40');
+                        local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                        main.append(local);
+                        await local.updateComplete;
+                        expect(
+                            local.style.getPropertyValue(
+                                '--compare-chart-sticky-gap',
+                            ),
+                        ).to.equal('40px');
+                        local.remove();
+                    });
+
+                    it('sets data-child-count from rendered cards', async () => {
+                        const local =
+                            document.createElement('mas-compare-chart');
+                        local.innerHTML = `
+                            <merch-card slot="cards" variant="compare-chart"><h3 slot="header">A</h3></merch-card>
+                            <merch-card slot="cards" variant="compare-chart"><h3 slot="header">B</h3></merch-card>
+                        `;
+                        main.append(local);
+                        await local.updateComplete;
+                        await local.updateComplete;
+                        expect(local.getAttribute('data-child-count')).to.equal(
+                            '2',
+                        );
+                        local.remove();
+                    });
+
+                    it('cleans up window listeners on disconnect', async () => {
+                        const counter = removeCounter(window, 'scroll');
+                        try {
+                            const local =
+                                document.createElement('mas-compare-chart');
+                            local.innerHTML = '<div name="g"><h4>G</h4></div>';
+                            main.append(local);
+                            await local.updateComplete;
+                            const before = counter.count;
+                            local.remove();
+                            expect(counter.count).to.be.greaterThan(before);
+                        } finally {
+                            counter.restore();
+                        }
+                    });
                 });
+
+                function removeCounter(target, type) {
+                    // Counts removeEventListener calls for `type`; returns {count, restore}.
+                    const orig = target.removeEventListener.bind(target);
+                    const state = {
+                        count: 0,
+                        restore: () => {
+                            target.removeEventListener = orig;
+                        },
+                    };
+                    target.removeEventListener = (t, ...rest) => {
+                        if (t === type) state.count += 1;
+                        return orig(t, ...rest);
+                    };
+                    return state;
+                }
             });
         </script>
     </body>

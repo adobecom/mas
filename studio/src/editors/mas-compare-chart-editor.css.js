@@ -206,7 +206,7 @@ export const styles = css`
         flex: 1;
         min-width: 0;
         width: 100%;
-        min-height: 28px;
+        min-height: 62px;
         padding: 0 4px;
         border: 0;
         border-radius: 4px;
@@ -219,11 +219,6 @@ export const styles = css`
         overflow-wrap: anywhere;
         word-break: break-word;
     }
-
-    .compchart-cell-value {
-        min-height: 62px;
-        }
-    
 
     .compchart-cell-value rte-field {
         display: block;
@@ -525,7 +520,7 @@ export const styles = css`
         white-space: nowrap;
     }
 
-.compchart-card-variation-panel,
+    .compchart-card-variation-panel,
     .compchart-card-variation-empty {
         background: var(--spectrum-gray-50);
         border-bottom: 1px solid var(--spectrum-gray-300);

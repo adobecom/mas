@@ -37,12 +37,7 @@ const MODEL_WEB_COMPONENT_MAPPING = {
     [COLLECTION_MODEL_PATH]: 'merch-card-collection',
 };
 
-/**
- * When {@link Store.filters} locale does not match the default for the fragment path’s locale
- * (see {@link getDefaultLocaleCode}), set it to that default and clear region so the URL hash stays aligned.
- * @param {string} fragmentPath
- * @returns {boolean} true if filters were updated
- */
+// Returns locale codes extracted from the fragment's pznTags field.
 export function getGroupedPreviewLocaleCodes(fragment) {
     const tags = fragment?.getFieldValues('pznTags') || [];
     return [...new Set(tags.map((tag) => tag?.split('/').pop()?.trim()).filter((code) => code && getLocaleByCode(code)))];

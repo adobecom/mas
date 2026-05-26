@@ -11,7 +11,7 @@
         "cloudevents": "^10.0.0",
         "regenerator-runtime": "^0.13.5",
         "sinon": "^21.0.0",
-        "uuid": "^8.0.0"
+        "uuid": "^14.0.0"
     },
     "devDependencies": {
         "c8": "^10.1.3",

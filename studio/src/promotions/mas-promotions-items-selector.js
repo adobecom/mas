@@ -185,6 +185,7 @@ class MasPromotionsItemsSelector extends LitElement {
     }
 
     render() {
+        if (!getItemsSelectionStore({ allowUnset: true })) return nothing;
         const count = this.selectedCount;
         const showingSelection = this.showSelected && count;
         const toggleLabel = showingSelection ? 'Hide selection' : 'Selected items';

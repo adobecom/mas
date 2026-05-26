@@ -742,19 +742,20 @@ describe('MasRepository dictionary helpers', () => {
                 status: 'DRAFT',
                 fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
             };
+            let refreshComplete;
+            const refreshCompletePromise = new Promise((resolve) => {
+                refreshComplete = resolve;
+            });
             repository.aem = createAemMock();
             repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
             const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
-            repository.aem.sites.cf.fragments.getById.resolves(refreshed);
+            repository.aem.sites.cf.fragments.getById.callsFake(async () => {
+                refreshComplete();
+                return refreshed;
+            });
             Store.promotions.list.data.set([]);
             await repository.loadPromotions();
-            await new Promise((resolve) => {
-                const wait = () => {
-                    if (unpublishStub.called) resolve();
-                    else setTimeout(wait, 0);
-                };
-                wait();
-            });
+            await refreshCompletePromise;
             expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
             expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
             const row = Store.promotions.list.data.get()[0].get();

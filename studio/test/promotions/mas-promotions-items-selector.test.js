@@ -96,14 +96,16 @@ describe('MasPromotionsItemsSelector', () => {
     });
 
     it('debounces search input into searchQuery', async () => {
+        const clock = sandbox.useFakeTimers();
         const el = await fixture(html`<mas-promotions-items-selector></mas-promotions-items-selector>`);
         const search = el.shadowRoot.querySelector('sp-search');
         search.value = 'abc';
         search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
         expect(el.searchQuery).to.equal('');
-        await new Promise((r) => setTimeout(r, 350));
+        clock.tick(300);
         await el.updateComplete;
         expect(el.searchQuery).to.equal('abc');
+        clock.restore();
     });
 
     it('resetFilters calls resetFilters on each mas-search-and-filters', async () => {

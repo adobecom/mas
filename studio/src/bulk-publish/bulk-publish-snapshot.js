@@ -77,17 +77,21 @@ export async function revertSnapshot(snapshot, aem) {
     const results = await runConcurrent(
         entries,
         async ([fragmentId, entry]) => {
-            let path = fragmentId;
+            let fragment;
             try {
-                const fragment = await aem.sites.cf.fragments.getById(fragmentId);
-                path = fragment.path;
+                fragment = await aem.sites.cf.fragments.getById(fragmentId);
+            } catch (err) {
+                if (err?.response?.status === 404) return null;
+                return { path: fragmentId, error: err.message };
+            }
+            try {
                 await aem.sites.cf.fragments.restoreVersion(fragmentId, entry.versionId);
                 if (!entry.wasPublished) {
-                    await aem.sites.cf.fragments.setToDraft(path);
+                    await aem.sites.cf.fragments.setToDraft(fragment.path);
                 }
                 return null;
             } catch (err) {
-                return { path, error: err.message };
+                return { path: fragment.path, error: err.message };
             }
         },
         FRAGMENT_CONCURRENCY,

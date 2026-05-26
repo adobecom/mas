@@ -141,9 +141,11 @@
                         main.append(local);
                         await local.updateComplete;
                         await local.updateComplete;
-                        const groups =
-                            local.shadowRoot.querySelectorAll('.table-group');
-                        expect(groups.length).to.be.greaterThan(0);
+                        const expandedButtons =
+                            local.shadowRoot.querySelectorAll(
+                                '.table-column-header[aria-expanded="true"]',
+                            );
+                        expect(expandedButtons).to.have.length(2);
                         local.remove();
                     });
 

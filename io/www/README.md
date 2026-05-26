@@ -52,12 +52,6 @@ AIO*WWW_AIO*<GITHUBUSERNAME>=
 
 values of those secrets should be the content of your corresponding resp `.env` and `.aio` files
 
-## Local Dev
-
-- `aio app dev` to start your local Dev server
-- App will run on `localhost:9080` by default
-- open https://localhost:9080/api/v1/web/MerchAtScale/health-check
-
 ## Test & Coverage
 
 - Run `aio app test` to run unit tests for ui and actions (_Note: If tests fail, make sure to have the latest node version installed._)

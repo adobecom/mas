@@ -21,13 +21,6 @@ export const tableHeaderBaseStyles = css`
         --mod-table-border-radius: 0;
     }
 
-    .item-table sp-table-head {
-        border-top: 1px solid var(--spectrum-gray-300);
-        border-left: 1px solid var(--spectrum-gray-300);
-        border-right: 1px solid var(--spectrum-gray-300);
-        border-radius: 12px 12px 0 0;
-    }
-
     .item-table sp-table-head-cell {
         align-content: center;
     }
@@ -38,6 +31,12 @@ export const tableHeaderBaseStyles = css`
 
     .item-table sp-table-head-cell:last-of-type {
         border-top-right-radius: 12px;
+    }
+`;
+
+export const tableBodyBaseStyles = css`
+    .item-table sp-table-body {
+        border: none;
     }
 `;
 

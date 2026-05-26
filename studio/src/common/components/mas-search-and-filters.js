@@ -203,8 +203,8 @@ class MasSearchAndFilters extends LitElement {
         setNamespaceCache(MAS_TAG_NAMESPACE, cachePromise);
         this.#refreshOptionsAfterTagCacheLoad(cachePromise);
 
-        new AEM(null, baseUrl)
-            .tags.list(MAS_TAG_NAMESPACE)
+        new AEM(null, baseUrl).tags
+            .list(MAS_TAG_NAMESPACE)
             .then((rawTags) => {
                 setNamespaceCache(MAS_TAG_NAMESPACE, new Map((rawTags?.hits || []).map((tag) => [tag.path, tag])));
             })
@@ -341,10 +341,12 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #addSelectedFilterOptions(optionMaps) {
-        [...(this.marketSegmentFilter || []), ...(this.customerSegmentFilter || []), ...(this.productFilter || [])].forEach((tagId) => {
-            const cachedTag = getNamespaceCache(MAS_TAG_NAMESPACE)?.get?.(this.#tagIdToPath(tagId));
-            this.#setOptionFromTagId(optionMaps, tagId, cachedTag?.title);
-        });
+        [...(this.marketSegmentFilter || []), ...(this.customerSegmentFilter || []), ...(this.productFilter || [])].forEach(
+            (tagId) => {
+                const cachedTag = getNamespaceCache(MAS_TAG_NAMESPACE)?.get?.(this.#tagIdToPath(tagId));
+                this.#setOptionFromTagId(optionMaps, tagId, cachedTag?.title);
+            },
+        );
     }
 
     #addCachedFilterOptions(optionMaps) {
@@ -637,7 +639,9 @@ class MasSearchAndFilters extends LitElement {
             if (hasProduct) {
                 if (
                     !fragment.tags?.some((tag) =>
-                        this.productFilter.some((productTagId) => tag.id === productTagId || tag.id?.startsWith(`${productTagId}/`)),
+                        this.productFilter.some(
+                            (productTagId) => tag.id === productTagId || tag.id?.startsWith(`${productTagId}/`),
+                        ),
                     )
                 ) {
                     return false;

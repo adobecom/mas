@@ -91,20 +91,7 @@ class MasBulkPublishItems extends LitElement {
     renderModificationCell(item) {
         if (!item.path || !this.modifications) return html`<span class="modification-cell">–</span>`;
         const modified = this.modifications.get(item.path);
-        if (modified === undefined) return html`<span class="modification-cell">–</span>`;
-        if (modified === null)
-            return html`<span class="modification-cell not-found-cell">
-                <span class="modification-dot not-found-dot"></span>Not found
-                <sp-action-button
-                    size="xs"
-                    quiet
-                    label="Remove fragment"
-                    @click=${() => emit(this, 'remove-not-found-item', { url: item.url, path: item.path })}
-                >
-                    <sp-icon-delete slot="icon"></sp-icon-delete>
-                    Remove
-                </sp-action-button>
-            </span>`;
+        if (modified === undefined || modified === null) return html`<span class="modification-cell">–</span>`;
         return modified
             ? html`<span class="modification-cell"><span class="modification-dot"></span>Modified</span>`
             : html`<span class="modification-cell">–</span>`;
@@ -114,11 +101,6 @@ class MasBulkPublishItems extends LitElement {
         if (!this.modifications) return html`<span class="modification-cell">–</span>`;
         const values = [...this.modifications.values()];
         const modifiedCount = values.filter((v) => v === true).length;
-        const notFoundCount = values.filter((v) => v === null).length;
-        if (notFoundCount > 0)
-            return html`<span class="modification-cell">
-                <span class="modification-dot not-found-dot"></span>${notFoundCount} not found
-            </span>`;
         return modifiedCount > 0
             ? html`<span class="modification-cell"><span class="modification-dot"></span>${modifiedCount} modified</span>`
             : html`<span class="modification-cell">–</span>`;

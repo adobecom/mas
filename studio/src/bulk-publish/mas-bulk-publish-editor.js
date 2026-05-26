@@ -613,27 +613,27 @@ class MasBulkPublishEditor extends LitElement {
                 const { checkModifications } = await import('./bulk-publish-snapshot.js');
                 const results = await checkModifications(snapshot, this.repository.aem);
                 this.modifications = new Map(results.map(({ path, modified }) => [path, modified]));
-                const modifiedCount = results.filter((r) => r.modified === true).length;
-                const notFoundCount = results.filter((r) => r.modified === null).length;
-                if (notFoundCount > 0) {
-                    const deletedIds = new Set(results.filter((r) => r.deleted).map((r) => r.fragmentId));
-                    if (deletedIds.size > 0) {
-                        const currentEntries = this.getFields('snapshots');
-                        const updatedEntries = currentEntries.filter((e) => {
-                            try {
-                                return !deletedIds.has(JSON.parse(e).fragmentId);
-                            } catch {
-                                return true;
-                            }
-                        });
-                        if (this.isNewProject) {
-                            this.project.setFieldValue('snapshots', updatedEntries);
-                        } else {
-                            this.project.updateField('snapshots', updatedEntries);
+
+                const deletedIds = new Set(results.filter((r) => r.deleted).map((r) => r.fragmentId));
+                if (deletedIds.size > 0) {
+                    const currentEntries = this.getFields('snapshots');
+                    const updatedEntries = currentEntries.filter((e) => {
+                        try {
+                            return !deletedIds.has(JSON.parse(e).fragmentId);
+                        } catch {
+                            return true;
                         }
+                    });
+                    if (this.isNewProject) {
+                        this.project.setFieldValue('snapshots', updatedEntries);
+                    } else {
+                        this.project.updateField('snapshots', updatedEntries);
                     }
-                    showToast(`${notFoundCount} item${notFoundCount !== 1 ? 's' : ''} not found.`, 'negative');
-                } else if (modifiedCount > 0) {
+                    await this.repository.saveFragment(this.project, false);
+                }
+
+                const modifiedCount = results.filter((r) => !r.deleted && r.modified === true).length;
+                if (modifiedCount > 0) {
                     showToast(`${modifiedCount} item${modifiedCount !== 1 ? 's' : ''} modified since last publish.`, 'info');
                 } else {
                     showToast('No modifications found.', 'positive');
@@ -643,47 +643,6 @@ class MasBulkPublishEditor extends LitElement {
                 showToast('Failed to check modifications.', 'negative');
             }
         });
-    }
-
-    async handleRemoveNotFoundItem(e) {
-        const { url, path } = e.detail;
-        const removedItem = this.items.find((i) => i.path === path);
-        const updatedItems = this.items.filter((i) => i.path !== path);
-        const updatedUrls = this.urlLines.filter((l) => l !== url).join('\n');
-        this.localItems = updatedItems;
-        const validPaths = updatedItems.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
-        this.setFragments(validPaths);
-        this.setProjectField('urls', updatedUrls);
-
-        const snapshotEntries = this.getFields('snapshots');
-        if (snapshotEntries.length) {
-            const removedFragmentId = removedItem?.fragmentId;
-            if (removedFragmentId) {
-                try {
-                    const updated = snapshotEntries.filter((e) => JSON.parse(e).fragmentId !== removedFragmentId);
-                    if (this.isNewProject) {
-                        this.project.setFieldValue('snapshots', updated);
-                    } else {
-                        this.project.updateField('snapshots', updated);
-                    }
-                } catch {
-                    /* corrupted snapshots — leave as-is */
-                }
-            }
-        }
-
-        try {
-            await this.repository.saveFragment(this.project, false);
-            this.hasChanges = false;
-        } catch {
-            showToast('Failed to save project after removing fragment.', 'negative');
-            return;
-        }
-
-        const updated = new Map(this.modifications);
-        updated.delete(path);
-        this.modifications = updated.size > 0 ? updated : null;
-        showToast('Fragment removed from project.', 'positive');
     }
 
     handleRevert() {
@@ -774,7 +733,6 @@ class MasBulkPublishEditor extends LitElement {
                 @url-remove=${this.handleUrlRemove}
                 @remove-all=${this.handleRemoveAll}
                 @check-modifications=${this.handleCheckModifications}
-                @remove-not-found-item=${this.handleRemoveNotFoundItem}
             ></mas-bulk-publish-items>
             <mas-bulk-publish-locales
                 .locales=${this.locales}

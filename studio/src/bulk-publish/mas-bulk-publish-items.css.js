@@ -159,7 +159,4 @@ export const styles = css`
         background-color: var(--spectrum-orange-600, #d45b00);
         flex-shrink: 0;
     }
-    .not-found-dot {
-        background-color: var(--spectrum-negative-visual-color);
-    }
 `;

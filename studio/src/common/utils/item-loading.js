@@ -193,10 +193,12 @@ export async function loadGroupedVariations(
         (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
     );
 
+    const parentWcsOsi = fragment.getFieldValue('osi');
+
     const offerDataResults = getOfferData
         ? await processConcurrently(
               validVariations,
-              (variation) => getOfferData(variation, { cache: offerDataCache, signal }),
+              (variation) => getOfferData(variation, { cache: offerDataCache, signal, fallbackWcsOsi: parentWcsOsi }),
               VARIATIONS_CONCURRENCY_LIMIT,
           )
         : validVariations.map(() => null);

@@ -185,7 +185,17 @@ describe('revertSnapshot()', () => {
         expect(aem.sites.cf.fragments.restoreVersion.callCount).to.equal(2);
     });
 
-    it('skips deleted fragments (getById 404) and returns them in skipped array', async () => {
+    it('skips deleted fragments (getById 404 message) and returns them in skipped array', async () => {
+        const aem = makeAem();
+        aem.sites.cf.fragments.getById = sinon.stub().rejects(new Error('Failed to get fragment: 404 Not Found'));
+        const snapshot = makeSnapshot([{ id: 'deleted-frag', path: '/gone', versionId: 'v1', wasPublished: true }]);
+        const { failures, skipped } = await revertSnapshot(snapshot, aem);
+        expect(failures).to.deep.equal([]);
+        expect(skipped).to.deep.equal(['deleted-frag']);
+        expect(aem.sites.cf.fragments.restoreVersion.called).to.equal(false);
+    });
+
+    it('skips deleted fragments (getById response.status 404) and returns them in skipped array', async () => {
         const aem = makeAem();
         const notFoundErr = new Error('Not Found');
         notFoundErr.response = { status: 404 };
@@ -199,9 +209,7 @@ describe('revertSnapshot()', () => {
 
     it('treats non-404 getById errors as failures', async () => {
         const aem = makeAem();
-        const serverErr = new Error('Internal Server Error');
-        serverErr.response = { status: 500 };
-        aem.sites.cf.fragments.getById = sinon.stub().rejects(serverErr);
+        aem.sites.cf.fragments.getById = sinon.stub().rejects(new Error('Internal Server Error'));
         const snapshot = makeSnapshot([{ id: 'f1', path: '/p1', versionId: 'v1', wasPublished: true }]);
         const { failures } = await revertSnapshot(snapshot, aem);
         expect(failures).to.have.length(1);

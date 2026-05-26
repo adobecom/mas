@@ -81,7 +81,7 @@ export async function revertSnapshot(snapshot, aem) {
             try {
                 fragment = await aem.sites.cf.fragments.getById(fragmentId);
             } catch (err) {
-                if (err?.response?.status === 404) return { skipped: fragmentId };
+                if (err?.response?.status === 404 || err?.message?.includes('404')) return { skipped: fragmentId };
                 return { path: fragmentId, error: err.message };
             }
             try {

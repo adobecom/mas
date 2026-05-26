@@ -4,6 +4,7 @@ import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import { PAGE_NAMES, QUICK_ACTION, TRANSLATION_PROJECT_MODEL_ID } from '../../src/constants.js';
 import Store from '../../src/store.js';
+import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import router from '../../src/router.js';
 import Events from '../../src/events.js';
 import { Fragment } from '../../src/aem/fragment.js';
@@ -19,10 +20,10 @@ describe('MasTranslationEditor', () => {
 
     const createMockFragment = (overrides = {}) => ({
         id: 'test-fragment-id',
-        title: 'Test Translation Project',
+        title: 'Test-Translation-Project',
         path: '/content/dam/mas/translations/test-project',
         fields: [
-            { name: 'title', type: 'text', multiple: false, values: ['Test Translation Project'] },
+            { name: 'title', type: 'text', multiple: false, values: ['Test-Translation-Project'] },
             { name: 'status', type: 'text', multiple: false, values: ['draft'] },
             { name: 'fragments', type: 'content-fragment', multiple: true, values: [] },
             {
@@ -88,6 +89,7 @@ describe('MasTranslationEditor', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        setItemsSelectionStore(Store.translationProjects);
         toastEmitStub = sandbox.stub(Events.toast, 'emit');
         originalQuerySelector = document.querySelector.bind(document);
         defaultMockRepository = {
@@ -119,6 +121,7 @@ describe('MasTranslationEditor', () => {
         fixtureCleanup();
         sandbox.restore();
         resetStores();
+        setItemsSelectionStore(null);
     });
 
     describe('initialization', () => {
@@ -145,6 +148,7 @@ describe('MasTranslationEditor', () => {
             Store.translationProjects.prefill.set({
                 targetLocale: 'tr_TR',
                 fragmentPath: '/content/dam/mas/s/en_US/f',
+                isCollection: false,
             });
 
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -154,6 +158,24 @@ describe('MasTranslationEditor', () => {
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/content/dam/mas/s/en_US/f']);
             expect(el.showSelectedEmptyState).to.be.false;
             expect(el.showLangSelectedEmptyState).to.be.false;
+        });
+
+        it('should put collection prefill into selectedCollections when prefill.isCollection is true', async () => {
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.prefill.set({
+                targetLocale: 'pl_PL',
+                fragmentPath: '/content/dam/mas/s/en_US/merch-card-collection/test-collection',
+                isCollection: true,
+            });
+
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal([
+                '/content/dam/mas/s/en_US/merch-card-collection/test-collection',
+            ]);
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([]);
+            expect(el.showSelectedEmptyState).to.be.false;
         });
 
         it('should have save, discard, delete and loc actions disabled for new project by default', async () => {
@@ -414,7 +436,7 @@ describe('MasTranslationEditor', () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'New Title';
+            titleField.value = 'New-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
@@ -674,6 +696,36 @@ describe('MasTranslationEditor', () => {
                     content: 'Please fill in all required fields.',
                 }),
             ).to.be.true;
+        });
+
+        it('should show error when title has consecutive dots on create', async () => {
+            const mockFragment = new Fragment(createMockFragment());
+            const fragmentStore = new FragmentStore(mockFragment);
+            Store.translationProjects.inEdit.set(fragmentStore);
+            const mockRepository = createMockRepository();
+            querySelectorStub.callsFake((selector) => {
+                if (selector === 'mas-repository') return mockRepository;
+                return originalQuerySelector(selector);
+            });
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.isNewTranslationProject = true;
+            Store.translationProjects.targetLocales.set(['pl_PL']);
+            Store.translationProjects.selectedCards.set(['card1']);
+            await el.updateComplete;
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'bad..name';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('save'));
+            await el.updateComplete;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Project title cannot contain two dots in a row.',
+                }),
+            ).to.be.true;
+            expect(mockRepository.createFragment.called).to.be.false;
         });
 
         it('should have createFragment method on repository', async () => {
@@ -994,7 +1046,7 @@ describe('MasTranslationEditor', () => {
 
     describe('create translation project success', () => {
         it('should create project successfully with valid data', async () => {
-            const newFragment = new Fragment(createMockFragment({ id: 'new-id', title: 'New Project' }));
+            const newFragment = new Fragment(createMockFragment({ id: 'new-id', title: 'New-Project' }));
             const mockRepository = createMockRepository();
             mockRepository.createFragment.resolves(newFragment);
             querySelectorStub.callsFake((selector) => {
@@ -1008,7 +1060,7 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             expect(el.isNewTranslationProject).to.be.true;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Valid Title';
+            titleField.value = 'Valid-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
@@ -1039,7 +1091,7 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             expect(el.isNewTranslationProject).to.be.true;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Valid Title';
+            titleField.value = 'Valid-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
@@ -1069,7 +1121,7 @@ describe('MasTranslationEditor', () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Existing Title';
+            titleField.value = 'Existing-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             el.isNewTranslationProject = false;
@@ -1109,6 +1161,35 @@ describe('MasTranslationEditor', () => {
             ).to.be.true;
         });
 
+        it('should show error when title has a space on update', async () => {
+            const mockRepository = createMockRepository();
+            querySelectorStub.callsFake((selector) => {
+                if (selector === 'mas-repository') return mockRepository;
+                return originalQuerySelector(selector);
+            });
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.targetLocales.set(['pl_PL']);
+            Store.translationProjects.selectedCards.set(['card1']);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+            const titleField = el.shadowRoot.querySelector('#title');
+            titleField.value = 'Invalid Title';
+            titleField.dispatchEvent(new Event('input', { bubbles: true }));
+            await el.updateComplete;
+            el.isNewTranslationProject = false;
+            await el.updateComplete;
+            const quickActions = el.shadowRoot.querySelector('mas-quick-actions');
+            quickActions.dispatchEvent(new CustomEvent('save'));
+            await el.updateComplete;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Project title may only use letters, numbers, hyphens, underscores and dots.',
+                }),
+            ).to.be.true;
+            expect(mockRepository.saveFragment.called).to.be.false;
+        });
+
         it('should handle update failure gracefully', async () => {
             const consoleErrorStub = sandbox.stub(console, 'error');
             const mockRepository = createMockRepository();
@@ -1123,7 +1204,7 @@ describe('MasTranslationEditor', () => {
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
             await el.updateComplete;
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Valid Title';
+            titleField.value = 'Valid-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             el.isNewTranslationProject = false;
@@ -1302,7 +1383,7 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             // Set some values
             const titleField = el.shadowRoot.querySelector('#title');
-            titleField.value = 'Original Title';
+            titleField.value = 'Original-Title';
             titleField.dispatchEvent(new Event('input', { bubbles: true }));
             await el.updateComplete;
             // Set some selected items to trigger the condition for showing dialog
@@ -1441,6 +1522,27 @@ describe('MasTranslationEditor', () => {
             await el.updateComplete;
             expect(closeEventFired).to.be.true;
             expect(Store.translationProjects.targetLocales.get()).to.deep.equal(['en_US']);
+        });
+
+        it('should render locale picker with default languages only (no regional variants)', async () => {
+            Store.search.set({ path: 'acom' });
+            Store.translationProjects.targetLocales.set([]);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.showLangSelectedEmptyState = true;
+            await el.updateComplete;
+            const overlayTrigger = el.shadowRoot.querySelector('#add-languages-overlay');
+            overlayTrigger.dispatchEvent(new CustomEvent('sp-opened'));
+            await el.updateComplete;
+            const langPicker = el.shadowRoot.querySelector('.add-langs-dialog mas-translation-languages');
+            expect(langPicker).to.exist;
+            expect(langPicker.hasAttribute('include-regional')).to.equal(false);
+            const codes = langPicker.localesArray.map((item) => item.locale);
+            expect(codes).to.include('fr_FR');
+            expect(codes).to.include('de_DE');
+            expect(codes).to.not.include('fr_CA');
+            expect(codes).to.not.include('fr_BE');
+            expect(codes).to.not.include('en_AU');
+            expect(codes).to.not.include('de_AT');
         });
     });
 

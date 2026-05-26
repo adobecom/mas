@@ -2,11 +2,10 @@ import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
 import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
-import { PAGE_NAMES, SURFACES } from '../../src/constants.js';
+import { PAGE_NAMES } from '../../src/constants.js';
 import Store from '../../src/store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
-import router from '../../src/router.js';
 import Events from '../../src/events.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-translation.js';
@@ -162,7 +161,7 @@ describe('MasTranslation', () => {
             const mockProjects = [createMockTranslationProject('1', 'Project 1')];
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
-            const table = el.shadowRoot.querySelector('.translation-table');
+            const table = el.shadowRoot.querySelector('.item-table');
             expect(table).to.exist;
         });
 
@@ -537,93 +536,6 @@ describe('MasTranslation', () => {
             deleteItem.click();
             await el.updateComplete;
             expect(el.confirmDialogConfig.title).to.equal('Existing');
-        });
-    });
-
-    describe('path restriction', () => {
-        let originalSearchValue;
-
-        beforeEach(() => {
-            originalSearchValue = Store.search.get();
-        });
-
-        afterEach(() => {
-            Store.search.set(originalSearchValue);
-        });
-
-        it('should allow acom path', async () => {
-            Store.search.set({ path: SURFACES.ACOM.name });
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            await el.updateComplete;
-            expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATIONS);
-        });
-
-        it('should allow express path', async () => {
-            Store.search.set({ path: SURFACES.EXPRESS.name });
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            await el.updateComplete;
-            expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATIONS);
-        });
-
-        it('should allow sandbox path', async () => {
-            Store.search.set({ path: SURFACES.SANDBOX.name });
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            await el.updateComplete;
-            expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATIONS);
-        });
-
-        it('should redirect to content page when path is not in allowed list', async () => {
-            const navigateStub = sinon.stub(router, 'navigateToPage').returns(() => {});
-            const originalQuerySelector = document.querySelector.bind(document);
-            const querySelectorStub = sinon.stub(document, 'querySelector').callsFake((selector) => {
-                if (selector === 'mas-repository') {
-                    return {};
-                }
-                return originalQuerySelector(selector);
-            });
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            Store.search.set({ path: SURFACES.CCD.name });
-            await el.updateComplete;
-            expect(router.navigateToPage.calledWith(PAGE_NAMES.CONTENT)).to.equal(true);
-            querySelectorStub.restore();
-            navigateStub.restore();
-        });
-
-        it('should not navigate when path is null or undefined', async () => {
-            Store.page.set(PAGE_NAMES.TRANSLATIONS);
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            await el.updateComplete;
-            Store.search.set({ path: null });
-            await el.updateComplete;
-            expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATIONS);
-        });
-    });
-
-    describe('disconnectedCallback', () => {
-        it('should unsubscribe from search store on disconnect when repository exists', async () => {
-            const originalQuerySelector = document.querySelector.bind(document);
-            sandbox.stub(document, 'querySelector').callsFake((selector) => {
-                if (selector === 'mas-repository') {
-                    return {};
-                }
-                return originalQuerySelector(selector);
-            });
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            await el.updateComplete;
-            // Manually call disconnectedCallback to ensure unsubscribe is called
-            el.disconnectedCallback();
-            // Changing the search should not cause errors after disconnect
-            Store.search.set({ path: SURFACES.CCD.name });
-            expect(true).to.be.true;
-        });
-
-        it('should handle disconnect when no subscription exists', async () => {
-            const el = await fixture(html`<mas-translation></mas-translation>`);
-            await el.updateComplete;
-            // Element has no repository, so no subscription was created
-            // disconnectedCallback should handle this gracefully
-            el.disconnectedCallback();
-            expect(true).to.be.true;
         });
     });
 

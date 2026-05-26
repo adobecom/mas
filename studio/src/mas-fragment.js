@@ -170,6 +170,7 @@ class MasFragment extends LitElement {
             ${this.expanded
                 ? html`<mas-fragment-variations
                       .fragment=${this.fragmentStore.value}
+                      .fragmentStore=${this.fragmentStore}
                       .loading=${this.loadingReferences}
                   ></mas-fragment-variations>`
                 : ''}`;

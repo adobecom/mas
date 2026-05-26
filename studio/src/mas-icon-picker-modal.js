@@ -270,6 +270,20 @@ class MasIconPickerModal extends LitElement {
         this.dispatchEvent(new CustomEvent('modal-close', { bubbles: true, composed: true }));
     }
 
+    #hasAltContent(altCombined) {
+        const raw = (altCombined ?? '').trim();
+        if (!raw) return false;
+        if (raw.startsWith('<p>')) {
+            const doc = new DOMParser().parseFromString(raw, 'text/html');
+            const txt = doc
+                .querySelector('p')
+                ?.textContent?.replace(/\u00a0/g, ' ')
+                .trim();
+            return !!txt;
+        }
+        return true;
+    }
+
     #handleCancel() {
         this.icon = this.#originalIcon;
         this.alt = this.#originalAlt;
@@ -295,7 +309,8 @@ class MasIconPickerModal extends LitElement {
             iconValue = this.icon || '';
         }
 
-        if (!iconValue.trim()) {
+        const altPayload = this.altHtml || this.alt || '';
+        if (!iconValue.trim() && !this.#hasAltContent(altPayload)) {
             return;
         }
 
@@ -359,10 +374,9 @@ class MasIconPickerModal extends LitElement {
         return html`
             <div class="tab-content">
                 <div class="form-field">
-                    <sp-field-label for="url-icon" required>Icon URL</sp-field-label>
+                    <sp-field-label for="url-icon">Icon URL</sp-field-label>
                     <sp-textfield
                         id="url-icon"
-                        required
                         placeholder="https://example.com/icon.svg"
                         value="${!this.icon?.startsWith('sp-icon-') ? this.icon : ''}"
                         @input=${(e) => (this.icon = e.target.value)}
@@ -383,7 +397,7 @@ class MasIconPickerModal extends LitElement {
     }
 
     render() {
-        const isEditing = !!this.icon;
+        const isEditing = !!(this.icon || this.#hasAltContent(this.altHtml || this.alt || ''));
 
         return html`
             <div @input=${(e) => e.stopPropagation()} @change=${(e) => e.stopPropagation()}>

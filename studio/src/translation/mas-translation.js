@@ -4,7 +4,7 @@ import { styles } from './mas-translation.css.js';
 import router from '../router.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
-import { PAGE_NAMES, TRANSLATIONS_ALLOWED_SURFACES } from '../constants.js';
+import { PAGE_NAMES } from '../constants.js';
 import { showToast } from '../utils.js';
 
 const translationSkeletonRow = () =>
@@ -23,8 +23,6 @@ class MasTranslation extends LitElement {
         confirmDialogConfig: { type: Object, state: true },
         columns: { type: Set, state: true },
     };
-
-    #searchCallback = null;
 
     constructor() {
         super();
@@ -106,13 +104,13 @@ class MasTranslation extends LitElement {
     get translationsProjectsContent() {
         const isLoading = Store.translationProjects?.list?.loading?.get();
         if (isLoading && !this.translationProjectsData.length) {
-            return html` <sp-table emphasized .scroller=${true} class="translation-table">
+            return html` <sp-table emphasized .scroller=${true} class="item-table">
                 ${this.translationProjectsTableHead}
                 <sp-table-body> ${Array.from({ length: 5 }, translationSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
         if (this.translationProjectsData.length) {
-            return html` <sp-table emphasized .scroller=${true} class="translation-table">
+            return html` <sp-table emphasized .scroller=${true} class="item-table">
                 ${this.translationProjectsTableHead}
                 <sp-table-body>
                     ${repeat(
@@ -177,22 +175,10 @@ class MasTranslation extends LitElement {
             this.error = 'Repository component not found';
             return;
         }
-
-        this.#searchCallback = (search) => {
-            const path = search?.path;
-            if (path && !TRANSLATIONS_ALLOWED_SURFACES.includes(path)) {
-                router.navigateToPage(PAGE_NAMES.CONTENT)();
-            }
-        };
-        Store.search.subscribe(this.#searchCallback);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        if (this.#searchCallback) {
-            Store.search.unsubscribe(this.#searchCallback);
-            this.#searchCallback = null;
-        }
     }
 
     async #showDialog(title, message, options = {}) {

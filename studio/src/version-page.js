@@ -40,6 +40,10 @@ class VersionPage extends LitElement {
         prices: { label: 'Prices', visible: true },
         ctas: { label: 'CTAs', visible: true },
         borderColor: { label: 'Border color', visible: true },
+        whatsIncludedDividerColor: {
+            label: "What's included divider color",
+            visible: true,
+        },
         size: { label: 'Size', visible: true },
         backgroundColor: { label: 'Background color', visible: true },
         backgroundImage: { label: 'Background image', visible: true },

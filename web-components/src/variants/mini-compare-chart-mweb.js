@@ -133,7 +133,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             return;
         }
 
-        let slots = [
+        const slots = [
             'heading-xs',
             'subtitle',
             'heading-m-price',
@@ -243,6 +243,10 @@ export class MiniCompareChartMweb extends VariantLayout {
         titleEl.replaceWith(titleDiv);
     }
 
+    get legalDisplayDot() {
+        return false;
+    }
+
     get mainPrice() {
         return this.card.querySelector(
             `[slot="heading-m-price"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
@@ -310,7 +314,7 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        await super.postCardUpdateHook();
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }

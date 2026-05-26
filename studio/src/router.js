@@ -100,6 +100,15 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.BULK_PUBLISH_EDITOR: {
+                const editor = document.querySelector('mas-bulk-publish-editor');
+                const hasUnsavedChanges = editor && editor.hasChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             case PAGE_NAMES.SETTINGS:
             case PAGE_NAMES.SETTINGS_EDITOR: {
                 const editor = document.querySelector('mas-settings');
@@ -118,9 +127,12 @@ export class Router extends EventTarget {
     /**
      * Navigation function to change the current page
      * @param {string} value - The page to navigate to
+     * @param {object} [options] - Optional state to set on navigation
+     * @param {string} [options.bulkPublishProjectId] - Project ID for bulk publish editor
+     * @param {string} [options.translationProjectId] - Project ID for translation editor
      * @returns {Function} A function that when called will navigate to the page
      */
-    navigateToPage(value) {
+    navigateToPage(value, options = {}) {
         return async () => {
             const targetPage = this.#getAuthorizedPage(value);
             if (Store.page.value === targetPage) return;
@@ -160,6 +172,12 @@ export class Router extends EventTarget {
                     ) {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
+                    }
+                    if (options.bulkPublishProjectId !== undefined) {
+                        Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
+                    }
+                    if (options.translationProjectId !== undefined) {
+                        Store.translationProjects.translationProjectId.set(options.translationProjectId);
                     }
                     Store.viewMode.set('default');
                     Store.page.set(targetPage);
@@ -210,6 +228,8 @@ export class Router extends EventTarget {
      * @param {string} fragmentId - The fragment ID to edit
      * @param {Object} options - Navigation options
      * @param {string} options.locale - Optional locale to set before navigation
+     * @param {import('./reactivity/fragment-store.js').FragmentStore} [options.fragmentStore] - Optional pre-resolved fragment store
+     * @param {boolean} [options.viewPage] - View page instead of editing
      */
     async navigateToFragmentEditor(fragmentId, options = {}) {
         if (!fragmentId) {
@@ -217,20 +237,15 @@ export class Router extends EventTarget {
             return;
         }
 
-        const { locale } = options;
+        const { locale, fragmentStore: providedFragmentStore, viewPage } = options;
 
         this.isNavigating = true;
         try {
-            // Set locale BEFORE setting page to include it in the first URL change
-            if (locale && locale !== Store.filters.value.locale) {
-                Store.search.set((prev) => ({ ...prev, region: locale }));
-            }
-
             // Check if this is a collection to use editor-panel instead
             const fragmentList = Store.fragments.list.data.get();
-            const fragmentStore = fragmentList?.find((f) => f.get()?.id === fragmentId);
+            const fragmentStore = providedFragmentStore ?? fragmentList?.find((f) => f.get()?.id === fragmentId);
 
-            if (fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
+            if (!viewPage && fragmentStore?.get()?.model?.path === COLLECTION_MODEL_PATH) {
                 // Use editor-panel for collections
                 const editorPanel = document.querySelector('editor-panel');
                 if (editorPanel) {
@@ -245,6 +260,10 @@ export class Router extends EventTarget {
             }
 
             // Default: use full-page fragment editor for regular cards
+            if (locale && locale !== Store.filters.value.locale) {
+                Store.search.set((prev) => ({ ...prev, region: locale }));
+            }
+
             if (Store.editor.hasChanges) {
                 const fragmentEditor = document.querySelector('mas-fragment-editor');
                 const confirmed = fragmentEditor ? await fragmentEditor.promptDiscardChanges() : true;
@@ -266,9 +285,10 @@ export class Router extends EventTarget {
      * @param {Object} options - Navigation options
      * @param {string} options.targetLocale - Optional target locale to pre-fill
      * @param {string} options.fragmentPath - Optional fragment path to pre-fill
+     * @param {boolean} [options.isCollection] - When true, prefill targets the collections field
      */
     async navigateToTranslationEditor(options = {}) {
-        const { targetLocale, fragmentPath } = options;
+        const { targetLocale, fragmentPath, isCollection } = options;
 
         this.isNavigating = true;
         try {
@@ -289,7 +309,11 @@ export class Router extends EventTarget {
 
             // Store pre-fill data for the translation editor to consume
             if (targetLocale || fragmentPath) {
-                Store.translationProjects.prefill.set({ targetLocale, fragmentPath });
+                Store.translationProjects.prefill.set({
+                    targetLocale,
+                    fragmentPath,
+                    isCollection: Boolean(isCollection),
+                });
             }
 
             // Set the page - the store subscription will update the URL
@@ -430,6 +454,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.fragmentEditor.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
+        this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         const redirectedOnStart = this.#enforceSettingsAccessFromParams();
         if (normalizedOnStart || redirectedOnStart) {
@@ -466,7 +491,9 @@ export class Router extends EventTarget {
 
             /* fix hash when missing params(e.g: manual edit) */
             this.currentParams = new URLSearchParams(this.#hashValue());
-            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId')) {
+            const currentPage = this.currentParams.get('page') || Store.page.value;
+            const isContentPage = !currentPage || currentPage === PAGE_NAMES.CONTENT || currentPage === PAGE_NAMES.WELCOME;
+            if (this.currentParams.has('query') && !this.currentParams.has('fragmentId') && isContentPage) {
                 Store.page.set(PAGE_NAMES.CONTENT);
             }
             const page = this.currentParams.get('page');

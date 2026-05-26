@@ -6,6 +6,7 @@ import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_TYPE_RESOLVED,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
@@ -36,6 +37,14 @@ export const MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING = {
         'gradient-purple-blue',
     ],
     allowedBorderColors: [
+        'spectrum-yellow-300-plans',
+        'spectrum-gray-300-plans',
+        'spectrum-green-900-plans',
+        'spectrum-red-700-plans',
+        'gradient-purple-blue',
+    ],
+    whatsIncludedDividerColor: { attribute: 'whats-included-divider-color' },
+    allowedWhatsIncludedDividerColors: [
         'spectrum-yellow-300-plans',
         'spectrum-gray-300-plans',
         'spectrum-green-900-plans',
@@ -87,6 +96,14 @@ export class MiniCompareChart extends VariantLayout {
             this.updatePriceQuantity,
         );
         this.visibilityObserver?.disconnect();
+        if (this.legalElement && this.legalResolvedHandler) {
+            this.legalElement.removeEventListener(
+                EVENT_TYPE_RESOLVED,
+                this.legalResolvedHandler,
+            );
+            this.legalResolvedHandler = null;
+            this.legalElement = null;
+        }
         if (this.calloutListenersAdded) {
             document.removeEventListener('touchstart', this.handleCalloutTouch);
             document.removeEventListener('mouseover', this.handleCalloutMouse);
@@ -163,7 +180,7 @@ export class MiniCompareChart extends VariantLayout {
             'top-section',
         );
 
-        let slots = [
+        const slots = [
             'heading-m',
             'subtitle',
             'body-m',
@@ -247,20 +264,29 @@ export class MiniCompareChart extends VariantLayout {
     removeEmptyRows() {
         if (this.isNewVariant) {
             const rows = this.card.querySelectorAll(
-                'merch-whats-included merch-mnemonic-list',
+                'merch-whats-included [slot="content"] merch-mnemonic-list',
             );
             rows.forEach((row) => {
+                if (row.hasAttribute('data-placeholder')) return;
+
+                const iconSlot = row.querySelector('[slot="icon"]');
+                const hasIcon =
+                    !!iconSlot?.querySelector('.sp-icon') ||
+                    !!iconSlot?.querySelector(
+                        'merch-icon[src]:not([src=""]), img[src]:not([src=""])',
+                    );
+
                 const description = row.querySelector('[slot="description"]');
-                if (description) {
-                    const isEmpty = !description.textContent.trim();
-                    if (isEmpty) {
-                        row.remove();
-                    }
-                }
+                const text =
+                    description?.textContent?.replace(/\u00a0/g, ' ')?.trim() ??
+                    '';
+
+                if (!hasIcon && !text) row.remove();
             });
         } else {
             const footerRows = this.card.querySelectorAll('.footer-row-cell');
             footerRows.forEach((row) => {
+                if (row.hasAttribute('data-placeholder')) return;
                 const rowDescription = row.querySelector(
                     '.footer-row-cell-description',
                 );
@@ -316,9 +342,11 @@ export class MiniCompareChart extends VariantLayout {
             for (let i = 0; i < needed; i++) {
                 const empty = document.createElement('merch-mnemonic-list');
                 empty.setAttribute('data-placeholder', '');
+                const iconSlot = document.createElement('div');
+                iconSlot.setAttribute('slot', 'icon');
                 const desc = document.createElement('div');
                 desc.setAttribute('slot', 'description');
-                empty.appendChild(desc);
+                empty.append(iconSlot, desc);
                 contentSlot.appendChild(empty);
             }
         } else {
@@ -553,25 +581,38 @@ export class MiniCompareChart extends VariantLayout {
                 headingPrice.nextSibling,
             );
             await legal.onceSettled();
+
+            if (!this.legalResolvedHandler) {
+                this.legalResolvedHandler = () => this.adjustShortDescription();
+                legal.addEventListener(
+                    EVENT_TYPE_RESOLVED,
+                    this.legalResolvedHandler,
+                );
+                this.legalElement = legal;
+            }
         } catch {
             // Proceed with other adjustments
         }
     }
 
     adjustShortDescription() {
-        const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
-        const text = bodyXxs?.textContent?.trim();
+        if (!this.shortDescriptionSource) {
+            const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
+            if (!bodyXxs) return;
+            this.shortDescriptionSource = bodyXxs;
+            bodyXxs.remove();
+        }
+        const text = this.shortDescriptionSource.textContent?.trim();
         if (!text) return;
         const legalPrice = this.card.querySelector(
             '[slot="heading-m-price"] [data-template="legal"]',
         );
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;
+        if (planType.querySelector('em')) return;
         const em = document.createElement('em');
-        em.setAttribute('slot', 'body-xxs');
         em.textContent = ` ${text}`;
         planType.appendChild(em);
-        bodyXxs.remove();
     }
 
     renderLayout() {
@@ -625,7 +666,7 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        await super.postCardUpdateHook();
         if (this.isNewVariant) {
             if (!this.legalAdjusted) {
                 await this.adjustLegal();
@@ -634,9 +675,10 @@ export class MiniCompareChart extends VariantLayout {
             this.adjustCallout();
         }
         await this.adjustAddon();
-        if (Media.isMobile) {
+        if (this.isNewVariant) {
             this.removeEmptyRows();
-        } else {
+        }
+        if (!Media.isMobile) {
             this.padFooterRows();
 
             const container = this.getContainer();
@@ -660,6 +702,8 @@ export class MiniCompareChart extends VariantLayout {
                     this.syncHeights();
                 });
             }
+        } else if (!this.isNewVariant) {
+            this.removeEmptyRows();
         }
     }
 
@@ -871,6 +915,40 @@ export class MiniCompareChart extends VariantLayout {
             [variant='mini-compare-chart'][border-color='gradient-purple-blue']
         ) {
             --consonant-merch-card-border-color: linear-gradient(
+                135deg,
+                #9256dc,
+                #1473e6
+            );
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-yellow-300-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #ffd947;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-gray-300-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #dadada;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-green-900-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #05834e;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='spectrum-red-700-plans']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: #eb1000;
+        }
+
+        :host(
+            [variant='mini-compare-chart'][whats-included-divider-color='gradient-purple-blue']
+        ) {
+            --consonant-merch-card-whats-included-divider-color: linear-gradient(
                 135deg,
                 #9256dc,
                 #1473e6

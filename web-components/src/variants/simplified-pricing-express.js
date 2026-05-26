@@ -108,13 +108,8 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
     async postCardUpdateHook() {
         if (!this.card.isConnected) return;
+        await super.postCardUpdateHook();
 
-        await this.card.updateComplete;
-        if (this.card.prices?.length) {
-            await Promise.all(
-                this.card.prices.map((price) => price.onceSettled?.()),
-            );
-        }
         const container = this.getContainer();
         if (!container) return;
         const cards = container.querySelectorAll(
@@ -514,7 +509,6 @@ export class SimplifiedPricingExpress extends VariantLayout {
         :host([variant='simplified-pricing-express']) .price-container {
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
             margin-top: auto;
         }
 

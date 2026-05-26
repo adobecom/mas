@@ -447,17 +447,9 @@ export function processFeatures(fields, merchCard, mapping) {
     const values = coerceMultivalueFeatureField(fields.features).filter(
         (html) => html.trim(),
     );
-    if (!mapping?.features) {
-        if (values.length) {
-            console.warn(
-                `[mas] features field present but ${merchCard?.variant ?? 'variant'} has no features mapping; output dropped.`,
-            );
-        }
-        return;
-    }
     if (!values.length) return;
     const container = createTag('div', {
-        slot: mapping.features.slot ?? 'features',
+        slot: mapping?.features?.slot ?? 'features',
         hidden: '',
         'data-compare-chart-features': '',
     });

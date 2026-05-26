@@ -91,10 +91,7 @@ describe('customize collections', function () {
             title: 'Compare chart card',
             fields: {
                 template: 'mas-compare-chart',
-                features: [
-                    '<p name="group-a@parent-only">Parent only</p>',
-                    '<p name="group-a@override">Parent value</p>',
-                ],
+                features: ['<p name="group-a@parent-only">Parent only</p>', '<p name="group-a@override">Parent value</p>'],
                 variations: ['compare-chart-card-be'],
             },
             references: {
@@ -104,9 +101,7 @@ describe('customize collections', function () {
                         path: '/content/dam/mas/sandbox/en_BE/compare-chart-card',
                         id: 'compare-chart-card-be',
                         fields: {
-                            features: [
-                                '<p name="group-a@override">Child value</p>',
-                            ],
+                            features: ['<p name="group-a@override">Child value</p>'],
                         },
                     },
                 },

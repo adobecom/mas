@@ -104,7 +104,7 @@ describe('VariantPicker', () => {
             expect(names).to.include('mini-compare-chart');
             expect(names).to.include('image');
             expect(names).to.include('special-offers');
-            expect(names).to.include('compchart');
+            expect(names).to.include('compare-chart');
             expect(names).to.not.include('plans');
             expect(names).to.not.include('catalog');
             expect(names).to.not.include('ccd-slice');

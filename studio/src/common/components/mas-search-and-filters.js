@@ -73,17 +73,19 @@ class MasSearchAndFilters extends LitElement {
             this.#applyFilters();
             this.requestUpdate();
         };
-        getItemsSelectionStore()[`all${this.typeUppercased}`].subscribe(dataCallback);
+        const itemsSelectionStore = getItemsSelectionStore();
+        itemsSelectionStore[`all${this.typeUppercased}`].subscribe(dataCallback);
         this.dataSubscription = {
-            unsubscribe: () => getItemsSelectionStore()[`all${this.typeUppercased}`].unsubscribe(dataCallback),
+            unsubscribe: () => itemsSelectionStore[`all${this.typeUppercased}`].unsubscribe(dataCallback),
         };
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        getItemsSelectionStore()[`display${this.typeUppercased}`].set(
-            getItemsSelectionStore()[`all${this.typeUppercased}`].value,
-        );
+        const itemsSelectionStore = getItemsSelectionStore({ allowUnset: true });
+        if (itemsSelectionStore) {
+            itemsSelectionStore[`display${this.typeUppercased}`].set(itemsSelectionStore[`all${this.typeUppercased}`].value);
+        }
         this.dataSubscription?.unsubscribe();
         if (this.type === TABLE_TYPE.CARDS) {
             if (this.#savedSearch !== null) {

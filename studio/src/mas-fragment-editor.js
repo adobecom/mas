@@ -1308,7 +1308,9 @@ export default class MasFragmentEditor extends LitElement {
             let dirtyCardFragmentStores = [];
             if (compareChartEditor) {
                 compareChartEditor.commitFeatureDrafts();
-                dirtyCardFragmentStores = compareChartEditor.dirtyCardFragmentStores.filter((store) => store.get?.().hasChanges);
+                dirtyCardFragmentStores = compareChartEditor.dirtyCardFragmentStores.filter(
+                    (store) => store.get?.().hasChanges,
+                );
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {

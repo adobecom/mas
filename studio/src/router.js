@@ -1,10 +1,4 @@
-import {
-    PAGE_NAMES,
-    SORT_COLUMNS,
-    WCS_LANDSCAPE_PUBLISHED,
-    COLLECTION_MODEL_PATH,
-    COMPARE_CHART_FIELD,
-} from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH, COMPARE_CHART_FIELD } from './constants.js';
 import Store from './store.js';
 import { debounce } from './utils.js';
 import { canAccessSettings } from './groups.js';

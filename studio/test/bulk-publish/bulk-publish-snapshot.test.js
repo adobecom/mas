@@ -8,8 +8,9 @@ function makeAem({ searchPages = [], fragmentById = {}, versionId = 'v1', getWit
         sites: {
             cf: {
                 fragments: {
-                    search: sinon.stub().callsFake(async function* () {
-                        yield searchPages;
+                    getByPath: sinon.stub().callsFake(async (path) => {
+                        const found = searchPages.find((p) => p.path === path);
+                        return found ?? null;
                     }),
                     getById: sinon.stub().callsFake(async (id) => {
                         if (fragmentById[id]) return fragmentById[id];
@@ -139,7 +140,7 @@ describe('revertSnapshot()', () => {
     });
 
     it('calls setToDraft after restoreVersion for wasPublished === false entries', async () => {
-        const aem = makeAem();
+        const aem = makeAem({ fragmentById: { f1: { id: 'f1', path: '/p1', status: 'Draft' } } });
         const snapshot = makeSnapshot([{ id: 'f1', path: '/p1', versionId: 'v1', wasPublished: false }]);
         await revertSnapshot(snapshot, aem);
         expect(aem.sites.cf.fragments.setToDraft.calledOnce).to.equal(true);
@@ -157,7 +158,7 @@ describe('revertSnapshot()', () => {
     });
 
     it('returns failures array with path and error for failed fragments (never throws)', async () => {
-        const aem = makeAem();
+        const aem = makeAem({ fragmentById: { f1: { id: 'f1', path: '/fail-path', status: 'Draft' } } });
         aem.sites.cf.fragments.restoreVersion = sinon.stub().rejects(new Error('restore failed'));
         const snapshot = makeSnapshot([{ id: 'f1', path: '/fail-path', versionId: 'v1', wasPublished: true }]);
         const { failures } = await revertSnapshot(snapshot, aem);
@@ -167,7 +168,12 @@ describe('revertSnapshot()', () => {
     });
 
     it('continues processing remaining fragments after a partial failure', async () => {
-        const aem = makeAem();
+        const aem = makeAem({
+            fragmentById: {
+                f1: { id: 'f1', path: '/fail-path', status: 'Draft' },
+                f2: { id: 'f2', path: '/ok-path', status: 'Draft' },
+            },
+        });
         aem.sites.cf.fragments.restoreVersion = sinon.stub().onFirstCall().rejects(new Error('404')).onSecondCall().resolves();
         const snapshot = makeSnapshot([
             { id: 'f1', path: '/fail-path', versionId: 'v1', wasPublished: true },
@@ -201,7 +207,7 @@ describe('checkModifications()', () => {
             sites: {
                 cf: {
                     fragments: {
-                        getById: sinon.stub().resolves({ id: 'f1', modified: { at: '2026-01-02T10:00:00.000Z' } }),
+                        getById: sinon.stub().resolves({ id: 'f1', path: '/p1', modified: { at: '2026-01-02T10:00:00.000Z' } }),
                     },
                 },
             },
@@ -217,7 +223,7 @@ describe('checkModifications()', () => {
             sites: {
                 cf: {
                     fragments: {
-                        getById: sinon.stub().resolves({ id: 'f1', modified: { at: '2026-01-01T10:00:00.000Z' } }),
+                        getById: sinon.stub().resolves({ id: 'f1', path: '/p1', modified: { at: '2026-01-01T10:00:00.000Z' } }),
                     },
                 },
             },
@@ -232,7 +238,7 @@ describe('checkModifications()', () => {
             sites: {
                 cf: {
                     fragments: {
-                        getById: sinon.stub().resolves({ id: 'f1' }),
+                        getById: sinon.stub().resolves({ id: 'f1', path: '/p1' }),
                     },
                 },
             },
@@ -255,14 +261,17 @@ describe('checkModifications()', () => {
         const snapshot = makeSnapshot('2026-01-01T10:00:00.000Z', [{ id: 'missing-id', path: '/gone' }]);
         const results = await checkModifications(snapshot, aem);
         expect(results[0].modified).to.equal(null);
-        expect(results[0].path).to.equal('/gone');
+        expect(results[0].fragmentId).to.equal('missing-id');
+        expect(results[0].path).to.equal('missing-id');
     });
 
     it('handles mixed results: found modified, found unmodified, not found', async () => {
         const snapshotTime = '2026-01-05T00:00:00.000Z';
         const getById = sinon.stub();
-        getById.withArgs('f-modified').resolves({ id: 'f-modified', modified: { at: '2026-01-06T00:00:00.000Z' } });
-        getById.withArgs('f-clean').resolves({ id: 'f-clean', modified: { at: '2026-01-01T00:00:00.000Z' } });
+        getById
+            .withArgs('f-modified')
+            .resolves({ id: 'f-modified', path: '/modified', modified: { at: '2026-01-06T00:00:00.000Z' } });
+        getById.withArgs('f-clean').resolves({ id: 'f-clean', path: '/clean', modified: { at: '2026-01-01T00:00:00.000Z' } });
         getById.withArgs('f-missing').rejects(new Error('404'));
 
         const aem = { sites: { cf: { fragments: { getById } } } };
@@ -274,18 +283,24 @@ describe('checkModifications()', () => {
 
         const results = await checkModifications(snapshot, aem);
         const byPath = Object.fromEntries(results.map((r) => [r.path, r.modified]));
+        const missingEntry = results.find((r) => r.fragmentId === 'f-missing');
 
         expect(byPath['/modified']).to.equal(true);
         expect(byPath['/clean']).to.equal(false);
-        expect(byPath['/missing']).to.equal(null);
+        expect(missingEntry.modified).to.equal(null);
     });
 
     it('returns results sorted by path', async () => {
+        const fragmentPaths = { f1: '/a-path', f2: '/m-path', f3: '/z-path' };
         const aem = {
             sites: {
                 cf: {
                     fragments: {
-                        getById: sinon.stub().resolves({ id: 'x', modified: { at: '2020-01-01T00:00:00.000Z' } }),
+                        getById: sinon.stub().callsFake(async (id) => ({
+                            id,
+                            path: fragmentPaths[id],
+                            modified: { at: '2020-01-01T00:00:00.000Z' },
+                        })),
                     },
                 },
             },

@@ -113,9 +113,9 @@ export async function checkModifications(snapshot, aem) {
                 const fragment = await aem.sites.cf.fragments.getById(fragmentId);
                 const modifiedAt = fragment.modified?.at;
                 const modified = modifiedAt ? new Date(modifiedAt).getTime() > snapshotTime : false;
-                return { path: fragment.path, modified };
+                return { fragmentId, path: fragment.path, modified };
             } catch {
-                return { path: fragmentId, modified: null };
+                return { fragmentId, path: fragmentId, modified: null };
             }
         },
         FRAGMENT_CONCURRENCY,

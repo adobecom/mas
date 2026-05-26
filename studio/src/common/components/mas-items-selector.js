@@ -18,7 +18,6 @@ export const TABS = [
     { value: TABLE_TYPE.PLACEHOLDERS, label: 'Placeholders' },
 ];
 
-// Design reference: https://www.figma.com/design/GDDRLo3S7fz0SMRefpJOpx/M-Studio?node-id=20653-86534&t=dqYOuW0YdhjbWs1t-4
 class MasItemsSelector extends LitElement {
     static styles = styles;
 

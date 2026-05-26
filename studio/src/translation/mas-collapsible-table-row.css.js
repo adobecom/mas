@@ -12,6 +12,12 @@ export const styles = [
     tableSelectedRowStyles,
     loadingContainerFlexStyles,
     css`
+        :host {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
         .loading-container--flex {
             padding: 10px;
             width: 100%;
@@ -31,29 +37,24 @@ export const styles = [
 
         .offer-id {
             color: var(--spectrum-blue-900);
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            align-items: center;
-            gap: 4px;
 
             overlay-trigger {
                 min-width: 0;
-                overflow: hidden;
             }
 
-            [slot='trigger'] {
+            div {
                 overflow: hidden;
                 white-space: nowrap;
                 text-overflow: ellipsis;
+                margin-right: 4px;
             }
 
-            [slot='trigger']:hover {
+            div:hover {
                 text-decoration: underline;
                 color: var(--spectrum-blue-1000);
             }
 
             sp-action-button {
-                flex-shrink: 0;
                 --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
 
                 &:hover {
@@ -111,63 +112,11 @@ export const styles = [
         }
 
         .nested-content {
-            --connector-offset: 30px;
-            position: relative;
-            margin-left: 60px;
-        }
-
-        .nested-content.has-connector::before {
-            content: '';
-            position: absolute;
-            left: calc(-1 * var(--connector-offset));
-            top: 0;
-            bottom: var(--nested-content-connector-bottom, 0px);
-            width: 1px;
-            background-color: var(--spectrum-gray-400);
+            margin-left: 30px;
         }
 
         .nested-content sp-table {
             width: 100%;
-        }
-
-        .nested-content sp-table-body {
-            position: relative;
-        }
-
-        .nested-content sp-table-body::before {
-            content: '';
-            position: absolute;
-            left: calc(-1 * var(--connector-offset));
-            top: 0;
-            width: 1px;
-            background-color: var(--spectrum-gray-400);
-        }
-
-        .nested-content sp-table-body sp-table-row {
-            position: relative;
-        }
-
-        .nested-content sp-table-body sp-table-row:not(.variation-details-row)::before {
-            content: '';
-            position: absolute;
-            left: -30px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 30px;
-            height: 1px;
-            background-color: var(--spectrum-gray-400);
-        }
-
-        .nested-content sp-table-body sp-table-row:not(.variation-details-row)::after {
-            content: '';
-            position: absolute;
-            left: -3px;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: var(--spectrum-gray-400);
         }
 
         .nested-content sp-table-body sp-table-row:first-of-type:not(.variation-details-row) {
@@ -192,7 +141,10 @@ export const styles = [
 
         sp-table-row.select-all-row {
             background: var(--spectrum-gray-50);
-            border-bottom: 1px solid var(--spectrum-gray-300);
+
+            sp-table-cell {
+                background-color: transparent;
+            }
         }
 
         .select-all-label {

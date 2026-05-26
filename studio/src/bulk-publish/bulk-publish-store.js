@@ -1,7 +1,7 @@
 import Store from '../store.js';
 import { BULK_PUBLISH_STATUS } from '../constants.js';
 import { createSnapshot, revertSnapshot } from './bulk-publish-snapshot.js';
-import { getProjectField } from './bulk-publish-utils.js';
+import { getProjectField, getProjectFieldList } from './bulk-publish-utils.js';
 
 function setField(project, name, value) {
     if (typeof project.updateField === 'function') {
@@ -9,6 +9,35 @@ function setField(project, name, value) {
     } else {
         project.setFieldValue(name, value);
     }
+}
+
+function setSnapshots(project, entries) {
+    if (typeof project.updateField === 'function') {
+        project.updateField('snapshots', entries);
+    } else {
+        project.setFieldValue('snapshots', entries);
+    }
+}
+
+function serializeSnapshot(snapshot) {
+    return Object.entries(snapshot.fragments).map(([fragmentId, entry]) =>
+        JSON.stringify({
+            fragmentId,
+            versionId: entry.versionId,
+            wasPublished: entry.wasPublished,
+            createdAt: snapshot.createdAt,
+        }),
+    );
+}
+
+export function deserializeSnapshots(entries) {
+    const parsed = entries.map((e) => JSON.parse(e));
+    return {
+        createdAt: parsed[0].createdAt,
+        fragments: Object.fromEntries(
+            parsed.map(({ fragmentId, versionId, wasPublished }) => [fragmentId, { versionId, wasPublished }]),
+        ),
+    };
 }
 
 export async function startPublishing({ project, items, paths, locales, token, ioBaseUrl, publishFn, repository }) {
@@ -30,7 +59,7 @@ export async function startPublishing({ project, items, paths, locales, token, i
         await repository.saveFragment(project, false);
         return;
     }
-    setField(project, 'snapshot', JSON.stringify(snapshot));
+    setSnapshots(project, serializeSnapshot(snapshot));
 
     const promise = publishFn({ ioBaseUrl, paths, locales, token });
     Store.bulkPublishProjects.publishing.set({
@@ -63,25 +92,21 @@ export async function startReverting({ project, repository }) {
     setField(project, 'lastError', '');
     await repository.saveFragment(project, false);
 
-    const raw = getProjectField(project, 'snapshot');
+    const entries = getProjectFieldList(project, 'snapshots');
     let snapshot;
-    if (!raw) {
+    if (!entries.length) {
         setField(project, 'lastError', 'REVERT:\nNo snapshot found. Please re-publish to create a snapshot.');
         setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
         await repository.saveFragment(project, false);
         return;
     }
-    if (typeof raw === 'string') {
-        try {
-            snapshot = JSON.parse(raw);
-        } catch {
-            setField(project, 'lastError', 'REVERT:\nSnapshot data is corrupted. Please re-publish to create a new snapshot.');
-            setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
-            await repository.saveFragment(project, false);
-            return;
-        }
-    } else {
-        snapshot = raw;
+    try {
+        snapshot = deserializeSnapshots(entries);
+    } catch {
+        setField(project, 'lastError', 'REVERT:\nSnapshot data is corrupted. Please re-publish to create a new snapshot.');
+        setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
+        await repository.saveFragment(project, false);
+        return;
     }
 
     const aem = repository.aem;

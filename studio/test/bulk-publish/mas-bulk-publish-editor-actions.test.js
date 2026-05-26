@@ -20,15 +20,20 @@ function seedNew(data = {}) {
 
 function makeFragmentStore(data = {}) {
     const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: 'Proj', ...data };
+    const getFieldValues = (k) => {
+        const v = fields[k];
+        if (v === undefined || v === null) return [];
+        return Array.isArray(v) ? v : [v];
+    };
     return {
         id: 'frag-id-1',
         value: {
             id: 'frag-id-1',
             getFieldValue: (k) => fields[k],
-            getFieldValues: (k) => (Array.isArray(fields[k]) ? fields[k] : [fields[k]]),
+            getFieldValues,
         },
         getFieldValue: (k) => fields[k],
-        getFieldValues: (k) => (Array.isArray(fields[k]) ? fields[k] : [fields[k]]),
+        getFieldValues,
         updateField: sinon.stub(),
         setFieldValue: sinon.stub(),
     };
@@ -255,9 +260,8 @@ describe('mas-bulk-publish-editor (field handlers)', () => {
         await el.updateComplete;
         el.handleUrlRemove({ detail: 'https://a.com' });
         expect(fields.urls).to.equal('https://b.com');
-        const remaining = JSON.parse(fields.items);
-        expect(remaining).to.have.lengthOf(1);
-        expect(remaining[0].url).to.equal('https://b.com');
+        expect(el.items).to.have.lengthOf(1);
+        expect(el.items[0].url).to.equal('https://b.com');
     });
 
     it('handleUrlRemove is a no-op when locked', async () => {

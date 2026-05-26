@@ -32,11 +32,7 @@ export async function createSnapshot(project, aem, userEmail) {
     async function processItem(item) {
         let fragmentId = item.fragmentId;
         if (!fragmentId) {
-            const results = [];
-            for await (const page of aem.sites.cf.fragments.search({ path: item.path })) {
-                results.push(...page);
-            }
-            const rawFragment = results[0];
+            const rawFragment = await aem.sites.cf.fragments.getByPath(item.path);
             if (!rawFragment) {
                 throw new Error(`Fragment not found at path: ${item.path}`);
             }
@@ -81,14 +77,17 @@ export async function revertSnapshot(snapshot, aem) {
     const results = await runConcurrent(
         entries,
         async ([fragmentId, entry]) => {
+            let path = fragmentId;
             try {
+                const fragment = await aem.sites.cf.fragments.getById(fragmentId);
+                path = fragment.path;
                 await aem.sites.cf.fragments.restoreVersion(fragmentId, entry.versionId);
                 if (!entry.wasPublished) {
-                    await aem.sites.cf.fragments.setToDraft(entry.path);
+                    await aem.sites.cf.fragments.setToDraft(path);
                 }
                 return null;
             } catch (err) {
-                return { path: entry.path, error: err.message };
+                return { path, error: err.message };
             }
         },
         FRAGMENT_CONCURRENCY,
@@ -114,9 +113,9 @@ export async function checkModifications(snapshot, aem) {
                 const fragment = await aem.sites.cf.fragments.getById(fragmentId);
                 const modifiedAt = fragment.modified?.at;
                 const modified = modifiedAt ? new Date(modifiedAt).getTime() > snapshotTime : false;
-                return { path: entry.path, modified };
+                return { path: fragment.path, modified };
             } catch {
-                return { path: entry.path, modified: null };
+                return { path: fragmentId, modified: null };
             }
         },
         FRAGMENT_CONCURRENCY,

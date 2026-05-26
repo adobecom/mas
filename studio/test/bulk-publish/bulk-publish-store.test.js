@@ -4,14 +4,12 @@ import Store from '../../src/store.js';
 import { BULK_PUBLISH_STATUS } from '../../src/constants.js';
 import { startPublishing, startReverting } from '../../src/bulk-publish/bulk-publish-store.js';
 
-function makeAem({ searchPages = [], versionId = 'v1', restoreRejects = false, getWithEtag = null } = {}) {
+function makeAem({ versionId = 'v1', restoreRejects = false, getWithEtag = null } = {}) {
     return {
         sites: {
             cf: {
                 fragments: {
-                    search: sinon.stub().callsFake(async function* () {
-                        yield searchPages;
-                    }),
+                    getByPath: sinon.stub().resolves({ id: 'frag-id', path: '/p' }),
                     getById: sinon.stub().resolves({ id: 'frag-id', path: '/p', status: 'Draft' }),
                     createVersion: sinon.stub().resolves(versionId),
                     restoreVersion: restoreRejects
@@ -32,7 +30,7 @@ describe('startPublishing', () => {
         Store.bulkPublishProjects.publishing.set({});
         repo = {
             saveFragment: sinon.stub().resolves(),
-            aem: makeAem({ searchPages: [{ id: 'frag-id', path: '/p' }], versionId: 'v1' }),
+            aem: makeAem({ versionId: 'v1' }),
         };
     });
 
@@ -120,10 +118,7 @@ describe('startPublishing', () => {
         });
 
         it('aborts publish (does NOT call publishFn) if createSnapshot throws', async () => {
-            repo.aem = makeAem({ searchPages: [], versionId: null });
-            repo.aem.sites.cf.fragments.search = sinon.stub().callsFake(async function* () {
-                yield [{ id: 'frag-id', path: '/p' }];
-            });
+            repo.aem = makeAem({ versionId: null });
             repo.aem.sites.cf.fragments.createVersion = sinon.stub().resolves(null);
 
             const project = {
@@ -147,7 +142,7 @@ describe('startPublishing', () => {
             expect(clientStub.called).to.equal(false);
         });
 
-        it('stores snapshot in project.snapshot field on success', async () => {
+        it('stores snapshot in project.snapshots field as array of strings on success', async () => {
             const project = {
                 id: 'p-store-snap',
                 getFieldValue: sinon.stub(),
@@ -157,6 +152,7 @@ describe('startPublishing', () => {
 
             await startPublishing({
                 project,
+                items: [{ fragmentId: 'frag-id', path: '/p', status: 'valid' }],
                 paths: ['/p'],
                 locales: [],
                 token: 't',
@@ -165,11 +161,16 @@ describe('startPublishing', () => {
                 repository: repo,
             });
 
-            const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshot');
+            const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshots');
             expect(snapshotCalls.length).to.be.greaterThan(0);
-            const snapshotValue = snapshotCalls[0].args[1];
-            const parsed = JSON.parse(snapshotValue);
-            expect(parsed.source).to.equal('pre-publish');
+            const entries = snapshotCalls[0].args[1];
+            expect(Array.isArray(entries)).to.equal(true);
+            expect(entries.length).to.equal(1);
+            const parsed = JSON.parse(entries[0]);
+            expect(parsed.fragmentId).to.equal('frag-id');
+            expect(parsed.versionId).to.equal('v1');
+            expect(typeof parsed.createdAt).to.equal('string');
+            expect(parsed.path).to.equal(undefined);
         });
 
         it('status sequence: PUBLISHING → PUBLISHED after successful publish+snapshot', async () => {
@@ -213,21 +214,19 @@ describe('startReverting()', () => {
     });
 
     function makeProject(overrides = {}) {
-        const snapshot = {
-            createdAt: new Date().toISOString(),
-            source: 'pre-publish',
-            fragments: {
-                'frag-rev': { path: '/rev', versionId: 'v-rev', wasPublished: true },
-            },
-        };
+        const createdAt = new Date().toISOString();
+        const defaultSnapshots = [
+            JSON.stringify({ fragmentId: 'frag-rev', versionId: 'v-rev', wasPublished: true, createdAt }),
+        ];
         const fields = {
-            snapshot: JSON.stringify(snapshot),
+            snapshots: defaultSnapshots,
             status: BULK_PUBLISH_STATUS.PUBLISHED,
             ...overrides,
         };
         return {
             id: 'proj-rev',
             getFieldValue: (k) => fields[k],
+            getFieldValues: (k) => fields[k] ?? [],
             setFieldValue: sinon.stub().callsFake((k, v) => {
                 fields[k] = v;
             }),
@@ -244,7 +243,7 @@ describe('startReverting()', () => {
 
     it('sets status to REVERTING, saves, calls revertSnapshot, sets REVERTED on success', async () => {
         const project = makeProject();
-        const repo = makeRepo({ searchPages: [{ id: 'frag-rev', path: '/rev' }] });
+        const repo = makeRepo();
 
         await startReverting({ project, repository: repo });
 
@@ -275,7 +274,7 @@ describe('startReverting()', () => {
     });
 
     it('keeps status PUBLISHED and uses REVERT prefix when snapshot is missing', async () => {
-        const project = makeProject({ snapshot: null });
+        const project = makeProject({ snapshots: [] });
         const repo = makeRepo();
 
         await startReverting({ project, repository: repo });
@@ -291,7 +290,7 @@ describe('startReverting()', () => {
     });
 
     it('keeps status PUBLISHED and uses REVERT prefix when snapshot JSON is corrupted', async () => {
-        const project = makeProject({ snapshot: 'not-valid-json{{{' });
+        const project = makeProject({ snapshots: ['not-valid-json{{{'] });
         const repo = makeRepo();
 
         await startReverting({ project, repository: repo });
@@ -308,14 +307,13 @@ describe('startReverting()', () => {
 
     it('does not clear snapshot field after successful revert', async () => {
         const project = makeProject();
-        const repo = makeRepo({ searchPages: [{ id: 'frag-rev', path: '/rev' }] });
+        const repo = makeRepo();
 
         await startReverting({ project, repository: repo });
 
-        // Snapshot is intentionally preserved after revert (sending null to AEM's JSON
-        // field causes a 500; the snapshot is harmless and the revert button is disabled
-        // after status changes to Reverted).
-        const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshot');
+        // Snapshots are intentionally preserved after revert; the revert button is
+        // disabled after status changes to Reverted.
+        const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshots');
         expect(snapshotCalls.length).to.equal(0);
     });
 });

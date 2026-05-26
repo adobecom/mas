@@ -41,7 +41,7 @@ const PUBLISH_BLOCKED_REASON = {
     ALL_ITEMS_PUBLISHED: 'All items are already published',
 };
 
-function buildProjectPayload({ surface, title, status, urls, items, locales }) {
+function buildProjectPayload({ surface, title, status, urls, fragments, locales }) {
     return {
         title,
         name: normalizeKey(title),
@@ -51,7 +51,7 @@ function buildProjectPayload({ surface, title, status, urls, items, locales }) {
             { name: 'title', type: 'text', values: [title] },
             { name: 'status', type: 'text', values: [status] },
             { name: 'urls', type: 'text', values: [urls] },
-            { name: 'items', type: 'text', values: [items] },
+            { name: 'fragments', type: 'content-fragment', multiple: true, values: fragments },
             { name: 'locales', type: 'text', multiple: true, values: locales },
         ],
     };
@@ -71,6 +71,7 @@ class MasBulkPublishEditor extends LitElement {
         discardDialogOpen: { state: true },
         modifications: { state: true },
         revertDialogOpen: { state: true },
+        _items: { state: true },
     };
 
     #abortController = null;
@@ -88,6 +89,7 @@ class MasBulkPublishEditor extends LitElement {
         this.discardDialogOpen = false;
         this.modifications = null;
         this.revertDialogOpen = false;
+        this._items = null;
     }
 
     async connectedCallback() {
@@ -117,10 +119,11 @@ class MasBulkPublishEditor extends LitElement {
                 }
             }
         } else {
-            const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', items: '[]', locales: [], title: '' };
+            const fields = { status: BULK_PUBLISH_STATUS.DRAFT, urls: '', locales: [], title: '' };
             Store.bulkPublishProjects.inEdit.set({
                 id: null,
                 getFieldValue: (k) => fields[k],
+                getFieldValues: (k) => fields[k] ?? [],
                 setFieldValue: (k, v) => {
                     fields[k] = v;
                 },
@@ -143,6 +146,10 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get items() {
+        if (this._items !== null) return this._items;
+        const paths = this.getFields('fragments');
+        if (paths.length) return paths.map((path) => ({ path, url: path, status: 'valid' }));
+        // Legacy fallback for existing projects that still have items JSON field
         const raw = this.getField('items');
         if (!raw) return [];
         try {
@@ -150,6 +157,15 @@ class MasBulkPublishEditor extends LitElement {
         } catch {
             return [];
         }
+    }
+
+    setFragments(paths) {
+        if (this.isNewProject) {
+            this.project.setFieldValue('fragments', paths);
+        } else {
+            this.project.updateField('fragments', paths);
+        }
+        this.hasChanges = true;
     }
 
     getField(name) {
@@ -323,14 +339,17 @@ class MasBulkPublishEditor extends LitElement {
         const updated = this.urlLines.filter((l) => l !== urlToRemove).join('\n');
         this.setProjectField('urls', updated);
         const updatedItems = this.items.filter((i) => i.url !== urlToRemove);
-        this.setProjectField('items', JSON.stringify(updatedItems));
+        this._items = updatedItems;
+        const validPaths = updatedItems.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
+        this.setFragments(validPaths);
         this.requestUpdate();
     }
 
     handleRemoveAll() {
         if (this.isLocked) return;
         this.setProjectField('urls', '');
-        this.setProjectField('items', '[]');
+        this._items = [];
+        this.setFragments([]);
         this.requestUpdate();
     }
 
@@ -423,12 +442,13 @@ class MasBulkPublishEditor extends LitElement {
             try {
                 if (this.isNewProject) {
                     const title = this.title || 'Untitled bulk publish project';
+                    const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                     const payload = buildProjectPayload({
                         surface,
                         title,
                         status: this.status,
                         urls: this.urls,
-                        items: this.getField('items') ?? '[]',
+                        fragments: validPaths,
                         locales: this.locales,
                     });
                     const raw = await this.repository.createFragment(payload, false);
@@ -442,11 +462,12 @@ class MasBulkPublishEditor extends LitElement {
                         title: this.title,
                         status: savedStatus,
                         urls: this.urls,
-                        items: this.getField('items') ?? '[]',
                     };
                     for (const [name, value] of Object.entries(fields)) {
                         this.project.updateField(name, [value]);
                     }
+                    const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
+                    this.project.updateField('fragments', validPaths);
                     this.project.updateField('locales', this.locales);
                     const saved = await this.repository.saveFragment(this.project, false);
                     if (!saved) throw new Error('Save returned empty response');
@@ -490,12 +511,13 @@ class MasBulkPublishEditor extends LitElement {
         const title = e.detail.title;
         await this.#withPendingAction(QUICK_ACTION.DUPLICATE, async () => {
             try {
+                const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                 const payload = buildProjectPayload({
                     surface,
                     title,
                     status: BULK_PUBLISH_STATUS.DRAFT,
                     urls: '',
-                    items: this.getField('items') ?? '[]',
+                    fragments: validPaths,
                     locales: this.locales,
                 });
                 const raw = await this.repository.createFragment(payload, false);
@@ -518,7 +540,8 @@ class MasBulkPublishEditor extends LitElement {
         const urls = this.urlLines.filter((raw) => !existingUrls.has(raw));
 
         const newPending = urls.map((raw) => ({ url: raw, status: 'pending' }));
-        this.setProjectField('items', JSON.stringify([...existingItems, ...newPending]));
+        this._items = [...existingItems, ...newPending];
+        this.hasChanges = true;
         this.setProjectField('urls', '');
         this.requestUpdate();
 
@@ -561,7 +584,9 @@ class MasBulkPublishEditor extends LitElement {
                     }
                 }
                 if (runId !== this.#validateId) return;
-                this.setProjectField('items', JSON.stringify([...existingItems, ...results]));
+                this._items = [...existingItems, ...results];
+                const validPaths = this._items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
+                this.setFragments(validPaths);
                 this.requestUpdate();
             }),
         );
@@ -570,14 +595,16 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     async handleCheckModifications() {
-        const snapshotRaw = this.getField('snapshot');
+        const entries = this.getFields('snapshots');
         let snapshot;
-        try {
-            snapshot = JSON.parse(snapshotRaw ?? 'null');
-        } catch {
-            snapshot = null;
+        if (!entries.length) {
+            showToast('No snapshot available to compare.', 'negative');
+            return;
         }
-        if (!snapshot) {
+        try {
+            const { deserializeSnapshots } = await import('./bulk-publish-store.js');
+            snapshot = deserializeSnapshots(entries);
+        } catch {
             showToast('No snapshot available to compare.', 'negative');
             return;
         }
@@ -606,22 +633,26 @@ class MasBulkPublishEditor extends LitElement {
         const { url, path } = e.detail;
         const updatedItems = this.items.filter((i) => i.path !== path);
         const updatedUrls = this.urlLines.filter((l) => l !== url).join('\n');
-        this.setProjectField('items', JSON.stringify(updatedItems));
+        this._items = updatedItems;
+        const validPaths = updatedItems.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
+        this.setFragments(validPaths);
         this.setProjectField('urls', updatedUrls);
 
-        const snapshotRaw = this.getField('snapshot');
-        if (snapshotRaw) {
-            try {
-                const snapshot = JSON.parse(snapshotRaw);
-                for (const [id, entry] of Object.entries(snapshot.fragments)) {
-                    if (entry.path === path) {
-                        delete snapshot.fragments[id];
-                        break;
+        const snapshotEntries = this.getFields('snapshots');
+        if (snapshotEntries.length) {
+            const removedItem = this.items.find((i) => i.path === path);
+            const removedFragmentId = removedItem?.fragmentId;
+            if (removedFragmentId) {
+                try {
+                    const updated = snapshotEntries.filter((e) => JSON.parse(e).fragmentId !== removedFragmentId);
+                    if (this.isNewProject) {
+                        this.project.setFieldValue('snapshots', updated);
+                    } else {
+                        this.project.updateField('snapshots', updated);
                     }
+                } catch {
+                    /* corrupted snapshots — leave as-is */
                 }
-                this.setProjectField('snapshot', JSON.stringify(snapshot));
-            } catch {
-                /* corrupted snapshot — leave as-is */
             }
         }
 

@@ -105,15 +105,8 @@ class MasBulkPublish extends LitElement {
     async handleRevertConfirmed() {
         const { projectStore } = this.revertPending;
         this.revertPending = null;
-        await startReverting({ project: projectStore.get(), repository: this.repository });
-    }
-
-    handlePublish(projectStore) {
-        const id = projectStore?.get()?.id;
-        if (!id) return;
-        Store.bulkPublishProjects.projectId.set(id);
-        Store.bulkPublishProjects.inEdit.set(null);
-        router.navigateToPage(PAGE_NAMES.BULK_PUBLISH_EDITOR)();
+        const project = projectStore.get();
+        await startReverting({ project, repository: this.repository });
     }
 
     openDuplicateDialog(projectStore) {
@@ -218,7 +211,7 @@ class MasBulkPublish extends LitElement {
                             Edit
                         </sp-menu-item>
                         ${!isPublished
-                            ? html`<sp-menu-item @click=${() => this.handlePublish(projectStore)}>
+                            ? html`<sp-menu-item @click=${() => this.openProject(projectStore)}>
                                   ${PUBLISH_SVG} Publish
                               </sp-menu-item>`
                             : nothing}

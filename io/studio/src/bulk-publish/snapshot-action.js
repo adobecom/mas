@@ -1,6 +1,5 @@
 const { Core } = require('@adobe/aio-sdk');
-const { Ims } = require('@adobe/aio-lib-ims');
-const { errorResponse, checkMissingRequestInputs, getBearerToken } = require('../../utils.js');
+const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils.js');
 const { createSnapshot } = require('./snapshot.js');
 
 const logger = Core.Logger('bulk-snapshot', { level: 'info' });
@@ -31,13 +30,6 @@ async function main(params) {
         logger.error(JSON.stringify({ event: 'snapshot-error', error: error.message }));
         return errorResponse(500, error.message || 'Internal server error', logger);
     }
-}
-
-async function isAllowed(token, allowedClientId) {
-    if (!token || !allowedClientId) return false;
-    const ims = new Ims('prod');
-    const result = await ims.validateTokenAllowList(token, [allowedClientId]);
-    return !!result?.valid;
 }
 
 exports.main = main;

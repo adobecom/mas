@@ -486,10 +486,13 @@ const createPromoPriceWithAnnualTemplate =
             isPromoApplied,
         };
         if (!isPromoApplied) {
+            // priceWithoutDiscount is undefined when the offer carries no promotion;
+            // in that case the regular price is the right value to display.
+            const basePrice = value.priceWithoutDiscount ?? value.price;
             return (
                 createPriceTemplate()(
                     context,
-                    { ...value, price: value.priceWithoutDiscount },
+                    { ...value, price: basePrice },
                     attributes,
                 ) +
                 renderSpan(cssClassNames.containerAnnualPrefix, ' (') +
@@ -498,7 +501,7 @@ const createPromoPriceWithAnnualTemplate =
                     instant,
                 })(
                     ctxStAnnual,
-                    { ...value, price: value.priceWithoutDiscount },
+                    { ...value, price: basePrice },
                     attributes,
                 ) +
                 renderSpan(cssClassNames.containerAnnualSuffix, ')')

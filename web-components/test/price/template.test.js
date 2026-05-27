@@ -333,6 +333,22 @@ describe('Promotion price display with annual template', () => {
         );
     });
 
+    it('falls back to the regular price when the offer carries no promotion', () => {
+        const promoContext = {
+            ...basePromoContext,
+            instant: '2025-01-01T00:00:00.000Z',
+        };
+        const offerWithoutPromotion = {
+            formatString: "'A$'#,##0.00",
+            price: 43.99,
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+        };
+        expect(() =>
+            template(promoContext, offerWithoutPromotion, {}),
+        ).to.not.throw();
+    });
+
     it('format price literals with links', () => {
         const literals = {
             lang: 'fr',

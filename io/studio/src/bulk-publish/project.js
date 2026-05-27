@@ -1,5 +1,13 @@
 const { getFragmentWithEtag, getValue, getValues, putToOdin } = require('../common.js');
 
+const PROJECT_STATUS = {
+    DRAFT: 'Draft',
+    PUBLISHING: 'Publishing',
+    PUBLISHED: 'Published',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
+};
+
 async function readProjectFragment(odinEndpoint, projectId, authToken) {
     return getFragmentWithEtag(odinEndpoint, projectId, authToken);
 }
@@ -53,6 +61,7 @@ function getProjectSnapshots(fragment) {
 }
 
 module.exports = {
+    PROJECT_STATUS,
     readProjectFragment,
     updateProjectFragment,
     getProjectPaths,

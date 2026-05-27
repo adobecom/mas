@@ -1,25 +1,12 @@
 const { Core } = require('@adobe/aio-sdk');
-const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils.js');
+const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { revertSnapshot } = require('./snapshot.js');
-const { readProjectFragment, updateProjectFragment, getProjectSnapshots } = require('./project.js');
+const { PROJECT_STATUS, readProjectFragment, updateProjectFragment, getProjectSnapshots } = require('./project.js');
 
 const logger = Core.Logger('bulk-revert', { level: 'info' });
 
-const PROJECT_STATUS = {
-    PUBLISHED: 'Published',
-    REVERTING: 'Reverting',
-    REVERTED: 'Reverted',
-};
-
 async function main(params) {
-    if (params.__ow_body && !params.projectId && !params.entries) {
-        try {
-            const body = JSON.parse(Buffer.from(params.__ow_body, 'base64').toString());
-            params = { ...params, ...body };
-        } catch {
-            // ignore malformed body
-        }
-    }
+    if (!params.projectId && !params.entries) params = parseOwBody(params);
     try {
         const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
         if (!odinEndpoint) {

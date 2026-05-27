@@ -1,9 +1,10 @@
 const { Core } = require('@adobe/aio-sdk');
-const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils.js');
+const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { resolvePaths } = require('./resolver.js');
 const { publishChunk } = require('./publisher.js');
 const { createSnapshot } = require('./snapshot.js');
 const {
+    PROJECT_STATUS,
     readProjectFragment,
     updateProjectFragment,
     getProjectPaths,
@@ -20,27 +21,8 @@ const PATH_PREFIX = '/content/dam/mas/';
 const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
 
-const PROJECT_STATUS = {
-    DRAFT: 'Draft',
-    PUBLISHING: 'Publishing',
-    PUBLISHED: 'Published',
-};
-
 async function main(params) {
-    if (params.__ow_body && !params.projectId && !params.paths) {
-        try {
-            let bodyStr = params.__ow_body;
-            if (typeof bodyStr === 'string') {
-                try {
-                    bodyStr = Buffer.from(bodyStr, 'base64').toString();
-                } catch {}
-            }
-            const body = typeof bodyStr === 'object' ? bodyStr : JSON.parse(bodyStr);
-            params = { ...params, ...body };
-        } catch {
-            // ignore malformed body
-        }
-    }
+    if (!params.projectId && !params.paths) params = parseOwBody(params);
     return run(params);
 }
 

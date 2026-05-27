@@ -141,6 +141,14 @@ class MasBulkPublishEditor extends LitElement {
         return document.querySelector('mas-repository');
     }
 
+    get token() {
+        return window.adobeIMS?.getAccessToken()?.token;
+    }
+
+    get ioBaseUrl() {
+        return document.querySelector('meta[name="io-base-url"]')?.content;
+    }
+
     get project() {
         return this.inEdit.value;
     }
@@ -641,9 +649,7 @@ class MasBulkPublishEditor extends LitElement {
         await this.#withPendingAction(QUICK_ACTION.CHECK_MODIFICATIONS, async () => {
             try {
                 const { checkModificationsAction } = await import('./bulk-publish-client.js');
-                const token = window.adobeIMS?.getAccessToken()?.token;
-                const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
-                const results = await checkModificationsAction({ ioBaseUrl, entries, token });
+                const results = await checkModificationsAction({ ioBaseUrl: this.ioBaseUrl, entries, token: this.token });
                 this.modifications = new Map(results.map(({ path, modified }) => [path, modified]));
 
                 const modifiedCount = results.filter((r) => r.modified === true).length;
@@ -670,10 +676,13 @@ class MasBulkPublishEditor extends LitElement {
     async handleRevertConfirmed() {
         this.revertDialogOpen = false;
         const { startReverting } = await import('./bulk-publish-store.js');
-        const token = window.adobeIMS?.getAccessToken()?.token;
-        const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
         await this.#withPendingAction(QUICK_ACTION.REVERT, async () => {
-            await startReverting({ project: this.project, token, ioBaseUrl, repository: this.repository });
+            await startReverting({
+                project: this.project,
+                token: this.token,
+                ioBaseUrl: this.ioBaseUrl,
+                repository: this.repository,
+            });
         });
         this.requestUpdate();
         if (this.status === BULK_PUBLISH_STATUS.REVERTED) {
@@ -684,12 +693,10 @@ class MasBulkPublishEditor extends LitElement {
     async publish() {
         await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
             const { startPublishing } = await import('./bulk-publish-store.js');
-            const token = window.adobeIMS?.getAccessToken()?.token;
-            const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
             await startPublishing({
                 project: this.project,
-                token,
-                ioBaseUrl,
+                token: this.token,
+                ioBaseUrl: this.ioBaseUrl,
                 repository: this.repository,
             });
         });

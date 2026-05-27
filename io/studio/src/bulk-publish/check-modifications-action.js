@@ -1,18 +1,11 @@
 const { Core } = require('@adobe/aio-sdk');
-const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils.js');
+const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { checkModifications } = require('./snapshot.js');
 
 const logger = Core.Logger('bulk-check-modifications', { level: 'info' });
 
 async function main(params) {
-    if (params.__ow_body && !params.entries) {
-        try {
-            const body = JSON.parse(Buffer.from(params.__ow_body, 'base64').toString());
-            params = { ...params, ...body };
-        } catch {
-            // ignore malformed body
-        }
-    }
+    if (!params.entries) params = parseOwBody(params);
     try {
         const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
         if (!odinEndpoint) {

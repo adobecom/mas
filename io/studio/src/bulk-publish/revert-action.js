@@ -12,6 +12,14 @@ const PROJECT_STATUS = {
 };
 
 async function main(params) {
+    if (params.__ow_body && !params.projectId && !params.entries) {
+        try {
+            const body = JSON.parse(Buffer.from(params.__ow_body, 'base64').toString());
+            params = { ...params, ...body };
+        } catch {
+            // ignore malformed body
+        }
+    }
     try {
         const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
         if (!odinEndpoint) {

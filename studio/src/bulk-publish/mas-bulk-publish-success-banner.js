@@ -27,6 +27,12 @@ class MasBulkPublishSuccessBanner extends LitElement {
         :host([variant='error']) {
             background: var(--spectrum-semantic-negative-background-color-default, #fde8e8);
         }
+        :host([variant='publishing']) {
+            background: var(--spectrum-semantic-informative-background-color-default, #e0f0ff);
+        }
+        sp-icon-refresh {
+            color: var(--spectrum-semantic-informative-color-icon, #1473e6);
+        }
         .header {
             display: flex;
             align-items: center;
@@ -94,6 +100,15 @@ class MasBulkPublishSuccessBanner extends LitElement {
     }
 
     render() {
+        if (this.variant === 'publishing') {
+            return html`
+                <div class="header">
+                    <sp-icon-refresh></sp-icon-refresh>
+                    <p class="title">Publishing in progress…</p>
+                </div>
+                <p class="body">This project is currently being published. Fields are read-only.</p>
+            `;
+        }
         if (this.error) {
             const title = this.isRevertError ? 'Revert failed' : 'Publish failed';
             const body = this.isRevertError

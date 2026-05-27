@@ -4,7 +4,11 @@ import Store from '../../src/store.js';
 import { startPublishing, startReverting } from '../../src/bulk-publish/bulk-publish-store.js';
 
 function makeProject(id = 'proj-1') {
-    return { id };
+    return {
+        id,
+        get: () => ({ fields: [{ name: 'status', values: ['Publishing'] }] }),
+        refreshFrom: sinon.stub(),
+    };
 }
 
 function makeRepo() {

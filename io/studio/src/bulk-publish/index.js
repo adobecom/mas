@@ -27,6 +27,20 @@ const PROJECT_STATUS = {
 };
 
 async function main(params) {
+    if (params.__ow_body && !params.projectId && !params.paths) {
+        try {
+            let bodyStr = params.__ow_body;
+            if (typeof bodyStr === 'string') {
+                try {
+                    bodyStr = Buffer.from(bodyStr, 'base64').toString();
+                } catch {}
+            }
+            const body = typeof bodyStr === 'object' ? bodyStr : JSON.parse(bodyStr);
+            params = { ...params, ...body };
+        } catch {
+            // ignore malformed body
+        }
+    }
     return run(params);
 }
 

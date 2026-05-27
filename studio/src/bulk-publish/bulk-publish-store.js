@@ -1,5 +1,15 @@
 import Store from '../store.js';
 
+function patchProjectStore(project, fields) {
+    const snapshot = structuredClone(project.get());
+    for (const [name, val] of Object.entries(fields)) {
+        if (val === undefined) continue;
+        const field = snapshot.fields?.find((f) => f.name === name);
+        if (field) field.values = [val];
+    }
+    project.refreshFrom(snapshot);
+}
+
 export async function startPublishing({ project, token, ioBaseUrl, repository }) {
     const { publishBulk } = await import('./bulk-publish-client.js');
     const profile = await window.adobeIMS?.getProfile?.().catch(() => null);
@@ -11,7 +21,12 @@ export async function startPublishing({ project, token, ioBaseUrl, repository })
     });
     try {
         const result = await publishBulk({ ioBaseUrl, projectId: project.id, publishedBy, token });
-        await repository.refreshFragment(project);
+        patchProjectStore(project, {
+            status: result.status,
+            publishedAt: result.publishedAt,
+            publishedBy: result.publishedBy,
+        });
+        repository.refreshFragment(project).catch(() => {});
         return result;
     } finally {
         const current = { ...Store.bulkPublishProjects.publishing.get() };
@@ -23,7 +38,8 @@ export async function startPublishing({ project, token, ioBaseUrl, repository })
 export async function startReverting({ project, token, ioBaseUrl, repository }) {
     const { revertAction } = await import('./bulk-publish-client.js');
     const result = await revertAction({ ioBaseUrl, projectId: project.id, token });
-    await repository.refreshFragment(project);
+    patchProjectStore(project, { status: result.status });
+    repository.refreshFragment(project).catch(() => {});
     const current = Store.bulkPublishProjects.list.data.get() ?? [];
     Store.bulkPublishProjects.list.data.set([...current]);
     return result;

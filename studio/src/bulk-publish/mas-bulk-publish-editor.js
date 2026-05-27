@@ -231,6 +231,14 @@ class MasBulkPublishEditor extends LitElement {
         return this.status === BULK_PUBLISH_STATUS.PUBLISHED;
     }
 
+    get isPublishing() {
+        return this.status === BULK_PUBLISH_STATUS.PUBLISHING;
+    }
+
+    get isReadonly() {
+        return this.isLocked || this.isPublished || this.isPublishing;
+    }
+
     async #withPendingAction(action, fn) {
         this.pendingActions = new Set([...this.pendingActions, action]);
         try {
@@ -250,6 +258,16 @@ class MasBulkPublishEditor extends LitElement {
                 QUICK_ACTION.PUBLISH,
                 QUICK_ACTION.COPY,
                 QUICK_ACTION.REVERT,
+                QUICK_ACTION.DELETE,
+            ]);
+        }
+        if (this.isPublishing) {
+            return new Set([
+                QUICK_ACTION.SAVE,
+                QUICK_ACTION.DUPLICATE,
+                QUICK_ACTION.PUBLISH,
+                QUICK_ACTION.REVERT,
+                QUICK_ACTION.LOCK,
                 QUICK_ACTION.DELETE,
             ]);
         }
@@ -322,19 +340,19 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     handleTitleChange(e) {
-        if (this.isLocked) return;
+        if (this.isReadonly) return;
         this.setProjectField('title', e.target.value);
         this.requestUpdate();
     }
 
     handleUrlsChange(e) {
-        if (this.isLocked) return;
+        if (this.isReadonly) return;
         this.setProjectField('urls', e.detail);
         this.requestUpdate();
     }
 
     handleUrlRemove(e) {
-        if (this.isLocked) return;
+        if (this.isReadonly) return;
         const urlToRemove = e.detail;
         const updated = this.urlLines.filter((l) => l !== urlToRemove).join('\n');
         this.setProjectField('urls', updated);
@@ -346,7 +364,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     handleRemoveAll() {
-        if (this.isLocked) return;
+        if (this.isReadonly) return;
         this.setProjectField('urls', '');
         this.localItems = [];
         this.setFragments([]);
@@ -361,7 +379,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     openItemsSelector() {
-        if (this.isLocked) return;
+        if (this.isReadonly) return;
         this.ensureSurface();
         Store.bulkPublishProjects.allCards.set([]);
         Store.bulkPublishProjects.displayCards.set([]);
@@ -401,7 +419,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     openLocalesPicker() {
-        if (this.isLocked) return;
+        if (this.isReadonly) return;
         this.ensureSurface();
         Store.bulkPublishProjects.targetLocales.set([...this.locales]);
         this.localesPickerOpen = true;
@@ -543,6 +561,7 @@ class MasBulkPublishEditor extends LitElement {
         const { parseStudioUrl, parseAemPath } = await import('./url-to-path.js');
         const existingItems = this.items;
         const existingUrls = new Set(existingItems.map((i) => i.url).filter(Boolean));
+        const existingPaths = new Set(existingItems.map((i) => i.path).filter(Boolean));
         const existingIds = new Set(existingItems.map((i) => i.fragmentId).filter(Boolean));
         const urls = this.urlLines.filter((raw) => !existingUrls.has(raw));
 
@@ -567,7 +586,7 @@ class MasBulkPublishEditor extends LitElement {
                             ? await this.repository.getFragmentById(byId.fragmentId)
                             : await this.repository.aem.sites.cf.fragments.getByPath(byPath.path);
                         const fragment = new Fragment(rawFragment);
-                        if (existingIds.has(fragment.id)) {
+                        if (existingIds.has(fragment.id) || existingPaths.has(fragment.path)) {
                             results[i] = null;
                             duplicateCount++;
                         } else {
@@ -656,6 +675,7 @@ class MasBulkPublishEditor extends LitElement {
         await this.#withPendingAction(QUICK_ACTION.REVERT, async () => {
             await startReverting({ project: this.project, token, ioBaseUrl, repository: this.repository });
         });
+        this.requestUpdate();
         if (this.status === BULK_PUBLISH_STATUS.REVERTED) {
             showToast('Project reverted successfully.', 'positive');
         }
@@ -673,6 +693,10 @@ class MasBulkPublishEditor extends LitElement {
                 repository: this.repository,
             });
         });
+        this.requestUpdate();
+        if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) {
+            showToast('Project published successfully.', 'positive');
+        }
     }
 
     render() {
@@ -692,6 +716,9 @@ class MasBulkPublishEditor extends LitElement {
             <header>
                 <h1>${titleText}</h1>
             </header>
+            ${this.isPublishing
+                ? html`<mas-bulk-publish-success-banner variant="publishing"></mas-bulk-publish-success-banner>`
+                : nothing}
             ${published || lastError
                 ? html`<mas-bulk-publish-success-banner
                       .publishedAt=${this.getField('publishedAt') ?? ''}

@@ -90,7 +90,6 @@ application:
                             timeout: 300000
                         annotations:
                             require-adobe-auth: false
-                            final: true
                     bulk-snapshot:
                         function: src/bulk-publish/snapshot-action.js
                         web: 'yes'
@@ -99,7 +98,6 @@ application:
                             timeout: 300000
                         annotations:
                             require-adobe-auth: false
-                            final: true
                     bulk-revert:
                         function: src/bulk-publish/revert-action.js
                         web: 'yes'
@@ -108,7 +106,6 @@ application:
                             timeout: 300000
                         annotations:
                             require-adobe-auth: false
-                            final: true
                     bulk-check-modifications:
                         function: src/bulk-publish/check-modifications-action.js
                         web: 'yes'
@@ -117,4 +114,3 @@ application:
                             timeout: 60000
                         annotations:
                             require-adobe-auth: false
-                            final: true

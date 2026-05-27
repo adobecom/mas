@@ -442,11 +442,6 @@ export class InlinePrice extends HTMLSpanElement {
         }
     }
 
-    htmlDecode(input) {
-        const doc = new DOMParser().parseFromString(input, 'text/html');
-        return doc.documentElement.textContent;
-    }
-
     // TODO: can be extended to accept array of offers and compute subtotal price
     /**
      * Renders price offer as HTML of this component

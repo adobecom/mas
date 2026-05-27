@@ -664,18 +664,12 @@ class MasBulkPublishEditor extends LitElement {
     async publish() {
         await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
             const { startPublishing } = await import('./bulk-publish-store.js');
-            const { publishBulk } = await import('./bulk-publish-client.js');
-            const validItems = this.items.filter((i) => i.status === 'valid');
-            const paths = validItems.map((i) => i.path);
             const token = window.adobeIMS?.getAccessToken()?.token;
             const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
             await startPublishing({
                 project: this.project,
-                paths,
-                locales: this.locales,
                 token,
                 ioBaseUrl,
-                publishFn: publishBulk,
                 repository: this.repository,
             });
         });

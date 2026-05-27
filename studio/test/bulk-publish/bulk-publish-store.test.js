@@ -1,37 +1,22 @@
 import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
-import { BULK_PUBLISH_STATUS } from '../../src/constants.js';
 import { startPublishing, startReverting } from '../../src/bulk-publish/bulk-publish-store.js';
 
-function makeProject(overrides = {}) {
-    const createdAt = new Date().toISOString();
-    const fields = {
-        snapshots: [JSON.stringify({ fragmentId: 'frag-rev', versionId: 'v-rev', wasPublished: true, createdAt })],
-        status: BULK_PUBLISH_STATUS.PUBLISHED,
-        title: 'Test Project',
-        ...overrides,
-    };
-    return {
-        id: 'proj-1',
-        getFieldValue: (k) => fields[k],
-        getFieldValues: (k) => fields[k] ?? [],
-        setFieldValue: sinon.stub().callsFake((k, v) => {
-            fields[k] = v;
-        }),
-    };
+function makeProject(id = 'proj-1') {
+    return { id };
 }
 
 function makeRepo() {
-    return { saveFragment: sinon.stub().resolves() };
+    return { refreshFragment: sinon.stub().resolves() };
 }
 
 function fetchOk(body) {
-    return { ok: true, status: 200, json: async () => body };
+    return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
 }
 
-function fetchErr(status = 500, body = {}) {
-    return { ok: false, status, statusText: `Error ${status}`, json: async () => body };
+function fetchErr(status = 500) {
+    return new Response(JSON.stringify({ error: `Error ${status}` }), { status });
 }
 
 describe('startPublishing()', () => {
@@ -40,94 +25,53 @@ describe('startPublishing()', () => {
     const token = 'test-token';
     const ioBaseUrl = 'https://io.example';
 
-    const snapshotEntry = JSON.stringify({
-        fragmentId: 'frag-id',
-        versionId: 'v1',
-        wasPublished: true,
-        createdAt: new Date().toISOString(),
-    });
-
     beforeEach(() => {
         Store.bulkPublishProjects.publishing.set({});
         repo = makeRepo();
-        fetchStub = sinon.stub(window, 'fetch').resolves(fetchOk({ entries: [snapshotEntry] }));
-    });
-
-    afterEach(() => fetchStub.restore());
-
-    it('status sequence: PUBLISHING → PUBLISHED on success', async () => {
-        const project = makeProject({ snapshots: [] });
-        const publishFn = sinon.stub().resolves({ summary: { total: 1, published: 1 } });
-
-        await startPublishing({ project, paths: ['/p'], locales: [], token, ioBaseUrl, publishFn, repository: repo });
-
-        const statuses = project.setFieldValue
-            .getCalls()
-            .filter((c) => c.args[0] === 'status')
-            .map((c) => c.args[1]);
-        expect(statuses[0]).to.equal(BULK_PUBLISH_STATUS.PUBLISHING);
-        expect(statuses[statuses.length - 1]).to.equal(BULK_PUBLISH_STATUS.PUBLISHED);
-    });
-
-    it('status sequence: PUBLISHING → DRAFT when createSnapshotAction fails', async () => {
-        fetchStub.resolves(fetchErr(500));
-        const project = makeProject({ snapshots: [] });
-        const publishFn = sinon.stub().resolves({});
-
-        await startPublishing({ project, paths: ['/p'], locales: [], token, ioBaseUrl, publishFn, repository: repo });
-
-        const statuses = project.setFieldValue
-            .getCalls()
-            .filter((c) => c.args[0] === 'status')
-            .map((c) => c.args[1]);
-        expect(statuses[statuses.length - 1]).to.equal(BULK_PUBLISH_STATUS.DRAFT);
-        expect(publishFn.called).to.equal(false);
-    });
-
-    it('status sequence: PUBLISHING → DRAFT when publishFn rejects', async () => {
-        const project = makeProject({ snapshots: [] });
-        const publishFn = sinon.stub().rejects(new Error('publish failed'));
-
-        await startPublishing({ project, paths: ['/p'], locales: [], token, ioBaseUrl, publishFn, repository: repo }).catch(
-            () => {},
+        fetchStub = sinon.stub(window, 'fetch').resolves(
+            fetchOk({ status: 'Published', summary: { total: 1, published: 1, skipped: 0, failed: 0 }, details: [] }),
         );
-
-        const statuses = project.setFieldValue
-            .getCalls()
-            .filter((c) => c.args[0] === 'status')
-            .map((c) => c.args[1]);
-        expect(statuses[statuses.length - 1]).to.equal(BULK_PUBLISH_STATUS.DRAFT);
-        const errors = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'lastError');
-        expect(errors[errors.length - 1].args[1]).to.equal('publish failed');
+        sinon.stub(window, 'adobeIMS').value({ getProfile: async () => ({ email: 'user@example.com' }) });
     });
 
-    it('stores snapshot entries returned by createSnapshotAction in project.snapshots', async () => {
-        const project = makeProject({ snapshots: [] });
-        const publishFn = sinon.stub().resolves({});
+    afterEach(() => sinon.restore());
 
-        await startPublishing({ project, paths: ['/p'], locales: [], token, ioBaseUrl, publishFn, repository: repo });
-
-        const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshots');
-        expect(snapshotCalls.length).to.be.greaterThan(0);
-        expect(snapshotCalls[0].args[1]).to.deep.equal([snapshotEntry]);
+    it('calls publishBulk with projectId and publishedBy', async () => {
+        const project = makeProject();
+        await startPublishing({ project, token, ioBaseUrl, repository: repo });
+        const [url, init] = fetchStub.firstCall.args;
+        expect(url).to.include('/bulk-publish');
+        const body = JSON.parse(init.body);
+        expect(body.projectId).to.equal('proj-1');
+        expect(body.publishedBy).to.equal('user@example.com');
     });
 
-    it('saveFragment called twice on success (start + end)', async () => {
-        const project = makeProject({ snapshots: [] });
-        const publishFn = sinon.stub().resolves({});
-
-        await startPublishing({ project, paths: ['/p'], locales: [], token, ioBaseUrl, publishFn, repository: repo });
-
-        expect(repo.saveFragment.callCount).to.equal(2);
+    it('calls repository.refreshFragment after successful publish', async () => {
+        const project = makeProject();
+        await startPublishing({ project, token, ioBaseUrl, repository: repo });
+        expect(repo.refreshFragment.calledOnce).to.equal(true);
+        expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
     });
 
-    it('removes project from publishing map after successful publish', async () => {
-        const project = makeProject({ snapshots: [] });
-        const publishFn = sinon.stub().resolves({});
-
-        await startPublishing({ project, paths: ['/p'], locales: [], token, ioBaseUrl, publishFn, repository: repo });
-
+    it('removes project from publishing map after completion', async () => {
+        const project = makeProject();
+        await startPublishing({ project, token, ioBaseUrl, repository: repo });
         expect(Store.bulkPublishProjects.publishing.get()[project.id]).to.be.undefined;
+    });
+
+    it('removes project from publishing map even when publishBulk throws', async () => {
+        fetchStub.resolves(fetchErr(500));
+        const project = makeProject();
+        await startPublishing({ project, token, ioBaseUrl, repository: repo }).catch(() => {});
+        expect(Store.bulkPublishProjects.publishing.get()[project.id]).to.be.undefined;
+    });
+
+    it('returns the IO action result', async () => {
+        const expected = { status: 'Published', summary: { total: 1, published: 1, skipped: 0, failed: 0 }, details: [] };
+        fetchStub.resolves(fetchOk(expected));
+        const project = makeProject();
+        const result = await startPublishing({ project, token, ioBaseUrl, repository: repo });
+        expect(result).to.deep.equal(expected);
     });
 });
 
@@ -140,88 +84,33 @@ describe('startReverting()', () => {
     beforeEach(() => {
         Store.bulkPublishProjects.list.data.set([]);
         repo = makeRepo();
-        fetchStub = sinon.stub(window, 'fetch').resolves(fetchOk({ failures: [], skipped: [] }));
+        fetchStub = sinon.stub(window, 'fetch').resolves(
+            fetchOk({ status: 'Reverted', failures: [], skipped: [] }),
+        );
     });
 
-    afterEach(() => fetchStub.restore());
+    afterEach(() => sinon.restore());
 
-    it('status sequence: REVERTING → REVERTED on success', async () => {
+    it('calls revertAction with projectId', async () => {
         const project = makeProject();
-
         await startReverting({ project, token, ioBaseUrl, repository: repo });
-
-        const statuses = project.setFieldValue
-            .getCalls()
-            .filter((c) => c.args[0] === 'status')
-            .map((c) => c.args[1]);
-        expect(statuses[0]).to.equal(BULK_PUBLISH_STATUS.REVERTING);
-        expect(statuses[statuses.length - 1]).to.equal(BULK_PUBLISH_STATUS.REVERTED);
+        const [url, init] = fetchStub.firstCall.args;
+        expect(url).to.include('/bulk-revert');
+        expect(JSON.parse(init.body).projectId).to.equal('proj-1');
     });
 
-    it('status PUBLISHED with REVERT-prefixed lastError when failures returned', async () => {
-        fetchStub.resolves(fetchOk({ failures: [{ path: '/p', error: 'restore failed' }], skipped: [] }));
+    it('calls repository.refreshFragment after revert', async () => {
         const project = makeProject();
-
         await startReverting({ project, token, ioBaseUrl, repository: repo });
-
-        const statuses = project.setFieldValue
-            .getCalls()
-            .filter((c) => c.args[0] === 'status')
-            .map((c) => c.args[1]);
-        expect(statuses[statuses.length - 1]).to.equal(BULK_PUBLISH_STATUS.PUBLISHED);
-        const errors = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'lastError');
-        expect(errors[errors.length - 1].args[1]).to.include('REVERT:\n');
-        expect(errors[errors.length - 1].args[1]).to.include('/p: restore failed');
+        expect(repo.refreshFragment.calledOnce).to.equal(true);
+        expect(repo.refreshFragment.firstCall.args[0]).to.equal(project);
     });
 
-    it('status PUBLISHED with error when snapshot is empty (no fetch call)', async () => {
-        const project = makeProject({ snapshots: [] });
-
-        await startReverting({ project, token, ioBaseUrl, repository: repo });
-
-        const statuses = project.setFieldValue
-            .getCalls()
-            .filter((c) => c.args[0] === 'status')
-            .map((c) => c.args[1]);
-        expect(statuses[statuses.length - 1]).to.equal(BULK_PUBLISH_STATUS.PUBLISHED);
-        const errors = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'lastError');
-        expect(errors[errors.length - 1].args[1]).to.include('REVERT:\n');
-        expect(fetchStub.called).to.equal(false);
-    });
-
-    it('removes skipped fragment entries from project.snapshots', async () => {
-        const createdAt = new Date().toISOString();
-        const project = makeProject({
-            snapshots: [
-                JSON.stringify({ fragmentId: 'frag-keep', versionId: 'v1', wasPublished: true, createdAt }),
-                JSON.stringify({ fragmentId: 'frag-deleted', versionId: 'v2', wasPublished: false, createdAt }),
-            ],
-        });
-        fetchStub.resolves(fetchOk({ failures: [], skipped: ['frag-deleted'] }));
-
-        await startReverting({ project, token, ioBaseUrl, repository: repo });
-
-        const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshots');
-        expect(snapshotCalls.length).to.equal(1);
-        const remaining = snapshotCalls[0].args[1];
-        expect(remaining).to.have.length(1);
-        expect(JSON.parse(remaining[0]).fragmentId).to.equal('frag-keep');
-    });
-
-    it('does not modify project.snapshots when no fragments are skipped', async () => {
+    it('returns the IO action result', async () => {
+        const expected = { status: 'Reverted', failures: [], skipped: [] };
+        fetchStub.resolves(fetchOk(expected));
         const project = makeProject();
-
-        await startReverting({ project, token, ioBaseUrl, repository: repo });
-
-        const snapshotCalls = project.setFieldValue.getCalls().filter((c) => c.args[0] === 'snapshots');
-        expect(snapshotCalls.length).to.equal(0);
-    });
-
-    it('saveFragment called at least twice (start + end)', async () => {
-        const project = makeProject();
-
-        await startReverting({ project, token, ioBaseUrl, repository: repo });
-
-        expect(repo.saveFragment.callCount).to.be.greaterThanOrEqual(2);
+        const result = await startReverting({ project, token, ioBaseUrl, repository: repo });
+        expect(result).to.deep.equal(expected);
     });
 });

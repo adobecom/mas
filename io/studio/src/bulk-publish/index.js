@@ -2,6 +2,14 @@ const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils.js');
 const { resolvePaths } = require('./resolver.js');
 const { publishChunk } = require('./publisher.js');
+const { createSnapshot } = require('./snapshot.js');
+const {
+    readProjectFragment,
+    updateProjectFragment,
+    getProjectPaths,
+    getProjectLocales,
+    getProjectTitle,
+} = require('./project.js');
 
 const logger = Core.Logger('bulk-publish', { level: 'info' });
 const MAX_PATHS = 500;
@@ -11,6 +19,12 @@ const MAX_CHUNK_SIZE = 50;
 const PATH_PREFIX = '/content/dam/mas/';
 const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
+
+const PROJECT_STATUS = {
+    DRAFT: 'Draft',
+    PUBLISHING: 'Publishing',
+    PUBLISHED: 'Published',
+};
 
 async function main(params) {
     return run(params);
@@ -23,6 +37,16 @@ async function run(params) {
         const odinEndpoint = params.aemOdinEndpoint || params.odinEndpoint;
         if (!odinEndpoint) {
             return errorResponse(400, 'missing parameter(s) [aemOdinEndpoint|odinEndpoint]', logger);
+        }
+
+        const authToken = getBearerToken(params);
+        const allowed = await isAllowed(authToken, params.allowedClientId);
+        if (!allowed) {
+            return errorResponse(401, 'Authorization failed', logger);
+        }
+
+        if (params.projectId) {
+            return runWithProject(params, odinEndpoint, authToken);
         }
 
         const requiredHeaders = ['Authorization'];
@@ -47,12 +71,6 @@ async function run(params) {
         }
         if (Array.isArray(params.locales) && params.locales.length > MAX_LOCALES) {
             return errorResponse(400, `locales exceeds maximum of ${MAX_LOCALES}`, logger);
-        }
-
-        const authToken = getBearerToken(params);
-        const allowed = await isAllowed(authToken, params.allowedClientId);
-        if (!allowed) {
-            return errorResponse(401, 'Authorization failed', logger);
         }
 
         const resolved = resolvePaths(params.paths, params.locales);
@@ -131,6 +149,88 @@ function buildSummary(details) {
         else if (detail.status === STATUS.FAILED) summary.failed += 1;
     }
     return summary;
+}
+
+async function runWithProject(params, odinEndpoint, authToken) {
+    const { projectId, publishedBy = '' } = params;
+    logger.info(JSON.stringify({ event: 'project-publish-start', projectId }));
+
+    let fragment;
+    try {
+        const result = await readProjectFragment(odinEndpoint, projectId, authToken);
+        fragment = result.fragment;
+    } catch (err) {
+        logger.error(JSON.stringify({ event: 'project-read-error', projectId, error: err.message }));
+        return errorResponse(500, `Failed to read project fragment: ${err.message}`, logger);
+    }
+
+    const paths = getProjectPaths(fragment);
+    const locales = getProjectLocales(fragment);
+    const title = getProjectTitle(fragment);
+
+    if (!paths.length) {
+        return errorResponse(400, 'Project has no fragments', logger);
+    }
+
+    try {
+        await updateProjectFragment(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.PUBLISHING,
+            lastError: '',
+        });
+    } catch (err) {
+        return errorResponse(500, `Failed to update project status: ${err.message}`, logger);
+    }
+
+    let snapshotEntries;
+    try {
+        snapshotEntries = await createSnapshot({ paths, projectId, projectTitle: title, odinEndpoint, authToken });
+    } catch (err) {
+        logger.error(JSON.stringify({ event: 'snapshot-error', projectId, error: err.message }));
+        await updateProjectFragment(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.DRAFT,
+            lastError: err.message,
+        }).catch(() => {});
+        return { statusCode: 200, body: { status: PROJECT_STATUS.DRAFT, lastError: err.message } };
+    }
+
+    const resolved = resolvePaths(paths, locales);
+    if (resolved.length === 0) {
+        await updateProjectFragment(odinEndpoint, projectId, authToken, {
+            status: PROJECT_STATUS.DRAFT,
+            lastError: 'No valid paths after locale resolution',
+        }).catch(() => {});
+        return { statusCode: 200, body: { status: PROJECT_STATUS.DRAFT, lastError: 'No valid paths after locale resolution' } };
+    }
+
+    const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
+    const details = [];
+    for (const chunk of chunks) {
+        const results = await publishOneChunk(chunk, odinEndpoint, authToken);
+        details.push(...results);
+    }
+
+    const summary = buildSummary(details);
+    const failures = details.filter((d) => d.status === STATUS.FAILED);
+    const finalStatus = failures.length === 0 ? PROJECT_STATUS.PUBLISHED : PROJECT_STATUS.DRAFT;
+    const lastError = failures.map((f) => `${f.path}: ${f.reason}`).join('\n');
+    const publishedAt = new Date().toISOString();
+
+    await updateProjectFragment(odinEndpoint, projectId, authToken, {
+        status: finalStatus,
+        snapshots: snapshotEntries,
+        publishedAt,
+        publishedBy,
+        lastResult: JSON.stringify({ summary, details }),
+        lastError,
+    }).catch((err) => {
+        logger.error(JSON.stringify({ event: 'project-final-patch-error', projectId, error: err.message }));
+    });
+
+    logger.info(JSON.stringify({ event: 'project-publish-complete', projectId, finalStatus }));
+    return {
+        statusCode: 200,
+        body: { status: finalStatus, lastError, snapshots: snapshotEntries, publishedAt, publishedBy, summary, details },
+    };
 }
 
 exports.main = main;

@@ -499,11 +499,7 @@ const createPromoPriceWithAnnualTemplate =
                 createPriceTemplate({
                     displayAnnual: true,
                     instant,
-                })(
-                    ctxStAnnual,
-                    { ...value, price: basePrice },
-                    attributes,
-                ) +
+                })(ctxStAnnual, { ...value, price: basePrice }, attributes) +
                 renderSpan(cssClassNames.containerAnnualSuffix, ')')
             );
         }

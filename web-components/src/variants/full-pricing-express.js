@@ -106,7 +106,9 @@ export class FullPricingExpress extends VariantLayout {
         `;
     }
 
-    syncHeights() {
+    async syncHeights() {
+        await document.fonts.ready;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
         if (this.card.getBoundingClientRect().width <= 2) return;
         const sectionEntries = FullPricingExpress.SYNCED_SECTIONS.map(
             (name) => ({
@@ -151,7 +153,7 @@ export class FullPricingExpress extends VariantLayout {
         }
 
         if (window.matchMedia('(min-width: 768px)').matches) {
-            requestAnimationFrame(() => this.syncHeights());
+            this.syncHeights();
         }
     }
 

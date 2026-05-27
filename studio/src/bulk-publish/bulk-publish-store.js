@@ -79,7 +79,16 @@ export async function startReverting({ project, token, ioBaseUrl, repository }) 
     }
 
     const { revertSnapshotAction } = await import('./bulk-publish-client.js');
-    const { failures, skipped } = await revertSnapshotAction({ ioBaseUrl, entries, token });
+    let revertResult;
+    try {
+        revertResult = await revertSnapshotAction({ ioBaseUrl, entries, token });
+    } catch (err) {
+        setField(project, 'lastError', `REVERT:\n${err.message}`);
+        setField(project, 'status', BULK_PUBLISH_STATUS.PUBLISHED);
+        await repository.saveFragment(project, false);
+        return;
+    }
+    const { failures, skipped } = revertResult;
 
     if (skipped.length > 0) {
         const skipSet = new Set(skipped);

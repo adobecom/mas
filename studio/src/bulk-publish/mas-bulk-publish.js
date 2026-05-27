@@ -109,6 +109,12 @@ class MasBulkPublish extends LitElement {
         const token = window.adobeIMS?.getAccessToken()?.token;
         const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
         await startReverting({ project, token, ioBaseUrl, repository: this.repository });
+        const status = getProjectField(projectStore.get(), 'status', '');
+        if (status === BULK_PUBLISH_STATUS.REVERTED) {
+            showToast('Project reverted successfully.', 'positive');
+        } else {
+            showToast('Revert failed. Check project for details.', 'negative');
+        }
     }
 
     openDuplicateDialog(projectStore) {

@@ -49,6 +49,9 @@ application:
                                 acom: transcreation
                                 acom-cc: transcreation
                                 acom-dc: transcreation
+                                adobe-home: transcreation
+                                ccd: transcreation
+                                commerce: machineTranslation
                                 express: transcreation
                                 sandbox: machineTranslation
                                 nala: machineTranslation

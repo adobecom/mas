@@ -28,13 +28,18 @@ describe('startPublishing()', () => {
     beforeEach(() => {
         Store.bulkPublishProjects.publishing.set({});
         repo = makeRepo();
-        fetchStub = sinon.stub(window, 'fetch').resolves(
-            fetchOk({ status: 'Published', summary: { total: 1, published: 1, skipped: 0, failed: 0 }, details: [] }),
-        );
-        sinon.stub(window, 'adobeIMS').value({ getProfile: async () => ({ email: 'user@example.com' }) });
+        fetchStub = sinon
+            .stub(window, 'fetch')
+            .resolves(
+                fetchOk({ status: 'Published', summary: { total: 1, published: 1, skipped: 0, failed: 0 }, details: [] }),
+            );
+        window.adobeIMS = { getProfile: async () => ({ email: 'user@example.com' }) };
     });
 
-    afterEach(() => sinon.restore());
+    afterEach(() => {
+        delete window.adobeIMS;
+        sinon.restore();
+    });
 
     it('calls publishBulk with projectId and publishedBy', async () => {
         const project = makeProject();
@@ -84,9 +89,7 @@ describe('startReverting()', () => {
     beforeEach(() => {
         Store.bulkPublishProjects.list.data.set([]);
         repo = makeRepo();
-        fetchStub = sinon.stub(window, 'fetch').resolves(
-            fetchOk({ status: 'Reverted', failures: [], skipped: [] }),
-        );
+        fetchStub = sinon.stub(window, 'fetch').resolves(fetchOk({ status: 'Reverted', failures: [], skipped: [] }));
     });
 
     afterEach(() => sinon.restore());

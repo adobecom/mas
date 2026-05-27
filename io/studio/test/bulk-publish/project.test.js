@@ -97,7 +97,12 @@ describe('project.js', () => {
 
     describe('getProjectSnapshots()', () => {
         it('returns serialized snapshot entries from snapshots field', () => {
-            const entry = JSON.stringify({ fragmentId: 'f1', versionId: 'v1', wasPublished: true, createdAt: '2025-01-01T00:00:00.000Z' });
+            const entry = JSON.stringify({
+                fragmentId: 'f1',
+                versionId: 'v1',
+                wasPublished: true,
+                createdAt: '2025-01-01T00:00:00.000Z',
+            });
             const fragment = makeFragment([{ name: 'snapshots', values: [entry] }]);
             expect(mod.getProjectSnapshots(fragment)).to.deep.equal([entry]);
         });

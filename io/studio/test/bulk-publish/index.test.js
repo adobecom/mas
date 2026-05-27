@@ -279,7 +279,11 @@ describe('bulk-publish/index.js', () => {
         beforeEach(() => {
             getFragmentWithEtagStub = sinon.stub().resolves({ fragment: projectFragment, etag: '"etag-1"' });
             putToOdinStub = sinon.stub().resolves({ success: true });
-            createSnapshotStub = sinon.stub().resolves(['{"fragmentId":"frag-1","versionId":"v1","wasPublished":true,"createdAt":"2025-01-01T00:00:00.000Z"}']);
+            createSnapshotStub = sinon
+                .stub()
+                .resolves([
+                    '{"fragmentId":"frag-1","versionId":"v1","wasPublished":true,"createdAt":"2025-01-01T00:00:00.000Z"}',
+                ]);
 
             const { resolvePaths } = require('../../src/bulk-publish/resolver.js');
             const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
@@ -310,7 +314,12 @@ describe('bulk-publish/index.js', () => {
         });
 
         it('sets status PUBLISHING then PUBLISHED on full success', async () => {
-            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid', publishedBy: 'user@example.com' });
+            const result = await projectAction.main({
+                ...baseParams,
+                paths: undefined,
+                projectId: 'proj-uuid',
+                publishedBy: 'user@example.com',
+            });
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.status).to.equal('Published');

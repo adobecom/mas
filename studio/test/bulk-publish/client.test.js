@@ -1,6 +1,11 @@
 import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
-import { publishBulk, revertAction, checkModificationsAction, BulkPublishError } from '../../src/bulk-publish/bulk-publish-client.js';
+import {
+    publishBulk,
+    revertAction,
+    checkModificationsAction,
+    BulkPublishError,
+} from '../../src/bulk-publish/bulk-publish-client.js';
 
 describe('publishBulk', () => {
     let fetchStub;
@@ -11,10 +16,17 @@ describe('publishBulk', () => {
 
     it('POSTs to the bulk-publish endpoint with projectId and bearer token', async () => {
         fetchStub.resolves(
-            new Response(JSON.stringify({ status: 'Published', summary: { total: 1, published: 1, skipped: 0, failed: 0 }, details: [] }), {
-                status: 200,
-                headers: { 'content-type': 'application/json' },
-            }),
+            new Response(
+                JSON.stringify({
+                    status: 'Published',
+                    summary: { total: 1, published: 1, skipped: 0, failed: 0 },
+                    details: [],
+                }),
+                {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' },
+                },
+            ),
         );
         await publishBulk({ ioBaseUrl: 'https://io.example', projectId: 'proj-1', token: 'abc' });
         const [url, init] = fetchStub.firstCall.args;
@@ -28,9 +40,17 @@ describe('publishBulk', () => {
 
     it('includes publishedBy when provided', async () => {
         fetchStub.resolves(
-            new Response(JSON.stringify({ status: 'Published' }), { status: 200, headers: { 'content-type': 'application/json' } }),
+            new Response(JSON.stringify({ status: 'Published' }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            }),
         );
-        await publishBulk({ ioBaseUrl: 'https://io.example', projectId: 'proj-1', publishedBy: 'user@example.com', token: 'abc' });
+        await publishBulk({
+            ioBaseUrl: 'https://io.example',
+            projectId: 'proj-1',
+            publishedBy: 'user@example.com',
+            token: 'abc',
+        });
         const body = JSON.parse(fetchStub.firstCall.args[1].body);
         expect(body.publishedBy).to.equal('user@example.com');
     });
@@ -122,7 +142,9 @@ describe('checkModificationsAction', () => {
                 headers: { 'content-type': 'application/json' },
             }),
         );
-        const entries = [JSON.stringify({ fragmentId: 'f1', versionId: 'v1', wasPublished: true, createdAt: new Date().toISOString() })];
+        const entries = [
+            JSON.stringify({ fragmentId: 'f1', versionId: 'v1', wasPublished: true, createdAt: new Date().toISOString() }),
+        ];
         await checkModificationsAction({ ioBaseUrl: 'https://io.example', entries, token: 'tok' });
         const [url, init] = fetchStub.firstCall.args;
         expect(url).to.equal('https://io.example/bulk-check-modifications');

@@ -1023,7 +1023,7 @@ describe('mas-bulk-publish-editor (publish)', () => {
         sandbox.restore();
     });
 
-    it('publish triggers the publish flow and calls saveFragment', async () => {
+    it('publish triggers the publish flow and calls the IO action', async () => {
         window.adobeIMS = { getAccessToken: () => ({ token: 'fake-token', clientId: 'mas-studio' }) };
 
         const el = await makeEditor();
@@ -1032,15 +1032,19 @@ describe('mas-bulk-publish-editor (publish)', () => {
         Store.bulkPublishProjects.inEdit.set(fs);
         await el.updateComplete;
 
-        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
+        const fetchStub = sandbox.stub(window, 'fetch').resolves(
+            new Response(JSON.stringify({ status: 'Published' }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            }),
+        );
+        repositoryEl.refreshFragment = sandbox.stub().resolves();
 
-        try {
-            await el.publish();
-        } catch {
-            // network call to io-base-url will fail in tests; that's ok
-        }
+        await el.publish();
 
-        expect(repositoryEl.saveFragment.called).to.equal(true);
+        expect(fetchStub.called).to.equal(true);
+        const [url] = fetchStub.firstCall.args;
+        expect(url).to.include('/bulk-publish');
         delete window.adobeIMS;
     });
 });

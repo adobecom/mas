@@ -387,9 +387,7 @@ class MasBulkPublishEditor extends LitElement {
         const skipped = selected.length - deduped.length;
         if (skipped > 0) {
             showToast(
-                skipped === 1
-                    ? 'Item already exists in the project'
-                    : `${skipped} items already exist in the project`,
+                skipped === 1 ? 'Item already exists in the project' : `${skipped} items already exist in the project`,
                 'negative',
             );
         }

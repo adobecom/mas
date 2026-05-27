@@ -3,8 +3,8 @@ const { fetchOdin, processBatchWithConcurrency } = require('../common.js');
 
 const logger = Core.Logger('bulk-snapshot', { level: 'info' });
 const FRAGMENT_CONCURRENCY = 5;
-const STATUS_PUBLISHED = 'Published';
-const STATUS_MODIFIED = 'Modified';
+const STATUS_PUBLISHED = 'PUBLISHED';
+const STATUS_MODIFIED = 'MODIFIED';
 
 async function getFragmentByPath(odinEndpoint, fragmentPath, authToken) {
     const response = await fetchOdin(
@@ -43,15 +43,15 @@ async function restoreVersion(odinEndpoint, fragmentId, versionId, authToken) {
     });
 }
 
-async function unpublishFragment(odinEndpoint, fragmentId, authToken) {
-    const response = await fetchOdin(odinEndpoint, '/adobe/sites/cf/workflows', authToken, {
+async function unpublishFragment(odinEndpoint, fragmentPath, authToken) {
+    await fetchOdin(odinEndpoint, '/adobe/sites/cf/fragments/publish', authToken, {
         method: 'POST',
         contentType: 'application/json',
-        body: JSON.stringify({ type: 'unpublish-fragments', payload: { fragmentIds: [fragmentId] } }),
+        body: JSON.stringify({
+            paths: [fragmentPath],
+            workflowModelId: '/var/workflow/models/scheduled_deactivation',
+        }),
     });
-    if (!response.ok) {
-        throw new Error(`Failed to unpublish fragment: ${response.status} ${response.statusText}`);
-    }
 }
 
 function serializeEntries(snapshot) {
@@ -123,7 +123,7 @@ async function revertSnapshot({ entries, odinEndpoint, authToken }) {
         try {
             await restoreVersion(odinEndpoint, fragmentId, entry.versionId, authToken);
             if (!entry.wasPublished) {
-                await unpublishFragment(odinEndpoint, fragmentId, authToken);
+                await unpublishFragment(odinEndpoint, fragment.path, authToken);
             }
             return null;
         } catch (err) {

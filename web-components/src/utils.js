@@ -126,3 +126,18 @@ export function getOuterHeight(element) {
         parseFloat(style.marginBottom)
     );
 }
+
+/** strikethrough price followed with promo price, or with some empty text in between, needs to have labels hidden */
+export function shouldHideStPriceLabels(element) {
+    const nextElSibling =
+        element.nextElementSibling?.nodeName === 'BR'
+            ? element.nextElementSibling.nextElementSibling
+            : element.nextElementSibling;
+    return (
+        element.dataset.template === 'strikethrough' &&
+        (element.nextSibling?.nodeName !== '#text' ||
+            element.nextSibling.textContent.trim() === '') &&
+        nextElSibling?.isInlinePrice &&
+        nextElSibling?.dataset?.template === 'price'
+    );
+}

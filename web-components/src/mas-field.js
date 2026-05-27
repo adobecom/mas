@@ -140,11 +140,19 @@ class MasField extends HTMLElement {
         return anchor.outerHTML;
     }
 
+    #setFragmentIds() {
+        if (!this.aemFragment) return;
+        this.setAttribute('fragment-id', this.aemFragment.data?.id);
+        const variationId = this.aemFragment.data?.variationId;
+        if (variationId) this.setAttribute('variation-id', variationId);
+    }
+
     #renderField() {
         if (!this.#fields || !this.#field) return;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
         const fieldValue = this.#normalizeFieldValue(this.#fields[fieldName]);
         if (fieldValue === undefined) return;
+        this.#setFragmentIds();
         const content = this.#ensureContentElement();
         let html;
         if (index !== null) {

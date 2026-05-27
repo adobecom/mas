@@ -56,6 +56,22 @@ function priceOptionsProvider(element, options) {
         options.literals ??= {};
         Object.assign(options.literals, card.priceLiterals);
     }
+
+    // strikethrough price followed with promo price, or with some empty text in between, needs to have labels hidden
+    const nextElSibling =
+        element.nextElementSibling?.nodeName === 'BR'
+            ? element.nextElementSibling.nextElementSibling
+            : element.nextElementSibling;
+    if (
+        element.dataset.template === 'strikethrough' &&
+        (element.nextSibling?.nodeName !== '#text' ||
+            element.nextSibling.textContent.trim() === '') &&
+        nextElSibling?.isInlinePrice &&
+        nextElSibling?.dataset?.template === 'price'
+    ) {
+        options.hideStLabels = true;
+    }
+
     if (
         !options.promotionCode &&
         card.compatVersion >= COMPAT_VERSION_GLOBAL_PROMO_CODE

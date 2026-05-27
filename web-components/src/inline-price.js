@@ -462,20 +462,6 @@ export class InlinePrice extends HTMLSpanElement {
         version ??= this.masElement.togglePending();
         if (offers.length) {
             if (this.masElement.toggleResolved(version, offers, options)) {
-                // strikethrough price followed with promo price, or with some empty text in between, needs to have labels hidden
-                if (
-                    this.options.template === 'strikethrough' &&
-                    this.nextElementSibling &&
-                    (this.nextSibling.nodeName !== '#text' ||
-                        this.htmlDecode(this.nextSibling.textContent).trim() ===
-                            '') &&
-                    this.nextElementSibling.getAttribute('is') ===
-                        'inline-price' &&
-                    this.nextElementSibling.dataset.template === 'price'
-                ) {
-                    this.options.displayPerUnit = false;
-                    this.options.displayTax = false;
-                }
                 this.innerHTML = service.buildPriceHTML(offers, this.options);
 
                 // Adding logic for options.alternativePrice to add <sr-only>Alternatively at</sr-only>

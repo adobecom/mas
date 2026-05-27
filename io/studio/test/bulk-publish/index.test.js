@@ -354,5 +354,52 @@ describe('bulk-publish/index.js', () => {
             const lastPatch = putToOdinStub.lastCall.args[3];
             expect(lastPatch.snapshots).to.be.an('array').with.length(1);
         });
+
+        it('returns 500 when setting status to Publishing fails', async () => {
+            putToOdinStub.onFirstCall().rejects(new Error('patch failed'));
+
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.include('Failed to update project status');
+        });
+
+        it('sets status DRAFT when no paths resolve after locale expansion', async () => {
+            const { resolvePaths: _real, ...restResolver } = require('../../src/bulk-publish/resolver.js');
+            const realUtils = require('../../utils.js');
+            const publisher = proxyquire('../../src/bulk-publish/publisher.js', {
+                '../common.js': { fetchOdin: fetchOdinStub, fetchFragmentByPath: fetchFragmentByPathStub },
+            });
+
+            const emptyResolveAction = proxyquire('../../src/bulk-publish/index.js', {
+                '@adobe/aio-sdk': { Core: { Logger: () => loggerStub } },
+                './resolver.js': { resolvePaths: sinon.stub().returns([]) },
+                './publisher.js': publisher,
+                './snapshot.js': { createSnapshot: createSnapshotStub },
+                './project.js': {
+                    readProjectFragment: getFragmentWithEtagStub,
+                    updateProjectFragment: putToOdinStub,
+                    getProjectPaths: () => paths,
+                    getProjectLocales: () => [],
+                    getProjectTitle: () => 'My Project',
+                },
+                '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
+            });
+
+            const result = await emptyResolveAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.status).to.equal('Draft');
+            expect(result.body.lastError).to.equal('No valid paths after locale resolution');
+        });
+
+        it('logs error but still returns success when final project patch fails', async () => {
+            putToOdinStub.onSecondCall().rejects(new Error('final patch failed'));
+
+            const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
+
+            expect(result.statusCode).to.equal(200);
+            expect(loggerStub.error).to.have.been.calledWithMatch(sinon.match(/project-final-patch-error/));
+        });
     });
 });

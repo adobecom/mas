@@ -264,7 +264,8 @@ export function generateCodeToUse(fragment, path, page, failMessage) {
         page,
         path,
     });
-    const richText = `<a href="${href}" target="_blank">${authorPath}</a>`;
+    const linkText = fragment?.title ? `${authorPath} : ${fragment.title}` : authorPath;
+    const richText = `<a href="${href}" target="_blank">${linkText}</a>`;
     return { authorPath, code, richText, href };
 }
 

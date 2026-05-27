@@ -36,7 +36,9 @@ function makeFragmentStore(data = {}) {
         getFieldValues,
         updateField: sinon.stub(),
         setFieldValue: sinon.stub(),
-        get: () => ({ fields: Object.entries(fields).map(([name, val]) => ({ name, values: Array.isArray(val) ? val : [val] })) }),
+        get: () => ({
+            fields: Object.entries(fields).map(([name, val]) => ({ name, values: Array.isArray(val) ? val : [val] })),
+        }),
         refreshFrom: sinon.stub(),
     };
 }

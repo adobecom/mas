@@ -27,7 +27,17 @@ async function updateProjectFragment(odinEndpoint, projectId, authToken, fieldUp
 }
 
 function getProjectPaths(fragment) {
-    return getValues(fragment, 'fragments')?.values ?? [];
+    const paths = getValues(fragment, 'fragments')?.values ?? [];
+    if (paths.length) return paths;
+    // Legacy fallback: older projects stored items as a serialized JSON array in the 'items' field
+    const raw = getValue(fragment, 'items')?.value;
+    if (!raw) return [];
+    try {
+        const items = JSON.parse(raw);
+        return items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
+    } catch {
+        return [];
+    }
 }
 
 function getProjectLocales(fragment) {

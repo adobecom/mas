@@ -7,12 +7,9 @@ const STATUS_PUBLISHED = 'PUBLISHED';
 const STATUS_MODIFIED = 'MODIFIED';
 
 async function getFragmentByPath(odinEndpoint, fragmentPath, authToken) {
-    const response = await fetchOdin(
-        odinEndpoint,
-        `/adobe/sites/cf/fragments?path=${fragmentPath}`,
-        authToken,
-        { ignoreErrors: [404] },
-    );
+    const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments?path=${fragmentPath}`, authToken, {
+        ignoreErrors: [404],
+    });
     if (!response.ok) return null;
     const data = await response.json();
     return data?.items?.[0] ?? null;

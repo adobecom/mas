@@ -9,7 +9,7 @@ const STATUS_MODIFIED = 'MODIFIED';
 async function getFragmentByPath(odinEndpoint, fragmentPath, authToken) {
     const response = await fetchOdin(
         odinEndpoint,
-        `/adobe/sites/cf/fragments?path=${encodeURIComponent(fragmentPath)}`,
+        `/adobe/sites/cf/fragments?path=${fragmentPath}`,
         authToken,
         { ignoreErrors: [404] },
     );

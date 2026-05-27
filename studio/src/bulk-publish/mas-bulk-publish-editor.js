@@ -384,6 +384,15 @@ class MasBulkPublishEditor extends LitElement {
         ];
         const existing = new Set(this.items.flatMap((i) => [i.path, i.url].filter(Boolean)));
         const deduped = selected.filter((p) => !existing.has(p));
+        const skipped = selected.length - deduped.length;
+        if (skipped > 0) {
+            showToast(
+                skipped === 1
+                    ? 'Item already exists in the project'
+                    : `${skipped} items already exist in the project`,
+                'negative',
+            );
+        }
         const merged = Array.from(new Set([...this.urlLines, ...deduped])).join('\n');
         this.setProjectField('urls', merged);
         projects.selectedCards.set([]);
@@ -547,6 +556,7 @@ class MasBulkPublishEditor extends LitElement {
 
         const surface = Store.search.get()?.path;
         const results = [...newPending];
+        let duplicateCount = 0;
         await Promise.all(
             urls.map(async (raw, i) => {
                 const byId = parseStudioUrl(raw);
@@ -560,7 +570,8 @@ class MasBulkPublishEditor extends LitElement {
                             : await this.repository.aem.sites.cf.fragments.getByPath(byPath.path);
                         const fragment = new Fragment(rawFragment);
                         if (existingIds.has(fragment.id)) {
-                            results[i] = { url: raw, fragmentId: fragment.id, status: 'error', reason: 'duplicate' };
+                            results[i] = null;
+                            duplicateCount++;
                         } else {
                             existingIds.add(fragment.id);
                             const { authorPath, href } = generateCodeToUse(fragment, surface, PAGE_NAMES.CONTENT) || {};
@@ -584,14 +595,24 @@ class MasBulkPublishEditor extends LitElement {
                     }
                 }
                 if (runId !== this.#validateId) return;
-                this.localItems = [...existingItems, ...results];
+                const filtered = results.filter(Boolean);
+                this.localItems = [...existingItems, ...filtered];
                 const validPaths = this.localItems.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                 this.setFragments(validPaths);
                 this.requestUpdate();
             }),
         );
         if (runId !== this.#validateId) return [];
-        return [...existingItems, ...results];
+        if (duplicateCount > 0) {
+            showToast(
+                duplicateCount === 1
+                    ? 'Item already exists in the project'
+                    : `${duplicateCount} items already exist in the project`,
+                'negative',
+            );
+        }
+        const filtered = results.filter(Boolean);
+        return [...existingItems, ...filtered];
     }
 
     async handleCheckModifications() {

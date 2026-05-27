@@ -3,7 +3,6 @@ import { styles } from './mas-bulk-publish-items.css.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
-    duplicate: 'Duplicate item',
 };
 
 function emit(target, type, detail) {

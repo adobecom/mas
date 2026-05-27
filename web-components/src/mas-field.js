@@ -16,7 +16,8 @@ export function priceOptionsProvider(element, options) {
     options[FF_DEFAULTS] = true;
 
     if (shouldHideStPriceLabels(element)) {
-        options.hideStLabels = true;
+        options.displayPerUnit = false;
+        options.displayTax = false;
     }
 }
 

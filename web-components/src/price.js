@@ -58,13 +58,9 @@ export function Price({ literals, providers, settings }) {
                 ...options,
                 ...rest,
                 displayOldPrice: toBoolean(displayOldPrice),
-                displayPerUnit: options.hideStLabels
-                    ? false
-                    : toBoolean(displayPerUnit),
+                displayPerUnit: toBoolean(displayPerUnit),
                 displayRecurrence: toBoolean(displayRecurrence),
-                displayTax: options.hideStLabels
-                    ? false
-                    : toBoolean(displayTax),
+                displayTax: toBoolean(displayTax),
                 displayPlanType: toBoolean(displayPlanType),
                 forceTaxExclusive: toBoolean(forceTaxExclusive),
                 perpetual: toBoolean(perpetual),

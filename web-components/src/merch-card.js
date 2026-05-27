@@ -58,7 +58,8 @@ function priceOptionsProvider(element, options) {
     }
 
     if (shouldHideStPriceLabels(element)) {
-        options.hideStLabels = true;
+        options.displayPerUnit = false;
+        options.displayTax = false;
     }
 
     if (

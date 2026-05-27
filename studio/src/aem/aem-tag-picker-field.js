@@ -351,10 +351,9 @@ class AemTagPickerField extends LitElement {
     }
 
     get selectedTags() {
-        const data = this.#data;
-        if (!data || data instanceof Promise || typeof data.get !== 'function') return [];
+        if (!this.ready) return [];
         return this.#asValueArray()
-            .map((path) => data.get(path))
+            .map((path) => this.#data.get(path))
             .filter(Boolean);
     }
 
@@ -379,6 +378,7 @@ class AemTagPickerField extends LitElement {
 
     addContentTypeTags() {
         if (this.top !== 'studio/content-type') return;
+        // AEM may not have the compare-chart content-type tag yet, but Studio can create and filter it.
         this.#data.set(TAG_COMPARE_CHART_PATH, {
             name: COMPARE_CHART_CREATE_TYPE,
             title: 'Compare chart',

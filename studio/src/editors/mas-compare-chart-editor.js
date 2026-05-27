@@ -11,6 +11,7 @@ import {
     TAG_MERCH_CARD,
     TAG_PROMOTION_PREFIX,
     TAG_STUDIO_CONTENT_TYPE,
+    EVENT_CHANGE,
 } from '../constants.js';
 import Store from '../store.js';
 import { generateCodeToUse, getService, normalizeKey } from '../utils.js';
@@ -774,7 +775,7 @@ class MasCompareChartEditor extends LitElement {
         this.requestUpdate();
 
         this.dispatchEvent(
-            new CustomEvent('change', {
+            new CustomEvent(EVENT_CHANGE, {
                 detail: { value: newValue },
                 bubbles: true,
                 composed: true,

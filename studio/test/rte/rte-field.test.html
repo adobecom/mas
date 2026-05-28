@@ -33,8 +33,10 @@
                 height: 80vh;
             }
         </style>
-        <!-- OST -->
-        <script src="../../ost/index.js"></script>
+        <!-- OST: load the new Lit bundle (ost-new.js) — this test asserts the
+             new OST's <ost-app> element + data-testid="ost-close-button". The
+             legacy bundle at studio/ost/index.js does not define these. -->
+        <script src="../../ost/ost-new.js"></script>
         <link rel="stylesheet" href="../../ost/index.css" />
     </head>
     <body>

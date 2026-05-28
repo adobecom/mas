@@ -202,6 +202,18 @@ class MasSelectItemsTable extends LitElement {
         return this.viewOnly || this.isLoading || this.itemsToDisplay.length === 0;
     }
 
+    get selectAllChecked() {
+        if (this.selectAllDisabled) return false;
+        const selected = this.selectedInTable;
+        return this.loadedPaths.every((p) => selected.has(p));
+    }
+
+    get selectAllIndeterminate() {
+        if (this.selectAllDisabled || this.selectAllChecked) return false;
+        const selected = this.selectedInTable;
+        return this.loadedPaths.some((p) => selected.has(p));
+    }
+
     get tableColumns() {
         const TABLE_COLUMNS = {
             cards: {

@@ -1366,6 +1366,92 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
+    describe('Select All — selectAllChecked getter', () => {
+        it('is false when selectAllDisabled is true (empty)', async () => {
+            setupCardsInStore([]);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.selectAllChecked).to.equal(false);
+        });
+
+        it('is true when every loaded path is in selectedCards', async () => {
+            const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set(['/p/a', '/p/b']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            expect(el.selectAllChecked).to.equal(true);
+        });
+
+        it('is false when at least one loaded path is missing from selection', async () => {
+            const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set(['/p/a']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            expect(el.selectAllChecked).to.equal(false);
+        });
+    });
+
+    describe('Select All — selectAllIndeterminate getter', () => {
+        it('is false when selectAllDisabled is true', async () => {
+            setupCardsInStore([]);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.selectAllIndeterminate).to.equal(false);
+        });
+
+        it('is false when fully checked', async () => {
+            const cards = [createMockCard('/p/a', 'A')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set(['/p/a']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            expect(el.selectAllIndeterminate).to.equal(false);
+        });
+
+        it('is true when some but not all loaded paths are selected', async () => {
+            const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B'), createMockCard('/p/c', 'C')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set(['/p/a']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            expect(el.selectAllIndeterminate).to.equal(true);
+        });
+
+        it('is false when no loaded paths are selected', async () => {
+            const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set([]);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            expect(el.selectAllIndeterminate).to.equal(false);
+        });
+
+        it('checked and indeterminate are never both true', async () => {
+            const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')];
+            setupCardsInStore(cards);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            for (const selection of [[], ['/p/a'], ['/p/a', '/p/b']]) {
+                Store.translationProjects.selectedCards.set(selection);
+                await el.updateComplete;
+                expect(el.selectAllChecked && el.selectAllIndeterminate).to.equal(false);
+            }
+        });
+    });
+
     describe('loading more indicator', () => {
         it('should render loading-more indicator when loading subsequent pages', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);

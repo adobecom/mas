@@ -177,6 +177,7 @@ class MasBulkPublishEditor extends LitElement {
 
     get allAlreadyPublished() {
         if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) return true;
+        if (this.locales.length > 0) return false;
         const valid = this.items.filter((i) => i.status === 'valid');
         return valid.length > 0 && valid.every((i) => i.alreadyPublished);
     }

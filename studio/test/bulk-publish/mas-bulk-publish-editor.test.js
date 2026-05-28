@@ -49,6 +49,47 @@ describe('mas-bulk-publish-editor', () => {
         expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(false);
     });
 
+    it('enables PUBLISH when all source items are already published but target locales are configured', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        seedInEdit(
+            el,
+            {
+                title: 'x',
+                urls: '',
+                items: JSON.stringify([
+                    { url: 'a', path: '/x', status: 'valid', alreadyPublished: true },
+                    { url: 'b', path: '/y', status: 'valid', alreadyPublished: true },
+                ]),
+                locales: ['de_AT', 'fr_CA'],
+                status: BULK_PUBLISH_STATUS.DRAFT,
+            },
+            { id: 'placeholder-project-id' },
+        );
+        await el.updateComplete;
+        const quick = el.shadowRoot.querySelector('mas-quick-actions');
+        expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(false);
+    });
+
+    it('disables PUBLISH when all source items are already published and no target locales are configured', async () => {
+        const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
+        await el.updateComplete;
+        seedInEdit(
+            el,
+            {
+                title: 'x',
+                urls: '',
+                items: JSON.stringify([{ url: 'a', path: '/x', status: 'valid', alreadyPublished: true }]),
+                locales: [],
+                status: BULK_PUBLISH_STATUS.DRAFT,
+            },
+            { id: 'no-locales-project-id' },
+        );
+        await el.updateComplete;
+        const quick = el.shadowRoot.querySelector('mas-quick-actions');
+        expect(quick.disabled.has(QUICK_ACTION.PUBLISH)).to.equal(true);
+    });
+
     it('renders success banner when status is Published', async () => {
         const el = await fixture(html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`);
         await el.updateComplete;

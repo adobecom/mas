@@ -90,8 +90,8 @@ class MasToolbar extends LitElement {
             width: 95px;
             min-width: 72px;
             height: 32px;
-            justify-content: space-between;
-            --mod-button-justify-content: space-between;
+            align-items: center;
+            --mod-button-align-items: center;
             --mod-button-border-radius: 16px;
             --mod-button-background-color-default: #3b63fb;
             --mod-button-background-color-hover: #355abf;
@@ -115,8 +115,8 @@ class MasToolbar extends LitElement {
             width: 92px;
             min-width: 72px;
             height: 32px;
-            justify-content: space-between;
-            --mod-button-justify-content: space-between;
+            align-items: center;
+            --mod-button-align-items: center;
             --mod-button-border-width: 2px;
             --mod-button-border-color-default: #dadada;
             --mod-button-border-color-hover: #dadada;

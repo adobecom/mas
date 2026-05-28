@@ -105,10 +105,7 @@ describe('customize collections', function () {
             fields: {
                 variant: 'compare-chart',
                 features: {
-                    value: [
-                        '<p name="group-a@parent-only">Parent only</p>',
-                        '<p name="group-a@override">Parent value</p>',
-                    ],
+                    value: ['<p name="group-a@parent-only">Parent only</p>', '<p name="group-a@override">Parent value</p>'],
                 },
                 variations: ['compare-chart-card-be'],
             },

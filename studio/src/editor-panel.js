@@ -678,8 +678,19 @@ export default class EditorPanel extends LitElement {
         this.repository.saveFragment(this.fragmentStore);
     }
 
-    publishFragment() {
-        this.repository.publishFragment(this.fragment);
+    async publishFragment() {
+        const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
+        if (refs.variations.length || refs.cards.length) {
+            const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
+            const result = await MasPublishDialog.show(refs);
+            if (!result.confirmed) return;
+            this.repository.publishFragment(this.fragment, {
+                selectedRefIds: result.selectedIds,
+                allSelected: result.allSelected,
+            });
+        } else {
+            this.repository.publishFragment(this.fragment);
+        }
     }
 
     /**

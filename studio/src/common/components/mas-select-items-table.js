@@ -411,9 +411,19 @@ class MasSelectItemsTable extends LitElement {
                               this.tableColumns,
                               (column) => column.key,
                               (column) =>
-                                  html`<sp-table-head-cell class=${column.class ? column.class : ''}>
-                                      ${column.label}
-                                  </sp-table-head-cell>`,
+                                  column.key === 'checkbox' && !this.viewOnly
+                                      ? html`<sp-table-head-cell class=${column.class ?? ''}>
+                                            <sp-checkbox
+                                                ?checked=${this.selectAllChecked}
+                                                ?indeterminate=${this.selectAllIndeterminate}
+                                                ?disabled=${this.selectAllDisabled}
+                                                @change=${(e) => this.#toggleSelectAll(e)}
+                                                aria-label="Select all loaded items"
+                                            ></sp-checkbox>
+                                        </sp-table-head-cell>`
+                                      : html`<sp-table-head-cell class=${column.class ? column.class : ''}>
+                                            ${column.label}
+                                        </sp-table-head-cell>`,
                           )}
                       </sp-table-head>
                       <sp-table-body>${showSkeleton ? this.#renderSkeletonRows() : this.#renderTableBody()}</sp-table-body>

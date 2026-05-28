@@ -1490,6 +1490,105 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
+    describe('Select All — header rendering', () => {
+        const expectHeaderCheckbox = async (el, { present, checked, indeterminate, disabled }) => {
+            await el.updateComplete;
+            const headCells = el.shadowRoot.querySelectorAll('sp-table-head-cell');
+            let found = null;
+            for (const cell of headCells) {
+                const cb = cell.querySelector('sp-checkbox[aria-label="Select all loaded items"]');
+                if (cb) {
+                    found = cb;
+                    break;
+                }
+            }
+            if (!present) {
+                expect(found, 'header checkbox should not be present').to.equal(null);
+                return;
+            }
+            expect(found, 'header checkbox should be present').to.not.equal(null);
+            expect(found.hasAttribute('checked')).to.equal(checked);
+            expect(found.hasAttribute('indeterminate')).to.equal(indeterminate);
+            expect(found.hasAttribute('disabled')).to.equal(disabled);
+        };
+
+        it('renders on cards tab', async () => {
+            setupCardsInStore([createMockCard('/p/a', 'A')]);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await expectHeaderCheckbox(el, { present: true, checked: false, indeterminate: false, disabled: false });
+        });
+
+        it('renders on collections tab', async () => {
+            setupCollectionsInStore([createMockCollection('/c/a', 'A')]);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.COLLECTIONS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await expectHeaderCheckbox(el, { present: true, checked: false, indeterminate: false, disabled: false });
+        });
+
+        it('renders on placeholders tab', async () => {
+            setupPlaceholdersInStore([createMockPlaceholder('/ph/a', 'KEY_A', 'value-a')]);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.PLACEHOLDERS}></mas-select-items-table>`);
+            await expectHeaderCheckbox(el, { present: true, checked: false, indeterminate: false, disabled: false });
+        });
+
+        it('is absent in viewOnly mode (cards)', async () => {
+            setupCardsInStore([createMockCard('/p/a', 'A')]);
+            const el = await fixture(
+                html`<mas-select-items-table .type=${TABLE_TYPE.CARDS} .viewOnly=${true}></mas-select-items-table>`,
+            );
+            await expectHeaderCheckbox(el, { present: false });
+        });
+
+        it('reflects checked state when all loaded paths are selected (cards)', async () => {
+            setupCardsInStore([createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')]);
+            Store.translationProjects.selectedCards.set(['/p/a', '/p/b']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await expectHeaderCheckbox(el, { present: true, checked: true, indeterminate: false, disabled: false });
+        });
+
+        it('reflects indeterminate state when some loaded paths are selected (cards)', async () => {
+            setupCardsInStore([createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')]);
+            Store.translationProjects.selectedCards.set(['/p/a']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await expectHeaderCheckbox(el, { present: true, checked: false, indeterminate: true, disabled: false });
+        });
+
+        it('is disabled when no items loaded (cards)', async () => {
+            setupCardsInStore([]);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.selectAllDisabled).to.equal(true);
+        });
+
+        it('click event triggers toggle', async () => {
+            setupCardsInStore([createMockCard('/p/a', 'A')]);
+            Store.translationProjects.selectedCards.set([]);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            const headCells = el.shadowRoot.querySelectorAll('sp-table-head-cell');
+            let cb = null;
+            for (const cell of headCells) {
+                const found = cell.querySelector('sp-checkbox[aria-label="Select all loaded items"]');
+                if (found) {
+                    cb = found;
+                    break;
+                }
+            }
+            expect(cb, 'checkbox must exist').to.not.equal(null);
+            cb.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/p/a']);
+        });
+    });
+
     describe('Select All — toggleSelectAll', () => {
         it('selects all loaded paths when none were selected', async () => {
             const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')];

@@ -147,9 +147,55 @@ class MasToolbar extends LitElement {
             font-weight: 700;
         }
 
+        /* Search — Figma "Search field (M)" spec.
+           390px max-width, 32px tall, 16px pill radius, 2px #DADADA border, white bg.
+           Icon #717171, text 14px / 18px Adobe Clean Spectrum VF Regular #292929.
+           Value padding 7px top + 7px bottom (centred), 14px left, 16px right. */
         sp-search {
             flex-grow: 1;
-            max-width: 400px;
+            max-width: 390px;
+            min-width: 112px;
+            height: 32px;
+            --mod-search-height: 32px;
+            --mod-search-border-radius: 16px;
+            --mod-search-border-width: 2px;
+            --mod-search-border-color: var(--spectrum-gray-300, #dadada);
+            --mod-search-border-color-default: var(--spectrum-gray-300, #dadada);
+            --mod-search-border-color-hover: var(--spectrum-gray-300, #dadada);
+            --mod-search-border-color-focus: var(--spectrum-gray-300, #dadada);
+            --mod-search-background-color: #ffffff;
+            --mod-search-background-color-default: #ffffff;
+            --mod-search-content-color: #292929;
+            --mod-search-content-color-default: #292929;
+            --mod-search-icon-color: #717171;
+            /* Symmetric vertical padding so the input text centres on the 32px line. */
+            --mod-search-padding-block: 7px;
+            --mod-search-padding-block-start: 7px;
+            --mod-search-padding-block-end: 7px;
+            --mod-search-padding-top: 7px;
+            --mod-search-padding-bottom: 7px;
+            --mod-search-padding-inline-start: 14px;
+            --mod-search-padding-inline-end: 16px;
+            --mod-search-font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+            --mod-search-font-size: 14px;
+            --mod-search-line-height: 18px;
+            --mod-search-font-weight: 400;
+            font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+            font-size: 14px;
+            line-height: 18px;
+            font-weight: 400;
+        }
+
+        /* Force the inner <input> inside sp-search's shadow DOM to use the
+           Figma typography and symmetric vertical padding. */
+        sp-search::part(input) {
+            font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+            font-size: 14px;
+            line-height: 18px;
+            font-weight: 400;
+            color: #292929;
+            padding-block: 7px;
+            padding-inline: 0 16px;
         }
 
         #search-results-label {
@@ -198,7 +244,8 @@ class MasToolbar extends LitElement {
     }
 
     // Spectrum sp-button's shadow DOM puts the label inside <span id="label">
-    // with align-self: start. ::part() isn't exposed, so reach in directly.
+    // with align-self: start, and sp-search's inner <input> has asymmetric
+    // 4px-top / 7px-bottom padding. ::part() isn't exposed, so reach in directly.
     async updated() {
         await this.updateComplete;
         ['.create-button', '.select-button'].forEach(async (sel) => {
@@ -208,6 +255,21 @@ class MasToolbar extends LitElement {
             const label = btn.shadowRoot?.querySelector('#label');
             if (label && label.style.alignSelf !== 'center') label.style.alignSelf = 'center';
         });
+        const search = this.shadowRoot?.querySelector('sp-search');
+        if (search) {
+            await search.updateComplete;
+            const input = search.shadowRoot?.querySelector('input.input, input');
+            if (input) {
+                if (input.style.paddingTop !== '7px') input.style.paddingTop = '7px';
+                if (input.style.paddingBottom !== '7px') input.style.paddingBottom = '7px';
+                if (input.style.fontFamily !== "'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif") {
+                    input.style.fontFamily = "'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif";
+                }
+                if (input.style.fontSize !== '14px') input.style.fontSize = '14px';
+                if (input.style.lineHeight !== '18px') input.style.lineHeight = '18px';
+                if (input.style.fontWeight !== '400') input.style.fontWeight = '400';
+            }
+        }
     }
 
     update() {

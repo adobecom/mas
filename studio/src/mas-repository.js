@@ -389,11 +389,11 @@ export class MasRepository extends LitElement {
         });
     }
 
-    /** Fragment list surface on promotions editor item picker; falls back to top-nav folder. */
+    /** Fragment list surface on promotions editor item picker (no top-nav fallback). */
     #promotionsItemPickerSurfaceOrNavPath() {
         const override = Store.promotions.itemPickerSurface.get();
         if (override != null && override !== '') return override;
-        return this.search.value.path;
+        return null;
     }
 
     async searchFragments() {
@@ -412,6 +412,18 @@ export class MasRepository extends LitElement {
             this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
                 ? this.#promotionsItemPickerSurfaceOrNavPath()
                 : this.search.value.path;
+
+        if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && !path) {
+            const dataStore = Store.fragments.list.data;
+            if (dataStore.get().length > 0) dataStore.set([]);
+            dataStore.setMeta('path', null);
+            dataStore.setMeta('promotionPickerSurface', null);
+            Store.fragments.list.loading.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.hasMore.set(false);
+            return;
+        }
+
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
 
@@ -1686,7 +1698,11 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
             await this.aem.sites.cf.fragments.publish(fragment, publishReferencesWithStatus);
-            if (withToast) showToast('Fragment successfully published.', 'positive');
+            if (withToast) {
+                const message =
+                    fragment instanceof Promotion ? 'Project successfully published.' : 'Fragment successfully published.';
+                showToast(message, 'positive');
+            }
 
             return true;
         } catch (error) {

@@ -118,10 +118,12 @@ describe('MasPromotionsEditor', () => {
 
     async function fillValidFields(el) {
         el.fragmentStore.updateField('title', ['Test Promotion']);
+        el.fragmentStore.updateField('promoCode', ['TEST-PROMO']);
         el.fragmentStore.updateField('startDate', ['2024-01-01T00:00:00.000Z']);
         el.fragmentStore.updateField('endDate', ['2024-12-31T00:00:00.000Z']);
         el.fragmentStore.updateField('tags', ['mas:promotion/code-test']);
         el.fragmentStore.updateField('geos', ['mas:locale/us']);
+        el.fragmentStore.updateField('surfaces', ['sandbox']);
         Store.promotions.selectedCards.set(['/some/card']);
         await el.updateComplete;
     }
@@ -151,7 +153,19 @@ describe('MasPromotionsEditor', () => {
             expect(el.showSelectedEmptyState).to.be.true;
         });
 
-        it('calls searchFragments on repository when available', async () => {
+        it('does not preload fragment search until at least one surface is selected', async () => {
+            const repo = makeRepo();
+            const el = new MasPromotionsEditor();
+            sandbox.stub(el, 'repository').get(() => repo);
+            document.body.appendChild(el);
+            await el.updateComplete;
+            expect(repo.searchFragments.called).to.be.false;
+            expect(repo.loadAllCollections.called).to.be.false;
+        });
+
+        it('preloads fragment search when surfaces are already set', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ surfaces: ['sandbox'] })));
             const repo = makeRepo();
             const el = new MasPromotionsEditor();
             sandbox.stub(el, 'repository').get(() => repo);
@@ -402,6 +416,28 @@ describe('MasPromotionsEditor', () => {
             expect(stored).to.include('2024-06-15');
         });
 
+        it('clears startDate in fragment when datetime-local is cleared', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('startDate', ['2024-06-15T12:00:00.000Z']);
+            await el.updateComplete;
+            const dateField = el.renderRoot.querySelector('input[data-field="startDate"]');
+            dateField.value = '';
+            dateField.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValue('startDate')).to.equal('');
+        });
+
+        it('clears endDate in fragment when datetime-local is cleared', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('endDate', ['2024-12-31T23:59:59.000Z']);
+            await el.updateComplete;
+            const dateField = el.renderRoot.querySelector('input[data-field="endDate"]');
+            dateField.value = '';
+            dateField.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValue('endDate')).to.equal('');
+        });
+
         it('scopes promotion tags picker to promotion taxonomy', async () => {
             const el = await mountEditor();
             const tagsPicker = el.renderRoot.querySelectorAll('aem-tag-picker-field')[0];
@@ -463,6 +499,16 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             expect(repo.createFragment.called).to.be.false;
             expect(el.isCreated).to.be.false;
+        });
+
+        it('aborts create when surfaces are missing', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.fragmentStore.updateField('surfaces', []);
+            await el.updateComplete;
+            clickPromotionsFormButton(el, 'Create');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
         });
 
         it('creates promotion when all required fields are valid', async () => {

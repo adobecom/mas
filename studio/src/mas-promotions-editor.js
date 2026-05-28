@@ -16,7 +16,7 @@ import { getItemsSelectionStore, setItemsSelectionStore } from './common/items-s
 import {
     classifyPromotionPathsForSelection,
     isPromotionItemSelectionDirty,
-    isPromotionRequiredFieldsValid,
+    getPromotionRequiredFieldsValidation,
     parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
     splitPromotionTagsFieldValues,
@@ -123,11 +123,13 @@ class MasPromotionsEditor extends LitElement {
 
         this.showSelectedEmptyState = this.selectedItemsCount === 0;
 
-        if (this.repository?.searchFragments) {
-            this.repository.searchFragments();
-        }
-        if (this.repository?.loadAllCollections) {
-            this.repository.loadAllCollections();
+        if (this.promotionPickerSurfaces.length) {
+            if (this.repository?.searchFragments) {
+                this.repository.searchFragments();
+            }
+            if (this.repository?.loadAllCollections) {
+                this.repository.loadAllCollections();
+            }
         }
 
         if (this.fragmentStore) {
@@ -409,9 +411,14 @@ class MasPromotionsEditor extends LitElement {
 
     #handleDateUpdate({ target }) {
         const fieldName = target.dataset.field;
-
-        const utcDate = new Date(`${target.value}Z`).toISOString();
-        this.fragmentStore.updateField(fieldName, [utcDate]);
+        const raw = target.value?.trim() ?? '';
+        if (!raw) {
+            this.fragmentStore.updateField(fieldName, ['']);
+            return;
+        }
+        const parsed = new Date(`${raw}Z`);
+        if (Number.isNaN(parsed.getTime())) return;
+        this.fragmentStore.updateField(fieldName, [parsed.toISOString()]);
     }
 
     #patchPromotionSurfacesFieldForAem() {
@@ -435,8 +442,9 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleCreatePromotion() {
-        if (!this.#validateRequiredFields(this.fragment)) {
-            showToast('Please fill in all required fields', 'negative');
+        const validationMessage = this.#getRequiredFieldsValidation(this.fragment);
+        if (validationMessage) {
+            showToast(validationMessage, 'negative');
             return;
         }
 
@@ -481,8 +489,9 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleUpdatePromotion() {
-        if (!this.#validateRequiredFields(this.fragment)) {
-            showToast('Please fill in all required fields', 'negative');
+        const validationMessage = this.#getRequiredFieldsValidation(this.fragment);
+        if (validationMessage) {
+            showToast(validationMessage, 'negative');
             return;
         }
         this.fragment.updateFieldInternal('title', this.fragment.getFieldValue('title'));
@@ -524,9 +533,9 @@ class MasPromotionsEditor extends LitElement {
         Store.page.set(PAGE_NAMES.PROMOTIONS);
     }
 
-    #validateRequiredFields(fragment = {}) {
+    #getRequiredFieldsValidation(fragment = {}) {
         const itemCount = Store.promotions.selectedCards.value.length + Store.promotions.selectedCollections.value.length;
-        return isPromotionRequiredFieldsValid(fragment, itemCount);
+        return getPromotionRequiredFieldsValidation(fragment, itemCount);
     }
 
     /**
@@ -603,6 +612,10 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #openAddItemsOverlay() {
+        if (!this.promotionPickerSurfaces.length) {
+            showToast('Select at least one surface before adding fragments.', 'info');
+            return;
+        }
         this.promotionItemsAddButtonLabel = 'Add selected fragments';
         this.#itemsDialogClosed = false;
         this.#cardsSnapshot = Store.promotions.selectedCards.value;
@@ -685,6 +698,7 @@ class MasPromotionsEditor extends LitElement {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
         }
         const updateDisabled = !(this.fragment?.hasChanges || this.#itemsSelectionDirty);
+        const canOpenItemPicker = this.promotionPickerSurfaces.length > 0;
         return html`
             ${this.renderConfirmDialog()}
             <div class="promotions-form-container">
@@ -709,7 +723,7 @@ class MasPromotionsEditor extends LitElement {
                                 value="${form.title?.values[0]}"
                                 @input=${this.#handleFragmentUpdate}
                             ></sp-textfield>
-                            <sp-field-label for="promoCode">Promo Code</sp-field-label>
+                            <sp-field-label for="promoCode" required>Promo Code</sp-field-label>
                             <sp-textfield
                                 id="promoCode"
                                 data-field="promoCode"
@@ -720,7 +734,7 @@ class MasPromotionsEditor extends LitElement {
                             <input
                                 type="datetime-local"
                                 id="startDate"
-                                value="${form.startDate?.values[0].slice(0, 16)}"
+                                value="${form.startDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="startDate"
                                 @change=${this.#handleDateUpdate}
                             />
@@ -728,7 +742,7 @@ class MasPromotionsEditor extends LitElement {
                             <input
                                 type="datetime-local"
                                 id="endDate"
-                                value="${form.endDate?.values[0].slice(0, 16)}"
+                                value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="endDate"
                                 @change=${this.#handleDateUpdate}
                             />
@@ -742,7 +756,7 @@ class MasPromotionsEditor extends LitElement {
                                 @change=${this.#handeTagsChange}
                             ></aem-tag-picker-field>
                             <sp-field-group id="promotion-geos-tags">
-                                <sp-field-label>Geos</sp-field-label>
+                                <sp-field-label required>Geos</sp-field-label>
                                 <aem-tag-picker-field
                                     selection="checkbox-tags"
                                     display-value
@@ -757,7 +771,7 @@ class MasPromotionsEditor extends LitElement {
                         </div>
                         <sp-divider size="m" style="align-self: stretch; height: auto;" vertical></sp-divider>
                         <div class="promotions-form-surfaces">
-                            <sp-field-label>Surfaces</sp-field-label>
+                            <sp-field-label required>Surfaces</sp-field-label>
                             <div class="promotions-form-surfaces-panel">
                                 ${!form.surfaces?.values || form.surfaces.values.length === 0
                                     ? html`
@@ -830,6 +844,7 @@ class MasPromotionsEditor extends LitElement {
                                                   size="xl"
                                                   icon-only
                                                   class="ghost-button"
+                                                  ?disabled=${!canOpenItemPicker}
                                               >
                                                   <sp-icon-add size="xxl" slot="icon" label="Add fragments"></sp-icon-add>
                                               </sp-button>
@@ -852,7 +867,12 @@ class MasPromotionsEditor extends LitElement {
                                   <div>
                                       <overlay-trigger type="modal" id="add-promotion-items-overlay" triggered-by="click">
                                           ${this.renderAddItemsDialog()}
-                                          <sp-action-button slot="trigger" quiet @click=${this.#openAddItemsOverlay}>
+                                          <sp-action-button
+                                              slot="trigger"
+                                              quiet
+                                              ?disabled=${!canOpenItemPicker}
+                                              @click=${this.#openAddItemsOverlay}
+                                          >
                                               <sp-icon-edit slot="icon" label="Edit items"></sp-icon-edit>
                                               Edit
                                           </sp-action-button>

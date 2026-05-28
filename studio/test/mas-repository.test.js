@@ -960,7 +960,7 @@ describe('MasRepository dictionary helpers', () => {
             expect(searchStub.called).to.be.false;
         });
 
-        it('executes search when page is PROMOTIONS_EDITOR', async () => {
+        it('executes search when page is PROMOTIONS_EDITOR and item picker surface is set', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
             repository.search = { value: { path: 'acom', query: '' } };
@@ -970,7 +970,9 @@ describe('MasRepository dictionary helpers', () => {
             repository.aem = createAemMock({ fragments: { search: searchStub } });
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
+            const originalPickerSurface = Store.promotions.itemPickerSurface.get();
             Store.profile.set({ name: 'test-user' });
+            Store.promotions.itemPickerSurface.set('acom');
             const mockDataStore = {
                 get: sandbox.stub().returns([]),
                 getMeta: sandbox.stub().returns(null),
@@ -984,6 +986,37 @@ describe('MasRepository dictionary helpers', () => {
                 expect(searchStub.called).to.be.true;
             } finally {
                 Store.profile.set(originalProfile);
+                Store.promotions.itemPickerSurface.set(originalPickerSurface);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('returns early on PROMOTIONS_EDITOR when item picker surface is not set', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.search = { value: { path: 'acom', query: '' } };
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalPickerSurface = Store.promotions.itemPickerSurface.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.promotions.itemPickerSurface.set(null);
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ get: () => ({ path: '/x' }) }]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(mockDataStore.set.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.promotions.itemPickerSurface.set(originalPickerSurface);
                 Store.fragments.list.data = originalData;
             }
         });

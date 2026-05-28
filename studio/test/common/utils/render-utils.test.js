@@ -57,6 +57,14 @@ describe('render-utils', () => {
             expect(dot?.classList.contains('yellow')).to.be.true;
             expect(container.textContent).to.include('SCHEDULED');
         });
+
+        it('renders modified with yellow dot', () => {
+            const container = document.createElement('div');
+            render(renderPromotionStatusCell('modified'), container);
+            const dot = container.querySelector('.status-dot');
+            expect(dot?.classList.contains('yellow')).to.be.true;
+            expect(container.textContent).to.include('MODIFIED');
+        });
     });
 
     describe('getItemTypeLabel', () => {

@@ -52,8 +52,6 @@ export function isPromotionItemSelectionDirty(promotionLike, selectedCards, sele
     return false;
 }
 
-const REQUIRED_PROMOTION_FIELDS = ['title', 'startDate', 'endDate'];
-
 /**
  * @param {unknown[]} [allValues]
  * @returns {{ promotion: string[], retained: string[] }}
@@ -131,16 +129,36 @@ export async function classifyPromotionPathsForSelection(
     return { cards, cols, unreachable };
 }
 
-export function isPromotionRequiredFieldsValid(fragment, itemCount) {
-    if (!REQUIRED_PROMOTION_FIELDS.every((field) => fragment.getFieldValue(field))) {
-        return false;
+/**
+ * First validation message for a promotion editor save/create, or null when valid.
+ * @param {{ getFieldValue: (name: string) => unknown, getFieldValues: (name: string) => unknown[] }} fragment
+ * @param {number} itemCount Selected cards + collections count
+ * @returns {string|null}
+ */
+export function getPromotionRequiredFieldsValidation(fragment, itemCount) {
+    if (!fragment.getFieldValue('title')) {
+        return 'Please enter a Title.';
+    }
+    if (!fragment.getFieldValue('promoCode')) {
+        return 'Please enter a Promo Code.';
+    }
+    if (!fragment.getFieldValue('startDate')) {
+        return 'Please set a Start Date.';
+    }
+    if (!fragment.getFieldValue('endDate')) {
+        return 'Please set an End Date.';
     }
     if (splitPromotionTagsFieldValues(fragment.getFieldValues('tags')).promotion.length === 0) {
-        return false;
+        return 'Please add at least one Promotion tag.';
     }
-    const geos = fragment.getFieldValues('geos');
-    if (!geos.length) {
-        return false;
+    if (!fragment.getFieldValues('geos').length) {
+        return 'Please add at least one Geo.';
     }
-    return itemCount > 0;
+    if (!parsePromotionSurfacesFieldValues(fragment.getFieldValues('surfaces')).length) {
+        return 'Please add at least one Surface.';
+    }
+    if (itemCount <= 0) {
+        return 'Please add at least one fragment or collection.';
+    }
+    return null;
 }

@@ -47,6 +47,10 @@ export class Promotion extends Fragment {
             return 'expired';
         }
 
+        if (this.status === FRAGMENT_STATUS.MODIFIED) {
+            return 'modified';
+        }
+
         if (!this.isPromotionPublished) {
             return 'draft';
         }

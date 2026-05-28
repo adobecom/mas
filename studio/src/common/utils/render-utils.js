@@ -26,6 +26,7 @@ const PROMOTION_STATUS_LABEL = {
     active: 'ACTIVE',
     scheduled: 'SCHEDULED',
     expired: 'EXPIRED',
+    modified: 'MODIFIED',
     unknown: 'UNKNOWN',
 };
 
@@ -41,6 +42,7 @@ export function renderPromotionStatusCell(promotionStatus) {
     if (key === 'active') statusClass = 'green';
     else if (key === 'draft') statusClass = 'blue';
     else if (key === 'scheduled') statusClass = 'yellow';
+    else if (key === 'modified') statusClass = 'yellow';
     const label = PROMOTION_STATUS_LABEL[key] ?? key.toUpperCase();
     return html`<sp-table-cell class="status-cell">
         <div class="status-dot ${statusClass}"></div>

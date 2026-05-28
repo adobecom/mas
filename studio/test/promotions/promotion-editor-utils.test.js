@@ -2,7 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import {
     classifyPromotionPathsForSelection,
     isPromotionItemSelectionDirty,
-    isPromotionRequiredFieldsValid,
+    getPromotionRequiredFieldsValidation,
     normalizePromotionSearchInput,
     parsePromotionSurfacesFieldValues,
     serializePromotionSurfacesForAem,
@@ -170,11 +170,12 @@ describe('promotion-editor-utils', () => {
         });
     });
 
-    describe('isPromotionRequiredFieldsValid', () => {
+    describe('getPromotionRequiredFieldsValidation', () => {
         const baseFragment = () => ({
             getFieldValue: (name) => {
                 const map = {
                     title: 'T',
+                    promoCode: 'PROMO',
                     startDate: '2024-01-01',
                     endDate: '2024-12-31',
                 };
@@ -183,48 +184,89 @@ describe('promotion-editor-utils', () => {
             getFieldValues: (name) => {
                 if (name === 'geos') return ['us'];
                 if (name === 'tags') return ['mas:promotion/test'];
+                if (name === 'surfaces') return ['sandbox'];
                 return [];
             },
         });
 
-        it('returns false when a required field is empty', () => {
-            const f = {
-                ...baseFragment(),
-                getFieldValue: (name) => (name === 'title' ? '' : baseFragment().getFieldValue(name)),
-            };
-            expect(isPromotionRequiredFieldsValid(f, 1)).to.be.false;
+        it('returns null when all required fields are present', () => {
+            expect(getPromotionRequiredFieldsValidation(baseFragment(), 1)).to.be.null;
         });
 
-        it('returns false when geos is empty', () => {
+        it('returns a message for the first missing field in form order', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValues: (name) => {
                     if (name === 'tags') return ['mas:promotion/test'];
-                    if (name === 'geos') return [];
+                    if (name === 'geos') return ['us'];
+                    if (name === 'surfaces') return [];
                     return [];
                 },
             };
-            expect(isPromotionRequiredFieldsValid(f, 1)).to.be.false;
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Surface.');
         });
 
-        it('returns false when item count is zero', () => {
-            expect(isPromotionRequiredFieldsValid(baseFragment(), 0)).to.be.false;
+        it('returns a fragments message when item count is zero', () => {
+            expect(getPromotionRequiredFieldsValidation(baseFragment(), 0)).to.equal(
+                'Please add at least one fragment or collection.',
+            );
         });
 
-        it('returns false when no promotion classification tag', () => {
+        it('returns a message when promo code is missing', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'promoCode' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Promo Code.');
+        });
+
+        it('returns a message when start date is missing', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'startDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set a Start Date.');
+        });
+
+        it('returns a message when end date is missing', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'endDate' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please set an End Date.');
+        });
+
+        it('returns a message when title is missing', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValue: (name) => (name === 'title' ? '' : baseFragment().getFieldValue(name)),
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a Title.');
+        });
+
+        it('returns a message when geos are missing', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValues: (name) => {
+                    if (name === 'tags') return ['mas:promotion/test'];
+                    if (name === 'surfaces') return ['sandbox'];
+                    return [];
+                },
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Geo.');
+        });
+
+        it('returns a message when no promotion classification tag', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValues: (name) => {
                     if (name === 'geos') return ['us'];
+                    if (name === 'surfaces') return ['sandbox'];
                     if (name === 'tags') return ['mas:status/published'];
                     return [];
                 },
             };
-            expect(isPromotionRequiredFieldsValid(f, 1)).to.be.false;
-        });
-
-        it('returns true when required fields, geos, items, and promotion tag are present', () => {
-            expect(isPromotionRequiredFieldsValid(baseFragment(), 2)).to.be.true;
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please add at least one Promotion tag.');
         });
     });
 });

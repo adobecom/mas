@@ -109,6 +109,22 @@ describe('Promotion', () => {
             mockFragmentData.status = 'DRAFT';
         });
 
+        it('returns modified when published with unpublished AEM changes', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
+            mockFragmentData.status = 'MODIFIED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionStatus).to.equal('modified');
+            expect(promotion.isPromotionPublished).to.be.true;
+        });
+
         it('returns active when in date range and published', () => {
             const yesterday = new Date(now);
             yesterday.setDate(yesterday.getDate() - 1);

@@ -1211,7 +1211,7 @@ export class MasRepository extends LitElement {
             }
 
             if (publish) {
-                await this.publishFragment(indexFragment, [], false);
+                await this.publishFragment(indexFragment, {}, false);
             }
             return indexFragment;
         } catch (error) {
@@ -1550,10 +1550,20 @@ export class MasRepository extends LitElement {
      * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */
-    async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true) {
+    async publishFragment(fragment, options = {}, withToast = true) {
+        const { selectedRefIds = null, allSelected = false } = options;
         try {
             this.operation.set(OPERATIONS.PUBLISH);
-            await this.aem.sites.cf.fragments.publish(fragment, publishReferencesWithStatus);
+
+            if (allSelected) {
+                await this.aem.sites.cf.fragments.publish(fragment, ['DRAFT', 'UNPUBLISHED']);
+            } else {
+                await this.aem.sites.cf.fragments.publish(fragment, []);
+                if (selectedRefIds?.length) {
+                    await this.#publishRefIds(selectedRefIds);
+                }
+            }
+
             if (withToast) showToast('Fragment successfully published.', 'positive');
 
             return true;
@@ -1565,6 +1575,15 @@ export class MasRepository extends LitElement {
         }
     }
 
+    async #publishRefIds(refIds) {
+        const refFragments = await Promise.all(
+            refIds.map((id) => this.aem.sites.cf.fragments.getWithEtag(id).catch(() => null)),
+        );
+        const valid = refFragments.filter(Boolean);
+        if (valid.length === 0) return;
+        await this.aem.sites.cf.fragments.publishFragments(valid, []);
+    }
+
     /**
      * Publish multiple fragments in bulk
      * @param {Array<string>} fragmentIds - Array of fragment IDs to publish
@@ -1574,7 +1593,7 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async bulkPublishFragments(fragmentIds, options = {}) {
-        const { publishReferencesWithStatus = ['DRAFT', 'UNPUBLISHED'], withToast = true } = options;
+        const { selectedRefIds = null, allSelected = false, withToast = true } = options;
 
         if (!fragmentIds || fragmentIds.length === 0) {
             if (withToast) showToast('No fragments selected to publish.', 'negative');
@@ -1585,7 +1604,6 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            // Get fragment objects from the store
             const fragments = fragmentIds
                 .map((id) => {
                     const store = Store.fragments.list.data.get().find((fragmentStore) => fragmentStore.get()?.id === id);
@@ -1598,8 +1616,14 @@ export class MasRepository extends LitElement {
                 return false;
             }
 
-            // Publish all fragments in a single request
-            await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
+            if (allSelected) {
+                await this.aem.sites.cf.fragments.publishFragments(fragments, ['DRAFT', 'UNPUBLISHED']);
+            } else {
+                await this.aem.sites.cf.fragments.publishFragments(fragments, []);
+                if (selectedRefIds?.length) {
+                    await this.#publishRefIds(selectedRefIds);
+                }
+            }
 
             // Refresh all published fragments
             const refreshPromises = fragmentIds.map((id) => {
@@ -2264,7 +2288,7 @@ export class MasRepository extends LitElement {
                 console.info(`Fragment already added to index: ${fragment.path}`);
             }
 
-            await this.publishFragment(updatedIndexFragment, [], false);
+            await this.publishFragment(updatedIndexFragment, {}, false);
 
             return true;
         } catch (error) {
@@ -2305,7 +2329,7 @@ export class MasRepository extends LitElement {
                 console.info(`Fragment(s) already added to index.`);
             }
 
-            await this.publishFragment(updatedIndexFragment, [], false);
+            await this.publishFragment(updatedIndexFragment, {}, false);
 
             return true;
         } catch (error) {

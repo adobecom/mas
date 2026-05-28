@@ -82,6 +82,39 @@ class MasToolbar extends LitElement {
             white-space: nowrap;
         }
 
+        /* Create — Figma "Button (M, Accent)" spec.
+           95px × 32px accent button, 16px radius, #3B63FB bg,
+           14px / 18px Adobe Clean Spectrum VF Bold, content color #FFFFFF.
+           Icon: 14px edge-to-icon, 6px icon-to-text, 16px edge-to-text. */
+        .create-button {
+            box-sizing: border-box;
+            width: 95px;
+            min-width: 72px;
+            height: 32px;
+            --mod-button-border-radius: 16px;
+            --mod-button-background-color-default: #3b63fb;
+            --mod-button-background-color-hover: #355abf;
+            --mod-button-background-color-down: #2f4fae;
+            --mod-button-border-color-default: transparent;
+            --mod-button-border-color-hover: transparent;
+            --mod-button-border-color-down: transparent;
+            --mod-button-border-width: 0;
+            --mod-button-content-color-default: #ffffff;
+            --mod-button-content-color-hover: #ffffff;
+            --mod-button-content-color-down: #ffffff;
+            --mod-button-font-weight: 700;
+            --mod-button-font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
+            --mod-button-font-size: 14px;
+            --mod-button-line-height: 18px;
+            font-weight: 700;
+            --mod-button-edge-to-visual: 14px;
+            --mod-button-edge-to-text: 16px;
+            --mod-button-visual-to-text: 6px;
+            --mod-button-padding-block: 7px;
+            --mod-button-padding-block-start: 7px;
+            --mod-button-padding-block-end: 7px;
+        }
+
         /* Select — Figma "Button (M, Secondary)" spec.
            92px × 32px, 2px #DADADA border, 16px radius,
            14px / 18px Adobe Clean Spectrum VF Bold, content color #292929.
@@ -252,7 +285,7 @@ class MasToolbar extends LitElement {
 
     get createButton() {
         return html`<overlay-trigger id="trigger" placement="bottom" offset="6">
-            <sp-button variant="accent" slot="trigger">
+            <sp-button class="create-button" variant="accent" slot="trigger">
                 <sp-icon-add slot="icon"></sp-icon-add>
                 Create
             </sp-button>

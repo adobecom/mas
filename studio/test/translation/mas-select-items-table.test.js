@@ -1489,4 +1489,57 @@ describe('MasSelectItemsTable', () => {
             expect(loadingMore).to.be.null;
         });
     });
+
+    describe('Select All — toggleSelectAll', () => {
+        it('selects all loaded paths when none were selected', async () => {
+            const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set([]);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            const e = new Event('change');
+            sandbox.stub(e, 'stopPropagation');
+            el.__test_toggleSelectAll(e);
+            expect(Store.translationProjects.selectedCards.get().sort()).to.deep.equal(['/p/a', '/p/b']);
+            expect(e.stopPropagation.calledOnce).to.equal(true);
+        });
+
+        it('preserves off-screen selections when adding loaded paths', async () => {
+            const cards = [createMockCard('/p/a', 'A')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set(['/off-screen/x']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            el.__test_toggleSelectAll(new Event('change'));
+            expect(Store.translationProjects.selectedCards.get().sort()).to.deep.equal(['/off-screen/x', '/p/a']);
+        });
+
+        it('removes only loaded paths when fully checked, preserving off-screen', async () => {
+            const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set(['/p/a', '/p/b', '/off-screen/x']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            el.__test_toggleSelectAll(new Event('change'));
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/off-screen/x']);
+        });
+
+        it('unions loaded paths when partially checked', async () => {
+            const cards = [createMockCard('/p/a', 'A'), createMockCard('/p/b', 'B')];
+            setupCardsInStore(cards);
+            Store.translationProjects.selectedCards.set(['/p/a']);
+            Store.fragments.list.firstPageLoaded.set(true);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            el.__test_toggleSelectAll(new Event('change'));
+            expect(Store.translationProjects.selectedCards.get().sort()).to.deep.equal(['/p/a', '/p/b']);
+        });
+    });
 });

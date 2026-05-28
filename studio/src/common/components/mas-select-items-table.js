@@ -214,6 +214,24 @@ class MasSelectItemsTable extends LitElement {
         return this.loadedPaths.some((p) => selected.has(p));
     }
 
+    #toggleSelectAll(e) {
+        e.stopPropagation();
+        const sliceKey = `selected${this.typeUppercased}`;
+        const store = getItemsSelectionStore()[sliceKey];
+        const current = new Set(store.value);
+        const loaded = this.loadedPaths;
+        if (this.selectAllChecked) {
+            loaded.forEach((p) => current.delete(p));
+        } else {
+            loaded.forEach((p) => current.add(p));
+        }
+        store.set([...current]);
+    }
+
+    __test_toggleSelectAll(e) {
+        return this.#toggleSelectAll(e);
+    }
+
     get tableColumns() {
         const TABLE_COLUMNS = {
             cards: {

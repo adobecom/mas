@@ -55,6 +55,15 @@ describe('bulk-publish/publisher.js', () => {
         expect(body.filterReferencesByStatus).to.deep.equal(['DRAFT', 'UNPUBLISHED']);
     });
 
+    it('sends empty filterReferencesByStatus when explicitly passed []', async () => {
+        fetchOdinStub.resolves(odinResponse(chunk.map((path) => ({ id: `id-${path}`, path, status: 'SUCCESS_TRIGGERED' }))));
+
+        await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, filterReferencesByStatus: [] });
+
+        const body = JSON.parse(fetchOdinStub.firstCall.args[3].body);
+        expect(body.filterReferencesByStatus).to.deep.equal([]);
+    });
+
     it('translates partial success — 2 published + 1 not-found', async () => {
         fetchOdinStub.resolves(
             odinResponse([

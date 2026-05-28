@@ -61,22 +61,6 @@ Rules for AI agents working in this codebase.
 - Cover key states: default, loading, error, empty, populated, disabled, interactive.
 - Do NOT use headless assertion-only test frameworks as the primary approach. The test page itself is the verification artifact.
 
-### Browser Unit Test Runner
-
-- Browser unit tests must be inspected only through the existing Web Test Runner instance on `http://localhost:2024`.
-- Open the specific test URL directly. Do not preflight-check the base URL first.
-- When testing something in `studio`, if any file under `web-components` has been modified, first run `npm run build:bundle` from the `web-components` folder so studio uses the current bundled assets.
-- Do NOT start the test runner.
-- Do NOT add or modify `package.json` scripts.
-- Do NOT run `npm test`, `npm run test`, `yarn test`, `pnpm test`, `web-test-runner`, or any inferred fallback command.
-- Do NOT create temporary test scripts, config files, alternate runners, or Playwright fallbacks.
-- Do NOT change test infrastructure unless the user explicitly asks for that.
-- Resolve `<file>` relative to the `studio/test/` directory before building a WTR URL: strip any leading `studio/test/`, `test/`, or `/test/` from the local path. For example, `studio/test/mas-fragment-editor.test.html` becomes `mas-fragment-editor.test.html`, and `studio/test/editors/mas-compare-chart-editor.test.html` becomes `editors/mas-compare-chart-editor.test.html`.
-- For HTML test pages under `/test`, open `http://localhost:2024/test/<file>?wtr-test-file=<encoded-test-path>`, where `<file>` is the path relative to `/test` and `<encoded-test-path>` is the URL-encoded form of `/test/<file>?wtr-manual-session=true`.
-- Example: for `/test/editors/mas-compare-chart-editor.test.html`, open `http://localhost:2024/test/editors/mas-compare-chart-editor.test.html?wtr-test-file=%2Ftest%2Feditors%2Fmas-compare-chart-editor.test.html%3Fwtr-manual-session%3Dtrue`.
-- For JS-only WTR test files without an HTML page, open `http://localhost:2024/?wtr-test-file=<encoded-test-path>`, where `<encoded-test-path>` is the URL-encoded form of `/test/<file>?wtr-manual-session=true`.
-- If opening the test URL fails because nothing is reachable on port `2024`, stop and report exactly: `The unit test runner is not reachable at http://localhost:2024. Please start it, then tell me to continue.`
-
 ## Error Handling
 
 - Let unexpected errors propagate — do not swallow them.

@@ -197,6 +197,19 @@ class MasToolbar extends LitElement {
         }
     }
 
+    // Spectrum sp-button's shadow DOM puts the label inside <span id="label">
+    // with align-self: start. ::part() isn't exposed, so reach in directly.
+    async updated() {
+        await this.updateComplete;
+        ['.create-button', '.select-button'].forEach(async (sel) => {
+            const btn = this.shadowRoot?.querySelector(sel);
+            if (!btn) return;
+            await btn.updateComplete;
+            const label = btn.shadowRoot?.querySelector('#label');
+            if (label && label.style.alignSelf !== 'center') label.style.alignSelf = 'center';
+        });
+    }
+
     update() {
         super.update();
     }
@@ -223,6 +236,12 @@ class MasToolbar extends LitElement {
     handleRenderModeChange(ev) {
         localStorage.setItem('mas-render-mode', ev.target.value);
         Store.renderMode.set(ev.target.value);
+    }
+
+    toggleRenderMode() {
+        const next = this.renderMode.value === 'table' ? 'render' : 'table';
+        localStorage.setItem('mas-render-mode', next);
+        Store.renderMode.set(next);
     }
 
     clearUuidResolutionState() {
@@ -280,7 +299,7 @@ class MasToolbar extends LitElement {
         return html`<overlay-trigger id="trigger" placement="bottom" offset="6">
             <sp-button class="create-button" variant="accent" slot="trigger">
                 <sp-icon-add slot="icon"></sp-icon-add>
-                Create
+                <span style="align-self: center;">Create</span>
             </sp-button>
             <sp-popover slot="click-content" direction="bottom" tip>
                 <sp-menu>
@@ -305,17 +324,15 @@ class MasToolbar extends LitElement {
                 <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
                 Select
             </sp-button>
-            <sp-action-menu
-                selects="single"
-                value="${this.renderMode.value}"
-                placement="bottom"
-                @change=${this.handleRenderModeChange}
-            >
-                ${renderModes.map(
-                    ({ value, label, icon }) => html`<sp-menu-item value="${value}">${icon} ${label}</sp-menu-item>`,
-                )}
-            </sp-action-menu>
+            ${this.renderViewToggle}
         </div>`;
+    }
+
+    get renderViewToggle() {
+        const target = this.renderMode.value === 'table' ? renderModes[0] : renderModes[1];
+        return html`<sp-action-button quiet @click=${() => this.toggleRenderMode()} title="Switch to ${target.label}">
+            ${target.icon}
+        </sp-action-button>`;
     }
 
     get filtersPanel() {

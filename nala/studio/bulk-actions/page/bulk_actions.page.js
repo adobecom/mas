@@ -1,6 +1,8 @@
 export default class BulkActionsPage {
     constructor(page) {
         this.page = page;
+        this.bulkPublishList = page.locator('mas-bulk-publish');
+        this.createProjectButton = this.bulkPublishList.locator('[data-testid="create-btn"]');
         this.bulkPublishEditor = page.locator('mas-bulk-publish-editor');
         this.addBySearchButton = this.bulkPublishEditor.locator('[data-testid="add-by-search-btn"]');
         this.addItemsDialog = page.locator('mas-add-items-dialog');
@@ -14,6 +16,18 @@ export default class BulkActionsPage {
         );
         this.tableRowCheckboxes = this.addItemsDialog.locator('mas-select-items-table:not([hidden]) sp-table-body sp-checkbox');
         this.addSelectedButton = this.addItemsDialog.locator('sp-button[variant="accent"]');
+    }
+
+    async navigateToBulkPublishList(baseURL, miloLibs) {
+        const url = `${baseURL}/studio.html${miloLibs}#page=bulkPublish&path=nala`;
+        await this.page.goto(url);
+        await this.page.waitForLoadState('domcontentloaded');
+        await this.bulkPublishList.waitFor({ state: 'visible' });
+    }
+
+    async createNewProject() {
+        await this.createProjectButton.click();
+        await this.bulkPublishEditor.waitFor({ state: 'visible' });
     }
 
     async openBulkPublishAddBySearch() {

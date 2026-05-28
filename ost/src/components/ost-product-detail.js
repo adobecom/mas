@@ -153,18 +153,6 @@ export class OstProductDetail extends LitElement {
             height: 28px;
         }
 
-        .change-link {
-            font-size: 13px;
-            color: var(--spectrum-blue-900);
-            cursor: pointer;
-            white-space: nowrap;
-            text-decoration: none;
-        }
-
-        .change-link:hover {
-            text-decoration: underline;
-        }
-
         .hint-text {
             font-size: 13px;
             color: var(--spectrum-gray-500);
@@ -208,30 +196,6 @@ export class OstProductDetail extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         store.unsubscribe(this.handleStoreChange);
-    }
-
-    handleChangeOffer() {
-        // Clearing only selectedOffer was a no-op in the common case: when
-        // the OST was deep-linked from an existing CTA, the AOS filters
-        // (commitment/term/segments/offerType) were narrowed to exactly the
-        // one matching offer. Clicking Change would leave the user staring
-        // at a one-card list and the auto-resolve path would put them right
-        // back in configure. Reset those filters here so Change actually
-        // surfaces all offers for the product. arrangementCode is kept so
-        // we stay on the same product.
-        store.lastSelectedOfferId = store.selectedOffer?.offer_id;
-        store.selectedOffer = undefined;
-        store.selectedOsi = undefined;
-        store.aosParams = {
-            ...store.aosParams,
-            commitment: '',
-            term: '',
-            customerSegment: '',
-            marketSegment: '',
-            offerType: '',
-            pricePoint: '',
-        };
-        store.notify();
     }
 
     async autoResolveOsi(offer) {
@@ -431,7 +395,6 @@ export class OstProductDetail extends LitElement {
                     ${store.landscape === 'BOTH'
                         ? nothing
                         : html`<sp-badge size="s" variant="informative">${store.landscape}</sp-badge>`}
-                    <a class="change-link" @click=${this.handleChangeOffer}>Change</a>
                 </div>
             `;
         }

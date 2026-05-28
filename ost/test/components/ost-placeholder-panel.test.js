@@ -23,16 +23,16 @@ describe('ost-placeholder-panel', () => {
         store.selectedOsi = undefined;
     });
 
-    it('renders all 8 placeholder type tabs', async () => {
+    it('renders all 8 placeholder type chips', async () => {
         const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        const tabs = el.shadowRoot.querySelectorAll('sp-tabs sp-tab');
-        expect(tabs.length).to.equal(8);
+        const chips = el.shadowRoot.querySelectorAll('.type-chips [data-testid^="ost-placeholder-chip-"]');
+        expect(chips.length).to.equal(8);
     });
 
-    it('renders tab labels matching placeholder type names', async () => {
+    it('renders chip labels matching placeholder type names', async () => {
         const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        const tabs = el.shadowRoot.querySelectorAll('sp-tabs sp-tab');
-        const labels = Array.from(tabs).map((t) => t.getAttribute('label'));
+        const chips = el.shadowRoot.querySelectorAll('.type-chips [data-testid^="ost-placeholder-chip-"]');
+        const labels = Array.from(chips).map((c) => c.textContent.trim());
         expect(labels).to.deep.equal([
             'Price',
             'Optical price',
@@ -53,11 +53,11 @@ describe('ost-placeholder-panel', () => {
         expect(checkout).to.not.exist;
     });
 
-    it('shows checkout-options when the Checkout URL tab is selected', async () => {
+    it('shows checkout-options when the Checkout URL chip is selected', async () => {
         const el = await fixture(html`<ost-placeholder-panel></ost-placeholder-panel>`);
-        // Drive the type change through the component method that the sp-tabs
-        // @change handler invokes; bypasses SWC tab-click event plumbing in the
-        // jsdom/WTR fixture which is brittle to simulate.
+        // Drive the type change through the component method that each chip's
+        // @click handler invokes; bypasses SWC button-click event plumbing in
+        // the WTR fixture which is brittle to simulate.
         el.selectType('checkoutUrl');
         await el.updateComplete;
         const checkout = el.shadowRoot.querySelector('ost-checkout-options');

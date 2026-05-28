@@ -4,17 +4,10 @@ import { store } from '../../src/store/ost-store.js';
 
 describe('ost-app', () => {
     function enterOffersState() {
-        store.flowChosen = true;
         store.authoringFlow = 'single';
-        store.selectedProduct = undefined;
+        store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
         store.selectedOffer = undefined;
-        store.notify();
-    }
-
-    function enterWelcomeState() {
-        store.flowChosen = false;
-        store.selectedProduct = undefined;
-        store.selectedOffer = undefined;
+        store.wizardStep = 'offer';
         store.notify();
     }
 
@@ -35,41 +28,41 @@ describe('ost-app', () => {
         expect(store.env).to.equal('STAGE');
     });
 
-    it('renders left and right panels', async () => {
+    it('lands on the entitlements tab by default', async () => {
+        store.init({});
+        const el = await fixture(html`<ost-app></ost-app>`);
+        await el.updateComplete;
+        const tab = el.shadowRoot.querySelector('ost-entitlements-tab');
+        expect(tab).to.exist;
+        expect(el.shadowRoot.querySelector('ost-offer-tab')).to.not.exist;
+    });
+
+    it('renders the entitlements tab children (search, filters, products, mode picker)', async () => {
+        store.init({});
+        const el = await fixture(html`<ost-app></ost-app>`);
+        await el.updateComplete;
+        const tab = el.shadowRoot.querySelector('ost-entitlements-tab');
+        await tab.updateComplete;
+        expect(tab.shadowRoot.querySelector('ost-search')).to.exist;
+        expect(tab.shadowRoot.querySelector('ost-filter-bar')).to.exist;
+        expect(tab.shadowRoot.querySelector('ost-product-list')).to.exist;
+        expect(tab.shadowRoot.querySelector('ost-country-picker')).to.exist;
+        expect(tab.shadowRoot.querySelector('sp-picker')).to.exist;
+    });
+
+    it('shows the offer tab once advanced to the offer step', async () => {
         const el = await fixture(html`<ost-app></ost-app>`);
         enterOffersState();
         await el.updateComplete;
-        const leftPanel = el.shadowRoot.querySelector('.ost-left-panel');
-        const rightPanel = el.shadowRoot.querySelector('.ost-right-panel');
-        expect(leftPanel).to.exist;
-        expect(rightPanel).to.exist;
+        expect(el.shadowRoot.querySelector('ost-offer-tab')).to.exist;
     });
 
-    it('renders child component slots in correct panels', async () => {
+    it('renders header bar and tab list', async () => {
+        store.init({});
         const el = await fixture(html`<ost-app></ost-app>`);
-        enterOffersState();
-        await el.updateComplete;
-        const left = el.shadowRoot.querySelector('.ost-left-panel');
-        const headerBar = el.shadowRoot.querySelector('.ost-header-bar');
-        expect(headerBar.querySelector('ost-country-picker')).to.exist;
-        expect(left.querySelector('ost-search')).to.exist;
-        expect(left.querySelector('ost-filter-bar')).to.exist;
-        expect(left.querySelector('ost-product-list')).to.exist;
-    });
-
-    it('renders welcome screen when no product is selected', async () => {
-        enterWelcomeState();
-        const el = await fixture(html`<ost-app></ost-app>`);
-        const welcomeScreen = el.shadowRoot.querySelector('ost-welcome-screen');
-        expect(welcomeScreen).to.exist;
-    });
-
-    it('renders header and footer bars', async () => {
-        const el = await fixture(html`<ost-app></ost-app>`);
-        enterOffersState();
         await el.updateComplete;
         expect(el.shadowRoot.querySelector('.ost-header-bar')).to.exist;
-        expect(el.shadowRoot.querySelector('.ost-footer-bar')).to.exist;
+        expect(el.shadowRoot.querySelector('.ost-tabs sp-tabs')).to.exist;
         expect(el.shadowRoot.querySelector('.ost-title').textContent).to.equal('Offer Selector Tool');
     });
 
@@ -242,18 +235,18 @@ describe('ost-app', () => {
     });
 
     describe('handleBack / handleFocusedBack / wasDeepLinked', () => {
-        it('handleBack clears selected offer, OSI, and product but keeps flowChosen', async () => {
+        it('handleBack returns to the entitlements tab, preserves product, clears offer', async () => {
             const el = await fixture(html`<ost-app></ost-app>`);
-            store.flowChosen = true;
             store.selectedProduct = { name: 'Acrobat' };
             store.selectedOffer = { offer_id: 'OF-9' };
             store.selectedOsi = 'osi-9';
+            store.wizardStep = 'offer';
             el.handleBack();
-            expect(store.selectedProduct).to.be.undefined;
+            expect(store.wizardStep).to.equal('entitlements');
+            expect(store.selectedProduct?.name).to.equal('Acrobat'); // product preserved
             expect(store.selectedOffer).to.be.undefined;
             expect(store.selectedOsi).to.be.undefined;
             expect(store.lastSelectedOfferId).to.equal('OF-9');
-            expect(store.flowChosen).to.be.true; // still inside the flow
         });
 
         it('handleFocusedBack just clears selectedOffer', async () => {
@@ -382,35 +375,43 @@ describe('ost-app', () => {
         });
     });
 
-    describe('rightPanel views', () => {
-        it('renders ost-welcome-screen in welcome state', async () => {
-            store.flowChosen = false;
-            store.selectedProduct = undefined;
-            store.selectedOffer = undefined;
-            const el = await fixture(html`<ost-app></ost-app>`);
-            await el.updateComplete;
-            expect(el.shadowRoot.querySelector('ost-welcome-screen')).to.exist;
-        });
-
-        it('renders ost-product-detail when authoringFlow is single and an offer is selected', async () => {
-            store.flowChosen = true;
+    describe('offer tab views', () => {
+        it('renders ost-placeholder-panel when authoringFlow is single and an offer is selected', async () => {
             store.authoringFlow = 'single';
             store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
             store.selectedOffer = { offer_id: 'X' };
+            store.wizardStep = 'offer';
             store.notify();
             const el = await fixture(html`<ost-app></ost-app>`);
             await el.updateComplete;
-            expect(el.shadowRoot.querySelector('ost-placeholder-panel')).to.exist;
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            expect(tab.shadowRoot.querySelector('ost-placeholder-panel')).to.exist;
         });
 
         it('renders ost-offer-detail-focused in consult flow when an offer is selected', async () => {
-            store.flowChosen = true;
             store.authoringFlow = 'consult';
+            store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
             store.selectedOffer = { offer_id: 'C' };
+            store.wizardStep = 'offer';
             store.notify();
             const el = await fixture(html`<ost-app></ost-app>`);
             await el.updateComplete;
-            expect(el.shadowRoot.querySelector('ost-offer-detail-focused')).to.exist;
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            expect(tab.shadowRoot.querySelector('ost-offer-detail-focused')).to.exist;
+        });
+
+        it('renders ost-selection-list in tryBuy flow', async () => {
+            store.authoringFlow = 'tryBuy';
+            store.selectedProduct = { name: 'Photoshop', arrangement_code: 'phsp' };
+            store.wizardStep = 'offer';
+            store.notify();
+            const el = await fixture(html`<ost-app></ost-app>`);
+            await el.updateComplete;
+            const tab = el.shadowRoot.querySelector('ost-offer-tab');
+            await tab.updateComplete;
+            expect(tab.shadowRoot.querySelector('ost-selection-list')).to.exist;
         });
     });
 

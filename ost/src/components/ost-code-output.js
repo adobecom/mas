@@ -13,6 +13,7 @@ export class OstCodeOutput extends LitElement {
         :host {
             font-family: inherit;
             display: block;
+            min-width: 0;
         }
 
         .code-card {
@@ -26,10 +27,12 @@ export class OstCodeOutput extends LitElement {
 
         code {
             flex: 1;
+            min-width: 0;
             font-family: inherit;
             font-size: 12px;
             color: var(--spectrum-green-400, #2d9d78);
-            overflow-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
             white-space: pre-wrap;
         }
     `;

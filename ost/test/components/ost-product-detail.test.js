@@ -37,7 +37,7 @@ function resetStore() {
     store.offers = [];
     store.selectedOffers = [];
     store.authoringFlow = 'single';
-    store.flowChosen = false;
+    store.wizardStep = 'entitlements';
     store.country = 'US';
     store.landscape = 'PUBLISHED';
     store.aosParams = { arrangementCode: '' };
@@ -209,14 +209,6 @@ describe('ost-product-detail', () => {
             expect(badge).to.not.exist;
         });
 
-        it('renders the Change link in summary mode', async () => {
-            store.selectedProduct = makeProduct();
-            const el = await fixture(html`<ost-product-detail summary></ost-product-detail>`);
-            const change = el.shadowRoot.querySelector('.change-link');
-            expect(change).to.exist;
-            expect(change.textContent.trim()).to.equal('Change');
-        });
-
         it('falls back to product.arrangementCode in summary mode header', async () => {
             store.selectedProduct = makeProduct({ arrangement_code: undefined, arrangementCode: 'sum-fallback' });
             const el = await fixture(html`<ost-product-detail summary></ost-product-detail>`);
@@ -244,37 +236,6 @@ describe('ost-product-detail', () => {
             store.notify();
             await el.updateComplete;
             expect(el.shadowRoot.querySelectorAll('ost-offer-card').length).to.equal(2);
-        });
-    });
-
-    describe('handleChangeOffer', () => {
-        it('clears the selected offer/OSI and the narrowing aosParams', async () => {
-            store.selectedProduct = makeProduct();
-            store.selectedOffer = makeOffer({ offer_id: 'OF-X' });
-            store.selectedOsi = 'osi-x';
-            store.aosParams = {
-                arrangementCode: 'photoshop-arr',
-                commitment: 'YEAR',
-                term: 'MONTHLY',
-                customerSegment: 'INDIVIDUAL',
-                marketSegment: 'COM',
-                offerType: 'BASE',
-                pricePoint: 'REGULAR',
-            };
-            const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
-            el.handleChangeOffer();
-            expect(store.selectedOffer).to.be.undefined;
-            expect(store.selectedOsi).to.be.undefined;
-            expect(store.lastSelectedOfferId).to.equal('OF-X');
-            // arrangementCode is intentionally preserved so we stay on the same product
-            expect(store.aosParams.arrangementCode).to.equal('photoshop-arr');
-            // Narrowing filters are reset so Change actually surfaces other offers
-            expect(store.aosParams.commitment).to.equal('');
-            expect(store.aosParams.term).to.equal('');
-            expect(store.aosParams.customerSegment).to.equal('');
-            expect(store.aosParams.marketSegment).to.equal('');
-            expect(store.aosParams.offerType).to.equal('');
-            expect(store.aosParams.pricePoint).to.equal('');
         });
     });
 
@@ -374,7 +335,6 @@ describe('ost-product-detail', () => {
             try {
                 store.selectedProduct = makeProduct();
                 store.authoringFlow = 'tryBuy';
-                store.flowChosen = true;
                 const el = await fixture(html`<ost-product-detail></ost-product-detail>`);
                 store.selectedOffers = []; // make sure no leftover state
                 const baseOffer = makeOffer({ offer_id: 'B-1', offer_type: 'BASE' });

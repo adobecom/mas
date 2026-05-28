@@ -61,7 +61,12 @@ const SLICES = [
     // offer-card render can highlight it as a "previously used" choice.
     ['lastSelectedOfferId', undefined],
     ['authoringFlow', 'single'],
-    ['flowChosen', false],
+    // 'entitlements' (Tab 1: product + filters) | 'offer' (Tab 2: offer + config).
+    // Orthogonal to viewState: viewState describes the Tab-2 sub-view, wizardStep
+    // describes which wizard tab is showing. Picking a product readies the offers
+    // but does not advance the step — the Next button (goToOffer) does, matching
+    // the legacy OST's Next gate.
+    ['wizardStep', 'entitlements'],
     ['selectedOffers', []],
     ['currentSlot', 'base'],
     ['pendingFlowSwitch', null],
@@ -136,16 +141,41 @@ export class OstStore extends EventTarget {
         }
     }
 
+    // Describes the Tab-2 (offer) sub-view. The wizard tab itself is tracked
+    // separately by `wizardStep`; this getter only matters once the user is on
+    // the 'offer' step.
     get viewState() {
-        if (!this.selectedProduct && !this.flowChosen) return 'welcome';
         if (this.authoringFlow === 'consult') {
             // Consult surface-mode used by AI chat: picking an offer swaps the
-            // whole dialog to a focused detail view with a Use CTA.
+            // offer tab to a focused detail view with a Use CTA.
             return this.selectedOffer ? 'offer-detail-focused' : 'offers';
         }
         if (this.authoringFlow === 'tryBuy' || this.authoringFlow === 'bundle') return 'offers';
         if (!this.selectedOffer) return 'offers';
         return 'configure';
+    }
+
+    // Tab 1 → Tab 2 is gated: single/consult need a product, tryBuy/bundle can
+    // advance immediately (the user picks offers on Tab 2).
+    get canAdvance() {
+        if (this.authoringFlow === 'tryBuy' || this.authoringFlow === 'bundle') return true;
+        return !!this.selectedProduct;
+    }
+
+    goToOffer() {
+        if (!this.canAdvance) return;
+        this.wizardStep = 'offer';
+    }
+
+    goToEntitlements() {
+        this.#batch(() => {
+            // Preserve selectedProduct so the user can re-advance without
+            // re-picking; clear the offer so Tab 2 reopens to the offer list.
+            this.lastSelectedOfferId = this.selectedOffer?.offer_id;
+            this.selectedOffer = undefined;
+            this.selectedOsi = undefined;
+            this.wizardStep = 'entitlements';
+        });
     }
 
     get canConfirm() {
@@ -225,11 +255,10 @@ export class OstStore extends EventTarget {
         this.selectedOffer = undefined;
         this.selectedOsi = undefined;
         // 'single' is the safe default: it matches the most common caller
-        // (RTE double-click on an existing CTA), keeps the welcome screen
-        // for fresh opens (gated on flowChosen=false), and is overridden
-        // below for multiSelect / bundleSelect / explicit authoringFlow.
+        // (RTE double-click on an existing CTA) and is overridden below for
+        // multiSelect / bundleSelect / explicit authoringFlow.
         this.authoringFlow = 'single';
-        this.flowChosen = false;
+        this.wizardStep = 'entitlements';
         this.selectedOffers = [];
         this.currentSlot = 'base';
         this.pendingFlowSwitch = null;
@@ -242,15 +271,12 @@ export class OstStore extends EventTarget {
 
         if (config.multiSelect === true) {
             this.authoringFlow = 'tryBuy';
-            this.flowChosen = true;
         }
         if (config.bundleSelect === true) {
             this.authoringFlow = 'bundle';
-            this.flowChosen = true;
         }
         if (config.authoringFlow && VALID_FLOWS.includes(config.authoringFlow)) {
             this.authoringFlow = config.authoringFlow;
-            this.flowChosen = true;
         }
         const CALLBACK_KEYS = ['onSelect', 'onCancel', 'onMultiSelect', 'onBundleSelect'];
         Object.keys(config).forEach((key) => {
@@ -340,6 +366,16 @@ export class OstStore extends EventTarget {
         this.applyFlowSwitch(flow, keepSelections);
     }
 
+    // Tab-1 mode picker: switch authoring flow and discard any in-progress
+    // offer selections immediately (no pendingFlowSwitch confirm bar, which
+    // lives on Tab 2 and would be invisible from Tab 1). Switching mode is a
+    // deliberate restart of the authoring intent.
+    chooseAuthoringFlow(flow) {
+        if (!VALID_FLOWS.includes(flow)) return;
+        if (flow === this.authoringFlow) return;
+        this.applyFlowSwitch(flow, false);
+    }
+
     setCurrentSlot(slot) {
         if (slot !== 'base' && slot !== 'trial') return;
         this.currentSlot = slot;
@@ -366,7 +402,6 @@ export class OstStore extends EventTarget {
             previousOffers = [{ offer: this.selectedOffer, osi: this.selectedOsi }];
         }
         this.authoringFlow = flow;
-        this.flowChosen = true;
         this.currentSlot = 'base';
         let nextSelected = [];
 
@@ -494,16 +529,13 @@ export class OstStore extends EventTarget {
         }
         if (get('multiSelect') === 'true') {
             this.authoringFlow = 'tryBuy';
-            this.flowChosen = true;
         }
         if (get('bundleSelect') === 'true') {
             this.authoringFlow = 'bundle';
-            this.flowChosen = true;
         }
         const flow = get('authoringFlow');
         if (flow && VALID_FLOWS.includes(flow)) {
             this.authoringFlow = flow;
-            this.flowChosen = true;
         }
 
         const deepLink = {};

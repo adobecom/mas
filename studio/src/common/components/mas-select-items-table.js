@@ -194,6 +194,14 @@ class MasSelectItemsTable extends LitElement {
         return new Set(getItemsSelectionStore()[`selected${this.typeUppercased}`].value);
     }
 
+    get loadedPaths() {
+        return this.itemsToDisplay.map((item) => item.path);
+    }
+
+    get selectAllDisabled() {
+        return this.viewOnly || this.isLoading || this.itemsToDisplay.length === 0;
+    }
+
     get tableColumns() {
         const TABLE_COLUMNS = {
             cards: {

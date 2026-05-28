@@ -1328,6 +1328,44 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
+    describe('Select All — loadedPaths getter', () => {
+        it('returns paths of all items currently in itemsToDisplay (cards)', async () => {
+            const cards = [createMockCard('/path/a', 'A'), createMockCard('/path/b', 'B'), createMockCard('/path/c', 'C')];
+            setupCardsInStore(cards);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.loadedPaths).to.deep.equal(['/path/a', '/path/b', '/path/c']);
+        });
+    });
+
+    describe('Select All — selectAllDisabled getter', () => {
+        it('is true when itemsToDisplay is empty', async () => {
+            setupCardsInStore([]);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            await el.updateComplete;
+            expect(el.selectAllDisabled).to.equal(true);
+        });
+
+        it('is true when viewOnly is true', async () => {
+            setupCardsInStore([createMockCard('/path/a', 'A')]);
+            const el = await fixture(
+                html`<mas-select-items-table .type=${TABLE_TYPE.CARDS} .viewOnly=${true}></mas-select-items-table>`,
+            );
+            await el.updateComplete;
+            expect(el.selectAllDisabled).to.equal(true);
+        });
+
+        it('is false when items are loaded and not viewOnly', async () => {
+            setupCardsInStore([createMockCard('/path/a', 'A')]);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.loading.set(false);
+            const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
+            el.dataReady = true;
+            await el.updateComplete;
+            expect(el.selectAllDisabled).to.equal(false);
+        });
+    });
+
     describe('loading more indicator', () => {
         it('should render loading-more indicator when loading subsequent pages', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);

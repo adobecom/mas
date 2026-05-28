@@ -97,14 +97,19 @@ describe('customize collections', function () {
         expect(result.fields.title).to.equal('Regional title');
     });
 
-    it('should append child features to parent features for mas-compare-chart templates', async function () {
+    it('should append child features to parent features for compare-chart variants', async function () {
         const body = {
             path: '/content/dam/mas/sandbox/en_US/compare-chart-card',
             id: 'compare-chart-card',
             title: 'Compare chart card',
             fields: {
-                template: 'mas-compare-chart',
-                features: ['<p name="group-a@parent-only">Parent only</p>', '<p name="group-a@override">Parent value</p>'],
+                variant: 'compare-chart',
+                features: {
+                    value: [
+                        '<p name="group-a@parent-only">Parent only</p>',
+                        '<p name="group-a@override">Parent value</p>',
+                    ],
+                },
                 variations: ['compare-chart-card-be'],
             },
             references: {
@@ -114,7 +119,7 @@ describe('customize collections', function () {
                         path: '/content/dam/mas/sandbox/en_BE/compare-chart-card',
                         id: 'compare-chart-card-be',
                         fields: {
-                            features: ['<p name="group-a@override">Child value</p>'],
+                            features: { value: ['<p name="group-a@override">Child value</p>'] },
                         },
                     },
                 },
@@ -131,7 +136,7 @@ describe('customize collections', function () {
         });
 
         expect(result.status).to.equal(200);
-        expect(result.body.fields.features).to.deep.equal([
+        expect(result.body.fields.features.value).to.deep.equal([
             '<p name="group-a@parent-only">Parent only</p>',
             '<p name="group-a@override">Parent value</p>',
             '<p name="group-a@override">Child value</p>',

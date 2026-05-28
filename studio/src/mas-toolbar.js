@@ -83,9 +83,8 @@ class MasToolbar extends LitElement {
         }
 
         /* Create — Figma "Button (M, Accent)" spec.
-           95px × 32px accent button, 16px radius, #3B63FB bg,
-           14px / 18px Adobe Clean Spectrum VF Bold, content color #FFFFFF.
-           Icon: 14px edge-to-icon, 6px icon-to-text, 16px edge-to-text. */
+           95px × 32px accent button, 16px radius, #3B63FB bg, Bold 14px / 18px,
+           white content. Padding handled by Spectrum's defaults to avoid layout collapse. */
         .create-button {
             box-sizing: border-box;
             width: 95px;
@@ -103,28 +102,17 @@ class MasToolbar extends LitElement {
             --mod-button-content-color-hover: #ffffff;
             --mod-button-content-color-down: #ffffff;
             --mod-button-font-weight: 700;
-            --mod-button-font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
-            --mod-button-font-size: 14px;
-            --mod-button-line-height: 18px;
             font-weight: 700;
-            --mod-button-edge-to-visual: 14px;
-            --mod-button-edge-to-text: 16px;
-            --mod-button-visual-to-text: 6px;
-            --mod-button-padding-block: 7px;
-            --mod-button-padding-block-start: 7px;
-            --mod-button-padding-block-end: 7px;
         }
 
         /* Select — Figma "Button (M, Secondary)" spec.
-           92px × 32px, 2px #DADADA border, 16px radius,
-           14px / 18px Adobe Clean Spectrum VF Bold, content color #292929.
-           Icon: 20×20, 14px left / 6px right padding; text: 7px vertical / 16px right. */
+           92px × 32px outline button, 2px #DADADA border, 16px radius, Bold 14px / 18px,
+           content color #292929. Padding handled by Spectrum's defaults. */
         .select-button {
             box-sizing: border-box;
             width: 92px;
             min-width: 72px;
             height: 32px;
-            /* Border */
             --mod-button-border-width: 2px;
             --mod-button-border-color-default: #dadada;
             --mod-button-border-color-hover: #dadada;
@@ -132,26 +120,14 @@ class MasToolbar extends LitElement {
             --mod-button-border-color-key-focus: #dadada;
             --mod-button-border-color-focus: #dadada;
             --mod-button-border-radius: 16px;
-            /* Background — transparent for outline secondary */
             --mod-button-background-color-default: transparent;
             --mod-button-background-color-hover: #f3f3f3;
             --mod-button-background-color-down: #e1e1e1;
-            /* Content (icon + text) */
             --mod-button-content-color-default: #292929;
             --mod-button-content-color-hover: #131313;
             --mod-button-content-color-down: #131313;
             --mod-button-font-weight: 700;
-            --mod-button-font-family: 'Adobe Clean Spectrum VF', 'Adobe Clean', sans-serif;
-            --mod-button-font-size: 14px;
-            --mod-button-line-height: 18px;
             font-weight: 700;
-            /* Spacing — Figma: 14px edge-to-icon, 6px icon-to-text, 16px edge-to-text */
-            --mod-button-edge-to-visual: 14px;
-            --mod-button-edge-to-text: 16px;
-            --mod-button-visual-to-text: 6px;
-            --mod-button-padding-block: 7px;
-            --mod-button-padding-block-start: 7px;
-            --mod-button-padding-block-end: 7px;
         }
 
         sp-search {

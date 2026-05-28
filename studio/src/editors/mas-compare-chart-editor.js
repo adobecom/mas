@@ -14,7 +14,7 @@ import {
     EVENT_CHANGE,
 } from '../constants.js';
 import Store from '../store.js';
-import { generateCodeToUse, getService, normalizeKey } from '../utils.js';
+import { generateCodeToUse, getService } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { getFromFragmentCache } from '../mas-repository.js';
@@ -36,7 +36,7 @@ import {
     VARIATION_TABS,
 } from './variation-utils.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
-import { parseCompareChartTables } from '../../../web-components/src/compare-chart-table-parser.js';
+import { normalizeCompareChartKey, parseCompareChartTables } from '../../../web-components/src/compare-chart-table-parser.js';
 import { EVENT_COMPARE_CHART_REHYDRATE } from '../../../web-components/src/constants.js';
 import { dragHandleIcon } from '../icons.js';
 import { VARIANT_NAMES } from './variant-picker.js';
@@ -791,7 +791,7 @@ class MasCompareChartEditor extends LitElement {
     }
 
     #uniqueName(base, existingNames) {
-        const normalizedBase = normalizeKey(base || 'item') || 'item';
+        const normalizedBase = normalizeCompareChartKey(base || 'item') || 'item';
         let name = normalizedBase;
         let index = 2;
         while (existingNames.has(name)) {

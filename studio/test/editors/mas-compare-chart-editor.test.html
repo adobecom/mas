@@ -40,6 +40,9 @@
             const withWebComponentsMocks = (mock) => (originalFetch) =>
                 mock((resource, options) => {
                     const path = String(resource);
+                    if (/querybuilder\.json\?path=\/content\/cq:tags\/mas/.test(path)) {
+                        return originalFetch('/test/mocks/tags.json', options);
+                    }
                     if (path.startsWith('/test/mocks/offers.json') || path.startsWith('/test/mocks/sites/')) {
                         return originalFetch(`/__wds-outside-root__/1/web-components${path}`, options);
                     }

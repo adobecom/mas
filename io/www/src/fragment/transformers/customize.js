@@ -33,7 +33,11 @@ function deepMerge(...objects) {
     // variation template is empty
     if (objects?.[0]?.fields?.variant === COMPARE_CHART_VARIANT) {
         const [parent, child] = objects;
-        child.fields.features.value = [...(parent?.fields?.features.value || []), ...(child?.fields?.features.value || [])];
+        const parentFeatures = parent?.fields?.features?.value || [];
+        const childFeatures = child?.fields?.features?.value || [];
+        if (child?.fields?.features && (parentFeatures.length || childFeatures.length)) {
+            child.fields.features.value = [...parentFeatures, ...childFeatures];
+        }
     }
     const result = {};
     for (const obj of objects) {

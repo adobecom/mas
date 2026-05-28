@@ -142,7 +142,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     get token() {
-        return window.adobeIMS?.getAccessToken()?.token;
+        return sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
     }
 
     get ioBaseUrl() {

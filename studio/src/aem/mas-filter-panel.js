@@ -29,13 +29,16 @@ const EMPTY_TAGS = {
 class MasFilterPanel extends LitElement {
     static properties = {
         tagsByType: { type: Object, state: true },
+        tagsReady: { type: Boolean, state: true },
     };
 
     static styles = css`
         :host {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            column-gap: 12px;
+            row-gap: 10px;
+            margin-bottom: 20px;
         }
 
         #filters-label {
@@ -47,18 +50,151 @@ class MasFilterPanel extends LitElement {
             min-height: 32px;
             align-items: center;
             flex-wrap: wrap;
+            column-gap: 12px;
+            row-gap: 8px;
         }
 
-        .filter-icon {
-            inline-size: 20px;
-            block-size: 20px;
-            color: var(--spectrum-white);
+        #filters > aem-tag-picker-field,
+        #filters > mas-user-picker,
+        #filters > sp-action-button {
+            min-height: 32px;
+            height: 32px;
         }
 
-        .filter-icon-path {
-            stroke: var(--spectrum-neutral-content-color-default);
-            stroke-width: 3px;
+        /* Figma "Picker (M)" styling — applied to every filter category
+           except the trailing Reset Filters action button. */
+        #filters > aem-tag-picker-field,
+        #filters > mas-user-picker {
+            /* Trigger shape */
+            --aem-tag-picker-trigger-border-radius: 8px;
+            --mod-actionbutton-border-radius: 8px;
+            --mod-actionbutton-border-width: 2px;
+            --mod-actionbutton-min-width: auto;
+            --spectrum-actionbutton-height: 32px;
+            --mod-actionbutton-edge-to-text: 12px;
+            --mod-actionbutton-edge-to-visual-only: 11px;
+
+            /* Default */
+            --mod-actionbutton-background-color-default: var(--spectrum-gray-25, #ffffff);
+            --mod-actionbutton-content-color-default: var(--spectrum-gray-800, #292929);
+            --mod-actionbutton-border-color-default: var(--spectrum-gray-300, #dadada);
+
+            /* Hover & Open hover */
+            --mod-actionbutton-background-color-hover: var(--spectrum-gray-200, #e1e1e1);
+            --mod-actionbutton-content-color-hover: var(--spectrum-gray-900, #131313);
+            --mod-actionbutton-border-color-hover: var(--spectrum-gray-300, #dadada);
+
+            /* Down (mouse-down) & Open not hover (popover open) */
+            --mod-actionbutton-background-color-down: var(--spectrum-gray-200, #e1e1e1);
+            --mod-actionbutton-content-color-down: var(--spectrum-gray-900, #131313);
+            --mod-actionbutton-border-color-down: var(--spectrum-gray-300, #dadada);
+
+            /* Keyboard focus */
+            --mod-actionbutton-background-color-focus: var(--spectrum-gray-200, #e1e1e1);
+            --mod-actionbutton-content-color-focus: var(--spectrum-gray-900, #131313);
+            --mod-actionbutton-border-color-focus: var(--spectrum-gray-300, #dadada);
+
+            /* Disabled */
+            --mod-actionbutton-background-color-disabled: #e9e9e9;
+            --mod-actionbutton-content-color-disabled: #c6c6c6;
+            --mod-actionbutton-border-color-disabled: var(--spectrum-gray-300, #dadada);
         }
+
+        /* Error state — opt-in via [error] attribute on the picker host.
+           Border: alias/border/semantic/negative/focus #b72818
+           Background: palette/gray/200 #e1e1e1 */
+        #filters > aem-tag-picker-field[error],
+        #filters > mas-user-picker[error] {
+            --mod-actionbutton-background-color-default: var(--spectrum-gray-200, #e1e1e1);
+            --mod-actionbutton-border-color-default: #b72818;
+            --mod-actionbutton-border-color-hover: #b72818;
+            --mod-actionbutton-border-color-down: #b72818;
+            --mod-actionbutton-border-color-focus: #b72818;
+        }
+
+        /* Reset Filters — Figma "Action button (M)" style:
+           text-only, medium weight, 8px radius, 32px height, 12px horizontal padding. */
+        #filters > sp-action-button.reset-filters {
+            --mod-actionbutton-border-radius: 8px;
+            --mod-actionbutton-edge-to-text: 12px;
+            --mod-actionbutton-edge-to-visual-only: 12px;
+            --spectrum-actionbutton-height: 32px;
+            --mod-actionbutton-content-color-default: var(--spectrum-gray-800, #292929);
+            --mod-actionbutton-font-weight: 500;
+            font-weight: 500;
+        }
+
+        /* Applied filter tags — Figma "Chips" spec.
+           Default: indigo/200 bg, neutral/default text.
+           Hover:   indigo/300 bg, neutral/hover text.
+           Disabled: background/disabled bg, content/disabled text. */
+        sp-tags {
+            display: flex;
+            flex-wrap: wrap;
+            column-gap: 12px;
+            row-gap: 12px;
+        }
+
+        sp-tags sp-tag {
+            margin: 0;
+            /* Background */
+            --mod-tag-background-color: #ebeeff;
+            --mod-tag-background-color-default: #ebeeff;
+            /* Text — try every known token name + direct color */
+            --mod-tag-color: #292929;
+            --mod-tag-content-color: #292929;
+            --mod-tag-content-color-default: #292929;
+            --mod-tag-label-color: #292929;
+            color: #292929;
+            /* No border in any state */
+            --mod-tag-border-color: transparent;
+            --mod-tag-border-color-default: transparent;
+            --mod-tag-border-color-hover: transparent;
+            --mod-tag-border-color-focus: transparent;
+            --mod-tag-border-color-key-focus: transparent;
+            --mod-tag-border-color-down: transparent;
+            /* Pill — set both the token and the host border-radius */
+            --mod-tag-border-radius: 100px;
+            --mod-tag-corner-radius: 100px;
+            border-radius: 100px;
+            /* Padding — Figma: 12px horizontal, 7px vertical (try every known token) */
+            --mod-tag-padding-inline-start: 12px;
+            --mod-tag-padding-inline-end: 12px;
+            --mod-tag-padding-block-start: 7px;
+            --mod-tag-padding-block-end: 7px;
+            --mod-tag-edge-to-text: 12px;
+            --mod-tag-edge-to-visual: 12px;
+            --mod-tag-padding-x: 12px;
+            --mod-tag-padding-y: 7px;
+            --spectrum-tag-padding-x: 12px;
+            --spectrum-tag-padding-y: 7px;
+            /* Medium weight */
+            --mod-tag-font-weight: 500;
+            font-weight: 500;
+        }
+
+        sp-tags sp-tag:hover {
+            --mod-tag-background-color: #d8deff;
+            --mod-tag-background-color-hover: #d8deff;
+            --mod-tag-color: #131313;
+            --mod-tag-content-color: #131313;
+            --mod-tag-content-color-hover: #131313;
+            --mod-tag-label-color: #131313;
+            color: #131313;
+            --mod-tag-border-color: transparent;
+            --mod-tag-border-color-hover: transparent;
+        }
+
+        sp-tags sp-tag[disabled] {
+            --mod-tag-background-color: #e9e9e9;
+            --mod-tag-background-color-disabled: #e9e9e9;
+            --mod-tag-color: #c6c6c6;
+            --mod-tag-content-color: #c6c6c6;
+            --mod-tag-content-color-disabled: #c6c6c6;
+            --mod-tag-label-color: #c6c6c6;
+            color: #c6c6c6;
+        }
+
     `;
 
     reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users, Store.filters]);
@@ -71,6 +207,27 @@ class MasFilterPanel extends LitElement {
         this.tagsByType = {
             ...EMPTY_TAGS,
         };
+        this.tagsReady = false;
+    }
+
+    // Per-category casing rules (shared by initial parse and post-load resolution):
+    //   plan_type, market_segments → words ≤4 chars uppercased (ABM, M2M, COM, EDU…),
+    //                                longer words title-cased (Perpetual).
+    //   everything else            → Title Case Each Word, but ONLY when the source
+    //   is all-lowercase (slug-derived). Preserve AEM-supplied casing like
+    //   "SMB", "iOS", "Adobe Express", "Logged In".
+    #formatTitle(s, type) {
+        if (!s) return '';
+        const flat = s.replace(/[-_]+/g, ' ');
+        const titleCase = (w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w);
+        if (type === 'plan_type' || type === 'market_segments') {
+            return flat
+                .split(/\s+/)
+                .map((w) => (w.length <= 4 ? w.toUpperCase() : titleCase(w)))
+                .join(' ');
+        }
+        if (/^[a-z\s]+$/.test(flat)) return flat.replace(/\b\w/g, (c) => c.toUpperCase());
+        return flat;
     }
 
     firstUpdated() {
@@ -88,11 +245,15 @@ class MasFilterPanel extends LitElement {
     }
 
     #initializeTagFilters() {
+        this.tagsReady = false;
         this.tagsByType = {
             ...EMPTY_TAGS,
         };
         const filters = Store.filters.get();
-        if (!filters.tags) return;
+        if (!filters.tags) {
+            this.tagsReady = true;
+            return;
+        }
         this.tagsByType = filters.tags.split(',').reduce(
             (acc, tag) => {
                 // Remove 'mas:' prefix
@@ -112,34 +273,20 @@ class MasFilterPanel extends LitElement {
                 // Get values after the type
                 const values = parts.slice(typeIndex);
                 let fullPath = `/content/cq:tags/mas/${tagPath}`;
-                let title = values.length > 0 ? values[values.length - 1].toUpperCase() : '';
+                let title = values.length > 0 ? this.#formatTitle(values[values.length - 1], type) : '';
                 // For product_code, collapse child selections
                 // back to the parent product for display in the tag picker
                 if (type === 'product_code' && values.length > 1) {
                     const parentValue = values[0];
                     fullPath = `/content/cq:tags/mas/${type}/${parentValue}`;
-                    title = parentValue.toUpperCase();
+                    title = this.#formatTitle(parentValue, type);
                 }
 
                 const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
-                picker?.allTags.then?.(() => {
-                    // when tags are loaded
-                    this.tagsByType[type].forEach((displayedTag) => {
-                        picker.selectedTags.forEach((selTag) => {
-                            if (displayedTag.path === selTag.path) {
-                                displayedTag.title = selTag.title;
-                            }
-                        });
-                    });
-                    this.tagsByType = {
-                        ...this.tagsByType,
-                    };
-                });
-
                 let selectedTagTitle = '';
                 picker?.selectedTags.forEach((selectedTag) => {
                     if (selectedTag.name.toLowerCase() === title.toLowerCase()) {
-                        selectedTagTitle = selectedTag.title;
+                        selectedTagTitle = this.#formatTitle(selectedTag.title, type);
                     }
                 });
 
@@ -166,6 +313,41 @@ class MasFilterPanel extends LitElement {
                 personalizationFilterEnabled: true,
             }));
         }
+
+        this.#resolveTagTitles();
+    }
+
+    // Wait for every relevant picker's AEM data, then swap slug-derived chip titles
+    // for the canonical AEM labels and flip tagsReady so chips render once.
+    // Handles both branches of picker.allTags: Promise (first load) and Map (cached).
+    async #resolveTagTitles() {
+        const pendingTypes = Object.keys(this.tagsByType).filter((t) => this.tagsByType[t].length > 0);
+        if (pendingTypes.length === 0) {
+            this.tagsReady = true;
+            return;
+        }
+
+        await Promise.all(
+            pendingTypes.map((type) => {
+                const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
+                const tags = picker?.allTags;
+                return tags && typeof tags.then === 'function' ? tags : Promise.resolve();
+            }),
+        );
+
+        pendingTypes.forEach((type) => {
+            const picker = this.shadowRoot.querySelector(`aem-tag-picker-field[top="${type}"]`);
+            if (!picker) return;
+            this.tagsByType[type].forEach((displayedTag) => {
+                picker.selectedTags.forEach((selTag) => {
+                    if (displayedTag.path === selTag.path) {
+                        displayedTag.title = this.#formatTitle(selTag.title, type);
+                    }
+                });
+            });
+        });
+        this.tagsByType = { ...this.tagsByType };
+        this.tagsReady = true;
     }
 
     get #personalizationFilterEnabled() {
@@ -283,7 +465,7 @@ class MasFilterPanel extends LitElement {
             Store.createdByUsers.value,
             (user) => user.userPrincipalName,
             (user) => html`
-                <sp-tag size="s" deletable @delete=${this.#handleUserDelete} .value=${user.userPrincipalName}>
+                <sp-tag deletable @delete=${this.#handleUserDelete} .value=${user.userPrincipalName}>
                     ${user.displayName}
                     <sp-icon-user slot="icon" size="s"></sp-icon-user>
                 </sp-tag>
@@ -294,8 +476,8 @@ class MasFilterPanel extends LitElement {
     render() {
         return html`
             <div id="filters">
-                ${this.filterIcon}
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="offer_type"
                     label="Offer Type"
@@ -306,6 +488,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="plan_type"
                     label="Plan Type"
@@ -316,6 +499,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="market_segments"
                     label="Market Segments"
@@ -326,6 +510,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="customer_segment"
                     multiple
@@ -336,6 +521,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="product_code"
                     multiple
@@ -346,6 +532,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="variant"
                     label="Template"
@@ -356,6 +543,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="status"
                     label="Status"
@@ -366,6 +554,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="studio/content-type"
                     label="Content Type"
@@ -376,6 +565,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="custom"
                     label="Tag"
@@ -386,6 +576,7 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <aem-tag-picker-field
+                    bordered
                     namespace="/content/cq:tags/mas"
                     top="pzn"
                     label="Personalization"
@@ -399,52 +590,40 @@ class MasFilterPanel extends LitElement {
                 ></aem-tag-picker-field>
 
                 <mas-user-picker
+                    bordered
                     label="Created by"
                     .currentUser=${Store.profile}
                     .selectedUsers=${Store.createdByUsers}
                     .users=${Store.users}
                 ></mas-user-picker>
 
-                <sp-action-button quiet @click=${this.#handleRefresh} title="Clear all filters"
-                    >Reset Filters
-                    <sp-icon-refresh slot="icon"></sp-icon-refresh>
-                </sp-action-button>
+                <sp-action-button
+                    class="reset-filters"
+                    quiet
+                    @click=${this.#handleRefresh}
+                    title="Clear all filters"
+                    >Clear all</sp-action-button
+                >
             </div>
-            <sp-tags>
-                ${repeat(
-                    Object.values(this.tagsByType)
-                        .flat()
-                        .filter((tag) => tag),
-                    (tag) => tag.path,
-                    (tag) => html`
-                        <sp-tag key=${tag.path} size="s" deletable @delete=${this.#handleTagDelete} .value=${tag}
-                            >${tag.title}</sp-tag
-                        >
-                    `,
-                )}
-                ${this.createdByUsersTags}
-            </sp-tags>
+            ${this.tagsReady
+                ? html`<sp-tags>
+                      ${repeat(
+                          Object.values(this.tagsByType)
+                              .flat()
+                              .filter((tag) => tag),
+                          (tag) => tag.path,
+                          (tag) => html`
+                              <sp-tag key=${tag.path} deletable @delete=${this.#handleTagDelete} .value=${tag}
+                                  >${tag.title}</sp-tag
+                              >
+                          `,
+                      )}
+                      ${this.createdByUsersTags}
+                  </sp-tags>`
+                : nothing}
         `;
     }
 
-    get filterIcon() {
-        return html`<sp-icon class="filter-icon">
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 36 36"
-                role="img"
-                fill="currentColor"
-                height="20"
-                width="20"
-                aria-hidden="true"
-                aria-label=""
-            >
-                <path
-                    class="filter-icon-path"
-                    d="M30.946 2H3.054a1 1 0 0 0-.787 1.617L14 18.589V33.9a.992.992 0 0 0 1.68.824l3.981-4.153a1.219 1.219 0 0 0 .339-.843V18.589L31.733 3.617A1 1 0 0 0 30.946 2Z"
-                ></path></svg
-        ></sp-icon>`;
-    }
 }
 
 customElements.define('mas-filter-panel', MasFilterPanel);

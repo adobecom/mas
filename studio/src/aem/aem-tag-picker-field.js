@@ -56,6 +56,8 @@ class AemTagPickerField extends LitElement {
         personalizationEnabled: { type: Boolean, attribute: 'personalization-enabled' },
         /** When true, all interactive controls (trigger, search, checkboxes, reset/apply) are locked. */
         disabled: { type: Boolean, reflect: true },
+        /** When true, renders a bordered (non-quiet) trigger so the host can apply Picker-style theming. */
+        bordered: { type: Boolean, reflect: true },
     };
 
     static styles = css`
@@ -113,12 +115,115 @@ class AemTagPickerField extends LitElement {
         }
 
         sp-action-button[slot='trigger'] {
-            --mod-actionbutton-border-radius: 16px;
+            --mod-actionbutton-border-radius: var(--aem-tag-picker-trigger-border-radius, 16px);
         }
 
         sp-popover.checkbox-popover {
             min-width: 248px;
             border-radius: 10px;
+        }
+
+        /* Filter-mode popover styling — Figma "Popover" spec.
+           Activated via the bordered host attribute (set by mas-filter-panel). */
+        :host([bordered]) sp-popover.checkbox-popover {
+            min-width: 220px;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            background: var(--spectrum-gray-25, #ffffff);
+            box-shadow:
+                0 0 2px rgba(0, 0, 0, 0.12),
+                0 2px 6px rgba(0, 0, 0, 0.04),
+                0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        :host([bordered]) #content {
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        :host([bordered]) .checkbox-list {
+            gap: 4px;
+            padding-inline-start: 0;
+            max-height: none;
+            overflow: visible;
+        }
+
+        /* Product Code and Template (variant) — show 8 rows, scroll past that.
+           8 × 32px row + 7 × 4px gap = 284px. */
+        :host([bordered][top='product_code']) .checkbox-list,
+        :host([bordered][top='variant']) .checkbox-list {
+            max-height: 284px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        :host([bordered]) .checkbox-list sp-checkbox {
+            box-sizing: border-box;
+            height: 32px;
+            min-height: 32px;
+            padding: 0 12px;
+            align-items: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.13s ease-in-out;
+            --mod-checkbox-label-font-weight: 500;
+            --mod-checkbox-font-weight: 500;
+            --mod-checkbox-control-to-text-spacing: 10px;
+            /* The Spectrum label has margin-top to baseline-align multi-line text
+               with the checkbox. Zero every plausible token so single-line labels
+               sit on the same vertical center as the control. */
+            --mod-checkbox-label-padding-top: 0;
+            --mod-checkbox-label-padding-block-start: 0;
+            --mod-checkbox-label-margin-top: 0;
+            --mod-checkbox-label-margin-block-start: 0;
+            --mod-checkbox-text-padding-top: 0;
+            --mod-checkbox-text-spacing-block-start: 0;
+            --mod-checkbox-text-to-control-spacing-vertical: 0;
+            --mod-checkbox-spacing-block-start: 0;
+            --mod-checkbox-top-to-text: 0;
+            --spectrum-checkbox-text-padding-top: 0;
+            --spectrum-checkbox-spacing-text: 0;
+            --spectrum-checkbox-top-to-text: 0;
+        }
+
+        :host([bordered]) .checkbox-list sp-checkbox::part(label) {
+            margin-top: 0;
+            margin-block-start: 0;
+            padding-top: 0;
+            padding-block-start: 0;
+        }
+
+        /* Hover state — Figma menu item hover background. */
+        :host([bordered]) .checkbox-list sp-checkbox:hover {
+            background-color: var(--spectrum-gray-100, #f3f3f3);
+        }
+
+        /* Personalization filter popover — Figma "Popover" spec with switch header. */
+        :host([bordered][personalization-toggle]) #content {
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        :host([bordered][personalization-toggle]) .toggle-header {
+            padding-inline: 12px;
+            padding-block-end: 0;
+            min-height: 32px;
+            gap: 8px;
+        }
+
+        :host([bordered][personalization-toggle]) .toggle-divider {
+            height: 1px;
+            background-color: var(--spectrum-gray-200, #e1e1e1);
+            border-radius: 2px;
+            margin: 0;
+        }
+
+        :host([bordered][personalization-toggle]) .checkbox-list {
+            gap: 4px;
         }
 
         .checkbox-list {
@@ -591,8 +696,24 @@ class AemTagPickerField extends LitElement {
 
     #getTagTextByMode(tag) {
         if (!tag) return '';
-        if (this.displayValue) return tag.name || tag.title || '';
-        return tag.title || tag.name || '';
+        const text = this.displayValue ? tag.name || tag.title || '' : tag.title || tag.name || '';
+        if (!text) return '';
+        // Per-category casing rules:
+        //   plan_type, market_segments → words ≤4 chars uppercased (ABM, M2M, COM, EDU…),
+        //                                longer words title-cased (Perpetual).
+        //   everything else            → Title Case Each Word, but ONLY when the source
+        //   text is all-lowercase (slug-derived). Preserve AEM-supplied casing like
+        //   "SMB", "iOS", "Adobe Express", "Logged In".
+        const flat = text.replace(/[-_]+/g, ' ');
+        const titleCase = (w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w);
+        if (this.top === 'plan_type' || this.top === 'market_segments') {
+            return flat
+                .split(/\s+/)
+                .map((w) => (w.length <= 4 ? w.toUpperCase() : titleCase(w)))
+                .join(' ');
+        }
+        if (/^[a-z\s]+$/.test(flat)) return flat.replace(/\b\w/g, (c) => c.toUpperCase());
+        return flat;
     }
 
     // Convert a path to a tag's display text based on mode
@@ -600,7 +721,8 @@ class AemTagPickerField extends LitElement {
         const tag = this.#data.get(path);
         if (tag) return this.#getTagTextByMode(tag);
         if (fallback) return fallback;
-        return path?.split('/').pop() || '';
+        const last = path?.split('/').pop() || '';
+        return last ? last.charAt(0).toUpperCase() + last.slice(1) : '';
     }
 
     /**
@@ -692,6 +814,17 @@ class AemTagPickerField extends LitElement {
             this.tempValue = this.isCheckboxTagsMode ? this.#selectedPaths(currentValue) : [...currentValue];
         }
         this.#updateMargin();
+        this.#suppressSearchAutocomplete();
+    }
+
+    // Browser autofill suggestions ignore `autocomplete="off"` on Spectrum
+    // wrappers — patch the real <input> inside sp-search's shadow DOM.
+    #suppressSearchAutocomplete() {
+        const search = this.shadowRoot?.querySelector('sp-search');
+        const input = search?.shadowRoot?.querySelector('input');
+        if (!input) return;
+        if (input.getAttribute('autocomplete') !== 'off') input.setAttribute('autocomplete', 'off');
+        if (input.hasAttribute('name')) input.removeAttribute('name');
     }
 
     async #notifyChange() {
@@ -808,6 +941,15 @@ class AemTagPickerField extends LitElement {
             if (changed) this.#notifyChange();
             return;
         }
+        // Filter-mode: commit temp selections to value on outside-click close.
+        if (this.bordered) {
+            const nextValue = [...(this.tempValue || [])];
+            const currentValue = [...this.#asValueArray()];
+            const changed = !this.#hasSameSelections(nextValue, currentValue);
+            this.value = nextValue;
+            if (changed) this.#notifyChange();
+            return;
+        }
         this.tempValue = [...this.#asValueArray()];
     }
 
@@ -850,7 +992,7 @@ class AemTagPickerField extends LitElement {
                 ${showSearch
                     ? html`
                           <sp-search
-                              name="tag-picker-search"
+                              autocomplete="off"
                               @input=${this.#handleSearchInput}
                               placeholder="Search"
                               ?disabled=${this.disabled}
@@ -877,7 +1019,7 @@ class AemTagPickerField extends LitElement {
                         },
                     )}
                 </div>
-                ${this.isCheckboxTagsMode || this.personalizationToggle
+                ${this.isCheckboxTagsMode || this.personalizationToggle || this.bordered
                     ? nothing
                     : html`<div id="footer">
                           <span> ${this.selectedText} </span>
@@ -910,7 +1052,7 @@ class AemTagPickerField extends LitElement {
             <overlay-trigger placement="bottom" @sp-closed=${this.#handleCheckoxMenuClose}>
                 <sp-action-button
                     slot="trigger"
-                    ?quiet=${!this.isCheckboxTagsMode}
+                    ?quiet=${!this.isCheckboxTagsMode && !this.bordered}
                     aria-label=${this.triggerLabel}
                     ?disabled=${this.disabled}
                 >

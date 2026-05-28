@@ -82,41 +82,6 @@ class MasToolbar extends LitElement {
             white-space: nowrap;
         }
 
-        .filters-button {
-            border: none;
-            font-weight: bold;
-            cursor: default;
-        }
-
-        .filters-button:not(.shown) {
-            background-color: #fff;
-            color: var(--spectrum-gray-700);
-        }
-
-        .filters-button.shown {
-            background-color: var(--spectrum-blue-100);
-            color: var(--spectrum-accent-color-1000);
-        }
-
-        .filters-button.shown:hover {
-            background-color: var(--spectrum-blue-200);
-        }
-
-        .filters-button:not(.shown):hover {
-            background-color: var(--spectrum-actionbutton-background-color-hover);
-        }
-
-        .filters-badge {
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--spectrum-accent-color-1000);
-            color: var(--spectrum-white);
-            border-radius: 2px;
-        }
-
         sp-search {
             flex-grow: 1;
             max-width: 400px;
@@ -235,12 +200,6 @@ class MasToolbar extends LitElement {
 
     get searchAndFilterControls() {
         return html`<div id="read">
-            <sp-action-button toggles label="Filter" class="filters-button ${this.filterCount > 0 ? 'shown' : ''}">
-                ${!this.filterCount > 0
-                    ? html`<sp-icon-filter slot="icon"></sp-icon-filter>`
-                    : html`<div slot="icon" class="filters-badge">${this.filterCount}</div>`}
-                Filter</sp-action-button
-            >
             <sp-search
                 label="Search"
                 placeholder="Search"
@@ -277,7 +236,7 @@ class MasToolbar extends LitElement {
         if (this.selecting.value) return nothing;
         return html`<div id="write">
             ${this.createButton}
-            <sp-button @click=${() => Store.selecting.set(true)}>
+            <sp-button variant="primary" treatment="outline" @click=${() => Store.selecting.set(true)}>
                 <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
                 Select
             </sp-button>

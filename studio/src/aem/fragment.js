@@ -132,6 +132,28 @@ export class Fragment {
         return variations.length > 0;
     }
 
+    getPublishableReferences() {
+        if (!this.references?.length) return { variations: [], cards: [] };
+
+        const publishableStatuses = new Set(['DRAFT', 'UNPUBLISHED']);
+        const variationPaths = new Set(this.getFieldValues('variations'));
+        const cardPaths = new Set(this.getFieldValues('cards'));
+
+        const variations = [];
+        const cards = [];
+
+        for (const ref of this.references) {
+            if (!publishableStatuses.has(ref.status?.toUpperCase())) continue;
+            if (variationPaths.has(ref.path)) {
+                variations.push(ref);
+            } else if (cardPaths.has(ref.path)) {
+                cards.push(ref);
+            }
+        }
+
+        return { variations, cards };
+    }
+
     /**
      * Updates a field's values.
      * For variations: if values match parent exactly, resets to inherited state.

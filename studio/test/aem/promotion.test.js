@@ -257,6 +257,20 @@ describe('Promotion', () => {
         });
     });
 
+    describe('isPromotionModified', () => {
+        it('returns true when fragment status is MODIFIED', () => {
+            mockFragmentData.status = 'MODIFIED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isPromotionModified).to.be.true;
+        });
+
+        it('returns false when fragment status is PUBLISHED', () => {
+            mockFragmentData.status = 'PUBLISHED';
+            const promotion = new Promotion(mockFragmentData);
+            expect(promotion.isPromotionModified).to.be.false;
+        });
+    });
+
     describe('inherited Fragment methods', () => {
         it('should be able to get field values', () => {
             const promotion = new Promotion(mockFragmentData);

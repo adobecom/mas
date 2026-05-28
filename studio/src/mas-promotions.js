@@ -284,18 +284,21 @@ class MasPromotions extends LitElement {
                             <sp-icon-edit slot="icon"></sp-icon-edit>
                             Edit
                         </sp-menu-item>
-                        ${promotion.get().isPromotionPublished
-                            ? html`<sp-menu-item @click=${() => this.#handleUnpublishPromotionFromList(promotion)}>
-                                  <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
-                                  Unpublish
-                              </sp-menu-item>`
-                            : html`<sp-menu-item
+                        ${!promotion.get().isPromotionPublished || promotion.get().isPromotionModified
+                            ? html`<sp-menu-item
                                   ?disabled=${promotion.get().promotionStatus === 'expired'}
                                   @click=${() => this.#handlePublishPromotionFromList(promotion)}
                               >
                                   <sp-icon-publish slot="icon"></sp-icon-publish>
                                   Publish
-                              </sp-menu-item>`}
+                              </sp-menu-item>`
+                            : nothing}
+                        ${promotion.get().isPromotionPublished
+                            ? html`<sp-menu-item @click=${() => this.#handleUnpublishPromotionFromList(promotion)}>
+                                  <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
+                                  Unpublish
+                              </sp-menu-item>`
+                            : nothing}
                         <sp-menu-item disabled>
                             <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                             Duplicate
@@ -381,7 +384,7 @@ class MasPromotions extends LitElement {
     async #handlePublishPromotionFromList(promotion) {
         const fragment = promotion.get();
         if (!fragment?.id) return;
-        if (fragment.isPromotionPublished) {
+        if (fragment.isPromotionPublished && !fragment.isPromotionModified) {
             return;
         }
         if (fragment.promotionStatus === 'expired') {

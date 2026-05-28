@@ -305,7 +305,7 @@ class MasPromotionsEditor extends LitElement {
             showToast('This promotion has ended. Update the dates to publish again.', 'info');
             return;
         }
-        if (this.fragment.isPromotionPublished) {
+        if (this.fragment.isPromotionPublished && !this.fragment.isPromotionModified) {
             return;
         }
         this.promotionPublish = true;
@@ -329,15 +329,6 @@ class MasPromotionsEditor extends LitElement {
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
-        }
-    };
-
-    #handleTogglePublishPromotion = async () => {
-        if (!this.fragment?.id || this.isNewPromotion) return;
-        if (this.fragment.isPromotionPublished) {
-            await this.#handleUnpublishPromotion();
-        } else {
-            await this.#handlePublishPromotion();
         }
     };
 
@@ -899,15 +890,26 @@ class MasPromotionsEditor extends LitElement {
                     ${this.isNewPromotion
                         ? html`<sp-button @click=${this.#handleCreatePromotion} ?disabled=${this.isCreated}>Create</sp-button>`
                         : html`
-                              <sp-button
-                                  variant="secondary"
-                                  treatment="outline"
-                                  @click=${this.#handleTogglePublishPromotion}
-                                  ?disabled=${this.promotionPublish ||
-                                  (!this.fragment?.isPromotionPublished && this.fragment?.promotionStatus === 'expired')}
-                              >
-                                  ${this.fragment?.isPromotionPublished ? 'Unpublish' : 'Publish'}
-                              </sp-button>
+                              ${!this.fragment?.isPromotionPublished || this.fragment?.isPromotionModified
+                                  ? html`<sp-button
+                                        variant="secondary"
+                                        treatment="outline"
+                                        @click=${this.#handlePublishPromotion}
+                                        ?disabled=${this.promotionPublish || this.fragment?.promotionStatus === 'expired'}
+                                    >
+                                        Publish
+                                    </sp-button>`
+                                  : nothing}
+                              ${this.fragment?.isPromotionPublished
+                                  ? html`<sp-button
+                                        variant="secondary"
+                                        treatment="outline"
+                                        @click=${this.#handleUnpublishPromotion}
+                                        ?disabled=${this.promotionPublish}
+                                    >
+                                        Unpublish
+                                    </sp-button>`
+                                  : nothing}
                               <sp-button @click=${this.#handleUpdatePromotion} ?disabled=${updateDisabled}>Update</sp-button>
                           `}
                 </div>

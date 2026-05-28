@@ -30,6 +30,10 @@ export class Promotion extends Fragment {
         return this.status === FRAGMENT_STATUS.PUBLISHED || this.status === FRAGMENT_STATUS.MODIFIED;
     }
 
+    get isPromotionModified() {
+        return this.status === FRAGMENT_STATUS.MODIFIED;
+    }
+
     get promotionStatus() {
         if (!this.startDateValue || !this.endDateValue) {
             return 'unknown';

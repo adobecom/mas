@@ -302,7 +302,7 @@ describe('MasPromotionsEditor', () => {
             expect(buttonTexts).to.include('Create');
         });
 
-        it('shows Update and Publish on the toggle when promotion is not published', async () => {
+        it('shows Update and Publish when promotion is not published', async () => {
             const el = await mountEditor();
             el.isNewPromotion = false;
             await el.updateComplete;
@@ -310,12 +310,71 @@ describe('MasPromotionsEditor', () => {
                 b.textContent.trim(),
             );
             expect(buttonTexts).to.include('Update');
-            const publishOrUnpublish = buttonTexts.filter((t) => t === 'Publish' || t === 'Unpublish');
-            expect(publishOrUnpublish.length).to.equal(1);
-            expect(publishOrUnpublish[0]).to.equal('Publish');
+            expect(buttonTexts).to.include('Publish');
+            expect(buttonTexts).to.not.include('Unpublish');
         });
 
-        it('shows Unpublish on the toggle when promotion is published', async () => {
+        it('shows Publish and Unpublish when promotion is modified', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'promo-modified',
+                        title: 'Modified promo',
+                        startDate: '2026-01-01T00:00:00.000Z',
+                        endDate: '2027-07-20T23:59:59.000Z',
+                        status: 'MODIFIED',
+                    }),
+                ),
+            );
+            const el = await mountEditor();
+            await el.updateComplete;
+            const buttonTexts = Array.from(el.renderRoot.querySelectorAll('.promotions-form-buttons sp-button')).map((b) =>
+                b.textContent.trim(),
+            );
+            expect(buttonTexts).to.include('Publish');
+            expect(buttonTexts).to.include('Unpublish');
+        });
+
+        it('republishes when Publish is clicked on a modified promotion', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const promotion = makePromotion({
+                id: 'promo-modified',
+                title: 'Modified promo',
+                startDate: '2026-01-01T00:00:00.000Z',
+                endDate: '2027-07-20T23:59:59.000Z',
+                status: 'MODIFIED',
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const publishFragment = sandbox.stub().resolves(true);
+            const { el } = await mountEditorWithRepo({
+                publishFragment,
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(
+                                    makeFragmentData({
+                                        id: 'promo-modified',
+                                        title: 'Modified promo',
+                                        startDate: '2026-01-01T00:00:00.000Z',
+                                        endDate: '2027-07-20T23:59:59.000Z',
+                                        status: 'PUBLISHED',
+                                    }),
+                                ),
+                            },
+                        },
+                    },
+                    getFragmentByPath: sandbox.stub().resolves(null),
+                },
+            });
+            await el.updateComplete;
+            clickPromotionsFormButton(el, 'Publish');
+            await el.updateComplete;
+            expect(publishFragment.calledOnce).to.be.true;
+        });
+
+        it('shows Unpublish only when promotion is published', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(
                 new FragmentStore(

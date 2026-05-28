@@ -278,7 +278,7 @@ class MasToolbar extends LitElement {
         return html`<overlay-trigger id="trigger" placement="bottom" offset="6">
             <sp-button class="create-button" variant="accent" slot="trigger">
                 <sp-icon-add slot="icon"></sp-icon-add>
-                Create
+                <span>Create</span>
             </sp-button>
             <sp-popover slot="click-content" direction="bottom" tip>
                 <sp-menu>
@@ -301,7 +301,7 @@ class MasToolbar extends LitElement {
             ${this.createButton}
             <sp-button class="select-button" variant="secondary" treatment="outline" @click=${() => Store.selecting.set(true)}>
                 <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
-                Select
+                <span>Select</span>
             </sp-button>
             <sp-action-menu
                 selects="single"

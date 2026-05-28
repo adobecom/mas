@@ -6,6 +6,7 @@ export default class BulkActionsPage {
         this.bulkPublishEditor = page.locator('mas-bulk-publish-editor');
         this.addBySearchButton = this.bulkPublishEditor.locator('[data-testid="add-by-search-btn"]');
         this.addItemsDialog = page.locator('mas-add-items-dialog');
+        this.addItemsDialogWrapper = this.addItemsDialog.locator('sp-dialog-wrapper');
         this.searchInput = this.addItemsDialog.locator('sp-search');
         this.fragmentsTab = this.addItemsDialog.locator('sp-tab[value="cards"]');
         this.collectionsTab = this.addItemsDialog.locator('sp-tab[value="collections"]');
@@ -32,7 +33,7 @@ export default class BulkActionsPage {
 
     async openBulkPublishAddBySearch() {
         await this.addBySearchButton.click();
-        await this.addItemsDialog.waitFor({ state: 'visible' });
+        await this.searchInput.waitFor({ state: 'visible' });
     }
 
     async switchToTab(tabName) {
@@ -45,8 +46,9 @@ export default class BulkActionsPage {
     }
 
     async searchFor(query) {
-        await this.searchInput.fill(query);
-        await this.searchInput.press('Enter');
+        const innerInput = this.searchInput.locator('input');
+        await innerInput.fill(query);
+        await innerInput.press('Enter');
     }
 
     async clickSelectAll() {

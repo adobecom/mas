@@ -121,7 +121,7 @@ test.describe('M@S Studio Bulk Actions Test Suite', () => {
                 const count = await bulkActions.tableRowCheckboxes.count();
                 expect(count).toBeGreaterThan(0);
                 for (let i = 0; i < count; i += 1) {
-                    await expect(bulkActions.tableRowCheckboxes.nth(i)).toBeChecked();
+                    await expect(bulkActions.tableRowCheckboxes.nth(i)).toHaveJSProperty('checked', true);
                 }
             });
 

@@ -65,4 +65,17 @@ export class Promotion extends Fragment {
 
         return 'active';
     }
+
+    get promotionListFilterKey() {
+        const displayStatus = this.promotionStatus;
+        if (displayStatus !== 'modified') {
+            return displayStatus;
+        }
+        const startDate = new Date(this.startDateValue);
+        const now = new Date();
+        if (!isNaN(startDate.getTime()) && now < startDate) {
+            return 'scheduled';
+        }
+        return 'active';
+    }
 }

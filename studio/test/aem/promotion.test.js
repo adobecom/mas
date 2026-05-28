@@ -257,6 +257,61 @@ describe('Promotion', () => {
         });
     });
 
+    describe('promotionListFilterKey getter', () => {
+        let now;
+
+        beforeEach(() => {
+            now = new Date();
+        });
+
+        it('returns active for modified promotion within active date range', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
+            mockFragmentData.status = 'MODIFIED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionStatus).to.equal('modified');
+            expect(promotion.promotionListFilterKey).to.equal('active');
+        });
+
+        it('returns scheduled for modified promotion before start date', () => {
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const nextWeek = new Date(now);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+
+            mockFragmentData.fields[2].values = [tomorrow.toISOString()];
+            mockFragmentData.fields[3].values = [nextWeek.toISOString()];
+            mockFragmentData.status = 'MODIFIED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionStatus).to.equal('modified');
+            expect(promotion.promotionListFilterKey).to.equal('scheduled');
+        });
+
+        it('matches promotionStatus when not modified', () => {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            mockFragmentData.fields[2].values = [yesterday.toISOString()];
+            mockFragmentData.fields[3].values = [tomorrow.toISOString()];
+            mockFragmentData.status = 'PUBLISHED';
+
+            const promotion = new Promotion(mockFragmentData);
+
+            expect(promotion.promotionListFilterKey).to.equal(promotion.promotionStatus);
+        });
+    });
+
     describe('isPromotionModified', () => {
         it('returns true when fragment status is MODIFIED', () => {
             mockFragmentData.status = 'MODIFIED';

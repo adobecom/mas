@@ -452,7 +452,9 @@ class MasPromotions extends LitElement {
         Store.promotions.list.filter.set(filter);
 
         if (filter !== 'all') {
-            const filteredPromotions = this.promotionsData.filter((promotion) => promotion.value?.promotionStatus === filter);
+            const filteredPromotions = this.promotionsData.filter(
+                (promotion) => promotion.value?.promotionListFilterKey === filter,
+            );
             this.promotionsData = filteredPromotions;
         }
     }

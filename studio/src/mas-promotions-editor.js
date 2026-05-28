@@ -648,6 +648,14 @@ class MasPromotionsEditor extends LitElement {
         this.isSelectedItemsOpen = !this.isSelectedItemsOpen;
     };
 
+    #alignItemsDialogFooter = ({ target }) => {
+        const slotDiv = target?.shadowRoot?.querySelector('div[slot="footer"]');
+        if (!slotDiv) return;
+        slotDiv.style.width = '100%';
+        slotDiv.style.display = 'flex';
+        slotDiv.style.justifyContent = 'flex-end';
+    };
+
     renderAddItemsDialog() {
         const footerContent = html`
             <sp-button-group>
@@ -669,6 +677,7 @@ class MasPromotionsEditor extends LitElement {
                 underlay
                 dismissable
                 no-divider
+                @sp-opened=${this.#alignItemsDialogFooter}
                 @confirm=${this.#confirmItemSelection}
                 @cancel=${this.#cancelItemSelection}
                 @close=${this.#restoreItemsSnapshot}

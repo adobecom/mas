@@ -15,5 +15,38 @@ export default {
             browserParams: '#path=nala&page=content',
             tags: '@mas-studio @bulk-actions @action-menu',
         },
+        {
+            tcid: '2',
+            name: '@studio-bulk-publish-select-all-fragments',
+            path: '/studio.html',
+            browserParams: '#path=nala&page=content',
+            tags: '@mas-studio @bulk-actions @bulk-publish @select-all',
+            data: {
+                searchQuery: 'nala-bulk-publish-fr_FR',
+                tab: 'cards',
+            },
+        },
+        {
+            tcid: '3',
+            name: '@studio-bulk-publish-select-all-collections',
+            path: '/studio.html',
+            browserParams: '#path=nala&page=content',
+            tags: '@mas-studio @bulk-actions @bulk-publish @select-all',
+            data: {
+                searchQuery: 'nala-bulk-publish-fr_FR',
+                tab: 'collections',
+            },
+        },
+        {
+            tcid: '4',
+            name: '@studio-bulk-publish-select-all-placeholders',
+            path: '/studio.html',
+            browserParams: '#path=nala&page=content',
+            tags: '@mas-studio @bulk-actions @bulk-publish @select-all',
+            data: {
+                searchQuery: 'nala-bulk-publish-fr_FR',
+                tab: 'placeholders',
+            },
+        },
     ],
 };

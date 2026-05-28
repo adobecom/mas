@@ -55,7 +55,7 @@ class MasPublishDialog extends LitElement {
 
     _renderRef(ref) {
         return html`
-            <div>
+            <div class="ref-item">
                 <sp-checkbox
                     data-ref-id=${ref.id}
                     .checked=${this._checkedIds.has(ref.id)}
@@ -72,24 +72,16 @@ class MasPublishDialog extends LitElement {
         const { variations = [], cards = [] } = this.refs ?? {};
         const hasRefs = variations.length > 0 || cards.length > 0;
         return html`
-            <sp-dialog-wrapper
-                open
-                mode="modal"
-                cancel-label="Cancel"
-                confirm-label="Publish"
-                underlay
-                no-divider
-                @confirm=${this.confirm}
-                @cancel=${this.cancel}
-                @close=${this.cancel}
-            >
+            <sp-underlay open @click=${this.cancel}></sp-underlay>
+            <sp-dialog size="m" no-divider>
                 <h2 slot="heading">Publish fragment</h2>
-                <p class="intro">The following references can be published together. Uncheck items to keep them in draft.</p>
+                <p class="intro">The following references can be published together. Check items to include them in publish.</p>
                 ${hasRefs
                     ? html`
                           <div class="select-all-row">
                               <sp-checkbox
                                   data-select-all
+                                  emphasized
                                   .checked=${this._allSelected}
                                   @change=${(e) => this._toggleSelectAll(e.target.checked)}
                                   >Select all</sp-checkbox
@@ -109,14 +101,17 @@ class MasPublishDialog extends LitElement {
                           <div class="ref-list">${cards.map((r) => this._renderRef(r))}</div>
                       `
                     : nothing}
-            </sp-dialog-wrapper>
+                <sp-button slot="button" variant="secondary" treatment="outline" @click=${this.cancel}>Cancel</sp-button>
+                <sp-button slot="button" variant="accent" @click=${this.confirm}>Publish</sp-button>
+            </sp-dialog>
         `;
     }
 
     static show(refs) {
         return new Promise((resolve) => {
             const dialog = document.createElement('mas-publish-dialog');
-            document.body.appendChild(dialog);
+            const container = document.querySelector('sp-theme') ?? document.body;
+            container.appendChild(dialog);
 
             const cleanup = (result) => {
                 dialog.remove();

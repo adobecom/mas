@@ -1,6 +1,26 @@
 import { css } from 'lit';
 
 export const styles = css`
+    :host {
+        display: contents;
+    }
+
+    sp-underlay:not([open]) + sp-dialog {
+        display: none;
+    }
+
+    sp-underlay + sp-dialog {
+        position: fixed;
+        border-radius: 16px;
+        z-index: 1;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 480px;
+        background: var(--spectrum-white);
+        max-height: 650px;
+    }
+
     .section-title {
         font-weight: 700;
         margin: 12px 0 4px;
@@ -11,6 +31,11 @@ export const styles = css`
         flex-direction: column;
         gap: 6px;
         margin-bottom: 8px;
+    }
+    .ref-item {
+        background: var(--spectrum-blue-100, #e8f0fe);
+        border-radius: 8px;
+        padding: 10px 12px;
     }
     .ref-path {
         font-size: 12px;

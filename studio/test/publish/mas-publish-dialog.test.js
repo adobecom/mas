@@ -7,7 +7,7 @@ const CARD = { id: 'card-1', path: '/content/dam/mas/sandbox/en_US/some-card', s
 describe('MasPublishDialog', () => {
     it('open이 false면 아무것도 렌더링하지 않음', async () => {
         const el = await fixture(html`<mas-publish-dialog></mas-publish-dialog>`);
-        expect(el.shadowRoot.querySelector('sp-dialog-wrapper')).to.be.null;
+        expect(el.shadowRoot.querySelector('sp-dialog')).to.be.null;
     });
 
     it('open이 true면 Select All + 개별 체크박스 렌더링', async () => {
@@ -39,7 +39,7 @@ describe('MasPublishDialog', () => {
         el.addEventListener('publish-confirmed', (e) => {
             event = e;
         });
-        el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+        el.confirm();
         expect(event).to.exist;
         expect(event.detail.selectedIds).to.deep.equal([]);
         expect(event.detail.allSelected).to.be.false;
@@ -75,7 +75,7 @@ describe('MasPublishDialog', () => {
         el.addEventListener('publish-confirmed', (e) => {
             event = e;
         });
-        el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+        el.confirm();
         expect(event.detail.selectedIds).to.include.members(['var-1', 'card-1']);
         expect(event.detail.allSelected).to.be.true;
     });
@@ -90,7 +90,7 @@ describe('MasPublishDialog', () => {
         el.addEventListener('publish-cancelled', () => {
             cancelled = true;
         });
-        el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('cancel'));
+        el.cancel();
         expect(cancelled).to.be.true;
     });
 });

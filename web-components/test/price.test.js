@@ -1195,6 +1195,30 @@ describe('commerce service', () => {
             const { buildPriceHTML } = initMasCommerceService();
             expect(buildPriceHTML([])).to.be.empty;
         });
+
+        it('does not pick the promo template when the offer carries no promotion, even if promotionCode is in scope', async () => {
+            const { buildPriceHTML } = await initMasCommerceService();
+            const nonPromoAbmOffer = [
+                {
+                    priceDetails: {
+                        price: 43.99,
+                        formatString: "'A$'#,##0.00",
+                    },
+                    planType: 'ABM',
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                },
+            ];
+            expect(() =>
+                buildPriceHTML(nonPromoAbmOffer, {
+                    country: 'AU',
+                    language: 'en',
+                    displayAnnual: true,
+                    promotionCode: 'CCI_AA_3MO_AUS',
+                    template: 'price',
+                }),
+            ).to.not.throw();
+        });
     });
 
     describe('function "direct price calls"', () => {

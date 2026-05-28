@@ -93,6 +93,12 @@ export const CSS = `
     min-width: 1px;
   }
 
+  merch-card[variant="mini-compare-chart"] merch-badge span,
+  merch-card[variant="mini-compare-chart"] merch-badge [is="inline-price"] {
+    line-height: 1;
+    min-height: auto;
+  }
+
   merch-card[variant="mini-compare-chart"] [slot="heading-m-price"]  {
     min-height: 30px;
     line-height: 30px;

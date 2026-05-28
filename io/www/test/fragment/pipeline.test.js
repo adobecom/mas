@@ -229,6 +229,17 @@ describe('pipeline corner cases', () => {
         });
     });
 
+    it('unknown locale should return 400 without hitting Odin', async () => {
+        const result = await getFragment({
+            id: 'some-fragment',
+            locale: 'zz_ZZ',
+            state: new MockState(),
+        });
+        expect(result.statusCode).to.equal(400);
+        expect(result.body.message).to.match(/unknown locale/i);
+        expect(fetchStub.called).to.be.false;
+    });
+
     it('bad path should return 400', async () => {
         fetchStub
             .withArgs('https://odin.adobe.com/adobe/contentFragments/some-fr-fr-fragment?references=all-hydrated')

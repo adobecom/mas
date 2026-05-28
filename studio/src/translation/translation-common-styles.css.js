@@ -1,6 +1,11 @@
 import { css } from 'lit';
 
-export { ghostButtonStyles, tableHeaderBaseStyles, tableCellBaseStyles } from '../common/styles/table-styles.css.js';
+export {
+    ghostButtonStyles,
+    tableHeaderBaseStyles,
+    tableBodyBaseStyles,
+    tableCellBaseStyles,
+} from '../common/styles/table-styles.css.js';
 
 export const loadingContainerCenteredStyles = css`
     .loading-container--absolute {

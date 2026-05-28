@@ -194,7 +194,6 @@ class MasFilterPanel extends LitElement {
             --mod-tag-label-color: #c6c6c6;
             color: #c6c6c6;
         }
-
     `;
 
     reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers, Store.users, Store.filters]);
@@ -597,11 +596,7 @@ class MasFilterPanel extends LitElement {
                     .users=${Store.users}
                 ></mas-user-picker>
 
-                <sp-action-button
-                    class="reset-filters"
-                    quiet
-                    @click=${this.#handleRefresh}
-                    title="Clear all filters"
+                <sp-action-button class="reset-filters" quiet @click=${this.#handleRefresh} title="Clear all filters"
                     >Clear all</sp-action-button
                 >
             </div>
@@ -623,7 +618,6 @@ class MasFilterPanel extends LitElement {
                 : nothing}
         `;
     }
-
 }
 
 customElements.define('mas-filter-panel', MasFilterPanel);

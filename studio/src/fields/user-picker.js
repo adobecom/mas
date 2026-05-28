@@ -294,7 +294,9 @@ class MasUserPicker extends LitElement {
                 ? nothing
                 : html`<div id="footer">
                       <span>${this.selectedText}</span>
-                      <sp-button size="s" @click=${this.resetSelection} variant="secondary" treatment="outline"> Reset </sp-button>
+                      <sp-button size="s" @click=${this.resetSelection} variant="secondary" treatment="outline">
+                          Reset
+                      </sp-button>
                       <sp-button size="s" @click=${this.applySelection}> Apply </sp-button>
                   </div>`}
         `;

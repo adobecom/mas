@@ -696,7 +696,9 @@ class AemTagPickerField extends LitElement {
 
     #getTagTextByMode(tag) {
         if (!tag) return '';
-        const text = this.displayValue ? tag.name || tag.title || '' : tag.title || tag.name || '';
+        // displayValue mode is a contract for raw tag values (slug/name) — don't normalize.
+        if (this.displayValue) return tag.name || tag.title || '';
+        const text = tag.title || tag.name || '';
         if (!text) return '';
         // Per-category casing rules:
         //   plan_type, market_segments → words ≤4 chars uppercased (ABM, M2M, COM, EDU…),

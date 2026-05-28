@@ -117,6 +117,17 @@ class MasToolbar extends LitElement {
             height: 32px;
             align-items: center;
             --mod-button-align-items: center;
+        }
+
+        /* Push slotted icon and label of both buttons onto the centre line. */
+        .create-button > *,
+        .select-button > * {
+            align-self: center;
+        }
+
+        .create-button::part(label),
+        .select-button::part(label) {
+            align-self: center;
             --mod-button-border-width: 2px;
             --mod-button-border-color-default: #dadada;
             --mod-button-border-color-hover: #dadada;

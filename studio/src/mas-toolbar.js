@@ -92,6 +92,7 @@ class MasToolbar extends LitElement {
             height: 32px;
             align-items: center;
             --mod-button-align-items: center;
+            line-height: 32px;
             --mod-button-border-radius: 16px;
             --mod-button-background-color-default: #3b63fb;
             --mod-button-background-color-hover: #355abf;
@@ -117,6 +118,7 @@ class MasToolbar extends LitElement {
             height: 32px;
             align-items: center;
             --mod-button-align-items: center;
+            line-height: 32px;
         }
 
         /* Push slotted icon and label of both buttons onto the centre line. */
@@ -278,7 +280,7 @@ class MasToolbar extends LitElement {
         return html`<overlay-trigger id="trigger" placement="bottom" offset="6">
             <sp-button class="create-button" variant="accent" slot="trigger">
                 <sp-icon-add slot="icon"></sp-icon-add>
-                <span>Create</span>
+                Create
             </sp-button>
             <sp-popover slot="click-content" direction="bottom" tip>
                 <sp-menu>
@@ -301,7 +303,7 @@ class MasToolbar extends LitElement {
             ${this.createButton}
             <sp-button class="select-button" variant="secondary" treatment="outline" @click=${() => Store.selecting.set(true)}>
                 <sp-icon-select-multi slot="icon"></sp-icon-select-multi>
-                <span>Select</span>
+                Select
             </sp-button>
             <sp-action-menu
                 selects="single"

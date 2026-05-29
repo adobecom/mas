@@ -5572,63 +5572,25 @@ merch-card[variant="plans-bizpro"] [slot="terms-link"] a {
     text-decoration: underline;
 }
 
-/* AI Assistant add-on row \u2014 Figma 1098:33812 / 1098:33951:
-   white bg, #8d88f2 border, 8px radius, checkbox + label + trailing sparkle */
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon {
-    display: flex;
-    align-items: center;
-    gap: var(--s2a-spacing-xs, 8px);
-    padding: var(--s2a-spacing-md, 16px) var(--s2a-spacing-sm, 12px);
-    background: var(--s2a-color-background-default, #fff);
-    border: var(--s2a-border-width-sm, 1px) solid #8d88f2;
-    border-radius: var(--s2a-border-radius-sm, 8px);
-    box-sizing: border-box;
-}
-/* Spectrum-2 style checkbox: 20\xD720, 2px border, 2px radius.
-   Filled accent + white checkmark when checked. */
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-checkbox {
-    width: 20px;
-    height: 20px;
-    flex: 0 0 auto;
-    border: 2px solid #8d88f2;
-    border-radius: 2px;
-    box-sizing: border-box;
-    background: #fff;
-    position: relative;
-    cursor: pointer;
-}
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-checkbox[data-checked="true"] {
-    background: #8d88f2;
-    border-color: #8d88f2;
-}
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-checkbox[data-checked="true"]::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-color: #fff;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 12.2 2.5 8.3 3.9 6.9 6.5 9.4 12.1 3.8 13.5 5.2Z'/%3E%3C/svg%3E") center / 12px no-repeat;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 12.2 2.5 8.3 3.9 6.9 6.5 9.4 12.1 3.8 13.5 5.2Z'/%3E%3C/svg%3E") center / 12px no-repeat;
-}
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-label {
+/* AI Assistant add-on row \u2014 Figma 1098:33812 / 1098:33951.
+   Themes the real <merch-addon> injected at slot="addon". The purple frame
+   and trailing sparkle live on the variant's .add-on wrapper (see variantStyle);
+   here we size/colour the merch-addon checkbox + label via its custom props. */
+merch-card[variant="plans-bizpro"] merch-addon[slot="addon"] {
     flex: 1 0 0;
     min-width: 0;
-    font-family: 'Adobe Clean', adobe-clean, sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 18px;
-    letter-spacing: 0;
-    color: var(--s2a-color-content-default, #000);
-    margin: 0;
-}
-/* Trailing sparkle \u2014 same purple\u2192red AI gradient as the AI Assistant section
-   header icon (see studio/src/constants/plans-bizpro-icons.js ai-sparkle). */
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-icon {
-    width: 16px;
-    height: 16px;
-    flex: 0 0 auto;
-    background: linear-gradient(135deg, #8d88f2 0%, #eb1000 100%);
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
+    --merch-addon-gap: var(--s2a-spacing-xs, 8px);
+    --merch-addon-align: center;
+    --merch-addon-checkbox-size: 20px;
+    --merch-addon-checkbox-border: 2px solid #8d88f2;
+    --merch-addon-checkbox-radius: 2px;
+    --merch-addon-checkbox-checked-bg:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fff' d='M6.5 12.2 2.5 8.3 3.9 6.9 6.5 9.4 12.1 3.8 13.5 5.2Z'/%3E%3C/svg%3E")
+        center / 12px;
+    --merch-addon-checkbox-checked-color: #8d88f2;
+    --merch-addon-label-size: 14px;
+    --merch-addon-label-line-height: 18px;
+    --merch-addon-label-color: var(--s2a-color-content-default, #000);
 }
 
 /* Light-DOM color overrides \u2014 beat global promo/legal styling */
@@ -5868,7 +5830,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
     color: inherit;
     text-decoration: underline;
 }
-`;var qc={cardName:{attribute:"name"},subtitle:{tag:"p",slot:"subtitle"},title:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"s"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},perUnitLabel:{tag:"span",slot:"per-unit-label"},callout:{tag:"div",slot:"callout-content",editorLabel:"License callout"},quantitySelect:{tag:"div",slot:"quantity-select"},shortDescription:{tag:"div",slot:"legal-text"},secureLabel:!0,ctas:{slot:"footer",size:"m"},whatsIncluded:{tag:"div",slot:"whats-included"},borderColor:{attribute:"border-color",specialValues:{Black:"black"}},allowedBorderColors:[],style:"consonant"},xe,Jt=class extends C{constructor(){super(...arguments);u(this,"expanded",!1);u(this,"licenseOpen",!1);u(this,"licenseQty",null);E(this,xe,null);u(this,"toggleExpanded",r=>{r.preventDefault(),this.expanded=!this.expanded,this.card.requestUpdate()});u(this,"toggleLicensePopover",r=>{r.preventDefault(),r.stopPropagation(),this.licenseOpen=!this.licenseOpen,this.licenseOpen?(x(this,xe,i=>{i.composedPath().includes(this.card)||(this.licenseOpen=!1,this.card.requestUpdate(),document.removeEventListener("mousedown",h(this,xe)),x(this,xe,null))}),document.addEventListener("mousedown",h(this,xe))):h(this,xe)&&(document.removeEventListener("mousedown",h(this,xe)),x(this,xe,null)),this.card.requestUpdate()});u(this,"selectLicenseQty",r=>{this.licenseQty=r,this.licenseOpen=!1,h(this,xe)&&(document.removeEventListener("mousedown",h(this,xe)),x(this,xe,null));let i=this.quantitySelectEl;i&&(i.selectedValue=Number(r),i.dispatchEvent(new CustomEvent(Z,{detail:{option:Number(r)},bubbles:!0}))),this.card.requestUpdate()})}getGlobalCSS(){return Uc}get hasWhatsIncluded(){return!!this.card.querySelector('[slot="whats-included"]')}get hasCallout(){return!!this.card.querySelector('[slot="callout-content"]')}get hasQuantitySelect(){return!!this.card.querySelector('[slot="quantity-select"]')}get hasPerUnitLabel(){return!!this.card.querySelector('[slot="per-unit-label"]')}get hasPriceOriginal(){return!!this.card.querySelector('[slot="price-original"]')}get hasTermsLink(){return!!this.card.querySelector('[slot="terms-link"]')}get hasAddOn(){return!!this.card.querySelector('[slot="add-on"]')}get hasLegalText(){return!!this.card.querySelector('[slot="legal-text"]')}get quantitySelectEl(){return this.card.querySelector("merch-quantity-select")}get licenseOptions(){let r=this.card.getAttribute("license-options");if(r)return r.split(",").map(c=>c.trim()).filter(Boolean);let i=this.quantitySelectEl;if(!i)return null;let a=parseInt(i.getAttribute("min"),10),n=parseInt(i.getAttribute("max"),10),o=parseInt(i.getAttribute("step"),10)||1;if(Number.isNaN(a)||Number.isNaN(n)||n<a)return null;let s=[];for(let c=a;c<=n;c+=o)s.push(String(c));return s.length?s:null}get licenseLabel(){return this.card.getAttribute("license-label")||this.quantitySelectEl?.getAttribute("title")||"License"}get licenseLabelPlural(){return this.card.getAttribute("license-label-plural")??`${this.licenseLabel}s`}get hasLicenseSelector(){return(this.licenseOptions?.length??0)>0}get currentLicenseValue(){let r=this.licenseOptions;if(!r?.length)return null;if(this.licenseQty!=null)return this.licenseQty;let i=this.quantitySelectEl?.getAttribute("default-value");return i!=null&&r.includes(i)?i:r[0]}formatLicenseRow(r){let a=String(r).replace(/\D/g,"")==="1"?this.licenseLabel:this.licenseLabelPlural;return{value:r,label:a}}renderLicenseSelector(){if(!this.hasLicenseSelector)return g`<slot name="quantity-select"></slot>`;let r=this.licenseOptions,i=this.currentLicenseValue,a=!!this.licenseOpen,{value:n,label:o}=this.formatLicenseRow(i);return g`
+`;var qc={cardName:{attribute:"name"},subtitle:{tag:"p",slot:"subtitle"},title:{tag:"h3",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"s"},prices:{tag:"p",slot:"heading-m"},promoText:{tag:"p",slot:"promo-text"},perUnitLabel:{tag:"span",slot:"per-unit-label"},callout:{tag:"div",slot:"callout-content",editorLabel:"License callout"},quantitySelect:{tag:"div",slot:"quantity-select"},shortDescription:{tag:"div",slot:"legal-text"},secureLabel:!0,addon:!0,ctas:{slot:"footer",size:"m"},whatsIncluded:{tag:"div",slot:"whats-included"},borderColor:{attribute:"border-color",specialValues:{Black:"black"}},allowedBorderColors:[],style:"consonant"},xe,Jt=class extends C{constructor(){super(...arguments);u(this,"expanded",!1);u(this,"licenseOpen",!1);u(this,"licenseQty",null);E(this,xe,null);u(this,"toggleExpanded",r=>{r.preventDefault(),this.expanded=!this.expanded,this.card.requestUpdate()});u(this,"toggleLicensePopover",r=>{r.preventDefault(),r.stopPropagation(),this.licenseOpen=!this.licenseOpen,this.licenseOpen?(x(this,xe,i=>{i.composedPath().includes(this.card)||(this.licenseOpen=!1,this.card.requestUpdate(),document.removeEventListener("mousedown",h(this,xe)),x(this,xe,null))}),document.addEventListener("mousedown",h(this,xe))):h(this,xe)&&(document.removeEventListener("mousedown",h(this,xe)),x(this,xe,null)),this.card.requestUpdate()});u(this,"selectLicenseQty",r=>{this.licenseQty=r,this.licenseOpen=!1,h(this,xe)&&(document.removeEventListener("mousedown",h(this,xe)),x(this,xe,null));let i=this.quantitySelectEl;i&&(i.selectedValue=Number(r),i.dispatchEvent(new CustomEvent(Z,{detail:{option:Number(r)},bubbles:!0}))),this.card.requestUpdate()})}getGlobalCSS(){return Uc}get hasWhatsIncluded(){return!!this.card.querySelector('[slot="whats-included"]')}get hasCallout(){return!!this.card.querySelector('[slot="callout-content"]')}get hasQuantitySelect(){return!!this.card.querySelector('[slot="quantity-select"]')}get hasPerUnitLabel(){return!!this.card.querySelector('[slot="per-unit-label"]')}get hasPriceOriginal(){return!!this.card.querySelector('[slot="price-original"]')}get hasTermsLink(){return!!this.card.querySelector('[slot="terms-link"]')}get hasAddOn(){return!!this.card.querySelector('[slot="addon"]')}get mainPrice(){return this.card.querySelector(`[slot="heading-m"] ${D}[data-template="price"]`)}async adjustAddon(){await this.card.updateComplete;let r=this.card.addon;if(!r)return;r.setAttribute("custom-checkbox","");let i=this.mainPrice;if(!i)return;await i.onceSettled();let a=i.value?.[0]?.planType;a&&(r.planType=a)}async postCardUpdateHook(){this.adjustAddon()}get hasLegalText(){return!!this.card.querySelector('[slot="legal-text"]')}get quantitySelectEl(){return this.card.querySelector("merch-quantity-select")}get licenseOptions(){let r=this.card.getAttribute("license-options");if(r)return r.split(",").map(c=>c.trim()).filter(Boolean);let i=this.quantitySelectEl;if(!i)return null;let a=parseInt(i.getAttribute("min"),10),n=parseInt(i.getAttribute("max"),10),o=parseInt(i.getAttribute("step"),10)||1;if(Number.isNaN(a)||Number.isNaN(n)||n<a)return null;let s=[];for(let c=a;c<=n;c+=o)s.push(String(c));return s.length?s:null}get licenseLabel(){return this.card.getAttribute("license-label")||this.quantitySelectEl?.getAttribute("title")||"License"}get licenseLabelPlural(){return this.card.getAttribute("license-label-plural")??`${this.licenseLabel}s`}get hasLicenseSelector(){return(this.licenseOptions?.length??0)>0}get currentLicenseValue(){let r=this.licenseOptions;if(!r?.length)return null;if(this.licenseQty!=null)return this.licenseQty;let i=this.quantitySelectEl?.getAttribute("default-value");return i!=null&&r.includes(i)?i:r[0]}formatLicenseRow(r){let a=String(r).replace(/\D/g,"")==="1"?this.licenseLabel:this.licenseLabelPlural;return{value:r,label:a}}renderLicenseSelector(){if(!this.hasLicenseSelector)return g`<slot name="quantity-select"></slot>`;let r=this.licenseOptions,i=this.currentLicenseValue,a=!!this.licenseOpen,{value:n,label:o}=this.formatLicenseRow(i);return g`
             <div class="license-select" ?data-open=${a}>
                 <button
                     class="license-select-trigger"
@@ -5950,7 +5912,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
                                 </div>`:w}
                       </div>`:w}
                 ${this.hasAddOn?g`<div class="add-on">
-                          <slot name="add-on"></slot>
+                          <slot name="addon"></slot>
                       </div>`:w}
                 <footer>
                     <slot name="footer"></slot>
@@ -6325,8 +6287,7 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
             letter-spacing: 0;
         }
 
-        :host([variant='plans-bizpro'])
-            .license-select-trigger:focus-visible {
+        :host([variant='plans-bizpro']) .license-select-trigger:focus-visible {
             outline: 2px solid #1473e6;
             outline-offset: 1px;
         }
@@ -6436,6 +6397,29 @@ merch-card[variant="plans-bizpro"] [slot="legal-text"] a {
 
         :host([variant='plans-bizpro']) ::slotted([slot='callout-content']) {
             margin: 0;
+        }
+
+        :host([variant='plans-bizpro']) .add-on {
+            display: flex;
+            align-items: center;
+            gap: var(--s2a-spacing-xs, 8px);
+            padding: var(--s2a-spacing-md, 16px) var(--s2a-spacing-sm, 12px);
+            background: var(--s2a-color-background-default, #fff);
+            border: 1px solid #8d88f2;
+            border-radius: var(--s2a-border-radius-sm, 8px);
+            box-sizing: border-box;
+        }
+
+        :host([variant='plans-bizpro']) .add-on::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            flex: 0 0 auto;
+            background: linear-gradient(135deg, #8d88f2 0%, #eb1000 100%);
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E")
+                center / contain no-repeat;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E")
+                center / contain no-repeat;
         }
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */

@@ -90,6 +90,7 @@ const Store = {
             filter: new ReactiveStore('scheduled'),
             filterOptions: new ReactiveStore([
                 { value: 'all', label: 'All' },
+                { value: 'draft', label: 'Draft' },
                 { value: 'active', label: 'Active' },
                 { value: 'scheduled', label: 'Scheduled' },
                 { value: 'expired', label: 'Expired' },
@@ -98,6 +99,29 @@ const Store = {
         },
         inEdit: new ReactiveStore(null),
         promotionId: new ReactiveStore(null),
+
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()),
+        groupedVariationsData: new ReactiveStore(new Map()),
+
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+
+        showSelected: new ReactiveStore(false),
+        itemHydrateUnreachablePaths: new ReactiveStore([]),
+        // for "Select items" modal from Promotion editor
+        itemPickerSurface: new ReactiveStore(null),
     },
     localeOrRegion: function () {
         return Store.search.value.region || Store.filters.value.locale || 'en_US';

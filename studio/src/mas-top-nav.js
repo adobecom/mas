@@ -175,6 +175,14 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR;
     }
 
+    get isPromotionsPage() {
+        return this.page.value === PAGE_NAMES.PROMOTIONS;
+    }
+
+    get isPromotionsEditorPage() {
+        return this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR;
+    }
+
     get topNavLocale() {
         if (this.isFragmentEditorPage) {
             const fragmentId = this.inEdit.get()?.get()?.id;
@@ -264,7 +272,7 @@ class MasTopNav extends LitElement {
     }
 
     get promotionsEditorBreadcrumbLabel() {
-        return this.promotions.promotionId.get() ? 'Edit project' : 'Create new project';
+        return this.promotions.promotionId.get() ? 'Edit promotion project' : 'Create new promotion project';
     }
 
     get translationEditorBreadcrumbLabel() {
@@ -412,7 +420,9 @@ class MasTopNav extends LitElement {
                                   ?disabled=${this.isFragmentEditorPage ||
                                   this.isTranslationEditorPage ||
                                   this.isSettingsEditorPage ||
-                                  this.isBulkPublishEditorPage}
+                                  this.isBulkPublishEditorPage ||
+                                  this.isPromotionsPage ||
+                                  this.isPromotionsEditorPage}
                               ></mas-nav-folder-picker>
                               <mas-locale-picker
                                   displayMode="strong"

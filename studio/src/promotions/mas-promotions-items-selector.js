@@ -31,7 +31,6 @@ const promotionsItemsSelectorStyles = css`
     }
 
     .selected-items-count {
-        z-index: 10001;
         bottom: 128px;
         pointer-events: auto;
     }

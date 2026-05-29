@@ -216,14 +216,12 @@ class MasSelectItemsTable extends LitElement {
 
     #toggleSelectAll(e) {
         e.stopPropagation();
-        const sliceKey = `selected${this.typeUppercased}`;
-        const store = getItemsSelectionStore()[sliceKey];
+        const store = getItemsSelectionStore()[`selected${this.typeUppercased}`];
         const current = new Set(store.value);
-        const loaded = this.loadedPaths;
         if (this.selectAllChecked) {
-            loaded.forEach((p) => current.delete(p));
+            this.loadedPaths.forEach((p) => current.delete(p));
         } else {
-            loaded.forEach((p) => current.add(p));
+            this.loadedPaths.forEach((p) => current.add(p));
         }
         store.set([...current]);
     }
@@ -421,7 +419,7 @@ class MasSelectItemsTable extends LitElement {
                                                 aria-label="Select all loaded items"
                                             ></sp-checkbox>
                                         </sp-table-head-cell>`
-                                      : html`<sp-table-head-cell class=${column.class ? column.class : ''}>
+                                      : html`<sp-table-head-cell class=${column.class ?? ''}>
                                             ${column.label}
                                         </sp-table-head-cell>`,
                           )}

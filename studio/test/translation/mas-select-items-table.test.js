@@ -1491,17 +1491,11 @@ describe('MasSelectItemsTable', () => {
     });
 
     describe('Select All — header rendering', () => {
+        const HEADER_CHECKBOX_SELECTOR = 'sp-table-head-cell sp-checkbox[aria-label="Select all loaded items"]';
+
         const expectHeaderCheckbox = async (el, { present, checked, indeterminate, disabled }) => {
             await el.updateComplete;
-            const headCells = el.shadowRoot.querySelectorAll('sp-table-head-cell');
-            let found = null;
-            for (const cell of headCells) {
-                const cb = cell.querySelector('sp-checkbox[aria-label="Select all loaded items"]');
-                if (cb) {
-                    found = cb;
-                    break;
-                }
-            }
+            const found = el.shadowRoot.querySelector(HEADER_CHECKBOX_SELECTOR);
             if (!present) {
                 expect(found, 'header checkbox should not be present').to.equal(null);
                 return;
@@ -1573,15 +1567,7 @@ describe('MasSelectItemsTable', () => {
             const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);
             el.dataReady = true;
             await el.updateComplete;
-            const headCells = el.shadowRoot.querySelectorAll('sp-table-head-cell');
-            let cb = null;
-            for (const cell of headCells) {
-                const found = cell.querySelector('sp-checkbox[aria-label="Select all loaded items"]');
-                if (found) {
-                    cb = found;
-                    break;
-                }
-            }
+            const cb = el.shadowRoot.querySelector(HEADER_CHECKBOX_SELECTOR);
             expect(cb, 'checkbox must exist').to.not.equal(null);
             cb.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
             await el.updateComplete;

@@ -529,15 +529,9 @@ describe('MasItemsSelector', () => {
             cardsTable.dataReady = true;
             await cardsTable.updateComplete;
 
-            const headCells = cardsTable.shadowRoot.querySelectorAll('sp-table-head-cell');
-            let cb = null;
-            for (const cell of headCells) {
-                const found = cell.querySelector('sp-checkbox[aria-label="Select all loaded items"]');
-                if (found) {
-                    cb = found;
-                    break;
-                }
-            }
+            const cb = cardsTable.shadowRoot.querySelector(
+                'sp-table-head-cell sp-checkbox[aria-label="Select all loaded items"]',
+            );
             expect(cb, 'header checkbox must exist').to.not.equal(null);
             cb.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
             await el.updateComplete;

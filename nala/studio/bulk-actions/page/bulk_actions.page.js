@@ -6,12 +6,10 @@ export default class BulkActionsPage {
         this.bulkPublishEditor = page.locator('mas-bulk-publish-editor');
         this.addBySearchButton = this.bulkPublishEditor.locator('[data-testid="add-by-search-btn"]');
         this.addItemsDialog = page.locator('mas-add-items-dialog');
-        this.addItemsDialogWrapper = this.addItemsDialog.locator('sp-dialog-wrapper');
         this.searchInput = this.addItemsDialog.locator('sp-search');
         this.fragmentsTab = this.addItemsDialog.locator('sp-tab[value="cards"]');
         this.collectionsTab = this.addItemsDialog.locator('sp-tab[value="collections"]');
         this.placeholdersTab = this.addItemsDialog.locator('sp-tab[value="placeholders"]');
-        this.itemsTable = this.addItemsDialog.locator('mas-select-items-table:not([hidden])');
         this.selectAllCheckbox = this.addItemsDialog.locator(
             'mas-select-items-table:not([hidden]) sp-checkbox[aria-label="Select all loaded items"]',
         );

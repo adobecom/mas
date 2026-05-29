@@ -1,11 +1,34 @@
 import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
 import Store from './store.js';
+import { isPromotionItemSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce } from './utils.js';
 import { canAccessSettings } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
+
+/**
+ * True when the URL hash change only adjusts search-linked params while staying on the promotions editor.
+ * @param {string} previousHash
+ * @param {string} nextHash
+ * @returns {boolean}
+ */
+export function promoHashIsSearchSync(previousHash, nextHash) {
+    const toParams = (h) => new URLSearchParams(h?.startsWith('#') ? h.slice(1) : h || '');
+    const prev = toParams(previousHash);
+    const next = toParams(nextHash);
+    if (next.get('page') !== PAGE_NAMES.PROMOTIONS_EDITOR) return false;
+    if (prev.get('page') && prev.get('page') !== PAGE_NAMES.PROMOTIONS_EDITOR) return false;
+    if (prev.get('promotionId') !== next.get('promotionId')) return false;
+    const ignorable = new Set(['query', 'path']);
+    const keys = new Set([...prev.keys(), ...next.keys()]);
+    for (const key of keys) {
+        if (ignorable.has(key)) continue;
+        if (prev.get(key) !== next.get(key)) return false;
+    }
+    return true;
+}
 
 /**
  * Alphabetical hash order, but places `region` immediately after `locale`.
@@ -94,6 +117,19 @@ export class Router extends EventTarget {
         return false;
     }
 
+    promotionsEditorHasUnsavedChanges() {
+        const inEdit = Store.promotions.inEdit?.get()?.get();
+        if (!inEdit) return false;
+        if (inEdit.hasChanges) return true;
+
+        return isPromotionItemSelectionDirty(
+            inEdit,
+            Store.promotions.selectedCards.value,
+            Store.promotions.selectedCollections.value,
+            Store.promotions.itemHydrateUnreachablePaths.value,
+        );
+    }
+
     /**
      * Gets the active editor element and its hasChanges state based on the current page
      * @returns {{ editor: Element|null, hasChanges: boolean }}
@@ -117,6 +153,15 @@ export class Router extends EventTarget {
                     editor,
                     hasChanges: editor && hasUnsavedChanges,
                     shouldCheckUnsavedChanges: editor && !editor.isLoading && hasUnsavedChanges,
+                };
+            }
+            case PAGE_NAMES.PROMOTIONS_EDITOR: {
+                const editor = document.querySelector('mas-promotions-editor');
+                const hasUnsavedChanges = this.promotionsEditorHasUnsavedChanges();
+                return {
+                    editor,
+                    hasChanges: editor && hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: editor && !editor.loadingPromotion && hasUnsavedChanges,
                 };
             }
             case PAGE_NAMES.BULK_PUBLISH_EDITOR: {
@@ -175,6 +220,14 @@ export class Router extends EventTarget {
                         Store.translationProjects.translationProjectId.set(null);
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
+                    }
+                    if (Store.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR) {
+                        Store.promotions.promotionId.set(null);
+                        Store.promotions.inEdit.set(null);
+                        Store.promotions.showSelected.set(false);
+                        Store.promotions.selectedCards.set([]);
+                        Store.promotions.selectedCollections.set([]);
+                        Store.promotions.selectedPlaceholders.set([]);
                     }
                     if (targetPage === PAGE_NAMES.TRANSLATIONS && Store.page.value !== PAGE_NAMES.TRANSLATIONS) {
                         Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
@@ -510,8 +563,10 @@ export class Router extends EventTarget {
         window.addEventListener('hashchange', async (event) => {
             if (!this.isNavigating) {
                 const { editor, shouldCheckUnsavedChanges } = this.getActiveEditor();
+                const skipDiscardForSearchHash =
+                    shouldCheckUnsavedChanges && promoHashIsSearchSync(this.previousHash, this.location.hash);
 
-                if (shouldCheckUnsavedChanges) {
+                if (shouldCheckUnsavedChanges && !skipDiscardForSearchHash) {
                     const confirmed = editor ? await editor.promptDiscardChanges() : true;
                     if (!confirmed) {
                         event.preventDefault();

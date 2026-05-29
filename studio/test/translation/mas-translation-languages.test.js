@@ -75,6 +75,24 @@ describe('MasTranslationLanguages', () => {
             expect(el.includeSource).to.equal(true);
             expect(el.localesArray.some((item) => item.locale === 'en_US')).to.be.true;
         });
+
+        it('should exclude regional language variants by default', async () => {
+            Store.search.set({ path: 'acom' });
+            const el = await fixture(html`<mas-translation-languages></mas-translation-languages>`);
+            expect(el.includeRegional).to.equal(false);
+            expect(el.localesArray.some((item) => item.locale === 'fr_FR')).to.be.true;
+            expect(el.localesArray.some((item) => item.locale === 'fr_CA')).to.be.false;
+            expect(el.localesArray.some((item) => item.locale === 'fr_BE')).to.be.false;
+            expect(el.localesArray.some((item) => item.locale === 'en_AU')).to.be.false;
+        });
+
+        it('should include regional language variants when include-regional is set', async () => {
+            Store.search.set({ path: 'acom' });
+            const el = await fixture(html`<mas-translation-languages include-regional></mas-translation-languages>`);
+            expect(el.includeRegional).to.equal(true);
+            expect(el.localesArray.some((item) => item.locale === 'fr_CA')).to.be.true;
+            expect(el.localesArray.some((item) => item.locale === 'en_AU')).to.be.true;
+        });
     });
 
     describe('selectAllChecked getter', () => {

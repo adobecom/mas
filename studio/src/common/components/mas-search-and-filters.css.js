@@ -9,6 +9,14 @@ export const styles = css`
         display: none;
     }
 
+    :host([searchonly]) {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+
     .result-count {
         display: flex;
         align-items: center;

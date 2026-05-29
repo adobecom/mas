@@ -12,6 +12,8 @@ import {
     getLanguageName,
     isVariationPathInParentLocaleFamily,
     parseLocaleCode,
+    isKnownLocale,
+    geoCacheKey,
 } from '../../src/fragment/locales.js';
 
 describe('locales', function () {
@@ -359,6 +361,53 @@ describe('locales', function () {
 
         it('should return false when variation path does not match DAM path shape', function () {
             expect(isVariationPathInParentLocaleFamily('acom', 'en_US', 'not-a-dam-path')).to.equal(false);
+        });
+    });
+
+    describe('isKnownLocale', function () {
+        it('returns false for falsy or unknown values', function () {
+            expect(isKnownLocale(undefined)).to.equal(false);
+            expect(isKnownLocale('')).to.equal(false);
+            expect(isKnownLocale('zorp_XX')).to.equal(false);
+            expect(isKnownLocale('fr')).to.equal(false);
+        });
+
+        it('returns true for any locale code present in DEFAULT_LOCALES (default or region)', function () {
+            expect(isKnownLocale('fr_FR')).to.equal(true);
+            expect(isKnownLocale('fr_LU')).to.equal(true);
+            expect(isKnownLocale('en_US')).to.equal(true);
+            expect(isKnownLocale('en_AU')).to.equal(true);
+            expect(isKnownLocale('pt_PT')).to.equal(true);
+        });
+    });
+
+    describe('geoCacheKey', function () {
+        it('returns the locale unchanged when no country provided', function () {
+            expect(geoCacheKey('fr_FR', undefined)).to.deep.equal({ locale: 'fr_FR', country: null });
+            expect(geoCacheKey('fr_LU', null)).to.deep.equal({ locale: 'fr_LU', country: null });
+        });
+
+        it('drops country when it matches the locale country (redundant)', function () {
+            expect(geoCacheKey('fr_FR', 'FR')).to.deep.equal({ locale: 'fr_FR', country: null });
+            expect(geoCacheKey('fr_FR', 'fr')).to.deep.equal({ locale: 'fr_FR', country: null });
+            expect(geoCacheKey('fr_LU', 'LU')).to.deep.equal({ locale: 'fr_LU', country: null });
+        });
+
+        it('keeps country in normalized uppercase when it differs from the locale country', function () {
+            expect(geoCacheKey('fr_FR', 'LU')).to.deep.equal({ locale: 'fr_FR', country: 'LU' });
+            expect(geoCacheKey('fr_FR', 'lu')).to.deep.equal({ locale: 'fr_FR', country: 'LU' });
+            expect(geoCacheKey('en_US', 'AU')).to.deep.equal({ locale: 'en_US', country: 'AU' });
+        });
+
+        it('does not validate against locales.js — surface knowledge is not available here', function () {
+            // fr_US is not a known locale, but geoCacheKey still includes US — actual locale
+            // resolution happens in computeRegionLocale where surface is known.
+            expect(geoCacheKey('fr_FR', 'US')).to.deep.equal({ locale: 'fr_FR', country: 'US' });
+        });
+
+        it('handles malformed locale (no underscore) without crashing', function () {
+            expect(geoCacheKey('fr', undefined)).to.deep.equal({ locale: 'fr', country: null });
+            expect(geoCacheKey('fr', 'FR')).to.deep.equal({ locale: 'fr', country: 'FR' });
         });
     });
 });

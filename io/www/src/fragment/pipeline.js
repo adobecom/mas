@@ -13,6 +13,7 @@ import { transformer as promotions } from './transformers/promotions.js';
 import { transformer as settings } from './transformers/settings.js';
 import { transformer as customize } from './transformers/customize.js';
 import { transformer as wcs } from './transformers/wcs.js';
+import { isKnownLocale } from './locales.js';
 
 let cachedConfiguration = null;
 let configurationTimestamp = null;
@@ -38,7 +39,7 @@ async function main(params) {
         Accept: 'application/json, */*',
         'Accept-Encoding': 'gzip, deflate',
         'User-Agent': 'Mozilla/5.0 (compatible; mas-io-Pipeline/1.0)',
-        'X-Request-ID': requestId,
+        'X-Correlation-ID': requestId,
     };
     let context = {
         ...params,
@@ -52,6 +53,14 @@ async function main(params) {
     let returnValue;
     let cacheControl;
     log(`starting request pipeline for ${JSON.stringify(context)}`, context);
+    if (context.preview) {
+        logError('Preview mode is not supported in this pipeline', context);
+        return {
+            statusCode: 400,
+            headers: RESPONSE_HEADERS,
+            message: 'Preview mode is not supported in this pipeline',
+        };
+    }
     /* c8 ignore next 3*/
     if (!context.state) {
         context.state = await stateLib.init();
@@ -144,6 +153,15 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
+    if (!context.id || !context.locale) {
+        return { statusCode: 400, body: JSON.stringify({ message: 'requested parameters id & locale are not present' }) };
+    }
+    if (!isKnownLocale(context.locale)) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: `unknown locale '${context.locale}'` }),
+        };
+    }
     const cachedMetadata = await getRequestMetadata(context);
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };

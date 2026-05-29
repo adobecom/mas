@@ -212,7 +212,7 @@ export function openOfferSelectorTool(triggerElement, offerElement) {
 
         const offerSelectorPlaceholderOptions = {};
         if (offerElement) {
-            searchParameters.append('type', offerElement.isInlinePrice ? 'price' : 'checkout');
+            searchParameters.append('type', offerElement.isInlinePrice ? 'price' : 'checkoutUrl');
             if (!offerElement.isInlinePrice) {
                 searchParameters.append('text', offerElement.innerText);
             }

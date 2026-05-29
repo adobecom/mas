@@ -6,6 +6,7 @@ import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_TYPE_RESOLVED,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
@@ -95,6 +96,14 @@ export class MiniCompareChart extends VariantLayout {
             this.updatePriceQuantity,
         );
         this.visibilityObserver?.disconnect();
+        if (this.legalElement && this.legalResolvedHandler) {
+            this.legalElement.removeEventListener(
+                EVENT_TYPE_RESOLVED,
+                this.legalResolvedHandler,
+            );
+            this.legalResolvedHandler = null;
+            this.legalElement = null;
+        }
         if (this.calloutListenersAdded) {
             document.removeEventListener('touchstart', this.handleCalloutTouch);
             document.removeEventListener('mouseover', this.handleCalloutMouse);
@@ -572,25 +581,38 @@ export class MiniCompareChart extends VariantLayout {
                 headingPrice.nextSibling,
             );
             await legal.onceSettled();
+
+            if (!this.legalResolvedHandler) {
+                this.legalResolvedHandler = () => this.adjustShortDescription();
+                legal.addEventListener(
+                    EVENT_TYPE_RESOLVED,
+                    this.legalResolvedHandler,
+                );
+                this.legalElement = legal;
+            }
         } catch {
             // Proceed with other adjustments
         }
     }
 
     adjustShortDescription() {
-        const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
-        const text = bodyXxs?.textContent?.trim();
+        if (!this.shortDescriptionSource) {
+            const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
+            if (!bodyXxs) return;
+            this.shortDescriptionSource = bodyXxs;
+            bodyXxs.remove();
+        }
+        const text = this.shortDescriptionSource.textContent?.trim();
         if (!text) return;
         const legalPrice = this.card.querySelector(
             '[slot="heading-m-price"] [data-template="legal"]',
         );
         const planType = legalPrice?.querySelector('.price-plan-type');
         if (!planType) return;
+        if (planType.querySelector('em')) return;
         const em = document.createElement('em');
-        em.setAttribute('slot', 'body-xxs');
         em.textContent = ` ${text}`;
         planType.appendChild(em);
-        bodyXxs.remove();
     }
 
     renderLayout() {
@@ -644,7 +666,7 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     async postCardUpdateHook() {
-        await Promise.all(this.card.prices.map((price) => price.onceSettled()));
+        await super.postCardUpdateHook();
         if (this.isNewVariant) {
             if (!this.legalAdjusted) {
                 await this.adjustLegal();

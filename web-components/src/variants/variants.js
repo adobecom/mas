@@ -17,9 +17,9 @@ import {
 } from './plans.js';
 import { PlansV2, PLANS_V2_AEM_FRAGMENT_MAPPING } from './plans-v2.js';
 import {
-    PlansRedesign,
-    PLANS_REDESIGN_AEM_FRAGMENT_MAPPING,
-} from './plans-redesign.js';
+    BizProPlans,
+    BIZPRO_PLANS_AEM_FRAGMENT_MAPPING,
+} from './plans-bizpro.js';
 import { Product, PRODUCT_AEM_FRAGMENT_MAPPING } from './product.js';
 import { Segment, SEGMENT_AEM_FRAGMENT_MAPPING } from './segment.js';
 import { Media, MEDIA_AEM_FRAGMENT_MAPPING } from './media.js';
@@ -113,10 +113,10 @@ registerVariant(
     PlansV2.collectionOptions,
 );
 registerVariant(
-    'plans-redesign',
-    PlansRedesign,
-    PLANS_REDESIGN_AEM_FRAGMENT_MAPPING,
-    PlansRedesign.variantStyle,
+    'plans-bizpro',
+    BizProPlans,
+    BIZPRO_PLANS_AEM_FRAGMENT_MAPPING,
+    BizProPlans.variantStyle,
 );
 registerVariant(
     'product',

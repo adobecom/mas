@@ -201,17 +201,17 @@ describe('Included field', () => {
         expect(el.link).to.equal('');
     });
 
-    it('renders library icons in the spectrum-two system for the plans-redesign variant', async () => {
+    it('renders library icons in the spectrum-two system for the plans-bizpro variant', async () => {
         const el = await fixture(
             html`<mas-included-field
                 data-field-state="bullet"
                 icon="sp-icon-pen-brush"
-                variant="plans-redesign"
+                variant="plans-bizpro"
             ></mas-included-field>`,
             { parentNode: spTheme() },
         );
 
-        expect(el.variant).to.equal('plans-redesign');
+        expect(el.variant).to.equal('plans-bizpro');
         const theme = el.shadowRoot.querySelector('sp-theme');
         expect(theme.getAttribute('system')).to.equal('spectrum-two');
     });

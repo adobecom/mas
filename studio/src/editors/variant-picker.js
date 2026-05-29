@@ -6,7 +6,7 @@ export const VARIANT_NAMES = {
     CATALOG: 'catalog',
     PLANS: 'plans',
     PLANS_V2: 'plans-v2',
-    PLANS_REDESIGN: 'plans-redesign',
+    BIZPRO_PLANS: 'plans-bizpro',
     PLANS_STUDENTS: 'plans-students',
     PLANS_EDUCATION: 'plans-education',
     PRODUCT: 'product',
@@ -38,8 +38,8 @@ export const VARIANTS = [
         surface: SURFACES.ACOM.name,
     },
     {
-        label: 'Plans Redesign',
-        value: VARIANT_NAMES.PLANS_REDESIGN,
+        label: 'BizPro Plans',
+        value: VARIANT_NAMES.BIZPRO_PLANS,
         surface: SURFACES.ACOM.name,
     },
     {

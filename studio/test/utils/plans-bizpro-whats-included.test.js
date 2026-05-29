@@ -1,9 +1,9 @@
 import { expect } from '@esm-bundle/chai';
 import {
-    parsePlansRedesignWhatsIncluded,
-    serializePlansRedesignWhatsIncluded,
-    plansRedesignBulletIsEmpty,
-} from '../../src/utils/plans-redesign-whats-included.js';
+    parseBizProPlansWhatsIncluded,
+    serializeBizProPlansWhatsIncluded,
+    bizProPlansBulletIsEmpty,
+} from '../../src/utils/plans-bizpro-whats-included.js';
 
 const SECTIONS_HTML =
     '<div class="section"><h4><sp-icon-star class="sp-icon"></sp-icon-star>70+ PDF tools</h4>' +
@@ -13,18 +13,18 @@ const SECTIONS_HTML =
     '<li>Get AI summaries, insights, and answers</li>' +
     '<li>Organize, share, and collaborate with PDF Spaces</li></ul></div>';
 
-describe('parsePlansRedesignWhatsIncluded', () => {
+describe('parseBizProPlansWhatsIncluded', () => {
     it('returns an empty model for empty input', () => {
-        expect(parsePlansRedesignWhatsIncluded('')).to.deep.equal({
+        expect(parseBizProPlansWhatsIncluded('')).to.deep.equal({
             label: '',
             values: [],
             bullets: [],
         });
-        expect(parsePlansRedesignWhatsIncluded(null).bullets).to.have.lengthOf(0);
+        expect(parseBizProPlansWhatsIncluded(null).bullets).to.have.lengthOf(0);
     });
 
     it('maps each section to one bullet, preserving title + every row', () => {
-        const { bullets } = parsePlansRedesignWhatsIncluded(SECTIONS_HTML);
+        const { bullets } = parseBizProPlansWhatsIncluded(SECTIONS_HTML);
         expect(bullets).to.have.lengthOf(2);
 
         expect(bullets[0].icon).to.equal('sp-icon-star');
@@ -44,7 +44,7 @@ describe('parsePlansRedesignWhatsIncluded', () => {
         const html =
             '<div class="section"><h4><merch-icon size="xs" src="https://x/a.svg"></merch-icon>Title</h4>' +
             '<ul><li>row</li></ul></div>';
-        expect(parsePlansRedesignWhatsIncluded(html).bullets[0]).to.deep.equal({
+        expect(parseBizProPlansWhatsIncluded(html).bullets[0]).to.deep.equal({
             icon: 'https://x/a.svg',
             alt: '<p>Title</p><p>row</p>',
             link: '',
@@ -53,15 +53,15 @@ describe('parsePlansRedesignWhatsIncluded', () => {
 
     it('keeps the text but drops the icon for legacy raw <svg> sections', () => {
         const html = '<div class="section"><h4><svg viewBox="0 0 16 16"></svg>Legacy</h4>' + '<ul><li>row</li></ul></div>';
-        const { bullets } = parsePlansRedesignWhatsIncluded(html);
+        const { bullets } = parseBizProPlansWhatsIncluded(html);
         expect(bullets[0].icon).to.equal('');
         expect(bullets[0].alt).to.equal('<p>Legacy</p><p>row</p>');
     });
 });
 
-describe('serializePlansRedesignWhatsIncluded', () => {
+describe('serializeBizProPlansWhatsIncluded', () => {
     it('serializes a multi-row bullet into <h4> title + <ul><li> rows (the bug fix)', () => {
-        const html = serializePlansRedesignWhatsIncluded([
+        const html = serializeBizProPlansWhatsIncluded([
             {
                 icon: 'sp-icon-brush',
                 alt: '<p>AI Assistant</p>' + '<p>Ask AI to edit</p>' + '<p>Get AI summaries</p>',
@@ -75,13 +75,13 @@ describe('serializePlansRedesignWhatsIncluded', () => {
     });
 
     it('omits the <ul> when a section has only a title', () => {
-        const html = serializePlansRedesignWhatsIncluded([{ icon: 'sp-icon-star', alt: '<p>Just a title</p>', link: '' }]);
+        const html = serializeBizProPlansWhatsIncluded([{ icon: 'sp-icon-star', alt: '<p>Just a title</p>', link: '' }]);
         expect(html).to.equal('<div class="section"><h4><sp-icon-star class="sp-icon"></sp-icon-star>Just a title</h4></div>');
     });
 
     it('drops empty bullets (no icon and no title)', () => {
         expect(
-            serializePlansRedesignWhatsIncluded([
+            serializeBizProPlansWhatsIncluded([
                 { icon: '', alt: '<p></p>', link: '' },
                 { icon: '', alt: '', link: '' },
             ]),
@@ -89,24 +89,24 @@ describe('serializePlansRedesignWhatsIncluded', () => {
     });
 
     it('escapes quotes in a merch-icon src', () => {
-        const html = serializePlansRedesignWhatsIncluded([{ icon: 'https://x/a.svg?a="b"', alt: '<p>T</p>', link: '' }]);
+        const html = serializeBizProPlansWhatsIncluded([{ icon: 'https://x/a.svg?a="b"', alt: '<p>T</p>', link: '' }]);
         expect(html).to.contain('src="https://x/a.svg?a=&quot;b&quot;"');
     });
 });
 
-describe('plansRedesignBulletIsEmpty', () => {
+describe('bizProPlansBulletIsEmpty', () => {
     it('treats icon-only bullets as non-empty', () => {
-        expect(plansRedesignBulletIsEmpty({ icon: 'sp-icon-star', alt: '<p></p>' })).to.equal(false);
+        expect(bizProPlansBulletIsEmpty({ icon: 'sp-icon-star', alt: '<p></p>' })).to.equal(false);
     });
     it('treats blank title + no icon as empty', () => {
-        expect(plansRedesignBulletIsEmpty({ icon: '', alt: '<p></p>' })).to.equal(true);
-        expect(plansRedesignBulletIsEmpty({})).to.equal(true);
+        expect(bizProPlansBulletIsEmpty({ icon: '', alt: '<p></p>' })).to.equal(true);
+        expect(bizProPlansBulletIsEmpty({})).to.equal(true);
     });
 });
 
 describe('round-trip', () => {
     it('parse -> serialize reproduces the source section markup', () => {
-        const { bullets } = parsePlansRedesignWhatsIncluded(SECTIONS_HTML);
-        expect(serializePlansRedesignWhatsIncluded(bullets)).to.equal(SECTIONS_HTML);
+        const { bullets } = parseBizProPlansWhatsIncluded(SECTIONS_HTML);
+        expect(serializeBizProPlansWhatsIncluded(bullets)).to.equal(SECTIONS_HTML);
     });
 });

@@ -1,5 +1,5 @@
 /**
- * plans-redesign "What's included" bridges the SHARED merch-card editor fields
+ * plans-bizpro "What's included" bridges the SHARED merch-card editor fields
  * (label + "Add bullet" + Edit-Icon dialog) to the variant's section markup.
  *
  * Each editor bullet `{ icon, alt, link }` maps to one titled section:
@@ -7,7 +7,7 @@
  *   - `alt`   -> rich-text HTML whose FIRST paragraph is the bold title and
  *                whose remaining paragraphs are the section's bullet rows.
  *
- * Rendered shape (styled by web-components/src/variants/plans-redesign.css.js):
+ * Rendered shape (styled by web-components/src/variants/plans-bizpro.css.js):
  *   <div class="section">
  *     <h4>{icon}{title}</h4>
  *     <ul><li>row</li>…</ul>
@@ -24,7 +24,7 @@ function firstParagraphText(html) {
 }
 
 /** A bullet is empty when it has no icon and no title text. */
-export function plansRedesignBulletIsEmpty(value) {
+export function bizProPlansBulletIsEmpty(value) {
     const { icon, alt } = value || {};
     if (icon) return false;
     if (!(alt ?? '').trim()) return true;
@@ -35,7 +35,7 @@ export function plansRedesignBulletIsEmpty(value) {
  * Parse stored section markup into the shared editor's
  * `{ label, values, bullets }` model. Each section becomes one bullet.
  */
-export function parsePlansRedesignWhatsIncluded(html) {
+export function parseBizProPlansWhatsIncluded(html) {
     const doc = new DOMParser().parseFromString(html || '', 'text/html');
     const bullets = [];
     doc.querySelectorAll('div.section').forEach((section) => {
@@ -77,12 +77,12 @@ function iconMarkup(icon) {
 
 /**
  * Serialize the shared editor's bullets back to section markup. Inverse of
- * parsePlansRedesignWhatsIncluded; every row after the title is preserved
+ * parseBizProPlansWhatsIncluded; every row after the title is preserved
  * (the bug this fixes dropped all paragraphs except the first).
  */
-export function serializePlansRedesignWhatsIncluded(bullets) {
+export function serializeBizProPlansWhatsIncluded(bullets) {
     return (bullets ?? [])
-        .filter((b) => !plansRedesignBulletIsEmpty(b))
+        .filter((b) => !bizProPlansBulletIsEmpty(b))
         .map(({ icon, alt }) => {
             const doc = new DOMParser().parseFromString(alt || '', 'text/html');
             const ps = Array.from(doc.querySelectorAll('p'));

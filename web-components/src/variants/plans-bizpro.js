@@ -1,9 +1,9 @@
 import { VariantLayout } from './variant-layout';
 import { html, css, nothing } from 'lit';
-import { CSS } from './plans-redesign.css.js';
+import { CSS } from './plans-bizpro.css.js';
 import { EVENT_MERCH_QUANTITY_SELECTOR_CHANGE } from '../constants.js';
 
-export const PLANS_REDESIGN_AEM_FRAGMENT_MAPPING = {
+export const BIZPRO_PLANS_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     subtitle: { tag: 'p', slot: 'subtitle' },
     title: { tag: 'h3', slot: 'heading-xs' },
@@ -30,7 +30,7 @@ export const PLANS_REDESIGN_AEM_FRAGMENT_MAPPING = {
     style: 'consonant',
 };
 
-export class PlansRedesign extends VariantLayout {
+export class BizProPlans extends VariantLayout {
     expanded = false;
     licenseOpen = false;
     licenseQty = null;
@@ -344,11 +344,11 @@ export class PlansRedesign extends VariantLayout {
     }
 
     static variantStyle = css`
-        :host([variant='plans-redesign']) {
+        :host([variant='plans-bizpro']) {
             display: flex;
             flex-direction: column;
             background: var(
-                --consonant-merch-card-plans-redesign-frame-bg,
+                --consonant-merch-card-plans-bizpro-frame-bg,
                 var(--s2a-color-background-subtle, #f8f8f8)
             );
             border-radius: var(--s2a-border-radius-md, 16px);
@@ -357,32 +357,32 @@ export class PlansRedesign extends VariantLayout {
             overflow: hidden;
             position: relative;
             color: var(
-                --consonant-merch-card-plans-redesign-frame-text,
+                --consonant-merch-card-plans-bizpro-frame-text,
                 var(--s2a-color-content-default, #000)
             );
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
         }
 
-        :host([variant='plans-redesign'][border-color='black']) {
-            --consonant-merch-card-plans-redesign-frame-bg: var(
+        :host([variant='plans-bizpro'][border-color='black']) {
+            --consonant-merch-card-plans-bizpro-frame-bg: var(
                 --s2a-color-background-knockout,
                 #000
             );
-            --consonant-merch-card-plans-redesign-frame-text: var(
+            --consonant-merch-card-plans-bizpro-frame-text: var(
                 --s2a-color-content-knockout,
                 #fff
             );
-            --consonant-merch-card-plans-redesign-divider-color: var(
+            --consonant-merch-card-plans-bizpro-divider-color: var(
                 --s2a-color-transparent-white-16,
                 #ffffff29
             );
-            --consonant-merch-card-plans-redesign-subtitle-color: var(
+            --consonant-merch-card-plans-bizpro-subtitle-color: var(
                 --s2a-color-content-default,
                 #000
             );
         }
 
-        :host([variant='plans-redesign']) .top-card {
+        :host([variant='plans-bizpro']) .top-card {
             background: var(--s2a-color-background-default, #fff);
             border-radius: 12px;
             padding: var(--s2a-spacing-lg, 24px);
@@ -397,18 +397,18 @@ export class PlansRedesign extends VariantLayout {
             flex: 1 1 auto;
         }
 
-        :host([variant='plans-redesign']) .mnemonic {
+        :host([variant='plans-bizpro']) .mnemonic {
             display: flex;
             align-items: center;
             gap: var(--s2a-spacing-sm, 12px);
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='icons']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='icons']) {
             width: 24px;
             height: 24px;
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='subtitle']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='subtitle']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 700;
@@ -416,13 +416,13 @@ export class PlansRedesign extends VariantLayout {
             line-height: 20px;
             letter-spacing: 0.16px;
             color: var(
-                --consonant-merch-card-plans-redesign-subtitle-color,
+                --consonant-merch-card-plans-bizpro-subtitle-color,
                 var(--s2a-color-content-subtle, #000000a3)
             );
             flex: 1;
         }
 
-        :host([variant='plans-redesign']) .name-description {
+        :host([variant='plans-bizpro']) .name-description {
             display: flex;
             flex-direction: column;
             gap: var(--s2a-spacing-xs, 8px);
@@ -431,7 +431,7 @@ export class PlansRedesign extends VariantLayout {
             flex: 1 1 auto;
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='heading-xs']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='heading-xs']) {
             margin: 0;
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
@@ -442,7 +442,7 @@ export class PlansRedesign extends VariantLayout {
             color: var(--s2a-color-content-default, #000);
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='body-xs']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='body-xs']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -452,13 +452,13 @@ export class PlansRedesign extends VariantLayout {
             color: var(--s2a-color-content-default, #000);
         }
 
-        :host([variant='plans-redesign']) .pricing {
+        :host([variant='plans-bizpro']) .pricing {
             display: flex;
             flex-direction: column;
             gap: 0;
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='heading-m']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='heading-m']) {
             margin: 0;
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
@@ -469,7 +469,7 @@ export class PlansRedesign extends VariantLayout {
             color: var(--s2a-color-content-default, #000);
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='promo-text']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='promo-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -479,7 +479,7 @@ export class PlansRedesign extends VariantLayout {
             color: var(--s2a-color-content-subtle, #000000a3);
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='price-original']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='price-original']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -491,11 +491,11 @@ export class PlansRedesign extends VariantLayout {
             text-decoration-skip-ink: none;
         }
 
-        :host([variant='plans-redesign']) .terms-link {
+        :host([variant='plans-bizpro']) .terms-link {
             color: var(--s2a-color-content-default, #000);
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='terms-link']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='terms-link']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -505,11 +505,11 @@ export class PlansRedesign extends VariantLayout {
             color: var(--s2a-color-content-default, #000);
         }
 
-        :host([variant='plans-redesign']) .legal-text {
+        :host([variant='plans-bizpro']) .legal-text {
             color: var(--s2a-color-content-default, #000);
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='legal-text']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='legal-text']) {
             margin: 0;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
             font-weight: 400;
@@ -519,7 +519,7 @@ export class PlansRedesign extends VariantLayout {
             color: var(--s2a-color-content-subtle, #000000a3);
         }
 
-        :host([variant='plans-redesign']) footer {
+        :host([variant='plans-bizpro']) footer {
             display: flex;
             gap: var(--s2a-spacing-xs, 8px);
             padding: 0;
@@ -528,13 +528,13 @@ export class PlansRedesign extends VariantLayout {
             min-height: auto;
         }
 
-        :host([variant='plans-redesign']) footer ::slotted([slot='footer']) {
+        :host([variant='plans-bizpro']) footer ::slotted([slot='footer']) {
             display: flex;
             gap: var(--s2a-spacing-xs, 8px);
             flex: 1;
         }
 
-        :host([variant='plans-redesign']) .secure-transaction-label {
+        :host([variant='plans-bizpro']) .secure-transaction-label {
             display: inline-flex;
             align-items: center;
             gap: var(--s2a-spacing-xs, 8px);
@@ -551,7 +551,7 @@ export class PlansRedesign extends VariantLayout {
             white-space: normal;
         }
 
-        :host([variant='plans-redesign']) .secure-transaction-label::before {
+        :host([variant='plans-bizpro']) .secure-transaction-label::before {
             content: '';
             display: inline-block;
             width: 16px;
@@ -562,36 +562,36 @@ export class PlansRedesign extends VariantLayout {
             background-size: contain;
         }
 
-        :host([variant='plans-redesign']) .features-zone {
+        :host([variant='plans-bizpro']) .features-zone {
             padding: var(--s2a-spacing-lg, 24px);
             display: flex;
             flex-direction: column;
             gap: var(--s2a-spacing-lg, 24px);
             color: var(
-                --consonant-merch-card-plans-redesign-frame-text,
+                --consonant-merch-card-plans-bizpro-frame-text,
                 var(--s2a-color-content-default, #000)
             );
         }
 
-        :host([variant='plans-redesign']) .features-zone[hidden] {
+        :host([variant='plans-bizpro']) .features-zone[hidden] {
             display: none;
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='whats-included']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='whats-included']) {
             color: inherit;
             display: flex;
             flex-direction: column;
             gap: var(--s2a-spacing-lg, 24px);
         }
 
-        :host([variant='plans-redesign']) .whats-included-toggle {
+        :host([variant='plans-bizpro']) .whats-included-toggle {
             all: unset;
             display: flex;
             align-items: center;
             padding: var(--s2a-spacing-lg, 24px);
             cursor: pointer;
             color: var(
-                --consonant-merch-card-plans-redesign-frame-text,
+                --consonant-merch-card-plans-bizpro-frame-text,
                 var(--s2a-color-content-default, #000)
             );
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
@@ -602,22 +602,22 @@ export class PlansRedesign extends VariantLayout {
         }
 
         /* Expanded state: no bottom padding — features-zone provides spacing */
-        :host([variant='plans-redesign'])
+        :host([variant='plans-bizpro'])
             .whats-included-toggle[aria-expanded='true'] {
             padding-bottom: 0;
         }
 
-        :host([variant='plans-redesign']) .whats-included-toggle-label {
+        :host([variant='plans-bizpro']) .whats-included-toggle-label {
             flex: 1 0 0;
         }
 
-        :host([variant='plans-redesign']) .whats-included-toggle:focus-visible {
+        :host([variant='plans-bizpro']) .whats-included-toggle:focus-visible {
             outline: 2px solid #1473e6;
             outline-offset: -2px;
             border-radius: 8px;
         }
 
-        :host([variant='plans-redesign']) .whats-included-toggle-chevron {
+        :host([variant='plans-bizpro']) .whats-included-toggle-chevron {
             width: 20px;
             height: 20px;
             background-color: currentColor;
@@ -629,20 +629,20 @@ export class PlansRedesign extends VariantLayout {
             flex: 0 0 auto;
         }
 
-        :host([variant='plans-redesign'])
+        :host([variant='plans-bizpro'])
             .whats-included-toggle[aria-expanded='true']
             .whats-included-toggle-chevron {
             transform: rotate(180deg);
         }
 
-        :host([variant='plans-redesign']) .pricing-line {
+        :host([variant='plans-bizpro']) .pricing-line {
             display: flex;
             align-items: baseline;
             flex-wrap: wrap;
             gap: 0;
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='per-unit-label']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='per-unit-label']) {
             font-family: 'Adobe Clean Display', 'adobe-clean-display',
                 sans-serif;
             font-weight: 900;
@@ -653,7 +653,7 @@ export class PlansRedesign extends VariantLayout {
             margin-inline-start: var(--s2a-spacing-2xs, 4px);
         }
 
-        :host([variant='plans-redesign']) .license-zone {
+        :host([variant='plans-bizpro']) .license-zone {
             display: flex;
             flex-direction: column;
             background: var(--s2a-color-background-subtle, #f8f8f8);
@@ -661,12 +661,12 @@ export class PlansRedesign extends VariantLayout {
             overflow: visible;
         }
 
-        :host([variant='plans-redesign']) .license-select {
+        :host([variant='plans-bizpro']) .license-select {
             position: relative;
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
         }
 
-        :host([variant='plans-redesign']) .license-select-trigger {
+        :host([variant='plans-bizpro']) .license-select-trigger {
             all: unset;
             box-sizing: border-box;
             width: 100%;
@@ -686,29 +686,29 @@ export class PlansRedesign extends VariantLayout {
             letter-spacing: 0;
         }
 
-        :host([variant='plans-redesign'])
+        :host([variant='plans-bizpro'])
             .license-select-trigger:focus-visible {
             outline: 2px solid #1473e6;
             outline-offset: 1px;
         }
 
-        :host([variant='plans-redesign']) .license-select-trigger-text {
+        :host([variant='plans-bizpro']) .license-select-trigger-text {
             display: flex;
             align-items: center;
             gap: var(--s2a-spacing-xs, 8px);
         }
 
-        :host([variant='plans-redesign']) .license-select-value {
+        :host([variant='plans-bizpro']) .license-select-value {
             font-weight: 700;
             color: var(--s2a-color-content-default, #000);
         }
 
-        :host([variant='plans-redesign']) .license-select-label {
+        :host([variant='plans-bizpro']) .license-select-label {
             font-weight: 700;
             color: rgba(0, 0, 0, 0.64);
         }
 
-        :host([variant='plans-redesign']) .license-select-chevron {
+        :host([variant='plans-bizpro']) .license-select-chevron {
             width: 16px;
             height: 16px;
             background-color: currentColor;
@@ -720,13 +720,13 @@ export class PlansRedesign extends VariantLayout {
             flex: 0 0 auto;
         }
 
-        :host([variant='plans-redesign'])
+        :host([variant='plans-bizpro'])
             .license-select-trigger[aria-expanded='true']
             .license-select-chevron {
             transform: rotate(180deg);
         }
 
-        :host([variant='plans-redesign']) .license-select-popover {
+        :host([variant='plans-bizpro']) .license-select-popover {
             position: absolute;
             top: 0;
             left: 0;
@@ -746,11 +746,11 @@ export class PlansRedesign extends VariantLayout {
             z-index: 10;
         }
 
-        :host([variant='plans-redesign']) .license-select-popover[hidden] {
+        :host([variant='plans-bizpro']) .license-select-popover[hidden] {
             display: none;
         }
 
-        :host([variant='plans-redesign']) .license-select-popover-header {
+        :host([variant='plans-bizpro']) .license-select-popover-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -764,7 +764,7 @@ export class PlansRedesign extends VariantLayout {
             background: var(--s2a-color-background-default, #fff);
         }
 
-        :host([variant='plans-redesign']) .license-select-option {
+        :host([variant='plans-bizpro']) .license-select-option {
             padding: 16px 12px;
             cursor: pointer;
             color: var(--s2a-color-content-default, #000);
@@ -775,16 +775,16 @@ export class PlansRedesign extends VariantLayout {
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
         }
 
-        :host([variant='plans-redesign']) .license-select-option:last-child {
+        :host([variant='plans-bizpro']) .license-select-option:last-child {
             border-bottom: none;
         }
 
-        :host([variant='plans-redesign']) .license-select-option:hover,
-        :host([variant='plans-redesign']) .license-select-option.selected {
+        :host([variant='plans-bizpro']) .license-select-option:hover,
+        :host([variant='plans-bizpro']) .license-select-option.selected {
             background: var(--s2a-color-background-subtle, #f8f8f8);
         }
 
-        :host([variant='plans-redesign']) .callout {
+        :host([variant='plans-bizpro']) .callout {
             padding: 8px 12px 12px 12px;
             color: var(--s2a-color-content-default, #000);
             font-family: 'Adobe Clean', adobe-clean, sans-serif;
@@ -795,16 +795,16 @@ export class PlansRedesign extends VariantLayout {
             text-align: start;
         }
 
-        :host([variant='plans-redesign']) ::slotted([slot='callout-content']) {
+        :host([variant='plans-bizpro']) ::slotted([slot='callout-content']) {
             margin: 0;
         }
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
         @media (min-width: 1280px) {
-            :host([variant='plans-redesign']) .whats-included-toggle {
+            :host([variant='plans-bizpro']) .whats-included-toggle {
                 display: none;
             }
-            :host([variant='plans-redesign']) .features-zone[hidden] {
+            :host([variant='plans-bizpro']) .features-zone[hidden] {
                 display: flex;
             }
         }

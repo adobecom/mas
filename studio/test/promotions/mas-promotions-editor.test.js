@@ -45,15 +45,6 @@ describe('MasPromotionsEditor', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        sandbox.stub(window, 'fetch').callsFake(async (url) => {
-            if (String(url).includes('querybuilder.json') && String(url).includes('cq:Tag')) {
-                return new Response(JSON.stringify({ hits: [] }), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                });
-            }
-            return Promise.reject(new TypeError('Failed to fetch'));
-        });
         originalInEdit = Store.promotions.inEdit.get();
         originalSelectedCards = [...Store.promotions.selectedCards.value];
         originalSelectedCollections = [...Store.promotions.selectedCollections.value];
@@ -96,6 +87,7 @@ describe('MasPromotionsEditor', () => {
             createFragment: sandbox.stub().resolves(makePromotion({ id: 'created-id', title: 'T' })),
             saveFragment: sandbox.stub().resolves(),
             publishFragment: sandbox.stub().resolves(true),
+            getUnpublishedAttachedPromoVariations: sandbox.stub().resolves([]),
             unpublishFragment: sandbox.stub().resolves(true),
             searchFragments: sandbox.stub(),
             loadAllCollections: sandbox.stub(),
@@ -370,7 +362,7 @@ describe('MasPromotionsEditor', () => {
             });
             await el.updateComplete;
             clickPromotionsFormButton(el, 'Publish');
-            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 0));
             expect(publishFragment.calledOnce).to.be.true;
         });
 
@@ -620,6 +612,29 @@ describe('MasPromotionsEditor', () => {
             clickPromotionsFormButton(el, 'Update');
             await el.updateComplete;
             expect(repo.saveFragment.calledOnce).to.be.true;
+        });
+    });
+
+    describe('publish reminder flow', () => {
+        it('prompts before publish when attached promo variations are unpublished', async () => {
+            const { el, repo } = await mountEditorWithRepo({
+                getUnpublishedAttachedPromoVariations: sandbox.stub().resolves([{ path: '/promo-var-1', status: 'DRAFT' }]),
+            });
+            el.isNewPromotion = false;
+            el.fragment.id = 'promo-1';
+            await fillValidFields(el);
+            el.fragmentStore.updateField('startDate', ['2030-01-01T00:00:00.000Z']);
+            el.fragmentStore.updateField('endDate', ['2030-12-31T00:00:00.000Z']);
+            el.fragment.hasChanges = false;
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionsFormButton(el, 'Publish');
+            await el.updateComplete;
+
+            expect(repo.getUnpublishedAttachedPromoVariations.calledOnce).to.be.true;
+            expect(repo.publishFragment.called).to.be.false;
         });
     });
 

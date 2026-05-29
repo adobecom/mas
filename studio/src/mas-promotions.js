@@ -391,6 +391,16 @@ class MasPromotions extends LitElement {
             showToast('This promotion has ended. Update the dates to publish again.', 'info');
             return;
         }
+        const unpublished = await this.repository.getUnpublishedAttachedPromoVariations(fragment);
+        if (unpublished.length) {
+            const confirmMessage = `This project has ${unpublished.length} attached promo variation(s) that are not published. Publish the project anyway?`;
+            const confirmed = await this.#showDialog('Unpublished promo variations', confirmMessage, {
+                confirmText: 'Publish anyway',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+            });
+            if (!confirmed) return;
+        }
         try {
             this.loading = true;
             const ok = await this.repository.publishFragment(fragment, ['DRAFT', 'UNPUBLISHED'], true);

@@ -221,7 +221,11 @@ export class Router extends EventTarget {
                         Store.translationProjects.inEdit.set(null);
                         Store.translationProjects.showSelected.set(false);
                     }
-                    if (Store.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR) {
+                    if (
+                        Store.page.value === PAGE_NAMES.PROMOTIONS_EDITOR &&
+                        targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR &&
+                        targetPage !== PAGE_NAMES.FRAGMENT_EDITOR
+                    ) {
                         Store.promotions.promotionId.set(null);
                         Store.promotions.inEdit.set(null);
                         Store.promotions.showSelected.set(false);

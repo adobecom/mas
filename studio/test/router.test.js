@@ -563,6 +563,21 @@ describe('Router', () => {
             expect(Store.promotions.selectedPlaceholders.value).to.deep.equal([]);
             expect(Store.page.value).to.equal(PAGE_NAMES.CONTENT);
         });
+
+        it('preserves promotion editor context when navigating to fragment editor', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
+            Store.promotions.promotionId.set('promo-1');
+            Store.promotions.inEdit.set(createPromotionInEditStore({ hasChanges: false }));
+            const mockEditor = {
+                loadingPromotion: false,
+                promptDiscardChanges: sandbox.stub().resolves(true),
+            };
+            sandbox.stub(document, 'querySelector').withArgs('mas-promotions-editor').returns(mockEditor);
+            await router.navigateToFragmentEditor('fragment-1');
+            expect(Store.promotions.promotionId.get()).to.equal('promo-1');
+            expect(Store.promotions.inEdit.get()).to.not.equal(null);
+            expect(Store.page.value).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+        });
     });
 
     describe('linkStoreToHash with translationProjectId', () => {

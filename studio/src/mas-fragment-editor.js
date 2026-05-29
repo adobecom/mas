@@ -26,6 +26,14 @@ import {
 } from './utils.js';
 import { getSpectrumVersion } from './constants/icon-library.js';
 import { getFragmentPartsToUse } from './editor-panel.js';
+import {
+    getPromotionTagFromFragment,
+    getPromoNameFromTag,
+    buildPromoVariationPathForTag,
+    getPromoNameFromPromoVariationPath,
+} from './promotions/promo-variation-utils.js';
+import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-utils.js';
+import { normalizeTagId } from './aem/tag-id-utils.js';
 import './editors/merch-card-editor.js';
 import './editors/merch-card-collection-editor.js';
 import './mas-variation-dialog.js';
@@ -505,6 +513,9 @@ export default class MasFragmentEditor extends LitElement {
     reactiveController = new ReactiveController(this, [
         Store.fragmentEditor.fragmentId,
         Store.fragmentEditor.loading,
+        Store.fragmentEditor.editorContext,
+        Store.promotions.promotionId,
+        Store.promotions.inEdit,
         Store.search,
         Store.filters,
     ]);
@@ -1037,6 +1048,16 @@ export default class MasFragmentEditor extends LitElement {
             return parentData;
         }
 
+        if (Fragment.isPromoVariationPath(fragmentPath)) {
+            parentData = await this.repository.resolveDefaultFragmentForPromoVariation(fragmentPath, this.fragment?.id);
+            if (parentData) {
+                this.editorContextStore?.setParent(parentData);
+                this.groupedVariationOrphanMessage = null;
+                return parentData;
+            }
+            return null;
+        }
+
         if (!Fragment.isGroupedVariationPath(fragmentPath)) {
             return null;
         }
@@ -1544,6 +1565,94 @@ export default class MasFragmentEditor extends LitElement {
         return html`<div class="${clazz}">
             <span>Grouped variation: <strong>${localeCodes.join(', ')}</strong></span>
         </div>`;
+    }
+
+    isPromoVariationFragment() {
+        if (!this.fragment) return false;
+        if (Fragment.isPromoVariationPath(this.fragment.path)) return true;
+        if (this.editorContextStore?.isPromoVariationByPath) return true;
+        if (getPromotionTagFromFragment(this.fragment)) return true;
+        return this.#matchesActivePromoVariationPath();
+    }
+
+    getActivePromotionTagId() {
+        const promotion = Store.promotions.inEdit.get()?.get?.();
+        if (!promotion) return null;
+        const { promotion: promotionTags } = splitPromotionTagsFieldValues(promotion.getFieldValues('tags'));
+        const first = promotionTags[0];
+        return first ? normalizeTagId(first) : null;
+    }
+
+    #matchesActivePromoVariationPath() {
+        const promoTag = this.getActivePromotionTagId();
+        if (!promoTag || !this.fragment?.path) return false;
+        const parent = this.localeDefaultFragment;
+        if (parent?.path && buildPromoVariationPathForTag(parent.path, promoTag) === this.fragment.path) {
+            return true;
+        }
+        return Fragment.isPromoVariationPath(this.fragment.path);
+    }
+
+    #formatPromoLabel(rawName) {
+        if (!rawName) return '';
+        return rawName
+            .split('/')
+            .pop()
+            .split(/[-_]/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+    }
+
+    #shouldShowPromoVariationHeader() {
+        return this.isPromoVariationFragment();
+    }
+
+    displayPromoVariationInfo(clazz) {
+        const promotionTagId = getPromotionTagFromFragment(this.fragment) || this.getActivePromotionTagId();
+        const promotionName =
+            this.fragment.getCurrentTagTitle(TAG_PROMOTION_PREFIX) ||
+            (promotionTagId ? this.#formatPromoLabel(getPromoNameFromTag(promotionTagId)) : '') ||
+            this.#formatPromoLabel(getPromoNameFromPromoVariationPath(this.fragment.path, promotionTagId)) ||
+            Store.promotions.inEdit.get()?.get?.()?.title ||
+            'Promotion';
+        return html`<div class="${clazz}">
+            <span>Promo variation: <strong>${promotionName}</strong></span>
+        </div>`;
+    }
+
+    variationTypeHeader(clazz) {
+        if (!this.fragment) return nothing;
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) {
+            return this.displayGroupedVariationInfo(clazz);
+        }
+        if (this.#shouldShowPromoVariationHeader()) {
+            return this.displayPromoVariationInfo(clazz);
+        }
+        return this.displayRegionalVarationInfo(clazz);
+    }
+
+    showsPreviewVariationTypeHeader() {
+        if (!this.fragment) return false;
+        if (this.#shouldShowPromoVariationHeader()) return true;
+        return this.editorContextStore.isVariation(this.fragment.id);
+    }
+
+    get previewVariationHeader() {
+        if (!this.showsPreviewVariationTypeHeader()) {
+            return nothing;
+        }
+        return this.variationTypeHeader('preview-header');
+    }
+
+    get localeVariationHeader() {
+        if (!this.fragment || this.#shouldShowPromoVariationHeader()) {
+            return nothing;
+        }
+        if (!this.editorContextStore.isVariation(this.fragment.id)) {
+            return nothing;
+        }
+        return this.variationTypeHeader('locale-variation-header');
     }
 
     #handleGroupedPreviewLocaleChange = (event) => {

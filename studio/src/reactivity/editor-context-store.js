@@ -5,6 +5,11 @@ import Store from '../store.js';
 import { Fragment } from '../aem/fragment.js';
 import { extractSurfaceFromPath, extractLocaleFromPath } from '../utils.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
+import {
+    getPromoNameFromTag,
+    getPromotionTagFromFragment,
+    resolveDefaultPathFromPromoVariation,
+} from '../promotions/promo-variation-utils.js';
 
 export class EditorContextStore extends ReactiveStore {
     loading = false;
@@ -13,6 +18,7 @@ export class EditorContextStore extends ReactiveStore {
     parentFetchPromise = null;
     isVariationByPath = false;
     isGroupedVariationByPath = false;
+    isPromoVariationByPath = false;
     expectedDefaultLocale = null;
 
     constructor(initialValue, validator) {
@@ -37,9 +43,13 @@ export class EditorContextStore extends ReactiveStore {
         this.parentFetchPromise = null;
         this.isVariationByPath = false;
         this.isGroupedVariationByPath = false;
+        this.isPromoVariationByPath = false;
         this.expectedDefaultLocale = null;
         if (Fragment.isGroupedVariationPath(fragmentPath)) {
             this.isGroupedVariationByPath = true;
+        }
+        if (Fragment.isPromoVariationPath(fragmentPath)) {
+            this.isPromoVariationByPath = true;
         }
 
         let notified = false;
@@ -98,12 +108,24 @@ export class EditorContextStore extends ReactiveStore {
             }
 
             if (fragmentPath) {
-                if (!this.defaultLocaleId) {
+                if (this.isPromoVariationByPath) {
+                    this.fetchParentForPromoVariation(fragmentId, fragmentPath);
+                    if (!notified) {
+                        this.notify();
+                        notified = true;
+                    }
+                } else if (!this.defaultLocaleId) {
                     const pathDetection = this.detectVariationFromPath(fragmentPath);
                     if (pathDetection.isVariation) {
                         this.isVariationByPath = true;
                         this.expectedDefaultLocale = pathDetection.defaultLocale;
                         this.fetchParentByPath(fragmentPath, pathDetection.defaultLocale, pathDetection.pathLocale);
+                        if (!notified) {
+                            this.notify();
+                            notified = true;
+                        }
+                    } else {
+                        this.fetchParentForPromoVariation(fragmentId, fragmentPath);
                         if (!notified) {
                             this.notify();
                             notified = true;
@@ -128,6 +150,35 @@ export class EditorContextStore extends ReactiveStore {
                 this.notify();
             }
         }
+    }
+
+    fetchParentForPromoVariation(fragmentId, fragmentPath) {
+        const aem = document.querySelector('mas-repository')?.aem;
+        if (!aem) return;
+        this.parentFetchPromise = aem.sites.cf.fragments
+            .getById(fragmentId)
+            .then(async (fragment) => {
+                const promoTag = getPromotionTagFromFragment(fragment);
+                if (!promoTag) return null;
+                this.isPromoVariationByPath = true;
+                const promoName = getPromoNameFromTag(promoTag);
+                if (!promoName) return null;
+                const parentPath = resolveDefaultPathFromPromoVariation(fragmentPath, promoName);
+                if (!parentPath) return null;
+                return aem.sites.cf.fragments.getByPath(parentPath);
+            })
+            .then((data) => {
+                if (data) {
+                    this.localeDefaultFragment = data;
+                    this.defaultLocaleId = data.id;
+                    this.notify();
+                }
+                return data;
+            })
+            .catch(() => {
+                console.debug('Default fragment not found for promo variation:', fragmentPath);
+                return null;
+            });
     }
 
     fetchParentByPath(fragmentPath, defaultLocale, pathLocale) {
@@ -174,12 +225,13 @@ export class EditorContextStore extends ReactiveStore {
     isVariation(fragmentId) {
         if (this.isVariationByPath) return true;
         if (this.isGroupedVariationByPath) return true;
+        if (this.isPromoVariationByPath) return true;
         if (!this.defaultLocaleId) return false;
         return this.defaultLocaleId !== fragmentId;
     }
 
     get isFragmentTranslatable() {
-        return !this.isVariationByPath || this.isGroupedVariationByPath;
+        return (!this.isVariationByPath && !this.isPromoVariationByPath) || this.isGroupedVariationByPath;
     }
 
     reset() {
@@ -188,6 +240,7 @@ export class EditorContextStore extends ReactiveStore {
         this.parentFetchPromise = null;
         this.isVariationByPath = false;
         this.isGroupedVariationByPath = false;
+        this.isPromoVariationByPath = false;
         this.expectedDefaultLocale = null;
         this.set(null);
     }

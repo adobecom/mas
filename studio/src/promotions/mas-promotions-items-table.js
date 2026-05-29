@@ -7,8 +7,13 @@ import { TABLE_TYPE, CARD_MODEL_PATH } from '../constants.js';
 import { getItemTypeLabel } from '../common/utils/render-utils.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
-import { extractLocaleFromPath } from '../utils.js';
+import { extractLocaleFromPath, showToast } from '../utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
+import Store from '../store.js';
+import { Fragment } from '../aem/fragment.js';
+import { normalizeTagId } from '../aem/tag-id-utils.js';
+import { splitPromotionTagsFieldValues } from './promotion-editor-utils.js';
+import { buildPromoVariationPathForTag } from './promo-variation-utils.js';
 
 const localStyles = css`
     :host {
@@ -233,6 +238,11 @@ const localStyles = css`
     }
 `;
 
+const PROMO_VARIATION_EXISTS_MESSAGE =
+    'A promo variation already exists for this fragment in this promotion project. Use Edit fragment to open it.';
+const PROMO_VARIATION_MISSING_MESSAGE =
+    'The promo variation for this fragment could not be found. It may have been removed. Use Create promo variation to add it again.';
+
 class MasPromotionsItemsTable extends LitElement {
     static styles = [tableStyles, localStyles];
 
@@ -242,18 +252,32 @@ class MasPromotionsItemsTable extends LitElement {
         renderFragmentStatusCell: { type: Function },
         viewOnlyLoading: { type: Boolean, state: true },
         viewOnlyFragments: { type: Array, state: true },
+        confirmDialogConfig: { type: Object, state: true },
+        createPromoVariationLoading: { type: Boolean, state: true },
     };
 
     #loadedPathsKey = null;
     #processAbortController = null;
     #selectionController = null;
+    #existingPromoVariationDefaultPaths = new Set();
 
     constructor() {
         super();
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
+        this.confirmDialogConfig = null;
+        this.createPromoVariationLoading = false;
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
+    }
+
+    get #promotionTagId() {
+        const promotionStore = Store.promotions.inEdit.get();
+        const promotion = promotionStore?.get?.();
+        if (!promotion) return null;
+        const { promotion: promotionTags } = splitPromotionTagsFieldValues(promotion.getFieldValues('tags'));
+        const first = promotionTags[0];
+        return first ? normalizeTagId(first) : null;
     }
 
     connectedCallback() {
@@ -326,12 +350,34 @@ class MasPromotionsItemsTable extends LitElement {
         await loadSelectedFragments(paths, this.type, this.repository, {
             signal,
             onItems: (items) => {
-                if (!signal.aborted) this.viewOnlyFragments = items;
+                if (!signal.aborted) {
+                    this.viewOnlyFragments = items;
+                    this.#syncExistingPromoVariations(items);
+                }
             },
             getDisplayName: this.getDisplayName,
         }).finally(() => {
             if (!signal.aborted) this.viewOnlyLoading = false;
         });
+    }
+
+    async #syncExistingPromoVariations(items) {
+        const promoTag = this.#promotionTagId;
+        if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.getByPath) {
+            this.#existingPromoVariationDefaultPaths = new Set();
+            return;
+        }
+        const existing = new Set();
+        await Promise.all(
+            items.map(async (item) => {
+                const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
+                if (!targetPath) return;
+                const variation = await this.repository.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+                if (variation?.id) existing.add(item.path);
+            }),
+        );
+        this.#existingPromoVariationDefaultPaths = existing;
+        this.requestUpdate();
     }
 
     #showToast(text, variant) {
@@ -361,12 +407,126 @@ class MasPromotionsItemsTable extends LitElement {
         openPreview(fragmentId, { left: 'min(300px, 15%)' });
     }
 
+    async #resolvePromoProjectEditTarget(item) {
+        const defaultId = item?.id;
+        const defaultPath = item?.path;
+        if (!defaultId || !defaultPath) return null;
+
+        const promoTag = this.#promotionTagId;
+        const targetPath = promoTag ? buildPromoVariationPathForTag(defaultPath, promoTag) : null;
+        if (!targetPath) {
+            return { id: defaultId, path: defaultPath };
+        }
+
+        const variation = await this.repository?.aem?.sites?.cf?.fragments?.getByPath(targetPath).catch(() => null);
+        if (variation?.id) {
+            return { id: variation.id, path: variation.path };
+        }
+        return { id: defaultId, path: defaultPath };
+    }
+
+    #getPromotionProjectId() {
+        return Store.promotions.inEdit.get()?.get?.()?.id || Store.promotions.promotionId.get() || null;
+    }
+
+    async #navigateToFragmentEditorFromProject(fragmentId, path) {
+        const promotionId = this.#getPromotionProjectId();
+        if (promotionId) {
+            Store.promotions.promotionId.set(promotionId);
+        }
+        const locale = extractLocaleFromPath(path);
+        await router.navigateToFragmentEditor(fragmentId, { locale });
+        if (promotionId) {
+            Store.promotions.promotionId.set(promotionId);
+        }
+    }
+
     async #editFragment(e, item) {
         e.stopPropagation();
-        const id = item?.id;
-        if (!id) return;
-        const locale = extractLocaleFromPath(item.path);
-        await router.navigateToFragmentEditor(id, { locale });
+        if (!item?.id) return;
+        const target = await this.#resolvePromoProjectEditTarget(item);
+        if (!target?.id) return;
+        await this.#navigateToFragmentEditorFromProject(target.id, target.path);
+    }
+
+    #canCreatePromoVariation(item) {
+        if (!item?.id || !item?.path || !this.#promotionTagId) return false;
+        if (Fragment.isPromoVariationPath(item.path)) return false;
+        if (this.#existingPromoVariationDefaultPaths.has(item.path)) return false;
+        return true;
+    }
+
+    #hasPromoVariationForItem(item) {
+        if (!item?.path || !this.#promotionTagId) return false;
+        if (Fragment.isPromoVariationPath(item.path)) return false;
+        return this.#existingPromoVariationDefaultPaths.has(item.path);
+    }
+
+    async #viewPromoVariation(e, item) {
+        e.stopPropagation();
+        const promoTag = this.#promotionTagId;
+        const targetPath = promoTag ? buildPromoVariationPathForTag(item.path, promoTag) : null;
+        if (!targetPath) return;
+
+        const variation = await this.repository?.aem?.sites?.cf?.fragments?.getByPath(targetPath).catch(() => null);
+        if (!variation?.id) {
+            showToast(PROMO_VARIATION_MISSING_MESSAGE, 'negative');
+            this.#existingPromoVariationDefaultPaths.delete(item.path);
+            this.requestUpdate();
+            return;
+        }
+
+        await this.#navigateToFragmentEditorFromProject(variation.id, variation.path);
+    }
+
+    #confirmCreatePromoVariation() {
+        return new Promise((resolve) => {
+            this.confirmDialogConfig = {
+                title: 'Create promo variation',
+                message:
+                    'This creates a copy of the fragment under the promotion folder so you can edit promo content without changing the default.',
+                confirmText: 'Create',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+                onConfirm: () => resolve(true),
+                onCancel: () => resolve(false),
+            };
+        });
+    }
+
+    #closeConfirmDialog() {
+        this.confirmDialogConfig = null;
+    }
+
+    async #createPromoVariation(e, item) {
+        e.stopPropagation();
+        const promoTag = this.#promotionTagId;
+        if (!promoTag || !item?.id || !this.repository) return;
+
+        const targetPath = buildPromoVariationPathForTag(item.path, promoTag);
+        if (targetPath) {
+            const existing = await this.repository.aem.sites.cf.fragments.getByPath(targetPath).catch(() => null);
+            if (existing) {
+                showToast(PROMO_VARIATION_EXISTS_MESSAGE, 'negative');
+                return;
+            }
+        }
+
+        const confirmed = await this.#confirmCreatePromoVariation();
+        if (!confirmed) return;
+
+        try {
+            this.createPromoVariationLoading = true;
+            showToast('Creating promo variation...');
+            const created = await this.repository.createPromoVariation(item.id, promoTag);
+            showToast('Promo variation created', 'positive');
+            this.#existingPromoVariationDefaultPaths = new Set([...this.#existingPromoVariationDefaultPaths, item.path]);
+            await this.#navigateToFragmentEditorFromProject(created.id, created.path);
+        } catch (err) {
+            showToast(err.message || 'Failed to create promo variation', 'negative');
+        } finally {
+            this.createPromoVariationLoading = false;
+        }
     }
 
     #removeFromList(e, item) {
@@ -411,10 +571,52 @@ class MasPromotionsItemsTable extends LitElement {
         </sp-table-cell>`;
     }
 
+    get confirmDialogTemplate() {
+        if (!this.confirmDialogConfig) return nothing;
+        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
+        return html`
+            <sp-dialog-wrapper
+                open
+                underlay
+                .headline=${title}
+                .variant=${variant || 'confirmation'}
+                .confirmLabel=${confirmText}
+                .cancelLabel=${cancelText}
+                @confirm=${() => {
+                    this.#closeConfirmDialog();
+                    onConfirm?.();
+                }}
+                @cancel=${() => {
+                    this.#closeConfirmDialog();
+                    onCancel?.();
+                }}
+            >
+                <div>${message}</div>
+            </sp-dialog-wrapper>
+        `;
+    }
+
     #renderActionsCell(item) {
+        const showCreatePromo = this.#canCreatePromoVariation(item);
+        const showViewPromo = this.#hasPromoVariationForItem(item);
         return html`<sp-table-cell class="actions-cell">
             <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
                 <sp-icon-more slot="icon"></sp-icon-more>
+                ${showCreatePromo
+                    ? html`<sp-menu-item
+                          ?disabled=${this.createPromoVariationLoading}
+                          @click=${(e) => this.#createPromoVariation(e, item)}
+                      >
+                          <sp-icon-copy slot="icon"></sp-icon-copy>
+                          Create promo variation
+                      </sp-menu-item>`
+                    : nothing}
+                ${showViewPromo
+                    ? html`<sp-menu-item @click=${(e) => this.#viewPromoVariation(e, item)}>
+                          <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                          View promo variation
+                      </sp-menu-item>`
+                    : nothing}
                 <sp-menu-item @click=${(e) => this.#editFragment(e, item)}>
                     <sp-icon-edit slot="icon"></sp-icon-edit>
                     ${this.type === TABLE_TYPE.COLLECTIONS ? 'Edit collection' : 'Edit fragment'}
@@ -483,7 +685,7 @@ class MasPromotionsItemsTable extends LitElement {
         const layoutClass = this.type === TABLE_TYPE.CARDS ? 'promotions-cards-layout' : 'promotions-collections-layout';
 
         return html`
-            ${showEmpty ? html`<p>No items found.</p>` : nothing}
+            ${this.confirmDialogTemplate} ${showEmpty ? html`<p>No items found.</p>` : nothing}
             ${showTable
                 ? html`<sp-table class="fragments-table item-table promotions-view-only ${layoutClass}" emphasized>
                       <sp-table-head>

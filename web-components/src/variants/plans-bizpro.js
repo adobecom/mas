@@ -57,7 +57,17 @@ export class BizProPlans extends VariantLayout {
     }
 
     get hasQuantitySelect() {
-        return !!this.card.querySelector('[slot="quantity-select"]');
+        // The "Show quantity selector" toggle authors an empty sentinel
+        // (<merch-quantity-select/>) when off, which hydrate still wraps in a
+        // slot div. Only count a *configured* selector (title/min/step) so an
+        // empty one doesn't trigger the styled license-zone.
+        const qs = this.quantitySelectEl;
+        if (!qs) return false;
+        return (
+            !!qs.getAttribute('title') ||
+            parseInt(qs.getAttribute('min'), 10) > 0 ||
+            parseInt(qs.getAttribute('step'), 10) > 0
+        );
     }
 
     get hasPerUnitLabel() {

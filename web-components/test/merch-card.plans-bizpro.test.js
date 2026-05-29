@@ -83,6 +83,34 @@ describe('BizProPlans.adjustAddon', () => {
     });
 });
 
+describe('plans-bizpro license-zone gating', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('does not render the license-zone for an unconfigured quantity-select with no callout', async () => {
+        // "Show quantity selector" off authors the empty sentinel
+        // <merch-quantity-select/>, which hydrate still wraps in a slot div.
+        card = await renderCard(
+            '<div slot="quantity-select"><merch-quantity-select></merch-quantity-select></div>',
+        );
+        expect(card.variantLayout.hasQuantitySelect).to.be.false;
+        expect(card.shadowRoot.querySelector('.license-zone')).to.not.exist;
+    });
+
+    it('renders the license-zone for a configured quantity-select', async () => {
+        card = await renderCard(
+            '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1"></merch-quantity-select></div>',
+        );
+        expect(card.variantLayout.hasQuantitySelect).to.be.true;
+        expect(card.shadowRoot.querySelector('.license-zone')).to.exist;
+    });
+
+    it('renders the license-zone for a callout even without a quantity-select', async () => {
+        card = await renderCard('<div slot="callout-content">Save 20%</div>');
+        expect(card.shadowRoot.querySelector('.license-zone')).to.exist;
+    });
+});
+
 describe('plans-bizpro add-on theming', () => {
     let card;
     afterEach(() => card?.remove());

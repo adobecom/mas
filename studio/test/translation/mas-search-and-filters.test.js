@@ -991,4 +991,20 @@ describe('MasSearchAndFilters', () => {
             expect(Store.translationProjects.displayCollections.get().length).to.equal(1);
         });
     });
+
+    describe('resetFilters', () => {
+        it('clears template, market, customer, and product filter arrays', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards" .searchOnly=${false}></mas-search-and-filters>`);
+            el.templateFilter = ['a'];
+            el.marketSegmentFilter = ['b'];
+            el.customerSegmentFilter = ['c'];
+            el.productFilter = ['d'];
+            await el.updateComplete;
+            el.resetFilters();
+            expect(el.templateFilter).to.deep.equal([]);
+            expect(el.marketSegmentFilter).to.deep.equal([]);
+            expect(el.customerSegmentFilter).to.deep.equal([]);
+            expect(el.productFilter).to.deep.equal([]);
+        });
+    });
 });

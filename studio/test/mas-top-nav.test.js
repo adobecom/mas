@@ -173,7 +173,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Promotions', 'Edit project']);
+            expect(items).to.deep.equal(['Promotions', 'Edit promotion project']);
         });
 
         it('should render promotions editor breadcrumbs and label for create flow', async () => {
@@ -183,7 +183,7 @@ describe('MasTopNav', () => {
             const items = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')].map((item) =>
                 item.textContent.trim(),
             );
-            expect(items).to.deep.equal(['Promotions', 'Create new project']);
+            expect(items).to.deep.equal(['Promotions', 'Create new promotion project']);
         });
 
         it('should navigate to promotions page when promotions breadcrumb is clicked', async () => {
@@ -335,6 +335,24 @@ describe('MasTopNav', () => {
 
         it('should disable folder picker on bulk publish editor page', async () => {
             Store.page.value = PAGE_NAMES.BULK_PUBLISH_EDITOR;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should disable folder picker on promotions list page', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS;
+            const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
+            await el.updateComplete;
+            const folderPicker = el.querySelector('mas-nav-folder-picker');
+            expect(folderPicker).to.exist;
+            expect(folderPicker.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('should disable folder picker on promotions editor page', async () => {
+            Store.page.value = PAGE_NAMES.PROMOTIONS_EDITOR;
             const el = await fixture(html`<mas-top-nav show-pickers></mas-top-nav>`);
             await el.updateComplete;
             const folderPicker = el.querySelector('mas-nav-folder-picker');

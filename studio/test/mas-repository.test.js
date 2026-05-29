@@ -663,6 +663,154 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('calls searchFragments for PROMOTIONS_EDITOR page', async () => {
+            const repository = createRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.searchFragments = sandbox.stub();
+            try {
+                repository.handleSearch();
+                expect(repository.searchFragments.calledOnce).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
+
+        it('getPromotionsPath returns promotions folder under root', () => {
+            const repository = createRepository();
+            expect(repository.getPromotionsPath()).to.equal(`${ROOT_PATH}/promotions`);
+        });
+
+        it('loadPromotions populates list from searchFragmentList', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const promoFragment = {
+                id: 'promo-1',
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: '/content/dam/mas/promotions/promo-1',
+                title: 'T',
+                description: '',
+                status: 'DRAFT',
+                created: { by: 'u', fullName: 'U', at: '2024-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2024-01-02T00:00:00.000Z' },
+                fields: [
+                    { name: 'title', type: 'text', values: ['T'] },
+                    { name: 'promoCode', type: 'text', values: ['X'] },
+                    { name: 'startDate', type: 'date-time', values: ['2024-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', type: 'date-time', values: ['2024-12-31T23:59:59.999Z'] },
+                    { name: 'tags', type: 'tag', values: [] },
+                    { name: 'surfaces', type: 'text', values: [] },
+                ],
+                tags: [],
+            };
+            repository.searchFragmentList = sandbox.stub().resolves([promoFragment]);
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(Store.promotions.list.data.get().length).to.equal(1);
+            expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
+        it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const expiredPublished = {
+                id: 'promo-exp',
+                etag: 'e',
+                model: { id: 'promotion-model' },
+                path: '/content/dam/mas/promotions/promo-exp',
+                title: 'Expired Pub',
+                description: '',
+                status: 'PUBLISHED',
+                created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
+                modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
+                fields: [
+                    { name: 'title', type: 'text', values: ['Expired Pub'] },
+                    { name: 'promoCode', type: 'text', values: ['X'] },
+                    { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
+                    { name: 'tags', type: 'tag', values: ['mas:status/published'] },
+                    { name: 'surfaces', type: 'text', values: [] },
+                ],
+                tags: [],
+            };
+            const refreshed = {
+                ...expiredPublished,
+                status: 'DRAFT',
+                fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
+            };
+            let refreshComplete;
+            const refreshCompletePromise = new Promise((resolve) => {
+                refreshComplete = resolve;
+            });
+            repository.aem = createAemMock();
+            repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
+            const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
+            repository.aem.sites.cf.fragments.getById.callsFake(async () => {
+                refreshComplete();
+                return refreshed;
+            });
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            await refreshCompletePromise;
+            expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
+            expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
+            const row = Store.promotions.list.data.get()[0].get();
+            expect(row.isPromotionPublished).to.be.false;
+        });
+
+        it('loadPromotions calls processError when searchFragmentList rejects', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            repository.searchFragmentList = sandbox.stub().rejects(new Error('network'));
+            sandbox.stub(repository, 'processError');
+            Store.promotions.list.data.set([]);
+            await repository.loadPromotions();
+            expect(repository.processError.calledOnce).to.be.true;
+            expect(repository.processError.firstCall.args[1]).to.equal('Could not load promotions.');
+            expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
+        it('loadAllCollections skips writing stores when items selection store unset after fetch', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const { setItemsSelectionStore } = await import('../src/common/items-selection-store.js');
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.search.set({ ...originalSearch, path: 'acom' });
+            Store.filters.set({ ...originalFilters, locale: 'en_US' });
+            let resolveList;
+            const deferred = new Promise((r) => {
+                resolveList = r;
+            });
+            repository.searchFragmentList = sandbox.stub().returns(deferred);
+            Store.translationProjects.allCollections.set([]);
+            const collectionsSnapshot = Store.translationProjects.allCollections.get();
+            setItemsSelectionStore(Store.translationProjects);
+            try {
+                const loadP = repository.loadAllCollections();
+                await Promise.resolve();
+                setItemsSelectionStore(null);
+                resolveList([
+                    {
+                        path: '/content/dam/mas/acom/en_US/collections/c1',
+                        title: 'C1',
+                        fields: [],
+                        model: { path: COLLECTION_MODEL_PATH },
+                    },
+                ]);
+                await loadP;
+                expect(Store.translationProjects.allCollections.get()).to.equal(collectionsSnapshot);
+            } finally {
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                setItemsSelectionStore(null);
+            }
+        });
+
         it('calls loadTranslationProjects for TRANSLATIONS page', async () => {
             const repository = createRepository();
             const { default: Store } = await import('../src/store.js');
@@ -810,6 +958,67 @@ describe('MasRepository dictionary helpers', () => {
             });
             await repository.searchFragments();
             expect(searchStub.called).to.be.false;
+        });
+
+        it('executes search when page is PROMOTIONS_EDITOR and item picker surface is set', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            const cursor = createMockCursor([[]]);
+            const searchStub = sandbox.stub().resolves(cursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalPickerSurface = Store.promotions.itemPickerSurface.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.promotions.itemPickerSurface.set('acom');
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.promotions.itemPickerSurface.set(originalPickerSurface);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('returns early on PROMOTIONS_EDITOR when item picker surface is not set', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.search = { value: { path: 'acom', query: '' } };
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalPickerSurface = Store.promotions.itemPickerSurface.get();
+            Store.profile.set({ name: 'test-user' });
+            Store.promotions.itemPickerSurface.set(null);
+            const mockDataStore = {
+                get: sandbox.stub().returns([{ get: () => ({ path: '/x' }) }]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(mockDataStore.set.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.promotions.itemPickerSurface.set(originalPickerSurface);
+                Store.fragments.list.data = originalData;
+            }
         });
 
         it('returns early when profile is not set', async () => {

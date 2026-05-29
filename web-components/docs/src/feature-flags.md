@@ -79,8 +79,9 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | SG_en (Singapore) | incl. GST | excl. GST |
 | TH_en (Thailand) | incl. VAT | incl. VAT |
 | TH_th (Thailand) | รวม VAT | รวม VAT |
-| VN_en (Vietnam) | \-  | excl. VAT |
-| VN_vi (Vietnam) | \-  | chưa bao gồm VAT |
+| TW_zh (Taiwan) | 含稅 | 不含稅 |
+| VN_en (Vietnam) | incl. VAT | excl. VAT |
+| VN_vi (Vietnam) | Gồm VAT | chưa bao gồm VAT |
 | PH_en (Philippines) | incl. VAT | excl. VAT |
 | PH_fil (Philippines) | kasama ang VAT | hindi kasama ang VAT |
 | **Middle East & Africa** |     |     |
@@ -94,7 +95,6 @@ e.g `<meta name="mas-ff-defaults" content="on">`
 | **Latin America** |     |     |
 | CO_es (Colombia) | IVA incluido | sin IVA |
 | PE_es (Peru) | IVA incluido | IVA incluido |
-| AR_es (Argentina) | impuestos incluidos | sin impuestos |
 | MX_es (Mexico) | sin IVA | sin IVA |
 | CL_es (Chile) | sin IVA | sin IVA |
 

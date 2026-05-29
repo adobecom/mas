@@ -2,9 +2,28 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PAT
 import Store from './store.js';
 import { debounce } from './utils.js';
 import { canAccessSettings } from './groups.js';
+import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
-const STORE_SEARCH_HASH_KEYS = ['path', 'query'];
+const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
+
+/**
+ * Alphabetical hash order, but places `region` immediately after `locale`.
+ * @param {[string, string][]} entries
+ * @returns {[string, string][]}
+ */
+export function orderHashParamEntries(entries) {
+    const sorted = [...entries].sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+    const localeIndex = sorted.findIndex(([key]) => key === 'locale');
+    const regionIndex = sorted.findIndex(([key]) => key === 'region');
+    if (localeIndex === -1 || regionIndex === -1) {
+        return sorted;
+    }
+    const [regionEntry] = sorted.splice(regionIndex, 1);
+    const localeIndexAfter = sorted.findIndex(([key]) => key === 'locale');
+    sorted.splice(localeIndexAfter + 1, 0, regionEntry);
+    return sorted;
+}
 
 export class Router extends EventTarget {
     #settingsAccessRouteWatcher = () => {
@@ -26,9 +45,9 @@ export class Router extends EventTarget {
     updateHistory() {
         // Sort the parameters by name
         const sortedParams = new URLSearchParams();
-        Array.from(this.currentParams.entries())
-            .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-            .forEach(([key, value]) => sortedParams.append(key, value));
+        orderHashParamEntries(Array.from(this.currentParams.entries())).forEach(([key, value]) =>
+            sortedParams.append(key, value),
+        );
         const newHash = sortedParams.toString();
         if (newHash !== this.location.hash) {
             this.location.hash = newHash;
@@ -180,6 +199,12 @@ export class Router extends EventTarget {
                         Store.translationProjects.translationProjectId.set(options.translationProjectId);
                     }
                     Store.viewMode.set('default');
+                    if (
+                        targetPage === PAGE_NAMES.CONTENT &&
+                        (Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION)
+                    ) {
+                        this.#snapContentLocaleToParentDefault();
+                    }
                     Store.page.set(targetPage);
                 }
             } finally {
@@ -206,6 +231,9 @@ export class Router extends EventTarget {
 
             if (!confirmed) return;
 
+            const leavingFragmentEditor =
+                Store.page.value === PAGE_NAMES.FRAGMENT_EDITOR || Store.page.value === PAGE_NAMES.VERSION;
+
             // Set the fragment ID to be expanded
             Store.fragments.expandedId.set(fragmentId);
 
@@ -217,6 +245,9 @@ export class Router extends EventTarget {
             // Navigate to content page in table view
             Store.viewMode.set('default');
             Store.renderMode.set('table');
+            if (leavingFragmentEditor) {
+                this.#snapContentLocaleToParentDefault();
+            }
             Store.page.set(PAGE_NAMES.CONTENT);
         } finally {
             this.isNavigating = false;
@@ -457,7 +488,8 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         const redirectedOnStart = this.#enforceSettingsAccessFromParams();
-        if (normalizedOnStart || redirectedOnStart) {
+        const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
+        if (normalizedOnStart || redirectedOnStart || normalizedLocaleRegionOnStart) {
             this.updateHistory();
         }
         if (Store.search.value.query) {
@@ -526,7 +558,7 @@ export class Router extends EventTarget {
                 }
             }
 
-            Store.removeRegionOverride();
+            const normalizedLocaleRegion = this.#normalizeLocaleRegionFromHash();
 
             // Sync all linked stores from the current hash
             this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
@@ -534,6 +566,13 @@ export class Router extends EventTarget {
                 const isObject = typeof currentValue === 'object' && currentValue !== null;
                 this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
             });
+
+            this.#clearRedundantRegionOverride();
+            this.#snapLocaleWhenLeavingFragmentEditorForContent(this.previousHash);
+
+            if (normalizedLocaleRegion) {
+                this.updateHistory();
+            }
 
             this.previousHash = this.location.hash;
         });
@@ -545,6 +584,56 @@ export class Router extends EventTarget {
                 return '';
             }
         });
+    }
+
+    /**
+     * Legacy URLs put a regional locale (e.g. en_BE) in `locale`; move it to `region` and set catalog locale.
+     * @returns {boolean} true when hash params were adjusted
+     */
+    #normalizeLocaleRegionFromHash() {
+        const surface = this.currentParams.get('path') || Store.search.value?.path;
+        const hashLocale = this.currentParams.get('locale');
+        if (!surface || !hashLocale) return false;
+
+        const catalogLocale = getDefaultLocaleCode(surface, hashLocale);
+        if (!catalogLocale || catalogLocale === hashLocale) return false;
+
+        this.currentParams.set('locale', catalogLocale);
+        this.currentParams.set('region', hashLocale);
+        Store.filters.set((prev) => ({ ...prev, locale: catalogLocale }));
+        Store.search.set((prev) => ({ ...prev, region: hashLocale }));
+        return true;
+    }
+
+    #clearRedundantRegionOverride() {
+        const region = Store.search.value.region;
+        if (!region) return;
+        const surface = Store.surface();
+        const catalogLocale =
+            (surface && getDefaultLocaleCode(surface, Store.filters.value.locale)) || Store.filters.value.locale;
+        if (region !== catalogLocale && region !== Store.filters.value.locale) return;
+        Store.search.set((prev) => ({ ...prev, region: null }));
+        this.currentParams?.delete('region');
+    }
+
+    #snapContentLocaleToParentDefault() {
+        const surface = Store.surface();
+        if (!surface) return;
+        Store.removeRegionOverride();
+        const current = Store.filters.value.locale;
+        const parent = getDefaultLocaleCode(surface, current);
+        if (!parent || parent === current) return;
+        Store.filters.set((prev) => ({ ...prev, locale: parent }));
+    }
+
+    #snapLocaleWhenLeavingFragmentEditorForContent(previousHash) {
+        const raw = previousHash?.startsWith('#') ? previousHash.slice(1) : previousHash || '';
+        const prev = new URLSearchParams(raw);
+        const prevPage = prev.get('page');
+        const wasEditor = prevPage === PAGE_NAMES.FRAGMENT_EDITOR || prevPage === PAGE_NAMES.VERSION;
+        if (!wasEditor) return;
+        if (Store.page.value !== PAGE_NAMES.CONTENT) return;
+        this.#snapContentLocaleToParentDefault();
     }
 
     #isSettingsPage(page) {

@@ -30,6 +30,7 @@ export function promoHashIsSearchSync(previousHash, nextHash) {
     return true;
 }
 
+/**
  * Alphabetical hash order, but places `region` immediately after `locale`.
  * @param {[string, string][]} entries
  * @returns {[string, string][]}

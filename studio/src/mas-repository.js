@@ -130,8 +130,10 @@ export class MasRepository extends LitElement {
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
         this.publishFragment = this.publishFragment.bind(this);
+        this.unpublishFragment = this.unpublishFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
         this.search = new StoreController(this, Store.search);
+        this.promotionsItemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
         this.filters = new StoreController(this, Store.filters);
         this.page = new StoreController(this, Store.page);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
@@ -257,6 +259,7 @@ export class MasRepository extends LitElement {
                 break;
             case PAGE_NAMES.TRANSLATION_EDITOR:
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:
+            case PAGE_NAMES.PROMOTIONS_EDITOR:
                 this.searchFragments();
                 break;
         }
@@ -386,18 +389,41 @@ export class MasRepository extends LitElement {
         });
     }
 
+    /** Fragment list surface on promotions editor item picker (no top-nav fallback). */
+    #promotionsItemPickerSurfaceOrNavPath() {
+        const override = Store.promotions.itemPickerSurface.get();
+        if (override != null && override !== '') return override;
+        return null;
+    }
+
     async searchFragments() {
         if (
             !(
                 this.page.value === PAGE_NAMES.CONTENT ||
                 this.page.value === PAGE_NAMES.TRANSLATION_EDITOR ||
-                this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR
+                this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR ||
+                this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
             )
         )
             return;
         if (!Store.profile.value) return;
 
-        const path = this.search.value.path;
+        const path =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                ? this.#promotionsItemPickerSurfaceOrNavPath()
+                : this.search.value.path;
+
+        if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR && !path) {
+            const dataStore = Store.fragments.list.data;
+            if (dataStore.get().length > 0) dataStore.set([]);
+            dataStore.setMeta('path', null);
+            dataStore.setMeta('promotionPickerSurface', null);
+            Store.fragments.list.loading.set(false);
+            Store.fragments.list.firstPageLoaded.set(true);
+            Store.fragments.list.hasMore.set(false);
+            return;
+        }
+
         const dataStore = Store.fragments.list.data;
         const query = this.search.value.query;
 
@@ -447,7 +473,15 @@ export class MasRepository extends LitElement {
 
         const tracing = typeof localStorage !== 'undefined' && localStorage.getItem('mas-perf-trace');
 
+        const promotionPickerSurfaceMark =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? Store.promotions.itemPickerSurface.get() : undefined;
+        const currentPromotionPickerMark = dataStore.getMeta('promotionPickerSurface');
+        const promotionPickerMatches =
+            this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR ||
+            (promotionPickerSurfaceMark ?? null) === (currentPromotionPickerMark ?? null);
+
         const sameSurface =
+            promotionPickerMatches &&
             currentData?.length > 0 &&
             currentPath === path &&
             currentLocale === locale &&
@@ -614,7 +648,16 @@ export class MasRepository extends LitElement {
                     }
 
                     // Backfill the surface for pathless UUID deep-links so the picker and URL normalize.
-                    if (canSyncSurface && fragmentSurface && Store.search.value.path !== fragmentSurface) {
+                    if (
+                        canSyncSurface &&
+                        fragmentSurface &&
+                        Store.search.value.path !== fragmentSurface &&
+                        !(
+                            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR &&
+                            Store.promotions.itemPickerSurface.get() != null &&
+                            Store.promotions.itemPickerSurface.get() !== ''
+                        )
+                    ) {
                         Store.search.set((prev) => ({
                             ...prev,
                             query: prev.query ?? query,
@@ -670,6 +713,9 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', this.filters.value.tags || '');
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
+            if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
+                dataStore.setMeta('promotionPickerSurface', Store.promotions.itemPickerSurface.get());
+            }
             dataStore.setMeta('lastLoad', Date.now());
         } catch (error) {
             if (error.name !== 'AbortError') {
@@ -884,7 +930,11 @@ export class MasRepository extends LitElement {
     async loadPlaceholders() {
         try {
             /* If surface is not set yet, skip loading placeholders */
-            if (!this.search.value.path) return;
+            const surfaceKey =
+                this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                    ? this.#promotionsItemPickerSurfaceOrNavPath()
+                    : this.search.value.path;
+            if (!surfaceKey) return;
 
             const dictionaryPath = this.getDictionaryPath();
             try {
@@ -922,12 +972,16 @@ export class MasRepository extends LitElement {
     }
 
     async loadAllCollections() {
-        if (!this.search.value.path) return;
+        const surfaceKey =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR
+                ? this.#promotionsItemPickerSurfaceOrNavPath()
+                : this.search.value.path;
+        if (!surfaceKey) return;
         try {
             if (this.#abortControllers.collections) this.#abortControllers.collections.abort();
             this.#abortControllers.collections = new AbortController();
 
-            const damPath = getDamPath(this.search.value.path);
+            const damPath = getDamPath(surfaceKey);
             const locale = this.filters.value.locale;
             const searchOptions = {
                 path: `${damPath}/${locale}`,
@@ -939,12 +993,20 @@ export class MasRepository extends LitElement {
             const collections = [];
             const collectionsByPath = new Map();
             for (const fragment of fragments) {
-                const collection = { ...fragment, studioPath: getFragmentName(fragment) };
+                let studioPath;
+                if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
+                    const surface = (extractSurfaceFromPath(fragment.path) ?? this.search.value.path)?.toUpperCase();
+                    studioPath = `merch-card-collection: ${surface} / ${fragment.title || ''}`;
+                } else {
+                    studioPath = getFragmentName(fragment);
+                }
+                const collection = { ...fragment, studioPath };
                 collections.push(collection);
                 collectionsByPath.set(fragment.path, collection);
             }
 
-            const s = getItemsSelectionStore();
+            const s = getItemsSelectionStore({ allowUnset: true });
+            if (!s) return;
             s.allCollections.setMeta('loaded', true);
             s.allCollections.set(collections);
             s.displayCollections.set(collections);
@@ -1068,12 +1130,32 @@ export class MasRepository extends LitElement {
             const fragments = await this.searchFragmentList(searchOptions, 50, this.#abortControllers.promotions);
 
             const promotions = fragments.map((fragment) => new FragmentStore(new Promotion(fragment)));
+            const signal = this.#abortControllers.promotions.signal;
+            const expiredPublished = promotions.filter((store) => {
+                const p = store.get();
+                return p?.promotionStatus === 'expired' && p.isPromotionPublished;
+            });
 
             Store.promotions.list.data.set(promotions);
+
+            if (expiredPublished.length) {
+                void this.#unpublishExpiredPromotions(expiredPublished, signal);
+            }
         } catch (error) {
             this.processError(error, 'Could not load promotions.');
         } finally {
             Store.promotions.list.loading.set(false);
+        }
+    }
+
+    async #unpublishExpiredPromotions(stores, signal) {
+        for (const store of stores) {
+            if (signal.aborted) break;
+            const p = store.get();
+            const ok = await this.unpublishFragment(p, false);
+            if (!ok || signal.aborted) continue;
+            const fresh = await this.aem.sites.cf.fragments.getById(p.id);
+            if (fresh) store.set(new Promotion(fresh));
         }
     }
 
@@ -1082,7 +1164,9 @@ export class MasRepository extends LitElement {
     }
 
     getDictionaryPath() {
-        return `${ROOT_PATH}/${Store.surface()}/${Store.localeOrRegion()}/dictionary`;
+        const surfaceKey =
+            this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR ? this.#promotionsItemPickerSurfaceOrNavPath() : Store.surface();
+        return `${ROOT_PATH}/${surfaceKey}/${Store.localeOrRegion()}/dictionary`;
     }
 
     parseDictionaryPath(dictionaryPath) {
@@ -1614,11 +1698,34 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
             await this.aem.sites.cf.fragments.publish(fragment, publishReferencesWithStatus);
-            if (withToast) showToast('Fragment successfully published.', 'positive');
+            if (withToast) {
+                const message =
+                    fragment instanceof Promotion ? 'Project successfully published.' : 'Fragment successfully published.';
+                showToast(message, 'positive');
+            }
 
             return true;
         } catch (error) {
             this.processError(error, 'Failed to publish fragment.');
+            return false;
+        } finally {
+            this.operation.set(null);
+        }
+    }
+
+    /**
+     * @param {Fragment} fragment Fragment to unpublish
+     * @param {boolean} [withToast=true]
+     * @returns {Promise<boolean>}
+     */
+    async unpublishFragment(fragment, withToast = true) {
+        try {
+            this.operation.set(OPERATIONS.UNPUBLISH);
+            await this.aem.sites.cf.fragments.unpublish(fragment);
+            if (withToast) showToast('Fragment successfully unpublished.', 'positive');
+            return true;
+        } catch (error) {
+            this.processError(error, 'Failed to unpublish fragment.');
             return false;
         } finally {
             this.operation.set(null);

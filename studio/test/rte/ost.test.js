@@ -179,3 +179,60 @@ describe('onPlaceholderSelect', () => {
         expect(event.detail).to.deep.equal(expectedAttributes);
     });
 });
+
+describe('openOfferSelectorTool deep-link type parameter', () => {
+    let openOfferSelectorTool;
+    let openOstStub;
+    let originalWindowOst;
+    let originalLocalStorage;
+
+    before(async () => {
+        ({ openOfferSelectorTool } = await import('../../src/rte/ost.js'));
+    });
+
+    beforeEach(() => {
+        openOstStub = sinon.stub().returns(() => {});
+        originalWindowOst = window.ost;
+        window.ost = { openOfferSelectorTool: openOstStub };
+        originalLocalStorage = localStorage.getItem('masAccessToken');
+        localStorage.setItem('masAccessToken', 'test-token');
+    });
+
+    afterEach(() => {
+        window.ost = originalWindowOst;
+        if (originalLocalStorage === null) {
+            localStorage.removeItem('masAccessToken');
+        } else {
+            localStorage.setItem('masAccessToken', originalLocalStorage);
+        }
+    });
+
+    function getSearchParamsFromLastCall() {
+        const config = openOstStub.getCall(0).args[0];
+        return config.searchParameters;
+    }
+
+    it('passes type=price when deep-linking from an inline-price element', () => {
+        const inlinePriceEl = {
+            isInlinePrice: true,
+            innerText: '',
+            getAttribute: () => null,
+            getAttributeNames: () => [],
+        };
+        openOfferSelectorTool(null, inlinePriceEl);
+        expect(openOstStub.calledOnce).to.be.true;
+        expect(getSearchParamsFromLastCall().get('type')).to.equal('price');
+    });
+
+    it('passes type=checkoutUrl when deep-linking from a checkout-link element', () => {
+        const checkoutLinkEl = {
+            isInlinePrice: false,
+            innerText: 'Buy now',
+            getAttribute: () => null,
+            getAttributeNames: () => [],
+        };
+        openOfferSelectorTool(null, checkoutLinkEl);
+        expect(openOstStub.calledOnce).to.be.true;
+        expect(getSearchParamsFromLastCall().get('type')).to.equal('checkoutUrl');
+    });
+});

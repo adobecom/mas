@@ -13,6 +13,7 @@ const ignoresConfig = {
         '**/dist/**',
         'web-components/docs/**',
         'studio/ost/index.js',
+        'studio/ost/ost-new.js',
         '**/nala/libs/auth.setup.cjs',
         '**/nala/libs/webutil.js',
     ],

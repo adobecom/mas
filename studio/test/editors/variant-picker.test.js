@@ -121,6 +121,7 @@ describe('VariantPicker', () => {
             const names = result.map((v) => v.name);
             expect(names).to.include('plans');
             expect(names).to.include('plans-v2');
+            expect(names).to.include('plans-redesign');
             expect(names).to.include('plans-students');
             expect(names).to.include('plans-education');
             expect(names).to.include('catalog');

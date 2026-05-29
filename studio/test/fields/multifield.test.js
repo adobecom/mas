@@ -78,6 +78,24 @@ describe('Multifield', () => {
         expect(el.shadowRoot.querySelectorAll('.field-wrapper').length).to.equal(1);
     });
 
+    it('forwards the variant attribute to each rendered field', async () => {
+        const el = await fixture(
+            html`
+                <mas-multifield variant="plans-redesign" .value="${[{ value: 'a' }]}">
+                    <template>
+                        <sp-textfield class="field"></sp-textfield>
+                    </template>
+                </mas-multifield>
+                ${styles}
+            `,
+            { parentNode: spTheme() },
+        );
+        await el.updateComplete;
+        const field = el.shadowRoot.querySelector('.field-wrapper .field');
+        expect(field).to.exist;
+        expect(field.getAttribute('variant')).to.equal('plans-redesign');
+    });
+
     it('should support mas-mnemonic-field', async () => {
         const value = [
             {

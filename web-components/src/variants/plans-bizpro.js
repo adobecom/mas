@@ -23,6 +23,10 @@ export const BIZPRO_PLANS_AEM_FRAGMENT_MAPPING = {
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'legal-text' },
     secureLabel: true,
+    // TODO(MWPW-192902): The functional AI Assistant add-on stays inert in
+    // production until its add-on placeholder is authored in AEM (proposed
+    // {{addon-acrobat-ai-assistant}}) so it shows in the editor's add-on picker
+    // and resolves to the offer + inline price. Code-side wiring is complete.
     addon: true,
     ctas: { slot: 'footer', size: 'm' },
     whatsIncluded: { tag: 'div', slot: 'whats-included' },

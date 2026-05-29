@@ -82,3 +82,20 @@ describe('BizProPlans.adjustAddon', () => {
         expect(addon.planType).to.be.undefined;
     });
 });
+
+describe('plans-bizpro add-on theming', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    it('renders the bordered add-on wrapper around the slotted merch-addon', async () => {
+        card = await renderCard(
+            '<merch-addon slot="addon"><p>Add AI</p></merch-addon>',
+        );
+        const wrapper = card.shadowRoot.querySelector('.add-on');
+        expect(wrapper).to.exist;
+        // #8d88f2 === rgb(141, 136, 242)
+        expect(getComputedStyle(wrapper).borderTopColor).to.equal(
+            'rgb(141, 136, 242)',
+        );
+    });
+});

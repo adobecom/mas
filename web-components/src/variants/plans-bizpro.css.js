@@ -51,63 +51,25 @@ merch-card[variant="plans-bizpro"] [slot="terms-link"] a {
     text-decoration: underline;
 }
 
-/* AI Assistant add-on row — Figma 1098:33812 / 1098:33951:
-   white bg, #8d88f2 border, 8px radius, checkbox + label + trailing sparkle */
-merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon {
-    display: flex;
-    align-items: center;
-    gap: var(--s2a-spacing-xs, 8px);
-    padding: var(--s2a-spacing-md, 16px) var(--s2a-spacing-sm, 12px);
-    background: var(--s2a-color-background-default, #fff);
-    border: var(--s2a-border-width-sm, 1px) solid #8d88f2;
-    border-radius: var(--s2a-border-radius-sm, 8px);
-    box-sizing: border-box;
-}
-/* Spectrum-2 style checkbox: 20×20, 2px border, 2px radius.
-   Filled accent + white checkmark when checked. */
-merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-checkbox {
-    width: 20px;
-    height: 20px;
-    flex: 0 0 auto;
-    border: 2px solid #8d88f2;
-    border-radius: 2px;
-    box-sizing: border-box;
-    background: #fff;
-    position: relative;
-    cursor: pointer;
-}
-merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-checkbox[data-checked="true"] {
-    background: #8d88f2;
-    border-color: #8d88f2;
-}
-merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-checkbox[data-checked="true"]::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-color: #fff;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 12.2 2.5 8.3 3.9 6.9 6.5 9.4 12.1 3.8 13.5 5.2Z'/%3E%3C/svg%3E") center / 12px no-repeat;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 12.2 2.5 8.3 3.9 6.9 6.5 9.4 12.1 3.8 13.5 5.2Z'/%3E%3C/svg%3E") center / 12px no-repeat;
-}
-merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-label {
+/* AI Assistant add-on row — Figma 1098:33812 / 1098:33951.
+   Themes the real <merch-addon> injected at slot="addon". The purple frame
+   and trailing sparkle live on the variant's .add-on wrapper (see variantStyle);
+   here we size/colour the merch-addon checkbox + label via its custom props. */
+merch-card[variant="plans-bizpro"] merch-addon[slot="addon"] {
     flex: 1 0 0;
     min-width: 0;
-    font-family: 'Adobe Clean', adobe-clean, sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 18px;
-    letter-spacing: 0;
-    color: var(--s2a-color-content-default, #000);
-    margin: 0;
-}
-/* Trailing sparkle — same purple→red AI gradient as the AI Assistant section
-   header icon (see studio/src/constants/plans-bizpro-icons.js ai-sparkle). */
-merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-icon {
-    width: 16px;
-    height: 16px;
-    flex: 0 0 auto;
-    background: linear-gradient(135deg, #8d88f2 0%, #eb1000 100%);
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
+    --merch-addon-gap: var(--s2a-spacing-xs, 8px);
+    --merch-addon-align: center;
+    --merch-addon-checkbox-size: 20px;
+    --merch-addon-checkbox-border: 2px solid #8d88f2;
+    --merch-addon-checkbox-radius: 2px;
+    --merch-addon-checkbox-checked-bg:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23fff' d='M6.5 12.2 2.5 8.3 3.9 6.9 6.5 9.4 12.1 3.8 13.5 5.2Z'/%3E%3C/svg%3E")
+        center / 12px;
+    --merch-addon-checkbox-checked-color: #8d88f2;
+    --merch-addon-label-size: 14px;
+    --merch-addon-label-line-height: 18px;
+    --merch-addon-label-color: var(--s2a-color-content-default, #000);
 }
 
 /* Light-DOM color overrides — beat global promo/legal styling */

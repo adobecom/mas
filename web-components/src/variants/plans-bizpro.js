@@ -825,6 +825,29 @@ export class BizProPlans extends VariantLayout {
             margin: 0;
         }
 
+        :host([variant='plans-bizpro']) .add-on {
+            display: flex;
+            align-items: center;
+            gap: var(--s2a-spacing-xs, 8px);
+            padding: var(--s2a-spacing-md, 16px) var(--s2a-spacing-sm, 12px);
+            background: var(--s2a-color-background-default, #fff);
+            border: 1px solid #8d88f2;
+            border-radius: var(--s2a-border-radius-sm, 8px);
+            box-sizing: border-box;
+        }
+
+        :host([variant='plans-bizpro']) .add-on::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            flex: 0 0 auto;
+            background: linear-gradient(135deg, #8d88f2 0%, #eb1000 100%);
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E")
+                center / contain no-repeat;
+            -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7.498 15.61C6.369 11.154 4.842 9.627 .39 8.502c-.52-.133-.52-.871 0-1.004C4.846 6.37 6.373 4.842 7.498 .39c.133-.52.871-.52 1.004 0C9.63 4.846 11.158 6.373 15.61 7.498c.52.133.52.871 0 1.004C11.154 9.63 9.627 11.158 8.502 15.61c-.133.52-.871.52-1.004 0Z'/%3E%3C/svg%3E")
+                center / contain no-repeat;
+        }
+
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
         @media (min-width: 1280px) {
             :host([variant='plans-bizpro']) .whats-included-toggle {

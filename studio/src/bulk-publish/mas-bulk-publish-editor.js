@@ -676,33 +676,41 @@ class MasBulkPublishEditor extends LitElement {
     async handleRevertConfirmed() {
         this.revertDialogOpen = false;
         const { startReverting } = await import('./bulk-publish-store.js');
-        await this.#withPendingAction(QUICK_ACTION.REVERT, async () => {
-            await startReverting({
-                project: this.project,
-                token: this.token,
-                ioBaseUrl: this.ioBaseUrl,
-                repository: this.repository,
+        try {
+            await this.#withPendingAction(QUICK_ACTION.REVERT, async () => {
+                await startReverting({
+                    project: this.project,
+                    token: this.token,
+                    ioBaseUrl: this.ioBaseUrl,
+                    repository: this.repository,
+                });
             });
-        });
-        this.requestUpdate();
-        if (this.status === BULK_PUBLISH_STATUS.REVERTED) {
-            showToast('Project reverted successfully.', 'positive');
+            this.requestUpdate();
+            if (this.status === BULK_PUBLISH_STATUS.REVERTED) {
+                showToast('Project reverted successfully.', 'positive');
+            }
+        } catch (err) {
+            showToast(err.message || 'Failed to revert the project.', 'negative');
         }
     }
 
     async publish() {
-        await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
-            const { startPublishing } = await import('./bulk-publish-store.js');
-            await startPublishing({
-                project: this.project,
-                token: this.token,
-                ioBaseUrl: this.ioBaseUrl,
-                repository: this.repository,
+        try {
+            await this.#withPendingAction(QUICK_ACTION.PUBLISH, async () => {
+                const { startPublishing } = await import('./bulk-publish-store.js');
+                await startPublishing({
+                    project: this.project,
+                    token: this.token,
+                    ioBaseUrl: this.ioBaseUrl,
+                    repository: this.repository,
+                });
             });
-        });
-        this.requestUpdate();
-        if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) {
-            showToast('Project published successfully.', 'positive');
+            this.requestUpdate();
+            if (this.status === BULK_PUBLISH_STATUS.PUBLISHED) {
+                showToast('Project published successfully.', 'positive');
+            }
+        } catch (err) {
+            showToast(err.message || 'Failed to publish the project.', 'negative');
         }
     }
 

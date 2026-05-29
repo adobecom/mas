@@ -99,13 +99,20 @@ async function revertWithProject(params, odinEndpoint, authToken) {
     const finalStatus = failures.length === 0 ? PROJECT_STATUS.REVERTED : PROJECT_STATUS.PUBLISHED;
     const finalError = failures.length === 0 ? '' : `REVERT:\n${failures.map((f) => `${f.path}: ${f.error}`).join('\n')}`;
 
-    await updateProjectFragment(odinEndpoint, projectId, authToken, {
-        status: finalStatus,
-        snapshots: finalSnapshots,
-        lastError: finalError,
-    }).catch((err) => {
+    try {
+        await updateProjectFragment(odinEndpoint, projectId, authToken, {
+            status: finalStatus,
+            snapshots: finalSnapshots,
+            lastError: finalError,
+        });
+    } catch (err) {
         logger.error(JSON.stringify({ event: 'project-revert-patch-error', projectId, error: err.message }));
-    });
+        return errorResponse(
+            500,
+            'Content was reverted but project state could not be saved. Please retry — if the issue persists, contact support.',
+            logger,
+        );
+    }
 
     logger.info(JSON.stringify({ event: 'project-revert-complete', projectId, finalStatus }));
     return { statusCode: 200, body: { status: finalStatus, lastError: finalError, failures, skipped } };

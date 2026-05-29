@@ -302,6 +302,7 @@ describe('bulk-publish/index.js', () => {
                     getProjectPaths: () => paths,
                     getProjectLocales: () => locales,
                     getProjectTitle: () => 'My Project',
+                    getProjectSnapshots: () => [],
                 },
                 '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
             });
@@ -382,6 +383,7 @@ describe('bulk-publish/index.js', () => {
                     getProjectPaths: () => paths,
                     getProjectLocales: () => [],
                     getProjectTitle: () => 'My Project',
+                    getProjectSnapshots: () => [],
                 },
                 '../../utils.js': { ...realUtils, isAllowed: isAllowedStub },
             });
@@ -393,12 +395,13 @@ describe('bulk-publish/index.js', () => {
             expect(result.body.lastError).to.equal('No valid paths after locale resolution');
         });
 
-        it('logs error but still returns success when final project patch fails', async () => {
+        it('returns 500 with actionable message when final project patch fails', async () => {
             putToOdinStub.onSecondCall().rejects(new Error('final patch failed'));
 
             const result = await projectAction.main({ ...baseParams, paths: undefined, projectId: 'proj-uuid' });
 
-            expect(result.statusCode).to.equal(200);
+            expect(result.error.statusCode).to.equal(500);
+            expect(result.error.body.error).to.include('Content was published but project state could not be saved');
             expect(loggerStub.error).to.have.been.calledWithMatch(sinon.match(/project-final-patch-error/));
         });
     });

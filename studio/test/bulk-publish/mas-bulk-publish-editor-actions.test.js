@@ -145,14 +145,14 @@ describe('mas-bulk-publish-editor (computed getters)', () => {
         expect(el.publishBlockedReason).to.equal('Project must be saved before publishing');
     });
 
-    it('disabledActions enables PUBLISH when an existing project has unsaved changes (auto-saves on publish)', async () => {
+    it('disabledActions disables PUBLISH when an existing project has unsaved changes', async () => {
         const el = await makeEditor();
         Store.bulkPublishProjects.inEdit.set(makeFragmentStore({ items: JSON.stringify([{ status: 'valid' }]) }));
         await el.updateComplete;
         el.hasChanges = true;
         await el.updateComplete;
-        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(false);
-        expect(el.publishBlockedReason).to.equal('');
+        expect(el.disabledActions.has(QUICK_ACTION.PUBLISH)).to.equal(true);
+        expect(el.publishBlockedReason).to.equal('Project must be saved before publishing');
     });
 
     it('disabledActions disables PUBLISH when all valid items are alreadyPublished', async () => {
@@ -483,55 +483,6 @@ describe('mas-bulk-publish-editor (save/delete/lock with repository)', () => {
         await el.saveBulkProject();
 
         expect(repositoryEl.saveFragment.calledOnce).to.equal(true);
-    });
-
-    it('publish auto-saves first when hasChanges is true', async () => {
-        const el = await makeEditor();
-        const fs = makeFragmentStore({
-            title: 'Proj',
-            urls: '',
-            items: JSON.stringify([{ status: 'valid', path: '/content/dam/mas/foo' }]),
-            locales: [],
-        });
-        Store.bulkPublishProjects.inEdit.set(fs);
-        await el.updateComplete;
-        Store.search.set({ path: 'sandbox' });
-        el.hasChanges = true;
-
-        const saveSpy = sandbox.spy(el, 'saveBulkProject');
-        repositoryEl.saveFragment = sandbox.stub().resolves({ id: 'frag-id-1' });
-
-        try {
-            await el.publish();
-        } catch {
-            // publish() may throw later in the bulk-publish-client flow under WTR;
-            // we only assert that saveBulkProject was invoked first.
-        }
-
-        expect(saveSpy.calledOnce).to.equal(true);
-    });
-
-    it('publish does not auto-save when hasChanges is false', async () => {
-        const el = await makeEditor();
-        const fs = makeFragmentStore({
-            title: 'Proj',
-            urls: '',
-            items: JSON.stringify([{ status: 'valid', path: '/content/dam/mas/foo' }]),
-            locales: [],
-        });
-        Store.bulkPublishProjects.inEdit.set(fs);
-        await el.updateComplete;
-        Store.search.set({ path: 'sandbox' });
-
-        const saveSpy = sandbox.spy(el, 'saveBulkProject');
-
-        try {
-            await el.publish();
-        } catch {
-            // ignore downstream bulk-publish-client errors under WTR
-        }
-
-        expect(saveSpy.called).to.equal(false);
     });
 
     it('deleteBulkProject clears inEdit and navigates home for new project without calling repo', async () => {

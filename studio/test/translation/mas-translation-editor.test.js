@@ -148,6 +148,7 @@ describe('MasTranslationEditor', () => {
             Store.translationProjects.prefill.set({
                 targetLocale: 'tr_TR',
                 fragmentPath: '/content/dam/mas/s/en_US/f',
+                isCollection: false,
             });
 
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -157,6 +158,24 @@ describe('MasTranslationEditor', () => {
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['/content/dam/mas/s/en_US/f']);
             expect(el.showSelectedEmptyState).to.be.false;
             expect(el.showLangSelectedEmptyState).to.be.false;
+        });
+
+        it('should put collection prefill into selectedCollections when prefill.isCollection is true', async () => {
+            Store.translationProjects.translationProjectId.set(null);
+            Store.translationProjects.prefill.set({
+                targetLocale: 'pl_PL',
+                fragmentPath: '/content/dam/mas/s/en_US/merch-card-collection/test-collection',
+                isCollection: true,
+            });
+
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await el.updateComplete;
+
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal([
+                '/content/dam/mas/s/en_US/merch-card-collection/test-collection',
+            ]);
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([]);
+            expect(el.showSelectedEmptyState).to.be.false;
         });
 
         it('should have save, discard, delete and loc actions disabled for new project by default', async () => {

@@ -12,6 +12,7 @@ import {
     loadSelectedPlaceholders,
     loadSelectedFragments,
 } from '../utils/items-loader.js';
+import { shouldIgnoreRowClickForSelection } from '../utils/render-utils.js';
 
 class MasSelectItemsTable extends LitElement {
     static styles = styles;
@@ -24,6 +25,7 @@ class MasSelectItemsTable extends LitElement {
         dataReady: { type: Boolean, state: true },
         getDisplayName: { type: Function },
         renderFragmentStatusCell: { type: Function },
+        disableCardExpansion: { type: Boolean },
     };
 
     hasMore = new StoreController(this, Store.fragments.list.hasMore);
@@ -48,6 +50,7 @@ class MasSelectItemsTable extends LitElement {
         this.dataReady = false;
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.renderFragmentStatusCell = () => nothing;
+        this.disableCardExpansion = false;
     }
 
     connectedCallback() {
@@ -149,7 +152,8 @@ class MasSelectItemsTable extends LitElement {
         this.processAbortController?.abort();
         this.processAbortController = null;
         if (this.#collectionsReadyUnsub) {
-            getItemsSelectionStore().allCollections.unsubscribe(this.#collectionsReadyUnsub);
+            const selectionStore = getItemsSelectionStore({ allowUnset: true });
+            selectionStore?.allCollections.unsubscribe(this.#collectionsReadyUnsub);
             this.#collectionsReadyUnsub = null;
         }
     }
@@ -245,9 +249,14 @@ class MasSelectItemsTable extends LitElement {
     #toggleSelected(e, path) {
         e.stopPropagation();
         const newSelected = this.selectedInTable.has(path)
-            ? [...this.selectedInTable].filter((p) => p !== path)
+            ? [...this.selectedInTable].filter((selectedPath) => selectedPath !== path)
             : [...this.selectedInTable, path];
         getItemsSelectionStore()[`selected${this.typeUppercased}`].set(newSelected);
+    }
+
+    #onRowClickForSelection(e, path) {
+        if (shouldIgnoreRowClickForSelection(e)) return;
+        this.#toggleSelected(e, path);
     }
 
     #renderTableBody() {
@@ -260,6 +269,7 @@ class MasSelectItemsTable extends LitElement {
                         html`<mas-collapsible-table-row
                             .topLevelCard=${fragment}
                             .viewOnly=${this.viewOnly}
+                            .disableCardExpansion=${this.disableCardExpansion}
                             .getDisplayName=${this.getDisplayName}
                             .renderFragmentStatusCell=${this.renderFragmentStatusCell}
                         ></mas-collapsible-table-row>`,
@@ -273,6 +283,7 @@ class MasSelectItemsTable extends LitElement {
                             value=${fragment.path}
                             ?selected=${!this.viewOnly && this.selectedInTable.has(fragment.path)}
                             aria-selected=${!this.viewOnly && this.selectedInTable.has(fragment.path) ? 'true' : 'false'}
+                            @click=${!this.viewOnly ? (e) => this.#onRowClickForSelection(e, fragment.path) : nothing}
                         >
                             ${!this.viewOnly
                                 ? html`
@@ -299,6 +310,7 @@ class MasSelectItemsTable extends LitElement {
                             value=${fragment.path}
                             ?selected=${!this.viewOnly && this.selectedInTable.has(fragment.path)}
                             aria-selected=${!this.viewOnly && this.selectedInTable.has(fragment.path) ? 'true' : 'false'}
+                            @click=${!this.viewOnly ? (e) => this.#onRowClickForSelection(e, fragment.path) : nothing}
                         >
                             ${!this.viewOnly
                                 ? html`<sp-table-cell class="table-icon-cell table-icon-cell--checkbox">

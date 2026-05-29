@@ -1,6 +1,7 @@
 import { expect } from '@open-wc/testing';
 import {
     buildCardsDeepLink,
+    generateCodeToUse,
     generateFieldLink,
     camelToTitle,
     stripHtml,
@@ -9,22 +10,49 @@ import {
 } from '../src/utils.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../src/constants.js';
 
+function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch Card: CC Pro: Business') {
+    return {
+        id,
+        model: { path: modelPath },
+        title,
+        getField: (name) => {
+            const fields = {
+                name: { values: ['card-name'] },
+                cardTitle: { values: ['Creative Cloud'] },
+                variant: { values: ['plans'] },
+            };
+            return fields[name] || null;
+        },
+        getTagTitle: () => null,
+    };
+}
+
+describe('generateCodeToUse', () => {
+    it('appends fragment title to richText link text for cards', () => {
+        const fragment = mockFragmentForCode(CARD_MODEL_PATH);
+        const { authorPath, richText, href } = generateCodeToUse(fragment, 'acom', 'content');
+        expect(authorPath).to.not.include('CC Plans Merch Card');
+        expect(richText).to.include(`${authorPath} : ${fragment.title}`);
+        expect(richText).to.include(href);
+    });
+
+    it('appends fragment title to richText link text for collections', () => {
+        const fragment = mockFragmentForCode(COLLECTION_MODEL_PATH, 'frag-456', 'My Collection Title');
+        const { authorPath, richText } = generateCodeToUse(fragment, 'acom', 'content');
+        expect(authorPath).to.include('My Collection Title');
+        expect(richText).to.include(`${authorPath} : ${fragment.title}`);
+    });
+
+    it('leaves richText unchanged when fragment has no title', () => {
+        const fragment = mockFragmentForCode(CARD_MODEL_PATH, 'frag-123', '');
+        const { authorPath, richText, href } = generateCodeToUse(fragment, 'acom', 'content');
+        expect(richText).to.equal(`<a href="${href}" target="_blank">${authorPath}</a>`);
+    });
+});
+
 describe('generateFieldLink', () => {
     function mockFragment(modelPath, id = 'frag-123') {
-        return {
-            id,
-            model: { path: modelPath },
-            title: 'Test Collection',
-            getField: (name) => {
-                const fields = {
-                    name: { values: ['card-name'] },
-                    cardTitle: { values: ['Creative Cloud'] },
-                    variant: { values: ['plans'] },
-                };
-                return fields[name] || null;
-            },
-            getTagTitle: () => null,
-        };
+        return mockFragmentForCode(modelPath, id, 'Test Collection');
     }
 
     it('returns null for unknown model path', () => {
@@ -148,14 +176,14 @@ describe('buildCardsDeepLink', () => {
     it('builds merch-card URL', () => {
         const href = buildCardsDeepLink({ id: uuid, model: { path: CARD_MODEL_PATH } }, 'sandbox', 'content');
         expect(href).to.include('content-type=merch-card');
-        expect(href).to.include('query=' + uuid);
+        expect(href).to.include(`query=${uuid}`);
         expect(href).to.include('path=sandbox');
     });
 
     it('builds merch-card-collection URL', () => {
         const href = buildCardsDeepLink({ id: uuid, model: { path: COLLECTION_MODEL_PATH } }, 'sandbox', 'content');
         expect(href).to.include('content-type=merch-card-collection');
-        expect(href).to.include('query=' + uuid);
+        expect(href).to.include(`query=${uuid}`);
     });
 
     it('returns null when fragment id is missing', () => {

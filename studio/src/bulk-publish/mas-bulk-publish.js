@@ -105,10 +105,9 @@ class MasBulkPublish extends LitElement {
     async handleRevertConfirmed() {
         const { projectStore } = this.revertPending;
         this.revertPending = null;
-        const project = projectStore.get();
         const token = window.adobeIMS?.getAccessToken()?.token;
         const ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
-        await startReverting({ project, token, ioBaseUrl, repository: this.repository });
+        await startReverting({ project: projectStore, token, ioBaseUrl, repository: this.repository });
         const status = getProjectField(projectStore.get(), 'status', '');
         if (status === BULK_PUBLISH_STATUS.REVERTED) {
             showToast('Project reverted successfully.', 'positive');

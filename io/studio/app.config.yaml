@@ -91,3 +91,15 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    cleanup-variations:
+                        function: src/cleanup-variations/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            LOG_LEVEL: debug
+                            odinEndpoint: $ODIN_ENDPOINT
+                        limits:
+                            timeout: 3600000
+                        annotations:
+                            require-adobe-auth: true
+                            final: true

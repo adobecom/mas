@@ -20,10 +20,16 @@ class MasSearchAndFilters extends LitElement {
         marketSegmentFilter: { type: Array, state: true },
         customerSegmentFilter: { type: Array, state: true },
         productFilter: { type: Array, state: true },
+        offerTypeFilter: { type: Array, state: true },
+        planTypeFilter: { type: Array, state: true },
+        pznFilter: { type: Array, state: true },
         templateOptions: { type: Array },
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
         productOptions: { type: Array },
+        offerTypeOptions: { type: Array },
+        planTypeOptions: { type: Array },
+        pznOptions: { type: Array },
         searchOnly: { type: Boolean, reflect: true },
         promotionSurfaceOptions: { type: Array },
         promotionSurface: { type: String },
@@ -36,10 +42,16 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
+        this.offerTypeFilter = [];
+        this.planTypeFilter = [];
+        this.pznFilter = [];
         this.templateOptions = [];
         this.marketSegmentOptions = [];
         this.customerSegmentOptions = [];
         this.productOptions = [];
+        this.offerTypeOptions = [];
+        this.planTypeOptions = [];
+        this.pznOptions = [];
         this.dataSubscription = null;
         this.promotionSurfaceOptions = [];
         this.promotionSurface = '';
@@ -108,6 +120,9 @@ class MasSearchAndFilters extends LitElement {
         const marketSegmentMap = new Map(this.marketSegmentOptions.map((opt) => [opt.id || opt.value, opt]));
         const customerSegmentMap = new Map(this.customerSegmentOptions.map((opt) => [opt.id || opt.value, opt]));
         const productMap = new Map(this.productOptions.map((opt) => [opt.id || opt.value, opt]));
+        const offerTypeMap = new Map(this.offerTypeOptions.map((opt) => [opt.id || opt.value, opt]));
+        const planTypeMap = new Map(this.planTypeOptions.map((opt) => [opt.id || opt.value, opt]));
+        const pznMap = new Map(this.pznOptions.map((opt) => [opt.id || opt.value, opt]));
 
         for (const id of this.templateFilter) {
             const option = templateMap.get(id);
@@ -125,6 +140,18 @@ class MasSearchAndFilters extends LitElement {
             const option = productMap.get(id);
             if (option) filters.push({ type: FILTER_TYPE.PRODUCT, id, label: option.title || option.label });
         }
+        for (const id of this.offerTypeFilter) {
+            const option = offerTypeMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.OFFER_TYPE, id, label: option.title || option.label });
+        }
+        for (const id of this.planTypeFilter) {
+            const option = planTypeMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.PLAN_TYPE, id, label: option.title || option.label });
+        }
+        for (const id of this.pznFilter) {
+            const option = pznMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.PZN, id, label: option.title || option.label });
+        }
         return filters;
     }
 
@@ -132,6 +159,9 @@ class MasSearchAndFilters extends LitElement {
         const marketSegments = new Map();
         const customerSegments = new Map();
         const products = new Map();
+        const offerTypes = new Map();
+        const planTypes = new Map();
+        const pzns = new Map();
         for (const fragment of getItemsSelectionStore()[`all${this.typeUppercased}`].value) {
             if (!fragment.tags) continue;
 
@@ -144,6 +174,12 @@ class MasSearchAndFilters extends LitElement {
                     customerSegments.set(tagId, { id: tagId, title: tagTitle });
                 } else if (tagId.startsWith('mas:product_code/')) {
                     products.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:offer_type/')) {
+                    offerTypes.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:plan_type/')) {
+                    planTypes.set(tagId, { id: tagId, title: tagTitle });
+                } else if (tagId.startsWith('mas:pzn/')) {
+                    pzns.set(tagId, { id: tagId, title: tagTitle });
                 }
             }
         }
@@ -154,6 +190,9 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentOptions = Array.from(marketSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.customerSegmentOptions = Array.from(customerSegments.values()).sort((a, b) => a.title.localeCompare(b.title));
         this.productOptions = Array.from(products.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.offerTypeOptions = Array.from(offerTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.planTypeOptions = Array.from(planTypes.values()).sort((a, b) => a.title.localeCompare(b.title));
+        this.pznOptions = Array.from(pzns.values()).sort((a, b) => a.title.localeCompare(b.title));
     }
 
     willUpdate(changed) {
@@ -162,7 +201,10 @@ class MasSearchAndFilters extends LitElement {
             changed.has('templateFilter') ||
             changed.has('marketSegmentFilter') ||
             changed.has('customerSegmentFilter') ||
-            changed.has('productFilter')
+            changed.has('productFilter') ||
+            changed.has('offerTypeFilter') ||
+            changed.has('planTypeFilter') ||
+            changed.has('pznFilter')
         ) {
             this.#applyFilters();
         }
@@ -183,6 +225,15 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.PRODUCT:
                 currentValues = [...this.productFilter];
+                break;
+            case FILTER_TYPE.OFFER_TYPE:
+                currentValues = [...this.offerTypeFilter];
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                currentValues = [...this.planTypeFilter];
+                break;
+            case FILTER_TYPE.PZN:
+                currentValues = [...this.pznFilter];
                 break;
             default:
                 currentValues = [];
@@ -209,6 +260,15 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = currentValues;
                 break;
+            case FILTER_TYPE.OFFER_TYPE:
+                this.offerTypeFilter = currentValues;
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                this.planTypeFilter = currentValues;
+                break;
+            case FILTER_TYPE.PZN:
+                this.pznFilter = currentValues;
+                break;
         }
     }
 
@@ -230,6 +290,15 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = this.productFilter.filter((filterId) => filterId !== id);
                 break;
+            case FILTER_TYPE.OFFER_TYPE:
+                this.offerTypeFilter = this.offerTypeFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.PLAN_TYPE:
+                this.planTypeFilter = this.planTypeFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.PZN:
+                this.pznFilter = this.pznFilter.filter((filterId) => filterId !== id);
+                break;
         }
     }
 
@@ -238,6 +307,9 @@ class MasSearchAndFilters extends LitElement {
         this.marketSegmentFilter = [];
         this.customerSegmentFilter = [];
         this.productFilter = [];
+        this.offerTypeFilter = [];
+        this.planTypeFilter = [];
+        this.pznFilter = [];
     }
 
     resetFilters() {
@@ -349,6 +421,9 @@ class MasSearchAndFilters extends LitElement {
         const hasMarket = this.marketSegmentFilter?.length > 0;
         const hasCustomer = this.customerSegmentFilter?.length > 0;
         const hasProduct = this.productFilter?.length > 0;
+        const hasOfferType = this.offerTypeFilter?.length > 0;
+        const hasPlanType = this.planTypeFilter?.length > 0;
+        const hasPzn = this.pznFilter?.length > 0;
 
         const result = source.filter((fragment) => {
             if (query) {
@@ -389,6 +464,15 @@ class MasSearchAndFilters extends LitElement {
             if (hasProduct) {
                 if (!fragment.tags?.some((tag) => this.productFilter.includes(tag.id))) return false;
             }
+            if (hasOfferType) {
+                if (!fragment.tags?.some((tag) => this.offerTypeFilter.includes(tag.id))) return false;
+            }
+            if (hasPlanType) {
+                if (!fragment.tags?.some((tag) => this.planTypeFilter.includes(tag.id))) return false;
+            }
+            if (hasPzn) {
+                if (!fragment.tags?.some((tag) => this.pznFilter.includes(tag.id))) return false;
+            }
             return true;
         });
 
@@ -416,6 +500,8 @@ class MasSearchAndFilters extends LitElement {
             <div class="filters">
                 ${this.renderCount()}
                 ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE)}
+                ${this.#renderFilterPicker('Offer Type', this.offerTypeOptions, this.offerTypeFilter, FILTER_TYPE.OFFER_TYPE)}
+                ${this.#renderFilterPicker('Plan Type', this.planTypeOptions, this.planTypeFilter, FILTER_TYPE.PLAN_TYPE)}
                 ${this.#renderFilterPicker(
                     'Market Segment',
                     this.marketSegmentOptions,
@@ -429,6 +515,7 @@ class MasSearchAndFilters extends LitElement {
                     FILTER_TYPE.CUSTOMER_SEGMENT,
                 )}
                 ${this.#renderFilterPicker('Product', this.productOptions, this.productFilter, FILTER_TYPE.PRODUCT)}
+                ${this.#renderFilterPicker('Personalization', this.pznOptions, this.pznFilter, FILTER_TYPE.PZN)}
                 ${surfacePicker}
             </div>
             ${this.#renderAppliedFilters()}

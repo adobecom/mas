@@ -20,6 +20,7 @@ export const BIZPRO_PLANS_AEM_FRAGMENT_MAPPING = {
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'legal-text' },
     secureLabel: true,
+    addon: true,
     ctas: { slot: 'footer', size: 'm' },
     whatsIncluded: { tag: 'div', slot: 'whats-included' },
     borderColor: {
@@ -65,7 +66,7 @@ export class BizProPlans extends VariantLayout {
     }
 
     get hasAddOn() {
-        return !!this.card.querySelector('[slot="add-on"]');
+        return !!this.card.querySelector('[slot="addon"]');
     }
 
     get hasLegalText() {
@@ -305,7 +306,7 @@ export class BizProPlans extends VariantLayout {
                     : nothing}
                 ${this.hasAddOn
                     ? html`<div class="add-on">
-                          <slot name="add-on"></slot>
+                          <slot name="addon"></slot>
                       </div>`
                     : nothing}
                 <footer>

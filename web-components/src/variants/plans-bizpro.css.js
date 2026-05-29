@@ -53,7 +53,7 @@ merch-card[variant="plans-bizpro"] [slot="terms-link"] a {
 
 /* AI Assistant add-on row — Figma 1098:33812 / 1098:33951:
    white bg, #8d88f2 border, 8px radius, checkbox + label + trailing sparkle */
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon {
+merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon {
     display: flex;
     align-items: center;
     gap: var(--s2a-spacing-xs, 8px);
@@ -65,7 +65,7 @@ merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon {
 }
 /* Spectrum-2 style checkbox: 20×20, 2px border, 2px radius.
    Filled accent + white checkmark when checked. */
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-checkbox {
+merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-checkbox {
     width: 20px;
     height: 20px;
     flex: 0 0 auto;
@@ -76,11 +76,11 @@ merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-checkbox {
     position: relative;
     cursor: pointer;
 }
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-checkbox[data-checked="true"] {
+merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-checkbox[data-checked="true"] {
     background: #8d88f2;
     border-color: #8d88f2;
 }
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-checkbox[data-checked="true"]::after {
+merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-checkbox[data-checked="true"]::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -88,7 +88,7 @@ merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-checkbox[data-check
     mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 12.2 2.5 8.3 3.9 6.9 6.5 9.4 12.1 3.8 13.5 5.2Z'/%3E%3C/svg%3E") center / 12px no-repeat;
     -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6.5 12.2 2.5 8.3 3.9 6.9 6.5 9.4 12.1 3.8 13.5 5.2Z'/%3E%3C/svg%3E") center / 12px no-repeat;
 }
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-label {
+merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-label {
     flex: 1 0 0;
     min-width: 0;
     font-family: 'Adobe Clean', adobe-clean, sans-serif;
@@ -101,7 +101,7 @@ merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-label {
 }
 /* Trailing sparkle — same purple→red AI gradient as the AI Assistant section
    header icon (see studio/src/constants/plans-bizpro-icons.js ai-sparkle). */
-merch-card[variant="plans-bizpro"] [slot="add-on"] .ai-addon-icon {
+merch-card[variant="plans-bizpro"] [slot="addon"] .ai-addon-icon {
     width: 16px;
     height: 16px;
     flex: 0 0 auto;

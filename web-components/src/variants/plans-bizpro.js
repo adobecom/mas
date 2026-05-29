@@ -1,7 +1,10 @@
 import { VariantLayout } from './variant-layout';
 import { html, css, nothing } from 'lit';
 import { CSS } from './plans-bizpro.css.js';
-import { EVENT_MERCH_QUANTITY_SELECTOR_CHANGE } from '../constants.js';
+import {
+    EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    SELECTOR_MAS_INLINE_PRICE,
+} from '../constants.js';
 
 export const BIZPRO_PLANS_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -67,6 +70,28 @@ export class BizProPlans extends VariantLayout {
 
     get hasAddOn() {
         return !!this.card.querySelector('[slot="addon"]');
+    }
+
+    get mainPrice() {
+        return this.card.querySelector(
+            `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
+        );
+    }
+
+    async adjustAddon() {
+        await this.card.updateComplete;
+        const addon = this.card.addon;
+        if (!addon) return;
+        addon.setAttribute('custom-checkbox', '');
+        const price = this.mainPrice;
+        if (!price) return;
+        await price.onceSettled();
+        const planType = price.value?.[0]?.planType;
+        if (planType) addon.planType = planType;
+    }
+
+    async postCardUpdateHook() {
+        this.adjustAddon();
     }
 
     get hasLegalText() {

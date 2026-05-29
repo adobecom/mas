@@ -40,3 +40,45 @@ describe('plans-bizpro add-on slot', () => {
             .exist;
     });
 });
+
+describe('BizProPlans.adjustAddon', () => {
+    function makeLayout(cardOverrides = {}) {
+        const layout = Object.create(BizProPlans.prototype);
+        layout.card = {
+            updateComplete: Promise.resolve(),
+            querySelector: () => null,
+            addon: null,
+            ...cardOverrides,
+        };
+        return layout;
+    }
+
+    it('does nothing when there is no add-on', async () => {
+        const layout = makeLayout({ addon: null });
+        await layout.adjustAddon(); // must not throw
+    });
+
+    it('sets custom-checkbox and planType from the settled main price', async () => {
+        const addon = { setAttribute: sinon.spy() };
+        const price = {
+            onceSettled: () => Promise.resolve(),
+            value: [{ planType: 'PUF' }],
+        };
+        const layout = makeLayout({
+            addon,
+            querySelector: (sel) =>
+                sel.includes('heading-m') ? price : null,
+        });
+        await layout.adjustAddon();
+        expect(addon.setAttribute.calledWith('custom-checkbox', '')).to.be.true;
+        expect(addon.planType).to.equal('PUF');
+    });
+
+    it('sets custom-checkbox but skips planType when no price', async () => {
+        const addon = { setAttribute: sinon.spy() };
+        const layout = makeLayout({ addon, querySelector: () => null });
+        await layout.adjustAddon();
+        expect(addon.setAttribute.calledWith('custom-checkbox', '')).to.be.true;
+        expect(addon.planType).to.be.undefined;
+    });
+});

@@ -564,7 +564,7 @@ describe('MasTopNav', () => {
 
             await el.onLocaleChanged({ detail: { locale: 'tr_TR', fragmentId: null } });
 
-            expect(navigateSpy.calledWith('test-id')).to.be.true;
+            expect(navigateSpy.called).to.be.false;
             expect(Store.search.value.region).to.equal('tr_TR');
         });
     });
